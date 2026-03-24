@@ -1,0 +1,7 @@
+node_modules/
+ios/
+android/
+*.p12
+*.mobileprovision
+build/
+.DS_Store
