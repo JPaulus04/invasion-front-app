@@ -1,0 +1,22 @@
+{
+  "appId": "com.paulus.laststandcommand",
+  "appName": "Invasion Front Commander",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#0d0e08",
+    "preferredContentMode": "mobile",
+    "allowsLinkPreview": false,
+    "scrollEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#0d0e08",
+      "showSpinner": false
+    }
+  }
+}
