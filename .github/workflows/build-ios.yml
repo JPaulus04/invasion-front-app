@@ -53,6 +53,9 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode \
             > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          UUID=$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision 2>/dev/null | plutil -extract UUID xml1 -o - - | sed -n 's/.*<string>\(.*\)<\/string>.*/\1/p')
+          echo "Profile UUID: $UUID"
+          echo "PROFILE_UUID=$UUID" >> $GITHUB_ENV
 
       - name: Install CocoaPods
         run: |
@@ -68,9 +71,10 @@ jobs:
             -configuration Release \
             -destination generic/platform=iOS \
             CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER=profile \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
-            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }}
+            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
+            PROVISIONING_PROFILE="$PROFILE_UUID" \
+            OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
 
       - name: Export IPA
         run: |
@@ -86,11 +90,12 @@ jobs:
             <key>signingStyle</key><string>manual</string>
             <key>provisioningProfiles</key><dict>
               <key>com.paulus.laststandcommand</key>
-              <string>profile</string>
+              <string>PROFILE_UUID_PLACEHOLDER</string>
             </dict>
           </dict></plist>
           PLIST
           sed -i '' "s/TEAM_ID_PLACEHOLDER/${{ secrets.APPLE_TEAM_ID }}/" ExportOptions.plist
+          sed -i '' "s/PROFILE_UUID_PLACEHOLDER/$PROFILE_UUID/" ExportOptions.plist
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
             -exportOptionsPlist ExportOptions.plist \
