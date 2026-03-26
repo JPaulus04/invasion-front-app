@@ -27,7 +27,7 @@ jobs:
       - name: Capacitor sync
         run: npx cap sync ios
 
-- name: Import signing certificate
+      - name: Import signing certificate
         env:
           CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
@@ -44,7 +44,7 @@ jobs:
           security set-key-partition-list \
             -S apple-tool:,apple: \
             -s -k "$KEYCHAIN_PASSWORD" build.keychain
-            
+
       - name: Install provisioning profile
         env:
           PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
