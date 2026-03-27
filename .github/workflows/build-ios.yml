@@ -62,6 +62,13 @@ jobs:
           cd ios/App
           pod install --repo-update
 
+      - name: Fix Pods signing settings
+        run: |
+          cd ios/App
+          sed -i '' 's/CODE_SIGN_STYLE = Manual/CODE_SIGN_STYLE = Automatic/g' Pods/Pods.xcodeproj/project.pbxproj
+          sed -i '' '/PROVISIONING_PROFILE_SPECIFIER/d' Pods/Pods.xcodeproj/project.pbxproj
+          sed -i '' '/PROVISIONING_PROFILE = /d' Pods/Pods.xcodeproj/project.pbxproj
+
       - name: Build archive
         run: |
           xcodebuild archive \
