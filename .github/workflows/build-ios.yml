@@ -36,14 +36,10 @@ jobs:
           with open(path) as f:
               content = f.read()
 
-          # Find all PRODUCT_BUNDLE_IDENTIFIER values
           print("Bundle IDs found:")
           for m in re.finditer(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);', content):
               print(" ", m.group(1).strip())
 
-          # Replace CODE_SIGN_STYLE = Automatic with Manual only for App target
-          # and inject provisioning profile specifier
-          # We do this by finding the App target build configuration blocks
           content = re.sub(
               r'(PRODUCT_BUNDLE_IDENTIFIER = com\.paulus\.laststandcommand;)',
               r'\1\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tCODE_SIGN_IDENTITY = "iPhone Distribution";',
@@ -128,7 +124,6 @@ jobs:
             -destination generic/platform=iOS \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
 
       - name: Export IPA
