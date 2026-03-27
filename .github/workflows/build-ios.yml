@@ -27,13 +27,41 @@ jobs:
       - name: Capacitor sync
         run: npx cap sync ios
 
+      - name: Patch Xcode project
+        run: |
+          python3 - << 'EOF'
+          import re
+
+          path = "ios/App/App.xcodeproj/project.pbxproj"
+          with open(path) as f:
+              content = f.read()
+
+          # Find all PRODUCT_BUNDLE_IDENTIFIER values
+          print("Bundle IDs found:")
+          for m in re.finditer(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);', content):
+              print(" ", m.group(1).strip())
+
+          # Replace CODE_SIGN_STYLE = Automatic with Manual only for App target
+          # and inject provisioning profile specifier
+          # We do this by finding the App target build configuration blocks
+          content = re.sub(
+              r'(PRODUCT_BUNDLE_IDENTIFIER = com\.paulus\.laststandcommand;)',
+              r'\1\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tCODE_SIGN_IDENTITY = "iPhone Distribution";',
+              content
+          )
+
+          with open(path, "w") as f:
+              f.write(content)
+
+          print("Project patched successfully")
+          EOF
+
       - name: Patch Podfile
         run: |
           python3 - << 'EOF'
           with open("ios/App/Podfile", "r") as f:
               content = f.read()
 
-          # Inject automatic signing into the existing post_install block
           signing_code = """
             installer.pods_project.targets.each do |target|
               target.build_configurations.each do |config|
@@ -44,7 +72,6 @@ jobs:
             end
           """
 
-          # Insert after "post_install do |installer|"
           content = content.replace(
               "post_install do |installer|",
               "post_install do |installer|\n" + signing_code
@@ -53,9 +80,7 @@ jobs:
           with open("ios/App/Podfile", "w") as f:
               f.write(content)
 
-          print("Podfile patched successfully")
-          print("--- Podfile contents ---")
-          print(content)
+          print("Podfile patched")
           EOF
 
       - name: Import signing certificate
@@ -101,7 +126,6 @@ jobs:
             -archivePath build/App.xcarchive \
             -configuration Release \
             -destination generic/platform=iOS \
-            CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
