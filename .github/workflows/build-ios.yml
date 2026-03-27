@@ -64,10 +64,26 @@ jobs:
 
       - name: Fix Pods signing settings
         run: |
-          cd ios/App
-          sed -i '' 's/CODE_SIGN_STYLE = Manual/CODE_SIGN_STYLE = Automatic/g' Pods/Pods.xcodeproj/project.pbxproj
-          sed -i '' '/PROVISIONING_PROFILE_SPECIFIER/d' Pods/Pods.xcodeproj/project.pbxproj
-          sed -i '' '/PROVISIONING_PROFILE = /d' Pods/Pods.xcodeproj/project.pbxproj
+          python3 - << 'EOF'
+          import re
+
+          path = "ios/App/Pods/Pods.xcodeproj/project.pbxproj"
+          with open(path, "r") as f:
+              content = f.read()
+
+          # Switch all targets to Automatic signing
+          content = content.replace("CODE_SIGN_STYLE = Manual", "CODE_SIGN_STYLE = Automatic")
+
+          # Remove all provisioning profile references
+          content = re.sub(r'\s*PROVISIONING_PROFILE\s*=\s*[^;]+;', '', content)
+          content = re.sub(r'\s*PROVISIONING_PROFILE_SPECIFIER\s*=\s*[^;]+;', '', content)
+          content = re.sub(r'\s*"PROVISIONING_PROFILE\[.*?\]"\s*=\s*[^;]+;', '', content)
+
+          with open(path, "w") as f:
+              f.write(content)
+
+          print("Done — Pods signing settings patched")
+          EOF
 
       - name: Build archive
         run: |
