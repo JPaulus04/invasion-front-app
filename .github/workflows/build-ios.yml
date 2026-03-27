@@ -62,27 +62,38 @@ jobs:
           cd ios/App
           pod install --repo-update
 
-      - name: Fix Pods signing settings
+      - name: Fix signing settings
         run: |
           python3 - << 'EOF'
-          import re
+          import re, glob
 
-          path = "ios/App/Pods/Pods.xcodeproj/project.pbxproj"
-          with open(path, "r") as f:
-              content = f.read()
+          # Patch ALL pbxproj files found
+          for path in glob.glob("ios/App/**/*.pbxproj", recursive=True):
+              print(f"Patching: {path}")
+              with open(path, "r") as f:
+                  content = f.read()
 
-          # Switch all targets to Automatic signing
-          content = content.replace("CODE_SIGN_STYLE = Manual", "CODE_SIGN_STYLE = Automatic")
+              original = content
 
-          # Remove all provisioning profile references
-          content = re.sub(r'\s*PROVISIONING_PROFILE\s*=\s*[^;]+;', '', content)
-          content = re.sub(r'\s*PROVISIONING_PROFILE_SPECIFIER\s*=\s*[^;]+;', '', content)
-          content = re.sub(r'\s*"PROVISIONING_PROFILE\[.*?\]"\s*=\s*[^;]+;', '', content)
+              # Switch Manual to Automatic for everything
+              content = content.replace(
+                  "CODE_SIGN_STYLE = Manual",
+                  "CODE_SIGN_STYLE = Automatic"
+              )
 
-          with open(path, "w") as f:
-              f.write(content)
+              # Remove ALL provisioning profile lines
+              content = re.sub(r'[ \t]*PROVISIONING_PROFILE[^;]*;[ \t]*\n', '\n', content)
+              content = re.sub(r'[ \t]*"PROVISIONING_PROFILE[^;]*;[ \t]*\n', '\n', content)
 
-          print("Done — Pods signing settings patched")
+              # Remove LastStandCommand_AppStore specifically
+              content = content.replace("LastStandCommand_AppStore", "")
+
+              if content != original:
+                  with open(path, "w") as f:
+                      f.write(content)
+                  print(f"  -> Modified")
+              else:
+                  print(f"  -> No changes needed")
           EOF
 
       - name: Build archive
