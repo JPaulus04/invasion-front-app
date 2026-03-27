@@ -73,11 +73,9 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
-            PROVISIONING_PROFILE="$PROFILE_UUID" \
             PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
             OTHER_CODE_SIGN_FLAGS="--keychain build.keychain" \
-            PODS_CODE_SIGN_STYLE=Automatic \
-            PODS_PROVISIONING_PROFILE_SPECIFIER=
+            PODS_CODE_SIGN_STYLE=Automatic
 
       - name: Export IPA
         run: |
