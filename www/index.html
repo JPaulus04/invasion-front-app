@@ -442,20 +442,7 @@ body::after {
 #careerBtn .act-sub  { font-size: 7.5px; font-family: 'Share Tech Mono', monospace;
                          letter-spacing: 1px; color: rgba(176,144,232,.4); }
 
-/* Auto-wave toggle — embedded in wave button when enabled */
-#autoWaveToggle {
-  position: absolute;
-  top: 3px; right: 4px;
-  font-size: 6px;
-  font-family: 'Share Tech Mono', monospace;
-  letter-spacing: .5px;
-  color: rgba(160,255,192,.45);
-  background: rgba(0,0,0,.3);
-  border-radius: 3px;
-  padding: 1px 3px;
-  pointer-events: none;
-}
-#autoWaveToggle.on { color: rgba(24,240,106,.8); }
+
 
 /* Speed cycle button — minimal, no border, lives in HUD */
 #speedCycleBtn {
@@ -1478,6 +1465,59 @@ body::after {
   margin-top: 4px;
   line-height: 1.4;
 }
+
+// ── Troop Unlock Rewards ──────────────────────────────────────
+function _applyUnlockReward(id, s) {
+  const slots = UNLOCKS.troopSlots(s.prestige);
+  // Find the lane with fewest troops to deploy the free unit
+  const laneCounts = [0,1,2].map(function(l) {
+    return s.troops.filter(function(t) { return t.lane === l; }).length;
+  });
+  const bestLane = laneCounts.indexOf(Math.min(...laneCounts));
+
+  if (id === 'heavy') {
+    // Free Heavy Team to strongest (most pressure) lane
+    if (laneCounts[bestLane] < slots) {
+      s.troops.push(createTroop('heavy', bestLane));
+      G.log('★ Free Heavy Team deployed!', 'good');
+    }
+  }
+  else if (id === 'medic') {
+    // Free Medic + heal base 20 HP
+    if (laneCounts[bestLane] < slots) {
+      s.troops.push(createTroop('medic', bestLane));
+    }
+    s.baseHp = Math.min(s.maxBaseHp, s.baseHp + 20);
+    G.log('★ Free Medic deployed · +20 base HP!', 'good');
+  }
+  else if (id === 'grenadier') {
+    // Free Grenadier + temporary splash boost
+    if (laneCounts[bestLane] < slots) {
+      s.troops.push(createTroop('grenadier', bestLane));
+    }
+    s.perks.grenadeSplash = (s.perks.grenadeSplash || 0) + 0.25;
+    G.log('★ Free Grenadier deployed · +25% splash!', 'good');
+  }
+  else if (id === 'ew') {
+    // Free EW Specialist + entry jam for all enemies
+    if (laneCounts[bestLane] < slots) {
+      s.troops.push(createTroop('ew', bestLane));
+    }
+    s.perks.entryJam = true;
+    G.log('★ Free EW Specialist deployed · Entry Jam active!', 'good');
+  }
+  else if (id === 'sniper') {
+    // Free Sniper + permanent orbital damage boost
+    if (laneCounts[bestLane] < slots) {
+      s.troops.push(createTroop('sniper', bestLane));
+    }
+    s.mods.orbitalDamage = (s.mods.orbitalDamage || 0) + 30;
+    s._savedOrbitalFlat = (s._savedOrbitalFlat || 0);
+    G.log('★ Free Sniper deployed · Orbital +30 dmg!', 'good');
+  }
+  playSfx('prestige');
+}
+
 /* ══ BARRACKS TABS ════════════════════════════════════════════ */
 #barracks-tabs {
   display: flex; gap: 4px; margin-bottom: 12px;
@@ -1657,6 +1697,88 @@ body::after {
 }
 .ldi-bar-wrap { height: 3px; background: rgba(0,0,0,.4); border-radius: 2px; margin-top: 4px; overflow: hidden; }
 .ldi-bar      { height: 100%; border-radius: 2px; }
+
+/* ══ AUTO-WAVE STRIP ═════════════════════════════════════════ */
+#autowav-strip {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: rgba(8,14,6,.92);
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  z-index: 20;
+  pointer-events: all;
+}
+#autowav-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+#autowav-label.active { color: var(--green); }
+#autowav-unlock-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--amber);
+  background: rgba(200,144,32,.1);
+  border: 1px solid rgba(200,144,32,.4);
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+#autowav-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#autowav-status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+#autowav-status.on { color: var(--green); }
+/* Toggle switch */
+#autowav-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+#autowav-switch input { display: none; }
+#autowav-slider {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid var(--line2);
+  transition: background .2s;
+}
+#autowav-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  left: 2px; top: 2px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform .2s, background .2s;
+}
+#autowav-switch input:checked + #autowav-slider {
+  background: rgba(122,173,32,.25);
+  border-color: var(--green);
+}
+#autowav-switch input:checked + #autowav-slider::before {
+  transform: translateX(20px);
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+}
 </style>
 </head>
 <body>
@@ -1695,9 +1817,12 @@ body::after {
     <div id="hud-hpbar-wrap"><div id="hud-hpbar" style="width:100%;background:var(--green)"></div></div>
   </div>
 
+
   <!-- ══ BATTLEFIELD ══════════════════════════════════════════ -->
   <div id="battlefield-wrap">
     <canvas id="battlefield"></canvas>
+    <!-- Auto-wave overlay strip -->
+    <div id="autowav-strip"><span id="autowav-label">⚡ AUTO</span><div id="autowav-right"></div></div>
     <div id="waveSky"></div>
     <canvas id="weatherCanvas"></canvas>
     <!-- Damage vignette — intensifies as base HP drops -->
@@ -1756,7 +1881,7 @@ body::after {
       <button class="act-btn" id="waveBtn">
         <span class="act-icon">▶</span>
         <span class="act-sub" id="waveBtnSub">LAUNCH WAVE</span>
-        <span id="autoWaveToggle">AUTO</span>
+
       </button>
       <button class="act-btn" id="pauseBtn">
         <span class="act-icon" id="pauseIcon">⏸</span>
@@ -2082,15 +2207,15 @@ body::after {
 const CFG = Object.freeze({
 
   // ── Economy ──────────────────────────────────────────
-  BASE_CREDITS:            150,
+  BASE_CREDITS:            100,
   TROOP_COST_SCALE:        1.13,   // each extra copy of same unit costs more
   TROOP_COST_MIN:          0.45,   // floor as fraction of base cost
-  WAVE_REWARD_BASE:        68,     // V8: +3 vs V7, eases early economy
-  WAVE_REWARD_SCALE:       19,
+  WAVE_REWARD_BASE:        45,     // tightened economy — fewer freebie credits
+  WAVE_REWARD_SCALE:       12,
   KILL_REWARDS: Object.freeze({
-    runner:10, grunt:13, shield:17, brute:30,   // brute +2 (tanky, should reward)
-    flyer:19,  stalker:20,                       // stalker +2 (annoying, reward kill)
-    razorwing:15, warlord:160, siege:190, phaselord:210
+    runner:7,  grunt:10, shield:13, brute:22,   // reduced — credits should feel earned
+    flyer:14,  stalker:15,                       // stalker still rewards patience
+    razorwing:11, warlord:120, siege:145, phaselord:160
   }),
 
   // ── Base ─────────────────────────────────────────────
@@ -2120,14 +2245,15 @@ const CFG = Object.freeze({
   ORBITAL_BASE_CD:         22,
   ORBITAL_BASE_DMG:        75,     // V8: 72→75
   ORBITAL_WAVE_DMG:        5,
-  ORBITAL_PRESTIGE_DMG:    12,
+  ORBITAL_PRESTIGE_DMG:    18,
   ORBITAL_UNLOCK_DMG:      22,
 
   // ── Progression ──────────────────────────────────────
   PRESTIGE_WAVE_REQ:       10,
   PRESTIGE_GAIN_DIV:       4,
-  PRESTIGE_INCOME_BONUS:   0.09,
-  PRESTIGE_DMG_BONUS:      0.07,
+  PRESTIGE_INCOME_BONUS:   0.14,
+  PRESTIGE_DMG_BONUS:      0.10,
+  PRESTIGE_HP_BONUS:       0.15,  // +15% troop max HP per rank
   UNLOCK_INCOME_BONUS:     0.10,
 
   // ── Phase Lord ───────────────────────────────────────
@@ -2160,7 +2286,7 @@ const UNLOCKS = Object.freeze({
   active:          p => new Set(PERMANENT_UNLOCKS.filter(u => p >= u.rank).map(u => u.id)),
   has:             (p, id) => p >= (PERMANENT_UNLOCKS.find(u => u.id === id)?.rank ?? 99),
   troopSlots:      p => UNLOCKS.has(p, 'u_troop7') ? 7 : CFG.TROOP_SLOTS,
-  startCr:         p => CFG.BASE_CREDITS + (UNLOCKS.has(p, 'u_startcr') ? 50 : 0),
+  startCr:         p => CFG.BASE_CREDITS + (UNLOCKS.has(p, 'u_startcr') ? 80 : 0),
   orbitalDmgBonus: p => UNLOCKS.has(p, 'u_orbital') ? CFG.ORBITAL_UNLOCK_DMG : 0,
   incomeBonus:     p => UNLOCKS.has(p, 'u_income') ? CFG.UNLOCK_INCOME_BONUS : 0,
   barricadeBonus:  p => UNLOCKS.has(p, 'u_barricade') ? CFG.BARRICADE_UNLOCK_BONUS : 0,
@@ -2386,10 +2512,10 @@ const DOCTRINES = [
   { id:'logistics', name:'Logistics Corps', icon:'⚙',
     tagline:'Outbuild the enemy. Supply wins wars.',
     difficulty:'Economic', diffColor:'#2db858',
-    effects:['+110 starting cr','Troops 22% cheaper','+18% income','-8% fire rate'],
+    effects:['+80 starting cr','Troops 22% cheaper','+18% income','-8% fire rate'],
     synergy:'Global upgrades / Lane infrastructure', weakness:'Slower early pressure response',
     exclusiveRewards:['r_windfall','r_oversupply'],
-    apply(s){ s.credits+=110; s.mods.costMult-=0.22; s.mods.incomeMult+=0.18; s.mods.fireRateMult-=0.08; }
+    apply(s){ s.credits+=80; s.mods.costMult-=0.22; s.mods.incomeMult+=0.18; s.mods.fireRateMult-=0.08; }
   },
   { id:'ew', name:'EW Superiority', icon:'📡',
     tagline:'Jam. Slow. Strip. Control is the weapon.',
@@ -2431,7 +2557,7 @@ const REWARD_POOL = [
   { id:'r_medic',      tier:1, docSynergy:['fortress'],        docExclusive:null,        name:'Forward Aid Stations',     text:'Medic heal +40%. +8 HP on wave clear.',                  apply:s=>{s.perks.medicHeal+=0.40; s.perks.clearRepair+=8;} },
   { id:'r_gren',       tier:1, docSynergy:['blitz'],           docExclusive:null,        name:'Frag Stockpile',           text:'Grenadier splash +28%, fire rate +10%.',                  apply:s=>{s.perks.grenadeSplash+=0.28; s.perks.grenRate+=0.10;} },
   { id:'r_ew',         tier:1, docSynergy:['ew'],              docExclusive:null,        name:'Signal Overmatch',         text:'EW slow +40%, shield strip +45%.',                       apply:s=>{s.perks.ewSlow+=0.40; s.perks.ewShield+=0.45;} },
-  { id:'r_economy',    tier:1, docSynergy:['logistics'],       docExclusive:null,        name:'Supply Windfall',          text:'+180 credits, +12% future income.',                      apply:s=>{s.credits+=180; s.mods.incomeMult+=0.12;} },
+  { id:'r_economy',    tier:1, docSynergy:['logistics'],       docExclusive:null,        name:'Supply Windfall',          text:'+120 credits, +10% future income.',                      apply:s=>{s.credits+=120; s.mods.incomeMult+=0.10;} },
   { id:'r_fortify',    tier:1, docSynergy:['fortress'],        docExclusive:null,        name:'Emergency Fortification',  text:'+30 max HP, restore 22 HP.',                             apply:s=>{s.maxBaseHp+=30; s.baseHp=Math.min(s.maxBaseHp,s.baseHp+22);} },
   { id:'r_intel',      tier:1, docSynergy:[],                  docExclusive:null,        name:'Combat Intel',             text:'All enemy speeds -8%.',                                  apply:s=>{s.perks.enemySlow+=0.08;} },
   // Tier 2 — uncommon
@@ -2487,7 +2613,7 @@ const LANE_UPGRADE_DEFS = [
 
 // ── Permanent Unlocks ──────────────────────────────────
 const PERMANENT_UNLOCKS = [
-  { id:'u_startcr',   rank:1, name:'Veteran Stipend',    desc:'Start every run with +50 extra credits.' },
+  { id:'u_startcr',   rank:1, name:'Veteran Stipend',    desc:'Start every run with +80 cr. Unlocked at Rank 1.' },
   { id:'u_sniper',    rank:2, name:'Sniper Program',      desc:'Sniper Team unit unlocked for deployment.' },
   { id:'u_barricade', rank:2, name:'Reinforced Walls',    desc:'Barricades block +0.5 extra damage per level.' },
   { id:'u_orbital',   rank:3, name:'Satellite Priority',  desc:'Orbital damage +22 permanently.' },
@@ -2730,6 +2856,113 @@ function enemyTemplate() {
   else                                       return { kind:'grunt',    lane, y:lY,    hp:22*tough*hm,    speed:spd(38+s.wave*1.2),  damage:4+Math.floor(s.wave*.09), r:14, shield:0,               color:'#e06060' };
 }
 
+// ── Elite Enemy Variants ─────────────────────────────────────
+// Elites are normal enemies with a special mutation applied
+// They appear from Wave 15+ and become more common in later chapters
+const ELITE_MUTATIONS = {
+  berserker: {
+    name: 'Berserker',
+    color: '#FF2020',
+    apply(e, wave) {
+      e._mutation = 'berserker';
+      e.hp   *= 1.4;
+      e.speed *= 1.0; // normal speed but charges when damaged
+      e.damage *= 1.6;
+      e._berserkerThreshold = e.hp * 0.35; // charges below 35% HP
+      e.color = '#FF2020';
+      e.r = Math.round(e.r * 1.1);
+    },
+    desc: 'Charges at double speed below 35% HP'
+  },
+  armored: {
+    name: 'Ironclad',
+    color: '#8090A8',
+    apply(e, wave) {
+      e._mutation = 'ironclad';
+      e.hp   *= 1.8;
+      e.shield = (e.shield || 0) + 40 + wave * 3;
+      e.speed *= 0.85;
+      e.color = '#8090A8';
+      e.r = Math.round(e.r * 1.15);
+    },
+    desc: 'Extra shield layer, only Grenadier/Orbital strips it fast'
+  },
+  phantom: {
+    name: 'Phantom',
+    color: '#60D0FF',
+    apply(e, wave) {
+      e._mutation = 'phantom';
+      e.hp *= 1.2;
+      e._phantomCd = 8 + Math.random() * 4; // seconds between phase-outs
+      e._phantomActive = false;
+      e.color = '#60D0FF';
+    },
+    desc: 'Briefly untargetable every 8-12 seconds'
+  },
+  toxic: {
+    name: 'Toxic',
+    color: '#60E060',
+    apply(e, wave) {
+      e._mutation = 'toxic';
+      e.hp *= 1.3;
+      e.damage *= 1.3;
+      e._toxicPulse = 0;
+      e.color = '#60E060';
+    },
+    desc: 'Pulses poison on nearby troops when in range'
+  },
+  warden: {
+    name: 'Warden',
+    color: '#E0A020',
+    apply(e, wave) {
+      e._mutation = 'warden';
+      e.hp *= 2.0;
+      e.speed *= 0.70;
+      e.damage *= 1.4;
+      e._wardenAura = true; // nearby enemies take 20% less damage
+      e.color = '#E0A020';
+      e.r = Math.round(e.r * 1.25);
+    },
+    desc: 'Nearby enemies take 20% less damage while alive'
+  },
+  razorbacked: {
+    name: 'Razorbacked',
+    color: '#FF8040',
+    apply(e, wave) {
+      e._mutation = 'razorbacked';
+      e.hp *= 1.5;
+      e.speed *= 1.25;
+      e._reflectDmg = true; // reflects 15% of melee damage
+      e.color = '#FF8040';
+    },
+    desc: 'Faster and reflects 15% of damage taken'
+  },
+};
+
+function _trySpawnElite(e, wave) {
+  if (wave < 15) return e; // no elites before wave 15
+  // Elite chance scales with wave: 5% at W15, 20% at W40, 35% at W70+
+  const eliteChance = Math.min(0.35, 0.05 + (wave - 15) * 0.006);
+  if (Math.random() > eliteChance) return e;
+  // Only certain enemy kinds can become elite
+  const eligibleKinds = ['runner','grunt','shield','brute','flyer','stalker'];
+  if (!eligibleKinds.includes(e.kind)) return e;
+  // Pick a mutation weighted by wave
+  const pool = wave < 25
+    ? ['berserker', 'armored']
+    : wave < 40
+    ? ['berserker', 'armored', 'toxic', 'razorbacked']
+    : Object.keys(ELITE_MUTATIONS);
+  const mutId = pool[Math.floor(Math.random() * pool.length)];
+  const mut = ELITE_MUTATIONS[mutId];
+  if (mut) {
+    mut.apply(e, wave);
+    e._elite = true;
+    e._eliteName = mut.name;
+  }
+  return e;
+}
+
 function spawnEnemy() {
   const s = G.state;
   const t = enemyTemplate();
@@ -2808,7 +3041,7 @@ function finishWave() {
   s.lastWaveStats.credits += reward;
   s.creditsEarned += reward;
 
-  const repair = 6 + s.perks.clearRepair + s.lanes.reduce((a, l) => a + l.medbay * 0.8, 0);
+  const repair = (6 + (s.prestige||0) * 3) + s.perks.clearRepair + s.lanes.reduce((a, l) => a + l.medbay * 0.8, 0);
   s.baseHp = Math.min(s.maxBaseHp, s.baseHp + repair);
   G.log(`Wave ${s.wave} cleared. +${reward}${deep ? ` (+${deep} deep)` : ''} cr  +${Math.floor(repair)} HP`, 'good');
 
@@ -2821,10 +3054,26 @@ function buildRewardChoices() {
   const s = G.state;
   const doc = s.selectedDoctrine;
   const mastery = docMastery(G.meta, doc);
-  const exclPool = mastery >= 7 ? REWARD_POOL.filter(r => r.docExclusive === doc) : [];
-  const synPool  = REWARD_POOL.filter(r => !r.docExclusive && r.docSynergy.includes(doc));
-  const genPool  = REWARD_POOL.filter(r => !r.docExclusive && !r.docSynergy.includes(doc));
-  const filterTier = pool => s.wave >= 6 ? pool : pool.filter(r => r.tier < 3);
+  const wave = s.wave;
+
+  // Wave-gated tier system — rewards unlock progressively every 10 waves
+  // W1-9:   Tier 1 only (basic buffs — rifle, economy, fortify, intel)
+  // W10-19: Tier 1 + some Tier 2 (overdrive, rally, reinforce)
+  // W20-29: Full Tier 1 + Tier 2 pool
+  // W30-39: Tier 2 + some Tier 3 (doctrine exclusives start appearing)
+  // W40+:   Full pool including all Tier 3 and doctrine exclusives
+  const maxTier = wave < 10 ? 1 : wave < 20 ? 1.5 : wave < 30 ? 2 : wave < 40 ? 2.5 : 3;
+  const exclPool = (mastery >= 7 && wave >= 40) ? REWARD_POOL.filter(r => r.docExclusive === doc) : [];
+
+  const filterTier = pool => pool.filter(r => {
+    if (r.tier === 1) return true;
+    if (r.tier === 2) return maxTier >= 1.5 && (maxTier >= 2 || Math.random() < 0.4);
+    if (r.tier === 3) return maxTier >= 2.5 && (maxTier >= 3 || Math.random() < 0.35);
+    return false;
+  });
+
+  const synPool = REWARD_POOL.filter(r => !r.docExclusive && r.docSynergy.includes(doc));
+  const genPool = REWARD_POOL.filter(r => !r.docExclusive && !r.docSynergy.includes(doc));
 
   let picks = [];
   if (exclPool.length) picks.push(exclPool[Math.floor(Math.random() * exclPool.length)]);
@@ -3088,6 +3337,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const isBoss = ['warlord','siege','phaselord'].includes(e.kind);
       if (isBoss) { s.bossKills++; G.log(`${cap(e.kind)} destroyed! +${reward} cr`, 'good'); }
       if (s.perks.killChain && s.abilities.orbitalCd > 0) s.abilities.orbitalCd = Math.max(0, s.abilities.orbitalCd - 0.4);
+      if (e._elite) s.fx.push({ kind:'boom', x:e.x, y:e.y, life:.45, max:.45, r:e.r+18 });
       s.fx.push({ kind:'boom', x:e.x, y:e.y, life:.28, max:.28, r:e.r+5 });
       playSfx(isBoss ? 'bossDown' : 'enemyDown');
     }
@@ -5599,7 +5849,7 @@ function updateHUD() {
   // ── Orbital button state ──────────────────────────────────
   const cd = (s.abilities && s.abilities.orbitalCd || 0);
   const orb = $id('orbitalBtn');
-  const orbWaveLock = s.wave < 3;
+  const orbWaveLock = s.wave < 20 && !s._orbPurchaseUnlocked;
   const killCharge  = (s._orbKills || 0);
   const orbUnlocked = s._orbUnlocked || killCharge >= 8;
   if (orbUnlocked) s._orbUnlocked = true;
@@ -5608,7 +5858,7 @@ function updateHUD() {
   if (orbWaveLock) {
     orb.disabled = true; orb.style.opacity = '0.35';
     orb.querySelector('.act-icon').textContent = '🔒';
-    if (orbSub) orbSub.textContent = 'WAVE 3';
+    if (orbSub) orbSub.textContent = 'WAVE 20';
     orb.classList.remove('ready');
   } else if (!orbUnlocked) {
     orb.disabled = true; orb.style.opacity = '0.6';
@@ -5630,7 +5880,6 @@ function updateHUD() {
   // ── Wave button state ─────────────────────────────────────
   const wb    = $id('waveBtn');
   const wbSub = $id('waveBtnSub');
-  const autoEl = $id('autoWaveToggle');
   if (s.waveInProgress) {
     wb.disabled = true;
     wb.querySelector('.act-icon').textContent = '↺';
@@ -5642,11 +5891,6 @@ function updateHUD() {
     wb.querySelector('.act-icon').textContent = isBossNext ? '⚠' : '▶';
     if (wbSub) wbSub.textContent = isBossNext ? 'BOSS WAVE' : 'LAUNCH WAVE';
     wb.classList.add('ready');
-  }
-  // Auto-wave indicator
-  if (autoEl) {
-    autoEl.textContent = _autoWave ? 'AUTO ON' : 'AUTO';
-    autoEl.classList.toggle('on', _autoWave);
   }
 
   // ── Pause button state ────────────────────────────────────
@@ -5726,11 +5970,11 @@ function updateHUD() {
 
 const UNIT_UNLOCK_DEFS = {
   rifle:     { always: true },
-  heavy:     { waveReq: 5,  unlockCost: 80,  label: 'Reach Wave 5 + 80 cr' },
-  medic:     { waveReq: 10, unlockCost: 80,  label: 'Reach Wave 10 + 80 cr' },
-  grenadier: { waveReq: 15, unlockCost: 150, label: 'Reach Wave 15 + 150 cr' },
-  ew:        { waveReq: 20, unlockCost: 150, label: 'Reach Wave 20 + 150 cr' },
-  sniper:    { waveReq: 25, unlockCost: 200, label: 'Reach Wave 25 + 200 cr' },
+  heavy:     { waveReq: 20, unlockCost: 120, label: 'Reach Wave 20 + 120 cr', reward: 'Free Heavy Team deployed to strongest lane' },
+  medic:     { waveReq: 30, unlockCost: 160, label: 'Reach Wave 30 + 160 cr', reward: 'Free Medic deployed + base healed 20 HP' },
+  grenadier: { waveReq: 40, unlockCost: 220, label: 'Reach Wave 40 + 220 cr', reward: 'Free Grenadier deployed + +25% splash this wave' },
+  ew:        { waveReq: 50, unlockCost: 280, label: 'Reach Wave 50 + 280 cr', reward: 'Free EW Specialist + all enemies slowed on entry' },
+  sniper:    { waveReq: 65, unlockCost: 380, label: 'Reach Wave 65 + 380 cr', reward: 'Free Sniper Team + Orbital damage +30 permanently' },
 };
 
 // Promotion tiers — each troop can be promoted once
@@ -5738,47 +5982,49 @@ const UNIT_UNLOCK_DEFS = {
 // Each level: name, hpBonus, dmgBonus, rateBonus (fire rate mult), cost
 // Costs escalate, bonuses compound. Max = level 5 (index 4).
 const PROMO_TIERS = {
+  // ★ costs scale steeply — 5-star is a late-game luxury costing ~1000 cr total
+  // Each promotion also requires the troop to have survived N waves (wavesSurvived check in _buildPromoteCard)
   rifle: [
-    { name:'Veteran Rifles',    hpBonus:10, dmgBonus:3,  rateBonus:0,    cost:60  },
-    { name:'Seasoned Infantry', hpBonus:12, dmgBonus:4,  rateBonus:0.05, cost:100 },
-    { name:'Elite Rifles',      hpBonus:14, dmgBonus:6,  rateBonus:0.08, cost:150 },
-    { name:'Shock Troopers',    hpBonus:16, dmgBonus:8,  rateBonus:0.10, cost:210 },
-    { name:'Legion Guard',      hpBonus:20, dmgBonus:12, rateBonus:0.15, cost:280 },
+    { name:'Veteran Rifles',    hpBonus:12, dmgBonus:4,  rateBonus:0,    cost:80,  waveReq:5  },
+    { name:'Seasoned Infantry', hpBonus:16, dmgBonus:7,  rateBonus:0.06, cost:160, waveReq:12 },
+    { name:'Elite Rifles',      hpBonus:22, dmgBonus:11, rateBonus:0.10, cost:280, waveReq:22 },
+    { name:'Shock Troopers',    hpBonus:30, dmgBonus:16, rateBonus:0.15, cost:440, waveReq:35 },
+    { name:'Legion Guard',      hpBonus:42, dmgBonus:24, rateBonus:0.22, cost:650, waveReq:50, reward:'All Rifle Squads gain +10% dmg permanently' },
   ],
   heavy: [
-    { name:'Heavy Veterans',    hpBonus:16, dmgBonus:7,  rateBonus:0,    cost:80  },
-    { name:'Hardened Gunners',  hpBonus:20, dmgBonus:10, rateBonus:0,    cost:130 },
-    { name:'Iron Corps',        hpBonus:24, dmgBonus:14, rateBonus:0.05, cost:190 },
-    { name:'Siege Breakers',    hpBonus:28, dmgBonus:18, rateBonus:0.08, cost:260 },
-    { name:'Devastators',       hpBonus:34, dmgBonus:24, rateBonus:0.12, cost:340 },
+    { name:'Heavy Veterans',    hpBonus:20, dmgBonus:9,  rateBonus:0,    cost:100, waveReq:5  },
+    { name:'Hardened Gunners',  hpBonus:28, dmgBonus:14, rateBonus:0,    cost:200, waveReq:14 },
+    { name:'Iron Corps',        hpBonus:38, dmgBonus:20, rateBonus:0.06, cost:340, waveReq:26 },
+    { name:'Siege Breakers',    hpBonus:50, dmgBonus:28, rateBonus:0.10, cost:520, waveReq:40 },
+    { name:'Devastators',       hpBonus:68, dmgBonus:40, rateBonus:0.16, cost:760, waveReq:55, reward:'This unit becomes unkillable for 1 wave after promotion' },
   ],
   medic: [
-    { name:'Field Surgeons',    hpBonus:8,  dmgBonus:0,  rateBonus:0.10, cost:70  },
-    { name:'Combat Medics',     hpBonus:10, dmgBonus:0,  rateBonus:0.15, cost:110 },
-    { name:'Trauma Specialists',hpBonus:12, dmgBonus:0,  rateBonus:0.20, cost:160 },
-    { name:'Battlefield Docs',  hpBonus:14, dmgBonus:2,  rateBonus:0.25, cost:220 },
-    { name:'Miracle Workers',   hpBonus:18, dmgBonus:3,  rateBonus:0.35, cost:290 },
+    { name:'Field Surgeons',    hpBonus:10, dmgBonus:0,  rateBonus:0.12, cost:90,  waveReq:5  },
+    { name:'Combat Medics',     hpBonus:14, dmgBonus:0,  rateBonus:0.20, cost:180, waveReq:14 },
+    { name:'Trauma Specialists',hpBonus:18, dmgBonus:0,  rateBonus:0.30, cost:300, waveReq:26 },
+    { name:'Battlefield Docs',  hpBonus:24, dmgBonus:3,  rateBonus:0.42, cost:460, waveReq:40 },
+    { name:'Miracle Workers',   hpBonus:32, dmgBonus:5,  rateBonus:0.60, cost:680, waveReq:55, reward:'+25 base HP restored immediately' },
   ],
   ew: [
-    { name:'EW Operators',      hpBonus:8,  dmgBonus:3,  rateBonus:0.08, cost:75  },
-    { name:'Signal Specialists',hpBonus:10, dmgBonus:5,  rateBonus:0.12, cost:120 },
-    { name:'Cyber Warfare',     hpBonus:12, dmgBonus:7,  rateBonus:0.15, cost:175 },
-    { name:'Ghost Network',     hpBonus:14, dmgBonus:9,  rateBonus:0.20, cost:240 },
-    { name:'Phantom Corps',     hpBonus:18, dmgBonus:12, rateBonus:0.28, cost:310 },
+    { name:'EW Operators',      hpBonus:10, dmgBonus:4,  rateBonus:0.10, cost:95,  waveReq:5  },
+    { name:'Signal Specialists',hpBonus:14, dmgBonus:7,  rateBonus:0.16, cost:190, waveReq:14 },
+    { name:'Cyber Warfare',     hpBonus:18, dmgBonus:11, rateBonus:0.22, cost:320, waveReq:26 },
+    { name:'Ghost Network',     hpBonus:24, dmgBonus:15, rateBonus:0.30, cost:490, waveReq:40 },
+    { name:'Phantom Corps',     hpBonus:32, dmgBonus:20, rateBonus:0.42, cost:720, waveReq:55, reward:'EW slow chains to 2 nearby enemies permanently' },
   ],
   grenadier: [
-    { name:'Demo Experts',      hpBonus:10, dmgBonus:5,  rateBonus:0.05, cost:85  },
-    { name:'Blast Specialists', hpBonus:12, dmgBonus:8,  rateBonus:0.08, cost:135 },
-    { name:'Ordnance Corps',    hpBonus:14, dmgBonus:11, rateBonus:0.10, cost:195 },
-    { name:'Hellfire Squad',    hpBonus:16, dmgBonus:15, rateBonus:0.12, cost:265 },
-    { name:'Armageddon Unit',   hpBonus:20, dmgBonus:20, rateBonus:0.18, cost:340 },
+    { name:'Demo Experts',      hpBonus:12, dmgBonus:7,  rateBonus:0.06, cost:105, waveReq:5  },
+    { name:'Blast Specialists', hpBonus:16, dmgBonus:12, rateBonus:0.10, cost:210, waveReq:14 },
+    { name:'Ordnance Corps',    hpBonus:22, dmgBonus:18, rateBonus:0.14, cost:355, waveReq:26 },
+    { name:'Hellfire Squad',    hpBonus:30, dmgBonus:26, rateBonus:0.18, cost:540, waveReq:40 },
+    { name:'Armageddon Unit',   hpBonus:42, dmgBonus:38, rateBonus:0.26, cost:800, waveReq:55, reward:'Next Orbital Strike deals double damage' },
   ],
   sniper: [
-    { name:'Elite Snipers',     hpBonus:8,  dmgBonus:10, rateBonus:0.05, cost:95  },
-    { name:'Marksmen',          hpBonus:10, dmgBonus:15, rateBonus:0.08, cost:150 },
-    { name:'Designated Hunters',hpBonus:12, dmgBonus:20, rateBonus:0.10, cost:215 },
-    { name:'Shadow Operatives', hpBonus:14, dmgBonus:26, rateBonus:0.13, cost:290 },
-    { name:'Ghost Protocol',    hpBonus:18, dmgBonus:34, rateBonus:0.18, cost:375 },
+    { name:'Elite Snipers',     hpBonus:10, dmgBonus:14, rateBonus:0.06, cost:120, waveReq:5  },
+    { name:'Marksmen',          hpBonus:14, dmgBonus:22, rateBonus:0.10, cost:240, waveReq:14 },
+    { name:'Designated Hunters',hpBonus:18, dmgBonus:32, rateBonus:0.14, cost:400, waveReq:26 },
+    { name:'Shadow Operatives', hpBonus:24, dmgBonus:44, rateBonus:0.18, cost:600, waveReq:40 },
+    { name:'Ghost Protocol',    hpBonus:32, dmgBonus:60, rateBonus:0.24, cost:880, waveReq:55, reward:'Orbital Strike cooldown permanently -6s' },
   ],
 };
 
@@ -5800,6 +6046,18 @@ function _canUnlockUnit(s, id) {
 }
 
 // ── Promote card builder — shared by promote tab ──────────────
+function _applyPromoReward(tier, s) {
+  if (!tier.reward) return;
+  const r = tier.reward;
+  if (r.includes('Rifle Squads gain')) { s.perks.rifleDamage = (s.perks.rifleDamage||0) + 0.10; showToast('★★★★★ ' + r); }
+  else if (r.includes('unkillable')) { s._heavyShield = true; showToast('★★★★★ ' + r); }
+  else if (r.includes('+25 base HP')) { s.baseHp = Math.min(s.maxBaseHp, s.baseHp + 25); showToast('★★★★★ ' + r); }
+  else if (r.includes('chains to 2')) { s.perks.ewChain = true; showToast('★★★★★ ' + r); }
+  else if (r.includes('double damage')) { s.perks._nextOrbDouble = true; showToast('★★★★★ ' + r); }
+  else if (r.includes('cooldown permanently')) { s.mods.orbitalCdFlat = (s.mods.orbitalCdFlat||0) + 6; showToast('★★★★★ ' + r); }
+  playSfx('prestige');
+}
+
 function _buildPromoteCard(trp, s) {
   const promoList = PROMO_TIERS[trp.type.id];
   if (!promoList) return document.createElement('div');
@@ -5852,26 +6110,34 @@ function _buildPromoteCard(trp, s) {
               '+' + nextPromo.hpBonus + ' HP · +' + nextPromo.dmgBonus + ' dmg' +
               (nextPromo.rateBonus > 0 ? ' · +' + Math.round(nextPromo.rateBonus*100) + '% rate' : '') +
             '</div>' +
+            (nextPromo.reward ? '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--amber);margin-top:3px">★ ' + nextPromo.reward + '</div>' : '') +
           '</div>' +
-          '<button class="promote-btn" ' + (canPromo ? '' : 'disabled') + ' style="' + (canPromo ? 'border-color:' + trp.type.color + ';color:' + trp.type.color + ';' : '') + '">' +
-            (canPromo ? nextPromo.cost + ' cr' : 'Need cr') +
-          '</button>' +
+          (function() {
+            const wl = nextPromo.waveReq && (s.wave||1) < nextPromo.waveReq;
+            const btnLabel = wl ? ('🔒 W' + nextPromo.waveReq) : canPromo ? (nextPromo.cost + ' cr' + (nextPromo.reward ? ' ★' : '')) : ('⚠ ' + nextPromo.cost + ' cr');
+            const btnDis = wl || !canPromo;
+            return '<button class="promote-btn" ' + (btnDis ? 'disabled' : '') + ' style="' + (!btnDis ? 'border-color:' + trp.type.color + ';color:' + trp.type.color + ';' : '') + '">' + btnLabel + '</button>';
+          })() +
         '</div>'
       : '<div style="text-align:center;padding:7px;font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--green)">★★★★★ FULLY PROMOTED</div>'
     );
 
   if (nextPromo) {
     card.querySelector('.promote-btn').addEventListener('click', function() {
+      const waveBlocked = nextPromo.waveReq && (s.wave||1) < nextPromo.waveReq;
+      if (waveBlocked) { showToast('⚠ Reach Wave ' + nextPromo.waveReq + ' to promote'); haptic('medium'); return; }
       if (!canPromo) return;
       s.credits -= nextPromo.cost;
       trp.maxHp += nextPromo.hpBonus;
-      trp.hp    += nextPromo.hpBonus;
+      trp.hp = Math.min(trp.hp + nextPromo.hpBonus, trp.maxHp);
       if (nextPromo.dmgBonus) trp.type = Object.assign({}, trp.type, { damage: (trp.type.damage || 0) + nextPromo.dmgBonus });
       if (nextPromo.rateBonus) trp.type = Object.assign({}, trp.type, { fireRate: (trp.type.fireRate || 1) * (1 - nextPromo.rateBonus) });
       trp._promoted = (trp._promoted || 0) + 1;
+      if (nextPromo.reward) _applyPromoReward({ reward: nextPromo.reward }, s);
       _sfxPromotion();
       haptic('success');
-      showToast('↑ ' + nextPromo.name + '!');
+      const newStars = '★'.repeat(trp._promoted) + '☆'.repeat(5 - trp._promoted);
+      showToast(newStars + ' ' + trp.type.name + ' → ' + nextPromo.name + (nextPromo.reward ? ' ★' : '') + '!');
       renderEnlistSheet(); updateHUD();
     });
   }
@@ -6593,8 +6859,9 @@ function renderStoreSheet() {
       desc: 'Boost your speed and unlock key units early.',
       perks: [
         '×5 Speed unlock — play faster',
-        'Heavy Team pre-unlocked (skip Wave 5 grind)',
-        'Grenadier pre-unlocked (skip Wave 15 grind)',
+        'Orbital Strike unlocked immediately',
+        'Heavy Team pre-unlocked (skip Wave 15 grind)',
+        'Grenadier pre-unlocked (skip Wave 25 grind)',
         'Supporter badge in HUD',
       ],
       owned: localStorage.getItem('ifc_iap_supporter') === '1',
@@ -6710,21 +6977,30 @@ function _storeApplyPurchase(id) {
   if (id === 'autowav') {
     localStorage.setItem('ifc_autowav', '1');
     _autoWaveUnlocked = true;
-    haptic('success'); showToast('⚡ Auto-Wave unlocked! Long-press LAUNCH WAVE to enable.');
+    haptic('success'); showToast('⚡ Auto-Wave unlocked!');
+    _updateAutowavStrip();
   } else if (id === 'supporter') {
     localStorage.setItem('ifc_iap_supporter', '1');
     // Add ×5 speed to cycle
     if (!_speeds.find(function(sp) { return sp.val === 5; })) {
       _speeds.splice(3, 0, { val: 5, label: '▶▶▶▶ 5×', cls: 's3' });
     }
-    // Unlock Heavy + Grenadier
+    // Unlock Heavy + Grenadier + Orbital (skip grind)
     if (s._unlockedUnits) { s._unlockedUnits.heavy = true; s._unlockedUnits.grenadier = true; }
+    // Apply their rewards too
+    _applyUnlockReward('heavy', s);
+    _applyUnlockReward('grenadier', s);
+    s._orbPurchaseUnlocked = true;
     haptic('success'); showToast('⚡ Supporter Pack activated!');
   } else if (id === 'commander') {
     localStorage.setItem('ifc_iap_commander', '1');
     if (s._unlockedUnits) {
-      ['heavy','medic','ew','grenadier','sniper'].forEach(function(u) { s._unlockedUnits[u] = true; });
+      ['heavy','medic','ew','grenadier','sniper'].forEach(function(u) {
+        s._unlockedUnits[u] = true;
+        _applyUnlockReward(u, s);
+      });
     }
+    s._orbPurchaseUnlocked = true;
     _storeApplyPurchase('quickbuy');
     _storeApplyPurchase('autowav');
     haptic('success'); showToast('👑 Commander Edition activated!');
@@ -6820,35 +7096,7 @@ function _startAmbient() {
     var ac = (typeof _ctx !== 'undefined') ? _ctx : null;
     if (!ac || _ambientNodes) return;
 
-    // ── Wind — narrow high-pass for subtle air movement, not white noise ──
-    var bufSize = ac.sampleRate * 3;
-    var buf = ac.createBuffer(1, bufSize, ac.sampleRate);
-    var data = buf.getChannelData(0);
-    for (var i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
-
-    var wind = ac.createBufferSource();
-    wind.buffer = buf; wind.loop = true;
-
-    // High-pass removes the loud low rumble, leaving only a faint air hiss
-    var windHp = ac.createBiquadFilter();
-    windHp.type = 'highpass';
-    windHp.frequency.value = 2200;
-    windHp.Q.value = 0.8;
-
-    // Second bandpass keeps it in the "breeze" range
-    var windBp = ac.createBiquadFilter();
-    windBp.type = 'bandpass';
-    windBp.frequency.value = 3500;
-    windBp.Q.value = 1.2;
-
-    var windGain = ac.createGain();
-    windGain.gain.value = 0.06; // quiet air hiss only
-
-    wind.connect(windHp);
-    windHp.connect(windBp);
-    windBp.connect(windGain);
-    windGain.connect(ac.destination);
-    wind.start();
+    // Wind noise removed — caused white noise on mobile devices
 
     // ── Background music — simple pentatonic minor melody ──
     // Notes in A minor pentatonic: A2, C3, D3, E3, G3 (in Hz)
@@ -6899,7 +7147,7 @@ function _startAmbient() {
       } catch(e2) {}
     }
 
-    _ambientNodes = { wind, windGain, windHp, windBp, melodyGain, _melTimer: null };
+    _ambientNodes = { melodyGain, _melTimer: null };
     _scheduleMelStep(); // kick off melody
 
   } catch(e) {}
@@ -6909,14 +7157,11 @@ function _stopAmbient() {
   try {
     if (_ambientNodes) {
       var t = (typeof _ctx !== 'undefined' && _ctx) ? _ctx.currentTime : 0;
-      if (_ambientNodes.windGain) _ambientNodes.windGain.gain.setTargetAtTime(0, t, 0.5);
       if (_ambientNodes.melodyGain) _ambientNodes.melodyGain.gain.setTargetAtTime(0, t, 0.3);
       if (_ambientNodes._melTimer) clearTimeout(_ambientNodes._melTimer);
       if (_ambientNodes.droneGain) _ambientNodes.droneGain.gain.setTargetAtTime(0, t, 0.3);
       if (_ambientNodes.droneInterval) clearInterval(_ambientNodes.droneInterval);
-      var nodes = _ambientNodes;
-      _ambientNodes = null; // clear immediately so _scheduleMelStep stops re-scheduling
-      setTimeout(function() { try { nodes.wind.stop(); } catch(e2) {} }, 600);
+      _ambientNodes = null;
     }
   } catch(e) {}
 }
@@ -6928,11 +7173,7 @@ function _tickAmbientAndHeartbeat() {
     var s = G.state;
     var hpf = s.baseHp / (s.maxBaseHp || 100);
 
-    // Wind intensity: slightly louder during waves
-    if (_ambientNodes && _ambientNodes.windGain) {
-      var targetVol = s.waveInProgress ? 0.08 : 0.04;
-      _ambientNodes.windGain.gain.setTargetAtTime(targetVol, ac.currentTime, 1.2);
-    }
+    // Wind removed — no wind gain to update
 
     // Heartbeat: only below 40% HP
     if (hpf < 0.40 && hpf > 0) {
@@ -6984,7 +7225,7 @@ let _autoWave = false;
 let _autoWaveTimer = null;
 const AUTO_WAVE_DELAY = 5; // seconds between wave end and auto-start
 // Auto-wave is a $0.99 IAP — true by default for dev testing
-let _autoWaveUnlocked = localStorage.getItem('ifc_autowav') === '1'; // PRODUCTION — change to: localStorage.getItem('ifc_autowav') === '1'
+let _autoWaveUnlocked = localStorage.getItem('ifc_autowav') === '1';
 
 function _scheduleAutoWave() {
   clearTimeout(_autoWaveTimer);
@@ -7015,31 +7256,7 @@ $id('waveBtn').addEventListener('click', () => {
   updateHUD();
 });
 
-// Long-press wave button to toggle auto-wave (requires Auto-Wave purchase)
-let _waveBtnHoldTimer = null;
-$id('waveBtn').addEventListener('touchstart', function() {
-  _waveBtnHoldTimer = setTimeout(function() {
-    if (!_autoWaveUnlocked) {
-      showToast('⚡ Auto-Wave — available in Store');
-      renderStoreSheet();
-      openSheet('store-sheet', 'store-backdrop');
-      haptic('light');
-      return;
-    }
-    _autoWave = !_autoWave;
-    haptic(_autoWave ? 'success' : 'medium');
-    showToast(_autoWave ? '⚡ Auto-Wave ON — next wave in ' + AUTO_WAVE_DELAY + 's' : 'Auto-Wave OFF');
-    if (_autoWave && !G.state.waveInProgress) _scheduleAutoWave();
-    else clearTimeout(_autoWaveTimer);
-    updateHUD();
-  }, 600);
-}, { passive: true });
-$id('waveBtn').addEventListener('touchend', function() {
-  clearTimeout(_waveBtnHoldTimer);
-}, { passive: true });
-$id('waveBtn').addEventListener('touchcancel', function() {
-  clearTimeout(_waveBtnHoldTimer);
-}, { passive: true });
+// Auto-wave toggle moved to strip above battlefield
 
 $id('pauseBtn').addEventListener('click', () => {
   const s = G.state;
@@ -7050,12 +7267,12 @@ $id('pauseBtn').addEventListener('click', () => {
 
 $id('orbitalBtn').addEventListener('click', () => {
   const s = G.state;
-  if (s.wave < 3) {
-    showToast('Orbital unlocks at Wave 3');
+  if (s.wave < 20 && !G.state._orbPurchaseUnlocked) {
+    showToast('Orbital unlocks at Wave 20 — or purchase Supporter Pack');
     return;
   }
   if (!s._orbUnlocked && ((s._orbKills || 0)) < 8) {
-    showToast((8 - (s._orbKills || 0)) + ' more kills to unlock Orbital');
+    showToast('Orbital unlocks at Wave 20 — or get Supporter Pack');
     return;
   }
   if (((s.abilities && s.abilities.orbitalCd || 0)) > 0) {
@@ -7079,7 +7296,7 @@ function onWaveEnd() {
     const def = UNIT_UNLOCK_DEFS[id];
     if (def.always || _isUnitUnlocked(s, id)) return;
     // Just crossed the wave threshold this wave
-    if (def.waveReq && s.wave > def.waveReq && (s.wave - 1) <= def.waveReq) {
+    if (def.waveReq && s.wave >= def.waveReq && (s.wave - 1) < def.waveReq) {
       setTimeout(function() {
         _sfxUnlockAvailable();
         showToast('🔓 ' + (UNIT_DEFS.find(function(u){return u.id===id;})||{name:''}).name + ' now available to unlock!');
@@ -7352,7 +7569,7 @@ function triggerShake(intensity = 'light') {
 // IAP stub: _quickBuyUnlocked flag wired to real IAP later
 // DEV MODE: set to true for testing — flip to false before release
 // ══════════════════════════════════════════════════════════════
-let _quickBuyUnlocked = localStorage.getItem('ifc_quickbuy') === '1'; // PRODUCTION
+let _quickBuyUnlocked = localStorage.getItem('ifc_quickbuy') === '1';
 
 function _unlockQuickBuy() {
   // IAP stub — in production this triggers RevenueCat purchase flow
@@ -7514,7 +7731,7 @@ let _obActive = false;
 let _obDone   = false;
 
 function _isFirstRun() {
-  return !localStorage.getItem(OB_KEY) && G.meta.totalRuns === 0;
+  return G.meta.totalRuns === 0;
 }
 
 function _obDismiss() {
@@ -7787,6 +8004,108 @@ function _showTacticalWarning(title, body, color) {
 }
 
 // ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════
+// ATMOSPHERIC PROGRESSION — Wave 1 vs Wave 100
+// Sky, ground tint, and battlefield evolve as war escalates
+// ══════════════════════════════════════════════════════════
+const ATMOSPHERE_STAGES = [
+  {
+    wave: 1,
+    skyGrad: ['#0a1a2e','#0d1a14'],   // Night — blue/green teal
+    groundTint: 'rgba(0,0,0,0)',
+    fogColor: 'transparent',
+    smokeAlpha: 0,
+    label: 'Dawn Perimeter',
+  },
+  {
+    wave: 11,
+    skyGrad: ['#1a1008','#0a1208'],   // Dusk orange creeps in
+    groundTint: 'rgba(40,20,0,0.08)',
+    fogColor: 'rgba(200,140,60,0.04)',
+    smokeAlpha: 0.05,
+    label: 'Burning Horizon',
+  },
+  {
+    wave: 21,
+    skyGrad: ['#1a0808','#0a0e08'],   // Red war sky
+    groundTint: 'rgba(60,10,0,0.12)',
+    fogColor: 'rgba(200,80,40,0.07)',
+    smokeAlpha: 0.10,
+    label: 'Red Sky Protocol',
+  },
+  {
+    wave: 31,
+    skyGrad: ['#200808','#100808'],   // Deep crimson
+    groundTint: 'rgba(80,0,0,0.15)',
+    fogColor: 'rgba(180,40,20,0.10)',
+    smokeAlpha: 0.18,
+    label: 'Siege Atmosphere',
+  },
+  {
+    wave: 51,
+    skyGrad: ['#180010','#0a0008'],   // Purple-black apocalypse
+    groundTint: 'rgba(60,0,40,0.20)',
+    fogColor: 'rgba(120,20,80,0.13)',
+    smokeAlpha: 0.28,
+    label: 'Iron Tide',
+  },
+  {
+    wave: 71,
+    skyGrad: ['#100010','#080008'],   // Near-black with purple
+    groundTint: 'rgba(30,0,30,0.30)',
+    fogColor: 'rgba(80,0,60,0.18)',
+    smokeAlpha: 0.40,
+    label: 'Endgame',
+  },
+  {
+    wave: 91,
+    skyGrad: ['#080008','#040004'],   // Total blackout
+    groundTint: 'rgba(10,0,10,0.40)',
+    fogColor: 'rgba(40,0,40,0.25)',
+    smokeAlpha: 0.55,
+    label: 'Beyond the Line',
+  },
+];
+
+function _getAtmosphereStage(wave) {
+  let stage = ATMOSPHERE_STAGES[0];
+  for (const a of ATMOSPHERE_STAGES) { if (wave >= a.wave) stage = a; else break; }
+  return stage;
+}
+
+let _lastAtmoWave = -1;
+function _updateAtmosphere(wave) {
+  if (wave === _lastAtmoWave) return;
+  _lastAtmoWave = wave;
+
+  const stage = _getAtmosphereStage(wave);
+  const bfWrap = document.getElementById('battlefield-wrap');
+  if (!bfWrap) return;
+
+  // Sky gradient on the battlefield background
+  bfWrap.style.transition = 'background 2s ease';
+  bfWrap.style.background = 'linear-gradient(180deg, ' + stage.skyGrad[0] + ', ' + stage.skyGrad[1] + ')';
+
+  // Ground tint overlay using waveSky div
+  const sky = document.getElementById('waveSky');
+  if (sky) {
+    sky.style.transition = 'background 2s ease';
+    sky.style.background = stage.groundTint;
+  }
+
+  // Smoke/fog particles increase with wave — update CSS variable
+  document.documentElement.style.setProperty('--smoke-alpha', stage.smokeAlpha.toString());
+
+  // Add a vignette pulse on chapter transitions
+  const vignette = document.getElementById('damage-vignette');
+  if (vignette && wave % 10 === 1 && wave > 1) {
+    vignette.style.transition = 'opacity 0.1s';
+    vignette.style.opacity = '0.4';
+    setTimeout(() => { vignette.style.transition = 'opacity 2s'; vignette.style.opacity = ''; }, 200);
+  }
+}
+
 // CHAPTER STRUCTURE — every 10 waves is a named chapter
 // ══════════════════════════════════════════════════════════════
 const CHAPTERS = [
@@ -7852,6 +8171,8 @@ function onModifier(mod) {
   if (G.state && G.state.wave >= 50 && !_weatherActive) {
     setWeather(true);
   }
+  // Update full atmosphere
+  _updateAtmosphere(wave);
 
   // Apply stacked modifiers and collect them for display
   const extraMods = _applyStackedModifiers(wave);
@@ -8163,11 +8484,13 @@ $id('beginBtn').addEventListener('click', () => {
   G.state.started = true;
   addLog('▶ Operation started.', 'system');
   showTutorialHint();
+  _updateAutowavStrip();
   // Init quest + unlock systems
   _initQuestState(G.state);
   _initUnlockState(G.state);
   // Start ambient sound
   setTimeout(_startAmbient, 300);
+  _updateAtmosphere(G.state.wave || 1);
   renderQuestBoard();
   // Start research timer tick — runs every second regardless of pause
   if (!window._researchTickInterval) {
@@ -8187,6 +8510,7 @@ $id('beginBtn').addEventListener('click', () => {
 $id('wipeBtn').addEventListener('click', () => {
   localStorage.removeItem(CFG.SAVE_KEY);
   localStorage.removeItem(CFG.META_KEY);
+  localStorage.removeItem('ifc_ob_done');
   location.reload();
 });
 
@@ -8311,10 +8635,12 @@ $id('sumDeployBtn').addEventListener('click', () => {
 // ── Reward choice ─────────────────────────────────────────────
 function renderRewardChoiceUI(onPick) {
   const { picks, mastery, doc } = buildRewardChoices();
-  $id('rewardSub').textContent = mastery >= 7
+  const rWave = G.state.wave - 1;
+  const tierLabel = rWave < 10 ? 'Basic Intel' : rWave < 20 ? 'Field Upgrades' : rWave < 30 ? 'Advanced Protocols' : rWave < 40 ? 'Elite Programs' : 'Classified Assets';
+  const exclAvail = mastery >= 7 && rWave >= 40;
+  $id('rewardSub').textContent = exclAvail
     ? 'Mastery unlocked — doctrine exclusives available.'
-    : mastery >= 3 ? 'Synergy bonus active.'
-    : 'Choose one upgrade.';
+    : '◆ Wave ' + rWave + ' · ' + tierLabel + (mastery >= 3 ? ' · Synergy active' : '');
   const grid = $id('rewardGrid');
   grid.innerHTML = '';
   picks.forEach(p => {
@@ -8516,7 +8842,11 @@ function _runPrestigeCeremony() {
   // Rank-specific perks that activate this run
   const rankPerks = _getRankPerks(newRank);
   const bonusLines = [
-    '+' + (newRank * CFG.PRESTIGE_INCOME_BONUS * 100).toFixed(0) + '% income · +' + (newRank * CFG.PRESTIGE_DMG_BONUS * 100).toFixed(0) + '% damage',
+    '⚡ +' + (newRank * CFG.PRESTIGE_INCOME_BONUS * 100).toFixed(0) + '% wave income',
+    '⚔ +' + (newRank * CFG.PRESTIGE_DMG_BONUS * 100).toFixed(0) + '% all troop damage',
+    '🛡 +' + (newRank * CFG.PRESTIGE_HP_BONUS * 100).toFixed(0) + '% all troop HP',
+    '🔧 +' + (newRank * 3) + ' HP repaired per wave clear',
+    '☄ Orbital damage +' + (newRank * CFG.ORBITAL_PRESTIGE_DMG) + ' permanently',
   ];
   if (rankPerks.length > 0) bonusLines.push(...rankPerks);
   const bonusEl = $id('prestige-bonuses');
@@ -8554,7 +8884,7 @@ function buildDoctrineCards(onSelect) {
   grid.innerHTML = '';
   const srl = $id('startRankLine');
   if (srl) srl.textContent = m.prestige > 0
-    ? 'Command Rank ' + m.prestige + ' active. ' + UNLOCKS.active(m.prestige).size + ' unlock(s) in effect.'
+    ? '★ Rank ' + m.prestige + ' · Troops +' + (m.prestige*15) + '% HP · +' + (m.prestige*14) + '% income · +' + (m.prestige*10) + '% dmg · ' + UNLOCKS.active(m.prestige).size + ' unlock(s) active'
     : 'Each doctrine has unique synergies, rewards, and weaknesses.';
 
   // Update 8: doctrine → accent color class map
@@ -9341,7 +9671,7 @@ function _addDustPuff(x, y) {
 }
 
 // Member/dev flag — set to true to unlock ×10 mode
-const _MEMBER_MODE = true; // flip to false to hide from regular players
+const _MEMBER_MODE = false; // flip to false to hide from regular players
 
 const _speeds = _MEMBER_MODE ? [
   { val: 1,  label: '▶ 1×',    cls: 's1' },
@@ -9367,6 +9697,7 @@ function _applySpeed() {
   btn.style.textShadow = sp.val === 10 ? '0 0 8px #ff3cff' : '';
 }
 try { _applySpeed(); } catch(e) { _showErr('_applySpeed', e); }
+setTimeout(function() { try { _updateAutowavStrip(); } catch(e) {} }, 500);
 $id('speedCycleBtn').addEventListener('click', () => {
   _speedIdx = (_speedIdx + 1) % _speeds.length;
   _applySpeed();
@@ -9515,6 +9846,52 @@ function applyTroopCombat() {
     if (laneTroops.some(t => t.hp > 0)) {
       e.x = Math.max(e.x, BASE_X + 30); // hold just outside base
     }
+  }
+}
+
+
+// ── Auto-Wave Strip UI ────────────────────────────────────────
+function _updateAutowavStrip() {
+  var strip = document.getElementById('autowav-strip');
+  var label = document.getElementById('autowav-label');
+  var right = document.getElementById('autowav-right');
+  if (!strip || !label || !right) return;
+
+  if (!_autoWaveUnlocked) {
+    // Not purchased — show unlock button
+    label.className = '';
+    label.textContent = '⚡ AUTO-WAVE';
+    right.innerHTML = '<button id="autowav-unlock-btn">🔒 Unlock in Store</button>';
+    var btn = document.getElementById('autowav-unlock-btn');
+    if (btn) btn.addEventListener('click', function() {
+      renderStoreSheet();
+      openSheet('store-sheet', 'store-backdrop');
+      haptic('light');
+    });
+  } else {
+    // Purchased — show toggle switch
+    label.className = _autoWave ? 'active' : '';
+    label.textContent = '⚡ AUTO-WAVE';
+    right.innerHTML =
+      '<div id="autowav-toggle-wrap">' +
+        '<span id="autowav-status" class="' + (_autoWave ? 'on' : '') + '">' +
+          (_autoWave ? 'ON' : 'OFF') +
+        '</span>' +
+        '<label id="autowav-switch">' +
+          '<input type="checkbox" id="autowav-checkbox"' + (_autoWave ? ' checked' : '') + '>' +
+          '<div id="autowav-slider"></div>' +
+        '</label>' +
+      '</div>';
+    var cb = document.getElementById('autowav-checkbox');
+    if (cb) cb.addEventListener('change', function() {
+      _autoWave = cb.checked;
+      haptic(_autoWave ? 'success' : 'medium');
+      showToast(_autoWave ? '⚡ Auto-Wave ON — next wave in ' + AUTO_WAVE_DELAY + 's' : 'Auto-Wave OFF');
+      if (_autoWave && !G.state.waveInProgress) _scheduleAutoWave();
+      else clearTimeout(_autoWaveTimer);
+      _updateAutowavStrip();
+      updateHUD();
+    });
   }
 }
 
