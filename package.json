@@ -9,7 +9,6 @@
     "@capacitor/core": "^6.0.0",
     "@capacitor/ios": "^6.0.0",
     "@capacitor/cli": "^6.0.0",
-    "@revenuecat/purchases-capacitor": "^6.0.0",
-    "@revenuecat/purchases-js": "^6.0.0"
+    "@revenuecat/purchases-capacitor": "^6.8.0"
   }
 }
