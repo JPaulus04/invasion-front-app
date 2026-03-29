@@ -1780,74 +1780,300 @@ function _applyUnlockReward(id, s) {
   box-shadow: 0 0 6px var(--green);
 }
 
-/* ═════════════════════════════════════════════════════════════════ */
-/* MOBILE-RESPONSIVE HUD */
-/* ═════════════════════════════════════════════════════════════════ */
+/* ═════════════════════════════════════════════════════════════════════════════════
+   COMPREHENSIVE MOBILE-RESPONSIVE CSS
+   Fixes: Canvas, HUD, modals, orders panel, entire game layout
+   ═════════════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  /* Hide Orders panel on tablets and mobile */
+  #orders {
+    display: none;
+  }
+
+  /* Adjust main container */
+  #app {
+    flex-direction: column;
+  }
+
+  /* Canvas takes full width */
+  #gameContainer {
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  #gameCanvas {
+    max-width: 100vw;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+}
+
 @media (max-width: 768px) {
+  /* MEDIUM PHONES (iPad, 6-7" phones) */
+  
+  body, #app, #gameContainer {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
   /* Top HUD Bar */
   #hud {
-    flex-wrap: wrap;
-    padding: 4px 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 4px;
+    padding: 4px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .hud-item {
-    flex: 1 1 calc(50% - 2px);
-    min-width: 80px;
     padding: 6px 8px;
     font-size: 11px;
+    min-width: auto;
   }
 
   /* Bottom Control Bar */
   #controlBar {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 4px;
-    padding: 6px;
+    padding: 4px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .lane-button {
-    flex: 1 1 calc(50% - 2px);
-    padding: 8px 6px;
-    font-size: 10px;
+    padding: 6px;
+    font-size: 9px;
     min-height: 32px;
   }
 
   .barracks-btn, .research-btn {
-    flex: 1 1 calc(50% - 2px);
-    padding: 8px 6px;
+    grid-column: span 1;
+    padding: 6px;
+    font-size: 9px;
+  }
+
+  /* Modal Sheets */
+  .sheet {
+    width: 95vw;
+    max-width: 95vw;
+    max-height: 85vh;
+    margin: 0 auto;
+    border-radius: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .sheet-head {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .sheet-body {
+    padding: 12px;
+    max-height: calc(85vh - 60px);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Store products */
+  .store-product {
+    margin-bottom: 12px;
+    padding: 10px;
+    border-radius: 8px;
+  }
+
+  .product-title {
+    font-size: 14px;
+  }
+
+  .product-desc {
     font-size: 11px;
   }
 
-  /* Store Sheet - Scrollable */
-  .sheet-body {
-    max-height: 70vh;
-    overflow-y: auto;
+  .product-button {
+    padding: 8px;
+    font-size: 12px;
+    width: 100%;
+  }
+
+  /* Tutorial/Modal dialogs */
+  .modal-content {
+    width: 90vw;
+    max-width: 90vw;
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .modal-title {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .modal-body {
+    font-size: 12px;
+    line-height: 1.4;
+    margin-bottom: 12px;
+  }
+
+  .modal-button {
+    padding: 10px;
+    font-size: 12px;
+    width: 100%;
+  }
+
+  /* Canvas sizing */
+  #gameCanvas {
+    width: 100%;
+    max-width: 100vw;
+    height: auto;
+    aspect-ratio: 16 / 9;
   }
 }
 
 @media (max-width: 480px) {
-  /* Extra small phones */
+  /* SMALL PHONES (iPhone SE, 12 mini, etc) */
+  
   #hud {
-    padding: 2px 0;
+    grid-template-columns: 1fr 1fr;
     gap: 2px;
+    padding: 2px;
   }
 
   .hud-item {
-    flex: 1 1 100%;
     padding: 4px 6px;
     font-size: 10px;
   }
 
   #controlBar {
-    padding: 4px;
+    grid-template-columns: 1fr 1fr;
     gap: 2px;
+    padding: 2px;
   }
 
   .lane-button {
-    flex: 1 1 calc(33% - 2px);
-    padding: 6px 4px;
-    font-size: 9px;
+    padding: 4px;
+    font-size: 8px;
     min-height: 28px;
+  }
+
+  .barracks-btn, .research-btn {
+    padding: 4px;
+    font-size: 8px;
+  }
+
+  /* Modals even more compact */
+  .sheet {
+    width: 98vw;
+    max-width: 98vw;
+    max-height: 80vh;
+  }
+
+  .sheet-head {
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  .sheet-body {
+    padding: 8px;
+    max-height: calc(80vh - 50px);
+  }
+
+  .store-product {
+    margin-bottom: 8px;
+    padding: 8px;
+  }
+
+  .product-title {
+    font-size: 12px;
+  }
+
+  .product-desc {
+    font-size: 10px;
+  }
+
+  .product-button {
+    padding: 6px;
+    font-size: 11px;
+  }
+
+  .modal-content {
+    width: 96vw;
+    max-width: 96vw;
+    padding: 12px;
+  }
+
+  .modal-title {
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+
+  .modal-body {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  .modal-button {
+    padding: 8px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 360px) {
+  /* EXTRA SMALL PHONES */
+  
+  #hud {
+    grid-template-columns: 1fr;
+    gap: 1px;
+    padding: 1px;
+  }
+
+  .hud-item {
+    padding: 3px 4px;
+    font-size: 9px;
+  }
+
+  #controlBar {
+    grid-template-columns: 1fr;
+    gap: 1px;
+    padding: 1px;
+  }
+
+  .lane-button {
+    padding: 3px;
+    font-size: 8px;
+    min-height: 24px;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════════════
+   LANDSCAPE MODE FIX
+   ═════════════════════════════════════════════════════════════════════════════════ */
+
+@media (max-height: 500px) {
+  /* Landscape mode - compress vertically */
+  #hud, #controlBar {
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .hud-item {
+    padding: 2px 4px;
+    font-size: 9px;
+  }
+
+  .lane-button {
+    padding: 2px;
+    font-size: 8px;
+    min-height: 24px;
+  }
+
+  #gameCanvas {
+    height: auto;
+    max-height: calc(100vh - 50px);
   }
 }
 </style>
