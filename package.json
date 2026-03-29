@@ -9,6 +9,6 @@
     "@capacitor/core": "^5.0.0",
     "@capacitor/ios": "^5.0.0",
     "@capacitor/cli": "^5.0.0",
-    "@revenuecat/purchases-capacitor": "^6.8.0"
+    "capacitor-plugin-iap": "^1.0.0"
   }
 }
