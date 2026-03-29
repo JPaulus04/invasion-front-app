@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Invasion Front"/>
+<meta name="screen-orientation" content="portrait"/>
+<meta name="orientation" content="portrait"/>
 <title>Invasion Front Commander</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Exo+2:wght@400;700;900&display=swap" rel="stylesheet">
@@ -1781,126 +1783,37 @@ function _applyUnlockReward(id, s) {
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════════
-   SIMPLE PORTRAIT-ONLY MOBILE CSS
-   Minimal changes - keep game layout mostly intact
+   MINIMAL MOBILE CSS - Just Essential Fixes
    ═════════════════════════════════════════════════════════════════════════════════ */
 
-/* Force portrait orientation */
-html {
-  orientation: portrait;
-}
-
-@media (orientation: landscape) {
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-  }
-  
-  #app {
-    display: none;
-  }
-  
-  body::before {
-    content: "Please rotate to portrait mode";
-    color: white;
-    font-size: 20px;
-    text-align: center;
-  }
-}
-
-/* Mobile devices only */
 @media (max-width: 812px) {
-  body, html, #app, #gameContainer {
-    overflow-x: hidden;
-    max-width: 100vw;
-    width: 100%;
-  }
-
+  /* Hide Orders panel on mobile */
   #orders {
     display: none !important;
   }
 
-  #gameCanvas {
+  /* Prevent horizontal overflow only */
+  body, html {
     max-width: 100vw;
-    width: 100%;
-    height: auto;
+    overflow-x: hidden;
   }
 
+  /* Modal sheets - constrain width */
   .sheet {
     width: 90vw !important;
     max-width: 90vw !important;
-    max-height: 80vh;
-    margin: 0 auto;
-    overflow-y: auto;
-    overflow-x: hidden;
   }
 
   .sheet-body {
-    max-height: calc(80vh - 80px);
+    max-height: 70vh;
     overflow-y: auto;
-    overflow-x: hidden;
-  }
-
-  .sheet-head {
-    font-size: 14px;
-  }
-
-  .sheet-body {
-    font-size: 12px;
-  }
-
-  #hud {
-    padding: 4px;
-    gap: 4px;
-  }
-
-  .hud-item {
-    padding: 4px;
-    font-size: 10px;
-  }
-
-  #controlBar {
-    padding: 4px;
-    gap: 2px;
-  }
-
-  .lane-button {
-    padding: 4px;
-    font-size: 9px;
-  }
-
-  .barracks-btn, .research-btn {
-    padding: 4px;
-    font-size: 9px;
   }
 }
 
 @media (max-width: 480px) {
-  #hud {
-    padding: 2px;
-    gap: 2px;
-  }
-
-  .hud-item {
-    padding: 2px;
-    font-size: 9px;
-  }
-
-  #controlBar {
-    padding: 2px;
-    gap: 1px;
-  }
-
-  .lane-button {
-    padding: 2px;
-    font-size: 8px;
-  }
-
-  .barracks-btn, .research-btn {
-    padding: 2px;
-    font-size: 8px;
+  .sheet {
+    width: 95vw !important;
+    max-width: 95vw !important;
   }
 }
 </style>
@@ -7125,6 +7038,10 @@ function _storeApplyPurchase(id) {
       });
     }
     s._orbPurchaseUnlocked = true;
+    // Add ×10 speed
+    if (!_speeds.find(function(sp) { return sp.val === 10; })) {
+      _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
+    }
     _storeApplyPurchase('quickbuy');
     _storeApplyPurchase('autowav');
     haptic('success'); showToast('👑 Commander Edition activated!');
@@ -10113,52 +10030,7 @@ function _updateAutowavStrip() {
   requestAnimationFrame(loop);
 })(performance.now());
 
-// ═════════════════════════════════════════════════════════════════
-// DEBUG: Commander Purchase Fix
-// ═════════════════════════════════════════════════════════════════
-
-const originalApplyPurchase = window._storeApplyPurchase;
-window._storeApplyPurchase = function(id) {
-  console.log('🛍️ PURCHASE:', id);
-  
-  if (id === 'commander') {
-    console.log('👑 Commander - unlocking...');
-    const s = G.state;
-    
-    localStorage.setItem('ifc_iap_commander', '1');
-    
-    if (s._unlockedUnits) {
-      ['heavy','medic','ew','grenadier','sniper'].forEach(function(u) {
-        s._unlockedUnits[u] = true;
-        _applyUnlockReward(u, s);
-        console.log('✓ Unlocked:', u);
-      });
-    }
-    
-    s._orbPurchaseUnlocked = true;
-    
-    // Add ×10 speed
-    if (!_speeds.find(function(sp) { return sp.val === 10; })) {
-      _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
-      console.log('✓ Added ×10 speed');
-    }
-    
-    _storeApplyPurchase('quickbuy');
-    _storeApplyPurchase('autowav');
-    
-    if (typeof haptic === 'function') haptic('success');
-    if (typeof showToast === 'function') showToast('👑 Commander Edition activated!');
-    
-    renderStoreSheet();
-    updateHUD();
-    console.log('✓ Commander activated');
-    
-  } else {
-    originalApplyPurchase.call(this, id);
-  }
-};
-
-// Debug function - call debugIAP() in browser console
+// Debug function - call debugIAP() in browser console to check purchase status
 window.debugIAP = function() {
   console.log('=== IAP STATUS ===');
   console.log('Commander:', localStorage.getItem('ifc_iap_commander') === '1' ? '✓' : '✗');
@@ -10171,7 +10043,7 @@ window.debugIAP = function() {
   }
 };
 
-console.log('✓ Debug IAP loaded - call debugIAP() to check status');
+console.log('✓ IAP system ready');
 
 window.addEventListener('resize', resizeCanvasVertical);
 </script>
