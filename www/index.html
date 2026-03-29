@@ -2198,9 +2198,6 @@ function _applyUnlockReward(id, s) {
   </div>
 </div>
 
-<!-- ══ REVENUECAT INTEGRATION ═════════════════════════════════ -->
-<script src="revenuecat-integration.js"></script>
-
 <!-- ══ GAME ENGINE (bundled) ══════════════════════════════════ -->
 <script>
 // ═══════════════════════════════════════════════════════
@@ -9991,20 +9988,6 @@ function _updateAutowavStrip() {
   }
   requestAnimationFrame(loop);
 })(performance.now());
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// REVENUECAT INITIALIZATION
-// ═══════════════════════════════════════════════════════════════════════════════
-(async () => {
-  // Your RevenueCat API key — set from RevenueCat Dashboard
-  const REVENUECAT_API_KEY = "appl_sjSqUMsEbQgRgGTvYEvvmzFcecQ";
-  
-  // Store in global scope for revenuecat-integration.js to access
-  window.REVENUECAT_API_KEY = REVENUECAT_API_KEY;
-  
-  console.log('✓ RevenueCat API key initialized');
-  console.log('RevenueCat integration will load automatically');
-})();
 
 window.addEventListener('resize', resizeCanvasVertical);
 </script>
