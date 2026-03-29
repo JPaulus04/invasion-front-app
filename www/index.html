@@ -77,6 +77,46 @@ body::after {
   padding-right: max(0px, var(--sr));
 }
 
+/* ══ MOBILE PORTRAIT LAYOUT ════════════════════════════════════ */
+@media (max-width: 812px) {
+  #app {
+    flex-direction: column;
+  }
+
+  /* HUD takes only needed space */
+  #hud {
+    flex-shrink: 0;
+    min-height: 50px;
+  }
+
+  /* Battlefield takes remaining space but not too much */
+  #battlefield-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Canvas scaled for portrait */
+  #battlefield {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+  }
+
+  /* Add a fixed bottom bar for controls */
+  #app::after {
+    content: '';
+    flex-shrink: 0;
+    height: 60px;
+    background: #0d0e08;
+    border-top: 1px solid #2a3018;
+    position: relative;
+    z-index: 5;
+  }
+}
+
 /* ══ HUD TOP BAR — A-HUD glass projection ════════════════════ */
 #hud {
   flex-shrink: 0;
@@ -1783,22 +1823,23 @@ function _applyUnlockReward(id, s) {
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════════
-   MINIMAL MOBILE CSS - Just Essential Fixes
+   MOBILE PORTRAIT FIXES ONLY
+   Minimal, conservative adjustments
    ═════════════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 812px) {
+  /* Prevent horizontal overflow */
+  body, html {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
   /* Hide Orders panel on mobile */
   #orders {
     display: none !important;
   }
 
-  /* Prevent horizontal overflow only */
-  body, html {
-    max-width: 100vw;
-    overflow-x: hidden;
-  }
-
-  /* Modal sheets - constrain width */
+  /* Modal sheets - constrain width only */
   .sheet {
     width: 90vw !important;
     max-width: 90vw !important;
@@ -1806,6 +1847,18 @@ function _applyUnlockReward(id, s) {
 
   .sheet-body {
     max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  /* Ensure overlays fit */
+  .overlay, #startOverlay {
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .modal {
+    max-width: 95vw;
+    max-height: 90vh;
     overflow-y: auto;
   }
 }
@@ -7030,21 +7083,33 @@ function _storeApplyPurchase(id) {
     s._orbPurchaseUnlocked = true;
     haptic('success'); showToast('⚡ Supporter Pack activated!');
   } else if (id === 'commander') {
+    console.log('👑 Commander Purchase Started');
     localStorage.setItem('ifc_iap_commander', '1');
     if (s._unlockedUnits) {
+      console.log('Unlocking 5 units...');
       ['heavy','medic','ew','grenadier','sniper'].forEach(function(u) {
         s._unlockedUnits[u] = true;
         _applyUnlockReward(u, s);
+        console.log('  ✓ Unlocked:', u);
       });
+    } else {
+      console.warn('⚠️ s._unlockedUnits is undefined');
     }
     s._orbPurchaseUnlocked = true;
+    console.log('✓ Orbital unlocked');
     // Add ×10 speed
     if (!_speeds.find(function(sp) { return sp.val === 10; })) {
       _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
+      console.log('✓ Added ×10 speed');
+    } else {
+      console.log('✓ ×10 speed already exists');
     }
     _storeApplyPurchase('quickbuy');
     _storeApplyPurchase('autowav');
-    haptic('success'); showToast('👑 Commander Edition activated!');
+    console.log('✓ Applied quickbuy + autowav');
+    if (typeof haptic === 'function') haptic('success');
+    if (typeof showToast === 'function') showToast('👑 Commander Edition activated!');
+    console.log('👑 Commander Purchase Complete');
   } else if (id === 'quickbuy') {
     localStorage.setItem('ifc_quickbuy', '1');
     _quickBuyUnlocked = true;
