@@ -6,9 +6,8 @@
     "build": "echo 'Static HTML game - no build needed'"
   },
   "dependencies": {
-    "@capacitor/core": "^5.0.0",
-    "@capacitor/ios": "^5.0.0",
-    "@capacitor/cli": "^5.0.0",
-    "capacitor-plugin-iap": "^1.0.0"
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/cli": "^6.0.0"
   }
 }
