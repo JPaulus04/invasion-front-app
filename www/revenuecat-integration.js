@@ -1,13 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// REVENUECAT INTEGRATION FOR INVASION FRONT COMMANDER
-// Uses Capacitor plugin (purchases-capacitor) — no separate JS SDK needed
+// CAPACITOR IAP INTEGRATION FOR INVASION FRONT COMMANDER
+// Direct Apple IAP via Capacitor Plugin
 // ═══════════════════════════════════════════════════════════════════════════════
 
 (async () => {
-  // RevenueCat API Key — from your RevenueCat dashboard
-  const REVENUECAT_API_KEY = "appl_sjSqUMsEbQgRgGTvYEvvmzFcecQ";
+  // Your product IDs — must match App Store Connect exactly
+  const PRODUCT_IDS = [
+    'com.paulus.laststandcommand.autowave',
+    'com.paulus.laststandcommand.quickbuy',
+    'com.paulus.laststandcommand.supporter',
+    'com.paulus.laststandcommand.commander'
+  ];
 
-  // Map game IAP IDs to your App Store product IDs
+  // Map game IAP IDs to App Store product IDs
   const PRODUCT_MAP = {
     'autowav':   'com.paulus.laststandcommand.autowave',
     'quickbuy':  'com.paulus.laststandcommand.quickbuy',
@@ -15,40 +20,46 @@
     'commander': 'com.paulus.laststandcommand.commander'
   };
 
-  let Purchases = null;
+  let IAPPlugin = null;
   let isInitialized = false;
+  let products = [];
 
-  // ── Initialize RevenueCat via Capacitor ──────────────────────────────────
-  async function initRevenueCat() {
+  // ── Initialize IAP Plugin ────────────────────────────────────────────────
+  async function initIAP() {
     try {
-      // Import Capacitor's RevenueCat plugin
-      const { Purchases: PurchasesModule } = window.revenueCat || {};
-      
-      if (!PurchasesModule) {
-        console.warn('RevenueCat Capacitor plugin not available yet, retrying...');
+      // Check if we're on a real device
+      const { Capacitor } = window;
+      if (!Capacitor || Capacitor.getPlatform() !== 'ios') {
+        console.log('Not on iOS — IAP disabled for testing');
         return false;
       }
 
-      // Initialize the SDK
-      await PurchasesModule.configure({
-        apiKey: REVENUECAT_API_KEY,
-        appUserID: null // Anonymous — RevenueCat generates ID
+      // Import the IAP plugin
+      const { InAppPurchase } = await import('capacitor-plugin-iap');
+      IAPPlugin = InAppPurchase;
+
+      // Initialize IAP
+      await IAPPlugin.initialize();
+
+      // Fetch product information from App Store
+      const result = await IAPPlugin.getProducts({
+        productIds: PRODUCT_IDS
       });
 
-      Purchases = PurchasesModule;
+      products = result.products || [];
       isInitialized = true;
-      
-      console.log('✓ RevenueCat initialized via Capacitor');
+
+      console.log('✓ IAP initialized. Products:', products.length);
       return true;
     } catch (err) {
-      console.error('RevenueCat init failed:', err);
+      console.error('IAP init failed:', err);
       return false;
     }
   }
 
   // ── Execute purchase ─────────────────────────────────────────────────────
   async function executePurchase(gameProductId) {
-    if (!isInitialized || !Purchases) {
+    if (!isInitialized || !IAPPlugin) {
       alert('Store not ready. Please try again.');
       return false;
     }
@@ -60,40 +71,27 @@
         return false;
       }
 
-      // Get offerings
-      const offerings = await Purchases.getOfferings();
-
-      if (!offerings.current) {
-        console.error('No current offering available');
-        alert('Products not available. Please try again later.');
-        return false;
-      }
-
-      // Find the product in offerings
-      const product = offerings.current.availablePackages?.find(
-        pkg => pkg.product?.identifier === storeProductId
-      );
-
+      // Find the product
+      const product = products.find(p => p.id === storeProductId);
       if (!product) {
-        console.error('Product not found in offerings:', storeProductId);
+        console.error('Product not found:', storeProductId);
         alert('Product not available. Please try again later.');
         return false;
       }
 
       // Execute purchase
-      const result = await Purchases.purchasePackage({
-        aPackage: product
+      const result = await IAPPlugin.purchase({
+        productId: storeProductId
       });
 
-      // Check if purchase was successful
-      if (result.customerInfo?.entitlements?.active?.[gameProductId]) {
+      if (result && result.transactionId) {
         console.log('✓ Purchase successful:', gameProductId);
         return true;
       }
 
       return false;
     } catch (err) {
-      if (err.code === 'PurchaseCancelledError') {
+      if (err.message && err.message.includes('cancel')) {
         console.log('Purchase cancelled by user');
       } else {
         console.error('Purchase failed:', err);
@@ -105,24 +103,18 @@
 
   // ── Restore purchases ────────────────────────────────────────────────────
   async function restorePurchases() {
-    if (!isInitialized || !Purchases) {
+    if (!isInitialized || !IAPPlugin) {
       alert('Store not ready. Please try again.');
       return [];
     }
 
     try {
-      const customerInfo = await Purchases.restorePurchases();
+      const result = await IAPPlugin.restorePurchases();
+      const restoredIds = result.purchaseIds || [];
 
-      let restored = [];
-      Object.keys(PRODUCT_MAP).forEach(gameId => {
-        if (customerInfo.entitlements?.active?.[gameId]) {
-          restored.push(gameId);
-        }
-      });
-
-      if (restored.length > 0) {
-        console.log('✓ Restored purchases:', restored);
-        return restored;
+      if (restoredIds.length > 0) {
+        console.log('✓ Restored purchases:', restoredIds);
+        return restoredIds;
       } else {
         alert('No purchases found to restore.');
         return [];
@@ -153,13 +145,13 @@
         return;
       }
     } else {
-      // Fallback if RevenueCat not ready
-      console.warn('RevenueCat not initialized, using fallback');
+      // Fallback to original if IAP not ready
+      console.warn('IAP not initialized, using fallback');
       originalStoreApplyPurchase(id);
     }
   };
 
-  window._restorePurchasesRevenueCat = async function() {
+  window._restorePurchasesIAP = async function() {
     if (!isInitialized) {
       alert('Store not ready. Please try again.');
       return;
@@ -167,7 +159,17 @@
 
     const restored = await restorePurchases();
     if (restored.length > 0) {
-      restored.forEach(id => {
+      // Map store IDs back to game IDs
+      const gameIds = restored
+        .map(storeId => {
+          for (let gameId in PRODUCT_MAP) {
+            if (PRODUCT_MAP[gameId] === storeId) return gameId;
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      gameIds.forEach(id => {
         originalStoreApplyPurchase(id);
       });
       showToast('✓ Purchases restored!');
@@ -178,20 +180,20 @@
   // STARTUP
   // ─────────────────────────────────────────────────────────────────────────
 
-  console.log('🎮 Initializing RevenueCat for Invasion Front Commander...');
+  console.log('🎮 Initializing IAP for Invasion Front Commander...');
 
-  // Retry initialization every 500ms for up to 10 seconds
+  // Try to initialize IAP
   let retries = 0;
   const initInterval = setInterval(async () => {
-    const success = await initRevenueCat();
+    const success = await initIAP();
     if (success) {
       clearInterval(initInterval);
-      console.log('✓ RevenueCat ready for purchases');
+      console.log('✓ IAP ready for purchases');
     } else {
       retries++;
       if (retries > 20) {
         clearInterval(initInterval);
-        console.warn('RevenueCat failed to initialize — falling back to offline mode');
+        console.warn('IAP failed to initialize — falling back to offline mode');
       }
     }
   }, 500);
