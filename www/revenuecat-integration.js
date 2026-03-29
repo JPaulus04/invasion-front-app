@@ -1,14 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // REVENUECAT INTEGRATION FOR INVASION FRONT COMMANDER
-// Drop this script block into your index.html, right after the game initialization
+// Uses Capacitor plugin (purchases-capacitor) — no separate JS SDK needed
 // ═══════════════════════════════════════════════════════════════════════════════
 
 (async () => {
-  // RevenueCat API Key — get from your RevenueCat dashboard
-  const REVENUECAT_API_KEY = "appl_YOUR_REVENUECAT_API_KEY"; // TODO: Replace with your key
+  // RevenueCat API Key — from your RevenueCat dashboard
+  const REVENUECAT_API_KEY = "appl_sjSqUMsEbQgRgGTvYEvvmzFcecQ";
 
-  // Map game IAP IDs to your RevenueCat package identifiers
-  // These MUST match your App Store Connect product IDs exactly
+  // Map game IAP IDs to your App Store product IDs
   const PRODUCT_MAP = {
     'autowav':   'com.paulus.laststandcommand.autowave',
     'quickbuy':  'com.paulus.laststandcommand.quickbuy',
@@ -18,29 +17,28 @@
 
   let Purchases = null;
   let isInitialized = false;
-  let offerings = null;
 
-  // ── Initialize RevenueCat ────────────────────────────────────────────────────
+  // ── Initialize RevenueCat via Capacitor ──────────────────────────────────
   async function initRevenueCat() {
     try {
-      // Import RevenueCat
-      const { default: PurchasesModule } = await import('@revenuecat/purchases-js');
-      Purchases = PurchasesModule;
+      // Import Capacitor's RevenueCat plugin
+      const { Purchases: PurchasesModule } = window.revenueCat || {};
+      
+      if (!PurchasesModule) {
+        console.warn('RevenueCat Capacitor plugin not available yet, retrying...');
+        return false;
+      }
 
-      // Setup with your API key
-      await Purchases.setup({
+      // Initialize the SDK
+      await PurchasesModule.configure({
         apiKey: REVENUECAT_API_KEY,
-        appUserID: null // Anonymous user; RevenueCat generates an ID
+        appUserID: null // Anonymous — RevenueCat generates ID
       });
 
-      // Fetch offerings (your products)
-      const data = await Purchases.getOfferings();
-      offerings = data;
-
+      Purchases = PurchasesModule;
       isInitialized = true;
-      console.log('✓ RevenueCat initialized successfully');
-      console.log('Available offerings:', offerings);
-
+      
+      console.log('✓ RevenueCat initialized via Capacitor');
       return true;
     } catch (err) {
       console.error('RevenueCat init failed:', err);
@@ -48,25 +46,9 @@
     }
   }
 
-  // ── Check if user owns a product ──────────────────────────────────────────────
-  async function checkOwnership(productId) {
-    if (!isInitialized) return false;
-
-    try {
-      const customerInfo = await Purchases.getCustomerInfo();
-      const entitlementId = productId; // Assuming entitlement ID matches product ID
-
-      // Check active entitlements
-      return customerInfo.entitlements.active[entitlementId] !== undefined;
-    } catch (err) {
-      console.error('Ownership check failed:', err);
-      return false;
-    }
-  }
-
-  // ── Execute purchase ─────────────────────────────────────────────────────────
+  // ── Execute purchase ─────────────────────────────────────────────────────
   async function executePurchase(gameProductId) {
-    if (!isInitialized || !offerings) {
+    if (!isInitialized || !Purchases) {
       alert('Store not ready. Please try again.');
       return false;
     }
@@ -78,35 +60,40 @@
         return false;
       }
 
-      // Find the package in offerings
-      let package_ = null;
-      if (offerings.current && offerings.current.available_packages) {
-        package_ = offerings.current.available_packages.find(
-          pkg => pkg.product.identifier === storeProductId
-        );
+      // Get offerings
+      const offerings = await Purchases.getOfferings();
+
+      if (!offerings.current) {
+        console.error('No current offering available');
+        alert('Products not available. Please try again later.');
+        return false;
       }
 
-      if (!package_) {
+      // Find the product in offerings
+      const product = offerings.current.availablePackages?.find(
+        pkg => pkg.product?.identifier === storeProductId
+      );
+
+      if (!product) {
         console.error('Product not found in offerings:', storeProductId);
         alert('Product not available. Please try again later.');
         return false;
       }
 
       // Execute purchase
-      const customerInfo = await Purchases.purchasePackage({
-        aPackage: package_
+      const result = await Purchases.purchasePackage({
+        aPackage: product
       });
 
-      // Check if purchase successful
-      const entitlementId = gameProductId;
-      if (customerInfo.entitlements.active[entitlementId]) {
+      // Check if purchase was successful
+      if (result.customerInfo?.entitlements?.active?.[gameProductId]) {
         console.log('✓ Purchase successful:', gameProductId);
         return true;
       }
 
       return false;
     } catch (err) {
-      if (err.code === 'ERR_PURCHASE_CANCELLED_BY_USER') {
+      if (err.code === 'PurchaseCancelledError') {
         console.log('Purchase cancelled by user');
       } else {
         console.error('Purchase failed:', err);
@@ -116,20 +103,19 @@
     }
   }
 
-  // ── Restore purchases ────────────────────────────────────────────────────────
+  // ── Restore purchases ────────────────────────────────────────────────────
   async function restorePurchases() {
-    if (!isInitialized) {
+    if (!isInitialized || !Purchases) {
       alert('Store not ready. Please try again.');
-      return false;
+      return [];
     }
 
     try {
       const customerInfo = await Purchases.restorePurchases();
 
-      // Check all purchased products
       let restored = [];
       Object.keys(PRODUCT_MAP).forEach(gameId => {
-        if (customerInfo.entitlements.active[gameId]) {
+        if (customerInfo.entitlements?.active?.[gameId]) {
           restored.push(gameId);
         }
       });
@@ -148,37 +134,31 @@
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
   // HOOK INTO GAME'S PURCHASE SYSTEM
-  // Replace the original _storePurchase with RevenueCat flow
-  // ─────────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
 
-  // Store original functions
   const originalStorePurchase = window._storePurchase;
   const originalStoreApplyPurchase = window._storeApplyPurchase;
 
-  // Override with RevenueCat flow
   window._storePurchase = async function(id) {
     const msg = _storeConfirmMessage(id);
-    const ok = confirm(msg); // Still show confirmation
+    const ok = confirm(msg);
     if (!ok) return;
 
-    // Try RevenueCat purchase
     if (isInitialized) {
       const success = await executePurchase(id);
       if (success) {
-        originalStoreApplyPurchase(id); // Apply game logic
+        originalStoreApplyPurchase(id);
         return;
       }
-      // If failed, don't apply purchase
     } else {
-      // Fallback to original if RevenueCat not ready (dev mode)
+      // Fallback if RevenueCat not ready
       console.warn('RevenueCat not initialized, using fallback');
       originalStoreApplyPurchase(id);
     }
   };
 
-  // Add restore purchases button handler
   window._restorePurchasesRevenueCat = async function() {
     if (!isInitialized) {
       alert('Store not ready. Please try again.');
@@ -187,7 +167,6 @@
 
     const restored = await restorePurchases();
     if (restored.length > 0) {
-      // Apply each restored product
       restored.forEach(id => {
         originalStoreApplyPurchase(id);
       });
@@ -195,26 +174,24 @@
     }
   };
 
-  // ─────────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
   // STARTUP
-  // ─────────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
 
   console.log('🎮 Initializing RevenueCat for Invasion Front Commander...');
 
-  // Wait for Capacitor to be ready
+  // Retry initialization every 500ms for up to 10 seconds
   let retries = 0;
   const initInterval = setInterval(async () => {
-    try {
-      const success = await initRevenueCat();
-      if (success) {
-        clearInterval(initInterval);
-        console.log('✓ RevenueCat ready for purchases');
-      }
-    } catch (err) {
+    const success = await initRevenueCat();
+    if (success) {
+      clearInterval(initInterval);
+      console.log('✓ RevenueCat ready for purchases');
+    } else {
       retries++;
-      if (retries > 10) {
+      if (retries > 20) {
         clearInterval(initInterval);
-        console.error('RevenueCat failed to initialize after 10 retries');
+        console.warn('RevenueCat failed to initialize — falling back to offline mode');
       }
     }
   }, 500);
