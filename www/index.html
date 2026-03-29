@@ -1779,6 +1779,77 @@ function _applyUnlockReward(id, s) {
   background: var(--green);
   box-shadow: 0 0 6px var(--green);
 }
+
+/* ═════════════════════════════════════════════════════════════════ */
+/* MOBILE-RESPONSIVE HUD */
+/* ═════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Top HUD Bar */
+  #hud {
+    flex-wrap: wrap;
+    padding: 4px 0;
+    gap: 4px;
+  }
+
+  .hud-item {
+    flex: 1 1 calc(50% - 2px);
+    min-width: 80px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  /* Bottom Control Bar */
+  #controlBar {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .lane-button {
+    flex: 1 1 calc(50% - 2px);
+    padding: 8px 6px;
+    font-size: 10px;
+    min-height: 32px;
+  }
+
+  .barracks-btn, .research-btn {
+    flex: 1 1 calc(50% - 2px);
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  /* Store Sheet - Scrollable */
+  .sheet-body {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small phones */
+  #hud {
+    padding: 2px 0;
+    gap: 2px;
+  }
+
+  .hud-item {
+    flex: 1 1 100%;
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  #controlBar {
+    padding: 4px;
+    gap: 2px;
+  }
+
+  .lane-button {
+    flex: 1 1 calc(33% - 2px);
+    padding: 6px 4px;
+    font-size: 9px;
+    min-height: 28px;
+  }
+}
 </style>
 </head>
 <body>
@@ -9988,6 +10059,66 @@ function _updateAutowavStrip() {
   }
   requestAnimationFrame(loop);
 })(performance.now());
+
+// ═════════════════════════════════════════════════════════════════
+// DEBUG: Commander Purchase Fix
+// ═════════════════════════════════════════════════════════════════
+
+const originalApplyPurchase = window._storeApplyPurchase;
+window._storeApplyPurchase = function(id) {
+  console.log('🛍️ PURCHASE:', id);
+  
+  if (id === 'commander') {
+    console.log('👑 Commander - unlocking...');
+    const s = G.state;
+    
+    localStorage.setItem('ifc_iap_commander', '1');
+    
+    if (s._unlockedUnits) {
+      ['heavy','medic','ew','grenadier','sniper'].forEach(function(u) {
+        s._unlockedUnits[u] = true;
+        _applyUnlockReward(u, s);
+        console.log('✓ Unlocked:', u);
+      });
+    }
+    
+    s._orbPurchaseUnlocked = true;
+    
+    // Add ×10 speed
+    if (!_speeds.find(function(sp) { return sp.val === 10; })) {
+      _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
+      console.log('✓ Added ×10 speed');
+    }
+    
+    _storeApplyPurchase('quickbuy');
+    _storeApplyPurchase('autowav');
+    
+    if (typeof haptic === 'function') haptic('success');
+    if (typeof showToast === 'function') showToast('👑 Commander Edition activated!');
+    
+    renderStoreSheet();
+    updateHUD();
+    console.log('✓ Commander activated');
+    
+  } else {
+    originalApplyPurchase.call(this, id);
+  }
+};
+
+// Debug function - call debugIAP() in browser console
+window.debugIAP = function() {
+  console.log('=== IAP STATUS ===');
+  console.log('Commander:', localStorage.getItem('ifc_iap_commander') === '1' ? '✓' : '✗');
+  console.log('Autowav:', localStorage.getItem('ifc_autowav') === '1' ? '✓' : '✗');
+  console.log('Quick Buy:', localStorage.getItem('ifc_quickbuy') === '1' ? '✓' : '✗');
+  console.log('Supporter:', localStorage.getItem('ifc_iap_supporter') === '1' ? '✓' : '✗');
+  if (G && G.state && _speeds) {
+    console.log('×10 speed:', _speeds.find(s => s.val === 10) ? '✓' : '✗');
+    console.log('Orbital:', G.state._orbPurchaseUnlocked ? '✓' : '✗');
+  }
+};
+
+console.log('✓ Debug IAP loaded - call debugIAP() to check status');
 
 window.addEventListener('resize', resizeCanvasVertical);
 </script>
