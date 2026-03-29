@@ -49,7 +49,7 @@ jobs:
           path = "ios/App/App.xcodeproj/project.pbxproj"
           with open(path) as f:
               content = f.read()
-          # Bump build number to 2
+          # Bump build number
           content = re.sub(r'CURRENT_PROJECT_VERSION = \d+;', 'CURRENT_PROJECT_VERSION = 3;', content)
           content = re.sub(r'MARKETING_VERSION = [^;]+;', 'MARKETING_VERSION = 1.0;', content)
           # Inject signing settings for App target only
@@ -73,17 +73,6 @@ jobs:
           python3 - << 'EOF'
           with open("ios/App/Podfile", "r") as f:
               content = f.read()
-          
-          # Add RevenueCat pod if not already present
-          if "pod 'RevenueCat'" not in content:
-              lines = content.split('\n')
-              new_lines = []
-              for line in lines:
-                  new_lines.append(line)
-                  if "pod 'Capacitor'" in line and "pod 'RevenueCat'" not in content:
-                      new_lines.append("  pod 'RevenueCat'")
-              content = '\n'.join(new_lines)
-          
           signing_code = """
             installer.pods_project.targets.each do |target|
               target.build_configurations.each do |config|
@@ -100,7 +89,7 @@ jobs:
           )
           with open("ios/App/Podfile", "w") as f:
               f.write(content)
-          print("Podfile patched with RevenueCat")
+          print("Podfile patched")
           EOF
 
       - name: Import signing certificate
