@@ -3574,6 +3574,23 @@ try { applyDoctrine(); } catch(e) { _showErr('applyDoctrine', e); }
 try { applyUpgrades(); } catch(e) { _showErr('applyUpgrades', e); }
 try { _restoreIAPPurchases(); } catch(e) { _showErr('restoreIAP', e); }
 
+// Auto-resume if game was saved
+(function() {
+  try {
+    if (G.state && G.state.started && G.state.wave > 1) {
+      console.log('🔄 Resuming saved game at Wave', G.state.wave);
+      // Hide start overlay to resume
+      const startOv = document.getElementById('startOverlay');
+      if (startOv) {
+        startOv.classList.add('hidden');
+        console.log('✓ Start overlay hidden, game resumed');
+      }
+    }
+  } catch(e) {
+    console.warn('Resume check failed:', e.message);
+  }
+})();
+
 // ── Canvas resize (vertical orientation) ─────────────────────
 function resizeCanvasVertical() {
   const wrap = $id('battlefield-wrap');
@@ -7062,6 +7079,10 @@ function _restoreIAPPurchases() {
     const s = G.state;
     if (!s) return; // Safety check
     
+    // ALWAYS initialize Rifle Squad as unlocked
+    _initUnlockState(s);
+    console.log('🔄 Initialized unlock state (Rifle Squad unlocked)');
+    
     console.log('🔄 Checking for IAP purchases to restore...');
     
     // Restore Supporter Pack
@@ -10064,31 +10085,62 @@ function _onCanvasTap(evt) {
 canvas.addEventListener('touchstart', _onCanvasTap, { passive: false });
 canvas.addEventListener('click', _onCanvasTap);
 function showToast(msg) {
-  console.log('🔔 Toast:', msg);
-  let t = $id('toast-msg');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'toast-msg';
-    t.style.cssText =
-      'position:fixed;bottom:calc(180px + env(safe-area-inset-bottom,0px));left:50%;' +
-      'transform:translateX(-50%);z-index:99999;' +
-      'background:rgba(10,21,32,.98);border:2px solid var(--amber);' +
-      'border-radius:12px;padding:12px 24px;' +
-      "font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;" +
-      'color:var(--amber);letter-spacing:.5px;white-space:nowrap;' +
-      'pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.8);' +
-      'opacity:1;transition:opacity 0.3s ease;';
-    document.body.appendChild(t);
-    console.log('✓ Toast element created');
+  console.log('🔔 TOAST CALLED:', msg);
+  
+  try {
+    // Create or get toast element
+    let t = document.getElementById('toast-msg');
+    
+    if (!t) {
+      console.log('📦 Creating new toast element');
+      t = document.createElement('div');
+      t.id = 'toast-msg';
+      t.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 999999;
+        background: rgba(26,200,156,.95);
+        border: 2px solid rgba(26,200,156,1);
+        border-radius: 12px;
+        padding: 16px 28px;
+        font-family: 'Rajdhani', sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        color: #ffffff;
+        letter-spacing: 0.5px;
+        white-space: normal;
+        max-width: 90%;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(26,200,156,.4);
+        pointer-events: auto;
+        opacity: 1;
+        transition: opacity 0.3s ease;
+      `;
+      document.body.appendChild(t);
+      console.log('✓ Toast element created and appended');
+    }
+    
+    // Set message and show
+    t.textContent = msg;
+    t.style.opacity = '1';
+    t.style.display = 'block';
+    console.log('✓ Toast visible:', msg);
+    
+    // Auto-hide after 3 seconds
+    if (t._hideTimer) clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(function() {
+      console.log('🔔 Hiding toast');
+      t.style.opacity = '0';
+      setTimeout(function() {
+        t.style.display = 'none';
+      }, 300);
+    }, 3000);
+    
+  } catch(e) {
+    console.error('⚠️ Toast error:', e.message);
   }
-  t.textContent = msg;
-  t.style.opacity = '1';
-  console.log('✓ Toast shown:', msg);
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => { 
-    t.style.opacity = '0'; 
-    console.log('✓ Toast fading');
-  }, 3000);
 }
 
 // ── Game loop ──────────────────────────────────────────────────
