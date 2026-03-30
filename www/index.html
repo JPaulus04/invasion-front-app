@@ -3566,12 +3566,12 @@ function _showErr(label, err) {
 // ── Bootstrap engine ──────────────────────────────────────────
 try { G.meta  = loadMeta(); } catch(e) { _showErr('loadMeta', e); G.meta = { prestige:0, totalRuns:0, bestWave:0, totalKills:0, totalBosses:0, totalCredits:0, docRuns:{}, runHistory:[] }; }
 try { G.state = freshState(G.meta.prestige); } catch(e) { _showErr('freshState', e); }
-try { _restoreIAPPurchases(); } catch(e) { _showErr('restoreIAP', e); }
 G.log   = addLog;
 G.canvasWidth = () => canvas.width;
 try { loadGame(); } catch(e) { _showErr('loadGame', e); }
 try { applyDoctrine(); } catch(e) { _showErr('applyDoctrine', e); }
 try { applyUpgrades(); } catch(e) { _showErr('applyUpgrades', e); }
+try { _restoreIAPPurchases(); } catch(e) { _showErr('restoreIAP', e); }
 
 // ── Canvas resize (vertical orientation) ─────────────────────
 function resizeCanvasVertical() {
@@ -7058,6 +7058,9 @@ function _storePurchase(id) {
 // Restore IAP purchases from localStorage (persists across prestige)
 function _restoreIAPPurchases() {
   const s = G.state;
+  if (!s) return; // Safety check
+  
+  console.log('🔄 Checking for IAP purchases to restore...');
   
   // Restore Supporter Pack
   if (localStorage.getItem('ifc_iap_supporter') === '1') {
@@ -7065,26 +7068,55 @@ function _restoreIAPPurchases() {
     if (!s._unlockedUnits) s._unlockedUnits = {};
     s._unlockedUnits.heavy = true;
     s._unlockedUnits.grenadier = true;
-    if (!_speeds.find(function(sp) { return sp.val === 5; })) {
-      _speeds.splice(3, 0, { val: 5, label: '▶▶▶▶ 5×', cls: 's3' });
+    
+    // Apply unlock rewards if function exists
+    if (typeof _applyUnlockReward === 'function') {
+      _applyUnlockReward('heavy', s);
+      _applyUnlockReward('grenadier', s);
+      console.log('✓ Applied unlock rewards');
     }
+    
+    // Add ×5 speed if array exists
+    if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
+      if (!_speeds.find(function(sp) { return sp.val === 5; })) {
+        _speeds.splice(3, 0, { val: 5, label: '▶▶▶▶ 5×', cls: 's3' });
+        console.log('✓ Restored ×5 speed');
+      }
+    }
+    
     s._orbPurchaseUnlocked = true;
+    console.log('✓ Restored Supporter Pack');
   }
   
   // Restore Commander Edition
   if (localStorage.getItem('ifc_iap_commander') === '1') {
     console.log('🔄 Restoring Commander Edition');
     if (!s._unlockedUnits) s._unlockedUnits = {};
+    
+    // Unlock all 5 troops
     ['heavy','medic','ew','grenadier','sniper'].forEach(function(u) {
       s._unlockedUnits[u] = true;
+      if (typeof _applyUnlockReward === 'function') {
+        _applyUnlockReward(u, s);
+      }
     });
-    if (!_speeds.find(function(sp) { return sp.val === 10; })) {
-      _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
+    console.log('✓ Unlocked all troops');
+    
+    // Add ×10 speed if array exists
+    if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
+      if (!_speeds.find(function(sp) { return sp.val === 10; })) {
+        _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
+        console.log('✓ Restored ×10 speed');
+      }
     }
+    
     s._orbPurchaseUnlocked = true;
+    
     // Commander includes Quick Buy + Auto-Wave
     _quickBuyUnlocked = true;
     _autoWaveUnlocked = true;
+    
+    console.log('✓ Restored Commander Edition');
   }
   
   // Restore Auto-Wave
@@ -7098,6 +7130,8 @@ function _restoreIAPPurchases() {
     console.log('🔄 Restoring Quick Buy');
     _quickBuyUnlocked = true;
   }
+  
+  console.log('✓ IAP restoration complete');
 }
 
 function _storeConfirmMessage(id) {
