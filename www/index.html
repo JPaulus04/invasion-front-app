@@ -3221,6 +3221,7 @@ function doPrestige(onComplete) {
   localStorage.removeItem(CFG.SAVE_KEY);
   G.state = freshState(G.meta.prestige);
   applyDoctrine(); applyUpgrades();
+  _restoreIAPPurchases();  // <-- RESTORE IAP AFTER STATE RESET
   G.log(`Prestige! Rank → ${G.meta.prestige}.`, 'system');
   playSfx('prestige');
   onComplete?.();
@@ -7123,12 +7124,14 @@ function _restoreIAPPurchases() {
   if (localStorage.getItem('ifc_autowav') === '1') {
     console.log('🔄 Restoring Auto-Wave');
     _autoWaveUnlocked = true;
+    if (typeof _updateAutowavStrip === 'function') _updateAutowavStrip();
   }
   
   // Restore Quick Buy
   if (localStorage.getItem('ifc_quickbuy') === '1') {
     console.log('🔄 Restoring Quick Buy');
     _quickBuyUnlocked = true;
+    if (typeof _updateQuickBuyButtons === 'function') _updateQuickBuyButtons();
   }
   
   console.log('✓ IAP restoration complete');
@@ -7155,18 +7158,36 @@ function _storeApplyPurchase(id) {
     
     // Ensure state exists
     if (!G.state._unlockedUnits) G.state._unlockedUnits = {};
+    console.log('📦 Before unlock:', G.state._unlockedUnits);
     
     // Unlock Heavy + Grenadier
     G.state._unlockedUnits.heavy = true;
     G.state._unlockedUnits.grenadier = true;
-    _applyUnlockReward('heavy', G.state);
-    _applyUnlockReward('grenadier', G.state);
+    console.log('📦 After setting flags:', G.state._unlockedUnits);
+    
+    if (typeof _applyUnlockReward === 'function') {
+      _applyUnlockReward('heavy', G.state);
+      console.log('✓ Applied reward for heavy');
+    } else {
+      console.warn('⚠️ _applyUnlockReward not found!');
+    }
+    
+    if (typeof _applyUnlockReward === 'function') {
+      _applyUnlockReward('grenadier', G.state);
+      console.log('✓ Applied reward for grenadier');
+    }
     console.log('✓ Unlocked: heavy, grenadier');
     
     // Add ×5 speed to cycle
-    if (!_speeds.find(function(sp) { return sp.val === 5; })) {
-      _speeds.splice(3, 0, { val: 5, label: '▶▶▶▶ 5×', cls: 's3' });
-      console.log('✓ Added ×5 speed');
+    if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
+      if (!_speeds.find(function(sp) { return sp.val === 5; })) {
+        _speeds.splice(3, 0, { val: 5, label: '▶▶▶▶ 5×', cls: 's3' });
+        console.log('✓ Added ×5 speed. Current speeds:', _speeds.map(s => s.val).join(','));
+      } else {
+        console.log('⚠️ ×5 speed already exists');
+      }
+    } else {
+      console.warn('⚠️ _speeds not initialized!');
     }
     
     // Unlock Orbital Strike
@@ -7174,7 +7195,16 @@ function _storeApplyPurchase(id) {
     console.log('✓ Orbital Strike unlocked');
     
     if (typeof haptic === 'function') haptic('success');
-    if (typeof showToast === 'function') showToast('⭐ Supporter Pack activated! Heavy, Grenadier, Orbital Strike unlocked!');
+    if (typeof showToast === 'function') {
+      showToast('⭐ Supporter Pack activated! Heavy, Grenadier, Orbital Strike unlocked!');
+      console.log('✓ Toast shown');
+    } else {
+      console.warn('⚠️ showToast not found!');
+    }
+    
+    renderStoreSheet();
+    updateHUD();
+    console.log('✓ Rendered UI');
     console.log('🌟 Supporter Pack Complete');
     
   } else if (id === 'commander') {
@@ -7183,12 +7213,21 @@ function _storeApplyPurchase(id) {
     
     // Ensure state exists
     if (!G.state._unlockedUnits) G.state._unlockedUnits = {};
+    console.log('📦 Before unlock:', G.state._unlockedUnits);
     
     // Unlock all 5 troop types
     ['heavy','medic','ew','grenadier','sniper'].forEach(function(u) {
       G.state._unlockedUnits[u] = true;
-      _applyUnlockReward(u, G.state);
-      console.log('✓ Unlocked:', u);
+      console.log('🔓 Setting:', u, 'to true');
+    });
+    console.log('📦 After setting flags:', G.state._unlockedUnits);
+    
+    // Apply unlock rewards
+    ['heavy','medic','ew','grenadier','sniper'].forEach(function(u) {
+      if (typeof _applyUnlockReward === 'function') {
+        _applyUnlockReward(u, G.state);
+        console.log('✓ Applied reward for:', u);
+      }
     });
     
     // Unlock Orbital Strike
@@ -7196,18 +7235,36 @@ function _storeApplyPurchase(id) {
     console.log('✓ Orbital Strike unlocked');
     
     // Add ×10 speed
-    if (!_speeds.find(function(sp) { return sp.val === 10; })) {
-      _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
-      console.log('✓ Added ×10 speed');
+    if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
+      if (!_speeds.find(function(sp) { return sp.val === 10; })) {
+        _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
+        console.log('✓ Added ×10 speed. Current speeds:', _speeds.map(s => s.val).join(','));
+      } else {
+        console.log('⚠️ ×10 speed already exists');
+      }
+    } else {
+      console.warn('⚠️ _speeds not initialized!');
     }
     
-    // Also apply Quick Buy + Auto-Wave
-    _storeApplyPurchase('quickbuy');
-    _storeApplyPurchase('autowav');
-    console.log('✓ Applied quickbuy + autowav');
+    // Apply Quick Buy + Auto-Wave (directly, don't recurse)
+    localStorage.setItem('ifc_quickbuy', '1');
+    _quickBuyUnlocked = true;
+    if (typeof _updateQuickBuyButtons === 'function') _updateQuickBuyButtons();
+    console.log('✓ Quick Buy unlocked');
+    
+    localStorage.setItem('ifc_autowav', '1');
+    _autoWaveUnlocked = true;
+    if (typeof _updateAutowavStrip === 'function') _updateAutowavStrip();
+    console.log('✓ Auto-Wave unlocked');
     
     if (typeof haptic === 'function') haptic('success');
-    if (typeof showToast === 'function') showToast('👑 Commander Edition activated! All troops, ×10 speed, Orbital Strike unlocked!');
+    if (typeof showToast === 'function') {
+      showToast('👑 Commander Edition activated! All troops, ×10 speed, Orbital Strike unlocked!');
+      console.log('✓ Toast shown');
+    } else {
+      console.warn('⚠️ showToast not found!');
+    }
+    
     console.log('👑 Commander Edition Complete');
   } else if (id === 'quickbuy') {
     localStorage.setItem('ifc_quickbuy', '1');
