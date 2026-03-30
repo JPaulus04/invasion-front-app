@@ -7058,83 +7058,113 @@ function _storePurchase(id) {
 
 // Restore IAP purchases from localStorage (persists across prestige)
 function _restoreIAPPurchases() {
-  const s = G.state;
-  if (!s) return; // Safety check
-  
-  console.log('🔄 Checking for IAP purchases to restore...');
-  
-  // Restore Supporter Pack
-  if (localStorage.getItem('ifc_iap_supporter') === '1') {
-    console.log('🔄 Restoring Supporter Pack');
-    if (!s._unlockedUnits) s._unlockedUnits = {};
-    s._unlockedUnits.heavy = true;
-    s._unlockedUnits.grenadier = true;
+  try {
+    const s = G.state;
+    if (!s) return; // Safety check
     
-    // Apply unlock rewards if function exists
-    if (typeof _applyUnlockReward === 'function') {
-      _applyUnlockReward('heavy', s);
-      _applyUnlockReward('grenadier', s);
-      console.log('✓ Applied unlock rewards');
-    }
+    console.log('🔄 Checking for IAP purchases to restore...');
     
-    // Add ×5 speed if array exists
-    if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
-      if (!_speeds.find(function(sp) { return sp.val === 5; })) {
-        _speeds.splice(3, 0, { val: 5, label: '▶▶▶▶ 5×', cls: 's3' });
-        console.log('✓ Restored ×5 speed');
+    // Restore Supporter Pack
+    if (localStorage.getItem('ifc_iap_supporter') === '1') {
+      try {
+        console.log('🔄 Restoring Supporter Pack');
+        if (!s._unlockedUnits) s._unlockedUnits = {};
+        s._unlockedUnits.heavy = true;
+        s._unlockedUnits.grenadier = true;
+        
+        // Apply unlock rewards if function exists
+        if (typeof _applyUnlockReward === 'function') {
+          _applyUnlockReward('heavy', s);
+          _applyUnlockReward('grenadier', s);
+          console.log('✓ Applied unlock rewards');
+        }
+        
+        // Add ×5 speed if array exists
+        if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
+          if (!_speeds.find(function(sp) { return sp.val === 5; })) {
+            _speeds.splice(3, 0, { val: 5, label: '▶▶▶▶ 5×', cls: 's3' });
+            console.log('✓ Restored ×5 speed');
+          }
+        }
+        
+        s._orbPurchaseUnlocked = true;
+        console.log('✓ Restored Supporter Pack');
+      } catch(e) {
+        console.error('⚠️ Supporter restore error:', e.message);
       }
     }
     
-    s._orbPurchaseUnlocked = true;
-    console.log('✓ Restored Supporter Pack');
-  }
-  
-  // Restore Commander Edition
-  if (localStorage.getItem('ifc_iap_commander') === '1') {
-    console.log('🔄 Restoring Commander Edition');
-    if (!s._unlockedUnits) s._unlockedUnits = {};
-    
-    // Unlock all 5 troops
-    ['heavy','medic','ew','grenadier','sniper'].forEach(function(u) {
-      s._unlockedUnits[u] = true;
-      if (typeof _applyUnlockReward === 'function') {
-        _applyUnlockReward(u, s);
-      }
-    });
-    console.log('✓ Unlocked all troops');
-    
-    // Add ×10 speed if array exists
-    if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
-      if (!_speeds.find(function(sp) { return sp.val === 10; })) {
-        _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
-        console.log('✓ Restored ×10 speed');
+    // Restore Commander Edition
+    if (localStorage.getItem('ifc_iap_commander') === '1') {
+      try {
+        console.log('🔄 Restoring Commander Edition');
+        if (!s._unlockedUnits) s._unlockedUnits = {};
+        
+        // Unlock all 5 troops
+        ['heavy','medic','ew','grenadier','sniper'].forEach(function(u) {
+          s._unlockedUnits[u] = true;
+          if (typeof _applyUnlockReward === 'function') {
+            _applyUnlockReward(u, s);
+          }
+        });
+        console.log('✓ Unlocked all troops');
+        
+        // Add ×10 speed if array exists
+        if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
+          if (!_speeds.find(function(sp) { return sp.val === 10; })) {
+            _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
+            console.log('✓ Restored ×10 speed');
+          }
+        }
+        
+        s._orbPurchaseUnlocked = true;
+        
+        // Commander includes Quick Buy + Auto-Wave
+        _quickBuyUnlocked = true;
+        _autoWaveUnlocked = true;
+        
+        console.log('✓ Restored Commander Edition');
+      } catch(e) {
+        console.error('⚠️ Commander restore error:', e.message);
       }
     }
     
-    s._orbPurchaseUnlocked = true;
+    // Restore Auto-Wave
+    if (localStorage.getItem('ifc_autowav') === '1') {
+      try {
+        console.log('🔄 Restoring Auto-Wave');
+        _autoWaveUnlocked = true;
+        if (typeof _updateAutowavStrip === 'function') _updateAutowavStrip();
+      } catch(e) {
+        console.error('⚠️ Auto-Wave restore error:', e.message);
+      }
+    }
     
-    // Commander includes Quick Buy + Auto-Wave
-    _quickBuyUnlocked = true;
-    _autoWaveUnlocked = true;
+    // Restore Quick Buy
+    if (localStorage.getItem('ifc_quickbuy') === '1') {
+      try {
+        console.log('🔄 Restoring Quick Buy');
+        _quickBuyUnlocked = true;
+        if (typeof _updateQuickBuyButtons === 'function') _updateQuickBuyButtons();
+      } catch(e) {
+        console.error('⚠️ Quick Buy restore error:', e.message);
+      }
+    }
     
-    console.log('✓ Restored Commander Edition');
+    // Re-render UI to show restored unlocks
+    if (typeof renderStoreSheet === 'function') {
+      renderStoreSheet();
+      console.log('✓ Re-rendered store');
+    }
+    if (typeof updateHUD === 'function') {
+      updateHUD();
+      console.log('✓ Updated HUD');
+    }
+    
+    console.log('✓ IAP restoration complete');
+  } catch(e) {
+    console.error('⚠️ IAP restoration failed:', e.message, e.stack);
   }
-  
-  // Restore Auto-Wave
-  if (localStorage.getItem('ifc_autowav') === '1') {
-    console.log('🔄 Restoring Auto-Wave');
-    _autoWaveUnlocked = true;
-    if (typeof _updateAutowavStrip === 'function') _updateAutowavStrip();
-  }
-  
-  // Restore Quick Buy
-  if (localStorage.getItem('ifc_quickbuy') === '1') {
-    console.log('🔄 Restoring Quick Buy');
-    _quickBuyUnlocked = true;
-    if (typeof _updateQuickBuyButtons === 'function') _updateQuickBuyButtons();
-  }
-  
-  console.log('✓ IAP restoration complete');
 }
 
 function _storeConfirmMessage(id) {
@@ -10034,24 +10064,31 @@ function _onCanvasTap(evt) {
 canvas.addEventListener('touchstart', _onCanvasTap, { passive: false });
 canvas.addEventListener('click', _onCanvasTap);
 function showToast(msg) {
+  console.log('🔔 Toast:', msg);
   let t = $id('toast-msg');
   if (!t) {
     t = document.createElement('div');
     t.id = 'toast-msg';
     t.style.cssText =
-      'position:fixed;bottom:calc(120px + env(safe-area-inset-bottom,0px));left:50%;' +
-      'transform:translateX(-50%);z-index:999;' +
-      'background:rgba(10,21,32,.95);border:1px solid var(--line2);' +
-      'border-radius:10px;padding:8px 18px;' +
-      "font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;" +
+      'position:fixed;bottom:calc(180px + env(safe-area-inset-bottom,0px));left:50%;' +
+      'transform:translateX(-50%);z-index:99999;' +
+      'background:rgba(10,21,32,.98);border:2px solid var(--amber);' +
+      'border-radius:12px;padding:12px 24px;' +
+      "font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;" +
       'color:var(--amber);letter-spacing:.5px;white-space:nowrap;' +
-      'pointer-events:none;';
+      'pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.8);' +
+      'opacity:1;transition:opacity 0.3s ease;';
     document.body.appendChild(t);
+    console.log('✓ Toast element created');
   }
   t.textContent = msg;
   t.style.opacity = '1';
+  console.log('✓ Toast shown:', msg);
   clearTimeout(t._timer);
-  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2000);
+  t._timer = setTimeout(() => { 
+    t.style.opacity = '0'; 
+    console.log('✓ Toast fading');
+  }, 3000);
 }
 
 // ── Game loop ──────────────────────────────────────────────────
