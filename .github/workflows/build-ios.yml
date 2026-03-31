@@ -50,7 +50,7 @@ jobs:
           with open(path) as f:
               content = f.read()
           # Bump build number
-          content = re.sub(r'CURRENT_PROJECT_VERSION = \d+;', 'CURRENT_PROJECT_VERSION = 14;', content)
+          content = re.sub(r'CURRENT_PROJECT_VERSION = \d+;', 'CURRENT_PROJECT_VERSION = 15;', content)
           content = re.sub(r'MARKETING_VERSION = [^;]+;', 'MARKETING_VERSION = 1.0;', content)
           # Inject signing settings for App target only
           content = re.sub(
@@ -65,7 +65,7 @@ jobs:
           )
           with open(path, "w") as f:
               f.write(content)
-          print("Project patched — version 1.0 build 14")
+          print("Project patched — version 1.0 build 3")
           EOF
 
       - name: Patch Podfile
