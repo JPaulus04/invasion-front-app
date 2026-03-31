@@ -65,7 +65,7 @@ jobs:
           )
           with open(path, "w") as f:
               f.write(content)
-          print("Project patched — version 1.0 build 3")
+          print("Project patched — version 1.0 build 15")
           EOF
 
       - name: Patch Podfile
