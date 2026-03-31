@@ -1618,6 +1618,40 @@ function _applyUnlockReward(id, s) {
 }
 .btn-shake { animation: btnShake .35s ease-out; }
 
+/* Home Screen Animations */
+@keyframes waveGlow {
+  0%, 100% { text-shadow: 0 0 20px rgba(0,229,255,.3), 0 0 40px rgba(0,229,255,.1); }
+  50% { text-shadow: 0 0 30px rgba(0,229,255,.6), 0 0 60px rgba(0,229,255,.3); }
+}
+.home-wave-num { animation: waveGlow 2s ease-in-out infinite; }
+
+@keyframes buttonPulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(0,229,255,.2), inset 0 0 10px rgba(0,229,255,.05); }
+  50% { box-shadow: 0 0 25px rgba(0,229,255,.4), inset 0 0 15px rgba(0,229,255,.1); }
+}
+.home-resume-btn { animation: buttonPulse 2.5s ease-in-out infinite; }
+
+@keyframes doctrinePulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(0,229,255,.1); }
+  50% { box-shadow: 0 0 25px rgba(0,229,255,.3); }
+}
+.doctrine-banner { animation: doctrinePulse 3s ease-in-out infinite; }
+
+@keyframes scanLine {
+  0% { top: -100%; opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
+}
+.home-scan-line {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0,229,255,.5), transparent);
+  animation: scanLine 3s linear infinite;
+  pointer-events: none;
+}
+
 /* ══ UPDATE 8: DOCTRINE CARD ACCENT COLORS ═══════════════════ */
 .choice-card { position: relative; overflow: hidden; }
 .doc-blitz     { border-color: rgba(255,60,60,.35) !important; }
@@ -2202,12 +2236,67 @@ function _applyUnlockReward(id, s) {
   </div>
 </div>
 
+<!-- ══ HOME SCREEN (COMMAND CENTER) ════════════════════════════════ -->
+<div id="homeScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#0a1118 0%,#1a2535 50%,#0a1118 100%);z-index:100;padding:20px;overflow-y:auto;font-family:'Rajdhani',sans-serif">
+  <!-- Command center background effect -->
+  <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><defs><pattern id=%22grid%22 width=%2220%22 height=%2220%22 patternUnits=%22userSpaceOnUse%22><path d=%22M 20 0 L 0 0 0 20%22 fill=%22none%22 stroke=%22rgba(0,200,255,.03)%22 stroke-width=%220.5%22/></pattern></defs><rect width=%22100%22 height=%22100%22 fill=%22url(%23grid)%22/></svg>');pointer-events:none;z-index:0"></div>
+  
+  <div style="position:relative;z-index:10;max-width:500px;margin:0 auto">
+    <!-- Title -->
+    <div style="text-align:center;margin-bottom:30px;font-size:14px;letter-spacing:3px;color:#00e5ff;text-transform:uppercase;text-shadow:0 0 20px rgba(0,229,255,.3)">LAST STAND COMMAND</div>
+    
+    <!-- Wave Display -->
+    <div style="text-align:center;margin-bottom:30px;padding:20px;border:2px solid #00e5ff;border-radius:12px;background:rgba(0,229,255,.05);box-shadow:0 0 20px rgba(0,229,255,.1),inset 0 0 20px rgba(0,229,255,.05);position:relative;overflow:hidden">
+      <div class="home-scan-line"></div>
+      <div style="font-size:48px;font-weight:700;color:#ffffff;line-height:1;margin-bottom:4px" class="home-wave-num">WAVE <span id="homeWaveNum">1</span></div>
+      <div style="font-size:11px;color:#00e5ff;letter-spacing:1px;text-transform:uppercase">Last Completed</div>
+    </div>
+    
+    <!-- Doctrine Banner (changes per doctrine) -->
+    <div id="doctrineBanner" style="text-align:center;margin-bottom:30px;padding:16px;border:2px solid #00e5ff;border-radius:12px;background:rgba(0,229,255,.05);position:relative" class="doctrine-banner">
+      <div class="home-scan-line" style="animation-delay:1s"></div>
+      <div style="font-size:32px;margin-bottom:4px" id="doctrineBannerIcon">⚡</div>
+      <div style="font-size:16px;font-weight:700;color:#00e5ff;margin-bottom:2px" id="doctrineBannerName">BLITZKRIEG COMMAND</div>
+      <div style="font-size:11px;color:#aabbcc;letter-spacing:1px" id="doctrineBannerRank">RANK 5</div>
+      <div style="font-size:9px;color:#888;margin-top:4px" id="doctrineBannerTagline">Aggressive Firepower</div>
+    </div>
+    
+    <!-- Resume/New Run Button -->
+    <button id="homeResumeBtn" style="width:100%;padding:16px;margin-bottom:20px;border:2px solid #00e5ff;border-radius:12px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(0,229,255,.05));color:#00e5ff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:16px;cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:all 0.3s" class="home-resume-btn">▶ RESUME WAVE <span id="homeResumeWave">1</span></button>
+    
+    <!-- Navigation Buttons -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:20px">
+      <button id="homeSettingsBtn" style="padding:12px;border:1px solid #8855dd;border-radius:8px;background:rgba(136,85,221,.08);color:#8855dd;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;transition:all 0.3s">⚙ Settings</button>
+      <button id="homeStatsBtn" style="padding:12px;border:1px solid #00d4ff;border-radius:8px;background:rgba(0,212,255,.08);color:#00d4ff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;transition:all 0.3s">📊 Stats</button>
+      <button id="homeCareerBtn" style="padding:12px;border:1px solid #88bb66;border-radius:8px;background:rgba(136,187,102,.08);color:#88bb66;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;transition:all 0.3s">★ Career</button>
+      <button id="homeStoreBtn" style="padding:12px;border:1px solid #ffaa44;border-radius:8px;background:rgba(255,170,68,.08);color:#ffaa44;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;transition:all 0.3s">🛒 Store</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STATS DASHBOARD ══════════════════════════════════════════════ -->
+<div id="statsScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#0a1118 0%,#1a2535 50%,#0a1118 100%);z-index:100;padding:20px;overflow-y:auto;font-family:'Rajdhani',sans-serif">
+  <div style="max-width:500px;margin:0 auto">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-size:18px;font-weight:700;color:#00e5ff" id="statsTitle">BLITZKRIEG - WAVE 41</div>
+      <button id="statsCloseBtn" style="background:none;border:none;color:#00e5ff;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    
+    <!-- Scrollable Stats Content -->
+    <div id="statsContent" style="overflow-y:auto;max-height:calc(100vh - 100px)">
+      <!-- Stats will be dynamically inserted here -->
+    </div>
+  </div>
+</div>
+
 <!-- ══ PAUSE MENU OVERLAY ═════════════════════════════════════════ -->
 <div id="pauseMenuOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:5000;padding:40px 20px;display:flex;justify-content:center;align-items:center">
   <div style="background:#0a1118;border:2px solid #2a3f5f;border-radius:16px;padding:24px;max-width:400px;width:100%;text-align:center">
     <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;color:#00e5ff;margin-bottom:24px">⏸ PAUSED</div>
     <div style="display:flex;flex-direction:column;gap:12px">
       <button id="pauseResumeBtn" style="padding:12px;border-radius:10px;background:#2a5a5a;border:1px solid #00e5ff;color:#00e5ff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer">▶ Resume</button>
+      <button id="pauseRetreatBtn" style="padding:12px;border-radius:10px;background:#3a3a4a;border:1px solid #00d4ff;color:#00d4ff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer">🏠 Retreat to Base</button>
       <button id="pauseSettingsBtn" style="padding:12px;border-radius:10px;background:#3a3a5a;border:1px solid #9090cc;color:#9090cc;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer">⚙ Settings</button>
       <button id="pauseCareerBtn" style="padding:12px;border-radius:10px;background:#3a4a2a;border:1px solid #88bb66;color:#88bb66;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer">★ Career</button>
       <button id="pauseExitBtn" style="padding:12px;border-radius:10px;background:#4a2a2a;border:1px solid #dd6666;color:#dd6666;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer">✕ Exit to Doctrine</button>
@@ -3122,7 +3211,10 @@ function applyDamage(enemy, damage, source = 'normal') {
     dmg -= source === 'ew' ? use / (1.8 + strip) : use;
     if (enemy.shield < 0.01) enemy.shield = 0;
   }
-  if (dmg > 0) enemy.hp -= dmg;
+  if (dmg > 0) {
+    enemy.hp -= dmg;
+    GAME_STATS.damage_dealt += dmg;
+  }
 }
 
 function nearestEnemy(t) {
@@ -3247,17 +3339,174 @@ function canPrestige() {
   return G.state.wave >= CFG.PRESTIGE_WAVE_REQ || G.state.gameOver;
 }
 
+// ── ACHIEVEMENT SYSTEM ─────────────────────────────────────────────
+const ACHIEVEMENTS = {
+  first_blood: { id: 'first_blood', name: 'First Blood', desc: 'Kill your first boss', icon: '🩸' },
+  wave_master: { id: 'wave_master', name: 'Wave Master', desc: 'Reach wave 50', icon: '👑' },
+  prestige_elite: { id: 'prestige_elite', name: 'Prestige Elite', desc: 'Reach prestige rank 5', icon: '⭐' },
+  troop_expert: { id: 'troop_expert', name: 'Troop Expert', desc: 'Deploy 1000 troops', icon: '🎖️', target: 1000 },
+  doctrine_master: { id: 'doctrine_master', name: 'Doctrine Master', desc: 'Win 10 runs with each doctrine', icon: '🧭' },
+  fortress_guardian: { id: 'fortress_guardian', name: 'Fortress Guardian', desc: 'Complete 10 waves without breaches', icon: '🛡️' },
+  speed_runner: { id: 'speed_runner', name: 'Speed Runner', desc: 'Reach wave 30 in under 15 minutes', icon: '⚡' },
+  unstoppable: { id: 'unstoppable', name: 'Unstoppable Force', desc: 'Kill 500 bosses', icon: '💀', target: 500 },
+};
+
+// Stat tracking object
+const GAME_STATS = {
+  bosses_killed_run: 0,
+  troops_deployed_run: 0,
+  troops_by_type: { rifle: 0, heavy: 0, medic: 0, ew: 0, grenadier: 0, sniper: 0 },
+  damage_dealt: 0,
+  damage_taken: 0,
+  credits_earned: 0,
+  breaches: 0,
+  start_time: 0,
+};
+
+function _initRunStats() {
+  GAME_STATS.bosses_killed_run = 0;
+  GAME_STATS.troops_deployed_run = 0;
+  GAME_STATS.troops_by_type = { rifle: 0, heavy: 0, medic: 0, ew: 0, grenadier: 0, sniper: 0 };
+  GAME_STATS.damage_dealt = 0;
+  GAME_STATS.damage_taken = 0;
+  GAME_STATS.credits_earned = 0;
+  GAME_STATS.breaches = 0;
+  GAME_STATS.start_time = Date.now();
+}
+
+function _saveCareerStats() {
+  try {
+    let career = JSON.parse(localStorage.getItem('ifc_career_stats') || '{}');
+    if (!career.total_bosses) career.total_bosses = 0;
+    if (!career.total_troops) career.total_troops = 0;
+    if (!career.total_runs) career.total_runs = 0;
+    if (!career.total_playtime_ms) career.total_playtime_ms = 0;
+    if (!career.troops_by_type) career.troops_by_type = { rifle: 0, heavy: 0, medic: 0, ew: 0, grenadier: 0, sniper: 0 };
+    if (!career.doctrine_runs) career.doctrine_runs = { blitz: 0, fortress: 0, logistics: 0, ewar: 0 };
+    
+    career.total_bosses += GAME_STATS.bosses_killed_run;
+    career.total_troops += GAME_STATS.troops_deployed_run;
+    career.total_runs += 1;
+    career.total_playtime_ms += (Date.now() - GAME_STATS.start_time);
+    
+    const doctrine = G.state.selectedDoctrine || 'blitz';
+    const docKey = doctrine === 'blitzkrieg' ? 'blitz' : doctrine === 'fortress' ? 'fortress' : doctrine === 'logistics' ? 'logistics' : 'ewar';
+    career.doctrine_runs[docKey] = (career.doctrine_runs[docKey] || 0) + 1;
+    
+    Object.keys(GAME_STATS.troops_by_type).forEach(t => {
+      career.troops_by_type[t] = (career.troops_by_type[t] || 0) + (GAME_STATS.troops_by_type[t] || 0);
+    });
+    
+    localStorage.setItem('ifc_career_stats', JSON.stringify(career));
+  } catch(e) {
+    console.warn('Career stats save failed:', e.message);
+  }
+}
+
+function _loadCareerStats() {
+  try {
+    return JSON.parse(localStorage.getItem('ifc_career_stats') || '{}');
+  } catch(e) {
+    return {};
+  }
+}
+
+function _checkAchievements() {
+  try {
+    let unlocked = JSON.parse(localStorage.getItem('ifc_achievements') || '{}');
+    const career = _loadCareerStats();
+    
+    // First Blood — kill 1 boss
+    if (!unlocked.first_blood && GAME_STATS.bosses_killed_run > 0) {
+      _unlockAchievement('first_blood');
+      unlocked.first_blood = true;
+    }
+    
+    // Wave Master — reach wave 50
+    if (!unlocked.wave_master && G.state.wave >= 50) {
+      _unlockAchievement('wave_master');
+      unlocked.wave_master = true;
+    }
+    
+    // Prestige Elite — rank 5
+    if (!unlocked.prestige_elite && G.meta.prestige >= 5) {
+      _unlockAchievement('prestige_elite');
+      unlocked.prestige_elite = true;
+    }
+    
+    // Troop Expert — 1000 troops
+    if (!unlocked.troop_expert && (career.total_troops || 0) >= 1000) {
+      _unlockAchievement('troop_expert');
+      unlocked.troop_expert = true;
+    }
+    
+    // Unstoppable — 500 bosses
+    if (!unlocked.unstoppable && (career.total_bosses || 0) >= 500) {
+      _unlockAchievement('unstoppable');
+      unlocked.unstoppable = true;
+    }
+    
+    localStorage.setItem('ifc_achievements', JSON.stringify(unlocked));
+  } catch(e) {
+    console.warn('Achievement check failed:', e.message);
+  }
+}
+
+function _unlockAchievement(id) {
+  const ach = ACHIEVEMENTS[id];
+  if (ach) {
+    showToast('🏆 Achievement Unlocked: ' + ach.name);
+    console.log('🏆 Achievement unlocked:', id);
+  }
+}
+
+function _getUnlockedAchievements() {
+  try {
+    return JSON.parse(localStorage.getItem('ifc_achievements') || '{}');
+  } catch(e) {
+    return {};
+  }
+}
+
+// Mock leaderboard data
+const MOCK_LEADERBOARD = [
+  { rank: 1, name: 'ShadowCommander', prestige: 12 },
+  { rank: 2, name: 'TacticalGem', prestige: 11 },
+  { rank: 3, name: 'DefenseKing', prestige: 10 },
+  { rank: 4, name: 'WaveRunner', prestige: 9 },
+  { rank: 5, name: 'StrategyMaster', prestige: 8 },
+];
+
+// First-time player flag
+function _isFirstTime() {
+  return localStorage.getItem('ifc_first_time_done') !== '1';
+}
+
+function _markFirstTimeDone() {
+  localStorage.setItem('ifc_first_time_done', '1');
+}
+
 function doPrestige(onComplete) {
   const gain = prestigeGain();
   recordRun(G.meta, G.state);
+  _saveCareerStats();
+  _checkAchievements();
   G.meta.prestige += gain;
   saveMeta(G.meta);
   localStorage.removeItem(CFG.SAVE_KEY);
   G.state = freshState(G.meta.prestige);
   applyDoctrine(); applyUpgrades();
-  _restoreIAPPurchases();  // <-- RESTORE IAP AFTER STATE RESET
+  _restoreIAPPurchases();
   G.log(`Prestige! Rank → ${G.meta.prestige}.`, 'system');
   playSfx('prestige');
+  
+  // After prestige ceremony, show home then doctrine select
+  setTimeout(() => {
+    renderHomeScreen();
+    $id('homeScreen').style.display = 'block';
+    $id('prestigeOverlay').style.display = 'none';
+  }, 2000);
+  
   onComplete?.();
 }
 
@@ -3446,6 +3695,8 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const block = s.lanes[e.lane].barricade * barBlock * (1 + (s.perks.barricadeBoost ?? 0)) * (s.runtime.fortressBarricadeBoost ? 1.5 : 1);
       const dmg = Math.max(1, e.damage - block);
       s.baseHp -= dmg; s.lastWaveStats.baseDamage += dmg; e.hp = -999;
+      GAME_STATS.damage_taken += dmg;
+      GAME_STATS.breaches += 1;
       s.fx.push({ kind:'boom', x:96, y:e.y, life:.30, max:.30, r:e.r+8 });
       G.log(`${cap(e.kind)} breached! -${Math.floor(dmg)} HP`, 'danger');
       playSfx('impact');
@@ -3459,8 +3710,9 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const base = CFG.KILL_REWARDS[e.kind] ?? 12;
       const reward = Math.floor(base * s.global.income * (1 + s.mods.incomeMult) * (1 + s.prestige * CFG.PRESTIGE_INCOME_BONUS) * incMult + s.mods.killBonus);
       s.credits += reward; s.lastWaveStats.credits += reward; s.killsTotal++; s.creditsEarned += reward;
+      GAME_STATS.credits_earned += reward;
       const isBoss = ['warlord','siege','phaselord'].includes(e.kind);
-      if (isBoss) { s.bossKills++; G.log(`${cap(e.kind)} destroyed! +${reward} cr`, 'good'); }
+      if (isBoss) { s.bossKills++; GAME_STATS.bosses_killed_run++; G.log(`${cap(e.kind)} destroyed! +${reward} cr`, 'good'); }
       if (s.perks.killChain && s.abilities.orbitalCd > 0) s.abilities.orbitalCd = Math.max(0, s.abilities.orbitalCd - 0.4);
       if (e._elite) s.fx.push({ kind:'boom', x:e.x, y:e.y, life:.45, max:.45, r:e.r+18 });
       s.fx.push({ kind:'boom', x:e.x, y:e.y, life:.28, max:.28, r:e.r+5 });
@@ -3608,20 +3860,32 @@ try { applyDoctrine(); } catch(e) { _showErr('applyDoctrine', e); }
 try { applyUpgrades(); } catch(e) { _showErr('applyUpgrades', e); }
 try { _restoreIAPPurchases(); } catch(e) { _showErr('restoreIAP', e); }
 
-// Auto-resume if game was saved
+// Show Home Screen on app start
 (function() {
   try {
-    if (G.state && G.state.started && G.state.wave > 1) {
-      console.log('🔄 Resuming saved game at Wave', G.state.wave);
-      // Hide start overlay to resume
-      const startOv = document.getElementById('startOverlay');
-      if (startOv) {
-        startOv.classList.add('hidden');
-        console.log('✓ Start overlay hidden, game resumed');
-      }
+    _initRunStats();
+    
+    // Check if first time
+    if (_isFirstTime()) {
+      console.log('👋 First time player - showing tutorial');
+      // Show tutorial modal over home screen
+      showToast('Welcome, Commander! Tap the question mark for tutorial.');
+      _markFirstTimeDone();
+    }
+    
+    // Render and show home screen
+    renderHomeScreen();
+    const homeScreen = $id('homeScreen');
+    const startOv = $id('startOverlay');
+    if (homeScreen) {
+      homeScreen.style.display = 'block';
+      console.log('✓ Home screen displayed');
+    }
+    if (startOv) {
+      startOv.classList.add('hidden');
     }
   } catch(e) {
-    console.warn('Resume check failed:', e.message);
+    console.warn('Home screen init failed:', e.message);
   }
 })();
 
@@ -6953,6 +7217,143 @@ $id('storeBtn').addEventListener('click', () => {
 $id('store-close').addEventListener('click', () => closeSheet('store-sheet', 'store-backdrop'));
 $id('store-backdrop').addEventListener('click', () => closeSheet('store-sheet', 'store-backdrop'));
 
+// ── DOCTRINE INFO HELPER ───────────────────────────────────────────
+function _getDoctrineInfo(docId) {
+  const doctrines = {
+    blitzkrieg: { name: 'BLITZKRIEG COMMAND', icon: '⚡', tagline: 'Aggressive Firepower', color: '#ff6b35' },
+    fortress: { name: 'FORTRESS COMMAND', icon: '🛡️', tagline: 'Impenetrable Defense', color: '#00e5ff' },
+    logistics: { name: 'LOGISTICS COMMAND', icon: '⚙️', tagline: 'Economic Superiority', color: '#88bb66' },
+    ewar: { name: 'EW SUPERIORITY COMMAND', icon: '📡', tagline: 'Total Information Control', color: '#bb88dd' },
+  };
+  return doctrines[docId] || doctrines.blitzkrieg;
+}
+
+function renderHomeScreen() {
+  try {
+    const home = $id('homeScreen');
+    if (!home) return;
+    
+    // Get last saved game or current game state
+    const raw = localStorage.getItem(CFG.SAVE_KEY);
+    const saved = raw ? JSON.parse(raw) : null;
+    const lastWave = saved ? saved.wave : (G.state ? G.state.wave : 1);
+    const doctrine = saved ? saved.selectedDoctrine : (G.state ? G.state.selectedDoctrine : 'blitzkrieg');
+    
+    // Update wave display
+    $id('homeWaveNum').textContent = lastWave;
+    $id('homeResumeWave').textContent = lastWave;
+    
+    // Update doctrine banner
+    const docInfo = _getDoctrineInfo(doctrine);
+    $id('doctrineBannerIcon').textContent = docInfo.icon;
+    $id('doctrineBannerName').textContent = docInfo.name;
+    $id('doctrineBannerRank').textContent = 'RANK ' + (G.meta?.prestige || 0);
+    $id('doctrineBannerTagline').textContent = docInfo.tagline;
+    $id('doctrineBanner').style.borderColor = docInfo.color;
+    $id('doctrineBanner').style.boxShadow = '0 0 15px ' + docInfo.color + '33';
+    
+    // Update resume button
+    const resumeBtn = $id('homeResumeBtn');
+    if (resumeBtn) {
+      resumeBtn.style.borderColor = docInfo.color;
+      resumeBtn.style.color = docInfo.color;
+      resumeBtn.style.boxShadow = '0 0 15px ' + docInfo.color + '33';
+      
+      if (saved) {
+        resumeBtn.textContent = '▶ RESUME WAVE ' + lastWave;
+        resumeBtn.onclick = () => {
+          home.style.display = 'none';
+          $id('startOverlay').classList.add('hidden');
+          G.state.started = true;
+          updateHUD();
+        };
+      } else {
+        resumeBtn.textContent = '+ NEW RUN';
+        resumeBtn.onclick = () => {
+          home.style.display = 'none';
+          $id('startOverlay').classList.remove('hidden');
+        };
+      }
+    }
+  } catch(e) {
+    console.warn('Home screen render failed:', e.message);
+  }
+}
+
+function renderStatsScreen() {
+  try {
+    const content = $id('statsContent');
+    if (!content) return;
+    content.innerHTML = '';
+    
+    const career = _loadCareerStats();
+    const unlocked = _getUnlockedAchievements();
+    const raw = localStorage.getItem(CFG.SAVE_KEY);
+    const saved = raw ? JSON.parse(raw) : null;
+    const doctrine = saved?.selectedDoctrine || G.state?.selectedDoctrine || 'blitzkrieg';
+    
+    // Current Run Section
+    let html = '<div style="margin-bottom:24px;padding:16px;border:1px solid rgba(0,200,255,.3);border-radius:8px;background:rgba(0,200,255,.05)">';
+    html += '<div style="font-size:12px;color:#00e5ff;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">CURRENT RUN</div>';
+    html += '<div style="font-size:11px;color:#aabbcc;line-height:1.8">';
+    html += '<div>Wave Reached: <span style="color:#fff">' + (saved?.wave || 1) + '</span></div>';
+    html += '<div>Bosses Killed: <span style="color:#fff">' + GAME_STATS.bosses_killed_run + '</span></div>';
+    html += '<div>Troops Deployed: <span style="color:#fff">' + GAME_STATS.troops_deployed_run + '</span></div>';
+    html += '<div>Credits Earned: <span style="color:#fff">' + GAME_STATS.credits_earned + '</span></div>';
+    html += '<div>Damage Dealt: <span style="color:#fff">' + GAME_STATS.damage_dealt + '</span></div>';
+    html += '<div>Damage Taken: <span style="color:#fff">' + GAME_STATS.damage_taken + '</span></div>';
+    html += '</div></div>';
+    
+    // Troop Roster
+    html += '<div style="margin-bottom:24px;padding:16px;border:1px solid rgba(136,187,102,.3);border-radius:8px;background:rgba(136,187,102,.05)">';
+    html += '<div style="font-size:12px;color:#88bb66;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">TROOP ROSTER</div>';
+    html += '<div style="font-size:11px;color:#aabbcc;line-height:1.8">';
+    const troopNames = { rifle: 'Rifle Squad', heavy: 'Heavy Team', medic: 'Combat Medic', ew: 'EW Specialist', grenadier: 'Grenadier', sniper: 'Sniper Team' };
+    Object.keys(career.troops_by_type || {}).forEach(t => {
+      const count = career.troops_by_type[t] || 0;
+      html += '<div>' + troopNames[t] + ': <span style="color:#fff">' + count + '× deployed</span></div>';
+    });
+    html += '</div></div>';
+    
+    // Career Stats
+    html += '<div style="margin-bottom:24px;padding:16px;border:1px solid rgba(0,200,255,.3);border-radius:8px;background:rgba(0,200,255,.05)">';
+    html += '<div style="font-size:12px;color:#00e5ff;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">CAREER STATS</div>';
+    html += '<div style="font-size:11px;color:#aabbcc;line-height:1.8">';
+    html += '<div>Total Runs: <span style="color:#fff">' + (career.total_runs || 0) + '</span></div>';
+    html += '<div>Total Bosses Killed: <span style="color:#fff">' + (career.total_bosses || 0) + '</span></div>';
+    html += '<div>Total Troops Deployed: <span style="color:#fff">' + (career.total_troops || 0) + '</span></div>';
+    const playHours = Math.floor((career.total_playtime_ms || 0) / 3600000);
+    const playMins = Math.floor(((career.total_playtime_ms || 0) % 3600000) / 60000);
+    html += '<div>Total Playtime: <span style="color:#fff">' + playHours + 'h ' + playMins + 'm</span></div>';
+    html += '<div>Prestige Rank: <span style="color:#fff">' + (G.meta?.prestige || 0) + '</span></div>';
+    html += '</div></div>';
+    
+    // Achievements
+    html += '<div style="margin-bottom:24px;padding:16px;border:1px solid rgba(255,170,68,.3);border-radius:8px;background:rgba(255,170,68,.05)">';
+    html += '<div style="font-size:12px;color:#ffaa44;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">ACHIEVEMENTS (' + Object.keys(unlocked).length + '/' + Object.keys(ACHIEVEMENTS).length + ')</div>';
+    html += '<div style="font-size:10px;color:#aabbcc;line-height:1.8">';
+    Object.values(ACHIEVEMENTS).forEach(ach => {
+      const isUnlocked = unlocked[ach.id];
+      html += '<div style="opacity:' + (isUnlocked ? '1' : '0.4') + '">' + (isUnlocked ? '✓' : '✗') + ' ' + ach.icon + ' ' + ach.name + '</div>';
+    });
+    html += '</div></div>';
+    
+    // Leaderboard
+    html += '<div style="margin-bottom:24px;padding:16px;border:1px solid rgba(136,85,221,.3);border-radius:8px;background:rgba(136,85,221,.05)">';
+    html += '<div style="font-size:12px;color:#bb88dd;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">TOP PRESTIGE</div>';
+    html += '<div style="font-size:10px;color:#aabbcc;line-height:1.8">';
+    MOCK_LEADERBOARD.forEach(player => {
+      const isYou = player.prestige === (G.meta?.prestige || 0);
+      html += '<div style="color:' + (isYou ? '#ffaa44' : '#aabbcc') + '">#' + player.rank + ' ' + player.name + ' - Rank ' + player.prestige + (isYou ? ' (YOU)' : '') + '</div>';
+    });
+    html += '</div></div>';
+    
+    content.innerHTML = html;
+  } catch(e) {
+    console.warn('Stats screen render failed:', e.message);
+  }
+}
+
 function renderStoreSheet() {
   const body = $id('store-body');
   if (!body) return;
@@ -7700,6 +8101,51 @@ $id('volumeSlider')?.addEventListener('input', (e) => {
   if (label) label.textContent = savedVol + '%';
   _updateSoundUI();
 })();
+
+// ── HOME SCREEN BUTTONS ────────────────────────────────────────────
+$id('homeSettingsBtn')?.addEventListener('click', () => {
+  $id('homeScreen').style.display = 'none';
+  $id('settingsPanel').style.display = 'flex';
+});
+
+$id('homeStatsBtn')?.addEventListener('click', () => {
+  renderStatsScreen();
+  $id('homeScreen').style.display = 'none';
+  $id('statsScreen').style.display = 'block';
+});
+
+$id('homeCareerBtn')?.addEventListener('click', () => {
+  $id('homeScreen').style.display = 'none';
+  renderMetaUI();
+  $id('metaOverlay').style.display = 'block';
+});
+
+$id('homeStoreBtn')?.addEventListener('click', () => {
+  $id('homeScreen').style.display = 'none';
+  renderStoreSheet();
+  $id('storeOverlay').classList.remove('hidden');
+});
+
+// Stats screen close
+$id('statsCloseBtn')?.addEventListener('click', () => {
+  $id('statsScreen').style.display = 'none';
+  $id('homeScreen').style.display = 'block';
+});
+
+// Retreat to Base button (in pause menu)
+$id('pauseRetreatBtn')?.addEventListener('click', () => {
+  if (confirm('Retreat to Base? Your run progress will be saved.')) {
+    _saveCareerStats();
+    _checkAchievements();
+    saveGame();
+    G.state.paused = false;
+    $id('pauseMenuOverlay').style.display = 'none';
+    $id('settingsPanel').style.display = 'none';
+    renderHomeScreen();
+    $id('homeScreen').style.display = 'block';
+    updateHUD();
+  }
+});
 
 $id('orbitalBtn').addEventListener('click', () => {
   const s = G.state;
@@ -8710,6 +9156,9 @@ function _deployUnitPatched(id) {
       return G.log('Need ' + Math.ceil(cost - s.credits) + ' more cr.', 'warn');
     s.credits -= cost;
     s.troops.push(createTroop(id, s.selectedLane));
+    // Track deployment for stats
+    GAME_STATS.troops_deployed_run += 1;
+    if (GAME_STATS.troops_by_type[id] !== undefined) GAME_STATS.troops_by_type[id] += 1;
     G.log(def.name + ' deployed. -' + cost + ' cr', 'good');
     playSfx('deploy');
     return;
