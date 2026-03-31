@@ -2437,6 +2437,41 @@ function _applyUnlockReward(id, s) {
   to   { box-shadow: 0 0 30px rgba(255,20,20,.5); }
 }
 
+/* Battle SVG fills entire hero area */
+.hs-battle-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Portrait: tighten doctrine card so it doesn't overflow */
+@media (max-width: 500px) {
+  .hs-doctrine-card {
+    width: 155px;
+    padding: 8px 10px 10px;
+  }
+  .hs-dc-name { font-size: 11px; }
+  .hs-dc-desc { font-size: 7px; margin-bottom: 5px; }
+  .hs-dc-stat-icon { font-size: 13px; }
+  .hs-topnav { height: 48px; }
+  .hs-title-main { font-size: 12px; }
+  .hs-title-main span { font-size: 15px; }
+  .hs-bottombar { height: 60px; }
+  .hs-bar-btn { padding: 0 9px; }
+  .hs-wave-panel { padding: 0 9px; }
+  .hs-wave-num { font-size: 20px; }
+  .hs-bar-btn-icon { font-size: 15px; }
+  .hs-bar-btn-label { font-size: 6px; }
+  .hs-spawn-label { font-size: 10px; letter-spacing: 1px; }
+  .hs-nav-btn { padding: 3px 6px; font-size: 7px; }
+  .hs-flag-banner { padding-bottom: 20px; }
+  .hs-doctrine-flag { width: 60px; }
+  .hs-flag-icon { font-size: 18px; }
+}
+
+
 /* ── TOP NAV BAR ─────────────────────────────────────────────────── */
 .hs-topnav {
   flex-shrink: 0;
@@ -2759,33 +2794,349 @@ function _applyUnlockReward(id, s) {
 </style>
 
 <div id="homeScreen">
-  <!-- Battle background -->
+  <!-- Battle background - full SVG scene -->
   <div class="hs-battlefield">
     <div class="hs-rain"></div>
-    <!-- Fires -->
-    <div class="hs-fire"></div>
-    <div class="hs-fire"></div>
-    <div class="hs-fire"></div>
-    <!-- Turrets -->
-    <div class="hs-turret"></div>
-    <div class="hs-turret"></div>
-    <div class="hs-turret"></div>
-    <!-- Mech -->
-    <div class="hs-mech"></div>
-    <!-- Enemy silhouettes -->
-    <div class="hs-enemies">
-      <div class="hs-enemy-sil"></div><div class="hs-enemy-sil"></div>
-      <div class="hs-enemy-sil"></div><div class="hs-enemy-sil"></div>
-      <div class="hs-enemy-sil"></div><div class="hs-enemy-sil"></div>
-      <div class="hs-enemy-sil"></div><div class="hs-enemy-sil"></div>
-      <div class="hs-enemy-sil"></div><div class="hs-enemy-sil"></div>
-    </div>
-    <!-- Friendly silhouettes -->
-    <div class="hs-friendlies">
-      <div class="hs-friendly-sil"></div><div class="hs-friendly-sil"></div>
-      <div class="hs-friendly-sil"></div><div class="hs-friendly-sil"></div>
-      <div class="hs-friendly-sil"></div>
-    </div>
+    <svg class="hs-battle-svg" viewBox="0 0 390 560" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Ambient glow filters -->
+        <filter id="redGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="greenGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="fireGlow">
+          <feGaussianBlur stdDeviation="5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="softBlur">
+          <feGaussianBlur stdDeviation="8"/>
+        </filter>
+        <!-- Rain lines -->
+        <pattern id="rain" x="0" y="0" width="20" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(-10)">
+          <line x1="1" y1="0" x2="0" y2="40" stroke="rgba(160,200,220,0.07)" stroke-width="0.8"/>
+        </pattern>
+        <!-- Smoke gradient -->
+        <radialGradient id="smokeL" cx="30%" cy="60%" r="40%">
+          <stop offset="0%" stop-color="#3a2008" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#0d0808" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="smokeR" cx="75%" cy="50%" r="45%">
+          <stop offset="0%" stop-color="#5a0808" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#0d0808" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="fireGrad1" cx="50%" cy="80%" r="50%">
+          <stop offset="0%" stop-color="#ffdd00"/>
+          <stop offset="50%" stop-color="#ff6600"/>
+          <stop offset="100%" stop-color="transparent"/>
+        </radialGradient>
+        <radialGradient id="fireGrad2" cx="50%" cy="80%" r="50%">
+          <stop offset="0%" stop-color="#ffcc00"/>
+          <stop offset="50%" stop-color="#ff4400"/>
+          <stop offset="100%" stop-color="transparent"/>
+        </radialGradient>
+      </defs>
+
+      <!-- Sky/atmosphere -->
+      <rect width="390" height="560" fill="#0d0a08"/>
+      <rect width="390" height="560" fill="url(#smokeR)" opacity="0.9"/>
+      <rect width="390" height="560" fill="url(#smokeL)" opacity="0.7"/>
+
+      <!-- Distant explosion glow on horizon -->
+      <ellipse cx="290" cy="310" rx="80" ry="40" fill="#cc2200" opacity="0.18" filter="url(#softBlur)"/>
+      <ellipse cx="310" cy="295" rx="50" ry="25" fill="#ff4400" opacity="0.12" filter="url(#softBlur)"/>
+
+      <!-- Ground plane -->
+      <rect x="0" y="440" width="390" height="120" fill="#1a1008" opacity="0.9"/>
+      <rect x="0" y="438" width="390" height="4" fill="#2a1a0a" opacity="0.6"/>
+
+      <!-- Rubble/debris shapes on ground -->
+      <polygon points="60,442 80,430 95,442" fill="#1e1208" opacity="0.8"/>
+      <polygon points="150,440 165,432 178,440" fill="#1e1208" opacity="0.7"/>
+      <polygon points="280,444 300,436 315,444" fill="#1e1208" opacity="0.8"/>
+      <rect x="330" y="436" width="20" height="6" rx="1" fill="#1e1208" opacity="0.6"/>
+
+      <!-- ── ENEMY HORDE (right side, back rows) ── -->
+      <!-- Back row - distant/smaller enemies with red glow -->
+      <g filter="url(#redGlow)" opacity="0.55">
+        <!-- Row 3 - far background -->
+        <g transform="scale(0.55) translate(310,490)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#cc1a1a"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="scale(0.55) translate(330,485)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#bb1515"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#bb1515"/>
+        </g>
+        <g transform="scale(0.55) translate(350,490)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#cc1a1a"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="scale(0.55) translate(370,488)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#bb1515"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#bb1515"/>
+        </g>
+        <g transform="scale(0.55) translate(390,492)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#cc1a1a"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="scale(0.55) translate(410,487)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#dd1e1e"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#dd1e1e"/>
+        </g>
+        <g transform="scale(0.55) translate(430,491)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#cc1a1a"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="scale(0.55) translate(450,486)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#bb1515"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#bb1515"/>
+        </g>
+        <g transform="scale(0.55) translate(470,490)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#cc1a1a"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="scale(0.55) translate(490,488)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#bb1515"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#bb1515"/>
+        </g>
+        <g transform="scale(0.55) translate(510,492)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#cc1a1a"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="scale(0.55) translate(530,487)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#dd1e1e"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#dd1e1e"/>
+        </g>
+        <g transform="scale(0.55) translate(550,491)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#cc1a1a"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="scale(0.55) translate(570,486)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#bb1515"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#bb1515"/>
+        </g>
+        <g transform="scale(0.55) translate(590,490)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#cc1a1a"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="scale(0.55) translate(610,487)">
+          <rect x="0" y="-28" width="9" height="20" rx="4" fill="#dd1e1e"/>
+          <circle cx="4.5" cy="-33" r="5.5" fill="#dd1e1e"/>
+        </g>
+      </g>
+
+      <!-- Row 2 - mid-distance enemies -->
+      <g filter="url(#redGlow)" opacity="0.75">
+        <g transform="translate(200,420)">
+          <rect x="0" y="-30" width="11" height="22" rx="5" fill="#cc1a1a"/>
+          <circle cx="5.5" cy="-36" r="6.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="translate(218,416)">
+          <rect x="0" y="-30" width="11" height="22" rx="5" fill="#dd2020"/>
+          <circle cx="5.5" cy="-36" r="6.5" fill="#dd2020"/>
+        </g>
+        <g transform="translate(236,421)">
+          <rect x="0" y="-30" width="11" height="22" rx="5" fill="#bb1515"/>
+          <circle cx="5.5" cy="-36" r="6.5" fill="#bb1515"/>
+        </g>
+        <g transform="translate(254,418)">
+          <rect x="0" y="-30" width="11" height="22" rx="5" fill="#cc1a1a"/>
+          <circle cx="5.5" cy="-36" r="6.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="translate(272,420)">
+          <rect x="0" y="-30" width="11" height="22" rx="5" fill="#dd2020"/>
+          <circle cx="5.5" cy="-36" r="6.5" fill="#dd2020"/>
+        </g>
+        <g transform="translate(290,415)">
+          <rect x="0" y="-30" width="11" height="22" rx="5" fill="#cc1a1a"/>
+          <circle cx="5.5" cy="-36" r="6.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="translate(308,419)">
+          <rect x="0" y="-30" width="11" height="22" rx="5" fill="#bb1515"/>
+          <circle cx="5.5" cy="-36" r="6.5" fill="#bb1515"/>
+        </g>
+        <g transform="translate(326,422)">
+          <rect x="0" y="-30" width="11" height="22" rx="5" fill="#cc1a1a"/>
+          <circle cx="5.5" cy="-36" r="6.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="translate(344,417)">
+          <rect x="0" y="-30" width="11" height="22" rx="5" fill="#dd2020"/>
+          <circle cx="5.5" cy="-36" r="6.5" fill="#dd2020"/>
+        </g>
+        <g transform="translate(362,421)">
+          <rect x="0" y="-30" width="11" height="22" rx="5" fill="#cc1a1a"/>
+          <circle cx="5.5" cy="-36" r="6.5" fill="#cc1a1a"/>
+        </g>
+      </g>
+
+      <!-- Front row enemies - bigger, closer -->
+      <g filter="url(#redGlow)" opacity="0.9">
+        <g transform="translate(230,448)">
+          <rect x="0" y="-36" width="13" height="28" rx="5" fill="#dd2020"/>
+          <circle cx="6.5" cy="-43" r="7.5" fill="#dd2020"/>
+        </g>
+        <g transform="translate(252,444)">
+          <rect x="0" y="-36" width="13" height="28" rx="5" fill="#ee2525"/>
+          <circle cx="6.5" cy="-43" r="7.5" fill="#ee2525"/>
+        </g>
+        <g transform="translate(274,449)">
+          <rect x="0" y="-36" width="13" height="28" rx="5" fill="#cc1a1a"/>
+          <circle cx="6.5" cy="-43" r="7.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="translate(296,445)">
+          <rect x="0" y="-36" width="13" height="28" rx="5" fill="#dd2020"/>
+          <circle cx="6.5" cy="-43" r="7.5" fill="#dd2020"/>
+        </g>
+        <g transform="translate(318,447)">
+          <rect x="0" y="-36" width="13" height="28" rx="5" fill="#ee2525"/>
+          <circle cx="6.5" cy="-43" r="7.5" fill="#ee2525"/>
+        </g>
+        <g transform="translate(340,443)">
+          <rect x="0" y="-36" width="13" height="28" rx="5" fill="#cc1a1a"/>
+          <circle cx="6.5" cy="-43" r="7.5" fill="#cc1a1a"/>
+        </g>
+        <g transform="translate(362,448)">
+          <rect x="0" y="-36" width="13" height="28" rx="5" fill="#dd2020"/>
+          <circle cx="6.5" cy="-43" r="7.5" fill="#dd2020"/>
+        </g>
+      </g>
+
+      <!-- ── MECH BOSS (far right center) ── -->
+      <g transform="translate(295,350)" opacity="0.65" filter="url(#redGlow)">
+        <!-- Mech legs -->
+        <rect x="12" y="62" width="10" height="30" rx="2" fill="#991010"/>
+        <rect x="28" y="62" width="10" height="30" rx="2" fill="#881010"/>
+        <!-- Mech torso -->
+        <rect x="5" y="20" width="40" height="45" rx="4" fill="#aa1212"/>
+        <!-- Mech head -->
+        <rect x="12" y="5" width="26" height="18" rx="3" fill="#cc1818"/>
+        <!-- Mech shoulders/arms -->
+        <rect x="-5" y="22" width="14" height="28" rx="3" fill="#991010"/>
+        <rect x="41" y="22" width="14" height="28" rx="3" fill="#991010"/>
+        <!-- Eye visor glow -->
+        <rect x="15" y="10" width="20" height="6" rx="3" fill="#ff3030" opacity="0.8"/>
+        <!-- Exhaust/shoulder detail -->
+        <rect x="8" y="15" width="6" height="10" rx="1" fill="#771010"/>
+        <rect x="36" y="15" width="6" height="10" rx="1" fill="#771010"/>
+      </g>
+
+      <!-- ── TURRETS (center line) ── -->
+      <!-- Turret 1 -->
+      <g transform="translate(130,430)" filter="url(#greenGlow)">
+        <rect x="0" y="-18" width="24" height="18" rx="2" fill="#1a7a30" opacity="0.9"/>
+        <rect x="3" y="-22" width="18" height="6" rx="2" fill="#1d8a36"/>
+        <!-- Barrel -->
+        <rect x="20" y="-11" width="18" height="4" rx="1" fill="#00e5ff" opacity="0.8">
+          <animate attributeName="opacity" values="0.5;1;0.5" dur="1.4s" repeatCount="indefinite"/>
+        </rect>
+        <!-- Glow beam -->
+        <line x1="38" y1="-9" x2="80" y2="-6" stroke="#00e5ff" stroke-width="2" opacity="0.4">
+          <animate attributeName="opacity" values="0.1;0.5;0.1" dur="1.4s" repeatCount="indefinite"/>
+        </line>
+      </g>
+      <!-- Turret 2 -->
+      <g transform="translate(195,432)" filter="url(#greenGlow)">
+        <rect x="0" y="-18" width="24" height="18" rx="2" fill="#1a7a30" opacity="0.9"/>
+        <rect x="3" y="-22" width="18" height="6" rx="2" fill="#1d8a36"/>
+        <rect x="20" y="-11" width="18" height="4" rx="1" fill="#00e5ff" opacity="0.8">
+          <animate attributeName="opacity" values="0.5;1;0.5" dur="1.7s" repeatCount="indefinite"/>
+        </rect>
+        <line x1="38" y1="-9" x2="80" y2="-4" stroke="#00e5ff" stroke-width="2" opacity="0.4">
+          <animate attributeName="opacity" values="0.1;0.5;0.1" dur="1.7s" repeatCount="indefinite"/>
+        </line>
+      </g>
+
+      <!-- ── FRIENDLY SOLDIERS (left-center, front) ── -->
+      <g filter="url(#greenGlow)">
+        <!-- Soldier 1 - rifle stance -->
+        <g transform="translate(95,448)" opacity="0.9">
+          <rect x="0" y="-32" width="10" height="24" rx="4" fill="#1a8830"/>
+          <circle cx="5" cy="-38" r="6" fill="#1a8830"/>
+          <!-- Rifle -->
+          <line x1="9" y1="-20" x2="26" y2="-18" stroke="#2aaa44" stroke-width="2.5"/>
+        </g>
+        <!-- Soldier 2 -->
+        <g transform="translate(113,445)" opacity="0.85">
+          <rect x="0" y="-32" width="10" height="24" rx="4" fill="#228840"/>
+          <circle cx="5" cy="-38" r="6" fill="#228840"/>
+          <line x1="9" y1="-20" x2="26" y2="-22" stroke="#33bb55" stroke-width="2.5"/>
+        </g>
+        <!-- Soldier 3 - crouching -->
+        <g transform="translate(131,450)" opacity="0.9">
+          <rect x="0" y="-24" width="11" height="18" rx="4" fill="#1a7a2c"/>
+          <circle cx="5.5" cy="-30" r="6" fill="#1a7a2c"/>
+          <line x1="10" y1="-18" x2="28" y2="-14" stroke="#2aaa44" stroke-width="2.5"/>
+        </g>
+        <!-- Soldier 4 -->
+        <g transform="translate(150,447)" opacity="0.88">
+          <rect x="0" y="-32" width="10" height="24" rx="4" fill="#228840"/>
+          <circle cx="5" cy="-38" r="6" fill="#228840"/>
+          <line x1="9" y1="-20" x2="26" y2="-18" stroke="#33bb55" stroke-width="2.5"/>
+        </g>
+        <!-- Soldier 5 -->
+        <g transform="translate(168,449)" opacity="0.9">
+          <rect x="0" y="-32" width="10" height="24" rx="4" fill="#1a8830"/>
+          <circle cx="5" cy="-38" r="6" fill="#1a8830"/>
+          <line x1="9" y1="-22" x2="27" y2="-20" stroke="#2aaa44" stroke-width="2.5"/>
+        </g>
+        <!-- Soldier 6 - far left -->
+        <g transform="translate(76,450)" opacity="0.8">
+          <rect x="0" y="-28" width="10" height="22" rx="4" fill="#1a7a2c"/>
+          <circle cx="5" cy="-34" r="5.5" fill="#1a7a2c"/>
+        </g>
+        <!-- Soldier 7 - far left back -->
+        <g transform="translate(57,440)" opacity="0.6">
+          <rect x="0" y="-26" width="9" height="20" rx="4" fill="#155e22"/>
+          <circle cx="4.5" cy="-32" r="5" fill="#155e22"/>
+        </g>
+      </g>
+
+      <!-- ── FIRE / EXPLOSIONS ── -->
+      <!-- Fire 1 - center left -->
+      <g transform="translate(192,436)" filter="url(#fireGlow)">
+        <ellipse cx="0" cy="0" rx="10" ry="14" fill="url(#fireGrad1)" opacity="0.9">
+          <animate attributeName="ry" values="14;18;12;16;14" dur="0.8s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.7;1;0.8;0.9;0.7" dur="0.8s" repeatCount="indefinite"/>
+        </ellipse>
+        <ellipse cx="0" cy="-4" rx="5" ry="7" fill="#ffee00" opacity="0.8">
+          <animate attributeName="ry" values="7;10;6;8;7" dur="0.7s" repeatCount="indefinite"/>
+        </ellipse>
+      </g>
+      <!-- Fire 2 -->
+      <g transform="translate(230,434)" filter="url(#fireGlow)">
+        <ellipse cx="0" cy="0" rx="8" ry="11" fill="url(#fireGrad2)" opacity="0.85">
+          <animate attributeName="ry" values="11;15;9;13;11" dur="1.0s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.6;0.9;0.7;0.85;0.6" dur="1.0s" repeatCount="indefinite"/>
+        </ellipse>
+        <ellipse cx="0" cy="-3" rx="4" ry="5" fill="#ffee00" opacity="0.75">
+          <animate attributeName="ry" values="5;8;4;6;5" dur="0.9s" repeatCount="indefinite"/>
+        </ellipse>
+      </g>
+      <!-- Fire 3 - distant right -->
+      <g transform="translate(355,422)" filter="url(#fireGlow)" opacity="0.7">
+        <ellipse cx="0" cy="0" rx="7" ry="10" fill="url(#fireGrad1)" opacity="0.7">
+          <animate attributeName="ry" values="10;14;8;12;10" dur="1.2s" repeatCount="indefinite"/>
+        </ellipse>
+      </g>
+      <!-- Explosion flash top right -->
+      <circle cx="350" cy="300" r="25" fill="#ff6600" opacity="0.06" filter="url(#softBlur)">
+        <animate attributeName="opacity" values="0.06;0.14;0.04;0.10;0.06" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- Rain overlay -->
+      <rect width="390" height="560" fill="url(#rain)" opacity="0.6">
+        <animateTransform attributeName="transform" type="translate" values="0,0;-10,40" dur="1.5s" repeatCount="indefinite"/>
+      </rect>
+
+      <!-- Scan line effect -->
+      <rect width="390" height="2" fill="rgba(0,229,255,0.04)" y="0">
+        <animate attributeName="y" values="-2;562" dur="4s" repeatCount="indefinite"/>
+      </rect>
+    </svg>
   </div>
 
   <!-- TOP NAV BAR -->
@@ -2924,7 +3275,7 @@ function _applyUnlockReward(id, s) {
 </div>
 
 <!-- ══ PAUSE MENU OVERLAY ═════════════════════════════════════════ -->
-<div id="pauseMenuOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:5000;padding:40px 20px;display:flex;justify-content:center;align-items:center">
+<div id="pauseMenuOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:5000;padding:40px 20px;justify-content:center;align-items:center">
   <div style="background:#0a1118;border:2px solid #2a3f5f;border-radius:16px;padding:24px;max-width:400px;width:100%;text-align:center">
     <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;color:#00e5ff;margin-bottom:24px">⏸ PAUSED</div>
     <div style="display:flex;flex-direction:column;gap:12px">
@@ -2938,7 +3289,7 @@ function _applyUnlockReward(id, s) {
 </div>
 
 <!-- ══ SETTINGS PANEL ═════════════════════════════════════════════ -->
-<div id="settingsPanel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:5001;padding:40px 20px;display:flex;justify-content:center;align-items:center">
+<div id="settingsPanel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:5001;padding:40px 20px;justify-content:center;align-items:center">
   <div style="background:#0a1118;border:2px solid #8855dd;border-radius:16px;padding:24px;max-width:400px;width:100%">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
       <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;color:#8855dd">⚙ Settings</div>
