@@ -2202,6 +2202,40 @@ function _applyUnlockReward(id, s) {
   </div>
 </div>
 
+<!-- ══ PAUSE MENU OVERLAY ═════════════════════════════════════════ -->
+<div id="pauseMenuOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:5000;padding:40px 20px;display:flex;justify-content:center;align-items:center">
+  <div style="background:#0a1118;border:2px solid #2a3f5f;border-radius:16px;padding:24px;max-width:400px;width:100%;text-align:center">
+    <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:28px;color:#00e5ff;margin-bottom:24px">⏸ PAUSED</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <button id="pauseResumeBtn" style="padding:12px;border-radius:10px;background:#2a5a5a;border:1px solid #00e5ff;color:#00e5ff;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer">▶ Resume</button>
+      <button id="pauseSettingsBtn" style="padding:12px;border-radius:10px;background:#3a3a5a;border:1px solid #9090cc;color:#9090cc;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer">⚙ Settings</button>
+      <button id="pauseCareerBtn" style="padding:12px;border-radius:10px;background:#3a4a2a;border:1px solid #88bb66;color:#88bb66;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer">★ Career</button>
+      <button id="pauseExitBtn" style="padding:12px;border-radius:10px;background:#4a2a2a;border:1px solid #dd6666;color:#dd6666;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;cursor:pointer">✕ Exit to Doctrine</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SETTINGS PANEL ═════════════════════════════════════════════ -->
+<div id="settingsPanel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:5001;padding:40px 20px;display:flex;justify-content:center;align-items:center">
+  <div style="background:#0a1118;border:2px solid #8855dd;border-radius:16px;padding:24px;max-width:400px;width:100%">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+      <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;color:#8855dd">⚙ Settings</div>
+      <button id="settingsCloseBtn" style="background:none;border:none;color:#8855dd;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    
+    <!-- Sound Controls -->
+    <div style="margin-bottom:20px">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#aabbcc;margin-bottom:8px;letter-spacing:1px">AUDIO</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <button id="soundToggleBtn" style="background:none;border:none;font-size:24px;cursor:pointer;padding:4px">🔊</button>
+        <input type="range" id="volumeSlider" min="0" max="100" value="100" style="flex:1;cursor:pointer">
+        <span id="volumeLabel" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#aabbcc;min-width:30px">100%</span>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#666;text-align:center">Tap speaker icon to toggle · Drag slider to adjust volume</div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ META OVERLAY ═══════════════════════════════════════════ -->
 <div id="metaOverlay">
   <div class="meta-inner">
@@ -6974,6 +7008,7 @@ function renderStoreSheet() {
         'Supporter badge in HUD',
       ],
       owned: localStorage.getItem('ifc_iap_supporter') === '1',
+      includedWithCommander: localStorage.getItem('ifc_iap_commander') === '1',
     },
     {
       id: 'commander',
@@ -7045,12 +7080,21 @@ function renderStoreSheet() {
     card.innerHTML += '<div style="padding-left:6px;margin-bottom:12px">' + perkList + '</div>';
 
     // Buy button or owned state
-    if (isOwned) {
-      card.innerHTML += '<div style="text-align:center;padding:9px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:14px;color:rgba(180,190,200,.45)">PURCHASED</div>';
+    let buttonText = '';
+    if (item.includedWithCommander) {
+      buttonText = 'INCLUDED WITH COMMANDER EDITION';
+    } else if (isOwned) {
+      buttonText = 'PURCHASED';
+    } else {
+      buttonText = 'Purchase ' + item.price;
+    }
+    
+    if (item.includedWithCommander || isOwned) {
+      card.innerHTML += '<div style="text-align:center;padding:9px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:14px;color:rgba(180,190,200,.45)">' + buttonText + '</div>';
     } else {
       const btn = document.createElement('button');
       btn.style.cssText = 'width:100%;padding:11px;border-radius:10px;border:1px solid ' + item.color + ';background:' + item.color + '18;color:' + item.color + ';font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:16px;cursor:pointer;-webkit-appearance:none;letter-spacing:.5px;';
-      btn.textContent = 'Purchase ' + item.price;
+      btn.textContent = buttonText;
       btn.addEventListener('click', function() { _storePurchase(item.id); });
       card.appendChild(btn);
     }
@@ -7575,8 +7619,87 @@ $id('pauseBtn').addEventListener('click', () => {
   const s = G.state;
   if (!s.started || s.gameOver) return;
   s.paused = !s.paused;
+  const pauseMenu = $id('pauseMenuOverlay');
+  if (pauseMenu) {
+    pauseMenu.style.display = s.paused ? 'flex' : 'none';
+  }
   updateHUD();
 });
+
+// Pause menu buttons
+$id('pauseResumeBtn')?.addEventListener('click', () => {
+  G.state.paused = false;
+  $id('pauseMenuOverlay').style.display = 'none';
+  $id('settingsPanel').style.display = 'none';
+  updateHUD();
+});
+
+$id('pauseSettingsBtn')?.addEventListener('click', () => {
+  $id('pauseMenuOverlay').style.display = 'none';
+  $id('settingsPanel').style.display = 'flex';
+});
+
+$id('pauseCareerBtn')?.addEventListener('click', () => {
+  G.state.paused = false;
+  $id('pauseMenuOverlay').style.display = 'none';
+  $id('settingsPanel').style.display = 'none';
+  renderMetaUI();
+  $id('metaOverlay').style.display = 'block';
+  updateHUD();
+});
+
+$id('pauseExitBtn')?.addEventListener('click', () => {
+  if (confirm('Exit to doctrine select? Your run will be lost.')) {
+    localStorage.removeItem(CFG.SAVE_KEY);
+    G.state = freshState(G.meta.prestige);
+    G.state.paused = false;
+    $id('pauseMenuOverlay').style.display = 'none';
+    $id('settingsPanel').style.display = 'none';
+    $id('startOverlay').classList.remove('hidden');
+    updateHUD();
+  }
+});
+
+// Settings panel buttons
+$id('settingsCloseBtn')?.addEventListener('click', () => {
+  $id('settingsPanel').style.display = 'none';
+  $id('pauseMenuOverlay').style.display = 'flex';
+});
+
+// Sound controls
+let _soundEnabled = localStorage.getItem('ifc_sound_enabled') !== '0';
+function _updateSoundUI() {
+  const btn = $id('soundToggleBtn');
+  const slider = $id('volumeSlider');
+  if (btn) btn.textContent = _soundEnabled ? '🔊' : '🔇';
+  if (slider) slider.style.opacity = _soundEnabled ? '1' : '0.3';
+}
+
+$id('soundToggleBtn')?.addEventListener('click', () => {
+  _soundEnabled = !_soundEnabled;
+  localStorage.setItem('ifc_sound_enabled', _soundEnabled ? '1' : '0');
+  _updateSoundUI();
+  showToast(_soundEnabled ? '🔊 Sound enabled' : '🔇 Sound disabled');
+});
+
+$id('volumeSlider')?.addEventListener('input', (e) => {
+  const vol = parseInt(e.target.value);
+  localStorage.setItem('ifc_volume', vol.toString());
+  $id('volumeLabel').textContent = vol + '%';
+  _soundEnabled = vol > 0;
+  localStorage.setItem('ifc_sound_enabled', _soundEnabled ? '1' : '0');
+  _updateSoundUI();
+});
+
+// Initialize sound UI
+(function() {
+  const savedVol = parseInt(localStorage.getItem('ifc_volume') || '100');
+  const slider = $id('volumeSlider');
+  if (slider) slider.value = savedVol;
+  const label = $id('volumeLabel');
+  if (label) label.textContent = savedVol + '%';
+  _updateSoundUI();
+})();
 
 $id('orbitalBtn').addEventListener('click', () => {
   const s = G.state;
@@ -9987,14 +10110,14 @@ function _addDustPuff(x, y) {
 const _MEMBER_MODE = false; // flip to false to hide from regular players
 
 const _speeds = _MEMBER_MODE ? [
-  { val: 1,  label: '▶ 1×',    cls: 's1' },
-  { val: 2,  label: '▶▶ 2×',   cls: 's2' },
-  { val: 3,  label: '▶▶▶ 3×',  cls: 's3' },
-  { val: 10, label: '⚡ 10×',  cls: 's3' },
+  { val: 1,  label: '1×',    cls: 's1' },
+  { val: 2,  label: '2×',   cls: 's2' },
+  { val: 3,  label: '3×',  cls: 's3' },
+  { val: 10, label: '10×',  cls: 's3' },
 ] : [
-  { val: 1,  label: '▶ 1×',    cls: 's1' },
-  { val: 2,  label: '▶▶ 2×',   cls: 's2' },
-  { val: 3,  label: '▶▶▶ 3×',  cls: 's3' },
+  { val: 1,  label: '1×',    cls: 's1' },
+  { val: 2,  label: '2×',   cls: 's2' },
+  { val: 3,  label: '3×',  cls: 's3' },
 ];
 let _speedIdx = 0;
 function _applySpeed() {
