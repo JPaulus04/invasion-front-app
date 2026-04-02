@@ -1931,7 +1931,7 @@ function _applyUnlockReward(id, s) {
       <div class="hud-value v-pur" id="hud-rank">0</div>
     </div>
     <div class="hud-divider"></div>
-    <button id="speedCycleBtn" title="Tap to change speed">▶ 1×</button>
+    <button id="speedCycleBtn" title="Tap to change speed">1×</button>
     <div class="hud-divider"></div>
     <div id="hud-doctrine">
       <span id="hud-doc-icon">—</span>
@@ -2506,7 +2506,8 @@ function _applyUnlockReward(id, s) {
   display: flex;
   align-items: center;
   padding: 0 10px;
-  height: 52px;
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+  height: calc(52px + max(env(safe-area-inset-top, 0px), 12px));
   background: linear-gradient(180deg, rgba(6,10,12,.98) 0%, rgba(8,14,10,.92) 100%);
   border-bottom: 1px solid rgba(0,229,255,.2);
   position: relative;
@@ -2698,7 +2699,8 @@ function _applyUnlockReward(id, s) {
   flex-shrink: 0;
   display: flex;
   align-items: stretch;
-  height: 64px;
+  height: 72px;
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 4px);
   background: linear-gradient(180deg, rgba(8,14,10,.95) 0%, rgba(6,10,8,1) 100%);
   border-top: 1px solid rgba(0,229,255,.2);
   position: relative;
@@ -2727,7 +2729,9 @@ function _applyUnlockReward(id, s) {
   position: relative;
   overflow: hidden;
   padding: 0 8px;
+  min-height: 64px;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .hs-spawn-btn::before {
   content: '';
@@ -2777,13 +2781,17 @@ function _applyUnlockReward(id, s) {
   justify-content: center;
   gap: 3px;
   padding: 0 12px;
+  min-width: 58px;
+  min-height: 64px;
   background: none;
   border: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background .15s;
+  /* Expand touch target beyond visual bounds */
+  touch-action: manipulation;
 }
-.hs-bar-btn:active { background: rgba(255,255,255,.05); }
+.hs-bar-btn:active { background: rgba(255,255,255,.08); }
 .hs-bar-btn-icon { font-size: 18px; line-height: 1; }
 .hs-bar-btn-label {
   font-family: 'Share Tech Mono', monospace;
@@ -2828,13 +2836,11 @@ function _applyUnlockReward(id, s) {
   <!-- TOP NAV BAR -->
   <div class="hs-topnav">
     <div class="hs-nav-left">
-      <button class="hs-nav-btn" id="homeCareerBtn">
+      <button class="hs-nav-btn" id="homeCareerBtn" style="min-width:52px">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-          <rect x="2" y="4" width="12" height="9" rx="1"/>
-          <path d="M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/>
-          <path d="M6 8h4M8 7v2" stroke-width="1.2"/>
+          <polygon points="8,2 10,6 14,6 11,9 12,14 8,11 4,14 5,9 2,6 6,6"/>
         </svg>
-        UNITS
+        <span id="homeRankLabel">RANK 0</span>
       </button>
     </div>
 
@@ -2928,7 +2934,11 @@ function _applyUnlockReward(id, s) {
     </button>
 
     <!-- Barracks / Career -->
-    <button class="hs-bar-btn" id="homeCareerBtnMain" onclick="document.getElementById('homeCareerBtn').click()">
+    <button class="hs-bar-btn" id="homeCareerBtnMain" onclick="
+      const home=document.getElementById('homeScreen');
+      home.style.display='none';
+      document.getElementById('metaOverlay').style.display='block';
+    ">
       <div class="hs-bar-btn-icon">🎖️</div>
       <div class="hs-bar-btn-label">BARRACKS</div>
     </button>
@@ -3132,8 +3142,8 @@ const CFG = Object.freeze({
   ORBITAL_UNLOCK_DMG:      22,
 
   // ── Progression ──────────────────────────────────────
-  PRESTIGE_WAVE_REQ:       10,
-  PRESTIGE_GAIN_DIV:       4,
+  PRESTIGE_WAVE_REQ:       20,
+  PRESTIGE_GAIN_DIV:       10,  // ranks gained = floor(wave / 10)
   PRESTIGE_INCOME_BONUS:   0.14,
   PRESTIGE_DMG_BONUS:      0.10,
   PRESTIGE_HP_BONUS:       0.15,  // +15% troop max HP per rank
@@ -4002,7 +4012,8 @@ function orbitalStrike(canvas) {
 
 // ── Prestige & game over ──────────────────────────────
 function prestigeGain() {
-  return Math.max(1, Math.floor((G.state.wave - 1) / CFG.PRESTIGE_GAIN_DIV));
+  // Ranks earned = floor(wave / 10) — depth is rewarded, no cap
+  return Math.max(1, Math.floor(G.state.wave / CFG.PRESTIGE_GAIN_DIV));
 }
 
 function canPrestige() {
@@ -4165,6 +4176,12 @@ function doPrestige(onComplete) {
   saveMeta(G.meta);
   localStorage.removeItem(CFG.SAVE_KEY);
   G.state = freshState(G.meta.prestige);
+  // Prestige wave floor: each rank gives +5 starting wave, capped at 100
+  const prestigeFloor = G.meta.prestige * 5;  // no cap — wave 400 → rank 40 → start wave 200
+  if (prestigeFloor > 1) {
+    G.state.wave = prestigeFloor;
+    G.log(`Prestige floor: starting at wave ${prestigeFloor}.`, 'system');
+  }
   applyDoctrine(); applyUpgrades();
   _restoreIAPPurchases();
   G.log(`Prestige! Rank → ${G.meta.prestige}.`, 'system');
@@ -6926,6 +6943,13 @@ function updateHUD() {
   // ── Orbital button state ──────────────────────────────────
   const cd = (s.abilities && s.abilities.orbitalCd || 0);
   const orb = $id('orbitalBtn');
+  // Re-check IAP flag from localStorage in case state was freshly reset
+  if (!s._orbPurchaseUnlocked && localStorage.getItem('ifc_iap_supporter') === '1') {
+    s._orbPurchaseUnlocked = true;
+  }
+  if (!s._orbPurchaseUnlocked && localStorage.getItem('ifc_iap_commander') === '1') {
+    s._orbPurchaseUnlocked = true;
+  }
   const orbWaveLock = s.wave < 20 && !s._orbPurchaseUnlocked;
   const killCharge  = (s._orbKills || 0);
   const orbUnlocked = s._orbUnlocked || killCharge >= 8;
@@ -7889,6 +7913,9 @@ $id('store-backdrop').addEventListener('click', () => closeSheet('store-sheet', 
 
 // ── DOCTRINE INFO HELPER ───────────────────────────────────────────
 function _getDoctrineInfo(docId) {
+  // Normalize internal keys (game uses 'blitz','ew' internally)
+  const keyMap = { blitz:'blitzkrieg', ew:'ewar' };
+  docId = keyMap[docId] || docId;
   const doctrines = {
     blitzkrieg: { name: 'BLITZKRIEG COMMAND', icon: '⚡', tagline: 'Aggressive Firepower', color: '#ff6b35' },
     fortress: { name: 'FORTRESS COMMAND', icon: '🛡️', tagline: 'Impenetrable Defense', color: '#00e5ff' },
@@ -7919,13 +7946,37 @@ function renderHomeScreen() {
     $id('doctrineBannerName').textContent = docInfo.name;
     $id('doctrineBannerRank').textContent = 'RANK ' + (G.meta?.prestige || 0);
     $id('doctrineBannerTagline').textContent = docInfo.tagline;
+
+    // Update rank label in top-left nav btn
+    const rankLabel = $id('homeRankLabel');
+    if (rankLabel) rankLabel.textContent = 'RANK ' + (G.meta?.prestige || 0);
+
+    // Update doctrine stat icons per doctrine
+    const DOCTRINE_STATS = {
+      blitzkrieg: [{lbl:'SPEED',icon:'⚡'},{lbl:'DAMAGE',icon:'💥'},{lbl:'CRIT',icon:'🎯'}],
+      blitz:      [{lbl:'SPEED',icon:'⚡'},{lbl:'DAMAGE',icon:'💥'},{lbl:'CRIT',icon:'🎯'}],
+      fortress:   [{lbl:'DEFENSE',icon:'🛡️'},{lbl:'REPAIR',icon:'❤️'},{lbl:'BARRICADE',icon:'🧱'}],
+      logistics:  [{lbl:'INCOME',icon:'💰'},{lbl:'SUPPLY',icon:'⚙️'},{lbl:'DISCOUNT',icon:'📦'}],
+      ew:         [{lbl:'JAMMING',icon:'📡'},{lbl:'SLOW',icon:'🌀'},{lbl:'SHIELD',icon:'🔵'}],
+      ewar:       [{lbl:'JAMMING',icon:'📡'},{lbl:'SLOW',icon:'🌀'},{lbl:'SHIELD',icon:'🔵'}],
+      artillery:  [{lbl:'RANGE',icon:'🎯'},{lbl:'BLAST',icon:'💣'},{lbl:'ORBITAL',icon:'☄️'}],
+    };
+    const stats = DOCTRINE_STATS[doctrine] || DOCTRINE_STATS.blitzkrieg;
+    const statEls = document.querySelectorAll('.hs-dc-stat');
+    statEls.forEach((el, i) => {
+      if (!stats[i]) return;
+      const lbl  = el.querySelector('.hs-dc-stat-label');
+      const icon = el.querySelector('.hs-dc-stat-icon');
+      if (lbl)  lbl.textContent  = stats[i].lbl;
+      if (icon) icon.textContent = stats[i].icon;
+    });
     // Set doctrine background image
     const bgEl = $id('hsDoctrineBg');
     if (bgEl) {
       const DOCTRINE_BG_CLASSES = ['blitzkrieg','fortress','logistics','ew-superiority','artillery','ewar'];
       DOCTRINE_BG_CLASSES.forEach(c => bgEl.classList.remove(c));
       // Map internal doctrine keys to CSS classes
-      const bgClassMap = { blitzkrieg:'blitzkrieg', fortress:'fortress', logistics:'logistics', ewar:'ew-superiority', artillery:'artillery' };
+      const bgClassMap = { blitzkrieg:'blitzkrieg', blitz:'blitzkrieg', fortress:'fortress', logistics:'logistics', ewar:'ew-superiority', ew:'ew-superiority', artillery:'artillery' };
       const bgClass = bgClassMap[doctrine] || 'blitzkrieg';
       bgEl.classList.add(bgClass);
     }
@@ -8240,7 +8291,7 @@ function _restoreIAPPurchases() {
         // Add ×5 speed if array exists
         if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
           if (!_speeds.find(function(sp) { return sp.val === 5; })) {
-            _speeds.splice(3, 0, { val: 5, label: '▶▶▶▶ 5×', cls: 's3' });
+            _speeds.splice(3, 0, { val: 5, label: '5×', cls: 's3' });
             console.log('✓ Restored ×5 speed');
           }
         }
@@ -8270,7 +8321,7 @@ function _restoreIAPPurchases() {
         // Add ×10 speed if array exists
         if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
           if (!_speeds.find(function(sp) { return sp.val === 10; })) {
-            _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
+            _speeds.push({ val: 10, label: '10×', cls: 's6' });
             console.log('✓ Restored ×10 speed');
           }
         }
@@ -8369,7 +8420,7 @@ function _storeApplyPurchase(id) {
     // Add ×5 speed to cycle
     if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
       if (!_speeds.find(function(sp) { return sp.val === 5; })) {
-        _speeds.splice(3, 0, { val: 5, label: '▶▶▶▶ 5×', cls: 's3' });
+        _speeds.splice(3, 0, { val: 5, label: '5×', cls: 's3' });
         console.log('✓ Added ×5 speed. Current speeds:', _speeds.map(s => s.val).join(','));
       } else {
         console.log('⚠️ ×5 speed already exists');
@@ -8425,7 +8476,7 @@ function _storeApplyPurchase(id) {
     // Add ×10 speed
     if (typeof _speeds !== 'undefined' && Array.isArray(_speeds)) {
       if (!_speeds.find(function(sp) { return sp.val === 10; })) {
-        _speeds.push({ val: 10, label: '▶▶▶▶▶▶▶▶▶▶ 10×', cls: 's6' });
+        _speeds.push({ val: 10, label: '10×', cls: 's6' });
         console.log('✓ Added ×10 speed. Current speeds:', _speeds.map(s => s.val).join(','));
       } else {
         console.log('⚠️ ×10 speed already exists');
@@ -8830,6 +8881,10 @@ $id('pauseRetreatBtn')?.addEventListener('click', () => {
     _saveCareerStats();
     _checkAchievements();
     saveGame();
+    // Stop auto-wave so it doesn't run in background
+    _autoWave = false;
+    clearTimeout(_autoWaveTimer);
+    _autoWaveTimer = null;
     G.state.paused = false;
     $id('pauseMenuOverlay').style.display = 'none';
     $id('settingsPanel').style.display = 'none';
@@ -11251,14 +11306,14 @@ function _addDustPuff(x, y) {
 const _MEMBER_MODE = false; // flip to false to hide from regular players
 
 const _speeds = _MEMBER_MODE ? [
-  { val: 1,  label: '1×',    cls: 's1' },
-  { val: 2,  label: '2×',   cls: 's2' },
-  { val: 3,  label: '3×',  cls: 's3' },
-  { val: 10, label: '10×',  cls: 's3' },
+  { val: 1,  label: '1×', cls: 's1' },
+  { val: 2,  label: '2×', cls: 's2' },
+  { val: 3,  label: '3×', cls: 's3' },
+  { val: 10, label: '10×', cls: 's3' },
 ] : [
-  { val: 1,  label: '1×',    cls: 's1' },
-  { val: 2,  label: '2×',   cls: 's2' },
-  { val: 3,  label: '3×',  cls: 's3' },
+  { val: 1,  label: '1×', cls: 's1' },
+  { val: 2,  label: '2×', cls: 's2' },
+  { val: 3,  label: '3×', cls: 's3' },
 ];
 let _speedIdx = 0;
 function _applySpeed() {
