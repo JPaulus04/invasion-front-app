@@ -763,6 +763,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
           healed = true;
         }
         if (healed) playSfx('heal');
+        t._lastFireTime = performance.now();
         t.cooldown = t.type.fireRate / (s.global.fireRate * (1 + s.mods.fireRateMult) * relay);
       }
       continue;
@@ -777,6 +778,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
     for (let i = 0; i < shots; i++)
       s.projectiles.push({ from: t, x: t.x + 10, y: t.y + i * 0.8, target, speed: spd, damage: dmg / shots, type: t.type.id, color: t.type.color, splash });
     s.fx.push({ kind:'muzzle', x:t.x+12, y:t.y, life:.07, max:.07, r:4 });
+    t._lastFireTime = performance.now();
     t.cooldown = t.type.fireRate / (s.global.fireRate * (1 + s.mods.fireRateMult) * relay * grenRate * blitzBoost);
     playSfx(t.type.id === 'heavy' ? 'heavy' : t.type.id === 'grenadier' ? 'grenade' : t.type.id === 'sniper' ? 'sniper' : 'shoot');
   }

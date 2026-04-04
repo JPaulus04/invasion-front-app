@@ -775,6 +775,7 @@ function applyTroopCombat() {
     if (e._meleeCd <= 0) {
       const meleeDmg = Math.max(1, e.damage * 0.6); // melee does 60% of breach damage
       target.hp -= meleeDmg;
+      target._lastHitTime = performance.now();
       s.fx.push({ kind: 'hit', x: e.x, y: e.y, life: .12, max: .12, r: 6 });
       e._meleeCd = 0.6; // attack every 0.6s
 

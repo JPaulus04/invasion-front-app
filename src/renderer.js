@@ -22,6 +22,19 @@ Object.entries(TROOP_SPRITE_MAP).forEach(([id, src]) => {
   TROOP_SPRITES[id] = img;
 });
 
+// ── Turret sprite preloader (3 tiers) ─────────────────────
+const TURRET_SPRITES = [];
+['assets/ui/turret_lv1.png', 'assets/ui/turret_lv2.png', 'assets/ui/turret_lv3.png'].forEach(src => {
+  const img = new Image();
+  img.src = src;
+  TURRET_SPRITES.push(img);
+});
+function _turretTier(gunLvl) {
+  if (gunLvl >= 5) return 2;  // Lv5+ → tier 3 (index 2)
+  if (gunLvl >= 3) return 1;  // Lv3-4 → tier 2 (index 1)
+  return 0;                    // Lv1-2 → tier 1 (index 0)
+}
+
 function $id(id) {
   const el = document.getElementById(id);
   if (el) return el;
@@ -565,27 +578,25 @@ function drawVertical(state) {
       ctx.fillRect(cx - bagW/2 + 2*dpr, H - baseH - 4*dpr, bagW, 4*dpr);
     }
 
-    // Gun turret — angular military emplacement
+    // Gun turret — sprite-based, 3 visual tiers
     if (lane.gun > 0) {
       const ty = H - baseH - (50 + (lane.barricade || 0) * 10) * dpr;
-      // Sandbag base
-      ctx.fillStyle = '#7a6530';
-      ctx.beginPath();
-      ctx.ellipse(cx, ty + 6*dpr, 14*dpr, 6*dpr, 0, 0, Math.PI*2);
-      ctx.fill();
-      // Turret body
-      ctx.fillStyle = '#3a4a28';
-      ctx.fillRect(cx - 9*dpr, ty - 8*dpr, 18*dpr, 14*dpr);
-      ctx.fillStyle = '#4a5c34';
-      ctx.fillRect(cx - 7*dpr, ty - 6*dpr, 14*dpr, 10*dpr);
-      // Gun barrel pointing up
-      ctx.fillStyle = '#2a3420';
-      ctx.fillRect(cx - 2.5*dpr, ty - 22*dpr, 5*dpr, 16*dpr);
-      ctx.fillRect(cx - 3.5*dpr, ty - 24*dpr, 7*dpr, 4*dpr); // muzzle
-      // Turret glow if active
+      const tier = _turretTier(lane.gun);
+      const sprite = TURRET_SPRITES[tier];
+      const tsz = 40 * dpr;
+      if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+        ctx.drawImage(sprite, cx - tsz/2, ty - tsz * 0.7, tsz, tsz);
+      } else {
+        // Fallback procedural if image not loaded
+        ctx.fillStyle = '#3a4a28';
+        ctx.fillRect(cx - 9*dpr, ty - 8*dpr, 18*dpr, 14*dpr);
+        ctx.fillStyle = '#2a3420';
+        ctx.fillRect(cx - 2.5*dpr, ty - 22*dpr, 5*dpr, 16*dpr);
+      }
+      // Turret active glow
       ctx.shadowColor = '#88ff44'; ctx.shadowBlur = 8;
-      ctx.strokeStyle = '#88ff44aa'; ctx.lineWidth = 1*dpr;
-      ctx.strokeRect(cx - 9*dpr, ty - 8*dpr, 18*dpr, 14*dpr);
+      ctx.strokeStyle = '#88ff4466'; ctx.lineWidth = 1*dpr;
+      ctx.beginPath(); ctx.arc(cx, ty, 16*dpr, 0, Math.PI*2); ctx.stroke();
       ctx.shadowBlur = 0;
     }
 
@@ -1209,15 +1220,15 @@ function drawVertical(state) {
   // Slot layout within each position — 2+3 chevron facing the enemy (upward)
   // Front row (slots 0-1): 2 men at the wall edge
   // Back row (slots 2-4): 3 men standing behind (further from wall = higher Y = deeper into field)
-  const unitSpread = 17*dpr;  // horizontal spacing between men in same row
-  const rowDepth   = 22*dpr;  // vertical gap between front and back row (negative = toward field)
+  const unitSpread = 28*dpr;  // horizontal spacing — wide enough for sprite art
+  const rowDepth   = 30*dpr;  // vertical gap between front and back row
 
   const slotLayout = [
-    { dx: -unitSpread*0.5, dy: -rowDepth * 0.3 }, // slot 0 — front left (just above wall)
-    { dx:  unitSpread*0.5, dy: -rowDepth * 0.3 }, // slot 1 — front right
-    { dx: -unitSpread,     dy: -rowDepth * 1.2 }, // slot 2 — back left (higher in field)
-    { dx:  0,              dy: -rowDepth * 1.2 }, // slot 3 — back center
-    { dx:  unitSpread,     dy: -rowDepth * 1.2 }, // slot 4 — back right
+    { dx: -unitSpread*0.6, dy: -rowDepth * 0.2 }, // slot 0 — front left
+    { dx:  unitSpread*0.6, dy: -rowDepth * 0.2 }, // slot 1 — front right
+    { dx: -unitSpread*1.1, dy: -rowDepth * 1.1 }, // slot 2 — back left
+    { dx:  0,              dy: -rowDepth * 1.0 }, // slot 3 — back center
+    { dx:  unitSpread*1.1, dy: -rowDepth * 1.1 }, // slot 4 — back right
   ];
 
   // Draw each fighting position with sandbag emplacement
@@ -1641,213 +1652,148 @@ function drawVertical(state) {
   }
 }
 
-// ── Troop drawing (vertical) — representative silhouettes ─────
+// ── Troop drawing (vertical) — sprite-based with procedural animation ─────
 function _drawTroopV(ctx, x, y, t, time, dpr) {
-  // Mil-spec palette: Tactical Olive armor, IFF Cyan accent lights
-  const OLIVE   = '#4B5320';
-  const OLIVE2  = '#5a6428';  // lighter olive highlight
-  const OLIVE3  = '#3a4118';  // shadow/legs
-  const IFF     = '#00E5FF';  // IFF cyan — identification markings
-  // Promotion overlay palette — declared here to avoid temporal dead zone
-  const OLIVE_P = '#4B5320';
-  const IFF_P   = '#00E5FF';
+  const OLIVE = '#4B5320';
   const promoted = t._promoted || 0;
-  const hf      = t.hp / t.maxHp;  // health fraction — used for HP bar and danger ring
-
-  // Use IFF cyan glow intensity based on promotion tier
-  const iffGlow = 4 + promoted * 3;
+  const hf = t.hp / t.maxHp;
   const s = dpr;
-  ctx.save();
-  const swayX = Math.sin(time * 1.4 + t.slot * 1.8) * 0.8 * dpr;
-  const swayY = Math.sin(time * 1.1 + t.slot * 2.2) * 0.5 * dpr;
-  ctx.translate(x + swayX, y + swayY);
-  ctx.shadowColor = IFF; ctx.shadowBlur = iffGlow;
+  const now = performance.now();
 
-  // Draw troop sprite image (replaces procedural drawing)
+  // ── Animation state ─────────────────────────────────
+  const fireDelta = now - (t._lastFireTime || 0);   // ms since last shot
+  const hitDelta  = now - (t._lastHitTime || 0);    // ms since last hit taken
+  const isFiring  = fireDelta < 150;                  // recoil window
+  const isHit     = hitDelta < 200;                   // damage flash window
+
+  // ── Idle breathing + sway ───────────────────────────
+  const breathScale = 1.0 + Math.sin(time * 2.0 + t.slot * 1.3) * 0.015;
+  const swayX = Math.sin(time * 1.2 + t.slot * 2.0) * 1.0 * dpr;
+  const swayY = Math.sin(time * 0.9 + t.slot * 1.6) * 0.6 * dpr;
+
+  // ── Fire recoil ─────────────────────────────────────
+  const recoilAmt = isFiring ? (1 - fireDelta / 150) * 3 * dpr : 0;
+
+  // ── Sprite sizing ───────────────────────────────────
+  const TROOP_SZ = { rifle: 30, heavy: 34, medic: 30, grenadier: 32, ew: 30, sniper: 32 };
+  const baseSz = (TROOP_SZ[t.type.id] || 30) * s;
+  const sz = baseSz * breathScale;
+
+  ctx.save();
+  ctx.translate(x + swayX, y + swayY + recoilAmt);
+
+  // ── Hit flash (red tint overlay) ────────────────────
+  if (isHit) {
+    const hitAlpha = (1 - hitDelta / 200) * 0.6;
+    ctx.filter = 'brightness(1.5) saturate(2)';
+    ctx.globalAlpha = 1 - hitAlpha * 0.3;
+  }
+
+  // ── Draw sprite ─────────────────────────────────────
   const sprite = TROOP_SPRITES[t.type.id];
-  const TROOP_SZ = { rifle: 42, heavy: 50, medic: 42, grenadier: 46, ew: 42, sniper: 44 };
-  const sz = (TROOP_SZ[t.type.id] || 42) * s;
-  ctx.shadowBlur = 0; // no glow on sprite itself
   if (sprite && sprite.complete && sprite.naturalWidth > 0) {
     ctx.drawImage(sprite, -sz/2, -sz * 0.64, sz, sz);
   } else {
-    // Fallback circle if image not yet loaded
     ctx.fillStyle = OLIVE;
-    ctx.beginPath(); ctx.arc(0, 0, 9*s, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, 8*s, 0, Math.PI*2); ctx.fill();
   }
 
-  // Animated class-specific FX overlays (on top of sprite)
+  // Reset filter
+  ctx.filter = 'none';
+  ctx.globalAlpha = 1;
+
+  // ── Hit red flash ring ──────────────────────────────
+  if (isHit) {
+    const hitPulse = (1 - hitDelta / 200);
+    ctx.strokeStyle = 'rgba(255,40,40,' + (hitPulse * 0.8) + ')';
+    ctx.lineWidth = 2 * s;
+    ctx.beginPath(); ctx.arc(0, 0, sz * 0.45, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // ── Muzzle flash (on fire) ──────────────────────────
+  if (isFiring && t.type.id !== 'medic') {
+    const flashAlpha = (1 - fireDelta / 150);
+    const flashR = (3 + Math.random() * 2) * s;
+    // Flash position — above and slightly right of unit
+    const fx = 4 * s;
+    const fy = -sz * 0.5;
+    ctx.fillStyle = 'rgba(255,220,80,' + flashAlpha + ')';
+    ctx.shadowColor = '#ffdd55'; ctx.shadowBlur = 10 * flashAlpha;
+    ctx.beginPath(); ctx.arc(fx, fy, flashR, 0, Math.PI * 2); ctx.fill();
+    // Inner white core
+    ctx.fillStyle = 'rgba(255,255,255,' + (flashAlpha * 0.8) + ')';
+    ctx.beginPath(); ctx.arc(fx, fy, flashR * 0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // ── Medic heal pulse ────────────────────────────────
   if (t.type.id === 'medic') {
-    // Healing pulse ring
     var pr = 0.3 + 0.3 * Math.sin(time * 2.5);
     ctx.strokeStyle = 'rgba(0,229,255,' + pr + ')';
-    ctx.lineWidth = 1.5*s;
-    ctx.beginPath(); ctx.arc(0, 0, (14 + pr*4)*s, 0, Math.PI*2); ctx.stroke();
-  } else if (t.type.id === 'ew') {
-    // Signal wave arcs above unit
+    ctx.lineWidth = 1.5 * s;
+    ctx.beginPath(); ctx.arc(0, 0, (12 + pr * 3) * s, 0, Math.PI * 2); ctx.stroke();
+    // Heal cross flash on fire
+    if (isFiring) {
+      var healAlpha = (1 - fireDelta / 150) * 0.7;
+      ctx.fillStyle = 'rgba(0,229,255,' + healAlpha + ')';
+      ctx.fillRect(-1.5 * s, -5 * s, 3 * s, 10 * s);
+      ctx.fillRect(-5 * s, -1.5 * s, 10 * s, 3 * s);
+    }
+  }
+
+  // ── EW signal waves ─────────────────────────────────
+  if (t.type.id === 'ew') {
     var wav = 0.4 + 0.4 * Math.sin(time * 3);
     for (var si = 1; si <= 3; si++) {
-      ctx.strokeStyle = 'rgba(0,229,255,' + (wav * (0.5 - si*0.12)) + ')';
-      ctx.lineWidth = 1*s;
+      ctx.strokeStyle = 'rgba(176,96,255,' + (wav * (0.5 - si * 0.12)) + ')';
+      ctx.lineWidth = 1 * s;
       ctx.beginPath();
-      ctx.arc(0, -26*s, si * 5*s, -Math.PI * 0.8, -Math.PI * 0.2);
+      ctx.arc(0, -sz * 0.5, si * 4 * s, -Math.PI * 0.8, -Math.PI * 0.2);
       ctx.stroke();
     }
   }
 
-  ctx.shadowBlur = 0;
   ctx.restore();
 
-  // ── Promotion visual tier overlay ─────────────────────
-  const swayXp   = Math.sin(time * 1.4 + t.slot * 1.8) * 0.8 * dpr;
-  const swayYp   = Math.sin(time * 1.1 + t.slot * 2.2) * 0.5 * dpr;
+  // ── Promotion stars ─────────────────────────────────
   if (promoted > 0) {
-    ctx.save();
-    ctx.translate(x + swayXp, y + swayYp);
-
-    // Tier 1+: class-specific upgrade
-    if (t.type.id === 'rifle') {
-      ctx.fillStyle = '#ffd166';
-      ctx.shadowColor = '#ffd166'; ctx.shadowBlur = promoted >= 3 ? 8 : 4;
-      ctx.fillRect(-5*s, -1*s, 2*s, 5*s);
-      ctx.fillRect(-5*s, 1*s, 10*s, 1.2*s);
-      ctx.shadowBlur = 0;
-      if (promoted >= 2) { ctx.fillStyle = '#aaaaaa'; ctx.fillRect(2.5*s, -12*s, 4*s, 2*s); }
-      if (promoted >= 3) { // red dot scope
-        ctx.fillStyle = '#ff4444'; ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 4;
-        ctx.beginPath(); ctx.arc(4.5*s, -11*s, 1.5*s, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
-      }
-      if (promoted >= 4) { // underbarrel grenade launcher stub
-        ctx.fillStyle = '#888';
-        ctx.fillRect(2*s, -5*s, 3*s, 5*s);
-      }
-      if (promoted >= 5) { // gold barrel tip
-        ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 6;
-        ctx.fillRect(2.8*s, -17*s, 1.5*s, 2*s); ctx.shadowBlur = 0;
-      }
-
-    } else if (t.type.id === 'heavy') {
-      ctx.fillStyle = '#e0c060';
-      ctx.shadowColor = '#e0c060'; ctx.shadowBlur = promoted >= 3 ? 8 : 4;
-      ctx.fillRect(-10*s, -4*s, 3*s, 6*s);
-      ctx.fillRect(7*s, -4*s, 3*s, 6*s);
-      ctx.shadowBlur = 0;
-      if (promoted >= 2) { ctx.fillStyle = '#888'; ctx.fillRect(4.5*s, -16*s, 5*s, 3*s); }
-      if (promoted >= 3) { // extra chest armour
-        ctx.fillStyle = '#e0c060aa';
-        ctx.fillRect(-6*s, -2*s, 12*s, 4*s);
-      }
-      if (promoted >= 4) { // dual barrel
-        ctx.fillStyle = OLIVE_P;
-        ctx.fillRect(9*s, -18*s, 3*s, 14*s);
-      }
-      if (promoted >= 5) { // golden trim
-        ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 1*s; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 6;
-        ctx.strokeRect(-9*s, -3*s, 18*s, 12*s); ctx.shadowBlur = 0;
-      }
-
-    } else if (t.type.id === 'medic') {
-      const crossCol = promoted >= 3 ? '#44aaff' : promoted >= 2 ? '#66ccff' : '#4488ff';
-      ctx.fillStyle = crossCol;
-      ctx.shadowColor = crossCol; ctx.shadowBlur = promoted >= 3 ? 10 : 6;
-      ctx.fillRect(-1.2*s, -4*s, 2.4*s, 8*s);
-      ctx.fillRect(-4*s, -0.5*s, 8*s, 2*s);
-      ctx.shadowBlur = 0;
-      if (promoted >= 2) { ctx.fillStyle = '#ffd166'; ctx.beginPath(); ctx.arc(0, -8*s, 2*s, 0, Math.PI*2); ctx.fill(); }
-      if (promoted >= 4) { // second med bag
-        ctx.fillStyle = '#ffffff88'; ctx.fillRect(-9*s, 1*s, 5*s, 4*s);
-      }
-      if (promoted >= 5) { // halo ring
-        ctx.strokeStyle = '#44aaff'; ctx.lineWidth = 1.2*s; ctx.shadowColor = '#44aaff'; ctx.shadowBlur = 8;
-        ctx.beginPath(); ctx.arc(0, -10*s, 5*s, 0, Math.PI*2); ctx.stroke(); ctx.shadowBlur = 0;
-      }
-
-    } else if (t.type.id === 'ew') {
-      ctx.fillStyle = OLIVE_P;
-      ctx.fillRect(2*s, -18*s, 1.5*s, 12*s);
-      ctx.strokeStyle = '#b060ff';
-      ctx.shadowColor = '#b060ff'; ctx.shadowBlur = promoted >= 3 ? 10 : 6;
-      ctx.lineWidth = 1.2*s;
-      ctx.beginPath(); ctx.arc(2.5*s, -18*s, (3 + promoted)*s, 0.2, Math.PI-0.2); ctx.stroke();
-      ctx.shadowBlur = 0;
-      if (promoted >= 3) { // third antenna
-        ctx.fillStyle = OLIVE_P; ctx.fillRect(5*s, -14*s, 1.2*s, 8*s);
-      }
-      if (promoted >= 5) { // neural net halo
-        ctx.strokeStyle = '#b060ff'; ctx.lineWidth = s; ctx.shadowColor = '#b060ff'; ctx.shadowBlur = 8;
-        ctx.beginPath(); ctx.arc(0, 0, 18*s, 0, Math.PI*2); ctx.stroke(); ctx.shadowBlur = 0;
-      }
-
-    } else if (t.type.id === 'grenadier') {
-      ctx.fillStyle = '#cc8833';
-      ctx.shadowColor = '#cc8833'; ctx.shadowBlur = promoted >= 3 ? 8 : 4;
-      for (var gi = 0; gi < Math.min(promoted + 3, 6); gi++) {
-        ctx.beginPath(); ctx.ellipse(-6*s + gi*2.8*s, -1*s, 1.5*s, 2*s, 0, 0, Math.PI*2); ctx.fill();
-      }
-      ctx.shadowBlur = 0;
-      if (promoted >= 2) { ctx.fillStyle = '#ff4444'; ctx.beginPath(); ctx.arc(5.5*s, -18*s, 1.8*s, 0, Math.PI*2); ctx.fill(); }
-      if (promoted >= 3) { // wider muzzle bell
-        ctx.fillStyle = OLIVE_P; ctx.fillRect(1*s, -23*s, 9*s, 3*s);
-      }
-      if (promoted >= 5) { // dual launcher
-        ctx.fillStyle = OLIVE_P; ctx.fillRect(-8*s, -20*s, 4*s, 16*s); ctx.fillRect(-9*s, -22*s, 6*s, 3*s);
-      }
-
-    } else if (t.type.id === 'sniper') {
-      ctx.fillStyle = '#888888';
-      ctx.fillRect(4.5*s, -(28 + promoted*1.5)*s, 6*s, 4*s);
-      if (promoted >= 2) { ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 6; ctx.beginPath(); ctx.arc(7*s, -(27+promoted)*s, 1.5*s, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0; }
-      if (promoted >= 3) { // laser sight line
-        ctx.strokeStyle = 'rgba(255,80,80,.4)'; ctx.lineWidth = 0.8*s;
-        ctx.beginPath(); ctx.moveTo(7*s, -26*s); ctx.lineTo(7*s, -60*s); ctx.stroke();
-      }
-      if (promoted >= 4) { // ghillie glow
-        ctx.strokeStyle = c + '44'; ctx.lineWidth = 2*s;
-        ctx.beginPath(); ctx.ellipse(0, 0, 12*s, 5*s, 0, 0, Math.PI*2); ctx.stroke();
-      }
-      if (promoted >= 5) { // gold stock
-        ctx.fillStyle = '#ffd166'; ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 6;
-        ctx.fillRect(-11*s, -3*s, 5*s, 5*s); ctx.shadowBlur = 0;
-      }
-    }
-
-    // Star rank indicators — 1 to 5 stars above unit
     const starCount = promoted;
-    const starSpacing = 5*s;
-    const starStartX  = -(starCount-1)*starSpacing/2;
-    ctx.font = (5 + Math.min(promoted,3))*s + 'px serif';
+    const starSpacing = 4.5 * s;
+    const starStartX = x - (starCount - 1) * starSpacing / 2;
+    const starY = y - sz * 0.55;
+    ctx.font = (4 + Math.min(promoted, 3)) * s + 'px serif';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffd166';
     ctx.shadowColor = '#ffd166'; ctx.shadowBlur = promoted >= 5 ? 10 : 5;
     for (var si = 0; si < starCount; si++) {
-      ctx.fillText('★', starStartX + si*starSpacing, -29*s);
+      ctx.fillText('★', starStartX + si * starSpacing, starY);
     }
     ctx.shadowBlur = 0;
     ctx.textAlign = 'left';
-
-    ctx.restore();
   }
-  const bw = 28*dpr;
+
+  // ── HP bar ──────────────────────────────────────────
+  const bw = 24 * dpr;
   ctx.fillStyle = 'rgba(0,0,0,.65)';
-  ctx.fillRect(x - bw/2, y - 26*dpr, bw, 3*dpr);
+  ctx.fillRect(x - bw / 2, y - 22 * dpr, bw, 3 * dpr);
   const troopHpCol = hf > 0.5 ? '#30b048' : hf > 0.25 ? '#c89020' : '#c04040';
   ctx.fillStyle = troopHpCol;
   ctx.shadowColor = troopHpCol; ctx.shadowBlur = hf < 0.25 ? 6 : 0;
-  ctx.fillRect(x - bw/2, y - 26*dpr, bw * hf, 3*dpr);
+  ctx.fillRect(x - bw / 2, y - 22 * dpr, bw * hf, 3 * dpr);
   ctx.shadowBlur = 0;
 
-  // Update 4: Low-HP danger pulse ring around troop
+  // ── Low-HP danger pulse ─────────────────────────────
   if (hf < 0.35) {
     const pulse = 0.4 + 0.6 * Math.abs(Math.sin(time * 4 + t.slot));
     ctx.strokeStyle = 'rgba(255,60,60,' + (pulse * 0.7) + ')';
-    ctx.lineWidth   = 2 * dpr;
+    ctx.lineWidth = 2 * dpr;
     ctx.shadowColor = '#ff3c3c';
-    ctx.shadowBlur  = 8 * pulse;
+    ctx.shadowBlur = 8 * pulse;
     ctx.beginPath();
-    ctx.arc(x, y, 14 * dpr, 0, Math.PI * 2);
+    ctx.arc(x, y, 13 * dpr, 0, Math.PI * 2);
     ctx.stroke();
     ctx.shadowBlur = 0;
-    ctx.lineWidth  = 1;
+    ctx.lineWidth = 1;
   }
 }
 
