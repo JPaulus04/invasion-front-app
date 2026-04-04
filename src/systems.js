@@ -584,16 +584,19 @@ function _addDustPuff(x, y) {
 // Member/dev flag — set to true to unlock ×10 mode
 const _MEMBER_MODE = false; // flip to false to hide from regular players
 
-const _speeds = _MEMBER_MODE ? [
-  { val: 1,  label: '1×', cls: 's1' },
-  { val: 2,  label: '2×', cls: 's2' },
-  { val: 3,  label: '3×', cls: 's3' },
-  { val: 10, label: '10×', cls: 's3' },
-] : [
-  { val: 1,  label: '1×', cls: 's1' },
-  { val: 2,  label: '2×', cls: 's2' },
-  { val: 3,  label: '3×', cls: 's3' },
-];
+// Build speed options based on IAP purchases (checked at definition time)
+const _hasSupporter = localStorage.getItem('ifc_iap_supporter') === '1';
+const _hasCommander = localStorage.getItem('ifc_iap_commander') === '1';
+const _speeds = (function() {
+  const s = [
+    { val: 1,  label: '1×', cls: 's1' },
+    { val: 2,  label: '2×', cls: 's2' },
+    { val: 3,  label: '3×', cls: 's3' },
+  ];
+  if (_hasSupporter || _hasCommander) s.push({ val: 5, label: '5×', cls: 's3' });
+  if (_hasCommander || _MEMBER_MODE)  s.push({ val: 10, label: '10×', cls: 's6' });
+  return s;
+})();
 let _speedIdx = 0;
 function _applySpeed() {
   const sp = _speeds[_speedIdx];

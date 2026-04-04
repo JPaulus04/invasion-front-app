@@ -1581,6 +1581,9 @@ function _runPrestigeCeremony() {
   // Execute the actual prestige
   doPrestige(function() {});
 
+  // Clear stale research queue (it's module-scoped, not on G.state)
+  _researchQueue.length = 0;
+
   // Animate rank number counting up
   const rankEl = $id('prestige-rank-display');
   rankEl.textContent = runStats.oldRank;
