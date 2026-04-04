@@ -6,6 +6,22 @@
 const canvas = document.getElementById('battlefield');
 const ctx    = canvas ? canvas.getContext('2d') : null;
 
+// ── Troop sprite preloader ─────────────────────────────────
+const TROOP_SPRITES = {};
+const TROOP_SPRITE_MAP = {
+  rifle:     'assets/troops/rifle_squad.png',
+  heavy:     'assets/troops/heavy_team.png',
+  medic:     'assets/troops/combat_medic.png',
+  grenadier: 'assets/troops/grenadier.png',
+  ew:        'assets/troops/ew_specialist.png',
+  sniper:    'assets/troops/sniper_team.png',
+};
+Object.entries(TROOP_SPRITE_MAP).forEach(([id, src]) => {
+  const img = new Image();
+  img.src = src;
+  TROOP_SPRITES[id] = img;
+});
+
 function $id(id) {
   const el = document.getElementById(id);
   if (el) return el;
@@ -81,6 +97,8 @@ try { G.state = freshState(G.meta.prestige); } catch(e) { _showErr('freshState',
 G.log   = addLog;
 G.canvasWidth = () => canvas.width;
 try { loadGame(); } catch(e) { _showErr('loadGame', e); }
+// Restore quest progress from meta if available (persists through prestige)
+try { if (G.meta._quests && !G.state._quests) G.state._quests = JSON.parse(JSON.stringify(G.meta._quests)); } catch(e) {}
 try { applyDoctrine(); } catch(e) { _showErr('applyDoctrine', e); }
 try { applyUpgrades(); } catch(e) { _showErr('applyUpgrades', e); }
 try { _restoreIAPPurchases(); } catch(e) { _showErr('restoreIAP', e); }
@@ -1645,166 +1663,36 @@ function _drawTroopV(ctx, x, y, t, time, dpr) {
   ctx.translate(x + swayX, y + swayY);
   ctx.shadowColor = IFF; ctx.shadowBlur = iffGlow;
 
-  switch (t.type.id) {
+  // Draw troop sprite image (replaces procedural drawing)
+  const sprite = TROOP_SPRITES[t.type.id];
+  const TROOP_SZ = { rifle: 42, heavy: 50, medic: 42, grenadier: 46, ew: 42, sniper: 44 };
+  const sz = (TROOP_SZ[t.type.id] || 42) * s;
+  ctx.shadowBlur = 0; // no glow on sprite itself
+  if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+    ctx.drawImage(sprite, -sz/2, -sz * 0.64, sz, sz);
+  } else {
+    // Fallback circle if image not yet loaded
+    ctx.fillStyle = OLIVE;
+    ctx.beginPath(); ctx.arc(0, 0, 9*s, 0, Math.PI*2); ctx.fill();
+  }
 
-    case 'rifle': {
-      ctx.fillStyle = OLIVE;
-      ctx.fillRect(-4*s, -2*s, 8*s, 10*s);             // torso
-      ctx.beginPath(); ctx.arc(0, -5*s, 4*s, 0, Math.PI*2); ctx.fill(); // head
-      ctx.fillRect(-5*s, -7*s, 10*s, 2*s);              // helmet brim
-      ctx.fillStyle = OLIVE2;
-      ctx.fillRect(3*s, -16*s, 2.5*s, 14*s);            // rifle
-      ctx.fillRect(-4*s, -4*s, 3*s, 6*s);               // stock
-      ctx.fillStyle = OLIVE3;
-      ctx.fillRect(-4*s, 8*s, 3*s, 6*s);                // left leg
-      ctx.fillRect(1*s,  8*s, 3*s, 6*s);                // right leg
-      // IFF light — small cyan dot on helmet
-      ctx.fillStyle = IFF; ctx.shadowColor = IFF; ctx.shadowBlur = 6;
-      ctx.beginPath(); ctx.arc(-2*s, -7*s, 1.2*s, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = iffGlow;
-      break;
-    }
-
-    case 'heavy': {
-      ctx.fillStyle = OLIVE;
-      ctx.fillRect(-7*s, -3*s, 14*s, 12*s);             // armored torso
-      ctx.fillRect(-9*s, -3*s, 4*s, 5*s);               // L shoulder pad
-      ctx.fillRect(5*s,  -3*s, 4*s, 5*s);               // R shoulder pad
-      ctx.beginPath(); ctx.arc(0, -7*s, 5*s, 0, Math.PI*2); ctx.fill(); // head
-      ctx.fillStyle = 'rgba(0,229,255,0.18)';
-      ctx.fillRect(-4*s, -10*s, 8*s, 4*s);              // IFF visor tint
-      ctx.fillStyle = OLIVE2;
-      ctx.fillRect(5*s, -18*s, 4*s, 16*s);              // HMG barrel
-      ctx.fillRect(4*s, -20*s, 6*s, 4*s);               // muzzle
-      // Ammo belt
-      ctx.strokeStyle = OLIVE2 + '88'; ctx.lineWidth = 1.5*s;
-      for (var i = 0; i < 5; i++) {
-        ctx.fillStyle = '#7a6820';
-        ctx.fillRect(-2*s + i*1.8*s, 0, 1*s, 2*s);
-      }
-      ctx.fillStyle = OLIVE3;
-      ctx.fillRect(-6*s, 9*s, 4*s, 7*s);
-      ctx.fillRect(2*s,  9*s, 4*s, 7*s);
-      // IFF shoulder lights
-      ctx.fillStyle = IFF; ctx.shadowColor = IFF; ctx.shadowBlur = 5;
-      ctx.beginPath(); ctx.arc(-7*s, -1*s, 1.5*s, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(8*s,  -1*s, 1.5*s, 0, Math.PI*2); ctx.fill();
-      ctx.shadowBlur = iffGlow;
-      break;
-    }
-
-    case 'medic': {
-      ctx.fillStyle = OLIVE;
-      ctx.fillRect(-4*s, -2*s, 8*s, 10*s);
-      ctx.beginPath(); ctx.arc(0, -6*s, 4*s, 0, Math.PI*2); ctx.fill();
-      // Red cross on torso (standard medic marking)
-      ctx.fillStyle = '#cc2222';
-      ctx.fillRect(-1*s, -4*s, 2*s, 8*s);
-      ctx.fillRect(-4*s, 0, 8*s, 2*s);
-      // Med bag
-      ctx.fillStyle = '#c8b870';
-      ctx.fillRect(4*s, 1*s, 5*s, 4*s);
-      ctx.fillStyle = '#cc222288';
-      ctx.fillRect(5.5*s, 2*s, 2*s, 2*s);
-      ctx.fillStyle = OLIVE3;
-      ctx.fillRect(-4*s, 8*s, 3*s, 6*s);
-      ctx.fillRect(1*s,  8*s, 3*s, 6*s);
-      // IFF green healing pulse
-      var pr = 0.3 + 0.3 * Math.sin(time * 2.5);
-      ctx.strokeStyle = 'rgba(0,229,255,' + pr + ')';
-      ctx.lineWidth = 1.5*s;
-      ctx.beginPath(); ctx.arc(0, 0, (14 + pr*4)*s, 0, Math.PI*2); ctx.stroke();
-      break;
-    }
-
-    case 'ew': {
-      ctx.fillStyle = OLIVE;
-      ctx.fillRect(-4*s, -2*s, 8*s, 10*s);
-      ctx.beginPath(); ctx.arc(0, -6*s, 4*s, 0, Math.PI*2); ctx.fill();
-      // Antenna mast
-      ctx.fillStyle = OLIVE2;
-      ctx.fillRect(-1*s, -22*s, 2*s, 16*s);
-      // Dish
-      ctx.strokeStyle = IFF; ctx.lineWidth = 2*s;
-      ctx.shadowColor = IFF; ctx.shadowBlur = 6;
+  // Animated class-specific FX overlays (on top of sprite)
+  if (t.type.id === 'medic') {
+    // Healing pulse ring
+    var pr = 0.3 + 0.3 * Math.sin(time * 2.5);
+    ctx.strokeStyle = 'rgba(0,229,255,' + pr + ')';
+    ctx.lineWidth = 1.5*s;
+    ctx.beginPath(); ctx.arc(0, 0, (14 + pr*4)*s, 0, Math.PI*2); ctx.stroke();
+  } else if (t.type.id === 'ew') {
+    // Signal wave arcs above unit
+    var wav = 0.4 + 0.4 * Math.sin(time * 3);
+    for (var si = 1; si <= 3; si++) {
+      ctx.strokeStyle = 'rgba(0,229,255,' + (wav * (0.5 - si*0.12)) + ')';
+      ctx.lineWidth = 1*s;
       ctx.beginPath();
-      ctx.arc(-1*s, -22*s, 6*s, 0.2, Math.PI - 0.2);
+      ctx.arc(0, -26*s, si * 5*s, -Math.PI * 0.8, -Math.PI * 0.2);
       ctx.stroke();
-      ctx.shadowBlur = iffGlow;
-      // Signal waves
-      var wav = 0.4 + 0.4 * Math.sin(time * 3);
-      for (var si = 1; si <= 3; si++) {
-        ctx.strokeStyle = 'rgba(0,229,255,' + (wav * (0.5 - si*0.12)) + ')';
-        ctx.lineWidth = 1*s;
-        ctx.beginPath();
-        ctx.arc(0, -26*s, si * 5*s, -Math.PI * 0.8, -Math.PI * 0.2);
-        ctx.stroke();
-      }
-      ctx.fillStyle = OLIVE2;
-      ctx.fillRect(-7*s, 0, 5*s, 3*s);
-      ctx.fillStyle = OLIVE3;
-      ctx.fillRect(-4*s, 8*s, 3*s, 6*s);
-      ctx.fillRect(1*s,  8*s, 3*s, 6*s);
-      break;
     }
-
-    case 'grenadier': {
-      // Grenadier: launcher tube on shoulder pointing up, grenades on belt
-      ctx.fillStyle = OLIVE_P;
-      ctx.fillRect(-5*s, -2*s, 10*s, 10*s);
-      ctx.beginPath(); ctx.arc(0, -6*s, 4.5*s, 0, Math.PI*2); ctx.fill();
-      // Grenade launcher — fat tube
-      ctx.fillStyle = OLIVE2;
-      ctx.fillRect(3*s, -20*s, 5*s, 18*s);
-      ctx.fillRect(2*s, -22*s, 7*s, 4*s);
-      ctx.fillStyle = 'rgba(0,229,255,0.25)';
-      ctx.fillRect(5*s, -19*s, 2*s, 3*s);  // IFF sight
-      // Grenades on belt
-      ctx.fillStyle = '#7a7830';
-      for (var gi = 0; gi < 3; gi++) {
-        ctx.beginPath();
-        ctx.ellipse(-5*s + gi*3.5*s, 5*s, 1.5*s, 2*s, 0, 0, Math.PI*2);
-        ctx.fill();
-      }
-      ctx.fillStyle = OLIVE3;
-      ctx.fillRect(-5*s, 8*s, 3.5*s, 6*s);
-      ctx.fillRect(1.5*s, 8*s, 3.5*s, 6*s);
-      break;
-    }
-
-    case 'sniper': {
-      ctx.fillStyle = OLIVE;
-      // Prone body
-      ctx.fillRect(-10*s, -3*s, 20*s, 7*s);
-      ctx.beginPath(); ctx.arc(-8*s, -1*s, 4*s, 0, Math.PI*2); ctx.fill();
-      // Ghillie texture bumps (darker olive)
-      ctx.fillStyle = OLIVE3;
-      for (var sni = 0; sni < 5; sni++) {
-        ctx.beginPath();
-        ctx.arc(-6*s + sni*3.5*s, -4*s, 2*s, 0, Math.PI*2);
-        ctx.fill();
-      }
-      // Long rifle barrel
-      ctx.fillStyle = OLIVE2;
-      ctx.fillRect(6*s, -26*s, 2.5*s, 24*s);
-      ctx.fillRect(5*s, -28*s, 5*s, 3*s); // suppressor
-      // Scope with IFF tint
-      ctx.fillStyle = '#5a6428';
-      ctx.fillRect(4*s, -20*s, 4*s, 2.5*s);
-      ctx.fillStyle = 'rgba(0,229,255,0.6)';
-      ctx.beginPath(); ctx.arc(8*s, -19*s, 2*s, 0, Math.PI*2); ctx.fill();
-      // Bipod
-      ctx.strokeStyle = OLIVE2; ctx.lineWidth = 1.5*s;
-      ctx.beginPath();
-      ctx.moveTo(7*s, -4*s); ctx.lineTo(4*s, 4*s);
-      ctx.moveTo(7*s, -4*s); ctx.lineTo(10*s, 4*s);
-      ctx.stroke();
-      break;
-    }
-
-    default:
-      ctx.fillStyle = OLIVE;
-      ctx.beginPath(); ctx.arc(0, 0, 9*s, 0, Math.PI*2); ctx.fill();
   }
 
   ctx.shadowBlur = 0;

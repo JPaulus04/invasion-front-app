@@ -1,16 +1,23 @@
 function _unlockAudio() {
   if (_audioUnlocked) return;
+  // Initialize and resume the shared AudioContext from audio.js
   ensureAudio();
-  // Play a silent tone to fully unlock the context
+  // Play a silent buffer on the shared context to fully satisfy iOS autoplay policy
   try {
-    const ac = new (window.AudioContext || window.webkitAudioContext)();
-    const buf = ac.createBuffer(1, 1, 22050);
-    const src = ac.createBufferSource();
-    src.buffer = buf;
-    src.connect(ac.destination);
-    src.start(0);
-    ac.resume().catch(() => {});
+    if (_ctx) {
+      const buf = _ctx.createBuffer(1, 1, 22050);
+      const src = _ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(_masterGain || _ctx.destination);
+      src.start(0);
+      _ctx.resume().catch(() => {});
+    }
   } catch(e) {}
+  // Restore saved volume
+  const savedVol = parseInt(localStorage.getItem('ifc_volume') || '100');
+  const savedOn = localStorage.getItem('ifc_sound_enabled') !== '0';
+  setMasterVolume(savedVol / 100);
+  setSoundEnabled(savedOn);
   _audioUnlocked = true;
   document.removeEventListener('touchstart', _unlockAudio);
   document.removeEventListener('mousedown', _unlockAudio);

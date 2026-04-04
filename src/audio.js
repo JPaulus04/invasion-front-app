@@ -3,8 +3,13 @@
 // ═══════════════════════════════════════════════════════
 
 let _ctx = null;
+let _masterGain = null;   // master volume node — all sound routes through this
 let _musicTimer = 0;
 let _melodyIdx = 0;
+
+// Global sound state — set by UI, read by engine
+let _soundEnabled = true;
+let _masterVolume = 1.0;   // 0.0–1.0, mapped from slider 0–100
 
 const MELODIES = [
   [261.63, 293.66, 329.63, 392, 329.63, 440, 392, 293.66],
@@ -14,19 +19,35 @@ const MELODIES = [
 ];
 
 function ensureAudio() {
-  if (!_ctx) _ctx = new (window.AudioContext ?? window.webkitAudioContext)();
-  if (_ctx.state === 'suspended') _ctx.resume();
+  if (!_ctx) {
+    _ctx = new (window.AudioContext ?? window.webkitAudioContext)();
+    _masterGain = _ctx.createGain();
+    _masterGain.connect(_ctx.destination);
+    _masterGain.gain.value = _soundEnabled ? _masterVolume : 0;
+  }
+  if (_ctx.state === 'suspended') _ctx.resume().catch(() => {});
+}
+
+// Called by UI volume slider / toggle
+function setMasterVolume(vol01) {
+  _masterVolume = Math.max(0, Math.min(1, vol01));
+  if (_masterGain) _masterGain.gain.value = _soundEnabled ? _masterVolume : 0;
+}
+
+function setSoundEnabled(on) {
+  _soundEnabled = !!on;
+  if (_masterGain) _masterGain.gain.value = _soundEnabled ? _masterVolume : 0;
 }
 
 function tone(freq, dur, type = 'sine', vol = 0.03, when = 0) {
-  if (!_ctx) return;
+  if (!_ctx || !_masterGain || !_soundEnabled) return;
   const o = _ctx.createOscillator();
   const g = _ctx.createGain();
   o.type = type;
   o.frequency.value = freq;
   g.gain.value = 0.0001;
   o.connect(g);
-  g.connect(_ctx.destination);
+  g.connect(_masterGain);  // route through master gain
   const t = _ctx.currentTime + when;
   g.gain.exponentialRampToValueAtTime(Math.max(0.0001, vol), t + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -56,12 +77,12 @@ const SFX = {
 };
 
 function playSfx(kind) {
-  if (!_ctx) return;
+  if (!_ctx || !_soundEnabled) return;
   (SFX[kind] ?? (() => {}))();
 }
 
 function tickMusic(dt, isActive) {
-  if (!_ctx || !isActive) return;
+  if (!_ctx || !isActive || !_soundEnabled) return;
   _musicTimer -= dt;
   if (_musicTimer <= 0) {
     const step = Math.floor(performance.now() / 556); // ~1.8/sec equivalent

@@ -1000,6 +1000,7 @@ function _getDoctrineInfo(docId) {
     fortress: { name: 'FORTRESS COMMAND', icon: '🛡️', tagline: 'Impenetrable Defense', color: '#00e5ff' },
     logistics: { name: 'LOGISTICS COMMAND', icon: '⚙️', tagline: 'Economic Superiority', color: '#88bb66' },
     ewar: { name: 'EW SUPERIORITY COMMAND', icon: '📡', tagline: 'Total Information Control', color: '#bb88dd' },
+    artillery: { name: 'ARTILLERY NETWORK', icon: '🎯', tagline: 'Infrastructure is Firepower', color: '#d4a028' },
   };
   return doctrines[docId] || doctrines.blitzkrieg;
 }
@@ -1890,27 +1891,30 @@ $id('settingsCloseBtn')?.addEventListener('click', () => {
 });
 
 // Sound controls
-let _soundEnabled = localStorage.getItem('ifc_sound_enabled') !== '0';
+let _soundUIEnabled = localStorage.getItem('ifc_sound_enabled') !== '0';
 function _updateSoundUI() {
   const btn = $id('soundToggleBtn');
   const slider = $id('volumeSlider');
-  if (btn) btn.textContent = _soundEnabled ? '🔊' : '🔇';
-  if (slider) slider.style.opacity = _soundEnabled ? '1' : '0.3';
+  if (btn) btn.textContent = _soundUIEnabled ? '🔊' : '🔇';
+  if (slider) slider.style.opacity = _soundUIEnabled ? '1' : '0.3';
 }
 
 $id('soundToggleBtn')?.addEventListener('click', () => {
-  _soundEnabled = !_soundEnabled;
-  localStorage.setItem('ifc_sound_enabled', _soundEnabled ? '1' : '0');
+  _soundUIEnabled = !_soundUIEnabled;
+  localStorage.setItem('ifc_sound_enabled', _soundUIEnabled ? '1' : '0');
+  setSoundEnabled(_soundUIEnabled);
   _updateSoundUI();
-  showToast(_soundEnabled ? '🔊 Sound enabled' : '🔇 Sound disabled');
+  showToast(_soundUIEnabled ? '🔊 Sound enabled' : '🔇 Sound disabled');
 });
 
 $id('volumeSlider')?.addEventListener('input', (e) => {
   const vol = parseInt(e.target.value);
   localStorage.setItem('ifc_volume', vol.toString());
   $id('volumeLabel').textContent = vol + '%';
-  _soundEnabled = vol > 0;
-  localStorage.setItem('ifc_sound_enabled', _soundEnabled ? '1' : '0');
+  _soundUIEnabled = vol > 0;
+  localStorage.setItem('ifc_sound_enabled', _soundUIEnabled ? '1' : '0');
+  setMasterVolume(vol / 100);
+  setSoundEnabled(_soundUIEnabled);
   _updateSoundUI();
 });
 
@@ -1921,6 +1925,9 @@ $id('volumeSlider')?.addEventListener('input', (e) => {
   if (slider) slider.value = savedVol;
   const label = $id('volumeLabel');
   if (label) label.textContent = savedVol + '%';
+  // Apply saved volume to audio engine
+  setMasterVolume(savedVol / 100);
+  setSoundEnabled(_soundUIEnabled);
   _updateSoundUI();
 })();
 

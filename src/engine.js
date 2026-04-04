@@ -654,10 +654,17 @@ function doPrestige(onComplete) {
   recordRun(G.meta, G.state);
   _saveCareerStats();
   _checkAchievements();
+  // Preserve quest progress across prestige (Orders are long-term progression)
+  const savedQuests = G.state._quests ? JSON.parse(JSON.stringify(G.state._quests)) : null;
   G.meta.prestige += gain;
+  if (savedQuests) G.meta._quests = savedQuests;
   saveMeta(G.meta);
   localStorage.removeItem(CFG.SAVE_KEY);
   G.state = freshState(G.meta.prestige);
+  // Restore quest progress from meta
+  if (G.meta._quests) {
+    G.state._quests = JSON.parse(JSON.stringify(G.meta._quests));
+  }
   // Prestige wave floor: each rank gives +5 starting wave, capped at 100
   const prestigeFloor = G.meta.prestige * 5;  // no cap — wave 400 → rank 40 → start wave 200
   if (prestigeFloor > 1) {
