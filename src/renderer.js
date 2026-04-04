@@ -578,14 +578,14 @@ function drawVertical(state) {
       ctx.fillRect(cx - bagW/2 + 2*dpr, H - baseH - 4*dpr, bagW, 4*dpr);
     }
 
-    // Gun turret — sprite-based, 3 visual tiers
+    // Gun turret — sprite-based, 3 visual tiers — positioned FORWARD of troop formation
     if (lane.gun > 0) {
-      const ty = H - baseH - (50 + (lane.barricade || 0) * 10) * dpr;
+      const ty = H - baseH - (90 + (lane.barricade || 0) * 8) * dpr;
       const tier = _turretTier(lane.gun);
       const sprite = TURRET_SPRITES[tier];
-      const tsz = 40 * dpr;
+      const tsz = 34 * dpr;
       if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-        ctx.drawImage(sprite, cx - tsz/2, ty - tsz * 0.7, tsz, tsz);
+        ctx.drawImage(sprite, cx - tsz/2, ty - tsz * 0.6, tsz, tsz);
       } else {
         // Fallback procedural if image not loaded
         ctx.fillStyle = '#3a4a28';
@@ -596,7 +596,7 @@ function drawVertical(state) {
       // Turret active glow
       ctx.shadowColor = '#88ff44'; ctx.shadowBlur = 8;
       ctx.strokeStyle = '#88ff4466'; ctx.lineWidth = 1*dpr;
-      ctx.beginPath(); ctx.arc(cx, ty, 16*dpr, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, ty, 14*dpr, 0, Math.PI*2); ctx.stroke();
       ctx.shadowBlur = 0;
     }
 

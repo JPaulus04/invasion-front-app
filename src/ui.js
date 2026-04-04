@@ -1089,6 +1089,24 @@ function renderHomeScreen() {
           home.style.display = 'none';
           $id('startOverlay').classList.add('hidden');
           G.state.started = true;
+          // Init systems that new-game path starts in beginBtn
+          _initQuestState(G.state);
+          _initUnlockState(G.state);
+          _updateAutowavStrip();
+          _updateAtmosphere(G.state.wave || 1);
+          renderQuestBoard();
+          setTimeout(_startAmbient, 300);
+          // Start research tick interval (same as beginBtn)
+          if (!window._researchTickInterval) {
+            window._researchTickInterval = setInterval(function() {
+              if (!G.state || !G.state.started) return;
+              _tickResearchQueue();
+              if (document.getElementById('research-sheet') &&
+                  document.getElementById('research-sheet').style.transform !== 'translateY(100%)') {
+                renderResearchSheet();
+              }
+            }, 1000);
+          }
           updateHUD();
         };
       } else {

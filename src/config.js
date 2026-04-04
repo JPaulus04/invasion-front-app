@@ -18,7 +18,7 @@ const CFG = Object.freeze({
 
   // ── Base ─────────────────────────────────────────────
   BASE_HP:                 100,
-  TROOP_SLOTS:             6,
+  TROOP_SLOTS:             5,
 
   // ── Spawning ─────────────────────────────────────────
   SPAWN_BASE:              9,      // V8: -1, waves 1-4 slightly lighter
@@ -83,7 +83,7 @@ const CFG = Object.freeze({
 const UNLOCKS = Object.freeze({
   active:          p => new Set(PERMANENT_UNLOCKS.filter(u => p >= u.rank).map(u => u.id)),
   has:             (p, id) => p >= (PERMANENT_UNLOCKS.find(u => u.id === id)?.rank ?? 99),
-  troopSlots:      p => UNLOCKS.has(p, 'u_troop7') ? 7 : CFG.TROOP_SLOTS,
+  troopSlots:      p => UNLOCKS.has(p, 'u_troop7') ? 6 : CFG.TROOP_SLOTS,
   startCr:         p => CFG.BASE_CREDITS + (UNLOCKS.has(p, 'u_startcr') ? 80 : 0),
   orbitalDmgBonus: p => UNLOCKS.has(p, 'u_orbital') ? CFG.ORBITAL_UNLOCK_DMG : 0,
   incomeBonus:     p => UNLOCKS.has(p, 'u_income') ? CFG.UNLOCK_INCOME_BONUS : 0,
