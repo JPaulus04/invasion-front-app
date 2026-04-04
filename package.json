@@ -1,0 +1,14 @@
+{
+  "name": "invasion-front-commander",
+  "version": "1.0.0",
+  "description": "Invasion Front Commander — tactical lane-defense game",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "dev": "echo 'Open index.html in browser for dev mode'"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/ios": "^6.2.0"
+  }
+}
