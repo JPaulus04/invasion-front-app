@@ -59,6 +59,22 @@ html = html.replace(/<!-- ══ GAME ENGINE ═+[\s\S]*?<!-- ══ CONTROLLER 
 // Ensure output dir exists
 if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
 
+// Copy assets directory to www/assets
+const ASSETS = path.join(__dirname, 'assets');
+function copyDirSync(src, dest) {
+  if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const sp = path.join(src, entry.name);
+    const dp = path.join(dest, entry.name);
+    if (entry.isDirectory()) copyDirSync(sp, dp);
+    else if (entry.name !== '.gitkeep') fs.copyFileSync(sp, dp);
+  }
+}
+if (fs.existsSync(ASSETS)) {
+  copyDirSync(ASSETS, path.join(OUT, 'assets'));
+  console.log('📦 Copied assets/ → www/assets/');
+}
+
 const outPath = path.join(OUT, 'index.html');
 fs.writeFileSync(outPath, html, 'utf8');
 
