@@ -13,6 +13,10 @@ function _unlockAudio() {
       _ctx.resume().catch(() => {});
     }
   } catch(e) {}
+  // Also re-unlock if context was interrupted (iOS phone call, Siri, etc.)
+  if (_ctx && _ctx.state === 'interrupted') {
+    _ctx.resume().catch(() => {});
+  }
   // Restore saved volume
   const savedVol = parseInt(localStorage.getItem('ifc_volume') || '100');
   const savedOn = localStorage.getItem('ifc_sound_enabled') !== '0';
@@ -21,9 +25,13 @@ function _unlockAudio() {
   _audioUnlocked = true;
   document.removeEventListener('touchstart', _unlockAudio);
   document.removeEventListener('mousedown', _unlockAudio);
+  document.removeEventListener('click', _unlockAudio);
+  document.removeEventListener('pointerdown', _unlockAudio);
 }
 document.addEventListener('touchstart', _unlockAudio, { passive: true });
 document.addEventListener('mousedown', _unlockAudio);
+document.addEventListener('click', _unlockAudio);
+document.addEventListener('pointerdown', _unlockAudio);
 
 
 // Boss drone disabled — uses engine-internal vars

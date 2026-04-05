@@ -61,6 +61,8 @@ const BG_TIERS = [
 const BG_IMAGES = [];
 BG_TIERS.forEach(tier => {
   const img = new Image();
+  img.onerror = () => console.warn('BG load failed:', tier.src);
+  img.onload  = () => console.log('BG loaded:', tier.src, img.naturalWidth + 'x' + img.naturalHeight);
   img.src = tier.src;
   BG_IMAGES.push(img);
 });
@@ -1166,6 +1168,8 @@ function drawVertical(state) {
     const toY_scr   = treeH + ((ORIG_W - p.target.x) / ORIG_W) * (H - baseH - treeH);
     const origFromX = 160 + fromSlot * 48;
     const frac      = Math.max(0, Math.min(1, (p.x - origFromX) / Math.max(1, p.target.x - origFromX)));
+    // Guard — skip if any screen coordinate is non-finite (prevents createRadialGradient crash)
+    if (!isFinite(fromX_scr) || !isFinite(fromY_scr) || !isFinite(toX_scr) || !isFinite(toY_scr) || !isFinite(frac)) continue;
     const drawX_scr = fromX_scr + (toX_scr - fromX_scr) * frac;
     const drawY_scr = fromY_scr + (toY_scr - fromY_scr) * frac;
     const angle     = Math.atan2(toY_scr - fromY_scr, toX_scr - fromX_scr);
@@ -1273,6 +1277,9 @@ function drawVertical(state) {
     const fcx = mapLane(fx_lane);
     const fcy = fx_scr_y;
 
+    // Guard — skip FX with non-finite screen coords
+    if (!isFinite(fcx) || !isFinite(fcy)) { ctx.globalAlpha = 1; continue; }
+
     if (f.kind === 'boom') {
       // Add persistent scorch mark at explosion site
       if (f.life / f.max > 0.95) {
@@ -1294,6 +1301,7 @@ function drawVertical(state) {
       ctx.shadowBlur = 0;
       // Fireball core
       ctx.globalAlpha = a;
+      if (isFinite(coreR) && coreR > 0) {
       const fireGrad = ctx.createRadialGradient(fcx, fcy - coreR*0.2, 0, fcx, fcy, coreR);
       fireGrad.addColorStop(0,   'rgba(255,255,200,' + a + ')');
       fireGrad.addColorStop(0.3, 'rgba(255,200,60,' + a*0.95 + ')');
@@ -1301,6 +1309,7 @@ function drawVertical(state) {
       fireGrad.addColorStop(1,   'rgba(100,30,5,0)');
       ctx.fillStyle = fireGrad;
       ctx.beginPath(); ctx.arc(fcx, fcy, coreR, 0, Math.PI*2); ctx.fill();
+      }
       // Smoke puff above explosion
       ctx.globalAlpha = a * 0.4;
       ctx.fillStyle = 'rgba(60,55,45,' + a*0.5 + ')';
@@ -1321,6 +1330,7 @@ function drawVertical(state) {
       ctx.fillRect(fcx - 12*dpr, 0, 24*dpr, fcy);
       // Impact blast
       ctx.globalAlpha = a;
+      if (isFinite(orbR) && orbR > 0) {
       const orbGrad = ctx.createRadialGradient(fcx, fcy, 0, fcx, fcy, orbR);
       orbGrad.addColorStop(0,   'rgba(240,250,255,' + a + ')');
       orbGrad.addColorStop(0.25,'rgba(160,210,255,' + a*0.9 + ')');
@@ -1328,6 +1338,7 @@ function drawVertical(state) {
       orbGrad.addColorStop(1,   'rgba(40,80,255,0)');
       ctx.fillStyle = orbGrad;
       ctx.beginPath(); ctx.arc(fcx, fcy, orbR, 0, Math.PI*2); ctx.fill();
+      }
       // Shockwave rings
       for (let ri = 0; ri < 3; ri++) {
         ctx.globalAlpha = a * (0.6 - ri*0.15);
