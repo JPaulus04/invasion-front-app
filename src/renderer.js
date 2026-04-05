@@ -35,6 +35,22 @@ function _turretTier(gunLvl) {
   return 0;                    // Lv1-2 → tier 1 (index 0)
 }
 
+// ── Enemy sprite preloader ────────────────────────────────
+const ENEMY_SPRITES = {};
+const ENEMY_SPRITE_MAP = {
+  conscript:  'assets/enemies/enemy_conscript.png',
+  breacher:   'assets/enemies/enemy_breacher.png',
+  juggernaut: 'assets/enemies/enemy_juggernaut.png',
+  overwatch:  'assets/enemies/enemy_overwatch.png',
+  phalanx:    'assets/enemies/enemy_phalanx.png',
+  warden:     'assets/enemies/enemy_warden.png',
+};
+Object.entries(ENEMY_SPRITE_MAP).forEach(([id, src]) => {
+  const img = new Image();
+  img.src = src;
+  ENEMY_SPRITES[id] = img;
+});
+
 function $id(id) {
   const el = document.getElementById(id);
   if (el) return el;
@@ -1324,9 +1340,9 @@ function drawVertical(state) {
     // Ground shadow beneath each unit
     if (spawnAlpha > 0.3) {
       const er = Math.max(e.r * dpr * 0.75, 8*dpr);
-      const shadowW = er * (e.kind === 'brute' ? 2.2 : e.kind === 'flyer' || e.kind === 'razorwing' ? 2.8 : 1.6);
+      const shadowW = er * (e.kind === 'juggernaut' || e.kind === 'warden' ? 2.2 : 1.6);
       const shadowH = er * 0.3;
-      const shadowY = ey + er * (e.kind === 'flyer' || e.kind === 'razorwing' ? 1.8 : 0.9);
+      const shadowY = ey + er * 0.9;
       const sg = ctx.createRadialGradient(ex, shadowY, 0, ex, shadowY, shadowW);
       sg.addColorStop(0,   'rgba(0,0,0,' + (0.35 * spawnAlpha) + ')');
       sg.addColorStop(0.6, 'rgba(0,0,0,' + (0.15 * spawnAlpha) + ')');
@@ -1335,8 +1351,8 @@ function drawVertical(state) {
       ctx.beginPath(); ctx.ellipse(ex, shadowY, shadowW, shadowH, 0, 0, Math.PI*2); ctx.fill();
     }
 
-    // Dust trail for brutes — heavy footfall kicks up dirt
-    if (e.kind === 'brute' && spawnAlpha > 0.5 && !e.cloaked) {
+    // Dust trail for juggernauts — heavy footfall kicks up dirt
+    if (e.kind === 'juggernaut' && spawnAlpha > 0.5) {
       for (let di = 1; di <= 3; di++) {
         const dustProgress = ((ORIG_W - e.x + di * 80) / ORIG_W);
         const dustY = treeH + Math.min(dustProgress, 1) * (H - baseH - treeH);
@@ -1805,489 +1821,155 @@ function _drawTroopV(ctx, x, y, t, time, dpr) {
 //
 // Core palette: Crimson #DC143C with 0.5px bloom glow
 const CRIMSON = '#DC143C';
-const CRIMSON_DIM = 'rgba(220,20,60,';
-const TOXIC  = '#39FF14';
-const PHANTOM = '#001CFF';
+const CRIMSON = '#DC143C';
 
+// Enemy color by kind
 function _enemyColor(e, wave) {
-  // Mutation overrides at high waves
-  if (wave >= 200 && (e.kind === 'grunt' || e.kind === 'runner') && e._mutation === 'phantom')
-    return PHANTOM;
-  if (wave >= 100 && (e.kind === 'grunt' || e.kind === 'runner') && e._mutation === 'toxic')
-    return TOXIC;
-  // All enemies use crimson palette — override engine colors
-  if (e.kind === 'phaselord') return '#cc44ee'; // keep phaselord purple identity
-  return CRIMSON;
+  if (e._mutation === 'phantom') return '#4466ff';
+  if (e._mutation === 'toxic') return '#39FF14';
+  if (e._eliteColor) return e._eliteColor;
+  const COLORS = {
+    conscript: '#DC143C',
+    breacher: '#e05858',
+    juggernaut: '#a86030',
+    overwatch: '#6088bb',
+    phalanx: '#d09040',
+    warden: '#cc3030',
+  };
+  return COLORS[e.kind] || CRIMSON;
 }
 
 function _enemyGlow(e, wave) {
-  const c = _enemyColor(e, wave);
-  if (c === TOXIC)   return '#39FF14';
-  if (c === PHANTOM) return '#4466ff';
-  if (e.kind === 'phaselord') return '#cc44ee';
-  return CRIMSON;
+  if (e._mutation === 'phantom') return '#4466ff';
+  if (e._mutation === 'toxic') return '#39FF14';
+  return _enemyColor(e, wave);
 }
 
 function _drawEnemyV(ctx, x, y, e, time, dpr) {
-  const { r, kind, hp, maxHp, shield, maxShield, slow, cloaked } = e;
-  const hf    = hp / maxHp;
-  const wave  = (typeof G !== 'undefined' && G.state) ? (G.state.wave || 1) : 1;
-
-  // Mutation assignment — seeded per enemy so it's consistent
-  if (!e._mutation && wave >= 100) {
-    const roll = ((e.x || 0) * 7 + (e.y || 0) * 3 + wave) % 100;
-    if (wave >= 200 && roll < 15) e._mutation = 'phantom';
-    else if (wave >= 100 && roll < 30) e._mutation = 'toxic';
-    else e._mutation = 'normal';
-  }
-
-  const drawColor = _enemyColor(e, wave);
+  const { r, kind, hp, maxHp, shield, maxShield, slow } = e;
+  const hf = hp / maxHp;
+  const wave = (typeof G !== 'undefined' && G.state) ? (G.state.wave || 1) : 1;
+  const s = dpr;
   const glowColor = _enemyGlow(e, wave);
 
-  // Specter / phantom camo
-  const isSpecter = kind === 'runner';
-  const isCamoActive = isSpecter && !e._mutation && Math.sin(time * 3.2 + (e.x || 0) * 0.01) > 0.55;
-  const phantomInvis = e._mutation === 'phantom' && slow <= 0;
-  const baseAlpha = phantomInvis ? 0.12 : (cloaked && slow <= 0) ? 0.18 : isCamoActive ? 0.35 : 1;
-  ctx.globalAlpha = baseAlpha;
+  // Movement animation
+  const moveX = Math.sin(time * 4.2 + (e.x || 0) * 0.02) * 1.2 * s;
+  const moveY = Math.sin(time * 3.1 + (e.x || 0) * 0.015) * 0.8 * s;
+  const er = r * s * 0.7;
 
-  // Hit flash
-  const hitFlash = e._hitFlash || 0;
-  if (hitFlash > 0) e._hitFlash = Math.max(0, hitFlash - 0.016 * (_gameSpeed || 1));
-
-  // Core glow — crimson bloom
-  ctx.shadowColor = hitFlash > 0 ? '#ffffff' : glowColor;
-  ctx.shadowBlur  = hitFlash > 0 ? 22 : 6; // tight 0.5px-feel bloom
-
-  const s  = dpr;
-  const er = Math.max(r * s * 0.75, 8 * s);
-
-  // Movement
-  const spd = slow > 0 ? 0.35 : 1.0;
-  let moveX = 0, moveY = 0;
-  if (kind === 'runner')   { moveY = Math.sin(time*14*spd+e.lane)*2.5*s; moveX = Math.cos(time*7*spd+e.lane)*1.0*s; }
-  else if (kind === 'brute')   { moveY = Math.abs(Math.sin(time*3.5*spd+e.lane))*3*s; moveX = Math.sin(time*1.8*spd)*1.5*s; }
-  else if (kind === 'flyer' || kind === 'razorwing') { moveX = Math.sin(time*2.8*spd+e.lane*1.3)*7*s; moveY = Math.cos(time*2.0*spd+e.lane)*3*s; }
-  else if (kind === 'stalker') { moveX = Math.sin(time*2.5*spd+e.lane)*5*s; moveY = Math.cos(time*3.0*spd)*2*s; }
-  else { moveX = Math.sin(time*4*spd+e.lane*0.8)*1.5*s; moveY = Math.abs(Math.sin(time*4*spd+e.lane))*1.5*s; }
-
-  // Drone pixelated trail (grunt + runner)
-  if ((kind === 'grunt' || kind === 'runner') && baseAlpha > 0.3) {
-    const trailColor = drawColor;
-    for (var ti = 1; ti <= 4; ti++) {
-      const ta = (0.18 - ti * 0.04) * baseAlpha;
-      const tx2 = x + moveX + ti * 6 * s;
-      const ty2 = y + moveY;
-      const tr  = Math.max(2, (er * 0.4 - ti * 0.5)) * s;
-      ctx.globalAlpha = ta;
-      ctx.shadowBlur  = 0;
-      ctx.fillStyle   = trailColor;
-      // Pixelated — small squares not circles
-      const ps = Math.max(1.5, tr * 0.7);
-      ctx.fillRect(tx2 - ps/2, ty2 - ps/2, ps, ps);
-    }
-    ctx.globalAlpha = baseAlpha;
-    ctx.shadowColor = glowColor;
-    ctx.shadowBlur  = hitFlash > 0 ? 22 : 6;
-  }
+  // Sprite sizing per kind
+  const ENEMY_SZ = { conscript: 28, breacher: 26, juggernaut: 38, overwatch: 28, phalanx: 32, warden: 52 };
+  const sz = (ENEMY_SZ[kind] || 28) * s;
 
   ctx.save();
   ctx.translate(x + moveX, y + moveY);
-  ctx.fillStyle = drawColor;
 
-  // ── TIER 1: DRONES (grunt) — sharp chevron/triangle silhouette ──
-  if (kind === 'grunt') {
-    // Angular chevron body — sleek, forward-leaning
-    ctx.beginPath();
-    ctx.moveTo(0, -14*s);      // nose tip
-    ctx.lineTo(10*s, 4*s);     // right wing back
-    ctx.lineTo(5*s, 1*s);      // right wing notch
-    ctx.lineTo(0, 6*s);        // tail center
-    ctx.lineTo(-5*s, 1*s);     // left wing notch
-    ctx.lineTo(-10*s, 4*s);    // left wing back
-    ctx.closePath();
-    ctx.fill();
-    // Engine glow dot at tail
-    ctx.shadowColor = glowColor; ctx.shadowBlur = 8;
-    ctx.beginPath(); ctx.arc(0, 4*s, 2*s, 0, Math.PI*2); ctx.fill();
-    ctx.shadowBlur = 6;
+  // Elite glow ring
+  if (e._elite) {
+    ctx.shadowColor = glowColor; ctx.shadowBlur = 12;
+    ctx.strokeStyle = glowColor + 'aa'; ctx.lineWidth = 2 * s;
+    ctx.beginPath(); ctx.arc(0, 0, er + 4*s, 0, Math.PI*2); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
 
-  // ── TIER 1: SPECTERS (runner) — razor-thin W silhouette ──
-  } else if (kind === 'runner') {
-    // Stealth fighter W shape
-    ctx.beginPath();
-    ctx.moveTo(0, -16*s);         // center nose
-    ctx.lineTo(6*s, -4*s);        // right inner
-    ctx.lineTo(12*s, -12*s);      // right outer tip
-    ctx.lineTo(14*s, 2*s);        // right trailing
-    ctx.lineTo(6*s, -2*s);        // right inner trailing
-    ctx.lineTo(0, 4*s);           // center tail
-    ctx.lineTo(-6*s, -2*s);       // left inner trailing
-    ctx.lineTo(-14*s, 2*s);       // left trailing
-    ctx.lineTo(-12*s, -12*s);     // left outer tip
-    ctx.lineTo(-6*s, -4*s);       // left inner
-    ctx.closePath();
-    ctx.fill();
-    ctx.shadowBlur = 6;
+  // Hit flash
+  const hitDelta = performance.now() - (e._lastHitTime || 0);
+  const isHit = hitDelta < 150;
+  if (isHit) {
+    ctx.filter = 'brightness(1.8) saturate(2)';
+    ctx.globalAlpha = 1 - (1 - hitDelta / 150) * 0.3;
+  }
 
-  // ── TIER 2: BULWARKS (brute) — heavy hexagonal armored plate ──
-  } else if (kind === 'brute') {
-    // Hexagonal shield-like body — forward-leaning slab
-    const hw = 13*s, hh = 10*s;
-    ctx.beginPath();
-    ctx.moveTo(0, -hh*1.3);          // top point (forward lean)
-    ctx.lineTo(hw, -hh*0.4);
-    ctx.lineTo(hw*0.9, hh*0.8);
-    ctx.lineTo(0, hh*1.1);
-    ctx.lineTo(-hw*0.9, hh*0.8);
-    ctx.lineTo(-hw, -hh*0.4);
-    ctx.closePath();
-    ctx.fill();
-    // Armored plate lines
-    ctx.globalAlpha = baseAlpha * 0.4;
-    ctx.strokeStyle = glowColor; ctx.lineWidth = 1*s;
-    ctx.beginPath(); ctx.moveTo(-hw*0.6, -hh*0.2); ctx.lineTo(hw*0.6, -hh*0.2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(-hw*0.4, hh*0.4); ctx.lineTo(hw*0.4, hh*0.4); ctx.stroke();
-    ctx.globalAlpha = baseAlpha;
-    ctx.shadowBlur = 6;
-    // Shield flare on hit
-    if (hitFlash > 0) {
-      ctx.globalAlpha = hitFlash * 0.8;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2.5*s;
-      ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 18;
-      ctx.beginPath();
-      ctx.moveTo(0, -hh*1.3); ctx.lineTo(hw, -hh*0.4);
-      ctx.lineTo(hw*0.9, hh*0.8); ctx.lineTo(0, hh*1.1);
-      ctx.lineTo(-hw*0.9, hh*0.8); ctx.lineTo(-hw, -hh*0.4);
-      ctx.closePath(); ctx.stroke();
-      ctx.shadowBlur = 6;
-      ctx.globalAlpha = baseAlpha;
-    }
-
-  // ── TIER 2: SEEKERS (razorwing) — erratic segmented energy orb ──
-  } else if (kind === 'razorwing') {
-    // Jagged segmented square — unstable data cluster
-    const jitter = Math.sin(time * 18) * 1.5*s;
-    ctx.beginPath();
-    ctx.moveTo(-8*s + jitter, -10*s);
-    ctx.lineTo(10*s, -8*s - jitter);
-    ctx.lineTo(11*s + jitter, 6*s);
-    ctx.lineTo(3*s, 11*s + jitter);
-    ctx.lineTo(-10*s, 9*s - jitter);
-    ctx.lineTo(-11*s - jitter, -3*s);
-    ctx.closePath();
-    ctx.fill();
-    // Flashing red warning light
-    const flashPulse = Math.abs(Math.sin(time * 8 + (e.x||0)*0.05));
-    ctx.globalAlpha = baseAlpha * flashPulse;
-    ctx.fillStyle = '#ff0000';
-    ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 12;
-    ctx.beginPath(); ctx.arc(0, 0, 3.5*s, 0, Math.PI*2); ctx.fill();
-    ctx.globalAlpha = baseAlpha;
-    ctx.shadowColor = glowColor; ctx.shadowBlur = 6;
-
-  // ── SHIELD ENEMY — keep existing but crimson palette ──
-  } else if (kind === 'shield') {
-    ctx.beginPath(); ctx.arc(0, 0, er, 0, Math.PI*2); ctx.fill();
-    if (shield > 0) {
-      const shf = shield / maxShield;
-      ctx.strokeStyle = CRIMSON_DIM + (0.4 + shf*0.6) + ')';
-      ctx.lineWidth = 3*s;
-      ctx.shadowColor = glowColor; ctx.shadowBlur = 14;
-      ctx.beginPath();
-      ctx.moveTo(0,-16*s); ctx.lineTo(8*s,-8*s); ctx.lineTo(7*s,2*s);
-      ctx.lineTo(0,6*s); ctx.lineTo(-7*s,2*s); ctx.lineTo(-8*s,-8*s);
-      ctx.closePath(); ctx.stroke();
-      ctx.shadowBlur = 6;
-    }
-
-  // ── FLYER — crimson palette, keep silhouette ──
-  } else if (kind === 'flyer') {
-    const flap = Math.sin(time * 7 * spd) * 4*s;
-    ctx.beginPath(); ctx.ellipse(0, 0, 4*s, 7*s, 0, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(0, -9*s, 3.5*s, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = CRIMSON_DIM + '0.7)';
-    ctx.beginPath(); ctx.moveTo(-4*s,-2*s); ctx.lineTo(-20*s,-8*s+flap); ctx.lineTo(-14*s,2*s+flap); ctx.lineTo(-4*s,4*s); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(4*s,-2*s);  ctx.lineTo(20*s,-8*s+flap);  ctx.lineTo(14*s,2*s+flap);  ctx.lineTo(4*s,4*s);  ctx.closePath(); ctx.fill();
-
-  // ── STALKER — crimson palette ──
-  } else if (kind === 'stalker') {
-    ctx.beginPath(); ctx.ellipse(0, 0, 5*s, 7*s, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = CRIMSON_DIM + '1)';
-    ctx.beginPath(); ctx.arc(0, -4*s, 2*s, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = drawColor; ctx.lineWidth = 1.5*s; ctx.lineCap = 'round';
-    [-0.8,-0.4,0.4,0.8].forEach(function(a) {
-      var lx = Math.sin(a)*6*s + Math.sin(time*4+a)*1*s;
-      ctx.beginPath(); ctx.moveTo(lx,-2*s); ctx.lineTo(lx*2.2,-10*s); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(lx,2*s);  ctx.lineTo(lx*2.2,10*s);  ctx.stroke();
-    });
-    ctx.lineCap = 'butt';
-
-  // ── TIER 3: TITAN (siege) — industrial walker, pulsing energy core ──
-  } else if (kind === 'siege') {
-    // Massive walker body — dominates lane width
-    // Lower body / treads
-    ctx.fillRect(-18*s, 2*s, 36*s, 10*s);
-    ctx.fillRect(-20*s, 8*s, 40*s, 6*s); // wider tread base
-    // Upper chassis
-    ctx.fillRect(-14*s, -8*s, 28*s, 12*s);
-    // Shoulder pylons
-    ctx.fillRect(-22*s, -4*s, 6*s, 10*s);
-    ctx.fillRect(16*s,  -4*s, 6*s, 10*s);
-    // Head/turret
-    ctx.beginPath(); ctx.arc(0, -12*s, 9*s, 0, Math.PI*2); ctx.fill();
-    // Main cannon
-    ctx.fillRect(-3*s, -28*s, 6*s, 18*s);
-    ctx.fillRect(-5*s, -30*s, 10*s, 5*s); // muzzle
-    // Outline glow
-    ctx.shadowColor = glowColor; ctx.shadowBlur = 16;
-    ctx.strokeStyle = CRIMSON_DIM + '0.5)'; ctx.lineWidth = 1.5*s;
-    ctx.strokeRect(-14*s, -8*s, 28*s, 12*s);
-    ctx.shadowBlur = 6;
-    // Pulsing energy core — the ONLY non-red part
-    const corePulse = 0.5 + 0.5 * Math.sin(time * 3.2);
-    const coreSize  = (4 + corePulse * 2) * s;
-    ctx.globalAlpha = baseAlpha;
-    ctx.shadowColor = '#00ffff'; ctx.shadowBlur = 12 + corePulse * 8;
-    ctx.fillStyle = 'rgba(0,220,255,' + (0.7 + corePulse * 0.3) + ')';
-    ctx.beginPath(); ctx.arc(0, -2*s, coreSize, 0, Math.PI*2); ctx.fill();
-    ctx.shadowColor = glowColor; ctx.shadowBlur = 6;
-    ctx.fillStyle = drawColor;
-
-  // ── WARLORD — crimson palette with gold crown ──
-  } else if (kind === 'warlord') {
-    ctx.fillRect(-9*s,-4*s,18*s,16*s);
-    ctx.beginPath(); ctx.arc(0,-8*s,7*s,0,Math.PI*2); ctx.fill();
-    // Crown spikes in brighter crimson
-    ctx.fillStyle = CRIMSON_DIM + '0.5)';
-    ctx.shadowColor = glowColor; ctx.shadowBlur = 10;
-    for (var i=-2;i<=2;i++) {
-      ctx.beginPath(); ctx.moveTo(i*3*s,-14*s); ctx.lineTo(i*3*s-2*s,-18*s); ctx.lineTo(i*3*s+2*s,-18*s); ctx.closePath(); ctx.fill();
-    }
-    ctx.shadowBlur = 6;
-    ctx.fillStyle = drawColor;
-    ctx.fillRect(-14*s,-6*s,7*s,6*s);
-    ctx.fillRect(7*s,-6*s,7*s,6*s);
-    var dp = 0.3+0.3*Math.sin(time*2);
-    ctx.strokeStyle = CRIMSON_DIM + dp + ')'; ctx.lineWidth = 1.5*s;
-    ctx.beginPath(); ctx.arc(0,0,20*s,0,Math.PI*2); ctx.stroke();
-
-  // ── PHASELORD — keep purple identity, add crimson accents ──
-  } else if (kind === 'phaselord') {
-    ctx.fillStyle = '#aa2288';
-    ctx.beginPath();
-    ctx.moveTo(0,-14*s); ctx.lineTo(10*s,0); ctx.lineTo(12*s,12*s);
-    ctx.lineTo(0,15*s); ctx.lineTo(-12*s,12*s); ctx.lineTo(-10*s,0);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = drawColor;
-    ctx.beginPath(); ctx.arc(0,-16*s,6*s,0,Math.PI*2); ctx.fill();
-    for (var ring=1;ring<=3;ring++) {
-      var rot = time*(ring*0.8)*(ring%2===0?-1:1);
-      var rr  = (8+ring*5)*s;
-      ctx.save(); ctx.rotate(rot);
-      ctx.strokeStyle = 'rgba(220,20,60,'+(0.5-ring*0.12)+')'; ctx.lineWidth = 1.5*s;
-      ctx.beginPath(); ctx.ellipse(0,0,rr,rr*0.4,0,0,Math.PI*2); ctx.stroke();
-      ctx.restore();
-    }
-    if (e.phaseWarn > 0) {
-      var wf = e.phaseWarn/2.2;
-      ctx.shadowColor=CRIMSON; ctx.shadowBlur=20;
-      ctx.strokeStyle=CRIMSON_DIM+wf+')'; ctx.lineWidth=3*s;
-      ctx.beginPath(); ctx.arc(0,0,22*s,0,Math.PI*2); ctx.stroke();
-      ctx.shadowBlur=6;
-    }
-
+  // Draw sprite
+  const sprite = ENEMY_SPRITES[kind];
+  if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+    ctx.drawImage(sprite, -sz/2, -sz * 0.6, sz, sz);
   } else {
+    // Fallback
+    ctx.fillStyle = _enemyColor(e, wave);
     ctx.beginPath(); ctx.arc(0, 0, er, 0, Math.PI*2); ctx.fill();
   }
 
-  ctx.shadowBlur = 0;
-  ctx.restore();
-
-  // ── Wave 50+ visual mutations — glowing veins/spikes ─────────
-  if (wave >= 50 && !e._mutation) {
-    const mutAlpha = Math.min(1, (wave - 50) / 30) * 0.7; // ramps up W50-80
-    const veinPulse = 0.5 + 0.5 * Math.sin(time * 4 + (e.x || 0) * 0.02);
-    // Glowing red veins overlaid on silhouette
-    ctx.save();
-    ctx.translate(x + moveX, y + moveY);
-    ctx.strokeStyle = 'rgba(255,30,0,' + (mutAlpha * veinPulse * 0.6) + ')';
-    ctx.lineWidth = 1.2 * s;
-    ctx.shadowColor = '#ff2000'; ctx.shadowBlur = 4 * mutAlpha;
-    // Vein lines radiating from center
-    for (var vi = 0; vi < 4; vi++) {
-      var vang = (vi / 4) * Math.PI * 2 + time * 0.5;
-      var vlen = er * (0.6 + 0.2 * Math.sin(time * 3 + vi));
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(vang) * vlen, Math.sin(vang) * vlen);
-      ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
-    ctx.restore();
-  }
-  // Wave 100+ spikes — physical protrusions glow before charge
-  if (wave >= 100) {
-    const spikeAlpha = Math.min(1, (wave - 100) / 40);
-    const spikePulse = 0.6 + 0.4 * Math.abs(Math.sin(time * 6 + (e.x || 0) * 0.01));
-    ctx.save();
-    ctx.translate(x + moveX, y + moveY);
-    ctx.strokeStyle = 'rgba(255,20,0,' + (spikeAlpha * spikePulse * 0.8) + ')';
-    ctx.lineWidth = 2 * s;
-    ctx.shadowColor = '#ff1000'; ctx.shadowBlur = 8 * spikeAlpha;
-    var spikeLen = er * 0.55 * spikePulse;
-    for (var spi2 = 0; spi2 < 6; spi2++) {
-      var spAng = (spi2 / 6) * Math.PI * 2;
-      var spBase = er * 0.7;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(spAng) * spBase, Math.sin(spAng) * spBase);
-      ctx.lineTo(Math.cos(spAng) * (spBase + spikeLen), Math.sin(spAng) * (spBase + spikeLen));
-      ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
-    ctx.restore();
-  }
-
-  // ── Elite visual overlay ───────────────────────────────
-  if (e._elite && e._eliteKind) {
-    ctx.save();
-    ctx.translate(x + moveX, y + moveY);
-    const ec = e._eliteColor || '#ffffff';
-
-    if (e._eliteKind === 'berserker') {
-      // Red flame aura around body
-      const flicker = 0.5 + 0.5 * Math.sin(time * 12 + e.lane);
-      ctx.strokeStyle = 'rgba(255,32,32,' + (flicker * 0.7) + ')';
-      ctx.lineWidth = 2.5 * s;
-      ctx.shadowColor = '#ff2020'; ctx.shadowBlur = 12;
-      ctx.beginPath(); ctx.arc(0, 0, er * 1.3, 0, Math.PI * 2); ctx.stroke();
-      ctx.shadowBlur = 0;
-      // ELITE label
-      ctx.fillStyle = '#ff4040';
-      ctx.font = 'bold ' + (6*s) + 'px Share Tech Mono,monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('BRSRKR', 0, -er - 22*s);
-
-    } else if (e._eliteKind === 'ironclad') {
-      // Cyan shield ring with regen glow
-      if (e.shield > 0) {
-        const shf = e.shield / e.maxShield;
-        ctx.strokeStyle = 'rgba(96,208,255,' + (0.4 + shf * 0.6) + ')';
-        ctx.lineWidth = 3 * s;
-        ctx.shadowColor = '#60d0ff'; ctx.shadowBlur = 14;
-        ctx.beginPath(); ctx.arc(0, 0, er * 1.4, 0, Math.PI * 2 * shf); ctx.stroke();
-        ctx.shadowBlur = 0;
-      }
-      ctx.fillStyle = '#60d0ff';
-      ctx.font = 'bold ' + (6*s) + 'px Share Tech Mono,monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('IRONCLAD', 0, -er - 22*s);
-
-    } else if (e._eliteKind === 'phantom') {
-      // Green ghost trails when visible
-      if (!e.cloaked || e.slow > 0) {
-        const trail = 0.3 + 0.3 * Math.sin(time * 5);
-        ctx.strokeStyle = 'rgba(64,255,160,' + trail + ')';
-        ctx.lineWidth = 2 * s;
-        ctx.shadowColor = '#40ffa0'; ctx.shadowBlur = 10;
-        ctx.beginPath(); ctx.arc(0, 0, er * 1.5, 0, Math.PI * 2); ctx.stroke();
-        ctx.shadowBlur = 0;
-      }
-      ctx.fillStyle = '#40ffa0';
-      ctx.font = 'bold ' + (6*s) + 'px Share Tech Mono,monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('PHANTOM', 0, -er - 22*s);
-
-    } else if (e._eliteKind === 'commander') {
-      // Gold crown above warlord
-      ctx.fillStyle = '#ffd166';
-      ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 12;
-      const cY = -er - 10*s;
-      ctx.beginPath();
-      ctx.moveTo(-8*s, cY); ctx.lineTo(-8*s, cY-8*s);
-      ctx.lineTo(-4*s, cY-4*s); ctx.lineTo(0, cY-10*s);
-      ctx.lineTo(4*s, cY-4*s); ctx.lineTo(8*s, cY-8*s);
-      ctx.lineTo(8*s, cY); ctx.closePath(); ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = '#ffaa00';
-      ctx.font = 'bold ' + (6*s) + 'px Share Tech Mono,monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('CMDR', 0, -er - 24*s);
-    }
-
-    ctx.textAlign = 'left';
-    ctx.restore();
-  }
-  if (hitFlash > 0) {
-    ctx.globalAlpha = hitFlash * 0.65;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.arc(x + moveX, y + moveY, er * 1.1, 0, Math.PI*2); ctx.fill();
-    ctx.globalAlpha = baseAlpha;
-  }
+  ctx.filter = 'none';
   ctx.globalAlpha = 1;
 
-  // HP bar — black track, colored fill
-  var bw = Math.max(er * 2.2, 28*s);
-  ctx.fillStyle = 'rgba(0,0,0,.82)';
-  ctx.fillRect(x - bw/2, y - er - 20*s, bw, 6*s);
-  // HP fill color: match mutation glow
-  var hpFillCol = e._mutation === 'toxic' ? '#39FF14'
-                : e._mutation === 'phantom' ? '#4466ff'
-                : hf > 0.6 ? '#ff4444' : hf > 0.3 ? '#ff8800' : '#ff2020';
-  ctx.fillStyle = hpFillCol;
-  ctx.shadowColor = hpFillCol; ctx.shadowBlur = hf < 0.4 ? 5 : 0;
-  ctx.fillRect(x - bw/2, y - er - 20*s, bw * hf, 6*s);
-  ctx.shadowBlur = 0;
-
-  // Health glow ring — tighter, matches crimson theme
-  if (hf < 0.99) {
-    var gc = hf > 0.6 ? CRIMSON_DIM + '0.22)' : hf > 0.3 ? 'rgba(255,140,0,.28)' : 'rgba(255,20,20,.4)';
-    ctx.strokeStyle = gc; ctx.lineWidth = 1.5*s;
-    ctx.beginPath(); ctx.arc(x+moveX, y+moveY, er+2.5*s, 0, Math.PI*2); ctx.stroke();
-    ctx.lineWidth = 1;
+  // Hit red ring
+  if (isHit) {
+    const hitPulse = 1 - hitDelta / 150;
+    ctx.strokeStyle = 'rgba(255,40,40,' + (hitPulse * 0.8) + ')';
+    ctx.lineWidth = 2 * s;
+    ctx.beginPath(); ctx.arc(0, 0, sz * 0.4, 0, Math.PI * 2); ctx.stroke();
   }
 
-  // Type label — updated to design codenames
-  var labels = {
-    grunt:     'DRONE',
-    runner:    'SPECTER',
-    brute:     'BULWARK',
-    razorwing: 'SEEKER',
-    shield:    'SHIELD',
-    flyer:     'FLYER',
-    stalker:   'STALKER',
-    siege:     'TITAN',
-    warlord:   'WARLORD',
-    phaselord: 'PHASE',
-  };
-  // Mutation suffix
-  var mutSuffix = e._mutation === 'toxic' ? '-TOX' : e._mutation === 'phantom' ? '-PHT' : '';
-  var labelCol = e._mutation === 'toxic' ? '#39FF14'
-               : e._mutation === 'phantom' ? '#6688ff'
-               : hf < 0.3 ? '#ff8080' : 'rgba(220,20,60,.65)';
-  ctx.fillStyle = labelCol;
-  ctx.font = 'bold ' + (5.5*s) + 'px Share Tech Mono,monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText((labels[kind] || kind.toUpperCase()) + mutSuffix, x, y - er - 24*s);
-  ctx.textAlign = 'left';
+  // Overwatch firing flash
+  if (kind === 'overwatch' && e._owStopped && e._lastFireTime) {
+    const fd = performance.now() - e._lastFireTime;
+    if (fd < 120) {
+      const fa = 1 - fd / 120;
+      ctx.fillStyle = 'rgba(255,200,80,' + fa + ')';
+      ctx.beginPath(); ctx.arc(-sz * 0.4, -sz * 0.1, 3 * s * fa, 0, Math.PI * 2); ctx.fill();
+    }
+  }
 
-  // Shield bar — crimson-toned gold
-  if (maxShield > 0 && shield > 0) {
-    ctx.fillStyle = 'rgba(0,0,0,.6)';
-    ctx.fillRect(x-bw/2, y-er-13*s, bw, 4*s);
-    ctx.fillStyle = '#ffcc44';
-    ctx.shadowColor = '#ffcc44'; ctx.shadowBlur = 4;
-    ctx.fillRect(x-bw/2, y-er-13*s, bw*(shield/maxShield), 4*s);
+  // Warden phase ring
+  if (kind === 'warden') {
+    const phase = e._wardenPhase || 1;
+    const pc = phase === 3 ? '#ff2020' : phase === 2 ? '#e08020' : '#cc3030';
+    ctx.strokeStyle = pc; ctx.lineWidth = 2 * s;
+    ctx.shadowColor = pc; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(0, 0, sz * 0.55, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0;
+    if (phase === 3) {
+      const cg = 0.3 + 0.3 * Math.sin(time * 10);
+      ctx.fillStyle = 'rgba(255,0,0,' + cg + ')';
+      ctx.beginPath(); ctx.arc(0, 0, sz * 0.6, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Phalanx shield glow when active
+  if (kind === 'phalanx' && shield > 0) {
+    const sg = 0.3 + 0.2 * Math.sin(time * 3);
+    ctx.strokeStyle = 'rgba(224,160,48,' + sg + ')';
+    ctx.lineWidth = 2 * s;
+    ctx.shadowColor = '#e0a030'; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(0, 0, sz * 0.45, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
   }
 
-  // Slow ring
+  ctx.restore();
+
+  // ── HP bar ──────────────────────────────────────────
+  const barW = (r * 1.6 + 4) * s;
+  const barY = y + moveY - er - 8 * s;
+  ctx.fillStyle = 'rgba(0,0,0,.6)';
+  ctx.fillRect(x + moveX - barW / 2, barY, barW, 3 * s);
+  ctx.fillStyle = hf > 0.5 ? '#DC143C' : hf > 0.25 ? '#ff6030' : '#ff2020';
+  ctx.fillRect(x + moveX - barW / 2, barY, barW * hf, 3 * s);
+
+  // ── Shield bar ──────────────────────────────────────
+  if (maxShield > 0) {
+    const shFrac = shield / maxShield;
+    ctx.fillStyle = 'rgba(0,0,0,.5)';
+    ctx.fillRect(x + moveX - barW / 2, barY + 4 * s, barW, 2.5 * s);
+    ctx.fillStyle = shFrac > 0.5 ? '#e0a030' : '#ff8020';
+    ctx.shadowColor = '#e0a030'; ctx.shadowBlur = shFrac > 0 ? 4 : 0;
+    ctx.fillRect(x + moveX - barW / 2, barY + 4 * s, barW * shFrac, 2.5 * s);
+    ctx.shadowBlur = 0;
+  }
+
+  // ── Slow ring ───────────────────────────────────────
   if (slow > 0) {
-    ctx.strokeStyle = 'rgba(80,190,230,.55)'; ctx.lineWidth = 1.5*s;
-    ctx.beginPath(); ctx.arc(x+moveX, y+moveY, er+5*s, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(80,190,230,.55)'; ctx.lineWidth = 1.5 * s;
+    ctx.beginPath(); ctx.arc(x + moveX, y + moveY, er + 5 * s, 0, Math.PI * 2); ctx.stroke();
     ctx.lineWidth = 1;
   }
-}
 
+  // ── Low HP danger pulse ─────────────────────────────
+  if (hf < 0.2 && kind !== 'warden') {
+    const dp = 0.3 + 0.4 * Math.abs(Math.sin(time * 5));
+    ctx.strokeStyle = 'rgba(255,40,40,' + dp + ')';
+    ctx.lineWidth = 1.5 * s;
+    ctx.beginPath(); ctx.arc(x + moveX, y + moveY, er + 3 * s, 0, Math.PI * 2); ctx.stroke();
+  }
+}
 

@@ -11,9 +11,8 @@ const CFG = Object.freeze({
   WAVE_REWARD_BASE:        45,     // tightened economy — fewer freebie credits
   WAVE_REWARD_SCALE:       12,
   KILL_REWARDS: Object.freeze({
-    runner:7,  grunt:10, shield:13, brute:22,   // reduced — credits should feel earned
-    flyer:14,  stalker:15,                       // stalker still rewards patience
-    razorwing:11, warlord:120, siege:145, phaselord:160
+    conscript:8, breacher:10, juggernaut:22, overwatch:16,
+    phalanx:14, warden:160
   }),
 
   // ── Base ─────────────────────────────────────────────

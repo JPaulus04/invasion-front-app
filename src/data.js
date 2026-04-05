@@ -59,7 +59,7 @@ function freshMods() {
 
 function freshRuntime() {
   return {
-    modArmored: false, modAir: false,
+    modArmored: false, modBreachRush: false,
     rewardMult: 1, spawnCountAdd: 0,
     ewBonus: 0, heavyPenalty: 0,
     spawnSpeedMult: 1, hpMult: 1, swarmMult: 1,
@@ -164,8 +164,8 @@ const DOCTRINES = [
 // ── Wave Modifiers ─────────────────────────────────────
 const WAVE_MODIFIERS = [
   { id:'none',     name:'Standard',          icon:'—',  css:'standard',    text:'No special conditions this wave.',                           tip:'', apply:()=>{} },
-  { id:'armored',  name:'Armored Push',       icon:'🛡', css:'threat',      text:'High ratio of shielded and brute enemies.',                  tip:'EW strips shields fast. Grenadiers punish clusters.', apply:s=>{s.runtime.modArmored=true;} },
-  { id:'air',      name:'Air Assault',        icon:'✈', css:'threat',      text:'Flyers and Razorwings dominate.',                            tip:'Flyers hit adjacent lanes. Cover all three.', apply:s=>{s.runtime.modAir=true;} },
+  { id:'armored',  name:'Armored Push',       icon:'🛡', css:'threat',      text:'High ratio of phalanx and juggernaut enemies.',                  tip:'EW strips shields fast. Grenadiers punish clusters.', apply:s=>{s.runtime.modArmored=true;} },
+  { id:'air',      name:'Breach Rush',        icon:'💨', css:'threat',      text:'High ratio of fast breacher units.',                            tip:'Deploy snipers and keep barricades upgraded.', apply:s=>{s.runtime.modBreachRush=true;} },
   { id:'scarcity', name:'Resource Strain',    icon:'📉', css:'threat',      text:'Wave rewards -18%. Enemy count +5.',                         tip:'Tighten spending. Prioritize core upgrades only.', apply:s=>{s.runtime.rewardMult-=0.18; s.runtime.spawnCountAdd+=5;} },
   { id:'storm',    name:'Ion Storm',          icon:'⚡', css:'electrical',  text:'EW amplified +45%. Heavy teams penalized -15%.',             tip:'EW Superiority thrives here. Deploy EW Specialists.', apply:s=>{s.runtime.ewBonus+=0.45; s.runtime.heavyPenalty+=0.15;} },
   { id:'surge',    name:'Surge Protocol',     icon:'🔴', css:'threat',      text:'Enemies spawn 35% faster.',                                  tip:'Barricades and turrets become critical.', apply:s=>{s.runtime.spawnSpeedMult=1.35;} },

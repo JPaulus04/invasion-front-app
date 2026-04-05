@@ -896,7 +896,7 @@ const CHAPTERS = [
   { wave: 31, name: 'Siege Protocol',   desc: 'Boss-class units now appear in regular waves.',                  color: '#ff4444' },
   { wave: 41, name: 'Blackout War',     desc: 'Stealth and electronic warfare at full intensity.',              color: '#b060ff' },
   { wave: 51, name: 'Iron Tide',        desc: 'Relentless armored columns. No quarter given.',                  color: '#ff3c3c' },
-  { wave: 61, name: 'The Purge',        desc: 'Swarm tactics and siege hardware simultaneously.',               color: '#ff2020' },
+  { wave: 61, name: 'The Purge',        desc: 'Swarm tactics and heavy armor simultaneously.',               color: '#ff2020' },
   { wave: 71, name: 'Endgame',          desc: 'Maximum threat. Your upgrades are the only advantage.',         color: '#ff0000' },
   { wave: 81, name: 'Beyond the Line',  desc: 'No doctrine predicts this. Adapt or fall.',                     color: '#ffffff' },
 ];
@@ -1124,9 +1124,9 @@ function _patchedUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
           var baseH2  = bH2 * 0.22;
           var ORIG_W2 = 1400;
           dey2 = treeH2 + ((ORIG_W2 - (de.x || 0)) / ORIG_W2) * (bH2 - baseH2 - treeH2);
-          var kind2 = (de.kind === 'siege' || de.kind === 'warlord') ? 'oil' : 'rust';
+          var kind2 = (de.kind === 'warden' || de.kind === 'juggernaut') ? 'oil' : 'rust';
           _addDeathDecal(dex, dey2, de.r || 12, kind2);
-          if (de.kind === 'siege' || de.kind === 'warlord' || de.kind === 'phaselord') {
+          if (de.kind === 'warden') {
             _addScorch(dex, dey2, (de.r || 12) * dpr2 * 2.5);
           }
         }
@@ -1173,21 +1173,21 @@ function _patchedUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
     }
   }
 
-  // Death spawn — commander warlords spawn grunts
+  // Death spawn — commander elites spawn conscripts
   const justDied = s._justDiedElites || [];
   s._justDiedElites = [];
   for (const dead of justDied) {
     if (dead._spawnsOnDeath && dead._spawnsOnDeath > 0) {
       for (let g = 0; g < dead._spawnsOnDeath; g++) {
         spawnEnemy();
-        const grunt = s.enemies[s.enemies.length - 1];
-        if (grunt) {
-          grunt.lane  = dead.lane;
-          grunt.x     = dead.x + (Math.random() - 0.5) * 60;
-          grunt.kind  = 'grunt';
-          grunt.color = '#ff6060';
-          grunt._scaled = true;
-          grunt._spawnedByCommander = true;
+        const rein = s.enemies[s.enemies.length - 1];
+        if (rein) {
+          rein.lane  = dead.lane;
+          rein.x     = dead.x + (Math.random() - 0.5) * 60;
+          rein.kind  = 'conscript';
+          rein.color = '#e06060';
+          rein._scaled = true;
+          rein._spawnedByCommander = true;
         }
       }
     }
@@ -1234,25 +1234,21 @@ function _patchedUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
 
 // Elite variant definitions — layered on top of base enemy
 function _pickEliteVariant(kind, wave) {
-  // Berserker: runner/grunt that moves 40% faster, glows red
-  if ((kind === 'runner' || kind === 'grunt') && Math.random() < 0.5) {
+  // Berserker: conscript/breacher that moves 40% faster, glows red
+  if ((kind === 'breacher' || kind === 'conscript') && Math.random() < 0.5) {
     return { _eliteKind: 'berserker', speed: undefined, _eliteColor: '#ff2020',
       _eliteInit: function(e) { e.speed *= 1.4; e.color = '#ff4040'; } };
   }
-  // Ironclad: brute/shield with regenerating shield
-  if ((kind === 'brute' || kind === 'shield') && Math.random() < 0.5) {
+  // Ironclad: juggernaut/phalanx with regenerating shield
+  if ((kind === 'juggernaut' || kind === 'phalanx') && Math.random() < 0.5) {
     const shield = Math.round(40 + wave * 6);
     return { _eliteKind: 'ironclad', _eliteColor: '#60d0ff',
       shield, maxShield: shield, _regenShield: true };
   }
-  // Phantom stalker: stalker that permanently cloaks until in melee range
-  if (kind === 'stalker') {
-    return { _eliteKind: 'phantom', cloaked: true, _eliteColor: '#40ffa0',
-      _phantomRange: 180 };
-  }
-  // Warlord Commander: spawns 2 grunts on death
-  if (kind === 'warlord' && Math.random() < 0.6) {
-    return { _eliteKind: 'commander', _eliteColor: '#ffaa00', _spawnsOnDeath: 2 };
+  // Marksman: overwatch with faster fire rate and more damage
+  if (kind === 'overwatch' && Math.random() < 0.5) {
+    return { _eliteKind: 'marksman', _eliteColor: '#ff8040',
+      _eliteInit: function(e) { e._owFireRate *= 0.65; e.damage *= 1.4; e.color = '#ff8040'; } };
   }
   return null;
 }

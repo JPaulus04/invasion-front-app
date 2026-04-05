@@ -196,7 +196,9 @@ function getDoctrineEventText() {
   return null;
 }
 
-// ── Enemy system ──────────────────────────────────────
+// ── Enemy system — 6 roles ───────────────────────────
+// Conscript (baseline), Breacher (fast), Juggernaut (tank),
+// Overwatch (ranged), Phalanx (shield), Warden (boss)
 function enemyTemplate() {
   const s = G.state;
   const boss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
@@ -209,26 +211,54 @@ function enemyTemplate() {
   const entryMult = s.runtime.entryHalfSpeed ? 0.5 : 1;
   const spd = v => v * sensorMult * entryMult;
 
+  // ── WARDEN (boss) — 3 scripted phases ──────────────
   if (boss) {
-    const canPhase = s.wave >= 10;
-    const r = Math.random();
-    if (r < 0.34) return { kind:'siege',    lane, y:lY, hp:(320+s.wave*62)*hm, speed:spd(22+s.wave*.70), damage:18+Math.floor(s.wave*.50), r:34, shield:0,              color:'#c05050' };
-    if (r < (canPhase ? 0.67 : 0.99)) return { kind:'warlord',  lane, y:lY, hp:(258+s.wave*54)*hm, speed:spd(26+s.wave*.74), damage:11+Math.floor(s.wave*.38), r:30, shield:84+s.wave*11, color:'#e07050' };
-    if (canPhase) return { kind:'phaselord', lane, y:lY, hp:(295+s.wave*57)*hm, speed:spd(30+s.wave*.78), damage:14+Math.floor(s.wave*.41), r:28, shield:0,              color:'#b050c8', phaseCd:CFG.PHASE_LORD_TELEPORT_CD };
-    return { kind:'siege', lane, y:lY, hp:(320+s.wave*62)*hm, speed:spd(22+s.wave*.70), damage:18+Math.floor(s.wave*.50), r:34, shield:0, color:'#c05050' };
+    return {
+      kind: 'warden', lane, y: lY, baseY: lY,
+      hp: (400 + s.wave * 70) * hm,
+      speed: spd(18 + s.wave * 0.5),
+      damage: 16 + Math.floor(s.wave * 0.45),
+      r: 36, shield: 0,
+      color: '#cc3030',
+      // Warden phase state
+      _wardenPhase: 1,        // starts phase 1
+      _wardenFireCd: 2.0,     // suppressive fire cooldown
+      _wardenFireRate: 1.8,   // seconds between shots
+      _wardenSpawned: false,  // phase 2 reinforcement flag
+      _wardenMaxHp: (400 + s.wave * 70) * hm,
+    };
   }
 
-  const { modArmored, modAir } = s.runtime;
-  const canStalker   = s.wave >= 5;
-  const canRazorwing = s.wave >= 6;
+  // ── REGULAR ENEMIES — wave-gated composition ───────
+  const { modArmored, modBreachRush } = s.runtime;
+  const canJugg     = s.wave >= 6;
+  const canOverwatch = s.wave >= 8;
+  const canPhalanx  = s.wave >= 10;
   const roll = Math.random();
-  if      ((modAir&&roll<.36)||roll<.22)     return { kind:'runner',   lane, y:lY,    hp:16*tough*hm*sw, speed:spd(72+s.wave*1.7),  damage:4+Math.floor(s.wave*.09), r:12, shield:0,               color:'#d08080' };
-  else if ((modAir&&roll<.58)||roll<.34)     return { kind:'flyer',    lane, y:lY-44, hp:20*tough*hm*sw, speed:spd(60+s.wave*1.4),  damage:5+Math.floor(s.wave*.10), r:13, shield:0,               color:'#b090e8', flying:true };
-  else if ((modArmored&&roll<.72)||roll<.50) return { kind:'shield',   lane, y:lY,    hp:25*tough*hm,    speed:spd(32+s.wave*.9),   damage:4+Math.floor(s.wave*.10), r:15, shield:24+s.wave*4.5,   color:'#e09050' };
-  else if ((modArmored&&roll<.90)||roll<.75) return { kind:'brute',    lane, y:lY,    hp:50*tough*hm,    speed:spd(23+s.wave*.8),   damage:7+Math.floor(s.wave*.14), r:21, shield:0,               color:'#d0a050' };
-  else if (roll<.87&&canStalker)             return { kind:'stalker',  lane, y:lY,    hp:28*tough*hm,    speed:spd(46+s.wave*1.1),  damage:5+Math.floor(s.wave*.11), r:14, shield:0,               color:'#50c090', cloaked:false };
-  else if (roll<.94&&canRazorwing)           return { kind:'razorwing',lane, y:lY-20, hp:18*tough*hm*sw, speed:spd(55+s.wave*1.2),  damage:4+Math.floor(s.wave*.09), r:11, shield:0,               color:'#d8d050', flying:true, multiLane:true };
-  else                                       return { kind:'grunt',    lane, y:lY,    hp:22*tough*hm,    speed:spd(38+s.wave*1.2),  damage:4+Math.floor(s.wave*.09), r:14, shield:0,               color:'#e06060' };
+
+  // Breacher — fast, fragile pressure (boosted during Breach Rush)
+  if ((modBreachRush && roll < 0.45) || roll < 0.22)
+    return { kind:'breacher', lane, y:lY, baseY:lY, hp:14*tough*hm*sw, speed:spd(78+s.wave*1.8), damage:3+Math.floor(s.wave*.08), r:12, shield:0, color:'#d06060' };
+
+  // Phalanx — shielded protector (wave 10+)
+  if ((modArmored && roll < 0.42) || (canPhalanx && roll < 0.36))
+    return { kind:'phalanx', lane, y:lY, baseY:lY, hp:28*tough*hm, speed:spd(30+s.wave*0.85), damage:5+Math.floor(s.wave*.10), r:16, shield:30+s.wave*5, color:'#e09050' };
+
+  // Juggernaut — heavy tank (wave 6+)
+  if ((modArmored && roll < 0.62) || (canJugg && roll < 0.52))
+    return { kind:'juggernaut', lane, y:lY, baseY:lY, hp:55*tough*hm, speed:spd(20+s.wave*0.65), damage:8+Math.floor(s.wave*.14), r:22, shield:0, color:'#a08040' };
+
+  // Overwatch — stops at range, fires at troops (wave 8+)
+  if (canOverwatch && roll < 0.65)
+    return { kind:'overwatch', lane, y:lY, baseY:lY, hp:22*tough*hm, speed:spd(35+s.wave*1.0), damage:6+Math.floor(s.wave*.12), r:14, shield:0, color:'#7090c0',
+      _owRange: 320,          // stops at this X distance from base
+      _owFireCd: 0,           // current cooldown
+      _owFireRate: 1.4,       // seconds between shots
+      _owStopped: false,      // has reached firing position
+    };
+
+  // Conscript — baseline filler
+  return { kind:'conscript', lane, y:lY, baseY:lY, hp:22*tough*hm, speed:spd(38+s.wave*1.2), damage:4+Math.floor(s.wave*.09), r:14, shield:0, color:'#e06060' };
 }
 
 // ── Elite Enemy Variants ─────────────────────────────────────
@@ -286,15 +316,15 @@ const ELITE_MUTATIONS = {
     },
     desc: 'Pulses poison on nearby troops when in range'
   },
-  warden: {
-    name: 'Warden',
+  commander: {
+    name: 'Commander',
     color: '#E0A020',
     apply(e, wave) {
-      e._mutation = 'warden';
+      e._mutation = 'commander';
       e.hp *= 2.0;
       e.speed *= 0.70;
       e.damage *= 1.4;
-      e._wardenAura = true; // nearby enemies take 20% less damage
+      e._commanderAura = true; // nearby enemies take 20% less damage
       e.color = '#E0A020';
       e.r = Math.round(e.r * 1.25);
     },
@@ -316,13 +346,10 @@ const ELITE_MUTATIONS = {
 
 function _trySpawnElite(e, wave) {
   if (wave < 15) return e; // no elites before wave 15
-  // Elite chance scales with wave: 5% at W15, 20% at W40, 35% at W70+
   const eliteChance = Math.min(0.35, 0.05 + (wave - 15) * 0.006);
   if (Math.random() > eliteChance) return e;
-  // Only certain enemy kinds can become elite
-  const eligibleKinds = ['runner','grunt','shield','brute','flyer','stalker'];
+  const eligibleKinds = ['conscript','breacher','phalanx','juggernaut','overwatch'];
   if (!eligibleKinds.includes(e.kind)) return e;
-  // Pick a mutation weighted by wave
   const pool = wave < 25
     ? ['berserker', 'armored']
     : wave < 40
@@ -344,15 +371,21 @@ function spawnEnemy() {
   const spawnX = G.canvasWidth ? G.canvasWidth() + 42 : 1842;
   const e = {
     x: spawnX, maxHp: t.hp, hp: t.hp,
-    kind: t.kind, lane: t.lane, y: t.y, baseY: t.y,
+    kind: t.kind, lane: t.lane, y: t.y, baseY: t.baseY ?? t.y,
     speed: t.speed, damage: t.damage, r: t.r,
     shield: t.shield ?? 0, maxShield: t.shield ?? 0,
     color: t.color, slow: 0,
-    disruptCd: t.kind === 'warlord' ? CFG.WARLORD_DISRUPT_CD : 0,
-    phaseCd: t.phaseCd ?? 0,
-    phaseWarn: 0,
-    cloaked: t.cloaked ?? false,
-    multiLane: t.multiLane ?? false,
+    // Overwatch state
+    _owRange: t._owRange ?? 0,
+    _owFireCd: t._owFireCd ?? 0,
+    _owFireRate: t._owFireRate ?? 1.4,
+    _owStopped: t._owStopped ?? false,
+    // Warden state
+    _wardenPhase: t._wardenPhase ?? 0,
+    _wardenFireCd: t._wardenFireCd ?? 0,
+    _wardenFireRate: t._wardenFireRate ?? 1.8,
+    _wardenSpawned: t._wardenSpawned ?? false,
+    _wardenMaxHp: t._wardenMaxHp ?? 0,
   };
   if (s.perks.entryJam) e.slow = Math.max(e.slow, 1.5);
   s.enemies.push(e);
@@ -362,9 +395,11 @@ function spawnEnemy() {
 function applyDamage(enemy, damage, source = 'normal') {
   const s = G.state;
   let dmg = damage;
-  if (enemy.cloaked && source === 'normal') dmg *= CFG.STALKER_CLOAK_DMG_FRAC;
-  if (enemy.kind === 'brute'   && source === 'normal') dmg *= 0.90;
-  if (enemy.kind === 'warlord' && source === 'normal') dmg *= 0.88;
+  // Juggernaut: 15% damage reduction from normal sources
+  if (enemy.kind === 'juggernaut' && source === 'normal') dmg *= 0.85;
+  // Warden phase 2: reduced armor (takes 20% more damage)
+  if (enemy.kind === 'warden' && enemy._wardenPhase === 2) dmg *= 1.20;
+  // Phalanx shield absorbs damage first
   if (enemy.shield > 0) {
     const strip = s.mods.ewShieldStrip + s.perks.ewShield;
     const shHit = source === 'ew' ? dmg * (1.8 + strip) : dmg;
@@ -383,7 +418,7 @@ function nearestEnemy(t) {
   let best = null, bestD = Infinity;
   for (const e of G.state.enemies) {
     const vis = !e.cloaked || e.slow > 0;
-    const reach = e.lane === t.lane || (e.kind === 'flyer' && Math.abs(e.lane - t.lane) <= 1) || e.multiLane;
+    const reach = e.lane === t.lane;
     if (!vis || !reach) continue;
     const d = Math.hypot(e.x - t.x, e.y - t.y);
     if (d < t.type.range && d < bestD) { best = e; bestD = d; }
@@ -823,48 +858,101 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   // Enemies
   for (const e of s.enemies) {
     if (e.slow > 0) e.slow -= dt;
-    if (e.kind === 'stalker') e.cloaked = e.slow <= 0;
-    if (e.kind === 'flyer' || e.multiLane) e.y = e.baseY + Math.sin(s.time * 5.5 + e.x * 0.01) * 11;
     const sf = e.slow > 0 ? 0.45 : 1;
     const ps = 1 - s.perks.enemySlow;
-    e.x -= e.speed * sf * ps * dt;
     s.lastWaveStats.lanePressure[e.lane] += dt;
 
-    if (e.kind === 'warlord') {
-      e.disruptCd -= dt;
-      if (e.disruptCd <= 0) {
-        const troops = s.troops.filter(t => t.lane === e.lane);
-        if (troops.length) {
-          const tgt = troops[Math.floor(Math.random() * troops.length)];
-          tgt.cooldown += CFG.WARLORD_DISRUPT_AMT;
-          s.fx.push({ kind:'emp', x:tgt.x, y:tgt.y, life:.40, max:.40, r:18 });
-          G.log(`Warlord disrupted ${laneName(e.lane)}!`, 'danger');
-        }
-        e.disruptCd = CFG.WARLORD_DISRUPT_CD;
+    // ── OVERWATCH: stop at range, fire at troops ──────
+    if (e.kind === 'overwatch') {
+      if (!e._owStopped && e.x <= e._owRange) {
+        e._owStopped = true;
       }
-    }
+      if (e._owStopped) {
+        // Don't advance — fire at troops
+        e._owFireCd -= dt;
+        if (e._owFireCd <= 0) {
+          const targets = s.troops.filter(t => t.lane === e.lane);
+          if (targets.length) {
+            const tgt = targets[Math.floor(Math.random() * targets.length)];
+            tgt.hp -= e.damage * 0.4;
+            tgt._lastHitTime = performance.now();
+            if (tgt.hp <= 0) tgt.hp = 0;
+            s.fx.push({ kind:'hit', x:tgt.x, y:tgt.y, life:.12, max:.12, r:6 });
+            e._lastFireTime = performance.now();
+          }
+          e._owFireCd = e._owFireRate;
+        }
+      } else {
+        e.x -= e.speed * sf * ps * dt;
+      }
 
-    if (e.kind === 'phaselord') {
-      e.phaseCd -= dt;
-      if (e.phaseCd <= CFG.PHASE_LORD_WARN_TIME && e.phaseWarn === 0) {
-        e.phaseWarn = CFG.PHASE_LORD_WARN_TIME;
-        onPhaseWarn?.(true);
-        playSfx('phase');
+    // ── WARDEN: 3 scripted boss phases ────────────────
+    } else if (e.kind === 'warden') {
+      const hpFrac = e.hp / e._wardenMaxHp;
+
+      // Phase transitions
+      if (e._wardenPhase === 1 && hpFrac <= 0.6) {
+        e._wardenPhase = 2;
+        e.speed *= 0.7; // slows down
+        e.color = '#e08020';
+        G.log('⚠ Warden Phase 2 — Reinforcements!', 'danger');
+        playSfx('bossAlarm');
       }
-      if (e.phaseWarn > 0) {
-        e.phaseWarn -= dt;
-        if (e.phaseWarn <= 0) {
-          e.phaseWarn = 0;
-          onPhaseWarn?.(false);
-          const counts = [0, 1, 2].map(l => laneTroopCount(l));
-          const weakest = counts.indexOf(Math.min(...counts));
-          s.fx.push({ kind:'phase', x:e.x, y:e.y, life:.5, max:.5, r:e.r });
-          e.lane = weakest; e.y = LANE_Y[weakest]; e.baseY = LANE_Y[weakest];
-          e.x = Math.min(e.x, canvas.width * 0.58);
-          e.phaseCd = CFG.PHASE_LORD_TELEPORT_CD;
-          G.log(`Phase Lord teleported → ${laneName(weakest)} lane!`, 'danger');
+      if (e._wardenPhase === 2 && hpFrac <= 0.25) {
+        e._wardenPhase = 3;
+        e.speed *= 3.5; // charge!
+        e.damage *= 1.5;
+        e.color = '#ff2020';
+        G.log('⚠ Warden Phase 3 — CHARGING!', 'danger');
+        playSfx('alarm');
+      }
+
+      // Phase 1: slow advance + suppressive fire
+      if (e._wardenPhase === 1) {
+        e.x -= e.speed * sf * ps * dt;
+        e._wardenFireCd -= dt;
+        if (e._wardenFireCd <= 0) {
+          const targets = s.troops.filter(t => t.lane === e.lane);
+          if (targets.length) {
+            const tgt = targets[Math.floor(Math.random() * targets.length)];
+            tgt.hp -= e.damage * 0.3;
+            tgt._lastHitTime = performance.now();
+            if (tgt.hp <= 0) tgt.hp = 0;
+            s.fx.push({ kind:'hit', x:tgt.x, y:tgt.y, life:.12, max:.12, r:8 });
+            e._lastFireTime = performance.now();
+          }
+          e._wardenFireCd = e._wardenFireRate;
         }
       }
+
+      // Phase 2: spawn reinforcements once, then slow advance
+      if (e._wardenPhase === 2) {
+        e.x -= e.speed * sf * ps * dt;
+        if (!e._wardenSpawned) {
+          e._wardenSpawned = true;
+          // Spawn 2 conscripts in same lane
+          for (let ri = 0; ri < 2; ri++) {
+            const rein = {
+              x: e.x + 60 + ri * 40, maxHp: 20 + s.wave * 2, hp: 20 + s.wave * 2,
+              kind: 'conscript', lane: e.lane, y: e.y + (ri === 0 ? -15 : 15), baseY: e.y + (ri === 0 ? -15 : 15),
+              speed: e.speed * 1.5, damage: Math.floor(e.damage * 0.4), r: 14,
+              shield: 0, maxShield: 0, color: '#e06060', slow: 0,
+              _owRange:0, _owFireCd:0, _owFireRate:1.4, _owStopped:false,
+              _wardenPhase:0, _wardenFireCd:0, _wardenFireRate:1.8, _wardenSpawned:false, _wardenMaxHp:0,
+            };
+            s.enemies.push(rein);
+          }
+        }
+      }
+
+      // Phase 3: direct charge (just fast movement, handled by speed boost above)
+      if (e._wardenPhase === 3) {
+        e.x -= e.speed * sf * ps * dt;
+      }
+
+    // ── ALL OTHERS: standard advance ──────────────────
+    } else {
+      e.x -= e.speed * sf * ps * dt;
     }
 
     // Breach
@@ -889,7 +977,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const reward = Math.floor(base * s.global.income * (1 + s.mods.incomeMult) * (1 + s.prestige * CFG.PRESTIGE_INCOME_BONUS) * incMult + s.mods.killBonus);
       s.credits += reward; s.lastWaveStats.credits += reward; s.killsTotal++; s.creditsEarned += reward;
       GAME_STATS.credits_earned += reward;
-      const isBoss = ['warlord','siege','phaselord'].includes(e.kind);
+      const isBoss = e.kind === 'warden';
       if (isBoss) { s.bossKills++; GAME_STATS.bosses_killed_run++; G.log(`${cap(e.kind)} destroyed! +${reward} cr`, 'good'); }
       if (s.perks.killChain && s.abilities.orbitalCd > 0) s.abilities.orbitalCd = Math.max(0, s.abilities.orbitalCd - 0.4);
       if (e._elite) s.fx.push({ kind:'boom', x:e.x, y:e.y, life:.45, max:.45, r:e.r+18 });
