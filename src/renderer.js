@@ -51,6 +51,27 @@ Object.entries(ENEMY_SPRITE_MAP).forEach(([id, src]) => {
   ENEMY_SPRITES[id] = img;
 });
 
+// ── Battlefield background preloader (4 chapter tiers) ────
+const BG_TIERS = [
+  { wave: 1,   src: 'assets/ui/battlefield_ch1.jpg' },
+  { wave: 51,  src: 'assets/ui/battlefield_ch2.jpg' },
+  { wave: 201, src: 'assets/ui/battlefield_ch3.jpg' },
+  { wave: 501, src: 'assets/ui/battlefield_ch4.jpg' },
+];
+const BG_IMAGES = [];
+BG_TIERS.forEach(tier => {
+  const img = new Image();
+  img.src = tier.src;
+  BG_IMAGES.push(img);
+});
+function _getBgIndex(wave) {
+  let idx = 0;
+  for (let i = BG_TIERS.length - 1; i >= 0; i--) {
+    if (wave >= BG_TIERS[i].wave) { idx = i; break; }
+  }
+  return idx;
+}
+
 function $id(id) {
   const el = document.getElementById(id);
   if (el) return el;
@@ -83,10 +104,26 @@ function openSheet(sheetId, backdropId) {
   requestAnimationFrame(() => s.classList.add('open'));
 }
 function closeSheet(sheetId, backdropId) {
-  const s = $id(sheetId), b = $id(backdropId);
-  s.classList.remove('open');
-  b.classList.remove('open');
-  setTimeout(() => { s.style.display = 'none'; }, 320);
+  try {
+    const s = document.getElementById(sheetId);
+    const b = document.getElementById(backdropId);
+    if (s) { s.classList.remove('open'); s.style.pointerEvents = 'none'; }
+    if (b) { b.classList.remove('open'); b.style.pointerEvents = 'none'; }
+    // Primary close after transition
+    setTimeout(() => {
+      if (s) { s.style.display = 'none'; s.style.pointerEvents = ''; }
+      if (b) { b.style.pointerEvents = ''; }
+    }, 320);
+    // Failsafe — force hide if still visible after 600ms
+    setTimeout(() => {
+      if (s && s.style.display !== 'none') { s.style.display = 'none'; s.classList.remove('open'); }
+      if (b) b.classList.remove('open');
+    }, 600);
+  } catch(e) {
+    // Nuclear failsafe — hide everything
+    try { document.getElementById(sheetId).style.display = 'none'; } catch(e2) {}
+    try { document.getElementById(backdropId).classList.remove('open'); } catch(e2) {}
+  }
 }
 // Close on backdrop tap
 $id('enlist-backdrop').addEventListener('click',   () => closeSheet('enlist-sheet',   'enlist-backdrop'));
@@ -180,11 +217,12 @@ function resizeCanvasVertical() {
 // enemies come from top (treeline), base is at bottom (fortified camp)
 function drawVertical(state) {
   if (!ctx || !canvas) return;
+  try {
   const W = canvas.width, H = canvas.height;
   const dpr = window.devicePixelRatio || 1;
   const t = state.time;
 
-  // Charcoal black base — required for crimson silhouette contrast per art spec
+  // ── Black fallback fill ──────────────────────────────────
   ctx.fillStyle = '#0a0b0c';
   ctx.fillRect(0, 0, W, H);
 
@@ -197,152 +235,21 @@ function drawVertical(state) {
 
   function mapLane(lane) { return laneX[lane]; }
 
-  // ── BATTLEFIELD SKY — dark oppressive warzone atmosphere ──────
-  const skyGrad = ctx.createLinearGradient(0, 0, 0, treeH + 20*dpr);
-  skyGrad.addColorStop(0,   '#080c0a');
-  skyGrad.addColorStop(0.4, '#0d1408');
-  skyGrad.addColorStop(1,   '#121a0c');
-  ctx.fillStyle = skyGrad;
-  ctx.fillRect(0, 0, W, treeH + 20*dpr);
-
-  // ── WARZONE GROUND — scorched, churned, layered dirt ──────────
-  const fieldH = H - baseH - treeH;
-
-  // Base ground — dark churned earth
-  const groundGrad = ctx.createLinearGradient(0, treeH, 0, H - baseH);
-  groundGrad.addColorStop(0,   '#1a1208');
-  groundGrad.addColorStop(0.2, '#221808');
-  groundGrad.addColorStop(0.5, '#1e1608');
-  groundGrad.addColorStop(0.8, '#261c0a');
-  groundGrad.addColorStop(1,   '#1a1208');
-  ctx.fillStyle = groundGrad;
-  ctx.fillRect(0, treeH, W, fieldH);
-
-  // Ground texture — fine dirt variation streaks
-  ctx.globalAlpha = 0.12;
-  for (let gx = 0; gx < W; gx += 4*dpr) {
-    const shade = Math.sin(gx * 0.04 + 0.7) * 0.5 + 0.5;
-    ctx.fillStyle = shade > 0.7 ? '#3a2a10' : shade > 0.4 ? '#2a1e08' : '#150e04';
-    ctx.fillRect(gx, treeH, 2*dpr, fieldH);
-  }
-  ctx.globalAlpha = 1;
-
-  // Scorched patches — blast marks scattered across field
-  const scorchSeeds = [0.12, 0.28, 0.45, 0.61, 0.77, 0.38, 0.55, 0.88];
-  scorchSeeds.forEach(function(seed, i) {
-    const sx  = W * seed;
-    const sy  = treeH + fieldH * (0.15 + (Math.sin(seed * 7.3) * 0.5 + 0.5) * 0.7);
-    const sr  = (12 + Math.sin(seed * 11.2) * 6) * dpr;
-    const sg  = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
-    sg.addColorStop(0,   'rgba(8,6,4,.85)');
-    sg.addColorStop(0.4, 'rgba(20,14,6,.55)');
-    sg.addColorStop(0.8, 'rgba(30,20,8,.2)');
-    sg.addColorStop(1,   'transparent');
-    ctx.fillStyle = sg;
-    ctx.beginPath(); ctx.ellipse(sx, sy, sr, sr*0.65, 0, 0, Math.PI*2); ctx.fill();
-    // Scorch ring
-    ctx.strokeStyle = 'rgba(50,30,10,.3)';
-    ctx.lineWidth = 1.2*dpr;
-    ctx.beginPath(); ctx.ellipse(sx, sy, sr*0.85, sr*0.5, 0, 0, Math.PI*2); ctx.stroke();
-  });
-
-  // Shell craters — deepen as waves progress
-  const craterCount = Math.min(Math.floor((state.wave || 1) * 0.8), 8);
-  for (let ci = 0; ci < craterCount; ci++) {
-    const cseed  = ci * 137.508 + 42;
-    const cx2    = W * (0.08 + (Math.sin(cseed * 0.31) * 0.5 + 0.5) * 0.84);
-    const cy2    = treeH + fieldH * (0.18 + (Math.sin(cseed * 0.47) * 0.5 + 0.5) * 0.68);
-    const cr     = (10 + Math.sin(cseed * 0.23) * 5) * dpr;
-    // Crater shadow
-    const cg = ctx.createRadialGradient(cx2, cy2 + cr*0.25, 0, cx2, cy2, cr);
-    cg.addColorStop(0,   'rgba(5,3,2,.9)');
-    cg.addColorStop(0.5, 'rgba(18,12,5,.55)');
-    cg.addColorStop(0.85,'rgba(30,20,8,.2)');
-    cg.addColorStop(1,   'transparent');
-    ctx.fillStyle = cg;
-    ctx.beginPath(); ctx.ellipse(cx2, cy2, cr, cr*0.6, 0, 0, Math.PI*2); ctx.fill();
-    // Rim — dirt thrown outward
-    ctx.strokeStyle = 'rgba(70,45,18,.4)';
-    ctx.lineWidth = 2.5*dpr;
-    ctx.beginPath(); ctx.ellipse(cx2, cy2 - cr*0.1, cr*0.95, cr*0.5, 0, 0, Math.PI*2); ctx.stroke();
-    // Rim highlight top edge
-    ctx.strokeStyle = 'rgba(90,60,22,.25)';
-    ctx.lineWidth = 1.2*dpr;
-    ctx.beginPath(); ctx.arc(cx2, cy2, cr*0.85, Math.PI*1.1, Math.PI*1.9); ctx.stroke();
+  // ── BATTLEFIELD BACKGROUND — chapter-driven image ──────────
+  const bgIdx = _getBgIndex(state.wave || 1);
+  const bgImg = BG_IMAGES[bgIdx];
+  if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+    // Draw background image stretched to fill canvas above base
+    ctx.drawImage(bgImg, 0, 0, W, H - baseH);
+    // Darken bottom edge for base/troop readability
+    const baseFade = ctx.createLinearGradient(0, H - baseH - 60*dpr, 0, H - baseH);
+    baseFade.addColorStop(0, 'transparent');
+    baseFade.addColorStop(1, 'rgba(5,5,5,0.7)');
+    ctx.fillStyle = baseFade;
+    ctx.fillRect(0, H - baseH - 60*dpr, W, 60*dpr);
   }
 
-  // Trench lines — horizontal fortification channels
-  const trenchY1 = treeH + fieldH * 0.4;
-  const trenchY2 = treeH + fieldH * 0.72;
-  [trenchY1, trenchY2].forEach(function(ty, ti) {
-    const tg = ctx.createLinearGradient(0, ty - 4*dpr, 0, ty + 6*dpr);
-    tg.addColorStop(0,   'rgba(8,5,2,.7)');
-    tg.addColorStop(0.5, 'rgba(4,3,1,.9)');
-    tg.addColorStop(1,   'rgba(20,14,5,.3)');
-    ctx.fillStyle = tg;
-    // Trench with slight waviness
-    ctx.beginPath();
-    ctx.moveTo(0, ty);
-    for (let tx2 = 0; tx2 <= W; tx2 += W/20) {
-      ctx.lineTo(tx2, ty + Math.sin(tx2*0.015 + ti*2.3)*3*dpr);
-    }
-    ctx.lineTo(W, ty + 8*dpr); ctx.lineTo(0, ty + 8*dpr); ctx.closePath();
-    ctx.fill();
-    // Trench top edge shadow
-    ctx.strokeStyle = 'rgba(60,40,15,.35)';
-    ctx.lineWidth = 1.5*dpr;
-    ctx.beginPath();
-    for (let tx2 = 0; tx2 <= W; tx2 += W/20) {
-      if (tx2 === 0) ctx.moveTo(tx2, ty + Math.sin(tx2*0.015 + ti*2.3)*3*dpr);
-      else ctx.lineTo(tx2, ty + Math.sin(tx2*0.015 + ti*2.3)*3*dpr);
-    }
-    ctx.stroke();
-  });
-
-  // Debris scatter — shell casings, rubble, wire fragments
-  const debrisItems = [
-    {x:0.07,y:0.28,type:'rubble'},{x:0.19,y:0.55,type:'casing'},{x:0.34,y:0.38,type:'rubble'},
-    {x:0.48,y:0.65,type:'wire'  },{x:0.62,y:0.42,type:'casing'},{x:0.74,y:0.72,type:'rubble'},
-    {x:0.85,y:0.33,type:'wire'  },{x:0.93,y:0.58,type:'casing'},{x:0.22,y:0.80,type:'rubble'},
-    {x:0.56,y:0.82,type:'casing'},{x:0.79,y:0.25,type:'wire'  },
-  ];
-  debrisItems.forEach(function(db) {
-    const dx = W * db.x, dy = treeH + fieldH * db.y;
-    if (db.type === 'rubble') {
-      ctx.fillStyle = 'rgba(55,42,28,.6)';
-      ctx.beginPath(); ctx.ellipse(dx, dy, 4*dpr, 2.5*dpr, 0.4, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = 'rgba(70,55,35,.4)';
-      ctx.beginPath(); ctx.ellipse(dx-2*dpr, dy-1*dpr, 2.5*dpr, 1.5*dpr, 0.2, 0, Math.PI*2); ctx.fill();
-    } else if (db.type === 'casing') {
-      ctx.fillStyle = 'rgba(100,80,30,.5)';
-      ctx.fillRect(dx - 0.8*dpr, dy - 3*dpr, 1.6*dpr, 5*dpr);
-    } else if (db.type === 'wire') {
-      ctx.strokeStyle = 'rgba(80,75,55,.4)';
-      ctx.lineWidth = 0.8*dpr;
-      ctx.beginPath();
-      ctx.moveTo(dx-5*dpr, dy); ctx.lineTo(dx+2*dpr, dy-2*dpr);
-      ctx.moveTo(dx, dy-1*dpr); ctx.lineTo(dx+5*dpr, dy+1*dpr);
-      ctx.stroke();
-    }
-  });
-
-  // Ground fog / smoke layers — low-lying battlefield haze
-  const fogLayers = [
-    { y: treeH + fieldH*0.15, alpha: 0.06 + 0.02*Math.sin(t*0.3), w: 1.2 },
-    { y: treeH + fieldH*0.45, alpha: 0.04 + 0.02*Math.sin(t*0.4+1), w: 1.0 },
-    { y: treeH + fieldH*0.78, alpha: 0.08 + 0.03*Math.sin(t*0.25+2), w: 1.3 },
-  ];
-  fogLayers.forEach(function(fog) {
-    const fg = ctx.createLinearGradient(0, fog.y - 10*dpr, 0, fog.y + 16*dpr);
-    fg.addColorStop(0,   'transparent');
-    fg.addColorStop(0.3, 'rgba(120,130,100,' + fog.alpha + ')');
-    fg.addColorStop(0.7, 'rgba(100,110,85,' + fog.alpha + ')');
-    fg.addColorStop(1,   'transparent');
-    ctx.fillStyle = fg;
-    ctx.fillRect(-W*0.1, fog.y - 10*dpr, W*fog.w, 26*dpr);
-  });
-
-  // ── OPEN BATTLEFIELD — selected lane dim glow near base ──────
+  // ── Selected lane glow near base ────────────────────────────
   const LANE_COLORS_RAW = ['#22d4ff', '#b060ff', '#18f06a'];
   const selLane = state.selectedLane;
   const selCx   = laneX[selLane];
@@ -352,135 +259,6 @@ function drawVertical(state) {
   ctx.fillStyle = selGlow;
   ctx.fillRect(selCx - colW * 0.45, H - baseH - 70*dpr, colW * 0.9, 70*dpr);
 
-  // ── DAMAGED TREELINE — war-ravaged forest ─────────────────────
-  const swayAmt = (state.waveInProgress && state.wave % CFG.BOSS_WAVE_EVERY === 0) ? 4.5 : 1.8;
-  const treeCount = Math.floor(W / (10*dpr));
-
-  // Dark sky behind trees — smoke-filled
-  const skyBehindTrees = ctx.createLinearGradient(0, 0, 0, treeH);
-  skyBehindTrees.addColorStop(0, '#060908');
-  skyBehindTrees.addColorStop(1, '#0e1408');
-  ctx.fillStyle = skyBehindTrees;
-  ctx.fillRect(0, 0, W, treeH);
-
-  // Distant smoke columns
-  for (let sc = 0; sc < 4; sc++) {
-    const scx = W * (0.15 + sc * 0.24);
-    const smokeAmt = 0.3 + 0.15*Math.sin(t*0.2 + sc);
-    const scg = ctx.createRadialGradient(scx, 0, 0, scx, treeH*0.5, W*0.06);
-    scg.addColorStop(0,   'rgba(40,40,35,' + smokeAmt + ')');
-    scg.addColorStop(0.6, 'rgba(25,25,20,' + smokeAmt*0.4 + ')');
-    scg.addColorStop(1,   'transparent');
-    ctx.fillStyle = scg;
-    ctx.fillRect(scx - W*0.08, 0, W*0.16, treeH);
-  }
-
-  for (let ti = 0; ti <= treeCount; ti++) {
-    const tx     = (ti / treeCount) * W;
-    const seed   = ti * 17.3;
-    const sway   = Math.sin(t * 0.7 + ti * 0.9) * swayAmt * dpr;
-    const treeType = (ti * 7 + Math.floor(Math.sin(seed)*3)) % 5;
-    const warDamaged = (ti * 3 + Math.floor(seed)) % 4 === 0; // 25% damaged/burned
-
-    if (treeType === 3 || warDamaged) {
-      // Dead/burned tree — charred trunk, broken branches
-      const th = (18 + Math.sin(seed*0.4)*8) * dpr;
-      const trunkColor = warDamaged ? '#1a0e04' : '#221408';
-      ctx.strokeStyle = trunkColor; ctx.lineWidth = (warDamaged ? 2.5 : 2)*dpr; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(tx, treeH); ctx.lineTo(tx + sway*0.4, treeH - th); ctx.stroke();
-      ctx.lineWidth = 1*dpr;
-      ctx.strokeStyle = warDamaged ? '#120a02' : '#2a1c08';
-      [0.35,0.55,0.7].forEach(function(frac) {
-        const by   = treeH - th * frac;
-        const bLen = (4 + Math.sin(seed*frac)*3) * dpr * (warDamaged ? 0.6 : 1);
-        ctx.beginPath(); ctx.moveTo(tx+sway*0.3, by); ctx.lineTo(tx-bLen+sway*0.4, by-3*dpr); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(tx+sway*0.3, by); ctx.lineTo(tx+bLen*0.6+sway*0.4, by-2*dpr); ctx.stroke();
-      });
-      ctx.lineCap = 'butt';
-      continue;
-    }
-
-    const treeHeight = (22 + Math.sin(seed*0.23)*9 + Math.sin(seed*0.11)*5) * dpr;
-    const treeW      = (8 + Math.sin(seed*0.17)*3) * dpr;
-    const treeY      = treeH - treeHeight;
-
-    ctx.fillStyle = '#1a0e04';
-    ctx.fillRect(tx - 1.5*dpr, treeH - 10*dpr, 3*dpr, 10*dpr);
-
-    if (treeType === 4) {
-      // Sparse deciduous — dark, war-worn foliage
-      const greens = ['#142808','#183010','#10220a'];
-      ctx.fillStyle = greens[ti % 3];
-      ctx.beginPath(); ctx.arc(tx + sway*0.7, treeY + treeHeight*0.4, treeW*0.8, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#1a3010';
-      ctx.beginPath(); ctx.arc(tx - treeW*0.3 + sway*0.5, treeY+treeHeight*0.5, treeW*0.5, 0, Math.PI*2); ctx.fill();
-    } else {
-      // Dark pine — deep shadows
-      const shades = ['#142008','#182810','#101c08'];
-      const shade  = shades[treeType % 3];
-      ctx.fillStyle = shade;
-      ctx.beginPath(); ctx.moveTo(tx+sway, treeY); ctx.lineTo(tx-treeW+sway*0.5, treeH-4*dpr); ctx.lineTo(tx+treeW+sway*0.5, treeH-4*dpr); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = '#1c3012';
-      ctx.beginPath(); ctx.moveTo(tx+sway*1.1, treeY-3*dpr); ctx.lineTo(tx-treeW*0.65+sway*0.7, treeH-14*dpr); ctx.lineTo(tx+treeW*0.65+sway*0.7, treeH-14*dpr); ctx.closePath(); ctx.fill();
-    }
-  }
-
-  // Sparse dead undergrowth at treeline
-  for (let bi = 0; bi <= treeCount; bi += 3) {
-    const bx    = (bi / treeCount) * W + Math.sin(bi*2.3)*6*dpr;
-    const bsway = Math.sin(t * 0.8 + bi * 0.7) * 1.0 * dpr;
-    const bsize = (4 + Math.sin(bi*1.7)*2) * dpr;
-    ctx.fillStyle = 'rgba(14,10,4,.75)';
-    ctx.beginPath(); ctx.ellipse(bx+bsway, treeH-1*dpr, bsize, bsize*0.5, 0, 0, Math.PI*2); ctx.fill();
-  }
-
-  // Treeline smoke/mist
-  const mistGrad = ctx.createLinearGradient(0, treeH - 6*dpr, 0, treeH + 24*dpr);
-  mistGrad.addColorStop(0,   'rgba(20,24,16,.6)');
-  mistGrad.addColorStop(0.5, 'rgba(15,18,12,.3)');
-  mistGrad.addColorStop(1,   'transparent');
-  ctx.fillStyle = mistGrad;
-  ctx.fillRect(0, treeH - 6*dpr, W, 30*dpr);
-
-  // Treeline fire — Wave 100+ trees are burning
-  if (state.wave >= 100) {
-    const fireIntensity = Math.min(1, (state.wave - 100) / 50); // ramps up to W150
-    const fireCount = Math.floor(W / (22*dpr));
-    for (var fi = 0; fi < fireCount; fi++) {
-      const fx  = (fi / fireCount) * W + Math.sin(fi * 2.3) * 8*dpr;
-      const fy  = treeH - (8 + Math.sin(fi * 1.7) * 4) * dpr;
-      const fh  = (20 + Math.sin(t * 3 + fi) * 8 + fireIntensity * 10) * dpr;
-      const fw  = (6 + Math.sin(fi * 1.3) * 2) * dpr;
-      const flicker = 0.6 + 0.4 * Math.sin(t * (8 + fi * 0.5));
-      // Outer smoke
-      const smk = ctx.createRadialGradient(fx, fy - fh * 0.3, 0, fx, fy, fw * 2.5);
-      smk.addColorStop(0,   'rgba(40,35,30,' + (fireIntensity * 0.35 * flicker) + ')');
-      smk.addColorStop(1,   'transparent');
-      ctx.fillStyle = smk;
-      ctx.beginPath(); ctx.ellipse(fx, fy - fh * 0.5, fw * 2, fh * 0.8, 0, 0, Math.PI*2); ctx.fill();
-      // Fire core — orange/yellow
-      const fireG = ctx.createLinearGradient(fx, fy, fx, fy - fh);
-      fireG.addColorStop(0,   'rgba(255,60,0,' + (0.7 * flicker * fireIntensity) + ')');
-      fireG.addColorStop(0.4, 'rgba(255,140,0,' + (0.85 * flicker * fireIntensity) + ')');
-      fireG.addColorStop(0.8, 'rgba(255,220,60,' + (0.6 * flicker * fireIntensity) + ')');
-      fireG.addColorStop(1,   'transparent');
-      ctx.fillStyle = fireG;
-      ctx.beginPath();
-      ctx.moveTo(fx, fy);
-      ctx.lineTo(fx - fw, fy);
-      ctx.quadraticCurveTo(fx - fw * 0.5, fy - fh * 0.6, fx, fy - fh);
-      ctx.quadraticCurveTo(fx + fw * 0.5, fy - fh * 0.6, fx + fw, fy);
-      ctx.closePath();
-      ctx.fill();
-    }
-    // Glow across treeline base
-    const treeGlow = ctx.createLinearGradient(0, treeH - 20*dpr, 0, treeH + 10*dpr);
-    treeGlow.addColorStop(0, 'rgba(255,80,0,' + (0.12 * fireIntensity * (0.8 + 0.2*Math.sin(t*2))) + ')');
-    treeGlow.addColorStop(1, 'transparent');
-    ctx.fillStyle = treeGlow;
-    ctx.fillRect(0, treeH - 20*dpr, W, 30*dpr);
-  }
-
   // ── Persistent FX: scorch marks + shell casings ──────────────
   // Tick life values
   var gs = (_gameSpeed || 1);
@@ -488,6 +266,7 @@ function drawVertical(state) {
     _scorchMarks[pi].life -= 0.00015 * gs; // very slow fade — marks persist
     if (_scorchMarks[pi].life <= 0) { _scorchMarks.splice(pi, 1); continue; }
     var sm = _scorchMarks[pi];
+    if (!isFinite(sm.x) || !isFinite(sm.y) || !sm.r || sm.r <= 0) { _scorchMarks.splice(pi, 1); continue; }
     var sg = ctx.createRadialGradient(sm.x, sm.y, 0, sm.x, sm.y, sm.r);
     sg.addColorStop(0,   'rgba(8,6,2,' + (sm.life * 0.55) + ')');
     sg.addColorStop(0.5, 'rgba(15,10,4,' + (sm.life * 0.28) + ')');
@@ -523,6 +302,7 @@ function drawVertical(state) {
     _muzzleGlows[mi].life -= 0.08 * gs;
     if (_muzzleGlows[mi].life <= 0) { _muzzleGlows.splice(mi, 1); continue; }
     var mg2 = _muzzleGlows[mi];
+    if (!isFinite(mg2.x) || !isFinite(mg2.y) || !mg2.r || mg2.r <= 0) { _muzzleGlows.splice(mi, 1); continue; }
     var mgg = ctx.createRadialGradient(mg2.x, mg2.y, 0, mg2.x, mg2.y, mg2.r);
     mgg.addColorStop(0,   'rgba(255,200,80,' + (mg2.life * 0.18) + ')');
     mgg.addColorStop(0.5, 'rgba(255,140,40,' + (mg2.life * 0.08) + ')');
@@ -537,6 +317,7 @@ function drawVertical(state) {
     // Very slow fade — stay for many waves
     dd.life -= 0.00008 * gs;
     if (dd.life <= 0) { _deathDecals.splice(di, 1); di--; continue; }
+    if (!isFinite(dd.x) || !isFinite(dd.y) || !dd.r || dd.r <= 0) { _deathDecals.splice(di, 1); di--; continue; }
     var dg = ctx.createRadialGradient(dd.x, dd.y, 0, dd.x, dd.y, dd.r * dpr);
     if (dd.kind === 'oil') {
       dg.addColorStop(0,   'rgba(30,20,10,' + (dd.life * 0.65) + ')');
@@ -1338,17 +1119,19 @@ function drawVertical(state) {
     const ey = treeH + ((ORIG_W - e.x) / ORIG_W) * (H - baseH - treeH);
 
     // Ground shadow beneath each unit
-    if (spawnAlpha > 0.3) {
-      const er = Math.max(e.r * dpr * 0.75, 8*dpr);
+    if (spawnAlpha > 0.3 && isFinite(ex) && isFinite(ey)) {
+      const er = Math.max((e.r || 14) * dpr * 0.75, 8*dpr);
       const shadowW = er * (e.kind === 'juggernaut' || e.kind === 'warden' ? 2.2 : 1.6);
       const shadowH = er * 0.3;
       const shadowY = ey + er * 0.9;
+      if (isFinite(shadowW) && shadowW > 0) {
       const sg = ctx.createRadialGradient(ex, shadowY, 0, ex, shadowY, shadowW);
       sg.addColorStop(0,   'rgba(0,0,0,' + (0.35 * spawnAlpha) + ')');
       sg.addColorStop(0.6, 'rgba(0,0,0,' + (0.15 * spawnAlpha) + ')');
       sg.addColorStop(1,   'transparent');
       ctx.fillStyle = sg;
       ctx.beginPath(); ctx.ellipse(ex, shadowY, shadowW, shadowH, 0, 0, Math.PI*2); ctx.fill();
+      }
     }
 
     // Dust trail for juggernauts — heavy footfall kicks up dirt
@@ -1625,27 +1408,21 @@ function drawVertical(state) {
   }
   ctx.globalAlpha = 1;
 
-  // ── Boss wave full-screen atmosphere ──────────────────────
+  // ── Boss wave edge alert ──────────────────────────────────
   if (state.waveInProgress && state.wave % CFG.BOSS_WAVE_EVERY === 0) {
-    const bossIntensity = 0.18 + 0.08 * Math.sin(t * 1.8);
-    // Deep crimson vignette
-    const bossVig = ctx.createRadialGradient(W/2, H/2, W*0.2, W/2, H/2, W*0.8);
-    bossVig.addColorStop(0,   'transparent');
-    bossVig.addColorStop(0.6, 'rgba(80,0,0,' + bossIntensity*0.5 + ')');
-    bossVig.addColorStop(1,   'rgba(120,0,0,' + bossIntensity + ')');
-    ctx.fillStyle = bossVig;
-    ctx.fillRect(0, 0, W, H);
-    // Top and bottom edge bars
-    const edgeGrad = ctx.createLinearGradient(0, 0, 0, H*0.12);
-    edgeGrad.addColorStop(0, 'rgba(180,0,0,' + bossIntensity*0.6 + ')');
+    const bossIntensity = 0.12 + 0.06 * Math.sin(t * 1.8);
+    // Top edge bar only
+    const edgeGrad = ctx.createLinearGradient(0, 0, 0, H*0.06);
+    edgeGrad.addColorStop(0, 'rgba(180,0,0,' + bossIntensity*0.5 + ')');
     edgeGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = edgeGrad;
-    ctx.fillRect(0, 0, W, H*0.12);
-    const botGrad = ctx.createLinearGradient(0, H*0.88, 0, H);
+    ctx.fillRect(0, 0, W, H*0.06);
+    // Bottom edge bar
+    const botGrad = ctx.createLinearGradient(0, H*0.94, 0, H);
     botGrad.addColorStop(0, 'transparent');
-    botGrad.addColorStop(1, 'rgba(180,0,0,' + bossIntensity*0.4 + ')');
+    botGrad.addColorStop(1, 'rgba(180,0,0,' + bossIntensity*0.3 + ')');
     ctx.fillStyle = botGrad;
-    ctx.fillRect(0, H*0.88, W, H*0.12);
+    ctx.fillRect(0, H*0.94, W, H*0.06);
     // Occasional lightning flash in sky
     if (Math.sin(t * 7.3) > 0.92) {
       ctx.globalAlpha = (Math.sin(t*7.3) - 0.92) * 8;
@@ -1665,6 +1442,9 @@ function drawVertical(state) {
     ctx.textAlign = 'center';
     ctx.fillText('PAUSED', W/2, H/2);
     ctx.shadowBlur = 0; ctx.textAlign = 'left';
+  }
+  } catch(drawErr) {
+    console.error('drawVertical error:', drawErr);
   }
 }
 
@@ -1853,7 +1633,7 @@ function _drawEnemyV(ctx, x, y, e, time, dpr) {
   const er = r * s * 0.7;
 
   // Sprite sizing per kind
-  const ENEMY_SZ = { conscript: 28, breacher: 26, juggernaut: 38, overwatch: 28, phalanx: 32, warden: 52 };
+  const ENEMY_SZ = { conscript: 28, breacher: 26, juggernaut: 34, overwatch: 28, phalanx: 32, warden: 38 };
   const sz = (ENEMY_SZ[kind] || 28) * s;
 
   ctx.save();
@@ -1910,14 +1690,14 @@ function _drawEnemyV(ctx, x, y, e, time, dpr) {
   if (kind === 'warden') {
     const phase = e._wardenPhase || 1;
     const pc = phase === 3 ? '#ff2020' : phase === 2 ? '#e08020' : '#cc3030';
-    ctx.strokeStyle = pc; ctx.lineWidth = 2 * s;
-    ctx.shadowColor = pc; ctx.shadowBlur = 10;
-    ctx.beginPath(); ctx.arc(0, 0, sz * 0.55, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = pc; ctx.lineWidth = 1.5 * s;
+    ctx.shadowColor = pc; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(0, 0, sz * 0.48, 0, Math.PI * 2); ctx.stroke();
     ctx.shadowBlur = 0;
     if (phase === 3) {
-      const cg = 0.3 + 0.3 * Math.sin(time * 10);
+      const cg = 0.2 + 0.2 * Math.sin(time * 10);
       ctx.fillStyle = 'rgba(255,0,0,' + cg + ')';
-      ctx.beginPath(); ctx.arc(0, 0, sz * 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, sz * 0.52, 0, Math.PI * 2); ctx.fill();
     }
   }
 

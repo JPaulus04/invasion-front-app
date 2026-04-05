@@ -1096,13 +1096,36 @@ function _spdScale(wave) {
 const _origUpdate = update;
 function _patchedUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   const s = G.state;
-  const prevCount  = s ? s.enemies.length : 0;
-  const prevBaseHp = s ? s.baseHp : 0;
+  if (!s) return;
+  const prevCount  = s.enemies.length;
+  const prevBaseHp = s.baseHp;
 
   // Track enemies alive before update for death detection
-  const prevEnemies = s ? s.enemies.slice() : [];
+  const prevEnemies = s.enemies.slice();
 
-  _origUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn);
+  try {
+    _origUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn);
+  } catch(e) {
+    console.error('Update error:', e);
+    // Failsafe: if update crashed, check for wave stall
+    if (s.waveInProgress && s.enemiesToSpawn <= 0 && s.enemies.length === 0) {
+      console.warn('Wave stall detected after crash — forcing wave end');
+      try { onWaveEnd?.(); } catch(e2) { console.error('onWaveEnd failsafe error:', e2); }
+    }
+    return;
+  }
+
+  // Wave stall safeguard — if wave is in progress but no enemies and nothing to spawn
+  if (s.waveInProgress && s.enemiesToSpawn <= 0 && s.enemies.length === 0) {
+    if (!s._stallCheck) { s._stallCheck = performance.now(); }
+    else if (performance.now() - s._stallCheck > 2000) {
+      console.warn('Wave stall detected — forcing wave end');
+      s._stallCheck = null;
+      try { onWaveEnd?.(); } catch(e2) { console.error('onWaveEnd stall error:', e2); }
+    }
+  } else {
+    s._stallCheck = null;
+  }
 
   // Spawn death decals for enemies that died this frame
   if (s && prevEnemies.length > s.enemies.length) {
@@ -1202,31 +1225,34 @@ function _patchedUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
     for (let i = prevCount; i < s.enemies.length; i++) {
       const e = s.enemies[i];
       if (e._scaled) continue;
-      e.hp      = Math.round(e.hp * ratio);
-      e.maxHp   = e.hp;
-      e.damage  = Math.round(e.damage * dmgR);
-      e.speed   = e.speed * spdR;
-      if (e.maxShield > 0) {
-        const ns    = Math.round(e.maxShield * ratio * 0.85);
-        e.shield    = ns;
-        e.maxShield = ns;
-      }
-      e._scaled = true;
+      try {
+        e.hp      = Math.round(e.hp * ratio) || 10;
+        e.maxHp   = e.hp;
+        e.damage  = Math.round(e.damage * dmgR) || 1;
+        e.speed   = (e.speed * spdR) || 30;
+        e.r       = e.r || 14; // ensure radius is never undefined
+        if (e.maxShield > 0) {
+          const ns    = Math.round(e.maxShield * ratio * 0.85);
+          e.shield    = ns;
+          e.maxShield = ns;
+        }
+        e._scaled = true;
 
-      // ── Elite variants — Chapter 4+ (wave 31+) ──────────
-      // Promote a fraction of enemies to elite status with
-      // special abilities and distinct visuals
-      if (w >= 31 && !e._elite) {
-        const eliteRoll = Math.random();
-        const eliteChance = Math.min(0.05 + (w - 31) * 0.004, 0.30); // caps at 30%
-
-        if (eliteRoll < eliteChance) {
-          const eliteType = _pickEliteVariant(e.kind, w);
-          if (eliteType) {
-            Object.assign(e, eliteType);
-            e._elite = true;
+        // ── Elite variants — Chapter 4+ (wave 31+) ──────────
+        if (w >= 31 && !e._elite) {
+          const eliteRoll = Math.random();
+          const eliteChance = Math.min(0.05 + (w - 31) * 0.004, 0.30);
+          if (eliteRoll < eliteChance) {
+            const eliteType = _pickEliteVariant(e.kind, w);
+            if (eliteType) {
+              Object.assign(e, eliteType);
+              e._elite = true;
+            }
           }
         }
+      } catch(scaleErr) {
+        console.warn('Enemy scale error:', scaleErr);
+        e._scaled = true; // mark as scaled to prevent retry loop
       }
     }
   }
