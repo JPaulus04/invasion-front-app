@@ -20,12 +20,24 @@ const MELODIES = [
 
 function ensureAudio() {
   if (!_ctx) {
-    _ctx = new (window.AudioContext ?? window.webkitAudioContext)();
+    try {
+      _ctx = new (window.AudioContext ?? window.webkitAudioContext)();
+    } catch(e) { console.warn('AudioContext init failed:', e); return; }
     _masterGain = _ctx.createGain();
     _masterGain.connect(_ctx.destination);
     _masterGain.gain.value = _soundEnabled ? _masterVolume : 0;
   }
-  if (_ctx.state === 'suspended') _ctx.resume().catch(() => {});
+  if (_ctx.state === 'suspended' || _ctx.state === 'interrupted') {
+    _ctx.resume().catch(() => {});
+    // iOS Capacitor workaround: play a silent buffer to truly unlock
+    try {
+      const buf = _ctx.createBuffer(1, 1, 22050);
+      const src = _ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(_masterGain || _ctx.destination);
+      src.start(0);
+    } catch(e) {}
+  }
 }
 
 // Called by UI volume slider / toggle
