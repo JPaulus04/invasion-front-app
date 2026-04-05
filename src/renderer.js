@@ -1813,14 +1813,9 @@ function _drawTroopV(ctx, x, y, t, time, dpr) {
   }
 }
 
-// ── Enemy drawing — Crimson Red palette, tiered silhouettes ───
-// TIER 1 (W1-20):  Drones (grunt), Specters (runner)
-// TIER 2 (W20-50): Bulwarks (brute/shield), Seekers (razorwing)
-// TIER 3 (W50+):   Titan (siege), Commanders (warlord/phaselord)
-// MUTATIONS: W100+ Toxic Green, W200+ Phantom Blue
-//
-// Core palette: Crimson #DC143C with 0.5px bloom glow
-const CRIMSON = '#DC143C';
+// ── Enemy drawing — 6 roles ─────────────────────────────
+// Conscript, Breacher, Juggernaut, Overwatch, Phalanx, Warden
+// Core palette: Crimson #DC143C with bloom glow
 const CRIMSON = '#DC143C';
 
 // Enemy color by kind
