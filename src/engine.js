@@ -96,7 +96,13 @@ function deployUnit(id) {
   if (s.credits < cost)
     return G.log(`Need ${cost - Math.floor(s.credits)} more cr for ${def.name}.`, 'warn');
   s.credits -= cost;
-  s.troops.push(createTroop(id, s.selectedLane));
+  const newTroop = createTroop(id, s.selectedLane);
+  // Hard cap guard — reject if lane somehow over capacity after push
+  if (laneTroopCount(s.selectedLane) >= slots) {
+    s.credits += cost; // refund
+    return G.log(`${laneName(s.selectedLane)} lane at capacity.`, 'warn');
+  }
+  s.troops.push(newTroop);
   G.log(`${def.name} → ${laneName(s.selectedLane)}. -${cost} cr`, 'good');
   playSfx('deploy');
 }
@@ -1004,7 +1010,7 @@ function saveGame() {
       lanes: s.lanes.map(l => ({ gun: l.gun, barricade: l.barricade, medbay: l.medbay, sensor: l.sensor, relay: l.relay })),
       perks: s.perks, orbitalCdFlat: s.mods.orbitalCdFlat ?? 0,
       killsTotal: s.killsTotal, bossKills: s.bossKills, creditsEarned: s.creditsEarned,
-      troops: s.troops.map(t => ({ id: t.type.id, lane: t.lane, hp: t.hp, cooldown: t.cooldown, slot: t.slot })),
+      troops: s.troops.map(t => ({ id: t.type.id, lane: t.lane, hp: t.hp, cooldown: t.cooldown, slot: t.slot, promoted: t._promoted || 0 })),
     }));
   } catch (e) { console.warn('Save failed', e); }
 }
@@ -1030,7 +1036,11 @@ function loadGame() {
     Object.assign(s.perks, d.perks ?? {});
     s._savedOrbitalFlat = d.orbitalCdFlat ?? 0;
     applyDoctrine(); applyUpgrades();
-    s.troops = (d.troops ?? []).map(t => createTroop(t.id, t.lane, t.hp, t.cooldown, t.slot));
+    s.troops = (d.troops ?? []).map(t => {
+      const trp = createTroop(t.id, t.lane, t.hp, t.cooldown, t.slot);
+      if (t.promoted) trp._promoted = t.promoted;
+      return trp;
+    });
     G.log('Save loaded.', 'system');
   } catch (e) { console.warn('Load failed', e); }
 }

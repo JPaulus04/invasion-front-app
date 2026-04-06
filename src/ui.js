@@ -777,6 +777,21 @@ function renderResearchSheet() {
 
   container.innerHTML = '';
 
+  // ── Queue slot indicator ───────────────────────────────────
+  const maxQ   = (typeof CFG !== 'undefined' && CFG.MAX_RESEARCH_QUEUE) ? CFG.MAX_RESEARCH_QUEUE : 2;
+  const usedQ  = _researchQueue.length;
+  const qSlots = document.createElement('div');
+  qSlots.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:9px 12px;border-radius:9px;border:1px solid rgba(34,212,255,.2);background:rgba(34,212,255,.05);';
+  let qDots = '';
+  for (let qi = 0; qi < maxQ; qi++) {
+    const filled = qi < usedQ;
+    qDots += '<div style="width:10px;height:10px;border-radius:50%;border:1px solid rgba(34,212,255,.5);background:' + (filled ? 'var(--cyan)' : 'transparent') + ';box-shadow:' + (filled ? '0 0 6px var(--cyan)' : 'none') + '"></div>';
+  }
+  qSlots.innerHTML = qDots +
+    '<span style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--cyan);letter-spacing:.8px;">QUEUE ' + usedQ + '/' + maxQ + '</span>' +
+    (usedQ >= maxQ ? '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--amber);margin-left:auto;">FULL</span>' : '');
+  container.appendChild(qSlots);
+
   const LANE_META = [
     { name:'Left Lane',   color:'var(--lt)', key:0 },
     { name:'Center Lane', color:'var(--lm)', key:1 },
@@ -808,7 +823,7 @@ function renderResearchSheet() {
       const cost      = laneUpgradeCost(def.id, lane);
       const ok        = s.credits >= cost;
       const inQueue   = _researchQueueStatus(def.id, true, lane);
-      const queueFull = !inQueue && _researchQueue.length >= 3;
+      const queueFull = !inQueue && _researchQueue.length >= (CFG.MAX_RESEARCH_QUEUE||2);
       const canAct    = ok && !inQueue && !queueFull;
       const btn       = document.createElement('button');
       // Visual state: in-queue = cyan, can-afford = lane color, queue-full or can't-afford = locked
@@ -834,7 +849,7 @@ function renderResearchSheet() {
       btn.addEventListener('click', function() {
         if (inQueue) return;
         if (!ok) return;
-        if (_researchQueue.length >= 3) { showToast('Max 3 research items queued'); haptic('light'); return; }
+        if (_researchQueue.length >= (CFG.MAX_RESEARCH_QUEUE||2)) { showToast('Research queue full (' + (CFG.MAX_RESEARCH_QUEUE||2) + ' slots max)'); haptic('light'); return; }
         const secs = _researchSeconds(lvl + 1);
         if (secs === 0) {
           G.state.selectedLane = lane;
@@ -876,7 +891,7 @@ function renderResearchSheet() {
     const maxLvl    = def.id === 'fortify' ? 8 : def.id === 'weapons' || def.id === 'training' ? 6 : 5;
     const isMaxed   = s.upgrades[def.id] >= maxLvl;
     const inQueue   = _researchQueueStatus(def.id, false, -1);
-    const queueFull = !inQueue && _researchQueue.length >= 3;
+    const queueFull = !inQueue && _researchQueue.length >= (CFG.MAX_RESEARCH_QUEUE||2);
     const curLvl    = s.upgrades[def.id];
     const canAct    = ok && !isMaxed && !inQueue && !queueFull;
 
@@ -932,7 +947,7 @@ function renderResearchSheet() {
     row.querySelector('[data-up]').addEventListener('click', function() {
       if (inQueue || isMaxed || prereqBlock) return;
       if (!ok) return;
-      if (_researchQueue.length >= 3) { showToast('Max 3 research items queued'); haptic('light'); return; }
+      if (_researchQueue.length >= (CFG.MAX_RESEARCH_QUEUE||2)) { showToast('Research queue full (' + (CFG.MAX_RESEARCH_QUEUE||2) + ' slots max)'); haptic('light'); return; }
       const secs = _researchSeconds(curLvl + 1);
       if (secs === 0) {
         buyUpgrade(def.id);
@@ -1126,70 +1141,137 @@ function renderStatsScreen() {
     const content = $id('statsContent');
     if (!content) return;
     content.innerHTML = '';
-    
-    const career = _loadCareerStats();
+
+    const career   = _loadCareerStats();
     const unlocked = _getUnlockedAchievements();
-    const raw = localStorage.getItem(CFG.SAVE_KEY);
-    const saved = raw ? JSON.parse(raw) : null;
-    const doctrine = saved?.selectedDoctrine || G.state?.selectedDoctrine || 'blitzkrieg';
-    
-    // Current Run Section
-    let html = '<div style="margin-bottom:24px;padding:16px;border:1px solid rgba(0,200,255,.3);border-radius:8px;background:rgba(0,200,255,.05)">';
-    html += '<div style="font-size:12px;color:#00e5ff;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">CURRENT RUN</div>';
-    html += '<div style="font-size:11px;color:#aabbcc;line-height:1.8">';
-    html += '<div>Wave Reached: <span style="color:#fff">' + (saved?.wave || 1) + '</span></div>';
-    html += '<div>Bosses Killed: <span style="color:#fff">' + GAME_STATS.bosses_killed_run + '</span></div>';
-    html += '<div>Troops Deployed: <span style="color:#fff">' + GAME_STATS.troops_deployed_run + '</span></div>';
-    html += '<div>Credits Earned: <span style="color:#fff">' + GAME_STATS.credits_earned + '</span></div>';
-    html += '<div>Damage Dealt: <span style="color:#fff">' + GAME_STATS.damage_dealt + '</span></div>';
-    html += '<div>Damage Taken: <span style="color:#fff">' + GAME_STATS.damage_taken + '</span></div>';
-    html += '</div></div>';
-    
-    // Troop Roster
-    html += '<div style="margin-bottom:24px;padding:16px;border:1px solid rgba(136,187,102,.3);border-radius:8px;background:rgba(136,187,102,.05)">';
-    html += '<div style="font-size:12px;color:#88bb66;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">TROOP ROSTER</div>';
-    html += '<div style="font-size:11px;color:#aabbcc;line-height:1.8">';
-    const troopNames = { rifle: 'Rifle Squad', heavy: 'Heavy Team', medic: 'Combat Medic', ew: 'EW Specialist', grenadier: 'Grenadier', sniper: 'Sniper Team' };
-    Object.keys(career.troops_by_type || {}).forEach(t => {
-      const count = career.troops_by_type[t] || 0;
-      html += '<div>' + troopNames[t] + ': <span style="color:#fff">' + count + '× deployed</span></div>';
+    const raw      = localStorage.getItem(CFG.SAVE_KEY);
+    const saved    = raw ? JSON.parse(raw) : null;
+
+    // ── Tab bar ──────────────────────────────────────────────
+    const tabBar = document.createElement('div');
+    tabBar.style.cssText = 'display:flex;gap:6px;margin-bottom:18px;';
+
+    const TAB_DEFS = [
+      { id:'tab-career', label:'CAREER', color:'var(--cyan)' },
+      { id:'tab-badges', label:'BADGES', color:'#ffd166'     },
+    ];
+
+    function _switchTab(id) {
+      TAB_DEFS.forEach(function(td) {
+        const btn  = document.getElementById(td.id + '-btn');
+        const pane = document.getElementById(td.id + '-pane');
+        const on   = td.id === id;
+        if (btn) {
+          btn.style.borderColor = on ? td.color : 'var(--line2)';
+          btn.style.color       = on ? td.color : 'var(--muted)';
+          btn.style.background  = on ? td.color + '18' : 'transparent';
+        }
+        if (pane) pane.style.display = on ? 'block' : 'none';
+      });
+    }
+
+    TAB_DEFS.forEach(function(td) {
+      const btn = document.createElement('button');
+      btn.id = td.id + '-btn';
+      btn.textContent = td.label;
+      btn.style.cssText = 'flex:1;padding:9px 0;border-radius:9px;border:1px solid var(--line2);background:transparent;color:var(--muted);font-family:"Rajdhani",sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;-webkit-appearance:none;transition:all .15s;';
+      btn.addEventListener('click', function() { _switchTab(td.id); });
+      tabBar.appendChild(btn);
     });
-    html += '</div></div>';
-    
-    // Career Stats
-    html += '<div style="margin-bottom:24px;padding:16px;border:1px solid rgba(0,200,255,.3);border-radius:8px;background:rgba(0,200,255,.05)">';
-    html += '<div style="font-size:12px;color:#00e5ff;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">CAREER STATS</div>';
-    html += '<div style="font-size:11px;color:#aabbcc;line-height:1.8">';
-    html += '<div>Total Runs: <span style="color:#fff">' + (career.total_runs || 0) + '</span></div>';
-    html += '<div>Total Bosses Killed: <span style="color:#fff">' + (career.total_bosses || 0) + '</span></div>';
-    html += '<div>Total Troops Deployed: <span style="color:#fff">' + (career.total_troops || 0) + '</span></div>';
-    const playHours = Math.floor((career.total_playtime_ms || 0) / 3600000);
-    const playMins = Math.floor(((career.total_playtime_ms || 0) % 3600000) / 60000);
-    html += '<div>Total Playtime: <span style="color:#fff">' + playHours + 'h ' + playMins + 'm</span></div>';
-    html += '<div>Prestige Rank: <span style="color:#fff">' + (G.meta?.prestige || 0) + '</span></div>';
-    html += '</div></div>';
-    
-    // Achievements
-    html += '<div style="margin-bottom:24px;padding:16px;border:1px solid rgba(255,170,68,.3);border-radius:8px;background:rgba(255,170,68,.05)">';
-    html += '<div style="font-size:12px;color:#ffaa44;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">ACHIEVEMENTS (' + Object.keys(unlocked).length + '/' + Object.keys(ACHIEVEMENTS).length + ')</div>';
-    html += '<div style="font-size:10px;color:#aabbcc;line-height:1.8">';
-    Object.values(ACHIEVEMENTS).forEach(ach => {
-      const isUnlocked = unlocked[ach.id];
-      html += '<div style="opacity:' + (isUnlocked ? '1' : '0.4') + '">' + (isUnlocked ? '✓' : '✗') + ' ' + ach.icon + ' ' + ach.name + '</div>';
+    content.appendChild(tabBar);
+
+    // ── CAREER PANE ──────────────────────────────────────────
+    const careerPane = document.createElement('div');
+    careerPane.id = 'tab-career-pane';
+
+    const playHours  = Math.floor((career.total_playtime_ms || 0) / 3600000);
+    const playMins   = Math.floor(((career.total_playtime_ms || 0) % 3600000) / 60000);
+    const prestige   = G.meta?.prestige || 0;
+    const docNames   = { blitz:'Blitzkrieg', fortress:'Fortress', logistics:'Logistics Corps', ew:'EW Superiority', artillery:'Artillery' };
+    const troopNames = { rifle:'Rifle Squad', heavy:'Heavy Team', medic:'Combat Medic', ew:'EW Specialist', grenadier:'Grenadier', sniper:'Sniper Team' };
+
+    function _statBlock(label, color, rows) {
+      let h  = '<div style="margin-bottom:14px;padding:13px 15px;border:1px solid ' + color + '28;border-radius:10px;background:' + color + '07">';
+      h += '<div style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:' + color + ';letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">' + label + '</div>';
+      h += '<div style="font-size:12px;color:var(--muted);line-height:2">';
+      rows.forEach(function(r) {
+        h += '<div style="display:flex;justify-content:space-between;align-items:center">';
+        h += '<span>' + r[0] + '</span>';
+        h += '<span style="color:#e8eef4;font-family:\'Share Tech Mono\',monospace;font-size:11px">' + r[1] + '</span>';
+        h += '</div>';
+      });
+      h += '</div></div>';
+      return h;
+    }
+
+    let ch = '';
+
+    // Current run
+    ch += _statBlock('Current Run', 'var(--cyan)', [
+      ['Wave',             saved?.wave || 1],
+      ['Bosses killed',    GAME_STATS.bosses_killed_run],
+      ['Troops deployed',  GAME_STATS.troops_deployed_run],
+      ['Credits earned',   GAME_STATS.credits_earned.toLocaleString()],
+      ['Damage dealt',     Math.floor(GAME_STATS.damage_dealt).toLocaleString()],
+      ['Damage taken',     Math.floor(GAME_STATS.damage_taken).toLocaleString()],
+    ]);
+
+    // Career totals
+    ch += _statBlock('Career', 'var(--cyan)', [
+      ['Prestige Rank',    prestige],
+      ['Total Runs',       career.total_runs || 0],
+      ['Best Wave',        G.meta?.bestWave || 0],
+      ['Total Bosses',     (career.total_bosses || 0).toLocaleString()],
+      ['Total Troops',     (career.total_troops || 0).toLocaleString()],
+      ['Playtime',         playHours + 'h ' + playMins + 'm'],
+    ]);
+
+    // Doctrine breakdown
+    const docRows = Object.entries(career.doctrine_runs || {}).map(function(e) {
+      return [docNames[e[0]] || e[0], e[1] + ' runs'];
     });
-    html += '</div></div>';
-    
-    // Leaderboard
-    html += '<div style="margin-bottom:24px;padding:16px;border:1px solid rgba(136,85,221,.3);border-radius:8px;background:rgba(136,85,221,.05)">';
-    html += '<div style="font-size:12px;color:#bb88dd;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">TOP PRESTIGE</div>';
-    html += '<div style="font-size:10px;color:#aabbcc;line-height:1.8">';
-    MOCK_LEADERBOARD.forEach(player => {
-      const isYou = player.prestige === (G.meta?.prestige || 0);
-      html += '<div style="color:' + (isYou ? '#ffaa44' : '#aabbcc') + '">#' + player.rank + ' ' + player.name + ' - Rank ' + player.prestige + (isYou ? ' (YOU)' : '') + '</div>';
+    if (docRows.length) ch += _statBlock('Doctrine Runs', 'var(--amber)', docRows);
+
+    // Troop usage
+    const troopRows = Object.entries(career.troops_by_type || {})
+      .filter(function(e) { return (e[1] || 0) > 0; })
+      .map(function(e) { return [troopNames[e[0]] || e[0], (e[1] || 0) + '×']; });
+    if (troopRows.length) ch += _statBlock('Troop Usage', 'var(--green)', troopRows);
+
+    careerPane.innerHTML = ch;
+    content.appendChild(careerPane);
+
+    // ── BADGES PANE ──────────────────────────────────────────
+    const badgesPane = document.createElement('div');
+    badgesPane.id    = 'tab-badges-pane';
+    badgesPane.style.display = 'none';
+
+    const unlockedCount = Object.keys(unlocked).length;
+    const totalCount    = Object.keys(ACHIEVEMENTS).length;
+
+    let bh = '<div style="text-align:center;margin-bottom:16px;font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--muted);letter-spacing:1.5px">';
+    bh += unlockedCount + ' / ' + totalCount + ' BADGES UNLOCKED</div>';
+
+    bh += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    Object.values(ACHIEVEMENTS).forEach(function(ach) {
+      const done   = !!unlocked[ach.id];
+      const col    = done ? '#ffd166' : 'rgba(180,190,200,.3)';
+      const bgCol  = done ? 'rgba(255,209,102,.08)' : 'rgba(255,255,255,.02)';
+      const alpha  = done ? '1' : '0.4';
+      bh += '<div style="padding:14px 10px;border-radius:12px;border:1px solid ' + col + ';background:' + bgCol + ';opacity:' + alpha + ';text-align:center">';
+      bh += '<div style="font-size:28px;margin-bottom:6px">' + ach.icon + '</div>';
+      bh += '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:13px;color:' + (done ? '#ffd166' : 'var(--muted)') + ';line-height:1.2;margin-bottom:5px">' + ach.name + '</div>';
+      bh += '<div style="font-family:\'Share Tech Mono\',monospace;font-size:7.5px;color:var(--muted);line-height:1.4">' + ach.desc + '</div>';
+      if (done) bh += '<div style="margin-top:8px;font-size:9px;color:#ffd166;letter-spacing:1px">★ EARNED</div>';
+      bh += '</div>';
     });
-    html += '</div></div>';
-    
-    content.innerHTML = html;
+    bh += '</div>';
+
+    badgesPane.innerHTML = bh;
+    content.appendChild(badgesPane);
+
+    _switchTab('tab-career');
+
   } catch(e) {
     console.warn('Stats screen render failed:', e.message);
   }

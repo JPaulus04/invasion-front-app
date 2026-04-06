@@ -67,6 +67,9 @@ const CFG = Object.freeze({
   // ── Swarm cap ────────────────────────────────────────
   SWARM_EXTRA_CAP:         6,      // V8: swarm adds max 6 enemies (was uncapped +8)
 
+  // ── Research ─────────────────────────────────────────
+  MAX_RESEARCH_QUEUE:      2,   // V40: 2-slot queue (unlock more via prestige later)
+
   // ── Meta ─────────────────────────────────────────────
   AUTOSAVE_INTERVAL:       8,
   SAVE_KEY:                'ifc_v8_run',

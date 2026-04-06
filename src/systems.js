@@ -13,10 +13,6 @@ function _unlockAudio() {
       _ctx.resume().catch(() => {});
     }
   } catch(e) {}
-  // Also re-unlock if context was interrupted (iOS phone call, Siri, etc.)
-  if (_ctx && _ctx.state === 'interrupted') {
-    _ctx.resume().catch(() => {});
-  }
   // Restore saved volume
   const savedVol = parseInt(localStorage.getItem('ifc_volume') || '100');
   const savedOn = localStorage.getItem('ifc_sound_enabled') !== '0';
@@ -25,13 +21,9 @@ function _unlockAudio() {
   _audioUnlocked = true;
   document.removeEventListener('touchstart', _unlockAudio);
   document.removeEventListener('mousedown', _unlockAudio);
-  document.removeEventListener('click', _unlockAudio);
-  document.removeEventListener('pointerdown', _unlockAudio);
 }
 document.addEventListener('touchstart', _unlockAudio, { passive: true });
 document.addEventListener('mousedown', _unlockAudio);
-document.addEventListener('click', _unlockAudio);
-document.addEventListener('pointerdown', _unlockAudio);
 
 
 // Boss drone disabled — uses engine-internal vars
@@ -323,6 +315,9 @@ function _startResearch(id, isLane, lane, level, name) {
   const secs = _researchSeconds(level);
   if (secs === 0) return true; // instant
   if (_researchQueue.find(function(r) { return r.id === id && r.lane === ((lane !== undefined ? lane : -1)); })) return false;
+  // V40: enforce global queue cap (CFG.MAX_RESEARCH_QUEUE slots)
+  const maxQ = (typeof CFG !== 'undefined' && CFG.MAX_RESEARCH_QUEUE) ? CFG.MAX_RESEARCH_QUEUE : 2;
+  if (_researchQueue.length >= maxQ) return false;
   _researchQueue.push({
     id, isLane, lane: (lane !== undefined ? lane : -1),
     completesAt: Date.now() + secs * 1000,
@@ -479,17 +474,21 @@ function updateWaveSky(wave) {
     if (w <= 1) {
       sky.style.background = 'transparent';
     } else if (w <= 3) {
+      // Ch1 early — very subtle dark tint, no red
       const i = (w - 1) / 2;
-      sky.style.background = 'linear-gradient(180deg,rgba(' + Math.floor(30*i) + ',' + Math.floor(10*i) + ',0,' + (.06*i).toFixed(2) + ') 0%,transparent 40%)';
+      sky.style.background = 'linear-gradient(180deg,rgba(' + Math.floor(18*i) + ',' + Math.floor(18*i) + ',' + Math.floor(14*i) + ',' + (.05*i).toFixed(2) + ') 0%,transparent 40%)';
     } else if (w <= 6) {
+      // Ch1 mid — neutral dark, slight amber
       const i = (w - 3) / 3;
-      sky.style.background = 'linear-gradient(180deg,rgba(' + Math.floor(60+20*i) + ',' + Math.floor(15-10*i) + ',0,' + (.12+.08*i).toFixed(2) + ') 0%,transparent 45%)';
+      sky.style.background = 'linear-gradient(180deg,rgba(' + Math.floor(40+10*i) + ',' + Math.floor(30+5*i) + ',' + Math.floor(10*i) + ',' + (.09+.05*i).toFixed(2) + ') 0%,transparent 45%)';
     } else if (w <= 10) {
+      // Ch2 — was warm red; now cooler steel-grey/purple dusk
       const i = (w - 6) / 4;
-      sky.style.background = 'linear-gradient(180deg,rgba(' + Math.floor(80+30*i) + ',' + Math.floor(5-5*i) + ',0,' + (.20+.12*i).toFixed(2) + ') 0%,transparent 50%)';
+      sky.style.background = 'linear-gradient(180deg,rgba(' + Math.floor(38+12*i) + ',' + Math.floor(34+8*i) + ',' + Math.floor(40+18*i) + ',' + (.13+.08*i).toFixed(2) + ') 0%,transparent 50%)';
     } else {
+      // Ch3 — was heavy red; now dark desaturated slate, red cues read clearly against it
       const i = Math.min((w - 10) / 5, 1);
-      sky.style.background = 'linear-gradient(180deg,rgba(' + Math.floor(110+30*i) + ',0,0,' + (.32+.18*i).toFixed(2) + ') 0%,rgba(80,0,0,' + (.08*i).toFixed(2) + ') 65%,transparent 100%)';
+      sky.style.background = 'linear-gradient(180deg,rgba(' + Math.floor(42+15*i) + ',' + Math.floor(36+8*i) + ',' + Math.floor(48+18*i) + ',' + (.22+.14*i).toFixed(2) + ') 0%,rgba(30,24,36,' + (.06*i).toFixed(2) + ') 65%,transparent 100%)';
     }
   } catch(e) {}
 }
