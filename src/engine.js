@@ -778,11 +778,11 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const target = s.enemies.filter(e => e.lane === idx).sort((a, b) => a.x - b.x)[0];
       if (target && lane.gunCd <= 0) {
         const dmg = (CFG.LANE_GUN_BASE_DMG + lane.gun * CFG.LANE_GUN_PER_LVL) * (1 + s.mods.laneGunPower);
-        // V42: spawn from turret screen position, not base wall
-        const tp = window._turretPos && window._turretPos[idx];
-        const spawnX = tp ? tp.gx : 180;
-        const spawnY = LANE_Y[idx];
-        s.projectiles.push({ x: spawnX, y: spawnY, target, speed: 415, damage: dmg, type: 'laneGun', color: '#80d0e8', splash: 0 });
+        // V42 fix: give lane gun projectiles a synthetic 'from' at slot 3
+        // so the renderer draws them from turret height, not base floor.
+        // origFromX = 160 + 3*48 = 304 — matches the visual turret forward position.
+        const turretFrom = { lane: idx, slot: 3 };
+        s.projectiles.push({ from: turretFrom, x: 304, y: LANE_Y[idx], target, speed: 415, damage: dmg, type: 'laneGun', color: '#80d0e8', splash: 0 });
         lane.gunCd = Math.max(CFG.LANE_GUN_CD_MIN, CFG.LANE_GUN_BASE_CD - lane.gun * 0.07) / (1 + s.mods.laneGunRate);
         playSfx('shoot');
       }
