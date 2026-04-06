@@ -29,6 +29,9 @@ $id('statsCloseBtn')?.addEventListener('click', () => {
 
 // Retreat to Base button (in pause menu)
 $id('pauseRetreatBtn')?.addEventListener('click', () => {
+  // V42: resume audio before confirm() — browser suspends AudioContext on dialog open
+  // We'll re-suspend if they confirm (going to home), or stay resumed if they cancel
+  resumeAudio();
   if (confirm('Retreat to Base? Your run progress will be saved.')) {
     _saveCareerStats();
     _checkAchievements();
@@ -43,6 +46,9 @@ $id('pauseRetreatBtn')?.addEventListener('click', () => {
     renderHomeScreen();
     $id('homeScreen').style.display = 'flex';
     updateHUD();
+  } else {
+    // Cancelled — re-suspend since we're still paused
+    suspendAudio();
   }
 });
 

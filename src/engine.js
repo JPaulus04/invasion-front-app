@@ -63,10 +63,11 @@ function upgradeCost(def) {
   const s = G.state;
   return Math.floor(def.baseCost * Math.pow(def.scale, s.upgrades[def.id]) * (1 - (s.perks.upgradeDiscount ?? 0)));
 }
-function laneUpgradeCost(id, lane) {
+function laneUpgradeCost(id) {
   const s = G.state;
   const def = LANE_UPGRADE_DEFS.find(x => x.id === id);
-  return Math.floor(def.baseCost * Math.pow(def.scale, s.lanes[lane][id]) * (1 - (s.perks.laneDiscount ?? 0)));
+  // V42: global upgrade — uses lane 0 as level ref, cost x2.2 covers all 3 lanes
+  return Math.floor(def.baseCost * 2.2 * Math.pow(def.scale, s.lanes[0][id]) * (1 - (s.perks.laneDiscount ?? 0)));
 }
 
 // ── Troop creation ────────────────────────────────────
@@ -114,18 +115,28 @@ function buyUpgrade(id) {
   if (s.credits < cost) return G.log(`Need ${cost - Math.floor(s.credits)} more cr.`, 'warn');
   s.credits -= cost; s.upgrades[id]++;
   applyUpgrades();
+  // V42: track prestige peak
+  if (!G.meta.researchPeak) G.meta.researchPeak = {};
+  const peakKey = 'global_' + id;
+  G.meta.researchPeak[peakKey] = Math.max(G.meta.researchPeak[peakKey] || 0, s.upgrades[id]);
   G.log(`${def.name} Lv${s.upgrades[id]}. -${cost} cr`, 'info');
   playSfx('upgrade');
 }
 
 function buyLaneUpgrade(id) {
   const s = G.state;
-  const lane = s.selectedLane;
-  const cost = laneUpgradeCost(id, lane);
+  const cost = laneUpgradeCost(id);
   const def = LANE_UPGRADE_DEFS.find(x => x.id === id);
   if (s.credits < cost) return G.log(`Need ${cost - Math.floor(s.credits)} more cr.`, 'warn');
-  s.credits -= cost; s.lanes[lane][id]++;
-  G.log(`${def.name} → ${laneName(lane)} Lv${s.lanes[lane][id]}. -${cost} cr`, 'info');
+  s.credits -= cost;
+  // V42: apply to all 3 lanes simultaneously
+  s.lanes.forEach(l => l[id]++);
+  const newLvl = s.lanes[0][id];
+  // Update prestige peak in meta
+  const peakKey = 'lane_' + id;
+  if (!G.meta.researchPeak) G.meta.researchPeak = {};
+  G.meta.researchPeak[peakKey] = Math.max(G.meta.researchPeak[peakKey] || 0, newLvl);
+  G.log(`${def.name} → All Lanes Lv${newLvl}. -${cost} cr`, 'info');
   playSfx('upgrade');
 }
 
@@ -767,7 +778,11 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const target = s.enemies.filter(e => e.lane === idx).sort((a, b) => a.x - b.x)[0];
       if (target && lane.gunCd <= 0) {
         const dmg = (CFG.LANE_GUN_BASE_DMG + lane.gun * CFG.LANE_GUN_PER_LVL) * (1 + s.mods.laneGunPower);
-        s.projectiles.push({ x: 124, y: LANE_Y[idx], target, speed: 415, damage: dmg, type: 'laneGun', color: '#80d0e8', splash: 0 });
+        // V42: spawn from turret screen position, not base wall
+        const tp = window._turretPos && window._turretPos[idx];
+        const spawnX = tp ? tp.gx : 180;
+        const spawnY = LANE_Y[idx];
+        s.projectiles.push({ x: spawnX, y: spawnY, target, speed: 415, damage: dmg, type: 'laneGun', color: '#80d0e8', splash: 0 });
         lane.gunCd = Math.max(CFG.LANE_GUN_CD_MIN, CFG.LANE_GUN_BASE_CD - lane.gun * 0.07) / (1 + s.mods.laneGunRate);
         playSfx('shoot');
       }

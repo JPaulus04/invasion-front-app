@@ -614,6 +614,10 @@ function drawVertical(state) {
       ctx.strokeStyle = '#88ff4466'; ctx.lineWidth = 1*dpr;
       ctx.beginPath(); ctx.arc(cx, ty, 14*dpr, 0, Math.PI*2); ctx.stroke();
       ctx.shadowBlur = 0;
+      // V42: expose turret world position so projectiles spawn from here
+      // Convert from canvas pixels back to game-world x (ORIG_W space)
+      window._turretPos = window._turretPos || [null, null, null];
+      window._turretPos[i] = { gx: ORIG_W - (cx / W) * ORIG_W * 0.12, gy: ty / dpr };
     }
 
     // Med tent — red cross tent

@@ -39,6 +39,15 @@ function setSoundEnabled(on) {
   if (_masterGain) _masterGain.gain.value = _soundEnabled ? _masterVolume : 0;
 }
 
+// V42: explicit AudioContext suspend/resume for pause menu
+// Pausing the context stops music ticks from producing sound even if tickMusic is called
+function suspendAudio() {
+  if (_ctx && _ctx.state === 'running') _ctx.suspend().catch(() => {});
+}
+function resumeAudio() {
+  if (_ctx && _ctx.state === 'suspended') _ctx.resume().catch(() => {});
+}
+
 function tone(freq, dur, type = 'sine', vol = 0.03, when = 0) {
   if (!_ctx || !_masterGain || !_soundEnabled) return;
   const o = _ctx.createOscillator();

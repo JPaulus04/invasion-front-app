@@ -336,11 +336,10 @@ function _tickResearchQueue() {
     return true;
   });
   completed.forEach(function(r) {
-    // Apply the upgrade (already paid for — just apply effect)
     if (r.isLane) {
-      G.state.lanes[r.lane][r.id]++;
+      // V42: global lane upgrades are applied at purchase time — completion is notification only
       applyUpgrades();
-      G.log(r.name + ' complete (Lane ' + r.lane + ')', 'good');
+      G.log(r.name + ' complete (All Lanes Lv' + r.level + ')', 'good');
     } else {
       G.state.upgrades[r.id]++;
       applyUpgrades();
@@ -649,22 +648,7 @@ function _onCanvasTap(evt) {
     setTimeout(() => rpl.remove(), 500);
   }
 
-  // Check if tapping a deployed troop (swap mechanic)
-  const TAP_RADIUS = 22; // CSS pixels
-  const tappedTroop = G.state.troops.find(trp => {
-    if (trp._screenX === undefined) return false;
-    const dx = tapX - trp._screenX;
-    const dy = tapY - trp._screenY;
-    return Math.hypot(dx, dy) < TAP_RADIUS;
-  });
-  if (tappedTroop) {
-    evt.preventDefault();
-    spawnRipple(tapX, tapY);
-    // Show floating kill/rank tag above the unit
-    _showUnitTag(tappedTroop, tapX, tapY);
-    openSwapSheet(tappedTroop);
-    return;
-  }
+  // V42: tap-to-swap removed — swap accessed through barracks only
 
   if (inRect(_baseHitRects.barracks)) {
     evt.preventDefault();

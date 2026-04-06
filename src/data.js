@@ -79,13 +79,17 @@ function freshMeta() {
     prestige: 0, totalRuns: 0, bestWave: 0,
     totalKills: 0, totalBosses: 0, totalCredits: 0,
     docRuns: {}, runHistory: [],
+    researchPeak: {},   // V42: tracks highest level ever reached per upgrade
   };
 }
 
 function loadMeta() {
   try {
     const raw = localStorage.getItem(CFG.META_KEY);
-    return raw ? Object.assign(freshMeta(), JSON.parse(raw)) : freshMeta();
+    if (!raw) return freshMeta();
+    const m = Object.assign(freshMeta(), JSON.parse(raw));
+    if (!m.researchPeak) m.researchPeak = {};
+    return m;
   } catch (_) { return freshMeta(); }
 }
 
