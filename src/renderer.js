@@ -1825,7 +1825,6 @@ function _drawTroopV(ctx, x, y, t, time, dpr) {
 //
 // Core palette: Crimson #DC143C with 0.5px bloom glow
 const CRIMSON = '#DC143C';
-const CRIMSON = '#DC143C';
 
 // Enemy color by kind
 function _enemyColor(e, wave) {
