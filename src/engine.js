@@ -69,9 +69,13 @@ function _applyTreeNodeEffects(s) {
 // V44: infer tree progress from existing save data (migration)
 function _inferTreeProgress(s) {
   if (!s.researchNodes) s.researchNodes = {};
-  const lanes = s.lanes || [{},{},{},];
+  const lanes = s.lanes || [{},{},{}];
   const upg   = s.upgrades || {};
-  const mark  = id => { if (!s.researchNodes[id]) s.researchNodes[id] = { completedAt: Date.now(), migrated: true }; };
+  const mark  = function(id) {
+    if (!s.researchNodes[id]) s.researchNodes[id] = { completedAt: Date.now(), migrated: true };
+  };
+
+  // Map old upgrade levels to the closest tree node equivalent
   // Command
   if ((upg.weapons  || 0) >= 1) mark('cmd_t1_weapons');
   if ((upg.training || 0) >= 1) mark('cmd_t1_training');
@@ -85,6 +89,41 @@ function _inferTreeProgress(s) {
   if ((lanes[0].medbay    || 0) >= 1) mark('eng_t2_aid');
   if ((lanes[0].sensor    || 0) >= 1) mark('eng_t3_sensor');
   if ((lanes[0].relay     || 0) >= 1) mark('eng_t4_relay');
+
+  // Backfill prerequisites — if any node at tier N is complete,
+  // all nodes in tiers 1 through N-1 of the same dept must also be complete.
+  // This keeps the tree visually and logically consistent on migrated saves.
+  _backfillTreePrereqs(s);
+}
+
+function _backfillTreePrereqs(s) {
+  if (!s.researchNodes || typeof TREE_NODES === 'undefined') return;
+
+  // Group active (non-locked) nodes by department
+  var byDept = {};
+  TREE_NODES.forEach(function(n) {
+    if (n.locked) return;
+    if (!byDept[n.dept]) byDept[n.dept] = [];
+    byDept[n.dept].push(n);
+  });
+
+  Object.keys(byDept).forEach(function(dept) {
+    var nodes = byDept[dept];
+
+    // Find highest tier that has at least one completed node
+    var maxCompletedTier = 0;
+    nodes.forEach(function(n) {
+      if (s.researchNodes[n.id] && n.tier > maxCompletedTier) maxCompletedTier = n.tier;
+    });
+    if (maxCompletedTier <= 1) return;
+
+    // Backfill all nodes in tiers strictly below the max completed tier
+    nodes.forEach(function(n) {
+      if (n.tier < maxCompletedTier && !s.researchNodes[n.id]) {
+        s.researchNodes[n.id] = { completedAt: Date.now(), migrated: true };
+      }
+    });
+  });
 }
 
 // ── Cost helpers ──────────────────────────────────────
@@ -1118,7 +1157,7 @@ function loadGame() {
     s._savedOrbitalFlat = d.orbitalCdFlat ?? 0;
     // V44: restore or infer research tree progress
     s.researchNodes = d.researchNodes || {};
-    _inferTreeProgress(s); // safe to run on both v8 and v9 — only marks missing nodes
+    _inferTreeProgress(s); // inference + backfill — safe on both v8 and v9
     applyDoctrine(); applyUpgrades();
     s.troops = (d.troops ?? []).map(t => {
       const trp = createTroop(t.id, t.lane, t.hp, t.cooldown, t.slot);
