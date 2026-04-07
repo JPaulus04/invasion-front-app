@@ -752,13 +752,13 @@ try { updateHUD(); } catch(e) { _showErr('updateHUD', e); }
 // reached the base threshold to attack troops in their lane first.
 function applyTroopCombat() {
   const s = G.state;
-  const BASE_X = 96; // original horizontal threshold
+  const BASE_X = 96; // base wall threshold
   for (const e of s.enemies) {
     if (e.hp <= 0) continue;
-    // In vertical layout enemy "x" maps to progress; near-base means x is low
-    if (e.x > BASE_X + 60) continue; // not close enough yet
+    // Engage when enemy reaches the back of the troop formation (slot 4 = x≈352, buffer to 296)
+    if (e.x > BASE_X + 200) continue;
     const laneTroops = s.troops.filter(t => t.lane === e.lane && t.hp > 0);
-    if (laneTroops.length === 0) continue; // no troops to fight — falls through to base
+    if (laneTroops.length === 0) continue; // no troops — enemy advances to base normally
 
     // Enemy engages the nearest troop (lowest slot = frontmost)
     const target = laneTroops.reduce((a, b) => a.slot < b.slot ? a : b);
@@ -806,9 +806,9 @@ function applyTroopCombat() {
       }
     }
 
-    // While troops remain, stall the enemy — stop it from reaching the base threshold
+    // While troops remain, stall enemy at the front of the formation (slot 0 = x≈160)
     if (laneTroops.some(t => t.hp > 0)) {
-      e.x = Math.max(e.x, BASE_X + 30); // hold just outside base
+      e.x = Math.max(e.x, BASE_X + 68); // hold at x=164 — slot 0 troop position
     }
   }
 }

@@ -596,7 +596,7 @@ function drawVertical(state) {
 
     // Gun turret — sprite-based, 3 visual tiers — positioned FORWARD of troop formation
     if (lane.gun > 0) {
-      const ty = H - baseH - (90 + (lane.barricade || 0) * 8) * dpr;
+      const ty = H - baseH - (50 + (lane.barricade || 0) * 8) * dpr;
       const tier = _turretTier(lane.gun);
       const sprite = TURRET_SPRITES[tier];
       const tsz = 34 * dpr;

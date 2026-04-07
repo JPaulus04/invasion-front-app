@@ -967,12 +967,12 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const target = s.enemies.filter(e => e.lane === idx).sort((a, b) => a.x - b.x)[0];
       if (target && lane.gunCd <= 0) {
         const dmg = (CFG.LANE_GUN_BASE_DMG + lane.gun * CFG.LANE_GUN_PER_LVL) * (1 + s.mods.laneGunPower);
-        // V44: slot computed from actual turret Y = H - baseH - (90 + barricade*8)
-        // fromY_scr = H - baseH - (20 + slot*24) → slot = (70 + barricade*8) / 24
+        // V50: turret now at H - baseH - (50 + barricade*8)*dpr
+        // fromY_scr = H - baseH - (20 + slot*24)*dpr → slot = (30 + barricade*8) / 24
         const barLvl = lane.barricade || 0;
-        const turretSlot = Math.round((70 + barLvl * 8) / 24);
+        const turretSlot  = Math.round((30 + barLvl * 8) / 24);
         const turretFromX = 160 + turretSlot * 48;
-        const turretFrom = { lane: idx, slot: turretSlot };
+        const turretFrom  = { lane: idx, slot: turretSlot };
         s.projectiles.push({ from: turretFrom, x: turretFromX, y: LANE_Y[idx], target, speed: 415, damage: dmg, type: 'laneGun', color: '#80d0e8', splash: 0 });
         lane.gunCd = Math.max(CFG.LANE_GUN_CD_MIN, CFG.LANE_GUN_BASE_CD - lane.gun * 0.07) / (1 + s.mods.laneGunRate);
         playSfx('shoot');
@@ -1186,13 +1186,19 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
         if (hasMedic && hasHeavy) dmg *= 0.85;
       }
       s.baseHp -= dmg;
-      s.baseHp = Math.max(0, s.baseHp); // V48: hard clamp — never go negative
+      s.baseHp = Math.max(0, s.baseHp);
       s.lastWaveStats.baseDamage += dmg; e.hp = -999;
       GAME_STATS.damage_taken += dmg;
       GAME_STATS.breaches += 1;
       s.fx.push({ kind:'boom', x:96, y:e.y, life:.30, max:.30, r:e.r+8 });
       G.log(`${cap(e.kind)} breached! -${Math.floor(dmg)} HP`, 'danger');
       playSfx('impact');
+      // V49: if base just died, flag immediately so remaining enemies this frame don't stack fx
+      if (s.baseHp <= 0 && !s.gameOver) {
+        s.gameOver = true;
+        s.paused   = true;
+        break; // stop processing remaining enemies this frame
+      }
     }
   }
 
@@ -1235,7 +1241,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   s.fx.forEach(f => f.life -= dt);
   s.fx = s.fx.filter(f => f.life > 0);
 
-  if (s.baseHp <= 0) { s.baseHp = 0; onGameOver?.(); }
+  if (s.baseHp <= 0 && !s.paused) { s.baseHp = 0; onGameOver?.(); }
 }
 
 // ── Save / Load ───────────────────────────────────────
