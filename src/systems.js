@@ -786,6 +786,17 @@ function applyTroopCombat() {
         }
         // Remove dead troop
         s.troops = s.troops.filter(t => t !== target);
+        // V48: elite medic revive — 10% chance a medic in the lane revives the troop at 50% HP
+        if (s.perks.eliteMedicRevive && Math.random() < 0.10) {
+          const hasMedic = s.troops.some(function(t){ return t.lane===e.lane && t.type.id==='medic'; });
+          if (hasMedic && !s._medicReviveUsed) {
+            const revived = createTroop(target.type.id, e.lane);
+            revived.hp = Math.floor(revived.maxHp * 0.5);
+            s.troops.push(revived);
+            s._medicReviveUsed = true; // once per wave
+            G.log('⚕ Medic revived ' + target.type.name + '!', 'good');
+          }
+        }
         // Re-slot remaining troops so positions stay clean
         s.troops.filter(t => t.lane === e.lane).forEach((t, i) => {
           t.slot = i;

@@ -50,6 +50,28 @@ function applyUpgrades() {
   G.state.baseHp = Math.min(G.state.baseHp, G.state.maxBaseHp);
   // V44: re-apply completed tree node mod/perk effects after every doctrine/upgrade reset
   _applyTreeNodeEffects(G.state);
+  // V48: re-apply ops node perk effects
+  _applyOpsNodeEffects(G.state);
+}
+
+function _applyOpsNodeEffects(s) {
+  if (!s.opsNodes || typeof OPS_NODES === 'undefined') return;
+  OPS_NODES.forEach(function(node) {
+    if (!s.opsNodes[node.id]) return;
+    if (node.applyPerk) node.applyPerk(s);
+  });
+}
+
+// V48: auto-unlock Rifle Corps on fresh state or load
+function _initOpsNodes(s) {
+  if (!s.opsNodes) s.opsNodes = {};
+  if (!s.opsNodes['ops_t1_rifle']) {
+    s.opsNodes['ops_t1_rifle'] = { completedAt: Date.now(), auto: true };
+    if (typeof OPS_NODES !== 'undefined') {
+      const node = OPS_NODES.find(function(n) { return n.id === 'ops_t1_rifle'; });
+      if (node && node.applyPerk) node.applyPerk(s);
+    }
+  }
 }
 
 function _applyTreeNodeEffects(s) {
@@ -128,10 +150,14 @@ function _backfillTreePrereqs(s) {
 // ── Cost helpers ──────────────────────────────────────
 function troopCost(def) {
   const s = G.state;
+  let baseCost = def.cost;
+  // V48: heavy deploy cost reduction from Operations
+  if (def.id === 'heavy' && s.perks.heavyDeployCost)
+    baseCost = Math.max(1, Math.floor(baseCost * (1 + s.perks.heavyDeployCost)));
   const n = s.troops.filter(t => t.type.id === def.id).length;
   return Math.max(
-    Math.floor(def.cost * Math.pow(CFG.TROOP_COST_SCALE, n) * (1 + s.mods.costMult)),
-    Math.floor(def.cost * CFG.TROOP_COST_MIN)
+    Math.floor(baseCost * Math.pow(CFG.TROOP_COST_SCALE, n) * (1 + s.mods.costMult)),
+    Math.floor(baseCost * CFG.TROOP_COST_MIN)
   );
 }
 function upgradeCost(def) {
@@ -149,11 +175,15 @@ function laneUpgradeCost(id) {
 function createTroop(id, lane, hp = null, cooldown = 0, slotOverride = null) {
   const type = UNIT_DEFS.find(u => u.id === id);
   const slot = slotOverride ?? laneTroopCount(lane);
+  // V48: heavy HP bonus from Operations
+  let maxHp = type.hp;
+  if (id === 'heavy' && G.state && G.state.perks.heavyHpBonus)
+    maxHp = Math.floor(maxHp * (1 + G.state.perks.heavyHpBonus));
   return {
     type, lane, slot,
     x: 160 + Math.min(slot, 5) * 48,
     y: LANE_Y[lane] + (slot % 2 === 0 ? -20 : 20),
-    hp: hp ?? type.hp, maxHp: type.hp,
+    hp: hp ?? maxHp, maxHp,
     cooldown: cooldown || Math.random() * 0.4,
     r: 13,
   };
@@ -222,7 +252,8 @@ function startWave(onBoss, onModifier, onHint) {
   s.waveInProgress = true;
   s.lastWaveStats = { credits: 0, baseDamage: 0, lanePressure: [0, 0, 0] };
   s.runtime = freshRuntime();
-  s._killChainWaveCD = 0; // V44: reset kill chain cap accumulator
+  s._killChainWaveCD = 0;     // V44: reset kill chain cap
+  s._medicReviveUsed = false; // V48: reset medic revive once-per-wave
 
   const boss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
   const pool = s.wave < 3
@@ -495,6 +526,12 @@ function applyDamage(enemy, damage, source = 'normal') {
   // V44: armor pierce — bonus damage vs armored/shielded enemies
   if (s.perks.armorPierce && (enemy.kind === 'juggernaut' || enemy.kind === 'phalanx' || enemy._mutation === 'ironclad'))
     dmg *= (1 + s.perks.armorPierce);
+  // V48: sniper armor pen — bonus damage vs armored (sniper source only)
+  if (source === 'sniper' && s.perks.sniperArmorPen && (enemy.kind === 'juggernaut' || enemy.kind === 'phalanx' || enemy._mutation === 'ironclad'))
+    dmg *= (1 + s.perks.sniperArmorPen);
+  // V48: heavy shield break — bonus damage vs shielded
+  if (source === 'heavy' && s.perks.eliteHeavyShieldBreak && (enemy.shield > 0 || enemy.maxShield > 0))
+    dmg *= 1.20;
   // Phalanx shield absorbs damage first
   if (enemy.shield > 0) {
     const strip = s.mods.ewShieldStrip + s.perks.ewShield;
@@ -513,7 +550,9 @@ function applyDamage(enemy, damage, source = 'normal') {
 function nearestEnemy(t) {
   let best = null, bestD = Infinity;
   const s = G.state;
-  const effectiveRange = t.type.range * (1 + (s.perks.extendedRange || 0));
+  const extRange   = s.perks.extendedRange || 0;
+  const sniperBonus = (t.type.id === 'sniper' && s.perks.sniperRange) ? s.perks.sniperRange : 0;
+  const effectiveRange = t.type.range * (1 + extRange + sniperBonus);
   for (const e of s.enemies) {
     const vis = !e.cloaked || e.slow > 0;
     const reach = e.lane === t.lane;
@@ -524,7 +563,7 @@ function nearestEnemy(t) {
   return best;
 }
 
-function unitDmgMult(id) {
+function unitDmgMult(id, troop) {
   const s = G.state;
   let m = 1 + s.mods.damageMult;
   if (id === 'rifle')     m += s.perks.rifleDamage;
@@ -532,6 +571,13 @@ function unitDmgMult(id) {
   if (id === 'ew')        m += s.mods.ewDamageMult;
   if (id === 'grenadier') m += s.perks.grenRate * 0.5;
   if (id === 'sniper')    m += s.perks.rifleDamage * 0.5;
+  // V48: Blitz Formation — rifle+grenadier same lane +20% damage
+  if (s.perks.blitzFormation && troop) {
+    const lane = troop.lane;
+    const paired = (id === 'rifle' && s.troops.some(function(t){ return t.lane===lane && t.type.id==='grenadier'; })) ||
+                   (id === 'grenadier' && s.troops.some(function(t){ return t.lane===lane && t.type.id==='rifle'; }));
+    if (paired) m += 0.20;
+  }
   return m;
 }
 
@@ -558,6 +604,8 @@ function finishWave() {
 
   s.wave++;
   playSfx('victory');
+  // V48: earn XP on wave clear
+  s.xp = (s.xp || 0) + (CFG.OPS_XP_WAVE || 25);
   return { reward, deep, repair };
 }
 
@@ -805,6 +853,7 @@ function doPrestige(onComplete) {
     G.log(`Prestige floor: starting at wave ${prestigeFloor}.`, 'system');
   }
   applyDoctrine(); applyUpgrades();
+  _initOpsNodes(G.state); // V48: auto-unlock Rifle Corps after prestige
   _restoreIAPPurchases();
   G.log(`Prestige! Rank → ${G.meta.prestige}.`, 'system');
   playSfx('prestige');
@@ -845,6 +894,15 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   if (s.abilities.orbitalCd > 0) s.abilities.orbitalCd -= dt;
   if (s.perks.autoRepair && s.waveInProgress && s.baseHp < s.maxBaseHp)
     s.baseHp = Math.min(s.maxBaseHp, s.baseHp + 1 * dt);
+  // V48: passive troop regen in clear lanes
+  if (s.perks.passiveLaneRegen && s.waveInProgress) {
+    [0,1,2].forEach(function(lane) {
+      if (s.enemies.some(function(e){ return e.lane === lane; })) return;
+      s.troops.filter(function(t){ return t.lane === lane && t.hp < t.maxHp; }).forEach(function(t) {
+        t.hp = Math.min(t.maxHp, t.hp + s.perks.passiveLaneRegen * dt);
+      });
+    });
+  }
   // V44: emergency requisition — one-use credit grant at critical HP
   if (s.perks.emergencyFund && !s._emergencyFundUsed && s.baseHp > 0 && s.baseHp < s.maxBaseHp * 0.25) {
     s.credits += 400; s._emergencyFundUsed = true;
@@ -916,15 +974,22 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
     const target = nearestEnemy(t);
     if (!target || t.cooldown > 0) continue;
     const grenRate = t.type.id === 'grenadier' ? (1 + s.perks.grenRate) : 1;
-    const splash = t.type.id === 'grenadier' ? 48 * (1 + s.perks.grenadeSplash) : 0;
+    // V48: ops-specific fire rate bonuses per unit type
+    const opsFireRate = t.type.id === 'rifle'     ? (1 + (s.perks.rifleFireRate || 0))
+                      : t.type.id === 'grenadier' ? (1 + (s.perks.grenFireRate  || 0)) : 1;
+    // V48: grenadier splash includes elite airburst bonus
+    const splashBonus = s.perks.eliteGrenAirburst ? 0.15 : 0;
+    const splash = t.type.id === 'grenadier' ? 48 * (1 + s.perks.grenadeSplash + splashBonus) : 0;
     const spd = t.type.id === 'heavy' ? 295 : t.type.id === 'grenadier' ? 250 : t.type.id === 'sniper' ? 620 : 368;
-    const dmg = t.type.damage * s.global.damage * unitDmgMult(t.type.id) * (1 + s.prestige * CFG.PRESTIGE_DMG_BONUS);
+    let dmg = t.type.damage * s.global.damage * unitDmgMult(t.type.id, t) * (1 + s.prestige * CFG.PRESTIGE_DMG_BONUS);
+    // V48: sniper headshot passive — 20% chance 2x damage
+    if (t.type.id === 'sniper' && s.perks.eliteSniperHeadshot && Math.random() < 0.20) dmg *= 2;
     const shots = s.perks.rifleVolley && t.type.id === 'rifle' ? 2 : 1;
     for (let i = 0; i < shots; i++)
       s.projectiles.push({ from: t, x: t.x + 10, y: t.y + i * 0.8, target, speed: spd, damage: dmg / shots, type: t.type.id, color: t.type.color, splash });
     s.fx.push({ kind:'muzzle', x:t.x+12, y:t.y, life:.07, max:.07, r:4 });
     t._lastFireTime = performance.now();
-    t.cooldown = t.type.fireRate / (s.global.fireRate * (1 + s.mods.fireRateMult) * relay * grenRate * blitzBoost);
+    t.cooldown = t.type.fireRate / (s.global.fireRate * (1 + s.mods.fireRateMult) * relay * grenRate * blitzBoost * opsFireRate);
     playSfx(t.type.id === 'heavy' ? 'heavy' : t.type.id === 'grenadier' ? 'grenade' : t.type.id === 'sniper' ? 'sniper' : 'shoot');
   }
 
@@ -941,11 +1006,11 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
         }
         s.fx.push({ kind:'boom', x:p.target.x, y:p.target.y, life:.24, max:.24, r:28 });
       } else {
-        applyDamage(p.target, p.damage, p.type === 'ew' ? 'ew' : 'normal');
+        applyDamage(p.target, p.damage, p.type === 'ew' ? 'ew' : p.type);
         s.fx.push({ kind:'hit', x:p.target.x, y:p.target.y, life:.14, max:.14, r:7 });
       }
       if (p.type === 'ew') {
-        const slow = 1.9 * (1 + s.mods.ewPower + s.perks.ewSlow);
+        const slow = 1.9 * (1 + s.mods.ewPower + s.perks.ewSlow) * (1 + (s.perks.ewSlowDuration || 0));
         p.target.slow = Math.max(p.target.slow, slow);
         if (p.target.cloaked) { p.target.cloaked = false; s.fx.push({ kind:'reveal', x:p.target.x, y:p.target.y, life:.4, max:.4, r:p.target.r }); }
         if (s.perks.ewChain) {
@@ -1069,7 +1134,13 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
     if (e.x <= 96) {
       const barBlock = CFG.BARRICADE_BLOCK + UNLOCKS.barricadeBonus(s.prestige);
       const block = s.lanes[e.lane].barricade * barBlock * (1 + (s.perks.barricadeBoost ?? 0)) * (s.runtime.fortressBarricadeBoost ? 1.5 : 1);
-      const dmg = Math.max(1, e.damage - block);
+      let dmg = Math.max(1, e.damage - block);
+      // V48: Fortress Formation — medic+heavy same lane reduces breach damage 15%
+      if (s.perks.fortressFormation) {
+        const hasMedic = s.troops.some(function(t){ return t.lane===e.lane && t.type.id==='medic'; });
+        const hasHeavy = s.troops.some(function(t){ return t.lane===e.lane && t.type.id==='heavy'; });
+        if (hasMedic && hasHeavy) dmg *= 0.85;
+      }
       s.baseHp -= dmg; s.lastWaveStats.baseDamage += dmg; e.hp = -999;
       GAME_STATS.damage_taken += dmg;
       GAME_STATS.breaches += 1;
@@ -1087,6 +1158,9 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const reward = Math.floor(base * s.global.income * (1 + s.mods.incomeMult) * (1 + s.prestige * CFG.PRESTIGE_INCOME_BONUS) * incMult + s.mods.killBonus);
       s.credits += reward; s.lastWaveStats.credits += reward; s.killsTotal++; s.creditsEarned += reward;
       GAME_STATS.credits_earned += reward;
+      // V48: earn XP for Operations tree
+      const xpGain = isBoss ? (CFG.OPS_XP_BOSS || 15) : (CFG.OPS_XP_KILL || 2);
+      s.xp = (s.xp || 0) + xpGain;
       const isBoss = e.kind === 'warden';
       if (isBoss) { s.bossKills++; GAME_STATS.bosses_killed_run++; G.log(`${cap(e.kind)} destroyed! +${reward} cr`, 'good'); }
       // Kill Chain — capped per wave via killChainCap
@@ -1101,6 +1175,10 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       if (isBoss && s.perks.bossOrbitalReset) {
         s.abilities.orbitalCd = 0;
         G.log('⚡ Combat Supremacy — Orbital recharged!', 'event');
+      }
+      // V48: elite rifle suppression — 15% chance +5 cr per kill
+      if (!isBoss && s.perks.eliteRifleSuppression && Math.random() < 0.15) {
+        s.credits += 5;
       }
       if (e._elite) s.fx.push({ kind:'boom', x:e.x, y:e.y, life:.45, max:.45, r:e.r+18 });
       s.fx.push({ kind:'boom', x:e.x, y:e.y, life:.28, max:.28, r:e.r+5 });
@@ -1128,6 +1206,8 @@ function saveGame() {
       killsTotal: s.killsTotal, bossKills: s.bossKills, creditsEarned: s.creditsEarned,
       troops: s.troops.map(t => ({ id: t.type.id, lane: t.lane, hp: t.hp, cooldown: t.cooldown, slot: t.slot, promoted: t._promoted || 0 })),
       researchNodes: s.researchNodes || {},
+      opsNodes: s.opsNodes || {},
+      xp: s.xp || 0,
       _emergencyFundUsed: s._emergencyFundUsed || false,
     }));
   } catch (e) { console.warn('Save failed', e); }
@@ -1157,6 +1237,10 @@ function loadGame() {
     // V44: restore or infer research tree progress
     s.researchNodes = d.researchNodes || {};
     _inferTreeProgress(s); // inference + backfill — safe on both v8 and v9
+    // V48: restore ops nodes and XP
+    s.opsNodes = d.opsNodes || {};
+    s.xp = d.xp || 0;
+    _initOpsNodes(s); // ensures Rifle Corps auto-unlocked, re-applies ops perks
     applyDoctrine(); applyUpgrades();
     s.troops = (d.troops ?? []).map(t => {
       const trp = createTroop(t.id, t.lane, t.hp, t.cooldown, t.slot);

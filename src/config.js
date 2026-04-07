@@ -67,6 +67,11 @@ const CFG = Object.freeze({
   // ── Swarm cap ────────────────────────────────────────
   SWARM_EXTRA_CAP:         6,      // V8: swarm adds max 6 enemies (was uncapped +8)
 
+  // ── Operations XP (V48) ──────────────────────────────
+  OPS_XP_KILL:             2,    // XP per enemy kill
+  OPS_XP_BOSS:            15,    // XP per boss kill
+  OPS_XP_WAVE:            25,    // XP per wave clear
+
   // ── Research Tree (V44) ──────────────────────────────
   // Real-clock timers for first-unlock only. Post-prestige = instant at full cost.
   RESEARCH_TIMERS:    Object.freeze([0, 15*60, 60*60, 3*60*60, 8*60*60, 24*60*60]),

@@ -34,6 +34,22 @@ function freshState(prestige = 0) {
       emergencyFund: false, extraQueueSlot: false,
       bossOrbitalReset: false, precisionTracking: false,
       scarcityReduce: false, killChainCap: 0,
+      // V48 Operations perks
+      rifleFireRate: 0,        // rifle-specific fire rate bonus
+      heavyHpBonus: 0,         // heavy max HP multiplier
+      heavyDeployCost: 0,      // heavy deploy cost reduction (negative = cheaper)
+      passiveLaneRegen: 0,     // HP/s passive troop regen when lane is clear
+      ewSlowDuration: 0,       // EW slow duration multiplier
+      grenFireRate: 0,         // grenadier-specific fire rate bonus
+      sniperRange: 0,          // sniper-specific range bonus
+      sniperArmorPen: 0,       // sniper bonus damage vs armored
+      blitzFormation: false,   // rifle+grenadier same lane +20% damage
+      fortressFormation: false,// medic+heavy same lane -15% breach damage
+      eliteRifleSuppression: false, // rifle kills 15% chance +5 cr
+      eliteHeavyShieldBreak: false, // heavy +20% damage vs shielded
+      eliteMedicRevive: false,      // medic 10% chance revive KO'd troop at 50% HP
+      eliteGrenAirburst: false,     // grenadier splash +15% beyond school
+      eliteSniperHeadshot: false,   // sniper 20% chance 2x damage
     },
     mods: freshMods(),
     runtime: freshRuntime(),
@@ -44,6 +60,8 @@ function freshState(prestige = 0) {
     _firstRunHintShown: false,
     _pausedBeforeMeta: false,
     researchNodes: {},          // V44: tree node completion state { nodeId: { completedAt, migrated } }
+    opsNodes: {},               // V48: Operations node completion state
+    xp: 0,                      // V48: Operations XP currency
     _emergencyFundUsed: false,  // V44: emergency requisition one-use flag
     _killChainWaveCD: 0,        // V44: kill chain cap accumulator per wave
     stars: Array.from({ length: 200 }, () => ({
@@ -512,4 +530,97 @@ const TREE_NODES = [
   { id:'ops_t5_elite',    dept:'operations', tier:5, locked:true, cost:0, timerLevel:5,
     name:'Special Operations',    effect:'All unit classes gain unique passive ability',
     desc:'Elite force designation unlocks class-specific passive abilities.' },
+];
+
+// ── Operations Nodes (V48) ─────────────────────────────
+// All purchases are instant XP spends. No timers.
+// Rifle Corps is auto-unlocked at game start (cost 0, auto: true).
+const OPS_NODES = [
+
+  // ── TIER 1 — ENLISTMENT ────────────────────────────
+  {
+    id: 'ops_t1_rifle', tier: 1, auto: true, cost: 0,
+    name: 'Rifle Corps',
+    desc: 'Infantry training baseline. Standard rifle units authorized.',
+    effects: ['+10% rifle damage', 'Fire rate +8%'],
+    applyPerk: s => { s.perks.rifleDamage += 0.10; s.perks.rifleFireRate += 0.08; },
+  },
+  {
+    id: 'ops_t1_heavy', tier: 1, auto: false, cost: 60,
+    name: 'Heavy Weapons Program',
+    desc: 'Authorize heavy weapons deployment and training protocols.',
+    effects: ['+15% Heavy Team max HP', 'Deploy cost -5%'],
+    applyPerk: s => { s.perks.heavyHpBonus += 0.15; s.perks.heavyDeployCost -= 0.05; },
+  },
+
+  // ── TIER 2 — SPECIALIZATION ────────────────────────
+  {
+    id: 'ops_t2_medic', tier: 2, auto: false, cost: 150,
+    name: 'Combat Medic Corps',
+    desc: 'Field medicine doctrine. Injured units recover between engagements.',
+    effects: ['Medic heal +35%', 'Troops passively recover 1 HP/s in clear lanes'],
+    applyPerk: s => { s.perks.medicHeal += 0.35; s.perks.passiveLaneRegen = 1.0; },
+  },
+  {
+    id: 'ops_t2_ew', tier: 2, auto: false, cost: 150,
+    name: 'EW Division',
+    desc: 'Electronic warfare authorization. Enhanced slow and disruption protocols.',
+    effects: ['EW slow strength +40%', 'EW slow duration +50%'],
+    applyPerk: s => { s.perks.ewSlow += 0.40; s.perks.ewSlowDuration += 0.50; },
+  },
+
+  // ── TIER 3 — ELITE TRAINING ────────────────────────
+  {
+    id: 'ops_t3_gren', tier: 3, auto: false, cost: 260,
+    name: 'Grenadier School',
+    desc: 'Advanced explosive ordnance training. Grenadier class unlocked.',
+    effects: ['Grenadier splash +40%', 'Fire rate +15%'],
+    applyPerk: s => { s.perks.grenadeSplash += 0.40; s.perks.grenFireRate += 0.15; },
+  },
+  {
+    id: 'ops_t3_sniper', tier: 3, auto: false, cost: 260,
+    name: 'Sniper Designation',
+    desc: 'Long-range marksman certification. Sniper class unlocked.',
+    effects: ['Sniper range +25%', '+30% damage vs armored enemies'],
+    applyPerk: s => { s.perks.sniperRange += 0.25; s.perks.sniperArmorPen += 0.30; },
+  },
+
+  // ── TIER 4 — DOCTRINE FORMATIONS ──────────────────
+  {
+    id: 'ops_t4_blitz', tier: 4, auto: false, cost: 400,
+    name: 'Blitz Formation',
+    desc: 'Rifle and Grenadier in the same lane operate as a coordinated strike team.',
+    effects: ['Rifle + Grenadier same lane: +20% damage'],
+    applyPerk: s => { s.perks.blitzFormation = true; },
+  },
+  {
+    id: 'ops_t4_fortress', tier: 4, auto: false, cost: 400,
+    name: 'Fortress Formation',
+    desc: 'Medic and Heavy in the same lane form a resilient defensive anchor.',
+    effects: ['Medic + Heavy same lane: breach damage -15%'],
+    applyPerk: s => { s.perks.fortressFormation = true; },
+  },
+
+  // ── TIER 5 — SPECIAL OPERATIONS ───────────────────
+  {
+    id: 'ops_t5_elite', tier: 5, auto: false, cost: 600,
+    name: 'Elite Force',
+    desc: 'Each unit class gains a unique passive ability tied to its combat role.',
+    effects: [
+      'Rifle: kills grant +5 cr (15% chance)',
+      'Heavy: +20% damage vs shielded enemies',
+      'Medic: 10% chance to revive a KO\'d lane troop at 50% HP',
+      'EW: slow chains to 1 nearby enemy',
+      'Grenadier: splash +15% bonus',
+      'Sniper: 20% headshot chance (2× damage)',
+    ],
+    applyPerk: s => {
+      s.perks.eliteRifleSuppression = true;
+      s.perks.eliteHeavyShieldBreak = true;
+      s.perks.eliteMedicRevive      = true;
+      s.perks.ewChain               = true;
+      s.perks.eliteGrenAirburst     = true;
+      s.perks.eliteSniperHeadshot   = true;
+    },
+  },
 ];

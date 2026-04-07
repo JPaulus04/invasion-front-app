@@ -767,14 +767,154 @@ function renderEnlistSheet() {
   });
   list.appendChild(dismissBtn);
 }
+// V48: track active tab across renders
+var _researchActiveTab = 'ops';
+
 function renderResearchSheet() {
   const s = G.state;
   const container = $id('upgrade-list-all');
   if (!container) return;
 
+  // Update header line — credits + XP
   const crEl = $id('research-credits');
-  if (crEl) crEl.textContent = Math.floor(s.credits) + ' cr available';
+  if (crEl) crEl.textContent = Math.floor(s.credits) + ' cr  ·  ' + (s.xp || 0) + ' XP';
+
   container.innerHTML = '';
+
+  // ── Tab bar: OPERATIONS | RESEARCH ───────────────────
+  const tabBar = document.createElement('div');
+  tabBar.style.cssText = 'display:flex;gap:0;margin-bottom:16px;border:1px solid var(--line);border-radius:10px;overflow:hidden;';
+
+  ['ops', 'research'].forEach(function(tab) {
+    const btn = document.createElement('button');
+    const label = tab === 'ops' ? 'OPERATIONS' : 'RESEARCH';
+    const active = _researchActiveTab === tab;
+    const color  = tab === 'ops' ? '#d4a028' : 'var(--cyan)';
+    btn.textContent = label;
+    btn.style.cssText = 'flex:1;padding:10px 0;border:none;background:' + (active ? color + '18' : 'transparent') +
+      ';color:' + (active ? color : 'var(--muted)') + ';font-family:"Rajdhani",sans-serif;font-weight:700;' +
+      'font-size:12px;letter-spacing:1px;cursor:pointer;-webkit-appearance:none;' +
+      (active ? 'border-bottom:2px solid ' + color + ';' : 'border-bottom:2px solid transparent;');
+    btn.addEventListener('click', function() {
+      _researchActiveTab = tab;
+      renderResearchSheet();
+    });
+    tabBar.appendChild(btn);
+  });
+  container.appendChild(tabBar);
+
+  if (_researchActiveTab === 'ops') {
+    _renderOpsSheet(container, s);
+  } else {
+    _renderResearchTree(container, s);
+  }
+}
+
+// ── Operations tab ────────────────────────────────────
+function _renderOpsSheet(container, s) {
+  if (!s.opsNodes) s.opsNodes = {};
+
+  const xpEl = document.createElement('div');
+  xpEl.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:9px 12px;border-radius:9px;border:1px solid rgba(212,160,40,.3);background:rgba(212,160,40,.06);';
+  xpEl.innerHTML = '<span style="font-size:14px">⭐</span>' +
+    '<span style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:15px;color:#d4a028">' + (s.xp || 0) + ' XP</span>' +
+    '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);margin-left:4px">earned from kills + wave clears</span>';
+  container.appendChild(xpEl);
+
+  function _opsDone(id)     { return !!(s.opsNodes && s.opsNodes[id]); }
+  function _opsTierUnlocked(tier) {
+    if (tier <= 1) return true;
+    var prev = OPS_NODES.filter(function(n){ return n.tier === tier - 1; });
+    return prev.every(function(n){ return _opsDone(n.id); });
+  }
+
+  var tiers = [1,2,3,4,5];
+  var tierNames = { 1:'Enlistment', 2:'Specialization', 3:'Elite Training', 4:'Doctrine Formations', 5:'Special Operations' };
+
+  tiers.forEach(function(tier) {
+    var nodes    = OPS_NODES.filter(function(n){ return n.tier === tier; });
+    var unlocked = _opsTierUnlocked(tier);
+    var allDone  = nodes.every(function(n){ return _opsDone(n.id); });
+
+    // Tier label
+    var lbl = document.createElement('div');
+    lbl.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;' + (tier > 1 ? 'margin-top:4px;' : '');
+    lbl.innerHTML =
+      '<div style="flex:1;height:1px;background:rgba(212,160,40,' + (unlocked?'.3':'.12') + ')"></div>' +
+      '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:' + (unlocked?'#d4a028':'var(--muted)') + ';letter-spacing:1px;white-space:nowrap">' +
+        (unlocked ? (allDone ? '✓ ' : '') : '🔒 ') + 'T' + tier + ' — ' + tierNames[tier].toUpperCase() +
+        (!unlocked ? ' · Complete T' + (tier-1) : '') +
+      '</span>' +
+      '<div style="flex:1;height:1px;background:rgba(212,160,40,' + (unlocked?'.3':'.12') + ')"></div>';
+    container.appendChild(lbl);
+
+    // Node grid
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(' + Math.min(nodes.length,2) + ',1fr);gap:8px;margin-bottom:6px;';
+
+    nodes.forEach(function(node) {
+      var done     = _opsDone(node.id);
+      var canAfford = (s.xp || 0) >= node.cost;
+      var canAct   = unlocked && !done && canAfford && !node.auto;
+
+      var border = done ? '#d4a028aa' : (canAct ? '#d4a02866' : 'rgba(255,255,255,.08)');
+      var bg     = done ? 'rgba(212,160,40,.10)' : (canAct ? 'rgba(212,160,40,.05)' : 'rgba(0,0,0,.4)');
+      var opacity = (!unlocked && !done) ? 'opacity:.35;' : '';
+
+      var nc = document.createElement('div');
+      nc.style.cssText = 'border:1px solid ' + border + ';border-radius:11px;padding:11px 10px;background:' + bg + ';' + opacity;
+
+      // State badge
+      var badge = '';
+      if (node.auto && done)  badge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:#d4a028;letter-spacing:.8px;margin-bottom:5px">✓ ACTIVE</div>';
+      else if (done)          badge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:#d4a028;letter-spacing:.8px;margin-bottom:5px">✓ COMPLETE</div>';
+      else if (!unlocked)     badge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);letter-spacing:.8px;margin-bottom:5px">🔒 LOCKED</div>';
+      else                    badge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:' + (canAfford?'#d4a028':'var(--muted)') + ';letter-spacing:.8px;margin-bottom:5px">' +
+                                        (node.cost === 0 ? 'FREE' : (canAfford?'':'-'+(node.cost-(s.xp||0))+' ') + node.cost + ' XP') + '</div>';
+
+      // Effect bullets
+      var bullets = node.effects.map(function(e) {
+        return '<div style="font-family:\'Share Tech Mono\',monospace;font-size:7.5px;color:' + (done?'#d4a028':'var(--muted)') + ';margin-top:3px;line-height:1.4">▸ ' + e + '</div>';
+      }).join('');
+
+      nc.innerHTML =
+        badge +
+        '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:12px;color:' + (done?'#d4a028':canAct?'#e8eef4':'var(--muted)') + ';line-height:1.2;margin-bottom:4px">' + node.name + '</div>' +
+        '<div style="font-family:\'Share Tech Mono\',monospace;font-size:7.5px;color:var(--muted);line-height:1.3;margin-bottom:5px">' + node.desc + '</div>' +
+        bullets +
+        (canAct ? '<button style="width:100%;margin-top:9px;padding:6px 4px;border-radius:7px;border:1px solid #d4a028;background:rgba(212,160,40,.15);color:#d4a028;font-family:\'Share Tech Mono\',monospace;font-size:9px;cursor:pointer;-webkit-appearance:none;" data-ops="' + node.id + '">RESEARCH ' + node.cost + ' XP</button>' : '');
+
+      if (canAct) {
+        nc.querySelector('[data-ops]').addEventListener('click', function() {
+          if ((s.xp||0) < node.cost) return;
+          s.xp -= node.cost;
+          if (!s.opsNodes) s.opsNodes = {};
+          s.opsNodes[node.id] = { completedAt: Date.now() };
+          if (node.applyPerk) node.applyPerk(s);
+          haptic('success');
+          showToast('✓ ' + node.name + ' unlocked');
+          renderResearchSheet();
+          updateHUD();
+        });
+      }
+
+      grid.appendChild(nc);
+    });
+
+    container.appendChild(grid);
+
+    // Connector arrow between tiers
+    if (tier < 5) {
+      var conn = document.createElement('div');
+      conn.style.cssText = 'text-align:center;font-size:12px;color:rgba(212,160,40,' + (unlocked && allDone ? '.6' : '.2') + ');margin:2px 0 6px;line-height:1;';
+      conn.textContent = '▼';
+      container.appendChild(conn);
+    }
+  });
+}
+
+// ── Research tab (existing tree) ──────────────────────
+function _renderResearchTree(container, s) {
 
   const MAX_Q  = (CFG.MAX_RESEARCH_QUEUE || 3) + (s.perks.extraQueueSlot ? 1 : 0);
   const usedQ  = _researchQueue.length;
