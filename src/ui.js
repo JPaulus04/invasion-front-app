@@ -776,218 +776,195 @@ function renderResearchSheet() {
   if (crEl) crEl.textContent = Math.floor(s.credits) + ' cr available';
   container.innerHTML = '';
 
-  const MAX_Q = 3; // V42: restored to 3
-  const usedQ = _researchQueue.length;
+  const MAX_Q  = CFG.MAX_RESEARCH_QUEUE || 3;
+  const usedQ  = _researchQueue.length;
+  const timers = CFG.RESEARCH_TIMERS || [0,900,3600,10800,28800,86400];
 
-  // ── Queue indicator ──────────────────────────────────────
-  const qSlots = document.createElement('div');
-  qSlots.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:9px 12px;border-radius:9px;border:1px solid rgba(34,212,255,.2);background:rgba(34,212,255,.05);';
-  let qDots = '';
+  // ── Queue indicator ───────────────────────────────────
+  const qRow = document.createElement('div');
+  qRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:9px 12px;border-radius:9px;border:1px solid rgba(34,212,255,.2);background:rgba(34,212,255,.05);';
+  let dots = '';
   for (let qi = 0; qi < MAX_Q; qi++) {
-    const filled = qi < usedQ;
-    qDots += '<div style="width:10px;height:10px;border-radius:50%;border:1px solid rgba(34,212,255,.5);background:' + (filled ? 'var(--cyan)' : 'transparent') + ';box-shadow:' + (filled ? '0 0 6px var(--cyan)' : 'none') + '"></div>';
+    const on = qi < usedQ;
+    dots += '<div style="width:10px;height:10px;border-radius:50%;border:1px solid rgba(34,212,255,.5);background:' + (on ? 'var(--cyan)' : 'transparent') + ';box-shadow:' + (on ? '0 0 6px var(--cyan)' : 'none') + '"></div>';
   }
-  qSlots.innerHTML = qDots +
+  qRow.innerHTML = dots +
     '<span style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--cyan);letter-spacing:.8px;">QUEUE ' + usedQ + '/' + MAX_Q + '</span>' +
     (usedQ >= MAX_Q ? '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--amber);margin-left:auto;">FULL</span>' : '');
-  container.appendChild(qSlots);
+  container.appendChild(qRow);
 
-  // Helper: get prestige peak for an upgrade
+  // ── Helpers ───────────────────────────────────────────
   function _peak(key) {
     return (G.meta && G.meta.researchPeak && G.meta.researchPeak[key]) ? G.meta.researchPeak[key] : 0;
   }
 
-  // ── Lane Upgrades (V42: global — applies to all 3 lanes at once) ──────
-  const lHead = document.createElement('div');
-  lHead.className = 'upgrade-section-head';
-  lHead.textContent = 'Lane Upgrades — All Lanes';
-  container.appendChild(lHead);
+  function _fmtTimer(secs) {
+    if (secs <= 0) return 'Instant';
+    if (secs < 60)  return secs + 's';
+    if (secs < 3600) return Math.floor(secs/60) + 'm';
+    if (secs < 86400) return Math.floor(secs/3600) + 'h';
+    return Math.floor(secs/3600) + 'h';
+  }
 
-  LANE_UPGRADE_DEFS.forEach(function(def) {
-    const curLvl    = s.lanes[0][def.id]; // all lanes are equal; use lane 0 as reference
-    const cost      = laneUpgradeCost(def.id);
+  function _makeUpgradeRow(def, curLvl, cost, inQueue, isInstant, isMaxed, onBuy) {
     const ok        = s.credits >= cost;
-    const isMaxed   = curLvl >= 5;
-    const inQueue   = _researchQueueStatus(def.id, true, -1); // lane -1 = global
     const queueFull = !inQueue && usedQ >= MAX_Q;
-    const peakKey   = 'lane_' + def.id;
-    const peak      = _peak(peakKey);
-    const isInstant = peak > 0 && curLvl < peak; // within previous peak = instant repurchase
-
-    const canAct = ok && !isMaxed && !inQueue && !queueFull;
+    const canAct    = ok && !isMaxed && !inQueue && !queueFull;
 
     const row = document.createElement('div');
     row.className = 'upgrade-row' +
-      (isMaxed ? ' upgrade-maxed' :
-       inQueue ? ' upgrade-queued' :
+      (isMaxed  ? ' upgrade-maxed'  :
+       inQueue  ? ' upgrade-queued' :
        (ok && !queueFull) ? ' upgrade-affordable' : '');
+
+    const timerSecs = timers[Math.min(curLvl + 1, timers.length - 1)];
+    const timeLabel = isInstant ? '&#x26A1;' : (timerSecs > 0 ? _fmtTimer(timerSecs) : '');
 
     let btnHTML;
     if (isMaxed)       { btnHTML = 'MAX'; }
     else if (inQueue)  { const sl = Math.max(0, Math.ceil((inQueue.completesAt - Date.now()) / 1000)); btnHTML = '&#x1F52C; ' + _fmtTime(sl); }
     else if (queueFull){ btnHTML = 'Queue full'; }
-    else if (ok)       { btnHTML = (isInstant ? '&#x26A1; ' : '') + cost + ' cr'; }
+    else if (ok)       { btnHTML = (timeLabel ? '<span style="font-size:9px;opacity:.7">' + timeLabel + '</span> ' : '') + cost + ' cr'; }
     else               { btnHTML = 'Need<br>' + (cost - Math.floor(s.credits)) + ' cr'; }
 
     row.innerHTML =
       '<div class="upgrade-info">' +
-        '<div class="upgrade-name">' + def.name + '</div>' +
-        '<div class="upgrade-desc">' + def.desc + ' <span style="opacity:.5;font-size:8px">(All Lanes)</span></div>' +
-      '</div>' +
-      '<span class="upgrade-level">Lv ' + curLvl + '</span>' +
-      '<button class="upgrade-btn ' + (canAct ? 'upgrade-btn-glow' : '') + '" ' +
-        (canAct ? '' : 'disabled') + ' data-lane-up="' + def.id + '">' + btnHTML + '</button>';
-
-    if (inQueue) {
-      const sl2 = Math.max(0, Math.ceil((inQueue.completesAt - Date.now()) / 1000));
-      const pct = Math.max(5, Math.min(95, Math.round((1 - (inQueue.completesAt - Date.now()) / inQueue.totalMs) * 100)));
-      const timerEl = document.createElement('div');
-      timerEl.className = 'upgrade-timer';
-      timerEl.innerHTML = '<div class="upgrade-timer-bar"><div class="upgrade-timer-fill" style="width:' + pct + '%"></div></div>' +
-        '<span class="upgrade-timer-label">' + _fmtTime(sl2) + '</span>';
-      row.appendChild(timerEl);
-    }
-
-    row.querySelector('[data-lane-up]').addEventListener('click', function() {
-      if (inQueue || isMaxed) return;
-      if (!ok) return;
-      if (usedQ >= MAX_Q) { showToast('Research queue full (3 slots max)'); haptic('light'); return; }
-      if (isInstant) {
-        // Within previous peak — instant, no timer
-        buyLaneUpgrade(def.id);
-        _questTick('research', 1);
-        haptic('medium');
-        renderResearchSheet(); updateHUD();
-      } else {
-        const secs = _researchSeconds(curLvl + 1);
-        if (secs === 0) {
-          buyLaneUpgrade(def.id);
-          _questTick('research', 1);
-          haptic('medium');
-          renderResearchSheet(); updateHUD();
-        } else {
-          if (s.credits < cost) return;
-          s.credits -= cost;
-          // Apply immediately to all lanes, then queue visual completion
-          s.lanes.forEach(function(l) { l[def.id]++; });
-          if (!G.meta.researchPeak) G.meta.researchPeak = {};
-          const pk = 'lane_' + def.id;
-          G.meta.researchPeak[pk] = Math.max(G.meta.researchPeak[pk] || 0, s.lanes[0][def.id]);
-          _researchQueue.push({
-            id: def.id, isLane: true, lane: -1,
-            completesAt: Date.now() + secs * 1000,
-            totalMs: secs * 1000,
-            level: curLvl + 1, name: def.name
-          });
-          _questTick('research', 1);
-          haptic('light');
-          showToast(def.name + ' (All Lanes): ' + _fmtTime(secs));
-          renderResearchSheet(); updateHUD();
-        }
-      }
-    });
-    container.appendChild(row);
-  });
-
-  // ── Global Tech ──────────────────────────────────────────
-  const gHead = document.createElement('div');
-  gHead.className = 'upgrade-section-head';
-  gHead.textContent = 'Global Tech';
-  container.appendChild(gHead);
-
-  UPGRADE_DEFS.forEach(function(def) {
-    const cost      = upgradeCost(def);
-    const ok        = s.credits >= cost;
-    const maxLvl    = def.id === 'fortify' ? 8 : def.id === 'weapons' || def.id === 'training' ? 6 : 5;
-    const isMaxed   = s.upgrades[def.id] >= maxLvl;
-    const inQueue   = _researchQueueStatus(def.id, false, -1);
-    const queueFull = !inQueue && usedQ >= MAX_Q;
-    const curLvl    = s.upgrades[def.id];
-    const peakKey   = 'global_' + def.id;
-    const peak      = _peak(peakKey);
-    const isInstant = peak > 0 && curLvl < peak;
-    const canAct    = ok && !isMaxed && !inQueue && !queueFull;
-
-    let prereqBlock = null;
-    if (def.id === 'fortify') {
-      const prereq = getFortifyPrereq(curLvl);
-      if (prereq && !prereq.check(s)) prereqBlock = prereq.label;
-    }
-
-    const row = document.createElement('div');
-    row.className = 'upgrade-row' +
-      (isMaxed   ? ' upgrade-maxed'     :
-       inQueue   ? ' upgrade-queued'    :
-       (ok && !prereqBlock) ? ' upgrade-affordable' : '');
-
-    let btnHTML;
-    if (isMaxed)        { btnHTML = 'MAX'; }
-    else if (inQueue)   { const sl = Math.max(0, Math.ceil((inQueue.completesAt - Date.now()) / 1000)); btnHTML = '&#x1F52C; ' + _fmtTime(sl); }
-    else if (queueFull) { btnHTML = 'Queue full'; }
-    else if (prereqBlock){ btnHTML = 'Locked'; }
-    else if (ok)        { btnHTML = (isInstant ? '&#x26A1; ' : '') + cost + ' cr'; }
-    else                { btnHTML = 'Need<br>' + (cost - Math.floor(s.credits)) + ' cr'; }
-
-    row.innerHTML =
-      '<div class="upgrade-info">' +
-        '<div class="upgrade-name">' + def.name + '</div>' +
+        '<div class="upgrade-name">' + def.name + (def._allLanes ? ' <span style="font-size:8px;opacity:.45">(All Lanes)</span>' : '') + '</div>' +
         '<div class="upgrade-desc">' + def.desc + '</div>' +
       '</div>' +
       '<span class="upgrade-level">Lv ' + curLvl + '</span>' +
       '<button class="upgrade-btn ' + (canAct ? 'upgrade-btn-glow' : '') + '" ' +
-        (canAct ? '' : 'disabled') +
-        ' data-up="' + def.id + '">' + btnHTML + '</button>';
-
-    if (prereqBlock) {
-      const prereqEl = document.createElement('div');
-      prereqEl.className = 'upgrade-prereq';
-      prereqEl.textContent = '\u26A0 Requires: ' + prereqBlock;
-      row.appendChild(prereqEl);
-    }
+        (canAct ? '' : 'disabled') + ' data-uid="' + def.id + (def._allLanes ? '_lane' : '') + '">' + btnHTML + '</button>';
 
     if (inQueue) {
       const sl2 = Math.max(0, Math.ceil((inQueue.completesAt - Date.now()) / 1000));
       const pct = Math.max(5, Math.min(95, Math.round((1 - (inQueue.completesAt - Date.now()) / inQueue.totalMs) * 100)));
-      const timerEl = document.createElement('div');
-      timerEl.className = 'upgrade-timer';
-      timerEl.innerHTML = '<div class="upgrade-timer-bar"><div class="upgrade-timer-fill" style="width:' + pct + '%"></div></div>' +
+      const t = document.createElement('div');
+      t.className = 'upgrade-timer';
+      t.innerHTML = '<div class="upgrade-timer-bar"><div class="upgrade-timer-fill" style="width:' + pct + '%"></div></div>' +
         '<span class="upgrade-timer-label">' + _fmtTime(sl2) + '</span>';
-      row.appendChild(timerEl);
+      row.appendChild(t);
     }
 
-    row.querySelector('[data-up]').addEventListener('click', function() {
-      if (inQueue || isMaxed || prereqBlock) return;
-      if (!ok) return;
+    row.querySelector('[data-uid]').addEventListener('click', function() {
+      if (!canAct) return;
       if (usedQ >= MAX_Q) { showToast('Research queue full (3 slots max)'); haptic('light'); return; }
-      if (isInstant) {
-        buyUpgrade(def.id);
-        _questTick('research', 1);
-        haptic('medium');
-        renderResearchSheet(); updateHUD();
-      } else {
-        const secs = _researchSeconds(curLvl + 1);
-        if (secs === 0) {
-          buyUpgrade(def.id);
-          _questTick('research', 1);
-          haptic('medium');
-          renderResearchSheet(); updateHUD();
-        } else {
-          if (s.credits < cost) return;
-          s.credits -= cost;
-          _researchQueue.push({
-            id: def.id, isLane: false, lane: -1,
-            completesAt: Date.now() + secs * 1000,
-            totalMs: secs * 1000,
-            level: curLvl + 1, name: def.name
-          });
-          _questTick('research', 1);
-          haptic('light');
-          showToast(def.name + ': ' + _fmtTime(secs));
-          renderResearchSheet(); updateHUD();
-        }
-      }
+      onBuy(isInstant, timerSecs, cost);
     });
-    container.appendChild(row);
+    return row;
+  }
+
+  // ── Department cards ──────────────────────────────────
+  RESEARCH_DEPARTMENTS.forEach(function(dept) {
+    const doc = s.selectedDoctrine;
+    const hasSynergy = dept.docSynergy.indexOf(doc) >= 0;
+
+    // Department header card
+    const dCard = document.createElement('div');
+    dCard.style.cssText =
+      'border:1px solid ' + dept.color + (dept.locked ? '33' : '55') + ';' +
+      'border-radius:14px;background:' + dept.color + (dept.locked ? '04' : '08') + ';' +
+      'padding:14px 15px;margin-bottom:10px;' +
+      (dept.locked ? 'opacity:.5;' : '');
+
+    // Dept header row
+    const dHead = document.createElement('div');
+    dHead.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:' + (dept.locked ? '0' : '12px') + ';';
+    dHead.innerHTML =
+      '<span style="font-size:22px">' + dept.icon + '</span>' +
+      '<div style="flex:1">' +
+        '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:16px;color:' + dept.color + '">' + dept.name +
+          (hasSynergy ? ' <span style="font-size:9px;color:' + dept.color + ';opacity:.7;border:1px solid ' + dept.color + '44;border-radius:4px;padding:1px 5px;vertical-align:middle">SYNERGY</span>' : '') +
+        '</div>' +
+        '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);margin-top:2px">' + dept.desc + '</div>' +
+      '</div>' +
+      (dept.locked ? '<span style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--muted)">COMING SOON</span>' : '');
+    dCard.appendChild(dHead);
+
+    if (!dept.locked) {
+      // ── Global upgrades in this dept ──────────────────
+      dept.upgrades.forEach(function(upId) {
+        const def    = UPGRADE_DEFS.find(function(u) { return u.id === upId; });
+        if (!def) return;
+        const curLvl  = s.upgrades[upId];
+        const maxLvl  = upId === 'fortify' ? 8 : (upId === 'weapons' || upId === 'training') ? 6 : 5;
+        const isMaxed = curLvl >= maxLvl;
+        const cost    = upgradeCost(def);
+        const inQueue = _researchQueueStatus(upId, false, -1);
+        const peak    = _peak('global_' + upId);
+        const isInst  = peak > 0 && curLvl < peak;
+
+        // Fortify prereq
+        if (upId === 'fortify') {
+          const prereq = getFortifyPrereq(curLvl);
+          if (prereq && !prereq.check(s)) {
+            const pr = document.createElement('div');
+            pr.className = 'upgrade-prereq';
+            pr.textContent = '\u26A0 ' + def.name + ': Requires ' + prereq.label;
+            dCard.appendChild(pr);
+            return;
+          }
+        }
+
+        const row = _makeUpgradeRow(def, curLvl, cost, inQueue, isInst, isMaxed, function(isInstant, timerSecs, cost) {
+          if (isInstant || timerSecs === 0) {
+            buyUpgrade(upId);
+            _questTick('research', 1);
+            haptic('medium');
+          } else {
+            if (s.credits < cost) return;
+            s.credits -= cost;
+            _researchQueue.push({ id: upId, isLane: false, lane: -1,
+              completesAt: Date.now() + timerSecs * 1000,
+              totalMs: timerSecs * 1000, level: curLvl + 1, name: def.name });
+            _questTick('research', 1);
+            haptic('light');
+            showToast(def.name + ' Lv' + (curLvl+1) + ': ' + _fmtTimer(timerSecs));
+          }
+          renderResearchSheet(); updateHUD();
+        });
+        dCard.appendChild(row);
+      });
+
+      // ── Lane upgrades in this dept ────────────────────
+      dept.laneUpgrades.forEach(function(laneId) {
+        const def    = LANE_UPGRADE_DEFS.find(function(u) { return u.id === laneId; });
+        if (!def) return;
+        def._allLanes = true;
+        const curLvl  = s.lanes[0][laneId];
+        const isMaxed = curLvl >= 5;
+        const cost    = laneUpgradeCost(laneId);
+        const inQueue = _researchQueueStatus(laneId, true, -1);
+        const peak    = _peak('lane_' + laneId);
+        const isInst  = peak > 0 && curLvl < peak;
+
+        const row = _makeUpgradeRow(def, curLvl, cost, inQueue, isInst, isMaxed, function(isInstant, timerSecs, cost) {
+          if (isInstant || timerSecs === 0) {
+            buyLaneUpgrade(laneId);
+            _questTick('research', 1);
+            haptic('medium');
+          } else {
+            if (s.credits < cost) return;
+            s.credits -= cost;
+            s.lanes.forEach(function(l) { l[laneId]++; });
+            if (!G.meta.researchPeak) G.meta.researchPeak = {};
+            const pk = 'lane_' + laneId;
+            G.meta.researchPeak[pk] = Math.max(G.meta.researchPeak[pk] || 0, s.lanes[0][laneId]);
+            _researchQueue.push({ id: laneId, isLane: true, lane: -1,
+              completesAt: Date.now() + timerSecs * 1000,
+              totalMs: timerSecs * 1000, level: curLvl + 1, name: def.name });
+            _questTick('research', 1);
+            haptic('light');
+            showToast(def.name + ' (All Lanes) Lv' + (curLvl+1) + ': ' + _fmtTimer(timerSecs));
+          }
+          renderResearchSheet(); updateHUD();
+        });
+        dCard.appendChild(row);
+        def._allLanes = false; // clean up
+      });
+    }
+
+    container.appendChild(dCard);
   });
 }
 

@@ -67,8 +67,11 @@ const CFG = Object.freeze({
   // ── Swarm cap ────────────────────────────────────────
   SWARM_EXTRA_CAP:         6,      // V8: swarm adds max 6 enemies (was uncapped +8)
 
-  // ── Research ─────────────────────────────────────────
-  MAX_RESEARCH_QUEUE:      2,   // V40: 2-slot queue (unlock more via prestige later)
+  // ── Research Tree (V44) ──────────────────────────────
+  // Real-clock timers for first-unlock only. Post-prestige = instant at full cost.
+  RESEARCH_TIMERS:    Object.freeze([0, 15*60, 60*60, 3*60*60, 8*60*60, 24*60*60]),
+  // ^ index = level being unlocked (Lv1=15min, Lv2=1hr, Lv3=3hr, Lv4=8hr, Lv5=24hr)
+  MAX_RESEARCH_QUEUE: 3,
 
   // ── Meta ─────────────────────────────────────────────
   AUTOSAVE_INTERVAL:       8,

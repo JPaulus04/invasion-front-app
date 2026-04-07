@@ -293,13 +293,11 @@ function renderQuestBoard() {
 // ══════════════════════════════════════════════════════════════
 
 function _researchSeconds(level) {
-  if (level <= 1) return 0;    // first purchase always instant
-  if (level === 2) return 30;
-  if (level === 3) return 60;
-  if (level === 4) return 90;
-  if (level === 5) return 120;
-  if (level === 6) return 180;
-  return Math.min(level * 30, 240); // max 4 min
+  // V44: real-clock timers from CFG. Level = tier being unlocked (1-5).
+  // CFG.RESEARCH_TIMERS[level] = seconds. Lv1=15min, Lv2=1hr, Lv3=3hr, Lv4=8hr, Lv5=24hr
+  if (level <= 0) return 0;
+  const timers = CFG.RESEARCH_TIMERS || [0, 900, 3600, 10800, 28800, 86400];
+  return timers[Math.min(level, timers.length - 1)] || 0;
 }
 
 function _fmtTime(sec) {

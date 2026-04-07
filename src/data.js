@@ -241,6 +241,53 @@ const LANE_UPGRADE_DEFS = [
   { id:'relay',     name:'Fire Relay',    baseCost:102, scale:1.65, desc:'Troops +10% fire rate per level. Best in Bot lane.' },
 ];
 
+// ── Research Departments (V44) ─────────────────────────
+// Each department groups related upgrades into a tree.
+// docSynergy: doctrines that unlock a deeper branch in this dept.
+const RESEARCH_DEPARTMENTS = [
+  {
+    id: 'logistics',
+    name: 'Logistics',
+    icon: '⚙',
+    color: '#2db858',
+    desc: 'Supply chain, income, and credit efficiency.',
+    docSynergy: ['logistics'],
+    upgrades: ['logistics'],          // global UPGRADE_DEFS ids
+    laneUpgrades: [],
+  },
+  {
+    id: 'engineering',
+    name: 'Engineering',
+    icon: '🏗',
+    color: '#d4a028',
+    desc: 'Lane infrastructure and defensive structures.',
+    docSynergy: ['fortress', 'artillery'],
+    upgrades: ['medical', 'fortify'],
+    laneUpgrades: ['gun', 'barricade', 'medbay', 'sensor', 'relay'],
+  },
+  {
+    id: 'command',
+    name: 'Command',
+    icon: '📡',
+    color: '#3ab0d5',
+    desc: 'Weapons, fire discipline, and orbital systems.',
+    docSynergy: ['blitz', 'ew'],
+    upgrades: ['weapons', 'training'],
+    laneUpgrades: [],
+  },
+  {
+    id: 'operations',
+    name: 'Operations',
+    icon: '🎖',
+    color: '#8855e8',
+    desc: 'Unit training and field doctrine. Coming soon.',
+    docSynergy: [],
+    upgrades: [],
+    laneUpgrades: [],
+    locked: true,   // V44: stub — fully implemented in V45
+  },
+];
+
 // ── Permanent Unlocks ──────────────────────────────────
 const PERMANENT_UNLOCKS = [
   { id:'u_startcr',   rank:1, name:'Veteran Stipend',    desc:'Start every run with +80 cr. Unlocked at Rank 1.' },
