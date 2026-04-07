@@ -907,26 +907,33 @@ function renderResearchSheet() {
         nc.style.cssText = 'border:1px solid ' + ncBorder + ';border-radius:10px;padding:9px 8px;background:' + ncBg + ';' +
           ((!unlocked || (node.locked && dept.locked)) ? 'opacity:.35;' : (!canAct && !isDone && !inQueue ? 'opacity:.55;' : ''));
 
+        // ── Node state: Locked / Available / Researching / Complete ──
         var statusBadge = '';
-        if (isDone)       statusBadge = '<div style="font-size:10px;color:' + deptColor + ';margin-bottom:3px">✓ Done</div>';
+        if (isDone)       statusBadge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:' + deptColor + ';letter-spacing:.8px;margin-bottom:4px">✓ COMPLETE</div>';
         else if (inQueue) {
           var sl = Math.max(0, Math.ceil((inQueue.completesAt - Date.now()) / 1000));
-          statusBadge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--cyan);margin-bottom:3px">🔬 ' + _fmtTime(sl) + '</div>';
+          statusBadge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--cyan);letter-spacing:.8px;margin-bottom:4px">🔬 RESEARCHING · ' + _fmtTime(sl) + '</div>';
+        } else if (!unlocked || node.locked) {
+          statusBadge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);letter-spacing:.8px;margin-bottom:4px">🔒 LOCKED</div>';
         }
 
+        // Button label — queue full shows cost greyed (no "Full" text)
         var btnLabel = '';
-        if (isDone)         btnLabel = '';
-        else if (!unlocked) btnLabel = '🔒';
-        else if (inQueue)   btnLabel = '...';
-        else if (queueFull) btnLabel = 'Full';
-        else if (!canAfford)btnLabel = (node.cost - Math.floor(s.credits)) + ' more';
-        else                btnLabel = (isInstant ? '⚡ ' : (timerSecs > 0 ? _fmtTimer(timerSecs) + ' · ' : '')) + node.cost + ' cr';
+        if (isDone || !unlocked || node.locked) {
+          btnLabel = ''; // no button for Complete or Locked
+        } else if (inQueue) {
+          btnLabel = ''; // Researching state shown via badge
+        } else {
+          // Available (with or without queue full / affordability)
+          btnLabel = (isInstant ? '⚡ ' : (timerSecs > 0 ? _fmtTimer(timerSecs) + ' · ' : '')) + node.cost + ' cr';
+          if (!canAfford) btnLabel = '-' + (node.cost - Math.floor(s.credits)) + ' cr';
+        }
 
         nc.innerHTML =
           statusBadge +
           '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:11px;color:' + (isDone ? deptColor : canAct ? '#e8eef4' : 'var(--muted)') + ';line-height:1.2;margin-bottom:3px">' + node.name + '</div>' +
           '<div style="font-family:\'Share Tech Mono\',monospace;font-size:7.5px;color:var(--muted);line-height:1.3;margin-bottom:' + (btnLabel ? '7' : '0') + 'px">' + node.effect + '</div>' +
-          (btnLabel && !isDone ? '<button style="width:100%;padding:5px 4px;border-radius:7px;border:1px solid ' + (canAct ? deptColor : 'rgba(255,255,255,.1)') + ';background:' + (canAct ? deptColor + '20' : 'transparent') + ';color:' + (canAct ? deptColor : 'var(--muted)') + ';font-family:\'Share Tech Mono\',monospace;font-size:8px;cursor:' + (canAct ? 'pointer' : 'default') + ';-webkit-appearance:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" ' + (canAct ? '' : 'disabled') + ' data-node="' + node.id + '">' + btnLabel + '</button>' : '');
+          (btnLabel ? '<button style="width:100%;padding:5px 4px;border-radius:7px;border:1px solid ' + (canAct ? deptColor : 'rgba(255,255,255,.1)') + ';background:' + (canAct ? deptColor + '20' : 'transparent') + ';color:' + (canAct ? deptColor : 'var(--muted)') + ';font-family:\'Share Tech Mono\',monospace;font-size:8px;cursor:' + (canAct ? 'pointer' : 'default') + ';-webkit-appearance:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" ' + (canAct ? '' : 'disabled') + ' data-node="' + node.id + '">' + btnLabel + '</button>' : '');
 
         if (canAct) {
           nc.querySelector('[data-node]').addEventListener('click', function() {

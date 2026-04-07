@@ -404,10 +404,12 @@ const TREE_NODES = [
     desc:'Expanded medical facilities significantly increase healing output.',
     type:'mod', applyMod: s => { s.mods.medicMult += 0.40; } },
 
-  { id:'eng_t3_fieldtriage', dept:'engineering', tier:3, cost:280, timerLevel:3,
-    name:'Field Triage', effect:'+30% all healing',
-    desc:'Advanced field medicine improves healing from all sources.',
-    type:'upgrade', upgradeId:'medical' },
+  { id:'eng_t3_hardened', dept:'engineering', tier:3, cost:310, timerLevel:3,
+    name:'Hardened Emplacements', effect:'Lane Turrets deal 20% more damage · +5 HP repair per wave clear',
+    desc:'Reinforced turret mounts maintain firing effectiveness and improve structural resilience.',
+    type:'mod',
+    applyMod:  s => { s.mods.laneGunPower += 0.20; },
+    applyPerk: s => { s.perks.clearRepair = (s.perks.clearRepair || 0) + 5; } },
 
   { id:'eng_t4_relay', dept:'engineering', tier:4, cost:450, timerLevel:4,
     name:'Fire Relay Network', effect:'Fire Relays unlocked — All Lanes Lv1',

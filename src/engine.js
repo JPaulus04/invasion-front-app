@@ -82,7 +82,6 @@ function _inferTreeProgress(s) {
   // Logistics
   if ((upg.logistics|| 0) >= 1) mark('log_t3_network');
   // Engineering
-  if ((upg.medical  || 0) >= 1) mark('eng_t3_fieldtriage');
   if ((upg.fortify  || 0) >= 1) mark('eng_t4_fortress');
   if ((lanes[0].barricade || 0) >= 1) mark('eng_t1_earthworks');
   if ((lanes[0].gun       || 0) >= 1) mark('eng_t1_sentry');
