@@ -29,6 +29,11 @@ function freshState(prestige = 0) {
       killChain: false, rifleVolley: false, barricadeBoost: 0,
       autoRepair: false, entryJam: false, ewChain: false,
       orbitalDouble: false, orbitalGridFire: false,
+      // V44 tree perks
+      armorPierce: 0, extendedRange: 0, salvagePct: 0,
+      emergencyFund: false, extraQueueSlot: false,
+      bossOrbitalReset: false, precisionTracking: false,
+      scarcityReduce: false, killChainCap: 0,
     },
     mods: freshMods(),
     runtime: freshRuntime(),
@@ -37,7 +42,10 @@ function freshState(prestige = 0) {
     abilities: { orbitalCd: 0 },
     _savedOrbitalFlat: 0,
     _firstRunHintShown: false,
-    _pausedBeforeMeta: false,   // V8: track pause state before meta screen
+    _pausedBeforeMeta: false,
+    researchNodes: {},          // V44: tree node completion state { nodeId: { completedAt, migrated } }
+    _emergencyFundUsed: false,  // V44: emergency requisition one-use flag
+    _killChainWaveCD: 0,        // V44: kill chain cap accumulator per wave
     stars: Array.from({ length: 200 }, () => ({
       x: Math.random() * 1600,
       y: Math.random() * 900,
@@ -170,7 +178,7 @@ const WAVE_MODIFIERS = [
   { id:'none',     name:'Standard',          icon:'—',  css:'standard',    text:'No special conditions this wave.',                           tip:'', apply:()=>{} },
   { id:'armored',  name:'Armored Push',       icon:'🛡', css:'threat',      text:'High ratio of phalanx and juggernaut enemies.',                  tip:'EW strips shields fast. Grenadiers punish clusters.', apply:s=>{s.runtime.modArmored=true;} },
   { id:'air',      name:'Breach Rush',        icon:'💨', css:'threat',      text:'High ratio of fast breacher units.',                            tip:'Deploy snipers and keep barricades upgraded.', apply:s=>{s.runtime.modBreachRush=true;} },
-  { id:'scarcity', name:'Resource Strain',    icon:'📉', css:'threat',      text:'Wave rewards -18%. Enemy count +5.',                         tip:'Tighten spending. Prioritize core upgrades only.', apply:s=>{s.runtime.rewardMult-=0.18; s.runtime.spawnCountAdd+=5;} },
+  { id:'scarcity', name:'Resource Strain',    icon:'📉', css:'threat',      text:'Wave rewards -18%. Enemy count +5.',                         tip:'Tighten spending. Prioritize core upgrades only.', apply:s=>{const pen=s.perks&&s.perks.scarcityReduce?0.40:1.0; s.runtime.rewardMult-=0.18*pen; s.runtime.spawnCountAdd+=5;} },
   { id:'storm',    name:'Ion Storm',          icon:'⚡', css:'electrical',  text:'EW amplified +45%. Heavy teams penalized -15%.',             tip:'EW Superiority thrives here. Deploy EW Specialists.', apply:s=>{s.runtime.ewBonus+=0.45; s.runtime.heavyPenalty+=0.15;} },
   { id:'surge',    name:'Surge Protocol',     icon:'🔴', css:'threat',      text:'Enemies spawn 35% faster.',                                  tip:'Barricades and turrets become critical.', apply:s=>{s.runtime.spawnSpeedMult=1.35;} },
   { id:'salvage',  name:'Salvage Wave',       icon:'💰', css:'opportunity', text:'Kill rewards +30%. Fewer enemies this wave.',                tip:'Invest aggressively — this wave funds the next.', apply:s=>{s.runtime.rewardMult+=0.30; s.runtime.spawnCountAdd-=3;} },
@@ -300,3 +308,206 @@ const PERMANENT_UNLOCKS = [
   { id:'u_doctrine',  rank:8, name:'Doctrine Refinement', desc:'+5% to all doctrine stat bonuses.' },
 ];
 
+
+// ── Research Tree Nodes (V44) ──────────────────────────
+// Each node belongs to a department and tier.
+// type:'upgrade'    → calls buyUpgrade(upgradeId) — maps to existing s.upgrades path
+// type:'lane'       → calls buyLaneUpgrade(laneId) — increments all 3 lanes
+// type:'mod'        → applyMod(s) re-applied every applyUpgrades() call
+// type:'perk'       → applyPerk(s) sets s.perks field, re-applied every applyUpgrades()
+// Migration: nodes matching existing save state are inferred complete on load.
+const TREE_NODES = [
+
+  // ════════════ LOGISTICS ════════════════════════════════
+
+  { id:'log_t1_supply', dept:'logistics', tier:1, cost:80, timerLevel:1,
+    name:'Supply Routes', effect:'+18% wave clear rewards',
+    desc:'Forward supply lines increase income from cleared waves.',
+    type:'mod', applyMod: s => { s.mods.incomeMult += 0.18; } },
+
+  { id:'log_t1_procurement', dept:'logistics', tier:1, cost:80, timerLevel:1,
+    name:'Field Procurement', effect:'Troops cost 10% less',
+    desc:'Streamlined requisition reduces deployment costs across all units.',
+    type:'mod', applyMod: s => { s.mods.costMult -= 0.10; } },
+
+  { id:'log_t2_bounties', dept:'logistics', tier:2, cost:160, timerLevel:2,
+    name:'Kill Bounties', effect:'+3 cr per enemy kill',
+    desc:'Field commanders earn bonus credits for each confirmed elimination.',
+    type:'mod', applyMod: s => { s.mods.killBonus += 3; } },
+
+  { id:'log_t2_scarcity', dept:'logistics', tier:2, cost:160, timerLevel:2,
+    name:'Scarcity Protocols', effect:'Resource Strain wave penalty -40%',
+    desc:'Pre-positioned reserves soften the impact of supply shortage waves.',
+    type:'perk', applyPerk: s => { s.perks.scarcityReduce = true; } },
+
+  { id:'log_t3_network', dept:'logistics', tier:3, cost:280, timerLevel:3,
+    name:'Logistics Network', effect:'+22% income from all sources',
+    desc:'A fully operational network maximizes credit flow from all activities.',
+    type:'upgrade', upgradeId:'logistics' },
+
+  { id:'log_t3_salvage', dept:'logistics', tier:3, cost:280, timerLevel:3,
+    name:'Salvage Operations', effect:'Recover 25% credits when a troop is lost',
+    desc:'Field teams recover equipment from fallen units.',
+    type:'perk', applyPerk: s => { s.perks.salvagePct = 0.25; } },
+
+  { id:'log_t4_emergency', dept:'logistics', tier:4, cost:420, timerLevel:4,
+    name:'Emergency Requisition', effect:'Auto-grants 400cr once when base HP < 25%',
+    desc:'Emergency funding activates when the base is critically damaged.',
+    type:'perk', applyPerk: s => { s.perks.emergencyFund = true; } },
+
+  { id:'log_t4_contracts', dept:'logistics', tier:4, cost:420, timerLevel:4,
+    name:'Veteran Contracts', effect:'+2% income per prestige rank (max +20%)',
+    desc:'Long-term service contracts scale efficiency with experience.',
+    type:'mod', applyMod: s => { s.mods.incomeMult += Math.min((s.prestige||0)*0.02, 0.20); } },
+
+  { id:'log_t5_doctrine', dept:'logistics', tier:5, cost:680, timerLevel:5,
+    name:'Total Supply Doctrine', effect:'+20% wave rewards · +5 kill bonus · +1 queue slot',
+    desc:'Total war logistics activates all supply systems simultaneously.',
+    type:'mod',
+    applyMod:  s => { s.mods.incomeMult += 0.20; s.mods.killBonus += 5; },
+    applyPerk: s => { s.perks.extraQueueSlot = true; } },
+
+  // ════════════ ENGINEERING ══════════════════════════════
+
+  { id:'eng_t1_earthworks', dept:'engineering', tier:1, cost:90, timerLevel:1,
+    name:'Earthworks', effect:'Barricades unlocked — All Lanes Lv1',
+    desc:'Field fortifications reduce breach damage in all lanes.',
+    type:'lane', laneUpgradeId:'barricade' },
+
+  { id:'eng_t1_sentry', dept:'engineering', tier:1, cost:90, timerLevel:1,
+    name:'Sentry Posts', effect:'Lane Turrets unlocked — All Lanes Lv1',
+    desc:'Automated sentry guns engage the leading enemy in each lane.',
+    type:'lane', laneUpgradeId:'gun' },
+
+  { id:'eng_t2_walls', dept:'engineering', tier:2, cost:185, timerLevel:2,
+    name:'Reinforced Walls', effect:'Barricades block 35% more damage',
+    desc:'Upgraded materials increase barricade effectiveness across all lanes.',
+    type:'perk', applyPerk: s => { s.perks.barricadeBoost = (s.perks.barricadeBoost||0) + 0.35; } },
+
+  { id:'eng_t2_calibration', dept:'engineering', tier:2, cost:185, timerLevel:2,
+    name:'Turret Calibration', effect:'Lane Turrets fire 22% faster',
+    desc:'Precision targeting systems improve turret fire rate across all lanes.',
+    type:'mod', applyMod: s => { s.mods.laneGunRate += 0.22; } },
+
+  { id:'eng_t2_aid', dept:'engineering', tier:2, cost:185, timerLevel:2,
+    name:'Aid Station', effect:'Med Stations unlocked — All Lanes Lv1',
+    desc:'Forward medical stations passively heal troops in each lane.',
+    type:'lane', laneUpgradeId:'medbay' },
+
+  { id:'eng_t3_sensor', dept:'engineering', tier:3, cost:310, timerLevel:3,
+    name:'Sensor Net', effect:'Sensor Arrays unlocked — All Lanes Lv1',
+    desc:'Sensor networks slow enemy entry speed in all lanes.',
+    type:'lane', laneUpgradeId:'sensor' },
+
+  { id:'eng_t3_medexpand', dept:'engineering', tier:3, cost:310, timerLevel:3,
+    name:'Med Station Expansion', effect:'Med Station healing +40%',
+    desc:'Expanded medical facilities significantly increase healing output.',
+    type:'mod', applyMod: s => { s.mods.medicMult += 0.40; } },
+
+  { id:'eng_t3_fieldtriage', dept:'engineering', tier:3, cost:280, timerLevel:3,
+    name:'Field Triage', effect:'+30% all healing',
+    desc:'Advanced field medicine improves healing from all sources.',
+    type:'upgrade', upgradeId:'medical' },
+
+  { id:'eng_t4_relay', dept:'engineering', tier:4, cost:450, timerLevel:4,
+    name:'Fire Relay Network', effect:'Fire Relays unlocked — All Lanes Lv1',
+    desc:'Communication relays improve troop fire rate in all lanes.',
+    type:'lane', laneUpgradeId:'relay' },
+
+  { id:'eng_t4_fortress', dept:'engineering', tier:4, cost:450, timerLevel:4,
+    name:'Fortress Walls', effect:'+35 max base HP · Barricades gain +3 bonus damage reduction',
+    desc:'Fortress-grade construction strengthens the base and all barricade structures.',
+    type:'upgrade', upgradeId:'fortify',
+    applyPerk: s => { s.perks.barricadeBoost = (s.perks.barricadeBoost||0) + 0.15; } },
+
+  { id:'eng_t5_protocol', dept:'engineering', tier:5, cost:750, timerLevel:5,
+    name:'Total Fortification', effect:'All lane structure effects +25%',
+    desc:'Maximum fortification enhances all lane infrastructure simultaneously.',
+    type:'mod',
+    applyMod:  s => { s.mods.laneGunPower += 0.25; s.mods.laneGunRate += 0.10; s.mods.medicMult += 0.25; },
+    applyPerk: s => { s.perks.barricadeBoost = (s.perks.barricadeBoost||0) + 0.25; } },
+
+  // ════════════ COMMAND ══════════════════════════════════
+
+  { id:'cmd_t1_weapons', dept:'command', tier:1, cost:100, timerLevel:1,
+    name:'Weapon Calibration', effect:'+20% troop damage',
+    desc:'Standard calibration protocols improve accuracy and damage output.',
+    type:'upgrade', upgradeId:'weapons' },
+
+  { id:'cmd_t1_training', dept:'command', tier:1, cost:100, timerLevel:1,
+    name:'Fire Discipline', effect:'+15% troop fire rate',
+    desc:'Disciplined fire control improves engagement tempo across all units.',
+    type:'upgrade', upgradeId:'training' },
+
+  { id:'cmd_t2_piercing', dept:'command', tier:2, cost:200, timerLevel:2,
+    name:'Armor Piercing', effect:'+30% damage vs armored and shielded enemies',
+    desc:'Specialized munitions tear through enemy armor and shield systems.',
+    type:'perk', applyPerk: s => { s.perks.armorPierce = 0.30; } },
+
+  { id:'cmd_t2_targeting', dept:'command', tier:2, cost:200, timerLevel:2,
+    name:'Target Acquisition', effect:'Troop effective range +15%',
+    desc:'Advanced optics allow troops to engage enemies at greater distances.',
+    type:'perk', applyPerk: s => { s.perks.extendedRange = 0.15; } },
+
+  { id:'cmd_t3_orbital', dept:'command', tier:3, cost:340, timerLevel:3,
+    name:'Orbital Designation', effect:'Orbital damage +55 · cooldown -5s',
+    desc:'Dedicated targeting dramatically increases orbital strike effectiveness.',
+    type:'mod', applyMod: s => { s.mods.orbitalDamage += 55; s.mods.orbitalCdFlat = (s.mods.orbitalCdFlat||0) + 5; } },
+
+  { id:'cmd_t3_rapidfire', dept:'command', tier:3, cost:340, timerLevel:3,
+    name:'Rapid Fire Protocols', effect:'+12% fire rate (additive)',
+    desc:'Sustained fire protocols improve tempo without sacrificing accuracy.',
+    type:'mod', applyMod: s => { s.mods.fireRateMult += 0.12; } },
+
+  { id:'cmd_t3_killchain', dept:'command', tier:3, cost:340, timerLevel:3,
+    name:'Kill Chain', effect:'Each kill reduces Orbital CD by 0.5s (max 3s per wave)',
+    desc:'Confirmed kills relay to orbital command for accelerated recharge.',
+    type:'perk', applyPerk: s => { s.perks.killChain = true; s.perks.killChainCap = 3.0; } },
+
+  { id:'cmd_t4_precision', dept:'command', tier:4, cost:500, timerLevel:4,
+    name:'Precision Targeting', effect:'Projectiles track fast enemies 20% better',
+    desc:'Advanced fire control reduces missed shots on high-speed targets.',
+    type:'perk', applyPerk: s => { s.perks.precisionTracking = true; } },
+
+  { id:'cmd_t4_grid', dept:'command', tier:4, cost:500, timerLevel:4,
+    name:'Orbital Grid', effect:'Orbital hits selected lane at 2x intensity',
+    desc:'Grid targeting focuses orbital fire on the active lane.',
+    type:'perk', applyPerk: s => { s.perks.orbitalGridFire = true; } },
+
+  { id:'cmd_t5_supremacy', dept:'command', tier:5, cost:800, timerLevel:5,
+    name:'Combat Supremacy', effect:'+20% damage · +10% fire rate · Orbital resets on boss kill',
+    desc:'Total combat supremacy activates all Command systems simultaneously.',
+    type:'mod',
+    applyMod:  s => { s.mods.damageMult += 0.20; s.mods.fireRateMult += 0.10; },
+    applyPerk: s => { s.perks.bossOrbitalReset = true; } },
+
+  // ════════════ OPERATIONS (locked — V45) ════════════════
+
+  { id:'ops_t1_rifle',    dept:'operations', tier:1, locked:true, cost:0, timerLevel:1,
+    name:'Rifle Corps',           effect:'Rifle Squad damage and HP +20%',
+    desc:'Global training program improves all Rifle Squad units.' },
+  { id:'ops_t1_heavy',    dept:'operations', tier:1, locked:true, cost:0, timerLevel:1,
+    name:'Heavy Weapons Program', effect:'Heavy Team damage +20%',
+    desc:'Specialized heavy weapons training program.' },
+  { id:'ops_t2_medic',    dept:'operations', tier:2, locked:true, cost:0, timerLevel:2,
+    name:'Combat Medic Corps',    effect:'Medic heal +35%, suppresses nearby enemies',
+    desc:'Advanced medical field training program.' },
+  { id:'ops_t2_ew',       dept:'operations', tier:2, locked:true, cost:0, timerLevel:2,
+    name:'EW Division',           effect:'EW slow +50%, auto-reveals cloaked units',
+    desc:'Electronic warfare specialization program.' },
+  { id:'ops_t3_gren',     dept:'operations', tier:3, locked:true, cost:0, timerLevel:3,
+    name:'Grenadier School',      effect:'Grenadier splash +40%, cluster munitions',
+    desc:'Advanced explosive ordnance training.' },
+  { id:'ops_t3_sniper',   dept:'operations', tier:3, locked:true, cost:0, timerLevel:3,
+    name:'Sniper Designation',    effect:'Sniper range +25%, penetrates elite enemies',
+    desc:'Long-range precision fire training.' },
+  { id:'ops_t4_blitz',    dept:'operations', tier:4, locked:true, cost:0, timerLevel:4,
+    name:'Blitz Formation',       effect:'Rifle + Grenadier in same lane +20% damage',
+    desc:'Combined arms doctrine for aggressive formations.' },
+  { id:'ops_t4_fortress', dept:'operations', tier:4, locked:true, cost:0, timerLevel:4,
+    name:'Fortress Formation',    effect:'Medic + Heavy reduce breach damage 15%',
+    desc:'Defensive doctrine for sustained engagements.' },
+  { id:'ops_t5_elite',    dept:'operations', tier:5, locked:true, cost:0, timerLevel:5,
+    name:'Special Operations',    effect:'All unit classes gain unique passive ability',
+    desc:'Elite force designation unlocks class-specific passive abilities.' },
+];

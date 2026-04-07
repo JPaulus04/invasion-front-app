@@ -334,8 +334,14 @@ function _tickResearchQueue() {
     return true;
   });
   completed.forEach(function(r) {
-    if (r.isLane) {
-      // V42: global lane upgrades are applied at purchase time — completion is notification only
+    if (r.nodeId) {
+      // V44: tree node completion — mark complete and re-apply effects
+      if (!G.state.researchNodes) G.state.researchNodes = {};
+      G.state.researchNodes[r.nodeId] = { completedAt: Date.now(), migrated: false };
+      applyUpgrades(); // re-applies all tree node effects
+      G.log(r.name + ' complete!', 'good');
+    } else if (r.isLane) {
+      // V42 global lane upgrades applied at purchase — completion is notification only
       applyUpgrades();
       G.log(r.name + ' complete (All Lanes Lv' + r.level + ')', 'good');
     } else {
@@ -773,6 +779,11 @@ function applyTroopCombat() {
         G.log(target.type.name + " KO'd in " + ['Left','Ctr','Right'][e.lane] + ' lane!', 'danger');
         playSfx('impact');
         triggerShake('light');
+        // V44: salvage — recover % of troop base cost on death
+        if (G.state.perks.salvagePct && target.type) {
+          const refund = Math.floor(target.type.cost * G.state.perks.salvagePct);
+          if (refund > 0) { G.state.credits += refund; G.log('⚙ Salvage +' + refund + ' cr', 'info'); }
+        }
         // Remove dead troop
         s.troops = s.troops.filter(t => t !== target);
         // Re-slot remaining troops so positions stay clean

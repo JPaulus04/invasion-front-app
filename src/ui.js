@@ -776,196 +776,240 @@ function renderResearchSheet() {
   if (crEl) crEl.textContent = Math.floor(s.credits) + ' cr available';
   container.innerHTML = '';
 
-  const MAX_Q  = CFG.MAX_RESEARCH_QUEUE || 3;
+  const MAX_Q  = (CFG.MAX_RESEARCH_QUEUE || 3) + (s.perks.extraQueueSlot ? 1 : 0);
   const usedQ  = _researchQueue.length;
   const timers = CFG.RESEARCH_TIMERS || [0,900,3600,10800,28800,86400];
 
-  // ── Queue indicator ───────────────────────────────────
-  const qRow = document.createElement('div');
-  qRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:9px 12px;border-radius:9px;border:1px solid rgba(34,212,255,.2);background:rgba(34,212,255,.05);';
-  let dots = '';
-  for (let qi = 0; qi < MAX_Q; qi++) {
-    const on = qi < usedQ;
-    dots += '<div style="width:10px;height:10px;border-radius:50%;border:1px solid rgba(34,212,255,.5);background:' + (on ? 'var(--cyan)' : 'transparent') + ';box-shadow:' + (on ? '0 0 6px var(--cyan)' : 'none') + '"></div>';
+  function _nodeComplete(id) {
+    return !!(s.researchNodes && s.researchNodes[id]);
   }
-  qRow.innerHTML = dots +
-    '<span style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--cyan);letter-spacing:.8px;">QUEUE ' + usedQ + '/' + MAX_Q + '</span>' +
-    (usedQ >= MAX_Q ? '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--amber);margin-left:auto;">FULL</span>' : '');
-  container.appendChild(qRow);
-
-  // ── Helpers ───────────────────────────────────────────
+  function _nodeInQueue(id) {
+    return _researchQueue.find(function(r) { return r.nodeId === id; }) || null;
+  }
+  function _tierUnlocked(dept, tier) {
+    if (tier <= 1) return true;
+    var prevNodes = TREE_NODES.filter(function(n) { return n.dept === dept && n.tier === tier - 1 && !n.locked; });
+    return prevNodes.length > 0 && prevNodes.every(function(n) { return _nodeComplete(n.id); });
+  }
   function _peak(key) {
     return (G.meta && G.meta.researchPeak && G.meta.researchPeak[key]) ? G.meta.researchPeak[key] : 0;
   }
-
   function _fmtTimer(secs) {
-    if (secs <= 0) return 'Instant';
-    if (secs < 60)  return secs + 's';
+    if (secs <= 0) return '';
     if (secs < 3600) return Math.floor(secs/60) + 'm';
     if (secs < 86400) return Math.floor(secs/3600) + 'h';
-    return Math.floor(secs/3600) + 'h';
+    return '24h';
   }
 
-  function _makeUpgradeRow(def, curLvl, cost, inQueue, isInstant, isMaxed, onBuy) {
-    const ok        = s.credits >= cost;
-    const queueFull = !inQueue && usedQ >= MAX_Q;
-    const canAct    = ok && !isMaxed && !inQueue && !queueFull;
-
-    const row = document.createElement('div');
-    row.className = 'upgrade-row' +
-      (isMaxed  ? ' upgrade-maxed'  :
-       inQueue  ? ' upgrade-queued' :
-       (ok && !queueFull) ? ' upgrade-affordable' : '');
-
-    const timerSecs = timers[Math.min(curLvl + 1, timers.length - 1)];
-    const timeLabel = isInstant ? '&#x26A1;' : (timerSecs > 0 ? _fmtTimer(timerSecs) : '');
-
-    let btnHTML;
-    if (isMaxed)       { btnHTML = 'MAX'; }
-    else if (inQueue)  { const sl = Math.max(0, Math.ceil((inQueue.completesAt - Date.now()) / 1000)); btnHTML = '&#x1F52C; ' + _fmtTime(sl); }
-    else if (queueFull){ btnHTML = 'Queue full'; }
-    else if (ok)       { btnHTML = (timeLabel ? '<span style="font-size:9px;opacity:.7">' + timeLabel + '</span> ' : '') + cost + ' cr'; }
-    else               { btnHTML = 'Need<br>' + (cost - Math.floor(s.credits)) + ' cr'; }
-
-    row.innerHTML =
-      '<div class="upgrade-info">' +
-        '<div class="upgrade-name">' + def.name + (def._allLanes ? ' <span style="font-size:8px;opacity:.45">(All Lanes)</span>' : '') + '</div>' +
-        '<div class="upgrade-desc">' + def.desc + '</div>' +
-      '</div>' +
-      '<span class="upgrade-level">Lv ' + curLvl + '</span>' +
-      '<button class="upgrade-btn ' + (canAct ? 'upgrade-btn-glow' : '') + '" ' +
-        (canAct ? '' : 'disabled') + ' data-uid="' + def.id + (def._allLanes ? '_lane' : '') + '">' + btnHTML + '</button>';
-
-    if (inQueue) {
-      const sl2 = Math.max(0, Math.ceil((inQueue.completesAt - Date.now()) / 1000));
-      const pct = Math.max(5, Math.min(95, Math.round((1 - (inQueue.completesAt - Date.now()) / inQueue.totalMs) * 100)));
-      const t = document.createElement('div');
-      t.className = 'upgrade-timer';
-      t.innerHTML = '<div class="upgrade-timer-bar"><div class="upgrade-timer-fill" style="width:' + pct + '%"></div></div>' +
-        '<span class="upgrade-timer-label">' + _fmtTime(sl2) + '</span>';
-      row.appendChild(t);
-    }
-
-    row.querySelector('[data-uid]').addEventListener('click', function() {
-      if (!canAct) return;
-      if (usedQ >= MAX_Q) { showToast('Research queue full (3 slots max)'); haptic('light'); return; }
-      onBuy(isInstant, timerSecs, cost);
-    });
-    return row;
+  // ── Queue indicator ───────────────────────────────────
+  const qRow = document.createElement('div');
+  qRow.style.cssText = 'display:flex;align-items:center;gap:7px;margin-bottom:16px;padding:9px 12px;border-radius:9px;border:1px solid rgba(34,212,255,.2);background:rgba(34,212,255,.05);';
+  var qDots = '';
+  for (var qi = 0; qi < MAX_Q; qi++) {
+    var qOn = qi < usedQ;
+    qDots += '<div style="width:9px;height:9px;border-radius:50%;border:1px solid rgba(34,212,255,.5);background:' + (qOn ? 'var(--cyan)' : 'transparent') + ';box-shadow:' + (qOn ? '0 0 5px var(--cyan)' : 'none') + '"></div>';
   }
+  qRow.innerHTML = qDots +
+    '<span style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--cyan);letter-spacing:.8px;margin-left:2px">QUEUE ' + usedQ + '/' + MAX_Q + '</span>' +
+    (usedQ >= MAX_Q ? '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--amber);margin-left:auto">FULL</span>' : '');
+  container.appendChild(qRow);
 
   // ── Department cards ──────────────────────────────────
   RESEARCH_DEPARTMENTS.forEach(function(dept) {
-    const doc = s.selectedDoctrine;
-    const hasSynergy = dept.docSynergy.indexOf(doc) >= 0;
+    var deptNodes  = TREE_NODES.filter(function(n) { return n.dept === dept.id; });
+    var tierNums   = [...new Set(deptNodes.map(function(n){ return n.tier; }))].sort(function(a,b){return a-b;});
+    var deptDone   = deptNodes.filter(function(n){ return !n.locked; }).every(function(n){ return _nodeComplete(n.id); });
+    var hasSynergy = dept.docSynergy && dept.docSynergy.indexOf(s.selectedDoctrine) >= 0;
+    var deptColor  = dept.color;
 
-    // Department header card
-    const dCard = document.createElement('div');
-    dCard.style.cssText =
-      'border:1px solid ' + dept.color + (dept.locked ? '33' : '55') + ';' +
-      'border-radius:14px;background:' + dept.color + (dept.locked ? '04' : '08') + ';' +
-      'padding:14px 15px;margin-bottom:10px;' +
-      (dept.locked ? 'opacity:.5;' : '');
+    // Card wrapper
+    var card = document.createElement('div');
+    card.style.cssText = 'border:1px solid ' + deptColor + (dept.locked ? '25' : '44') + ';border-radius:14px;background:' + deptColor + (dept.locked ? '04' : '07') + ';margin-bottom:12px;overflow:hidden;' + (dept.locked ? 'opacity:.45;' : '');
 
-    // Dept header row
-    const dHead = document.createElement('div');
-    dHead.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:' + (dept.locked ? '0' : '12px') + ';';
-    dHead.innerHTML =
-      '<span style="font-size:22px">' + dept.icon + '</span>' +
+    // Department header
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;';
+    var completedCount = deptNodes.filter(function(n){ return !n.locked && _nodeComplete(n.id); }).length;
+    var totalCount     = deptNodes.filter(function(n){ return !n.locked; }).length;
+    hdr.innerHTML =
+      '<span style="font-size:20px">' + dept.icon + '</span>' +
       '<div style="flex:1">' +
-        '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:16px;color:' + dept.color + '">' + dept.name +
-          (hasSynergy ? ' <span style="font-size:9px;color:' + dept.color + ';opacity:.7;border:1px solid ' + dept.color + '44;border-radius:4px;padding:1px 5px;vertical-align:middle">SYNERGY</span>' : '') +
+        '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:15px;color:' + deptColor + ';display:flex;align-items:center;gap:6px">' +
+          dept.name +
+          (hasSynergy ? '<span style="font-size:8px;color:' + deptColor + ';border:1px solid ' + deptColor + '55;border-radius:4px;padding:1px 5px;opacity:.8">SYNERGY</span>' : '') +
+          (dept.locked ? '<span style="font-size:8px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 5px">COMING V45</span>' : '') +
         '</div>' +
-        '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);margin-top:2px">' + dept.desc + '</div>' +
+        '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);margin-top:1px">' +
+          (dept.locked ? dept.desc : completedCount + '/' + totalCount + ' nodes · ' + dept.desc) +
+        '</div>' +
       '</div>' +
-      (dept.locked ? '<span style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:var(--muted)">COMING SOON</span>' : '');
-    dCard.appendChild(dHead);
+      (!dept.locked ? '<span style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:' + (deptDone ? deptColor : 'var(--muted)') + '">' + (deptDone ? '✓' : '') + '</span>' : '');
 
-    if (!dept.locked) {
-      // ── Global upgrades in this dept ──────────────────
-      dept.upgrades.forEach(function(upId) {
-        const def    = UPGRADE_DEFS.find(function(u) { return u.id === upId; });
-        if (!def) return;
-        const curLvl  = s.upgrades[upId];
-        const maxLvl  = upId === 'fortify' ? 8 : (upId === 'weapons' || upId === 'training') ? 6 : 5;
-        const isMaxed = curLvl >= maxLvl;
-        const cost    = upgradeCost(def);
-        const inQueue = _researchQueueStatus(upId, false, -1);
-        const peak    = _peak('global_' + upId);
-        const isInst  = peak > 0 && curLvl < peak;
+    // Toggle expand/collapse
+    var body = document.createElement('div');
+    body.style.cssText = 'padding:0 10px 10px;';
+    var expanded = !dept.locked; // locked depts start collapsed
+    body.style.display = expanded ? 'block' : 'none';
+    hdr.addEventListener('click', function() {
+      expanded = !expanded;
+      body.style.display = expanded ? 'block' : 'none';
+    });
 
-        // Fortify prereq
-        if (upId === 'fortify') {
-          const prereq = getFortifyPrereq(curLvl);
-          if (prereq && !prereq.check(s)) {
-            const pr = document.createElement('div');
-            pr.className = 'upgrade-prereq';
-            pr.textContent = '\u26A0 ' + def.name + ': Requires ' + prereq.label;
-            dCard.appendChild(pr);
-            return;
-          }
+    card.appendChild(hdr);
+    card.appendChild(body);
+
+    // ── Tier rows ───────────────────────────────────────
+    tierNums.forEach(function(tier, tIdx) {
+      var tierNodes  = deptNodes.filter(function(n){ return n.tier === tier; });
+      var unlocked   = _tierUnlocked(dept.id, tier);
+      var allDone    = tierNodes.every(function(n){ return _nodeComplete(n.id); });
+
+      // Tier label
+      var tierLabel = document.createElement('div');
+      tierLabel.style.cssText = 'display:flex;align-items:center;gap:8px;margin:' + (tIdx === 0 ? '4px' : '0') + ' 0 6px;';
+      tierLabel.innerHTML =
+        '<div style="flex:1;height:1px;background:' + deptColor + (unlocked ? '33' : '18') + '"></div>' +
+        '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:' + (unlocked ? deptColor : 'var(--muted)') + ';letter-spacing:1px;white-space:nowrap">' +
+          (unlocked ? (allDone ? '✓ ' : '') : '🔒 ') + 'TIER ' + tier +
+          (!unlocked ? ' — Complete Tier ' + (tier-1) : '') +
+        '</span>' +
+        '<div style="flex:1;height:1px;background:' + deptColor + (unlocked ? '33' : '18') + '"></div>';
+      body.appendChild(tierLabel);
+
+      // Node row
+      var nodeRow = document.createElement('div');
+      nodeRow.style.cssText = 'display:grid;grid-template-columns:repeat(' + Math.min(tierNodes.length, 3) + ',1fr);gap:6px;margin-bottom:4px;';
+
+      tierNodes.forEach(function(node) {
+        var isDone   = _nodeComplete(node.id);
+        var inQueue  = _nodeInQueue(node.id);
+        var queueFull = !inQueue && usedQ >= MAX_Q;
+        var canAfford = s.credits >= node.cost;
+        var isInstant = false;
+
+        // Check prestige peak for instant repurchase
+        if (node.type === 'upgrade' && node.upgradeId) {
+          var pk = _peak('global_' + node.upgradeId);
+          isInstant = pk > 0 && !isDone;
+        } else if (node.type === 'lane' && node.laneUpgradeId) {
+          var lpk = _peak('lane_' + node.laneUpgradeId);
+          isInstant = lpk > 0 && !isDone;
         }
 
-        const row = _makeUpgradeRow(def, curLvl, cost, inQueue, isInst, isMaxed, function(isInstant, timerSecs, cost) {
-          if (isInstant || timerSecs === 0) {
-            buyUpgrade(upId);
-            _questTick('research', 1);
-            haptic('medium');
-          } else {
-            if (s.credits < cost) return;
-            s.credits -= cost;
-            _researchQueue.push({ id: upId, isLane: false, lane: -1,
-              completesAt: Date.now() + timerSecs * 1000,
-              totalMs: timerSecs * 1000, level: curLvl + 1, name: def.name });
-            _questTick('research', 1);
-            haptic('light');
-            showToast(def.name + ' Lv' + (curLvl+1) + ': ' + _fmtTimer(timerSecs));
-          }
-          renderResearchSheet(); updateHUD();
-        });
-        dCard.appendChild(row);
+        var canAct = unlocked && !isDone && !inQueue && !queueFull && canAfford && !node.locked;
+        var timerSecs = timers[Math.min(node.timerLevel || 1, timers.length - 1)];
+        if (isInstant) timerSecs = 0;
+
+        // Node card
+        var nc = document.createElement('div');
+        var ncBorder = isDone ? deptColor + '44' : inQueue ? 'var(--cyan)' : (canAct ? deptColor + '66' : 'rgba(255,255,255,.07)');
+        var ncBg     = isDone ? deptColor + '10' : inQueue ? 'rgba(34,212,255,.08)' : (canAct ? 'rgba(0,0,0,.3)' : 'rgba(0,0,0,.5)');
+        nc.style.cssText = 'border:1px solid ' + ncBorder + ';border-radius:10px;padding:9px 8px;background:' + ncBg + ';' +
+          ((!unlocked || (node.locked && dept.locked)) ? 'opacity:.35;' : (!canAct && !isDone && !inQueue ? 'opacity:.55;' : ''));
+
+        var statusBadge = '';
+        if (isDone)       statusBadge = '<div style="font-size:10px;color:' + deptColor + ';margin-bottom:3px">✓ Done</div>';
+        else if (inQueue) {
+          var sl = Math.max(0, Math.ceil((inQueue.completesAt - Date.now()) / 1000));
+          statusBadge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--cyan);margin-bottom:3px">🔬 ' + _fmtTime(sl) + '</div>';
+        }
+
+        var btnLabel = '';
+        if (isDone)         btnLabel = '';
+        else if (!unlocked) btnLabel = '🔒';
+        else if (inQueue)   btnLabel = '...';
+        else if (queueFull) btnLabel = 'Full';
+        else if (!canAfford)btnLabel = (node.cost - Math.floor(s.credits)) + ' more';
+        else                btnLabel = (isInstant ? '⚡ ' : (timerSecs > 0 ? _fmtTimer(timerSecs) + ' · ' : '')) + node.cost + ' cr';
+
+        nc.innerHTML =
+          statusBadge +
+          '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:11px;color:' + (isDone ? deptColor : canAct ? '#e8eef4' : 'var(--muted)') + ';line-height:1.2;margin-bottom:3px">' + node.name + '</div>' +
+          '<div style="font-family:\'Share Tech Mono\',monospace;font-size:7.5px;color:var(--muted);line-height:1.3;margin-bottom:' + (btnLabel ? '7' : '0') + 'px">' + node.effect + '</div>' +
+          (btnLabel && !isDone ? '<button style="width:100%;padding:5px 4px;border-radius:7px;border:1px solid ' + (canAct ? deptColor : 'rgba(255,255,255,.1)') + ';background:' + (canAct ? deptColor + '20' : 'transparent') + ';color:' + (canAct ? deptColor : 'var(--muted)') + ';font-family:\'Share Tech Mono\',monospace;font-size:8px;cursor:' + (canAct ? 'pointer' : 'default') + ';-webkit-appearance:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" ' + (canAct ? '' : 'disabled') + ' data-node="' + node.id + '">' + btnLabel + '</button>' : '');
+
+        if (canAct) {
+          nc.querySelector('[data-node]').addEventListener('click', function() {
+            _purchaseTreeNode(node, timerSecs);
+          });
+        }
+
+        nodeRow.appendChild(nc);
       });
 
-      // ── Lane upgrades in this dept ────────────────────
-      dept.laneUpgrades.forEach(function(laneId) {
-        const def    = LANE_UPGRADE_DEFS.find(function(u) { return u.id === laneId; });
-        if (!def) return;
-        def._allLanes = true;
-        const curLvl  = s.lanes[0][laneId];
-        const isMaxed = curLvl >= 5;
-        const cost    = laneUpgradeCost(laneId);
-        const inQueue = _researchQueueStatus(laneId, true, -1);
-        const peak    = _peak('lane_' + laneId);
-        const isInst  = peak > 0 && curLvl < peak;
+      body.appendChild(nodeRow);
 
-        const row = _makeUpgradeRow(def, curLvl, cost, inQueue, isInst, isMaxed, function(isInstant, timerSecs, cost) {
-          if (isInstant || timerSecs === 0) {
-            buyLaneUpgrade(laneId);
-            _questTick('research', 1);
-            haptic('medium');
-          } else {
-            if (s.credits < cost) return;
-            s.credits -= cost;
-            s.lanes.forEach(function(l) { l[laneId]++; });
-            if (!G.meta.researchPeak) G.meta.researchPeak = {};
-            const pk = 'lane_' + laneId;
-            G.meta.researchPeak[pk] = Math.max(G.meta.researchPeak[pk] || 0, s.lanes[0][laneId]);
-            _researchQueue.push({ id: laneId, isLane: true, lane: -1,
-              completesAt: Date.now() + timerSecs * 1000,
-              totalMs: timerSecs * 1000, level: curLvl + 1, name: def.name });
-            _questTick('research', 1);
-            haptic('light');
-            showToast(def.name + ' (All Lanes) Lv' + (curLvl+1) + ': ' + _fmtTimer(timerSecs));
-          }
-          renderResearchSheet(); updateHUD();
-        });
-        dCard.appendChild(row);
-        def._allLanes = false; // clean up
-      });
-    }
+      // Connector arrow between tiers (not after last tier)
+      if (tIdx < tierNums.length - 1) {
+        var conn = document.createElement('div');
+        conn.style.cssText = 'text-align:center;font-size:12px;color:' + deptColor + (unlocked && allDone ? '88' : '33') + ';margin:2px 0 4px;line-height:1;';
+        conn.textContent = '▼';
+        body.appendChild(conn);
+      }
+    });
 
-    container.appendChild(dCard);
+    container.appendChild(card);
   });
+}
+
+// V44: purchase a tree node
+function _purchaseTreeNode(node, timerSecs) {
+  var s = G.state;
+  var MAX_Q = (CFG.MAX_RESEARCH_QUEUE || 3) + (s.perks.extraQueueSlot ? 1 : 0);
+  if (s.credits < node.cost) return;
+  if (_researchQueue.length >= MAX_Q) { showToast('Research queue full'); haptic('light'); return; }
+  if (!s.researchNodes) s.researchNodes = {};
+
+  // Instant purchase (timerSecs === 0, or instant repurchase)
+  if (timerSecs === 0) {
+    s.credits -= node.cost;
+    s.researchNodes[node.id] = { completedAt: Date.now(), migrated: false };
+    // Apply underlying upgrade for mapped nodes
+    if (node.type === 'upgrade' && node.upgradeId)   buyUpgrade(node.upgradeId);
+    if (node.type === 'lane'    && node.laneUpgradeId) buyLaneUpgrade(node.laneUpgradeId);
+    // Mod/perk nodes — re-apply via applyUpgrades
+    applyUpgrades();
+    // Track prestige peak
+    if (!G.meta.researchPeak) G.meta.researchPeak = {};
+    if (node.upgradeId)   G.meta.researchPeak['global_' + node.upgradeId] = Math.max(G.meta.researchPeak['global_' + node.upgradeId] || 0, s.upgrades[node.upgradeId] || 1);
+    if (node.laneUpgradeId) G.meta.researchPeak['lane_' + node.laneUpgradeId] = Math.max(G.meta.researchPeak['lane_' + node.laneUpgradeId] || 0, s.lanes[0][node.laneUpgradeId] || 1);
+    _questTick('research', 1);
+    haptic('medium');
+    showToast('✓ ' + node.name + ' unlocked');
+    renderResearchSheet(); updateHUD();
+    return;
+  }
+
+  // Timed purchase — deduct credits now, apply on completion
+  s.credits -= node.cost;
+  // For mapped nodes, apply the effect immediately (consistent with existing behavior)
+  if (node.type === 'upgrade' && node.upgradeId)   { s.upgrades[node.upgradeId]++; applyUpgrades(); }
+  if (node.type === 'lane'    && node.laneUpgradeId) {
+    s.lanes.forEach(function(l) { l[node.laneUpgradeId]++; });
+    if (!G.meta.researchPeak) G.meta.researchPeak = {};
+    G.meta.researchPeak['lane_' + node.laneUpgradeId] = Math.max(G.meta.researchPeak['lane_' + node.laneUpgradeId] || 0, s.lanes[0][node.laneUpgradeId]);
+    applyUpgrades();
+  }
+  _researchQueue.push({
+    nodeId: node.id,
+    id: node.upgradeId || node.laneUpgradeId || node.id,
+    isLane: node.type === 'lane',
+    lane: -1,
+    completesAt: Date.now() + timerSecs * 1000,
+    totalMs: timerSecs * 1000,
+    level: 1, name: node.name,
+  });
+  _questTick('research', 1);
+  haptic('light');
+  showToast(node.name + ': ' + _fmtTimer(timerSecs));
+  renderResearchSheet(); updateHUD();
+
+  function _fmtTimer(secs) {
+    if (secs <= 0) return 'Instant';
+    if (secs < 3600) return Math.floor(secs/60) + 'm';
+    if (secs < 86400) return Math.floor(secs/3600) + 'h';
+    return '24h';
+  }
 }
 
 // Lane selection (enlist sheet + research sheet only)

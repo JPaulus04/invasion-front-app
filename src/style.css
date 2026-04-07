@@ -1891,3 +1891,8 @@ function _applyUnlockReward(id, s) {
     max-width: 95vw !important;
   }
 }
+
+/* ── V44 Research Tree ─────────────────────────────── */
+.research-dept-card { transition: opacity .2s; }
+.research-node-done { filter: none; }
+.research-node-locked { pointer-events: none; }

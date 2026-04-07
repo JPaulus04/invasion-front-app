@@ -48,6 +48,43 @@ function applyDoctrine() {
 function applyUpgrades() {
   UPGRADE_DEFS.forEach(u => u.apply(G.state));
   G.state.baseHp = Math.min(G.state.baseHp, G.state.maxBaseHp);
+  // V44: re-apply completed tree node mod/perk effects after every doctrine/upgrade reset
+  _applyTreeNodeEffects(G.state);
+}
+
+function _applyTreeNodeEffects(s) {
+  if (!s.researchNodes || typeof TREE_NODES === 'undefined') return;
+  TREE_NODES.forEach(function(node) {
+    if (node.locked) return;
+    const rec = s.researchNodes[node.id];
+    if (!rec) return;
+    // migrated nodes use existing s.upgrades / s.lanes paths — no re-apply needed
+    if (rec.migrated) return;
+    if (node.applyMod)  node.applyMod(s);
+    if (node.applyPerk) node.applyPerk(s);
+    // type:'upgrade' and type:'lane' effects are handled by UPGRADE_DEFS and lane state
+  });
+}
+
+// V44: infer tree progress from existing save data (migration)
+function _inferTreeProgress(s) {
+  if (!s.researchNodes) s.researchNodes = {};
+  const lanes = s.lanes || [{},{},{},];
+  const upg   = s.upgrades || {};
+  const mark  = id => { if (!s.researchNodes[id]) s.researchNodes[id] = { completedAt: Date.now(), migrated: true }; };
+  // Command
+  if ((upg.weapons  || 0) >= 1) mark('cmd_t1_weapons');
+  if ((upg.training || 0) >= 1) mark('cmd_t1_training');
+  // Logistics
+  if ((upg.logistics|| 0) >= 1) mark('log_t3_network');
+  // Engineering
+  if ((upg.medical  || 0) >= 1) mark('eng_t3_fieldtriage');
+  if ((upg.fortify  || 0) >= 1) mark('eng_t4_fortress');
+  if ((lanes[0].barricade || 0) >= 1) mark('eng_t1_earthworks');
+  if ((lanes[0].gun       || 0) >= 1) mark('eng_t1_sentry');
+  if ((lanes[0].medbay    || 0) >= 1) mark('eng_t2_aid');
+  if ((lanes[0].sensor    || 0) >= 1) mark('eng_t3_sensor');
+  if ((lanes[0].relay     || 0) >= 1) mark('eng_t4_relay');
 }
 
 // ── Cost helpers ──────────────────────────────────────
@@ -147,6 +184,7 @@ function startWave(onBoss, onModifier, onHint) {
   s.waveInProgress = true;
   s.lastWaveStats = { credits: 0, baseDamage: 0, lanePressure: [0, 0, 0] };
   s.runtime = freshRuntime();
+  s._killChainWaveCD = 0; // V44: reset kill chain cap accumulator
 
   const boss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
   const pool = s.wave < 3
@@ -416,6 +454,9 @@ function applyDamage(enemy, damage, source = 'normal') {
   if (enemy.kind === 'juggernaut' && source === 'normal') dmg *= 0.85;
   // Warden phase 2: reduced armor (takes 20% more damage)
   if (enemy.kind === 'warden' && enemy._wardenPhase === 2) dmg *= 1.20;
+  // V44: armor pierce — bonus damage vs armored/shielded enemies
+  if (s.perks.armorPierce && (enemy.kind === 'juggernaut' || enemy.kind === 'phalanx' || enemy._mutation === 'ironclad'))
+    dmg *= (1 + s.perks.armorPierce);
   // Phalanx shield absorbs damage first
   if (enemy.shield > 0) {
     const strip = s.mods.ewShieldStrip + s.perks.ewShield;
@@ -433,12 +474,14 @@ function applyDamage(enemy, damage, source = 'normal') {
 
 function nearestEnemy(t) {
   let best = null, bestD = Infinity;
-  for (const e of G.state.enemies) {
+  const s = G.state;
+  const effectiveRange = t.type.range * (1 + (s.perks.extendedRange || 0));
+  for (const e of s.enemies) {
     const vis = !e.cloaked || e.slow > 0;
     const reach = e.lane === t.lane;
     if (!vis || !reach) continue;
     const d = Math.hypot(e.x - t.x, e.y - t.y);
-    if (d < t.type.range && d < bestD) { best = e; bestD = d; }
+    if (d < effectiveRange && d < bestD) { best = e; bestD = d; }
   }
   return best;
 }
@@ -764,6 +807,12 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   if (s.abilities.orbitalCd > 0) s.abilities.orbitalCd -= dt;
   if (s.perks.autoRepair && s.waveInProgress && s.baseHp < s.maxBaseHp)
     s.baseHp = Math.min(s.maxBaseHp, s.baseHp + 1 * dt);
+  // V44: emergency requisition — one-use credit grant at critical HP
+  if (s.perks.emergencyFund && !s._emergencyFundUsed && s.baseHp > 0 && s.baseHp < s.maxBaseHp * 0.25) {
+    s.credits += 400; s._emergencyFundUsed = true;
+    G.log('⚡ Emergency Requisition — +400 cr', 'good');
+    if (typeof showToast === 'function') showToast('⚡ Emergency Requisition — +400 cr');
+  }
 
   if (s.waveInProgress) {
     s.spawnTimer -= dt;
@@ -1002,7 +1051,19 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       GAME_STATS.credits_earned += reward;
       const isBoss = e.kind === 'warden';
       if (isBoss) { s.bossKills++; GAME_STATS.bosses_killed_run++; G.log(`${cap(e.kind)} destroyed! +${reward} cr`, 'good'); }
-      if (s.perks.killChain && s.abilities.orbitalCd > 0) s.abilities.orbitalCd = Math.max(0, s.abilities.orbitalCd - 0.4);
+      // Kill Chain — capped per wave via killChainCap
+      if (s.perks.killChain && s.abilities.orbitalCd > 0) {
+        const reduction = s.perks.killChainCap ? 0.5 : 0.4;
+        if (!s.perks.killChainCap || (s._killChainWaveCD || 0) < s.perks.killChainCap) {
+          s.abilities.orbitalCd = Math.max(0, s.abilities.orbitalCd - reduction);
+          if (s.perks.killChainCap) s._killChainWaveCD = (s._killChainWaveCD || 0) + reduction;
+        }
+      }
+      // Boss orbital reset (Combat Supremacy)
+      if (isBoss && s.perks.bossOrbitalReset) {
+        s.abilities.orbitalCd = 0;
+        G.log('⚡ Combat Supremacy — Orbital recharged!', 'event');
+      }
       if (e._elite) s.fx.push({ kind:'boom', x:e.x, y:e.y, life:.45, max:.45, r:e.r+18 });
       s.fx.push({ kind:'boom', x:e.x, y:e.y, life:.28, max:.28, r:e.r+5 });
       playSfx(isBoss ? 'bossDown' : 'enemyDown');
@@ -1020,7 +1081,7 @@ function saveGame() {
   const s = G.state;
   try {
     localStorage.setItem(CFG.SAVE_KEY, JSON.stringify({
-      v: 8,
+      v: 9,
       selectedDoctrine: s.selectedDoctrine, credits: s.credits, wave: s.wave,
       baseHp: s.baseHp, maxBaseHp: s.maxBaseHp, prestige: s.prestige,
       upgrades: s.upgrades,
@@ -1028,6 +1089,8 @@ function saveGame() {
       perks: s.perks, orbitalCdFlat: s.mods.orbitalCdFlat ?? 0,
       killsTotal: s.killsTotal, bossKills: s.bossKills, creditsEarned: s.creditsEarned,
       troops: s.troops.map(t => ({ id: t.type.id, lane: t.lane, hp: t.hp, cooldown: t.cooldown, slot: t.slot, promoted: t._promoted || 0 })),
+      researchNodes: s.researchNodes || {},
+      _emergencyFundUsed: s._emergencyFundUsed || false,
     }));
   } catch (e) { console.warn('Save failed', e); }
 }
@@ -1037,7 +1100,7 @@ function loadGame() {
     const raw = localStorage.getItem(CFG.SAVE_KEY);
     if (!raw) return;
     const d = JSON.parse(raw);
-    if (d.v !== 8) return;
+    if (d.v !== 8 && d.v !== 9) return; // accept both v8 and v9
     const s = G.state;
     s.selectedDoctrine = d.selectedDoctrine ?? s.selectedDoctrine;
     s.credits = d.credits ?? s.credits;
@@ -1048,10 +1111,14 @@ function loadGame() {
     s.killsTotal = d.killsTotal ?? 0;
     s.bossKills = d.bossKills ?? 0;
     s.creditsEarned = d.creditsEarned ?? 0;
+    s._emergencyFundUsed = d._emergencyFundUsed ?? false;
     Object.assign(s.upgrades, d.upgrades ?? {});
     (d.lanes ?? []).forEach((l, i) => Object.assign(s.lanes[i], l));
     Object.assign(s.perks, d.perks ?? {});
     s._savedOrbitalFlat = d.orbitalCdFlat ?? 0;
+    // V44: restore or infer research tree progress
+    s.researchNodes = d.researchNodes || {};
+    _inferTreeProgress(s); // safe to run on both v8 and v9 — only marks missing nodes
     applyDoctrine(); applyUpgrades();
     s.troops = (d.troops ?? []).map(t => {
       const trp = createTroop(t.id, t.lane, t.hp, t.cooldown, t.slot);
