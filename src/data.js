@@ -34,13 +34,17 @@ function freshState(prestige = 0) {
       emergencyFund: false, extraQueueSlot: false,
       bossOrbitalReset: false, precisionTracking: false,
       scarcityReduce: false, killChainCap: 0,
-      // V48 Operations perks
-      rifleFireRate: 0,        // rifle-specific fire rate bonus
-      heavyHpBonus: 0,         // heavy max HP multiplier
-      heavyDeployCost: 0,      // heavy deploy cost reduction (negative = cheaper)
-      passiveLaneRegen: 0,     // HP/s passive troop regen when lane is clear
-      ewSlowDuration: 0,       // EW slow duration multiplier
-      grenFireRate: 0,         // grenadier-specific fire rate bonus
+      // V48 Operations perks — ops-exclusive fields (never touched by reward pool)
+      opsRifleDmg: 0,          // Rifle Corps damage bonus
+      rifleFireRate: 0,
+      heavyHpBonus: 0,
+      heavyDeployCost: 0,
+      opsMedicHeal: 0,         // Combat Medic Corps heal bonus
+      passiveLaneRegen: 0,
+      opsEwSlow: 0,            // EW Division slow bonus
+      ewSlowDuration: 0,
+      opsGrenSplash: 0,        // Grenadier School splash bonus
+      grenFireRate: 0,
       sniperRange: 0,          // sniper-specific range bonus
       sniperArmorPen: 0,       // sniper bonus damage vs armored
       blitzFormation: false,   // rifle+grenadier same lane +20% damage
@@ -543,7 +547,7 @@ const OPS_NODES = [
     name: 'Rifle Corps',
     desc: 'Infantry training baseline. Standard rifle units authorized.',
     effects: ['+10% rifle damage', 'Fire rate +8%'],
-    applyPerk: s => { s.perks.rifleDamage += 0.10; s.perks.rifleFireRate += 0.08; },
+    applyPerk: s => { s.perks.opsRifleDmg += 0.10; s.perks.rifleFireRate += 0.08; },
   },
   {
     id: 'ops_t1_heavy', tier: 1, auto: false, cost: 60,
@@ -559,14 +563,14 @@ const OPS_NODES = [
     name: 'Combat Medic Corps',
     desc: 'Field medicine doctrine. Injured units recover between engagements.',
     effects: ['Medic heal +35%', 'Troops passively recover 1 HP/s in clear lanes'],
-    applyPerk: s => { s.perks.medicHeal += 0.35; s.perks.passiveLaneRegen = 1.0; },
+    applyPerk: s => { s.perks.opsMedicHeal += 0.35; s.perks.passiveLaneRegen = 1.0; },
   },
   {
     id: 'ops_t2_ew', tier: 2, auto: false, cost: 150,
     name: 'EW Division',
     desc: 'Electronic warfare authorization. Enhanced slow and disruption protocols.',
     effects: ['EW slow strength +40%', 'EW slow duration +50%'],
-    applyPerk: s => { s.perks.ewSlow += 0.40; s.perks.ewSlowDuration += 0.50; },
+    applyPerk: s => { s.perks.opsEwSlow += 0.40; s.perks.ewSlowDuration += 0.50; },
   },
 
   // ── TIER 3 — ELITE TRAINING ────────────────────────
@@ -575,7 +579,7 @@ const OPS_NODES = [
     name: 'Grenadier School',
     desc: 'Advanced explosive ordnance training. Grenadier class unlocked.',
     effects: ['Grenadier splash +40%', 'Fire rate +15%'],
-    applyPerk: s => { s.perks.grenadeSplash += 0.40; s.perks.grenFireRate += 0.15; },
+    applyPerk: s => { s.perks.opsGrenSplash += 0.40; s.perks.grenFireRate += 0.15; },
   },
   {
     id: 'ops_t3_sniper', tier: 3, auto: false, cost: 260,
