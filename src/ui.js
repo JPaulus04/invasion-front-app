@@ -208,37 +208,19 @@ const PROMO_TIERS = {
   ],
 };
 
-
-const UNIT_OPS_NODE = {
-  heavy: 'ops_t1_heavy',
-  medic: 'ops_t2_medic',
-  ew: 'ops_t2_ew',
-  grenadier: 'ops_t3_gren',
-  sniper: 'ops_t3_sniper',
-};
-
-function _isUnitResearched(s, id) {
-  const opsId = UNIT_OPS_NODE[id];
-  if (!opsId) return true;
-  return !!(s.opsNodes && s.opsNodes[opsId]);
-}
-
 function _initUnlockState(s) {
   if (!s._unlockedUnits) s._unlockedUnits = { rifle: true };
 }
 
 function _isUnitUnlocked(s, id) {
   _initUnlockState(s);
-  if (id === 'rifle') return true;
-  // Operations is the primary source of truth now.
-  // Keep legacy unlock flags as a compatibility fallback for older saves / IAP packs.
-  return _isUnitResearched(s, id) || !!(s._unlockedUnits && s._unlockedUnits[id]);
+  return !!(s._unlockedUnits[id]);
 }
 
 function _canUnlockUnit(s, id) {
   const def = UNIT_UNLOCK_DEFS[id];
   if (!def || def.always) return false;
-  const waveOk = (s.wave || 1) >= (def.waveReq || 0);
+  const waveOk = (s.wave || 1) > (def.waveReq || 0);
   const crOk   = s.credits >= def.unlockCost;
   return { waveOk, crOk, both: waveOk && crOk, cost: def.unlockCost, waveReq: def.waveReq };
 }
@@ -344,29 +326,9 @@ function _buildPromoteCard(trp, s) {
 
 // ── Active Barracks tab ───────────────────────────────────────
 let _bkTab = 'deploy';
-let _promoteLane = 0; // legacy state — barracks no longer owns promotions
-
-function _openOperationsFromBarracks() {
-  _researchActiveTab = 'ops';
-  try { renderResearchSheet(); } catch (e) {}
-  try { closeSheet('enlist-sheet', 'enlist-backdrop'); } catch (e) {}
-  try { openSheet('research-sheet', 'research-backdrop'); } catch (e) {}
-}
-
-function _syncBarracksTabs() {
-  document.querySelectorAll('.bk-tab').forEach(function(btn) {
-    if (btn.dataset.bk === 'unlock' || btn.dataset.bk === 'promote') btn.style.display = 'none';
-  });
-  if (_bkTab === 'unlock' || _bkTab === 'promote') _bkTab = 'deploy';
-}
+let _promoteLane = 0; // which lane is shown in promote tab
 
 function _setBkTab(tab) {
-  if (tab === 'unlock' || tab === 'promote') {
-    showToast('Troop progression moved to Operations');
-    _bkTab = 'deploy';
-    _openOperationsFromBarracks();
-    return;
-  }
   _bkTab = tab;
   document.querySelectorAll('.bk-tab').forEach(function(b) {
     b.classList.toggle('active', b.dataset.bk === tab);
@@ -385,7 +347,6 @@ document.querySelectorAll('.bk-tab').forEach(function(btn) {
 function renderEnlistSheet() {
   const s = G.state;
   _initUnlockState(s);
-  _syncBarracksTabs();
   const slots     = UNLOCKS.troopSlots(s.prestige);
   const lc        = laneTroopCount(s.selectedLane);
   const laneNames = ['Left','Center','Right'];
@@ -495,23 +456,18 @@ function renderEnlistSheet() {
       card.className = 'troop-card' + (canDeploy ? '' : ' disabled');
 
       if (!unlocked) {
-        const researched2 = _isUnitResearched(s, def.id);
+        const unlockDef2 = UNIT_UNLOCK_DEFS[def.id];
+        const waveLeft2 = (unlockDef2 && unlockDef2.waveReq) ? Math.max(0, unlockDef2.waveReq - (s.wave||1)) : 0;
         card.innerHTML =
-          '<div style="display:flex;align-items:center;gap:8px">' +
-            '<div style="width:10px;height:10px;border-radius:50%;background:' + def.color + ';opacity:.25;flex-shrink:0"></div>' +
-            '<div style="flex:1;min-width:0">' +
-              '<div class="troop-name" style="color:var(--muted)">🔒 ' + def.name + '</div>' +
-              '<div class="troop-desc">' + (!researched2 ? 'Unlock this class in Operations' : 'Unlocked in Operations — deploy here when ready') + '</div>' +
-            '</div>' +
-            '<button class="troop-deploy-btn" style="background:rgba(255,190,0,.08);border-color:var(--amber);color:var(--amber)">' +
-              (!researched2 ? 'Operations' : 'Ready') +
-            '</button>' +
-          '</div>';
-        card.querySelector('.troop-deploy-btn').addEventListener('click', function() {
-          if (!researched2) {
-            showToast('Open Operations to unlock ' + def.name);
-            _openOperationsFromBarracks();
-          }
+          '<div class="troop-dot" style="background:#444;box-shadow:none"></div>' +
+          '<div class="troop-info">' +
+            '<div class="troop-name" style="color:var(--muted)">🔒 ' + def.name + '</div>' +
+            '<div class="troop-desc">' + (waveLeft2 > 0 ? waveLeft2 + ' more waves' : (unlockDef2 && unlockDef2.label) || '') + '</div>' +
+          '</div>' +
+          '<button class="troop-deploy-btn" style="background:rgba(255,190,0,.08);border-color:var(--amber);color:var(--amber)">Unlock</button>';
+        card.querySelector('.troop-deploy-btn').addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          _setBkTab('unlock');
         });
       } else {
         const costLabel = isTutorialFree ? 'FREE' : cost + ' cr';
@@ -591,9 +547,8 @@ function renderEnlistSheet() {
           '</div>';
       } else {
         const owned = _isUnitUnlocked(s, def.id);
-        const researched = _isUnitResearched(s, def.id);
         const check = _canUnlockUnit(s, def.id);
-        card.className = 'unit-unlock-card ' + (owned ? 'owned' : (researched ? 'research-ready' : 'locked'));
+        card.className = 'unit-unlock-card ' + (owned ? 'owned' : 'locked');
         const reqMet = check.waveOk;
         const waveLeft = !reqMet ? (check.waveReq - (s.wave || 1)) : 0;
         card.innerHTML =
@@ -603,17 +558,17 @@ function renderEnlistSheet() {
                 (owned ? '' : '🔒 ') + def.name +
               '</div>' +
               '<div class="tiny" style="color:var(--muted);margin-top:2px">' + def.desc + '</div>' +
-              '<div class="unlock-req ' + ((reqMet && researched) ? 'met' : '') + '">' +
-                (!researched ? '⚠ Research required in Operations' : (reqMet ? '✓ Wave ' + check.waveReq + ' reached' : '⚠ ' + waveLeft + ' more waves needed')) +
+              '<div class="unlock-req ' + (reqMet ? 'met' : '') + '">' +
+                (reqMet ? '✓ Wave ' + check.waveReq + ' reached' : '⚠ ' + waveLeft + ' more waves needed') +
               '</div>' +
             '</div>' +
             (owned
               ? '<span style="color:var(--green);font-family:\'Share Tech Mono\',monospace;font-size:10px;flex-shrink:0;margin-top:2px">✓ UNLOCKED</span>'
               : '<button class="troop-deploy-btn" style="flex-shrink:0;margin-top:2px;' +
-                  ((researched && check.both) ? 'border-color:var(--green);color:var(--green)' : '') + '"' +
-                  ((researched && check.both) ? '' : ' disabled') + '>' +
-                  ((!researched) ? 'Research first' : ((check.both ? 'Unlock ' + unlockDef.unlockCost + ' cr' :
-                   !check.waveOk ? 'Wave ' + check.waveReq : 'Need ' + unlockDef.unlockCost + ' cr'))) +
+                  (check.both ? 'border-color:var(--green);color:var(--green)' : '') + '"' +
+                  (check.both ? '' : ' disabled') + '>' +
+                  (check.both ? 'Unlock ' + def.unlockCost + ' cr' :
+                   !check.waveOk ? 'Wave ' + check.waveReq : 'Need ' + def.unlockCost + ' cr') +
                 '</button>'
             ) +
           '</div>';
@@ -621,7 +576,7 @@ function renderEnlistSheet() {
         if (!owned) {
           const btn = card.querySelector('.troop-deploy-btn');
           if (btn) btn.addEventListener('click', function() {
-            if (!researched || !check.both) return;
+            if (!check.both) return;
             s.credits -= unlockDef.unlockCost;
             s._unlockedUnits[def.id] = true;
             haptic('success');

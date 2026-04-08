@@ -29,22 +29,6 @@ const TURRET_SPRITES = [];
   img.src = src;
   TURRET_SPRITES.push(img);
 });
-
-function _safeNum(v, d = 0) {
-  v = Number(v);
-  return Number.isFinite(v) ? v : d;
-}
-function _safeRadius(v, d = 1) {
-  v = Number(v);
-  return Number.isFinite(v) && v > 0 ? v : d;
-}
-function _safeRadialGradient(ctx, x0, y0, r0, x1, y1, r1) {
-  return ctx.createRadialGradient(
-    _safeNum(x0), _safeNum(y0), Math.max(0, _safeNum(r0, 0)),
-    _safeNum(x1), _safeNum(y1), _safeRadius(r1, 1)
-  );
-}
-
 function _turretTier(gunLvl) {
   if (gunLvl >= 5) return 2;  // Lv5+ → tier 3 (index 2)
   if (gunLvl >= 3) return 1;  // Lv3-4 → tier 2 (index 1)
@@ -211,7 +195,7 @@ function drawVertical(state) {
   const baseH  = 70 * dpr;
   const treeH  = 52 * dpr;
 
-  function mapLane(lane) { lane = Math.max(0, Math.min(2, lane|0)); return laneX[lane]; }
+  function mapLane(lane) { return laneX[lane]; }
 
   // ── BATTLEFIELD SKY — dark oppressive warzone atmosphere ──────
   const skyGrad = ctx.createLinearGradient(0, 0, 0, treeH + 20*dpr);
@@ -249,7 +233,7 @@ function drawVertical(state) {
     const sx  = W * seed;
     const sy  = treeH + fieldH * (0.15 + (Math.sin(seed * 7.3) * 0.5 + 0.5) * 0.7);
     const sr  = (12 + Math.sin(seed * 11.2) * 6) * dpr;
-    const sg  = _safeRadialGradient(ctx, sx, sy, 0, sx, sy, sr);
+    const sg  = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
     sg.addColorStop(0,   'rgba(8,6,4,.85)');
     sg.addColorStop(0.4, 'rgba(20,14,6,.55)');
     sg.addColorStop(0.8, 'rgba(30,20,8,.2)');
@@ -270,7 +254,7 @@ function drawVertical(state) {
     const cy2    = treeH + fieldH * (0.18 + (Math.sin(cseed * 0.47) * 0.5 + 0.5) * 0.68);
     const cr     = (10 + Math.sin(cseed * 0.23) * 5) * dpr;
     // Crater shadow
-    const cg = _safeRadialGradient(ctx, cx2, cy2 + cr*0.25, 0, cx2, cy2, cr);
+    const cg = ctx.createRadialGradient(cx2, cy2 + cr*0.25, 0, cx2, cy2, cr);
     cg.addColorStop(0,   'rgba(5,3,2,.9)');
     cg.addColorStop(0.5, 'rgba(18,12,5,.55)');
     cg.addColorStop(0.85,'rgba(30,20,8,.2)');
@@ -383,7 +367,7 @@ function drawVertical(state) {
   for (let sc = 0; sc < 4; sc++) {
     const scx = W * (0.15 + sc * 0.24);
     const smokeAmt = 0.3 + 0.15*Math.sin(t*0.2 + sc);
-    const scg = _safeRadialGradient(ctx, scx, 0, 0, scx, treeH*0.5, W*0.06);
+    const scg = ctx.createRadialGradient(scx, 0, 0, scx, treeH*0.5, W*0.06);
     scg.addColorStop(0,   'rgba(40,40,35,' + smokeAmt + ')');
     scg.addColorStop(0.6, 'rgba(25,25,20,' + smokeAmt*0.4 + ')');
     scg.addColorStop(1,   'transparent');
@@ -469,7 +453,7 @@ function drawVertical(state) {
       const fw  = (6 + Math.sin(fi * 1.3) * 2) * dpr;
       const flicker = 0.6 + 0.4 * Math.sin(t * (8 + fi * 0.5));
       // Outer smoke
-      const smk = _safeRadialGradient(ctx, fx, fy - fh * 0.3, 0, fx, fy, fw * 2.5);
+      const smk = ctx.createRadialGradient(fx, fy - fh * 0.3, 0, fx, fy, fw * 2.5);
       smk.addColorStop(0,   'rgba(40,35,30,' + (fireIntensity * 0.35 * flicker) + ')');
       smk.addColorStop(1,   'transparent');
       ctx.fillStyle = smk;
@@ -504,7 +488,7 @@ function drawVertical(state) {
     _scorchMarks[pi].life -= 0.00015 * gs; // very slow fade — marks persist
     if (_scorchMarks[pi].life <= 0) { _scorchMarks.splice(pi, 1); continue; }
     var sm = _scorchMarks[pi];
-    var sg = _safeRadialGradient(ctx, sm.x, sm.y, 0, sm.x, sm.y, sm.r);
+    var sg = ctx.createRadialGradient(sm.x, sm.y, 0, sm.x, sm.y, sm.r);
     sg.addColorStop(0,   'rgba(8,6,2,' + (sm.life * 0.55) + ')');
     sg.addColorStop(0.5, 'rgba(15,10,4,' + (sm.life * 0.28) + ')');
     sg.addColorStop(1,   'transparent');
@@ -539,7 +523,7 @@ function drawVertical(state) {
     _muzzleGlows[mi].life -= 0.08 * gs;
     if (_muzzleGlows[mi].life <= 0) { _muzzleGlows.splice(mi, 1); continue; }
     var mg2 = _muzzleGlows[mi];
-    var mgg = _safeRadialGradient(ctx, mg2.x, mg2.y, 0, mg2.x, mg2.y, mg2.r);
+    var mgg = ctx.createRadialGradient(mg2.x, mg2.y, 0, mg2.x, mg2.y, mg2.r);
     mgg.addColorStop(0,   'rgba(255,200,80,' + (mg2.life * 0.18) + ')');
     mgg.addColorStop(0.5, 'rgba(255,140,40,' + (mg2.life * 0.08) + ')');
     mgg.addColorStop(1,   'transparent');
@@ -553,7 +537,7 @@ function drawVertical(state) {
     // Very slow fade — stay for many waves
     dd.life -= 0.00008 * gs;
     if (dd.life <= 0) { _deathDecals.splice(di, 1); di--; continue; }
-    var dg = _safeRadialGradient(ctx, dd.x, dd.y, 0, dd.x, dd.y, dd.r * dpr);
+    var dg = ctx.createRadialGradient(dd.x, dd.y, 0, dd.x, dd.y, dd.r * dpr);
     if (dd.kind === 'oil') {
       dg.addColorStop(0,   'rgba(30,20,10,' + (dd.life * 0.65) + ')');
       dg.addColorStop(0.6, 'rgba(20,12,6,' + (dd.life * 0.3) + ')');
@@ -612,7 +596,7 @@ function drawVertical(state) {
 
     // Gun turret — sprite-based, 3 visual tiers — positioned FORWARD of troop formation
     if (lane.gun > 0) {
-      const ty = H - baseH - (28 + (lane.barricade || 0) * 5) * dpr;
+      const ty = H - baseH - (50 + (lane.barricade || 0) * 8) * dpr;
       const tier = _turretTier(lane.gun);
       const sprite = TURRET_SPRITES[tier];
       const tsz = 34 * dpr;
@@ -1001,7 +985,7 @@ function drawVertical(state) {
     const towerTY = H - baseH + 3*dpr;
     const spotAngle = Math.sin(t * 0.6) * 0.55 + 0.1;
     const spotLen   = (60 + baseTier * 20) * dpr;
-    const spotGrad  = _safeRadialGradient(ctx, towerLX, towerTY, 0, towerLX, towerTY, spotLen);
+    const spotGrad  = ctx.createRadialGradient(towerLX, towerTY, 0, towerLX, towerTY, spotLen);
     spotGrad.addColorStop(0,   'rgba(255,240,180,.16)');
     spotGrad.addColorStop(0.6, 'rgba(255,240,180,.05)');
     spotGrad.addColorStop(1,   'transparent');
@@ -1061,7 +1045,7 @@ function drawVertical(state) {
     const fireInt = 0.6 + 0.4 * Math.sin(t * 12);
     // Left window fire
     ctx.globalAlpha = fireInt;
-    const fireGrad = _safeRadialGradient(ctx, 
+    const fireGrad = ctx.createRadialGradient(
       bunkerX + 10*dpr, bunkerY + 7*dpr, 1,
       bunkerX + 10*dpr, bunkerY + 7*dpr, 10*dpr
     );
@@ -1071,7 +1055,7 @@ function drawVertical(state) {
     ctx.fillStyle = fireGrad;
     ctx.fillRect(bunkerX + 2*dpr, bunkerY, 20*dpr, 18*dpr);
     // Right window fire
-    const fireGrad2 = _safeRadialGradient(ctx, 
+    const fireGrad2 = ctx.createRadialGradient(
       bunkerX + bunkerW - 10*dpr, bunkerY + 7*dpr, 1,
       bunkerX + bunkerW - 10*dpr, bunkerY + 7*dpr, 10*dpr
     );
@@ -1315,7 +1299,7 @@ function drawVertical(state) {
         ctx.setLineDash([]); ctx.lineWidth = 1;
       } else {
         // Shadow under occupied slot
-        const sg = _safeRadialGradient(ctx, px, py + 9*dpr, 0, px, py + 9*dpr, 13*dpr);
+        const sg = ctx.createRadialGradient(px, py + 9*dpr, 0, px, py + 9*dpr, 13*dpr);
         sg.addColorStop(0, 'rgba(0,0,0,.35)');
         sg.addColorStop(1, 'transparent');
         ctx.fillStyle = sg;
@@ -1359,7 +1343,7 @@ function drawVertical(state) {
       const shadowW = er * (e.kind === 'juggernaut' || e.kind === 'warden' ? 2.2 : 1.6);
       const shadowH = er * 0.3;
       const shadowY = ey + er * 0.9;
-      const sg = _safeRadialGradient(ctx, ex, shadowY, 0, ex, shadowY, shadowW);
+      const sg = ctx.createRadialGradient(ex, shadowY, 0, ex, shadowY, shadowW);
       sg.addColorStop(0,   'rgba(0,0,0,' + (0.35 * spawnAlpha) + ')');
       sg.addColorStop(0.6, 'rgba(0,0,0,' + (0.15 * spawnAlpha) + ')');
       sg.addColorStop(1,   'transparent');
@@ -1394,12 +1378,10 @@ function drawVertical(state) {
     const fromLane  = p.from ? p.from.lane : p.target.lane;
     const fromSlot  = p.from ? p.from.slot : 0;
     const fromX_scr = mapLane(fromLane);
-    const fromY_scr = (p.type === 'laneGun')
-      ? H - baseH - (28 + (((state.lanes && state.lanes[fromLane] && state.lanes[fromLane].barricade) || 0) * 5)) * dpr
-      : H - baseH - (20 + fromSlot * 24) * dpr;
+    const fromY_scr = H - baseH - (20 + fromSlot * 24) * dpr;
     const toX_scr   = mapLane(p.target.lane);
     const toY_scr   = treeH + ((ORIG_W - p.target.x) / ORIG_W) * (H - baseH - treeH);
-    const origFromX = (p.type === 'laneGun') ? 164 : (160 + fromSlot * 48);
+    const origFromX = 160 + fromSlot * 48;
     const frac      = Math.max(0, Math.min(1, (p.x - origFromX) / Math.max(1, p.target.x - origFromX)));
     const drawX_scr = fromX_scr + (toX_scr - fromX_scr) * frac;
     const drawY_scr = fromY_scr + (toY_scr - fromY_scr) * frac;
@@ -1486,7 +1468,7 @@ function drawVertical(state) {
       ctx.fillRect(fromX_scr - 1*dpr, fromY_scr - flashSize, 2*dpr, flashSize*2);
       ctx.fillRect(fromX_scr - flashSize, fromY_scr - 1*dpr, flashSize*2, 2*dpr);
       // Bloom
-      const bg = _safeRadialGradient(ctx, fromX_scr, fromY_scr, 0, fromX_scr, fromY_scr, flashSize*1.5);
+      const bg = ctx.createRadialGradient(fromX_scr, fromY_scr, 0, fromX_scr, fromY_scr, flashSize*1.5);
       bg.addColorStop(0, p.color + 'cc');
       bg.addColorStop(1, 'transparent');
       ctx.fillStyle = bg;
@@ -1529,7 +1511,7 @@ function drawVertical(state) {
       ctx.shadowBlur = 0;
       // Fireball core
       ctx.globalAlpha = a;
-      const fireGrad = _safeRadialGradient(ctx, fcx, fcy - coreR*0.2, 0, fcx, fcy, coreR);
+      const fireGrad = ctx.createRadialGradient(fcx, fcy - coreR*0.2, 0, fcx, fcy, coreR);
       fireGrad.addColorStop(0,   'rgba(255,255,200,' + a + ')');
       fireGrad.addColorStop(0.3, 'rgba(255,200,60,' + a*0.95 + ')');
       fireGrad.addColorStop(0.7, 'rgba(255,80,20,' + a*0.7 + ')');
@@ -1556,7 +1538,7 @@ function drawVertical(state) {
       ctx.fillRect(fcx - 12*dpr, 0, 24*dpr, fcy);
       // Impact blast
       ctx.globalAlpha = a;
-      const orbGrad = _safeRadialGradient(ctx, fcx, fcy, 0, fcx, fcy, orbR);
+      const orbGrad = ctx.createRadialGradient(fcx, fcy, 0, fcx, fcy, orbR);
       orbGrad.addColorStop(0,   'rgba(240,250,255,' + a + ')');
       orbGrad.addColorStop(0.25,'rgba(160,210,255,' + a*0.9 + ')');
       orbGrad.addColorStop(0.6, 'rgba(80,150,255,' + a*0.5 + ')');
@@ -1647,7 +1629,7 @@ function drawVertical(state) {
   if (state.waveInProgress && state.wave % CFG.BOSS_WAVE_EVERY === 0) {
     const bossIntensity = 0.18 + 0.08 * Math.sin(t * 1.8);
     // Deep crimson vignette
-    const bossVig = _safeRadialGradient(ctx, W/2, H/2, W*0.2, W/2, H/2, W*0.8);
+    const bossVig = ctx.createRadialGradient(W/2, H/2, W*0.2, W/2, H/2, W*0.8);
     bossVig.addColorStop(0,   'transparent');
     bossVig.addColorStop(0.6, 'rgba(80,0,0,' + bossIntensity*0.5 + ')');
     bossVig.addColorStop(1,   'rgba(120,0,0,' + bossIntensity + ')');
