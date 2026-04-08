@@ -914,7 +914,11 @@ function doPrestige(onComplete) {
 
 function triggerGameOver() {
   const s = G.state;
+  s.baseHp = Math.max(0, s.baseHp || 0);
   s.gameOver = true; s.paused = true;
+  s.fx = [];
+  s.projectiles = [];
+
   recordRun(G.meta, s);
   saveMeta(G.meta);
   playSfx('impact');
@@ -933,7 +937,15 @@ function triggerGameOver() {
 // ── Update — per-frame logic ──────────────────────────
 function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   const s = G.state;
-  if (!s.started || s.paused || s.gameOver) return;
+  if (!s.started) return;
+
+  // FX must continue to decay even while paused/gameOver so temporary visuals never freeze on screen.
+  if (s.fx && s.fx.length) {
+    s.fx.forEach(f => f.life -= dt);
+    s.fx = s.fx.filter(f => f.life > 0);
+  }
+
+  if (s.paused || s.gameOver) return;
   s.time += dt;
   if (s.abilities.orbitalCd > 0) s.abilities.orbitalCd -= dt;
   if (s.perks.autoRepair && s.waveInProgress && s.baseHp < s.maxBaseHp)
@@ -1193,11 +1205,11 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       s.fx.push({ kind:'boom', x:96, y:e.y, life:.30, max:.30, r:e.r+8 });
       G.log(`${cap(e.kind)} breached! -${Math.floor(dmg)} HP`, 'danger');
       playSfx('impact');
-      // V49: if base just died, flag immediately so remaining enemies this frame don't stack fx
+      // If the base just died, resolve game over immediately and stop further processing.
       if (s.baseHp <= 0 && !s.gameOver) {
-        s.gameOver = true;
-        s.paused   = true;
-        break; // stop processing remaining enemies this frame
+        s.baseHp = 0;
+        onGameOver?.();
+        return;
       }
     }
   }
@@ -1210,10 +1222,10 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const reward = Math.floor(base * s.global.income * (1 + s.mods.incomeMult) * (1 + s.prestige * CFG.PRESTIGE_INCOME_BONUS) * incMult + s.mods.killBonus);
       s.credits += reward; s.lastWaveStats.credits += reward; s.killsTotal++; s.creditsEarned += reward;
       GAME_STATS.credits_earned += reward;
+      const isBoss = e.kind === 'warden';
       // V48: earn XP for Operations tree
       const xpGain = isBoss ? (CFG.OPS_XP_BOSS || 15) : (CFG.OPS_XP_KILL || 2);
       s.xp = (s.xp || 0) + xpGain;
-      const isBoss = e.kind === 'warden';
       if (isBoss) { s.bossKills++; GAME_STATS.bosses_killed_run++; G.log(`${cap(e.kind)} destroyed! +${reward} cr`, 'good'); }
       // Kill Chain — capped per wave via killChainCap
       if (s.perks.killChain && s.abilities.orbitalCd > 0) {
@@ -1238,10 +1250,8 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
     }
   }
   s.enemies = s.enemies.filter(e => e.hp > 0);
-  s.fx.forEach(f => f.life -= dt);
-  s.fx = s.fx.filter(f => f.life > 0);
 
-  if (s.baseHp <= 0 && !s.paused) { s.baseHp = 0; onGameOver?.(); }
+  if (s.baseHp <= 0 && !s.gameOver) { s.baseHp = 0; onGameOver?.(); }
 }
 
 // ── Save / Load ───────────────────────────────────────
