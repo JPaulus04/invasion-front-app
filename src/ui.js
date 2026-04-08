@@ -229,7 +229,10 @@ function _initUnlockState(s) {
 
 function _isUnitUnlocked(s, id) {
   _initUnlockState(s);
-  return !!(s._unlockedUnits[id]);
+  if (id === 'rifle') return true;
+  // Operations is the primary source of truth now.
+  // Keep legacy unlock flags as a compatibility fallback for older saves / IAP packs.
+  return _isUnitResearched(s, id) || !!(s._unlockedUnits && s._unlockedUnits[id]);
 }
 
 function _canUnlockUnit(s, id) {
@@ -341,9 +344,29 @@ function _buildPromoteCard(trp, s) {
 
 // ── Active Barracks tab ───────────────────────────────────────
 let _bkTab = 'deploy';
-let _promoteLane = 0; // which lane is shown in promote tab
+let _promoteLane = 0; // legacy state — barracks no longer owns promotions
+
+function _openOperationsFromBarracks() {
+  _researchActiveTab = 'ops';
+  try { renderResearchSheet(); } catch (e) {}
+  try { closeSheet('enlist-sheet', 'enlist-backdrop'); } catch (e) {}
+  try { openSheet('research-sheet', 'research-backdrop'); } catch (e) {}
+}
+
+function _syncBarracksTabs() {
+  document.querySelectorAll('.bk-tab').forEach(function(btn) {
+    if (btn.dataset.bk === 'unlock' || btn.dataset.bk === 'promote') btn.style.display = 'none';
+  });
+  if (_bkTab === 'unlock' || _bkTab === 'promote') _bkTab = 'deploy';
+}
 
 function _setBkTab(tab) {
+  if (tab === 'unlock' || tab === 'promote') {
+    showToast('Troop progression moved to Operations');
+    _bkTab = 'deploy';
+    _openOperationsFromBarracks();
+    return;
+  }
   _bkTab = tab;
   document.querySelectorAll('.bk-tab').forEach(function(b) {
     b.classList.toggle('active', b.dataset.bk === tab);
@@ -362,6 +385,7 @@ document.querySelectorAll('.bk-tab').forEach(function(btn) {
 function renderEnlistSheet() {
   const s = G.state;
   _initUnlockState(s);
+  _syncBarracksTabs();
   const slots     = UNLOCKS.troopSlots(s.prestige);
   const lc        = laneTroopCount(s.selectedLane);
   const laneNames = ['Left','Center','Right'];
@@ -471,19 +495,23 @@ function renderEnlistSheet() {
       card.className = 'troop-card' + (canDeploy ? '' : ' disabled');
 
       if (!unlocked) {
-        const unlockDef2 = UNIT_UNLOCK_DEFS[def.id];
         const researched2 = _isUnitResearched(s, def.id);
-        const waveLeft2 = (unlockDef2 && unlockDef2.waveReq) ? Math.max(0, unlockDef2.waveReq - (s.wave||1)) : 0;
         card.innerHTML =
-          '<div class="troop-dot" style="background:#444;box-shadow:none"></div>' +
-          '<div class="troop-info">' +
-            '<div class="troop-name" style="color:var(--muted)">🔒 ' + def.name + '</div>' +
-            '<div class="troop-desc">' + (!researched2 ? 'Research required in Operations' : (waveLeft2 > 0 ? waveLeft2 + ' more waves' : (unlockDef2 && unlockDef2.label) || '')) + '</div>' +
-          '</div>' +
-          '<button class="troop-deploy-btn" style="background:rgba(255,190,0,.08);border-color:var(--amber);color:var(--amber)">Unlock</button>';
-        card.querySelector('.troop-deploy-btn').addEventListener('click', function(ev) {
-          ev.stopPropagation();
-          _setBkTab('unlock');
+          '<div style="display:flex;align-items:center;gap:8px">' +
+            '<div style="width:10px;height:10px;border-radius:50%;background:' + def.color + ';opacity:.25;flex-shrink:0"></div>' +
+            '<div style="flex:1;min-width:0">' +
+              '<div class="troop-name" style="color:var(--muted)">🔒 ' + def.name + '</div>' +
+              '<div class="troop-desc">' + (!researched2 ? 'Unlock this class in Operations' : 'Unlocked in Operations — deploy here when ready') + '</div>' +
+            '</div>' +
+            '<button class="troop-deploy-btn" style="background:rgba(255,190,0,.08);border-color:var(--amber);color:var(--amber)">' +
+              (!researched2 ? 'Operations' : 'Ready') +
+            '</button>' +
+          '</div>';
+        card.querySelector('.troop-deploy-btn').addEventListener('click', function() {
+          if (!researched2) {
+            showToast('Open Operations to unlock ' + def.name);
+            _openOperationsFromBarracks();
+          }
         });
       } else {
         const costLabel = isTutorialFree ? 'FREE' : cost + ' cr';
