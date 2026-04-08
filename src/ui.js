@@ -208,6 +208,21 @@ const PROMO_TIERS = {
   ],
 };
 
+
+const UNIT_OPS_NODE = {
+  heavy: 'ops_t1_heavy',
+  medic: 'ops_t2_medic',
+  ew: 'ops_t2_ew',
+  grenadier: 'ops_t3_gren',
+  sniper: 'ops_t3_sniper',
+};
+
+function _isUnitResearched(s, id) {
+  const opsId = UNIT_OPS_NODE[id];
+  if (!opsId) return true;
+  return !!(s.opsNodes && s.opsNodes[opsId]);
+}
+
 function _initUnlockState(s) {
   if (!s._unlockedUnits) s._unlockedUnits = { rifle: true };
 }
@@ -220,7 +235,7 @@ function _isUnitUnlocked(s, id) {
 function _canUnlockUnit(s, id) {
   const def = UNIT_UNLOCK_DEFS[id];
   if (!def || def.always) return false;
-  const waveOk = (s.wave || 1) > (def.waveReq || 0);
+  const waveOk = (s.wave || 1) >= (def.waveReq || 0);
   const crOk   = s.credits >= def.unlockCost;
   return { waveOk, crOk, both: waveOk && crOk, cost: def.unlockCost, waveReq: def.waveReq };
 }
@@ -457,12 +472,13 @@ function renderEnlistSheet() {
 
       if (!unlocked) {
         const unlockDef2 = UNIT_UNLOCK_DEFS[def.id];
+        const researched2 = _isUnitResearched(s, def.id);
         const waveLeft2 = (unlockDef2 && unlockDef2.waveReq) ? Math.max(0, unlockDef2.waveReq - (s.wave||1)) : 0;
         card.innerHTML =
           '<div class="troop-dot" style="background:#444;box-shadow:none"></div>' +
           '<div class="troop-info">' +
             '<div class="troop-name" style="color:var(--muted)">🔒 ' + def.name + '</div>' +
-            '<div class="troop-desc">' + (waveLeft2 > 0 ? waveLeft2 + ' more waves' : (unlockDef2 && unlockDef2.label) || '') + '</div>' +
+            '<div class="troop-desc">' + (!researched2 ? 'Research required in Operations' : (waveLeft2 > 0 ? waveLeft2 + ' more waves' : (unlockDef2 && unlockDef2.label) || '')) + '</div>' +
           '</div>' +
           '<button class="troop-deploy-btn" style="background:rgba(255,190,0,.08);border-color:var(--amber);color:var(--amber)">Unlock</button>';
         card.querySelector('.troop-deploy-btn').addEventListener('click', function(ev) {
@@ -547,8 +563,9 @@ function renderEnlistSheet() {
           '</div>';
       } else {
         const owned = _isUnitUnlocked(s, def.id);
+        const researched = _isUnitResearched(s, def.id);
         const check = _canUnlockUnit(s, def.id);
-        card.className = 'unit-unlock-card ' + (owned ? 'owned' : 'locked');
+        card.className = 'unit-unlock-card ' + (owned ? 'owned' : (researched ? 'research-ready' : 'locked'));
         const reqMet = check.waveOk;
         const waveLeft = !reqMet ? (check.waveReq - (s.wave || 1)) : 0;
         card.innerHTML =
@@ -558,17 +575,17 @@ function renderEnlistSheet() {
                 (owned ? '' : '🔒 ') + def.name +
               '</div>' +
               '<div class="tiny" style="color:var(--muted);margin-top:2px">' + def.desc + '</div>' +
-              '<div class="unlock-req ' + (reqMet ? 'met' : '') + '">' +
-                (reqMet ? '✓ Wave ' + check.waveReq + ' reached' : '⚠ ' + waveLeft + ' more waves needed') +
+              '<div class="unlock-req ' + ((reqMet && researched) ? 'met' : '') + '">' +
+                (!researched ? '⚠ Research required in Operations' : (reqMet ? '✓ Wave ' + check.waveReq + ' reached' : '⚠ ' + waveLeft + ' more waves needed')) +
               '</div>' +
             '</div>' +
             (owned
               ? '<span style="color:var(--green);font-family:\'Share Tech Mono\',monospace;font-size:10px;flex-shrink:0;margin-top:2px">✓ UNLOCKED</span>'
               : '<button class="troop-deploy-btn" style="flex-shrink:0;margin-top:2px;' +
-                  (check.both ? 'border-color:var(--green);color:var(--green)' : '') + '"' +
-                  (check.both ? '' : ' disabled') + '>' +
-                  (check.both ? 'Unlock ' + def.unlockCost + ' cr' :
-                   !check.waveOk ? 'Wave ' + check.waveReq : 'Need ' + def.unlockCost + ' cr') +
+                  ((researched && check.both) ? 'border-color:var(--green);color:var(--green)' : '') + '"' +
+                  ((researched && check.both) ? '' : ' disabled') + '>' +
+                  ((!researched) ? 'Research first' : ((check.both ? 'Unlock ' + unlockDef.unlockCost + ' cr' :
+                   !check.waveOk ? 'Wave ' + check.waveReq : 'Need ' + unlockDef.unlockCost + ' cr'))) +
                 '</button>'
             ) +
           '</div>';
@@ -576,7 +593,7 @@ function renderEnlistSheet() {
         if (!owned) {
           const btn = card.querySelector('.troop-deploy-btn');
           if (btn) btn.addEventListener('click', function() {
-            if (!check.both) return;
+            if (!researched || !check.both) return;
             s.credits -= unlockDef.unlockCost;
             s._unlockedUnits[def.id] = true;
             haptic('success');
