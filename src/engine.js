@@ -48,59 +48,14 @@ function applyDoctrine() {
 function applyUpgrades() {
   UPGRADE_DEFS.forEach(u => u.apply(G.state));
   G.state.baseHp = Math.min(G.state.baseHp, G.state.maxBaseHp);
+  // V44: re-apply completed tree node mod/perk effects after every doctrine/upgrade reset
   _applyTreeNodeEffects(G.state);
+  // V48: re-apply ops node perk effects
   _applyOpsNodeEffects(G.state);
-}
-
-// V48 fix: reset all ops-owned perks to baseline before re-applying
-// Only resets fields EXCLUSIVE to ops nodes — never touches reward-contributed perks
-// Overlapping fields (rifleDamage, medicHeal, etc.) use separate opsXxx fields below
-function _resetOpsPerks(s) {
-  s.perks.opsRifleDmg       = 0;   // ops-exclusive: Rifle Corps damage
-  s.perks.rifleFireRate      = 0;
-  s.perks.heavyHpBonus       = 0;
-  s.perks.heavyDeployCost    = 0;
-  s.perks.opsMedicHeal       = 0;   // ops-exclusive: Medic Corps heal
-  s.perks.passiveLaneRegen   = 0;
-  s.perks.opsEwSlow          = 0;   // ops-exclusive: EW Division slow
-  s.perks.ewSlowDuration     = 0;
-  s.perks.opsGrenSplash      = 0;   // ops-exclusive: Grenadier School splash
-  s.perks.grenFireRate       = 0;
-  s.perks.sniperRange        = 0;
-  s.perks.sniperArmorPen     = 0;
-  s.perks.blitzFormation     = false;
-  s.perks.fortressFormation  = false;
-  s.perks.eliteRifleSuppression = false;
-  s.perks.eliteHeavyShieldBreak = false;
-  s.perks.eliteMedicRevive      = false;
-  s.perks.eliteGrenAirburst     = false;
-  s.perks.eliteSniperHeadshot   = false;
-}
-
-// V44 fix: reset tree-owned perks/mods before re-applying
-// barricadeBoost and clearRepair are also used by rewards — handled via snapshot/restore
-function _resetTreePerks(s) {
-  s.perks.armorPierce      = 0;
-  s.perks.extendedRange    = 0;
-  s.perks.salvagePct       = 0;
-  s.perks.emergencyFund    = false;
-  s.perks.extraQueueSlot   = false;
-  s.perks.bossOrbitalReset = false;
-  s.perks.precisionTracking= false;
-  s.perks.scarcityReduce   = false;
-  s.perks.killChainCap     = 0;
-  // barricadeBoost and clearRepair also used by rewards — snapshot reward portion
-  s._rewardBarricade = s._rewardBarricade || 0;
-  s._rewardClearRepair = s._rewardClearRepair || 0;
-  s.perks.barricadeBoost   = s._rewardBarricade;
-  s.perks.clearRepair      = s._rewardClearRepair;
-  // Reset tree-contributed mods (doctrine-contributed mods are reset by applyDoctrine)
-  s.mods.medicMult         = 0;
 }
 
 function _applyOpsNodeEffects(s) {
   if (!s.opsNodes || typeof OPS_NODES === 'undefined') return;
-  _resetOpsPerks(s);
   OPS_NODES.forEach(function(node) {
     if (!s.opsNodes[node.id]) return;
     if (node.applyPerk) node.applyPerk(s);
@@ -112,20 +67,24 @@ function _initOpsNodes(s) {
   if (!s.opsNodes) s.opsNodes = {};
   if (!s.opsNodes['ops_t1_rifle']) {
     s.opsNodes['ops_t1_rifle'] = { completedAt: Date.now(), auto: true };
-    // Do NOT apply perk here — applyUpgrades() will call _applyOpsNodeEffects after this
+    if (typeof OPS_NODES !== 'undefined') {
+      const node = OPS_NODES.find(function(n) { return n.id === 'ops_t1_rifle'; });
+      if (node && node.applyPerk) node.applyPerk(s);
+    }
   }
 }
 
 function _applyTreeNodeEffects(s) {
   if (!s.researchNodes || typeof TREE_NODES === 'undefined') return;
-  _resetTreePerks(s);
   TREE_NODES.forEach(function(node) {
     if (node.locked) return;
     const rec = s.researchNodes[node.id];
     if (!rec) return;
+    // migrated nodes use existing s.upgrades / s.lanes paths — no re-apply needed
     if (rec.migrated) return;
     if (node.applyMod)  node.applyMod(s);
     if (node.applyPerk) node.applyPerk(s);
+    // type:'upgrade' and type:'lane' effects are handled by UPGRADE_DEFS and lane state
   });
 }
 
@@ -607,7 +566,7 @@ function nearestEnemy(t) {
 function unitDmgMult(id, troop) {
   const s = G.state;
   let m = 1 + s.mods.damageMult;
-  if (id === 'rifle')     m += s.perks.rifleDamage + (s.perks.opsRifleDmg || 0);
+  if (id === 'rifle')     m += s.perks.rifleDamage;
   if (id === 'heavy')     m += s.perks.heavyDamage - s.runtime.heavyPenalty;
   if (id === 'ew')        m += s.mods.ewDamageMult;
   if (id === 'grenadier') m += s.perks.grenRate * 0.5;
@@ -684,12 +643,9 @@ function buildRewardChoices() {
 
 function applyReward(reward) {
   const s = G.state;
+  // Pass G as second arg for rewards that need createTroop (r_reinforce)
   reward.apply(s, { laneTroopCount, troopSlots, createTroop });
   s._savedOrbitalFlat = s.mods.orbitalCdFlat;
-  // V49: snapshot reward-contributed portions of shared perk fields
-  // so _resetTreePerks can restore them without wiping reward gains
-  s._rewardBarricade   = s.perks.barricadeBoost || 0;
-  s._rewardClearRepair = s.perks.clearRepair    || 0;
   G.log(`${reward.name} selected.`, 'info');
 }
 
@@ -914,11 +870,7 @@ function doPrestige(onComplete) {
 
 function triggerGameOver() {
   const s = G.state;
-  s.baseHp = Math.max(0, s.baseHp || 0);
   s.gameOver = true; s.paused = true;
-  s.fx = [];
-  s.projectiles = [];
-
   recordRun(G.meta, s);
   saveMeta(G.meta);
   playSfx('impact');
@@ -937,15 +889,7 @@ function triggerGameOver() {
 // ── Update — per-frame logic ──────────────────────────
 function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   const s = G.state;
-  if (!s.started) return;
-
-  // FX must continue to decay even while paused/gameOver so temporary visuals never freeze on screen.
-  if (s.fx && s.fx.length) {
-    s.fx.forEach(f => f.life -= dt);
-    s.fx = s.fx.filter(f => f.life > 0);
-  }
-
-  if (s.paused || s.gameOver) return;
+  if (!s.started || s.paused || s.gameOver) return;
   s.time += dt;
   if (s.abilities.orbitalCd > 0) s.abilities.orbitalCd -= dt;
   if (s.perks.autoRepair && s.waveInProgress && s.baseHp < s.maxBaseHp)
@@ -979,12 +923,12 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const target = s.enemies.filter(e => e.lane === idx).sort((a, b) => a.x - b.x)[0];
       if (target && lane.gunCd <= 0) {
         const dmg = (CFG.LANE_GUN_BASE_DMG + lane.gun * CFG.LANE_GUN_PER_LVL) * (1 + s.mods.laneGunPower);
-        // V50: turret now at H - baseH - (50 + barricade*8)*dpr
-        // fromY_scr = H - baseH - (20 + slot*24)*dpr → slot = (30 + barricade*8) / 24
+        // V44: slot computed from actual turret Y = H - baseH - (90 + barricade*8)
+        // fromY_scr = H - baseH - (20 + slot*24) → slot = (70 + barricade*8) / 24
         const barLvl = lane.barricade || 0;
-        const turretSlot  = Math.round((30 + barLvl * 8) / 24);
+        const turretSlot = Math.round((70 + barLvl * 8) / 24);
         const turretFromX = 160 + turretSlot * 48;
-        const turretFrom  = { lane: idx, slot: turretSlot };
+        const turretFrom = { lane: idx, slot: turretSlot };
         s.projectiles.push({ from: turretFrom, x: turretFromX, y: LANE_Y[idx], target, speed: 415, damage: dmg, type: 'laneGun', color: '#80d0e8', splash: 0 });
         lane.gunCd = Math.max(CFG.LANE_GUN_CD_MIN, CFG.LANE_GUN_BASE_CD - lane.gun * 0.07) / (1 + s.mods.laneGunRate);
         playSfx('shoot');
@@ -1012,7 +956,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
           if (ally.lane !== t.lane) continue;
           const d = Math.hypot(ally.x - t.x, ally.y - t.y);
           if (ally !== t && d < t.type.range && ally.hp < ally.maxHp) {
-            ally.hp = Math.min(ally.maxHp, ally.hp + 5 * s.global.heal * (1 + s.perks.medicHeal + (s.perks.opsMedicHeal||0)) * (1 + s.mods.medicMult));
+            ally.hp = Math.min(ally.maxHp, ally.hp + 5 * s.global.heal * (1 + s.perks.medicHeal) * (1 + s.mods.medicMult));
             healed = true;
             s.fx.push({ kind:'heal', x:ally.x, y:ally.y, life:.25, max:.25, r:9 });
           }
@@ -1035,7 +979,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
                       : t.type.id === 'grenadier' ? (1 + (s.perks.grenFireRate  || 0)) : 1;
     // V48: grenadier splash includes elite airburst bonus
     const splashBonus = s.perks.eliteGrenAirburst ? 0.15 : 0;
-    const splash = t.type.id === 'grenadier' ? 48 * (1 + s.perks.grenadeSplash + (s.perks.opsGrenSplash || 0) + splashBonus) : 0;
+    const splash = t.type.id === 'grenadier' ? 48 * (1 + s.perks.grenadeSplash + splashBonus) : 0;
     const spd = t.type.id === 'heavy' ? 295 : t.type.id === 'grenadier' ? 250 : t.type.id === 'sniper' ? 620 : 368;
     let dmg = t.type.damage * s.global.damage * unitDmgMult(t.type.id, t) * (1 + s.prestige * CFG.PRESTIGE_DMG_BONUS);
     // V48: sniper headshot passive — 20% chance 2x damage
@@ -1066,7 +1010,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
         s.fx.push({ kind:'hit', x:p.target.x, y:p.target.y, life:.14, max:.14, r:7 });
       }
       if (p.type === 'ew') {
-        const slow = 1.9 * (1 + s.mods.ewPower + s.perks.ewSlow + (s.perks.opsEwSlow || 0)) * (1 + (s.perks.ewSlowDuration || 0));
+        const slow = 1.9 * (1 + s.mods.ewPower + s.perks.ewSlow) * (1 + (s.perks.ewSlowDuration || 0));
         p.target.slow = Math.max(p.target.slow, slow);
         if (p.target.cloaked) { p.target.cloaked = false; s.fx.push({ kind:'reveal', x:p.target.x, y:p.target.y, life:.4, max:.4, r:p.target.r }); }
         if (s.perks.ewChain) {
@@ -1197,20 +1141,12 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
         const hasHeavy = s.troops.some(function(t){ return t.lane===e.lane && t.type.id==='heavy'; });
         if (hasMedic && hasHeavy) dmg *= 0.85;
       }
-      s.baseHp -= dmg;
-      s.baseHp = Math.max(0, s.baseHp);
-      s.lastWaveStats.baseDamage += dmg; e.hp = -999;
+      s.baseHp -= dmg; s.lastWaveStats.baseDamage += dmg; e.hp = -999;
       GAME_STATS.damage_taken += dmg;
       GAME_STATS.breaches += 1;
       s.fx.push({ kind:'boom', x:96, y:e.y, life:.30, max:.30, r:e.r+8 });
       G.log(`${cap(e.kind)} breached! -${Math.floor(dmg)} HP`, 'danger');
       playSfx('impact');
-      // If the base just died, resolve game over immediately and stop further processing.
-      if (s.baseHp <= 0 && !s.gameOver) {
-        s.baseHp = 0;
-        onGameOver?.();
-        return;
-      }
     }
   }
 
@@ -1222,10 +1158,10 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const reward = Math.floor(base * s.global.income * (1 + s.mods.incomeMult) * (1 + s.prestige * CFG.PRESTIGE_INCOME_BONUS) * incMult + s.mods.killBonus);
       s.credits += reward; s.lastWaveStats.credits += reward; s.killsTotal++; s.creditsEarned += reward;
       GAME_STATS.credits_earned += reward;
-      const isBoss = e.kind === 'warden';
       // V48: earn XP for Operations tree
       const xpGain = isBoss ? (CFG.OPS_XP_BOSS || 15) : (CFG.OPS_XP_KILL || 2);
       s.xp = (s.xp || 0) + xpGain;
+      const isBoss = e.kind === 'warden';
       if (isBoss) { s.bossKills++; GAME_STATS.bosses_killed_run++; G.log(`${cap(e.kind)} destroyed! +${reward} cr`, 'good'); }
       // Kill Chain — capped per wave via killChainCap
       if (s.perks.killChain && s.abilities.orbitalCd > 0) {
@@ -1250,8 +1186,10 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
     }
   }
   s.enemies = s.enemies.filter(e => e.hp > 0);
+  s.fx.forEach(f => f.life -= dt);
+  s.fx = s.fx.filter(f => f.life > 0);
 
-  if (s.baseHp <= 0 && !s.gameOver) { s.baseHp = 0; onGameOver?.(); }
+  if (s.baseHp <= 0) { s.baseHp = 0; onGameOver?.(); }
 }
 
 // ── Save / Load ───────────────────────────────────────
@@ -1265,8 +1203,6 @@ function saveGame() {
       upgrades: s.upgrades,
       lanes: s.lanes.map(l => ({ gun: l.gun, barricade: l.barricade, medbay: l.medbay, sensor: l.sensor, relay: l.relay })),
       perks: s.perks, orbitalCdFlat: s.mods.orbitalCdFlat ?? 0,
-      _rewardBarricade: s._rewardBarricade || 0,
-      _rewardClearRepair: s._rewardClearRepair || 0,
       killsTotal: s.killsTotal, bossKills: s.bossKills, creditsEarned: s.creditsEarned,
       troops: s.troops.map(t => ({ id: t.type.id, lane: t.lane, hp: t.hp, cooldown: t.cooldown, slot: t.slot, promoted: t._promoted || 0 })),
       researchNodes: s.researchNodes || {},
@@ -1297,9 +1233,7 @@ function loadGame() {
     Object.assign(s.upgrades, d.upgrades ?? {});
     (d.lanes ?? []).forEach((l, i) => Object.assign(s.lanes[i], l));
     Object.assign(s.perks, d.perks ?? {});
-    s._savedOrbitalFlat  = d.orbitalCdFlat ?? 0;
-    s._rewardBarricade   = d._rewardBarricade   || 0;
-    s._rewardClearRepair = d._rewardClearRepair || 0;
+    s._savedOrbitalFlat = d.orbitalCdFlat ?? 0;
     // V44: restore or infer research tree progress
     s.researchNodes = d.researchNodes || {};
     _inferTreeProgress(s); // inference + backfill — safe on both v8 and v9
