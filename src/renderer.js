@@ -35,6 +35,19 @@ function _turretTier(gunLvl) {
   return 0;                    // Lv1-2 → tier 1 (index 0)
 }
 
+const BATTLEFIELD_SPRITES = {};
+['battlefield_ch1.jpg','battlefield_ch2.jpg','battlefield_ch3.jpg','battlefield_ch4.jpg'].forEach(name => {
+  const img = new Image();
+  img.src = 'assets/ui/' + name;
+  BATTLEFIELD_SPRITES[name] = img;
+});
+function _battlefieldSpriteForWave(wave) {
+  if (wave >= 60) return BATTLEFIELD_SPRITES['battlefield_ch4.jpg'];
+  if (wave >= 40) return BATTLEFIELD_SPRITES['battlefield_ch3.jpg'];
+  if (wave >= 20) return BATTLEFIELD_SPRITES['battlefield_ch2.jpg'];
+  return BATTLEFIELD_SPRITES['battlefield_ch1.jpg'];
+}
+
 // ── Enemy sprite preloader ────────────────────────────────
 const ENEMY_SPRITES = {};
 const ENEMY_SPRITE_MAP = {
@@ -342,6 +355,34 @@ function drawVertical(state) {
     ctx.fillRect(-W*0.1, fog.y - 10*dpr, W*fog.w, 26*dpr);
   });
 
+  // ── CHAPTER BATTLEFIELD BACKGROUND — image layer when available ──────
+  const bgImg = _battlefieldSpriteForWave(state.wave || 1);
+  if (bgImg && bgImg.complete && bgImg.naturalWidth > 0 && bgImg.naturalHeight > 0) {
+    const drawH = H - baseH;
+    const imgAspect = bgImg.naturalWidth / bgImg.naturalHeight;
+    const drawAspect = W / drawH;
+    let sx = 0, sy = 0, sw = bgImg.naturalWidth, sh = bgImg.naturalHeight;
+    if (imgAspect > drawAspect) {
+      sw = Math.round(bgImg.naturalHeight * drawAspect);
+      sx = Math.round((bgImg.naturalWidth - sw) * 0.5);
+    } else {
+      sh = Math.round(bgImg.naturalWidth / drawAspect);
+      sy = Math.round((bgImg.naturalHeight - sh) * 0.5);
+    }
+    ctx.save();
+    ctx.globalAlpha = 0.82;
+    ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, W, drawH);
+    ctx.globalAlpha = 1;
+    // readability darken pass so units/FX still read clearly
+    const darkGrad = ctx.createLinearGradient(0, 0, 0, drawH);
+    darkGrad.addColorStop(0, 'rgba(0,0,0,.18)');
+    darkGrad.addColorStop(0.55, 'rgba(0,0,0,.24)');
+    darkGrad.addColorStop(1, 'rgba(0,0,0,.36)');
+    ctx.fillStyle = darkGrad;
+    ctx.fillRect(0, 0, W, drawH);
+    ctx.restore();
+  }
+
   // ── OPEN BATTLEFIELD — selected lane dim glow near base ──────
   const LANE_COLORS_RAW = ['#22d4ff', '#b060ff', '#18f06a'];
   const selLane = state.selectedLane;
@@ -596,7 +637,7 @@ function drawVertical(state) {
 
     // Gun turret — sprite-based, 3 visual tiers — positioned FORWARD of troop formation
     if (lane.gun > 0) {
-      const ty = H - baseH - (50 + (lane.barricade || 0) * 8) * dpr;
+      const ty = H - baseH - (56 + (lane.barricade || 0) * 8) * dpr;
       const tier = _turretTier(lane.gun);
       const sprite = TURRET_SPRITES[tier];
       const tsz = 34 * dpr;

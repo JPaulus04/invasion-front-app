@@ -227,12 +227,32 @@ function _initUnlockState(s) {
   if (!s._unlockedUnits) s._unlockedUnits = { rifle: true };
 }
 
+function _unitWaveReady(s, id) {
+  const def = UNIT_UNLOCK_DEFS[id];
+  if (!def || def.always) return true;
+  return (s.wave || 1) >= (def.waveReq || 0);
+}
+
+function _unitRankReady(s, id) {
+  // Sniper still carries the Command Rank 2 requirement in core gameplay.
+  if (id !== 'sniper') return true;
+  try {
+    return typeof UNLOCKS !== 'undefined' && typeof UNLOCKS.has === 'function'
+      ? !!UNLOCKS.has(s.prestige, 'u_sniper')
+      : (s.prestige || 0) >= 2;
+  } catch (_) {
+    return (s.prestige || 0) >= 2;
+  }
+}
+
 function _isUnitUnlocked(s, id) {
   _initUnlockState(s);
   if (id === 'rifle') return true;
-  // Operations is the primary source of truth now.
-  // Keep legacy unlock flags as a compatibility fallback for older saves / IAP packs.
-  return _isUnitResearched(s, id) || !!(s._unlockedUnits && s._unlockedUnits[id]);
+  // Legacy/store/manual unlock remains an override.
+  if (s._unlockedUnits && s._unlockedUnits[id]) return true;
+  // Otherwise a class is only deployable when it is researched in Operations
+  // and its gameplay gate(s) are satisfied.
+  return _isUnitResearched(s, id) && _unitWaveReady(s, id) && _unitRankReady(s, id);
 }
 
 function _canUnlockUnit(s, id) {
@@ -496,21 +516,40 @@ function renderEnlistSheet() {
 
       if (!unlocked) {
         const researched2 = _isUnitResearched(s, def.id);
+        const def2 = UNIT_UNLOCK_DEFS[def.id] || {};
+        const waveReady = _unitWaveReady(s, def.id);
+        const rankReady = _unitRankReady(s, def.id);
+        let statusText = 'Unlock this class in Operations';
+        let btnText = 'Operations';
+        if (researched2 && !waveReady) {
+          statusText = 'Researched — deploys at Wave ' + (def2.waveReq || '?');
+          btnText = 'Wave ' + (def2.waveReq || '?');
+        } else if (researched2 && !rankReady) {
+          statusText = 'Researched — requires Rank 2';
+          btnText = 'Rank 2';
+        } else if (researched2) {
+          statusText = 'Researched — deployment gate not met';
+          btnText = 'Locked';
+        }
         card.innerHTML =
           '<div style="display:flex;align-items:center;gap:8px">' +
             '<div style="width:10px;height:10px;border-radius:50%;background:' + def.color + ';opacity:.25;flex-shrink:0"></div>' +
             '<div style="flex:1;min-width:0">' +
               '<div class="troop-name" style="color:var(--muted)">🔒 ' + def.name + '</div>' +
-              '<div class="troop-desc">' + (!researched2 ? 'Unlock this class in Operations' : 'Unlocked in Operations — deploy here when ready') + '</div>' +
+              '<div class="troop-desc">' + statusText + '</div>' +
             '</div>' +
             '<button class="troop-deploy-btn" style="background:rgba(255,190,0,.08);border-color:var(--amber);color:var(--amber)">' +
-              (!researched2 ? 'Operations' : 'Ready') +
+              (!researched2 ? 'Operations' : btnText) +
             '</button>' +
           '</div>';
         card.querySelector('.troop-deploy-btn').addEventListener('click', function() {
           if (!researched2) {
             showToast('Open Operations to unlock ' + def.name);
             _openOperationsFromBarracks();
+          } else if (!waveReady) {
+            showToast(def.name + ' deploys at Wave ' + (def2.waveReq || '?'));
+          } else if (!rankReady) {
+            showToast(def.name + ' requires Rank 2');
           }
         });
       } else {
