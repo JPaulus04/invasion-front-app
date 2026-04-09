@@ -1150,7 +1150,7 @@ function _renderResearchTree(container, s) {
         } else {
           // Available (with or without queue full / affordability)
           btnLabel = (isInstant ? '⚡ ' : (timerSecs > 0 ? _fmtTimer(timerSecs) + ' · ' : '')) + node.cost + ' cr';
-          if (!canAfford) btnLabel = '-' + (node.cost - Math.floor(s.credits)) + ' cr';
+          if (!canAfford) btnLabel = 'Need ' + (node.cost - Math.floor(s.credits)) + ' cr';
         }
 
         nc.innerHTML =
@@ -2174,6 +2174,8 @@ function _playHeartbeat(hpf) {
 }
 let _autoWave = false;
 let _autoWaveTimer = null;
+let _waveLaunchPending = false;
+let _waveLaunchWatchdog = null;
 const AUTO_WAVE_DELAY = 5; // seconds between wave end and auto-start
 // Auto-wave is a $0.99 IAP — true by default for dev testing
 let _autoWaveUnlocked = localStorage.getItem('ifc_autowav') === '1';
@@ -2190,6 +2192,19 @@ function _scheduleAutoWave() {
   }, AUTO_WAVE_DELAY * 1000);
 }
 
+function _clearWaveLaunchState() {
+  _waveLaunchPending = false;
+  clearTimeout(_waveLaunchWatchdog);
+  clearTimeout(_autoWaveTimer);
+  if (G && G.state) {
+    G.state.waveInProgress = false;
+    G.state.enemiesToSpawn = 0;
+    G.state.spawnTimer = 0;
+    G.state.spawnInterval = 0;
+    if (Array.isArray(G.state.enemies)) G.state.enemies = [];
+  }
+}
+
 $id('waveBtn').addEventListener('click', () => {
   ensureAudio();
   const s = G.state;
@@ -2197,13 +2212,31 @@ $id('waveBtn').addEventListener('click', () => {
   _obActionTaken('wave');
   if (!s.waveInProgress) {
     const isBoss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
+    _clearWaveLaunchState();
+    _waveLaunchPending = true;
     s.paused = true;
+
+    clearTimeout(_waveLaunchWatchdog);
+    _waveLaunchWatchdog = setTimeout(function() {
+      const st = G.state;
+      if (!st || st.gameOver || st.waveInProgress || !st.started || !_waveLaunchPending) return;
+      _waveLaunchPending = false;
+      st.paused = false;
+      st.currentModifier = 'none';
+      st.spawnTimer = 0;
+      st.spawnInterval = 0;
+      startWave(onBossAlert, onModifier, onFirstRunHint);
+      updateHUD();
+      if (typeof showToast === 'function') showToast('Wave launch recovered');
+    }, 4500);
+
     showCountdown(isBoss, () => {
+      if (!_waveLaunchPending) return;
+      _waveLaunchPending = false;
+      clearTimeout(_waveLaunchWatchdog);
       s.paused = false;
       startWave(onBossAlert, onModifier, onFirstRunHint);
       updateHUD();
-      // V61: failsafe for rare post-prestige soft-lock where the wave button resolves but
-      // the wave never arms. Retry once only if nothing actually started.
       setTimeout(function() {
         const st = G.state;
         if (!st || st.gameOver || st.waveInProgress || !st.started) return;

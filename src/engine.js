@@ -908,6 +908,9 @@ function doPrestige(onComplete) {
   G.state.currentModifier = 'none';
   G.state.paused = false;
   G.state.gameOver = false;
+  if (typeof _clearWaveLaunchState === 'function') _clearWaveLaunchState();
+  if (typeof _autoWave !== 'undefined') _autoWave = false;
+  if (typeof _autoWaveTimer !== 'undefined') clearTimeout(_autoWaveTimer);
   applyDoctrine(); applyUpgrades();
   _initOpsNodes(G.state); // V48: auto-unlock Rifle Corps after prestige
   _restoreIAPPurchases();
@@ -928,8 +931,16 @@ function triggerGameOver() {
   const s = G.state;
   s.baseHp = Math.max(0, s.baseHp || 0);
   s.gameOver = true; s.paused = true;
+  s.waveInProgress = false;
+  s.enemiesToSpawn = 0;
+  s.spawnTimer = 0;
+  s.spawnInterval = 0;
+  s.currentModifier = 'none';
   s.fx = [];
   s.projectiles = [];
+  if (typeof _clearWaveLaunchState === 'function') _clearWaveLaunchState();
+  if (typeof _autoWave !== 'undefined') _autoWave = false;
+  if (typeof _autoWaveTimer !== 'undefined') clearTimeout(_autoWaveTimer);
 
   recordRun(G.meta, s);
   saveMeta(G.meta);
