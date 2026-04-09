@@ -17,7 +17,34 @@ const LANE_COLORS = ['var(--lt)', 'var(--lm)', 'var(--lb)'];
 function laneName(i) { return LANE_NAMES[i]; }
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function laneTroopCount(lane) { return G.state.troops.filter(t => t.lane === lane).length; }
+
 function troopSlots(prestige) { return UNLOCKS.troopSlots(prestige); }
+function _sanitizeTroopState() {
+  const s = G.state;
+  if (!s || !Array.isArray(s.troops)) return;
+  const slots = UNLOCKS.troopSlots(s.prestige);
+  let overflow = false;
+  [0,1,2].forEach(function(lane) {
+    const laneTroops = s.troops.filter(function(t) { return t && t.lane === lane; });
+    if (laneTroops.length > slots) {
+      overflow = true;
+      const extras = laneTroops.slice(slots);
+      s.troops = s.troops.filter(function(t) { return extras.indexOf(t) === -1; });
+    }
+    s.troops.filter(function(t) { return t && t.lane === lane; }).forEach(function(t, i) {
+      t.slot = i;
+      t.x = 160 + Math.min(i, 5) * 48;
+      t.y = LANE_Y[lane] + (i % 2 === 0 ? -20 : 20);
+      if (!Number.isFinite(t.hp)) t.hp = t.maxHp || 1;
+      if (!Number.isFinite(t.maxHp) || t.maxHp <= 0) t.maxHp = Math.max(1, t.hp || 1);
+      t.hp = Math.max(0, Math.min(t.hp, t.maxHp));
+    });
+  });
+  if (overflow) {
+    try { G.log('Lane overflow corrected.', 'warn'); } catch (e) {}
+    try { if (typeof showToast === 'function') showToast('Lane overflow corrected'); } catch (e) {}
+  }
+}
 
 // ── Game singleton (shared mutable state) ─────────────
 // G is passed to callbacks that need it (rewards, etc.)
@@ -250,6 +277,7 @@ function deployUnit(id) {
     return G.log(`${laneName(s.selectedLane)} lane at capacity.`, 'warn');
   }
   s.troops.push(newTroop);
+  _sanitizeTroopState();
   G.log(`${def.name} → ${laneName(s.selectedLane)}. -${cost} cr`, 'good');
   playSfx('deploy');
 }
@@ -908,9 +936,9 @@ function doPrestige(onComplete) {
   G.state.currentModifier = 'none';
   G.state.paused = false;
   G.state.gameOver = false;
-  if (typeof _clearWaveLaunchState === 'function') _clearWaveLaunchState();
-  if (typeof _autoWave !== 'undefined') _autoWave = false;
-  if (typeof _autoWaveTimer !== 'undefined') clearTimeout(_autoWaveTimer);
+  try { if (typeof _autoWave !== 'undefined') _autoWave = false; } catch (e) {}
+  try { if (typeof _autoWaveTimer !== 'undefined' && _autoWaveTimer) { clearTimeout(_autoWaveTimer); _autoWaveTimer = null; } } catch (e) {}
+  try { if (typeof _updateAutowavStrip === 'function') setTimeout(_updateAutowavStrip, 0); } catch (e) {}
   applyDoctrine(); applyUpgrades();
   _initOpsNodes(G.state); // V48: auto-unlock Rifle Corps after prestige
   _restoreIAPPurchases();
@@ -931,16 +959,11 @@ function triggerGameOver() {
   const s = G.state;
   s.baseHp = Math.max(0, s.baseHp || 0);
   s.gameOver = true; s.paused = true;
-  s.waveInProgress = false;
-  s.enemiesToSpawn = 0;
-  s.spawnTimer = 0;
-  s.spawnInterval = 0;
-  s.currentModifier = 'none';
+  try { if (typeof _autoWave !== 'undefined') _autoWave = false; } catch (e) {}
+  try { if (typeof _autoWaveTimer !== 'undefined' && _autoWaveTimer) { clearTimeout(_autoWaveTimer); _autoWaveTimer = null; } } catch (e) {}
+  try { if (typeof _updateAutowavStrip === 'function') setTimeout(_updateAutowavStrip, 0); } catch (e) {}
   s.fx = [];
   s.projectiles = [];
-  if (typeof _clearWaveLaunchState === 'function') _clearWaveLaunchState();
-  if (typeof _autoWave !== 'undefined') _autoWave = false;
-  if (typeof _autoWaveTimer !== 'undefined') clearTimeout(_autoWaveTimer);
 
   recordRun(G.meta, s);
   saveMeta(G.meta);
@@ -961,6 +984,7 @@ function triggerGameOver() {
 function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   const s = G.state;
   if (!s.started) return;
+  _sanitizeTroopState();
 
   // FX must continue to decay even while paused/gameOver so temporary visuals never freeze on screen.
   if (s.fx && s.fx.length) {

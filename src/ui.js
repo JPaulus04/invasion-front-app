@@ -2174,8 +2174,6 @@ function _playHeartbeat(hpf) {
 }
 let _autoWave = false;
 let _autoWaveTimer = null;
-let _waveLaunchPending = false;
-let _waveLaunchWatchdog = null;
 const AUTO_WAVE_DELAY = 5; // seconds between wave end and auto-start
 // Auto-wave is a $0.99 IAP — true by default for dev testing
 let _autoWaveUnlocked = localStorage.getItem('ifc_autowav') === '1';
@@ -2192,19 +2190,6 @@ function _scheduleAutoWave() {
   }, AUTO_WAVE_DELAY * 1000);
 }
 
-function _clearWaveLaunchState() {
-  _waveLaunchPending = false;
-  clearTimeout(_waveLaunchWatchdog);
-  clearTimeout(_autoWaveTimer);
-  if (G && G.state) {
-    G.state.waveInProgress = false;
-    G.state.enemiesToSpawn = 0;
-    G.state.spawnTimer = 0;
-    G.state.spawnInterval = 0;
-    if (Array.isArray(G.state.enemies)) G.state.enemies = [];
-  }
-}
-
 $id('waveBtn').addEventListener('click', () => {
   ensureAudio();
   const s = G.state;
@@ -2212,31 +2197,13 @@ $id('waveBtn').addEventListener('click', () => {
   _obActionTaken('wave');
   if (!s.waveInProgress) {
     const isBoss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
-    _clearWaveLaunchState();
-    _waveLaunchPending = true;
     s.paused = true;
-
-    clearTimeout(_waveLaunchWatchdog);
-    _waveLaunchWatchdog = setTimeout(function() {
-      const st = G.state;
-      if (!st || st.gameOver || st.waveInProgress || !st.started || !_waveLaunchPending) return;
-      _waveLaunchPending = false;
-      st.paused = false;
-      st.currentModifier = 'none';
-      st.spawnTimer = 0;
-      st.spawnInterval = 0;
-      startWave(onBossAlert, onModifier, onFirstRunHint);
-      updateHUD();
-      if (typeof showToast === 'function') showToast('Wave launch recovered');
-    }, 4500);
-
     showCountdown(isBoss, () => {
-      if (!_waveLaunchPending) return;
-      _waveLaunchPending = false;
-      clearTimeout(_waveLaunchWatchdog);
       s.paused = false;
       startWave(onBossAlert, onModifier, onFirstRunHint);
       updateHUD();
+      // V61: failsafe for rare post-prestige soft-lock where the wave button resolves but
+      // the wave never arms. Retry once only if nothing actually started.
       setTimeout(function() {
         const st = G.state;
         if (!st || st.gameOver || st.waveInProgress || !st.started) return;
@@ -2353,3 +2320,64 @@ $id('volumeSlider')?.addEventListener('input', (e) => {
 })();
 
 // ── HOME SCREEN BUTTONS ────────────────────────────────────────────
+
+
+// ── V63 cleanup: Barracks Quick Buy must not promote troops ─────────────────
+function _normalizeBarracksQuickBuyButton() {
+  try {
+    const sheet = document.getElementById('enlist-sheet');
+    if (!sheet) return;
+    const buttons = sheet.querySelectorAll('button');
+    buttons.forEach(function(btn) {
+      const txt = (btn.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (txt.includes('buy all')) btn.textContent = 'Heal All';
+    });
+  } catch (e) {}
+}
+
+function _handleBarracksQuickBuy(evt) {
+  try {
+    const btn = evt.target && evt.target.closest ? evt.target.closest('button') : null;
+    if (!btn) return;
+    const sheet = document.getElementById('enlist-sheet');
+    if (!sheet || !sheet.contains(btn)) return;
+    const txt = (btn.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!txt.includes('buy all') && txt !== 'heal all') return;
+
+    evt.preventDefault();
+    evt.stopImmediatePropagation();
+
+    const s = G.state;
+    if (!s || !Array.isArray(s.troops)) return;
+    const wounded = s.troops.filter(function(t) { return t && Number.isFinite(t.hp) && Number.isFinite(t.maxHp) && t.hp < t.maxHp; });
+    if (!wounded.length) {
+      haptic('light');
+      showToast('No troops need healing');
+      _normalizeBarracksQuickBuyButton();
+      return;
+    }
+    const totalHealCost = wounded.reduce(function(sum, t) {
+      return sum + Math.ceil(Math.max(0, t.maxHp - t.hp) * 0.8);
+    }, 0);
+    if (s.credits < totalHealCost) {
+      haptic('light');
+      showToast('Need ' + (totalHealCost - Math.floor(s.credits)) + ' more cr');
+      _normalizeBarracksQuickBuyButton();
+      return;
+    }
+    s.credits -= totalHealCost;
+    wounded.forEach(function(t) { t.hp = t.maxHp; });
+    haptic('success');
+    showToast('Healed ' + wounded.length + ' troops · -' + totalHealCost + ' cr');
+    renderEnlistSheet();
+    updateHUD();
+    _normalizeBarracksQuickBuyButton();
+  } catch (e) {
+    try { console.warn('Barracks Quick Buy intercept failed:', e.message); } catch (_) {}
+  }
+}
+
+try {
+  document.addEventListener('click', _handleBarracksQuickBuy, true);
+  setTimeout(_normalizeBarracksQuickBuyButton, 250);
+} catch (e) {}
