@@ -890,12 +890,24 @@ function doPrestige(onComplete) {
   if (G.meta._quests) {
     G.state._quests = JSON.parse(JSON.stringify(G.meta._quests));
   }
-  // Prestige wave floor: each rank gives +5 starting wave, capped at 100
-  const prestigeFloor = G.meta.prestige * 5;  // no cap — wave 400 → rank 40 → start wave 200
+  // V61: prestige should never resume on a boss wave. Use the prestige floor, but if it lands on
+  // a boss wave, step back to the previous normal wave. Also ensure the new run is fully disarmed.
+  let prestigeFloor = G.meta.prestige * 5;
   if (prestigeFloor > 1) {
-    G.state.wave = prestigeFloor;
-    G.log(`Prestige floor: starting at wave ${prestigeFloor}.`, 'system');
+    if (prestigeFloor % CFG.BOSS_WAVE_EVERY === 0) prestigeFloor -= 1;
+    G.state.wave = Math.max(1, prestigeFloor);
+    G.log(`Prestige floor: starting at wave ${G.state.wave}.`, 'system');
   }
+  G.state.waveInProgress = false;
+  G.state.enemiesToSpawn = 0;
+  G.state.spawnTimer = 0;
+  G.state.spawnInterval = 0;
+  G.state.enemies = [];
+  G.state.projectiles = [];
+  G.state.fx = [];
+  G.state.currentModifier = 'none';
+  G.state.paused = false;
+  G.state.gameOver = false;
   applyDoctrine(); applyUpgrades();
   _initOpsNodes(G.state); // V48: auto-unlock Rifle Corps after prestige
   _restoreIAPPurchases();
@@ -979,10 +991,10 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       const target = s.enemies.filter(e => e.lane === idx).sort((a, b) => a.x - b.x)[0];
       if (target && lane.gunCd <= 0) {
         const dmg = (CFG.LANE_GUN_BASE_DMG + lane.gun * CFG.LANE_GUN_PER_LVL) * (1 + s.mods.laneGunPower);
-        // V50: turret now at H - baseH - (50 + barricade*8)*dpr
-        // fromY_scr = H - baseH - (20 + slot*24)*dpr → slot = (30 + barricade*8) / 24
+        // V61: turret sits slightly higher, so bullet origin is nudged to match
+        // fromY_scr = H - baseH - (20 + slot*24)*dpr → slot = (34 + barricade*8) / 24
         const barLvl = lane.barricade || 0;
-        const turretSlot  = Math.round((30 + barLvl * 8) / 24);
+        const turretSlot  = Math.round((34 + barLvl * 8) / 24);
         const turretFromX = 160 + turretSlot * 48;
         const turretFrom  = { lane: idx, slot: turretSlot };
         s.projectiles.push({ from: turretFrom, x: turretFromX, y: LANE_Y[idx], target, speed: 415, damage: dmg, type: 'laneGun', color: '#80d0e8', splash: 0 });

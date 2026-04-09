@@ -2202,6 +2202,21 @@ $id('waveBtn').addEventListener('click', () => {
       s.paused = false;
       startWave(onBossAlert, onModifier, onFirstRunHint);
       updateHUD();
+      // V61: failsafe for rare post-prestige soft-lock where the wave button resolves but
+      // the wave never arms. Retry once only if nothing actually started.
+      setTimeout(function() {
+        const st = G.state;
+        if (!st || st.gameOver || st.waveInProgress || !st.started) return;
+        const nothingQueued = (st.enemiesToSpawn || 0) <= 0 && (!st.enemies || st.enemies.length === 0);
+        if (!nothingQueued) return;
+        st.paused = false;
+        st.currentModifier = 'none';
+        st.spawnTimer = 0;
+        st.spawnInterval = 0;
+        startWave(onBossAlert, onModifier, onFirstRunHint);
+        updateHUD();
+        if (typeof showToast === 'function') showToast('Wave launch recovered');
+      }, 900);
     });
   }
   updateHUD();
