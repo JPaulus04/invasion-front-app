@@ -751,7 +751,9 @@ function prestigeGain() {
 }
 
 function canPrestige() {
-  return G.state.wave >= CFG.PRESTIGE_WAVE_REQ || G.state.gameOver;
+  const s = G.state;
+  if (!s) return false;
+  return (s.wave || 1) >= CFG.PRESTIGE_WAVE_REQ;
 }
 
 // ── ACHIEVEMENT SYSTEM ─────────────────────────────────────────────
@@ -902,6 +904,11 @@ function _markFirstTimeDone() {
 }
 
 function doPrestige(onComplete) {
+  if (!canPrestige()) {
+    G.log('Prestige locked — reach a higher wave first.', 'warn');
+    if (typeof showToast === 'function') showToast('Prestige locked — keep pushing deeper');
+    return false;
+  }
   const gain = prestigeGain();
   recordRun(G.meta, G.state);
   _saveCareerStats();

@@ -645,21 +645,27 @@ function drawVertical(state) {
       ctx.fillRect(cx - bagW/2 + 2*dpr, H - baseH - 4*dpr, bagW, 4*dpr);
     }
 
-    // Gun turret — sprite-based, 3 visual tiers — positioned just above the troop line
+    // Gun turret — always draw a readable fallback silhouette, then sprite on top if available
     if (lane.gun > 0) {
-      const ty = H - baseH - (60 + (lane.barricade || 0) * 8) * dpr;
+      const ty = H - baseH - (70 + (lane.barricade || 0) * 8) * dpr;
       const tier = _turretTier(lane.gun);
       const sprite = TURRET_SPRITES[tier];
-      const tsz = 34 * dpr;
+      const tsz = 36 * dpr;
+
+      // Base plate / readable fallback so the turret is still visible even if the sprite fails
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.beginPath(); ctx.ellipse(cx, ty + 12*dpr, 18*dpr, 6*dpr, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#46582f';
+      ctx.fillRect(cx - 10*dpr, ty - 7*dpr, 20*dpr, 14*dpr);
+      ctx.fillStyle = '#2a3420';
+      ctx.fillRect(cx - 3*dpr, ty - 21*dpr, 6*dpr, 15*dpr);
+      ctx.fillStyle = '#6f8750';
+      ctx.fillRect(cx - 12*dpr, ty + 6*dpr, 24*dpr, 3*dpr);
+
       if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-        ctx.drawImage(sprite, cx - tsz/2, ty - tsz * 0.6, tsz, tsz);
-      } else {
-        // Fallback procedural if image not loaded
-        ctx.fillStyle = '#3a4a28';
-        ctx.fillRect(cx - 9*dpr, ty - 8*dpr, 18*dpr, 14*dpr);
-        ctx.fillStyle = '#2a3420';
-        ctx.fillRect(cx - 2.5*dpr, ty - 22*dpr, 5*dpr, 16*dpr);
+        ctx.drawImage(sprite, cx - tsz/2, ty - tsz * 0.62, tsz, tsz);
       }
+
       // Turret active glow
       ctx.shadowColor = '#88ff44'; ctx.shadowBlur = 8;
       ctx.strokeStyle = '#88ff4466'; ctx.lineWidth = 1*dpr;
