@@ -363,6 +363,20 @@ function _buildPromoteCard(trp, s) {
 }
 
 // ── Active Barracks tab ───────────────────────────────────────
+
+function _disableBarracksBuyAll() {
+  try {
+    var root = document.getElementById('enlist-sheet') || document;
+    Array.from(root.querySelectorAll('button')).forEach(function(btn) {
+      var txt = (btn.textContent || '').trim().toLowerCase();
+      if (txt.indexOf('buy all') >= 0) {
+        btn.disabled = true;
+        btn.style.display = 'none';
+      }
+    });
+  } catch(e) {}
+}
+
 let _bkTab = 'deploy';
 let _promoteLane = 0; // legacy state — barracks no longer owns promotions
 
@@ -500,7 +514,7 @@ function renderEnlistSheet() {
 
     const deployHead = document.createElement('div');
     deployHead.style.cssText = 'font-family:"Share Tech Mono",monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;';
-    deployHead.textContent = lc >= slots ? 'Position full — promote or swap' : 'Deploy to ' + laneNames[s.selectedLane];
+    deployHead.textContent = lc >= slots ? 'Position full — swap or dismiss' : 'Deploy to ' + laneNames[s.selectedLane];
     list.appendChild(deployHead);
 
     UNIT_DEFS.forEach(function(def) {
@@ -850,6 +864,7 @@ function renderEnlistSheet() {
     haptic('light');
   });
   list.appendChild(dismissBtn);
+  _disableBarracksBuyAll();
 }
 // V48: track active tab across renders
 var _researchActiveTab = 'ops';
@@ -1150,7 +1165,7 @@ function _renderResearchTree(container, s) {
         } else {
           // Available (with or without queue full / affordability)
           btnLabel = (isInstant ? '⚡ ' : (timerSecs > 0 ? _fmtTimer(timerSecs) + ' · ' : '')) + node.cost + ' cr';
-          if (!canAfford) btnLabel = 'Need ' + (node.cost - Math.floor(s.credits)) + ' cr';
+          if (!canAfford) btnLabel = '-' + (node.cost - Math.floor(s.credits)) + ' cr';
         }
 
         nc.innerHTML =
@@ -1581,7 +1596,7 @@ function renderStoreSheet() {
       desc: 'One-tap upgrade buttons on Research and Barracks.',
       perks: [
         '⚡ Buy All on Research — queues every affordable upgrade instantly',
-        '⚡ Buy All on Barracks — heals all troops + promotes everyone you can afford',
+        '⚡ Buy All on Barracks disabled for stability while troop overflow is being fixed',
       ],
       owned: _quickBuyUnlocked,
     },
@@ -2197,6 +2212,10 @@ $id('waveBtn').addEventListener('click', () => {
   _obActionTaken('wave');
   if (!s.waveInProgress) {
     const isBoss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
+    if (typeof _autoWaveTimer !== 'undefined' && _autoWaveTimer) { clearTimeout(_autoWaveTimer); _autoWaveTimer = null; }
+    s.enemiesToSpawn = 0;
+    s.spawnTimer = 0;
+    s.spawnInterval = 0;
     s.paused = true;
     showCountdown(isBoss, () => {
       s.paused = false;
@@ -2209,12 +2228,16 @@ $id('waveBtn').addEventListener('click', () => {
         if (!st || st.gameOver || st.waveInProgress || !st.started) return;
         const nothingQueued = (st.enemiesToSpawn || 0) <= 0 && (!st.enemies || st.enemies.length === 0);
         if (!nothingQueued) return;
+        if (typeof _autoWave !== 'undefined') _autoWave = false;
+        if (typeof _autoWaveTimer !== 'undefined' && _autoWaveTimer) { clearTimeout(_autoWaveTimer); _autoWaveTimer = null; }
         st.paused = false;
         st.currentModifier = 'none';
         st.spawnTimer = 0;
         st.spawnInterval = 0;
+        st.enemiesToSpawn = 0;
         startWave(onBossAlert, onModifier, onFirstRunHint);
         updateHUD();
+        if (typeof _updateAutowavStrip === 'function') _updateAutowavStrip();
         if (typeof showToast === 'function') showToast('Wave launch recovered');
       }, 900);
     });
@@ -2320,64 +2343,3 @@ $id('volumeSlider')?.addEventListener('input', (e) => {
 })();
 
 // ── HOME SCREEN BUTTONS ────────────────────────────────────────────
-
-
-// ── V63 cleanup: Barracks Quick Buy must not promote troops ─────────────────
-function _normalizeBarracksQuickBuyButton() {
-  try {
-    const sheet = document.getElementById('enlist-sheet');
-    if (!sheet) return;
-    const buttons = sheet.querySelectorAll('button');
-    buttons.forEach(function(btn) {
-      const txt = (btn.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-      if (txt.includes('buy all')) btn.textContent = 'Heal All';
-    });
-  } catch (e) {}
-}
-
-function _handleBarracksQuickBuy(evt) {
-  try {
-    const btn = evt.target && evt.target.closest ? evt.target.closest('button') : null;
-    if (!btn) return;
-    const sheet = document.getElementById('enlist-sheet');
-    if (!sheet || !sheet.contains(btn)) return;
-    const txt = (btn.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    if (!txt.includes('buy all') && txt !== 'heal all') return;
-
-    evt.preventDefault();
-    evt.stopImmediatePropagation();
-
-    const s = G.state;
-    if (!s || !Array.isArray(s.troops)) return;
-    const wounded = s.troops.filter(function(t) { return t && Number.isFinite(t.hp) && Number.isFinite(t.maxHp) && t.hp < t.maxHp; });
-    if (!wounded.length) {
-      haptic('light');
-      showToast('No troops need healing');
-      _normalizeBarracksQuickBuyButton();
-      return;
-    }
-    const totalHealCost = wounded.reduce(function(sum, t) {
-      return sum + Math.ceil(Math.max(0, t.maxHp - t.hp) * 0.8);
-    }, 0);
-    if (s.credits < totalHealCost) {
-      haptic('light');
-      showToast('Need ' + (totalHealCost - Math.floor(s.credits)) + ' more cr');
-      _normalizeBarracksQuickBuyButton();
-      return;
-    }
-    s.credits -= totalHealCost;
-    wounded.forEach(function(t) { t.hp = t.maxHp; });
-    haptic('success');
-    showToast('Healed ' + wounded.length + ' troops · -' + totalHealCost + ' cr');
-    renderEnlistSheet();
-    updateHUD();
-    _normalizeBarracksQuickBuyButton();
-  } catch (e) {
-    try { console.warn('Barracks Quick Buy intercept failed:', e.message); } catch (_) {}
-  }
-}
-
-try {
-  document.addEventListener('click', _handleBarracksQuickBuy, true);
-  setTimeout(_normalizeBarracksQuickBuyButton, 250);
-} catch (e) {}

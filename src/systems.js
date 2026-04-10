@@ -1,18 +1,3 @@
-
-// ── V63 cleanup: guard Canvas radial gradients from non-finite values ──────
-(function() {
-  try {
-    var proto = (typeof CanvasRenderingContext2D !== 'undefined') ? CanvasRenderingContext2D.prototype : null;
-    if (!proto || proto._ifcSafeRadialGradient) return;
-    var orig = proto.createRadialGradient;
-    proto.createRadialGradient = function(x0, y0, r0, x1, y1, r1) {
-      function fix(v) { return Number.isFinite(v) ? v : 0; }
-      return orig.call(this, fix(x0), fix(y0), Math.max(0, fix(r0)), fix(x1), fix(y1), Math.max(0, fix(r1)));
-    };
-    proto._ifcSafeRadialGradient = true;
-  } catch (e) {}
-})();
-
 function _unlockAudio() {
   if (_audioUnlocked) return;
   // Initialize and resume the shared AudioContext from audio.js
@@ -874,3 +859,20 @@ function _updateAutowavStrip() {
   }
 }
 
+
+
+(function(){
+  function _hideBarracksBuyAllButtons(){
+    try {
+      var root = document.getElementById('enlist-sheet') || document;
+      Array.from(root.querySelectorAll('button')).forEach(function(btn){
+        var txt = (btn.textContent || '').trim().toLowerCase();
+        if (txt.indexOf('buy all') >= 0) {
+          btn.disabled = true;
+          btn.style.display = 'none';
+        }
+      });
+    } catch(e) {}
+  }
+  setInterval(_hideBarracksBuyAllButtons, 600);
+})();

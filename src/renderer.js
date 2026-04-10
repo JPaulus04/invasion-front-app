@@ -192,6 +192,16 @@ function resizeCanvasVertical() {
 // Transforms the original horizontal battlefield into vertical:
 // enemies come from top (treeline), base is at bottom (fortified camp)
 function drawVertical(state) {
+  const _origCreateRG = ctx.createRadialGradient.bind(ctx);
+  ctx.createRadialGradient = function(x0, y0, r0, x1, y1, r1) {
+    x0 = Number.isFinite(x0) ? x0 : 0;
+    y0 = Number.isFinite(y0) ? y0 : 0;
+    x1 = Number.isFinite(x1) ? x1 : x0;
+    y1 = Number.isFinite(y1) ? y1 : y0;
+    r0 = Number.isFinite(r0) && r0 >= 0 ? r0 : 0;
+    r1 = Number.isFinite(r1) && r1 > 0 ? r1 : 1;
+    return _origCreateRG(x0, y0, r0, x1, y1, r1);
+  };
   if (!ctx || !canvas) return;
   const W = canvas.width, H = canvas.height;
   const dpr = window.devicePixelRatio || 1;
