@@ -724,7 +724,7 @@ function prestigeGain() {
 }
 
 function canPrestige() {
-  return !!(G.state && G.state.wave >= CFG.PRESTIGE_WAVE_REQ);
+  return G.state.wave >= CFG.PRESTIGE_WAVE_REQ;
 }
 
 // ── ACHIEVEMENT SYSTEM ─────────────────────────────────────────────
@@ -875,11 +875,6 @@ function _markFirstTimeDone() {
 }
 
 function doPrestige(onComplete) {
-  if (!canPrestige()) {
-    G.log('Prestige not available yet.', 'warn');
-    if (typeof showToast === 'function') showToast('Prestige not available yet');
-    return;
-  }
   const gain = prestigeGain();
   recordRun(G.meta, G.state);
   _saveCareerStats();
@@ -913,6 +908,7 @@ function doPrestige(onComplete) {
   G.state.currentModifier = 'none';
   G.state.paused = false;
   G.state.gameOver = false;
+  if (typeof _hardResetWaveLaunchState === 'function') _hardResetWaveLaunchState({ preserveAuto:false });
   applyDoctrine(); applyUpgrades();
   _initOpsNodes(G.state); // V48: auto-unlock Rifle Corps after prestige
   _restoreIAPPurchases();
@@ -932,6 +928,8 @@ function doPrestige(onComplete) {
 function triggerGameOver() {
   const s = G.state;
   s.baseHp = Math.max(0, s.baseHp || 0);
+  s.gameOver = true; s.paused = true;
+  if (typeof _hardResetWaveLaunchState === 'function') _hardResetWaveLaunchState({ preserveAuto:false });
   s.gameOver = true; s.paused = true;
   s.fx = [];
   s.projectiles = [];

@@ -363,20 +363,6 @@ function _buildPromoteCard(trp, s) {
 }
 
 // ── Active Barracks tab ───────────────────────────────────────
-
-function _disableBarracksBuyAll() {
-  try {
-    var root = document.getElementById('enlist-sheet') || document;
-    Array.from(root.querySelectorAll('button')).forEach(function(btn) {
-      var txt = (btn.textContent || '').trim().toLowerCase();
-      if (txt.indexOf('buy all') >= 0) {
-        btn.disabled = true;
-        btn.style.display = 'none';
-      }
-    });
-  } catch(e) {}
-}
-
 let _bkTab = 'deploy';
 let _promoteLane = 0; // legacy state — barracks no longer owns promotions
 
@@ -514,7 +500,7 @@ function renderEnlistSheet() {
 
     const deployHead = document.createElement('div');
     deployHead.style.cssText = 'font-family:"Share Tech Mono",monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;';
-    deployHead.textContent = lc >= slots ? 'Position full — swap or dismiss' : 'Deploy to ' + laneNames[s.selectedLane];
+    deployHead.textContent = lc >= slots ? 'Position full — promote or swap' : 'Deploy to ' + laneNames[s.selectedLane];
     list.appendChild(deployHead);
 
     UNIT_DEFS.forEach(function(def) {
@@ -864,7 +850,6 @@ function renderEnlistSheet() {
     haptic('light');
   });
   list.appendChild(dismissBtn);
-  _disableBarracksBuyAll();
 }
 // V48: track active tab across renders
 var _researchActiveTab = 'ops';
@@ -1596,7 +1581,7 @@ function renderStoreSheet() {
       desc: 'One-tap upgrade buttons on Research and Barracks.',
       perks: [
         '⚡ Buy All on Research — queues every affordable upgrade instantly',
-        '⚡ Buy All on Barracks disabled for stability while troop overflow is being fixed',
+        '⚡ Buy All on Barracks — heals all troops + promotes everyone you can afford',
       ],
       owned: _quickBuyUnlocked,
     },
@@ -2205,39 +2190,54 @@ function _scheduleAutoWave() {
   }, AUTO_WAVE_DELAY * 1000);
 }
 
+
+function _hardResetWaveLaunchState(opts) {
+  const s = G.state;
+  const preserveAuto = !!(opts && opts.preserveAuto);
+  clearTimeout(_autoWaveTimer);
+  _autoWaveTimer = null;
+  if (!preserveAuto) _autoWave = false;
+  if (!s) { try { _updateAutowavStrip(); } catch(e) {} return; }
+  s.waveInProgress = false;
+  s.enemiesToSpawn = 0;
+  s.spawnTimer = 0;
+  s.spawnInterval = 0;
+  s.currentModifier = 'none';
+  s.paused = false;
+  s.enemies = [];
+  s.projectiles = [];
+  s.fx = [];
+  try { _updateAutowavStrip(); } catch(e) {}
+  try { updateHUD(); } catch(e) {}
+}
+
+
 $id('waveBtn').addEventListener('click', () => {
   ensureAudio();
   const s = G.state;
   if (!s.started) { $id('beginBtn').click(); return; }
   _obActionTaken('wave');
   if (!s.waveInProgress) {
-    const isBoss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
-    if (typeof _autoWaveTimer !== 'undefined' && _autoWaveTimer) { clearTimeout(_autoWaveTimer); _autoWaveTimer = null; }
+    clearTimeout(_autoWaveTimer);
+    _autoWaveTimer = null;
     s.enemiesToSpawn = 0;
     s.spawnTimer = 0;
     s.spawnInterval = 0;
+    const isBoss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
     s.paused = true;
     showCountdown(isBoss, () => {
       s.paused = false;
       startWave(onBossAlert, onModifier, onFirstRunHint);
       updateHUD();
-      // V61: failsafe for rare post-prestige soft-lock where the wave button resolves but
-      // the wave never arms. Retry once only if nothing actually started.
+      // Hard retry for rare post-prestige soft-lock. If nothing armed, force a clean manual-ready reset and retry once.
       setTimeout(function() {
         const st = G.state;
         if (!st || st.gameOver || st.waveInProgress || !st.started) return;
         const nothingQueued = (st.enemiesToSpawn || 0) <= 0 && (!st.enemies || st.enemies.length === 0);
         if (!nothingQueued) return;
-        if (typeof _autoWave !== 'undefined') _autoWave = false;
-        if (typeof _autoWaveTimer !== 'undefined' && _autoWaveTimer) { clearTimeout(_autoWaveTimer); _autoWaveTimer = null; }
-        st.paused = false;
-        st.currentModifier = 'none';
-        st.spawnTimer = 0;
-        st.spawnInterval = 0;
-        st.enemiesToSpawn = 0;
+        _hardResetWaveLaunchState({ preserveAuto:false });
         startWave(onBossAlert, onModifier, onFirstRunHint);
         updateHUD();
-        if (typeof _updateAutowavStrip === 'function') _updateAutowavStrip();
         if (typeof showToast === 'function') showToast('Wave launch recovered');
       }, 900);
     });
