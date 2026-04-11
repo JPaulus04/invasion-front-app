@@ -213,32 +213,6 @@ function laneUpgradeCost(id) {
 }
 
 // ── Troop creation ────────────────────────────────────
-
-function _sanitizeTroopState(s) {
-  if (!s || !Array.isArray(s.troops)) return;
-  const slots = UNLOCKS.troopSlots(s.prestige);
-  const kept = [];
-  [0,1,2].forEach(function(lane) {
-    const laneTroops = s.troops.filter(function(t) { return t && Number.isFinite(t.lane) && t.lane === lane; });
-    laneTroops.sort(function(a,b) {
-      const as = Number.isFinite(a.slot) ? a.slot : 999;
-      const bs = Number.isFinite(b.slot) ? b.slot : 999;
-      return as - bs;
-    });
-    laneTroops.slice(0, slots).forEach(function(t, idx) {
-      t.lane = lane;
-      t.slot = idx;
-      t.x = 160 + idx * 48;
-      t.y = LANE_Y[lane] + (idx % 2 === 0 ? -20 : 20);
-      if (!Number.isFinite(t.maxHp) || t.maxHp <= 0) t.maxHp = (t.type && t.type.hp) ? t.type.hp : 1;
-      if (!Number.isFinite(t.hp)) t.hp = t.maxHp;
-      t.hp = Math.max(0, Math.min(t.hp, t.maxHp));
-      kept.push(t);
-    });
-  });
-  s.troops = kept;
-}
-
 function createTroop(id, lane, hp = null, cooldown = 0, slotOverride = null) {
   const type = UNIT_DEFS.find(u => u.id === id);
   const slot = slotOverride ?? laneTroopCount(lane);
@@ -276,7 +250,6 @@ function deployUnit(id) {
     return G.log(`${laneName(s.selectedLane)} lane at capacity.`, 'warn');
   }
   s.troops.push(newTroop);
-  _sanitizeTroopState(s);
   G.log(`${def.name} → ${laneName(s.selectedLane)}. -${cost} cr`, 'good');
   playSfx('deploy');
 }
@@ -751,9 +724,7 @@ function prestigeGain() {
 }
 
 function canPrestige() {
-  const s = G.state;
-  if (!s) return false;
-  return (s.wave || 1) >= CFG.PRESTIGE_WAVE_REQ;
+  return !!(G.state && G.state.wave >= CFG.PRESTIGE_WAVE_REQ);
 }
 
 // ── ACHIEVEMENT SYSTEM ─────────────────────────────────────────────
@@ -905,9 +876,9 @@ function _markFirstTimeDone() {
 
 function doPrestige(onComplete) {
   if (!canPrestige()) {
-    G.log('Prestige locked — reach a higher wave first.', 'warn');
-    if (typeof showToast === 'function') showToast('Prestige locked — keep pushing deeper');
-    return false;
+    G.log('Prestige not available yet.', 'warn');
+    if (typeof showToast === 'function') showToast('Prestige not available yet');
+    return;
   }
   const gain = prestigeGain();
   recordRun(G.meta, G.state);
@@ -943,7 +914,6 @@ function doPrestige(onComplete) {
   G.state.paused = false;
   G.state.gameOver = false;
   applyDoctrine(); applyUpgrades();
-  _sanitizeTroopState(G.state);
   _initOpsNodes(G.state); // V48: auto-unlock Rifle Corps after prestige
   _restoreIAPPurchases();
   G.log(`Prestige! Rank → ${G.meta.prestige}.`, 'system');
@@ -963,8 +933,6 @@ function triggerGameOver() {
   const s = G.state;
   s.baseHp = Math.max(0, s.baseHp || 0);
   s.gameOver = true; s.paused = true;
-  if (typeof _autoWave !== 'undefined') _autoWave = false;
-  if (typeof _autoWaveTimer !== 'undefined' && _autoWaveTimer) { clearTimeout(_autoWaveTimer); _autoWaveTimer = null; }
   s.fx = [];
   s.projectiles = [];
 
@@ -987,7 +955,6 @@ function triggerGameOver() {
 function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   const s = G.state;
   if (!s.started) return;
-  _sanitizeTroopState(s);
 
   // FX must continue to decay even while paused/gameOver so temporary visuals never freeze on screen.
   if (s.fx && s.fx.length) {
@@ -1358,7 +1325,6 @@ function loadGame() {
     s.xp = d.xp || 0;
     _initOpsNodes(s); // ensures Rifle Corps auto-unlocked, re-applies ops perks
     applyDoctrine(); applyUpgrades();
-    _sanitizeTroopState(s);
     s.troops = (d.troops ?? []).map(t => {
       const trp = createTroop(t.id, t.lane, t.hp, t.cooldown, t.slot);
       if (t.promoted) trp._promoted = t.promoted;

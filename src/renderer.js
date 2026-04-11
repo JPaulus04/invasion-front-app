@@ -192,16 +192,6 @@ function resizeCanvasVertical() {
 // Transforms the original horizontal battlefield into vertical:
 // enemies come from top (treeline), base is at bottom (fortified camp)
 function drawVertical(state) {
-  const _origCreateRG = ctx.createRadialGradient.bind(ctx);
-  ctx.createRadialGradient = function(x0, y0, r0, x1, y1, r1) {
-    x0 = Number.isFinite(x0) ? x0 : 0;
-    y0 = Number.isFinite(y0) ? y0 : 0;
-    x1 = Number.isFinite(x1) ? x1 : x0;
-    y1 = Number.isFinite(y1) ? y1 : y0;
-    r0 = Number.isFinite(r0) && r0 >= 0 ? r0 : 0;
-    r1 = Number.isFinite(r1) && r1 > 0 ? r1 : 1;
-    return _origCreateRG(x0, y0, r0, x1, y1, r1);
-  };
   if (!ctx || !canvas) return;
   const W = canvas.width, H = canvas.height;
   const dpr = window.devicePixelRatio || 1;
@@ -645,27 +635,21 @@ function drawVertical(state) {
       ctx.fillRect(cx - bagW/2 + 2*dpr, H - baseH - 4*dpr, bagW, 4*dpr);
     }
 
-    // Gun turret — always draw a readable fallback silhouette, then sprite on top if available
+    // Gun turret — sprite-based, 3 visual tiers — positioned just above the troop line
     if (lane.gun > 0) {
-      const ty = H - baseH - (70 + (lane.barricade || 0) * 8) * dpr;
+      const ty = H - baseH - (60 + (lane.barricade || 0) * 8) * dpr;
       const tier = _turretTier(lane.gun);
       const sprite = TURRET_SPRITES[tier];
-      const tsz = 36 * dpr;
-
-      // Base plate / readable fallback so the turret is still visible even if the sprite fails
-      ctx.fillStyle = 'rgba(0,0,0,.28)';
-      ctx.beginPath(); ctx.ellipse(cx, ty + 12*dpr, 18*dpr, 6*dpr, 0, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#46582f';
-      ctx.fillRect(cx - 10*dpr, ty - 7*dpr, 20*dpr, 14*dpr);
-      ctx.fillStyle = '#2a3420';
-      ctx.fillRect(cx - 3*dpr, ty - 21*dpr, 6*dpr, 15*dpr);
-      ctx.fillStyle = '#6f8750';
-      ctx.fillRect(cx - 12*dpr, ty + 6*dpr, 24*dpr, 3*dpr);
-
+      const tsz = 34 * dpr;
       if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-        ctx.drawImage(sprite, cx - tsz/2, ty - tsz * 0.62, tsz, tsz);
+        ctx.drawImage(sprite, cx - tsz/2, ty - tsz * 0.6, tsz, tsz);
+      } else {
+        // Fallback procedural if image not loaded
+        ctx.fillStyle = '#3a4a28';
+        ctx.fillRect(cx - 9*dpr, ty - 8*dpr, 18*dpr, 14*dpr);
+        ctx.fillStyle = '#2a3420';
+        ctx.fillRect(cx - 2.5*dpr, ty - 22*dpr, 5*dpr, 16*dpr);
       }
-
       // Turret active glow
       ctx.shadowColor = '#88ff44'; ctx.shadowBlur = 8;
       ctx.strokeStyle = '#88ff4466'; ctx.lineWidth = 1*dpr;
