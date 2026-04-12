@@ -1431,7 +1431,9 @@ function renderWaveSummaryUI(reward, deep) {
 $id('continueBtn').addEventListener('click', () => {
   hideOverlay('summaryOverlay');
   const s = G.state;
-  if ((s.wave - 1) % 3 === 0) {
+  // V71: show reward overlay only on boss waves, using context built by finishWave()
+  const ctx = s._pendingRewardContext;
+  if (ctx && ctx.bossWave) {
     renderRewardChoiceUI(() => { hideOverlay('rewardOverlay'); updateHUD(); });
     showOverlay('rewardOverlay');
   }
