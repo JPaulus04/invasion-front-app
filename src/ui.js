@@ -2178,6 +2178,27 @@ const AUTO_WAVE_DELAY = 5; // seconds between wave end and auto-start
 // Auto-wave is a $0.99 IAP — true by default for dev testing
 let _autoWaveUnlocked = localStorage.getItem('ifc_autowav') === '1';
 
+function _hardResetWaveLaunchState(opts = {}) {
+  const s = G.state;
+  if (!s) return;
+  clearTimeout(_autoWaveTimer);
+  _autoWaveTimer = null;
+  if (!opts.preserveAuto) _autoWave = false;
+  s.waveInProgress = false;
+  s.enemiesToSpawn = 0;
+  s.spawnTimer = 0;
+  s.spawnInterval = 0;
+  s.currentModifier = 'none';
+  s.paused = false;
+  s.enemies = [];
+  s.projectiles = [];
+  s.fx = [];
+  if (!opts.preserveStarted) s.started = false;
+  try { _updateAutowavStrip(); } catch(e) {}
+  try { updateHUD(); } catch(e) {}
+}
+window._hardResetWaveLaunchState = _hardResetWaveLaunchState;
+
 function _scheduleAutoWave() {
   clearTimeout(_autoWaveTimer);
   if (!_autoWave) return;
@@ -2190,52 +2211,30 @@ function _scheduleAutoWave() {
   }, AUTO_WAVE_DELAY * 1000);
 }
 
-
-function _hardResetWaveLaunchState(opts) {
-  const s = G.state;
-  const preserveAuto = !!(opts && opts.preserveAuto);
-  clearTimeout(_autoWaveTimer);
-  _autoWaveTimer = null;
-  if (!preserveAuto) _autoWave = false;
-  if (!s) { try { _updateAutowavStrip(); } catch(e) {} return; }
-  s.waveInProgress = false;
-  s.enemiesToSpawn = 0;
-  s.spawnTimer = 0;
-  s.spawnInterval = 0;
-  s.currentModifier = 'none';
-  s.paused = false;
-  s.enemies = [];
-  s.projectiles = [];
-  s.fx = [];
-  try { _updateAutowavStrip(); } catch(e) {}
-  try { updateHUD(); } catch(e) {}
-}
-
-
 $id('waveBtn').addEventListener('click', () => {
   ensureAudio();
   const s = G.state;
   if (!s.started) { $id('beginBtn').click(); return; }
   _obActionTaken('wave');
   if (!s.waveInProgress) {
-    clearTimeout(_autoWaveTimer);
-    _autoWaveTimer = null;
-    s.enemiesToSpawn = 0;
-    s.spawnTimer = 0;
-    s.spawnInterval = 0;
+    clearTimeout(_autoWaveTimer); _autoWaveTimer = null;
     const isBoss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
     s.paused = true;
     showCountdown(isBoss, () => {
       s.paused = false;
       startWave(onBossAlert, onModifier, onFirstRunHint);
       updateHUD();
-      // Hard retry for rare post-prestige soft-lock. If nothing armed, force a clean manual-ready reset and retry once.
+      // V61: failsafe for rare post-prestige soft-lock where the wave button resolves but
+      // the wave never arms. Retry once only if nothing actually started.
       setTimeout(function() {
         const st = G.state;
         if (!st || st.gameOver || st.waveInProgress || !st.started) return;
         const nothingQueued = (st.enemiesToSpawn || 0) <= 0 && (!st.enemies || st.enemies.length === 0);
         if (!nothingQueued) return;
-        _hardResetWaveLaunchState({ preserveAuto:false });
+        st.paused = false;
+        st.currentModifier = 'none';
+        st.spawnTimer = 0;
+        st.spawnInterval = 0;
         startWave(onBossAlert, onModifier, onFirstRunHint);
         updateHUD();
         if (typeof showToast === 'function') showToast('Wave launch recovered');

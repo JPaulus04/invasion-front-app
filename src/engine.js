@@ -42,6 +42,10 @@ function applyDoctrine() {
     s.mods.orbitalDamage  = Math.floor(s.mods.orbitalDamage * boost);
     s.mods.laneGunPower  *= boost;
   }
+  const pb = _prestigeRunBonuses(s.prestige);
+  s.maxBaseHp += pb.baseHpBonus;
+  s.mods.damageMult += pb.damageBonus;
+  s.mods.incomeMult += pb.incomeBonus;
   s.baseHp = Math.min(prev, s.maxBaseHp);
 }
 
@@ -218,6 +222,10 @@ function createTroop(id, lane, hp = null, cooldown = 0, slotOverride = null) {
   const slot = slotOverride ?? laneTroopCount(lane);
   // V48: heavy HP bonus from Operations
   let maxHp = type.hp;
+  if (G.state) {
+    const pb = _prestigeRunBonuses(G.state.prestige);
+    maxHp = Math.floor(maxHp * pb.troopHpMult);
+  }
   if (id === 'heavy' && G.state && G.state.perks.heavyHpBonus)
     maxHp = Math.floor(maxHp * (1 + G.state.perks.heavyHpBonus));
   return {
@@ -628,6 +636,8 @@ function finishWave() {
   s.waveInProgress = false;
   if (s.runtime.orbitalReset) { s.abilities.orbitalCd = 0; G.log('Artillery event: Orbital recharged!', 'event'); }
 
+  const wasBossWave = s.wave % CFG.BOSS_WAVE_EVERY === 0;
+  s._pendingBossReward = !!wasBossWave;
   const incUnlock = 1 + UNLOCKS.incomeBonus(s.prestige);
   const reward = Math.floor(
     (CFG.WAVE_REWARD_BASE + s.wave * CFG.WAVE_REWARD_SCALE) *
@@ -635,13 +645,14 @@ function finishWave() {
     s.runtime.rewardMult * (1 + s.prestige * CFG.PRESTIGE_INCOME_BONUS) * incUnlock
   );
   const deep = UNLOCKS.deepStrike(s.prestige, s.wave);
-  s.credits += reward + deep;
+  const bossBonus = wasBossWave ? Math.floor(120 + s.prestige * 20) : 0;
+  s.credits += reward + deep + bossBonus;
   s.lastWaveStats.credits += reward;
   s.creditsEarned += reward;
 
   const repair = (6 + (s.prestige||0) * 3) + s.perks.clearRepair + s.lanes.reduce((a, l) => a + l.medbay * 0.8, 0);
   s.baseHp = Math.min(s.maxBaseHp, s.baseHp + repair);
-  G.log(`Wave ${s.wave} cleared. +${reward}${deep ? ` (+${deep} deep)` : ''} cr  +${Math.floor(repair)} HP`, 'good');
+  G.log(`Wave ${s.wave} cleared. +${reward}${deep ? ` (+${deep} deep)` : ''}${bossBonus ? ` (+${bossBonus} boss)` : ''} cr  +${Math.floor(repair)} HP`, 'good');
 
   s.wave++;
   playSfx('victory');
@@ -655,6 +666,8 @@ function buildRewardChoices() {
   const doc = s.selectedDoctrine;
   const mastery = docMastery(G.meta, doc);
   const wave = s.wave;
+  if (!s._pendingBossReward) return { picks: [], mastery, doc, bossOnly: true };
+  s._pendingBossReward = false;
 
   // Wave-gated tier system — rewards unlock progressively every 10 waves
   // W1-9:   Tier 1 only (basic buffs — rifle, economy, fortify, intel)
@@ -724,7 +737,18 @@ function prestigeGain() {
 }
 
 function canPrestige() {
-  return G.state.wave >= CFG.PRESTIGE_WAVE_REQ;
+  return (G.state && G.state.wave >= CFG.PRESTIGE_WAVE_REQ);
+}
+
+function _prestigeRunBonuses(rank) {
+  const r = Math.max(0, rank || 0);
+  return {
+    startCredits: r * 25,
+    baseHpBonus: r * 12,
+    troopHpMult: 1 + r * 0.07,
+    damageBonus: r * 0.03,
+    incomeBonus: r * 0.02,
+  };
 }
 
 // ── ACHIEVEMENT SYSTEM ─────────────────────────────────────────────
@@ -908,28 +932,31 @@ function doPrestige(onComplete) {
   G.state.currentModifier = 'none';
   G.state.paused = false;
   G.state.gameOver = false;
-  if (typeof _hardResetWaveLaunchState === 'function') _hardResetWaveLaunchState({ preserveAuto:false });
+  const pb = _prestigeRunBonuses(G.meta.prestige);
+  G.state.credits += pb.startCredits;
   applyDoctrine(); applyUpgrades();
+  G.state.baseHp = G.state.maxBaseHp;
   _initOpsNodes(G.state); // V48: auto-unlock Rifle Corps after prestige
   _restoreIAPPurchases();
+  if (typeof _hardResetWaveLaunchState === 'function') _hardResetWaveLaunchState({ preserveAuto:false, preserveStarted:false });
   G.log(`Prestige! Rank → ${G.meta.prestige}.`, 'system');
   playSfx('prestige');
-  
-  // After prestige ceremony, show home then doctrine select
+
+  // After prestige, return to doctrine selection/start flow. This matches the fresh-run path
+  // and avoids the partially initialized post-prestige state that can block enemy spawning.
   setTimeout(() => {
-    renderHomeScreen();
-    $id('homeScreen').style.display = 'flex';
-    $id('prestigeOverlay').style.display = 'none';
+    try { if ($id('homeScreen')) $id('homeScreen').style.display = 'none'; } catch(e) {}
+    try { if ($id('prestigeOverlay')) $id('prestigeOverlay').style.display = 'none'; } catch(e) {}
+    try { if ($id('startOverlay')) $id('startOverlay').classList.remove('hidden'); } catch(e) {}
+    try { renderHomeScreen(); } catch(e) {}
   }, 2000);
-  
+
   onComplete?.();
 }
 
 function triggerGameOver() {
   const s = G.state;
   s.baseHp = Math.max(0, s.baseHp || 0);
-  s.gameOver = true; s.paused = true;
-  if (typeof _hardResetWaveLaunchState === 'function') _hardResetWaveLaunchState({ preserveAuto:false });
   s.gameOver = true; s.paused = true;
   s.fx = [];
   s.projectiles = [];
