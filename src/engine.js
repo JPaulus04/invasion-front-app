@@ -666,8 +666,6 @@ function buildRewardChoices() {
   const doc = s.selectedDoctrine;
   const mastery = docMastery(G.meta, doc);
   const wave = s.wave;
-  if (!s._pendingBossReward) return { picks: [], mastery, doc, bossOnly: true };
-  s._pendingBossReward = false;
 
   // Wave-gated tier system — rewards unlock progressively every 10 waves
   // W1-9:   Tier 1 only (basic buffs — rifle, economy, fortify, intel)
