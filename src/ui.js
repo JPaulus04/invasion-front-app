@@ -2178,27 +2178,6 @@ const AUTO_WAVE_DELAY = 5; // seconds between wave end and auto-start
 // Auto-wave is a $0.99 IAP — true by default for dev testing
 let _autoWaveUnlocked = localStorage.getItem('ifc_autowav') === '1';
 
-function _hardResetWaveLaunchState(opts = {}) {
-  const s = G.state;
-  if (!s) return;
-  clearTimeout(_autoWaveTimer);
-  _autoWaveTimer = null;
-  if (!opts.preserveAuto) _autoWave = false;
-  s.waveInProgress = false;
-  s.enemiesToSpawn = 0;
-  s.spawnTimer = 0;
-  s.spawnInterval = 0;
-  s.currentModifier = 'none';
-  s.paused = false;
-  s.enemies = [];
-  s.projectiles = [];
-  s.fx = [];
-  if (!opts.preserveStarted) s.started = false;
-  try { _updateAutowavStrip(); } catch(e) {}
-  try { updateHUD(); } catch(e) {}
-}
-window._hardResetWaveLaunchState = _hardResetWaveLaunchState;
-
 function _scheduleAutoWave() {
   clearTimeout(_autoWaveTimer);
   if (!_autoWave) return;
@@ -2217,7 +2196,6 @@ $id('waveBtn').addEventListener('click', () => {
   if (!s.started) { $id('beginBtn').click(); return; }
   _obActionTaken('wave');
   if (!s.waveInProgress) {
-    clearTimeout(_autoWaveTimer); _autoWaveTimer = null;
     const isBoss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
     s.paused = true;
     showCountdown(isBoss, () => {

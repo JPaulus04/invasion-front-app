@@ -42,10 +42,6 @@ function applyDoctrine() {
     s.mods.orbitalDamage  = Math.floor(s.mods.orbitalDamage * boost);
     s.mods.laneGunPower  *= boost;
   }
-  const pb = _prestigeRunBonuses(s.prestige);
-  s.maxBaseHp += pb.baseHpBonus;
-  s.mods.damageMult += pb.damageBonus;
-  s.mods.incomeMult += pb.incomeBonus;
   s.baseHp = Math.min(prev, s.maxBaseHp);
 }
 
@@ -222,10 +218,6 @@ function createTroop(id, lane, hp = null, cooldown = 0, slotOverride = null) {
   const slot = slotOverride ?? laneTroopCount(lane);
   // V48: heavy HP bonus from Operations
   let maxHp = type.hp;
-  if (G.state) {
-    const pb = _prestigeRunBonuses(G.state.prestige);
-    maxHp = Math.floor(maxHp * pb.troopHpMult);
-  }
   if (id === 'heavy' && G.state && G.state.perks.heavyHpBonus)
     maxHp = Math.floor(maxHp * (1 + G.state.perks.heavyHpBonus));
   return {
@@ -631,13 +623,35 @@ function unitDmgMult(id, troop) {
 }
 
 // ── Wave end & rewards ────────────────────────────────
+function _loadBossMilestoneState() {
+  try {
+    return JSON.parse(localStorage.getItem('ifc_boss_milestones') || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+function _saveBossMilestoneState(state) {
+  try {
+    localStorage.setItem('ifc_boss_milestones', JSON.stringify(state || {}));
+  } catch (e) {}
+}
+
+function _bossMilestoneMeta(totalBosses) {
+  if (totalBosses >= 200) return { key: 'boss_200', label: 'Boss 200', threshold: 200, pickCount: 2, rarityBoost: 0.30, bonusCredits: 900 };
+  if (totalBosses >= 100) return { key: 'boss_100', label: 'Boss 100', threshold: 100, pickCount: 2, rarityBoost: 0.22, bonusCredits: 550 };
+  if (totalBosses >= 50)  return { key: 'boss_50',  label: 'Boss 50',  threshold: 50,  pickCount: 1, rarityBoost: 0.16, bonusCredits: 300 };
+  if (totalBosses >= 1)   return { key: 'boss_1',   label: 'First Boss', threshold: 1,   pickCount: 1, rarityBoost: 0.10, bonusCredits: 180 };
+  return null;
+}
+
 function finishWave() {
   const s = G.state;
+  const clearedWave = s.wave;
+  const wasBossWave = clearedWave % CFG.BOSS_WAVE_EVERY === 0;
   s.waveInProgress = false;
   if (s.runtime.orbitalReset) { s.abilities.orbitalCd = 0; G.log('Artillery event: Orbital recharged!', 'event'); }
 
-  const wasBossWave = s.wave % CFG.BOSS_WAVE_EVERY === 0;
-  s._pendingBossReward = !!wasBossWave;
   const incUnlock = 1 + UNLOCKS.incomeBonus(s.prestige);
   const reward = Math.floor(
     (CFG.WAVE_REWARD_BASE + s.wave * CFG.WAVE_REWARD_SCALE) *
@@ -645,41 +659,67 @@ function finishWave() {
     s.runtime.rewardMult * (1 + s.prestige * CFG.PRESTIGE_INCOME_BONUS) * incUnlock
   );
   const deep = UNLOCKS.deepStrike(s.prestige, s.wave);
-  const bossBonus = wasBossWave ? Math.floor(120 + s.prestige * 20) : 0;
+
+  let bossMeta = null;
+  let bossBonus = 0;
+  if (wasBossWave) {
+    const career = _loadCareerStats();
+    const totalBosses = (career.total_bosses || 0) + (GAME_STATS.bosses_killed_run || 0);
+    const milestones = _loadBossMilestoneState();
+    const candidate = _bossMilestoneMeta(totalBosses);
+    if (candidate && !milestones[candidate.key]) {
+      milestones[candidate.key] = true;
+      _saveBossMilestoneState(milestones);
+      bossMeta = Object.assign({ totalBosses: totalBosses, cacheType: 'milestone' }, candidate);
+      bossBonus += candidate.bonusCredits;
+      G.log(`Milestone cache unlocked — ${candidate.label}!`, 'event');
+    } else {
+      bossMeta = { cacheType: 'command', label: 'Command Cache', totalBosses: totalBosses, pickCount: 1, rarityBoost: 0.06, bonusCredits: 120 + Math.floor(clearedWave * 4) };
+      bossBonus += bossMeta.bonusCredits;
+    }
+  }
+
   s.credits += reward + deep + bossBonus;
-  s.lastWaveStats.credits += reward;
-  s.creditsEarned += reward;
+  s.lastWaveStats.credits += reward + bossBonus;
+  s.creditsEarned += reward + bossBonus;
 
   const repair = (6 + (s.prestige||0) * 3) + s.perks.clearRepair + s.lanes.reduce((a, l) => a + l.medbay * 0.8, 0);
   s.baseHp = Math.min(s.maxBaseHp, s.baseHp + repair);
   G.log(`Wave ${s.wave} cleared. +${reward}${deep ? ` (+${deep} deep)` : ''}${bossBonus ? ` (+${bossBonus} boss)` : ''} cr  +${Math.floor(repair)} HP`, 'good');
 
+  s._pendingRewardContext = {
+    sourceWave: clearedWave,
+    bossWave: wasBossWave,
+    cacheType: bossMeta ? bossMeta.cacheType : 'field',
+    milestone: bossMeta || null,
+    title: bossMeta ? (bossMeta.cacheType === 'milestone' ? 'Milestone Cache' : 'Command Cache') : 'Field Reinforcement',
+    subtitle: bossMeta ? `${bossMeta.label} · ${bossMeta.totalBosses} total bosses` : `Wave ${clearedWave} · Standard reward`,
+    pickCount: bossMeta && bossMeta.pickCount ? bossMeta.pickCount : 1,
+    rarityBoost: bossMeta && bossMeta.rarityBoost ? bossMeta.rarityBoost : 0,
+  };
+
   s.wave++;
   playSfx('victory');
-  // V48: earn XP on wave clear
-  s.xp = (s.xp || 0) + (CFG.OPS_XP_WAVE || 25);
-  return { reward, deep, repair };
+  s.xp = (s.xp || 0) + (CFG.OPS_XP_WAVE || 25) + (wasBossWave ? Math.max(20, Math.floor((CFG.OPS_XP_WAVE || 25) * 1.5)) : 0);
+  return { reward, deep, repair, bossBonus, bossMeta };
 }
 
 function buildRewardChoices() {
   const s = G.state;
   const doc = s.selectedDoctrine;
   const mastery = docMastery(G.meta, doc);
-  const wave = s.wave;
+  const ctx = s._pendingRewardContext || {};
+  const wave = ctx.sourceWave || s.wave;
 
-  // Wave-gated tier system — rewards unlock progressively every 10 waves
-  // W1-9:   Tier 1 only (basic buffs — rifle, economy, fortify, intel)
-  // W10-19: Tier 1 + some Tier 2 (overdrive, rally, reinforce)
-  // W20-29: Full Tier 1 + Tier 2 pool
-  // W30-39: Tier 2 + some Tier 3 (doctrine exclusives start appearing)
-  // W40+:   Full pool including all Tier 3 and doctrine exclusives
+  const bonus = ctx.rarityBoost || 0;
   const maxTier = wave < 10 ? 1 : wave < 20 ? 1.5 : wave < 30 ? 2 : wave < 40 ? 2.5 : 3;
+  const effectiveTier = Math.min(3, maxTier + bonus);
   const exclPool = (mastery >= 7 && wave >= 40) ? REWARD_POOL.filter(r => r.docExclusive === doc) : [];
 
   const filterTier = pool => pool.filter(r => {
     if (r.tier === 1) return true;
-    if (r.tier === 2) return maxTier >= 1.5 && (maxTier >= 2 || Math.random() < 0.4);
-    if (r.tier === 3) return maxTier >= 2.5 && (maxTier >= 3 || Math.random() < 0.35);
+    if (r.tier === 2) return effectiveTier >= 1.5 && (effectiveTier >= 2 || Math.random() < (0.4 + bonus));
+    if (r.tier === 3) return effectiveTier >= 2.5 && (effectiveTier >= 3 || Math.random() < (0.35 + bonus));
     return false;
   });
 
@@ -687,10 +727,28 @@ function buildRewardChoices() {
   const genPool = REWARD_POOL.filter(r => !r.docExclusive && !r.docSynergy.includes(doc));
 
   let picks = [];
-  if (exclPool.length) picks.push(exclPool[Math.floor(Math.random() * exclPool.length)]);
-  picks = [...picks, ...filterTier(synPool).sort(() => Math.random() - 0.5), ...filterTier(genPool).sort(() => Math.random() - 0.5)];
+  if (ctx.bossWave && exclPool.length) picks.push(exclPool[Math.floor(Math.random() * exclPool.length)]);
+  if (ctx.cacheType === 'milestone') {
+    picks = [
+      ...picks,
+      ...filterTier(synPool).sort(() => Math.random() - 0.5),
+      ...filterTier(synPool).sort(() => Math.random() - 0.5),
+      ...filterTier(genPool).sort(() => Math.random() - 0.5)
+    ];
+  } else {
+    picks = [...picks, ...filterTier(synPool).sort(() => Math.random() - 0.5), ...filterTier(genPool).sort(() => Math.random() - 0.5)];
+  }
   picks = [...new Map(picks.map(p => [p.id, p])).values()].slice(0, 3);
-  return { picks, mastery, doc };
+  return {
+    picks,
+    mastery,
+    doc,
+    title: ctx.title || 'Field Reinforcement',
+    subtitle: ctx.subtitle || `Wave ${wave}`,
+    cacheType: ctx.cacheType || 'field',
+    milestone: ctx.milestone || null,
+    pickCount: ctx.pickCount || 1,
+  };
 }
 
 function applyReward(reward) {
@@ -701,6 +759,7 @@ function applyReward(reward) {
   // so _resetTreePerks can restore them without wiping reward gains
   s._rewardBarricade   = s.perks.barricadeBoost || 0;
   s._rewardClearRepair = s.perks.clearRepair    || 0;
+  s._pendingRewardContext = null;
   G.log(`${reward.name} selected.`, 'info');
 }
 
@@ -735,18 +794,7 @@ function prestigeGain() {
 }
 
 function canPrestige() {
-  return (G.state && G.state.wave >= CFG.PRESTIGE_WAVE_REQ);
-}
-
-function _prestigeRunBonuses(rank) {
-  const r = Math.max(0, rank || 0);
-  return {
-    startCredits: r * 25,
-    baseHpBonus: r * 12,
-    troopHpMult: 1 + r * 0.07,
-    damageBonus: r * 0.03,
-    incomeBonus: r * 0.02,
-  };
+  return G.state.wave >= CFG.PRESTIGE_WAVE_REQ || G.state.gameOver;
 }
 
 // ── ACHIEVEMENT SYSTEM ─────────────────────────────────────────────
@@ -930,25 +978,19 @@ function doPrestige(onComplete) {
   G.state.currentModifier = 'none';
   G.state.paused = false;
   G.state.gameOver = false;
-  const pb = _prestigeRunBonuses(G.meta.prestige);
-  G.state.credits += pb.startCredits;
   applyDoctrine(); applyUpgrades();
-  G.state.baseHp = G.state.maxBaseHp;
   _initOpsNodes(G.state); // V48: auto-unlock Rifle Corps after prestige
   _restoreIAPPurchases();
-  if (typeof _hardResetWaveLaunchState === 'function') _hardResetWaveLaunchState({ preserveAuto:false, preserveStarted:false });
   G.log(`Prestige! Rank → ${G.meta.prestige}.`, 'system');
   playSfx('prestige');
-
-  // After prestige, return to doctrine selection/start flow. This matches the fresh-run path
-  // and avoids the partially initialized post-prestige state that can block enemy spawning.
+  
+  // After prestige ceremony, show home then doctrine select
   setTimeout(() => {
-    try { if ($id('homeScreen')) $id('homeScreen').style.display = 'none'; } catch(e) {}
-    try { if ($id('prestigeOverlay')) $id('prestigeOverlay').style.display = 'none'; } catch(e) {}
-    try { if ($id('startOverlay')) $id('startOverlay').classList.remove('hidden'); } catch(e) {}
-    try { renderHomeScreen(); } catch(e) {}
+    renderHomeScreen();
+    $id('homeScreen').style.display = 'flex';
+    $id('prestigeOverlay').style.display = 'none';
   }, 2000);
-
+  
   onComplete?.();
 }
 
