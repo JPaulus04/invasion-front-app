@@ -197,6 +197,14 @@ function drawVertical(state) {
   const dpr = window.devicePixelRatio || 1;
   const t = state.time;
 
+  // V72: guard against non-finite values reaching createRadialGradient (causes crash on some frames)
+  function _safeGrad(x1, y1, r1, x2, y2, r2) {
+    if (!isFinite(x1) || !isFinite(y1) || !isFinite(r1) ||
+        !isFinite(x2) || !isFinite(y2) || !isFinite(r2) ||
+        r1 < 0 || r2 <= 0) return null;
+    return ctx.createRadialGradient(x1, y1, r1, x2, y2, r2);
+  }
+
   // Charcoal black base — required for crimson silhouette contrast per art spec
   ctx.fillStyle = '#0a0b0c';
   ctx.fillRect(0, 0, W, H);
@@ -529,7 +537,8 @@ function drawVertical(state) {
     _scorchMarks[pi].life -= 0.00015 * gs; // very slow fade — marks persist
     if (_scorchMarks[pi].life <= 0) { _scorchMarks.splice(pi, 1); continue; }
     var sm = _scorchMarks[pi];
-    var sg = ctx.createRadialGradient(sm.x, sm.y, 0, sm.x, sm.y, sm.r);
+    var sg = _safeGrad(sm.x, sm.y, 0, sm.x, sm.y, sm.r);
+    if (!sg) continue;
     sg.addColorStop(0,   'rgba(8,6,2,' + (sm.life * 0.55) + ')');
     sg.addColorStop(0.5, 'rgba(15,10,4,' + (sm.life * 0.28) + ')');
     sg.addColorStop(1,   'transparent');
@@ -564,7 +573,8 @@ function drawVertical(state) {
     _muzzleGlows[mi].life -= 0.08 * gs;
     if (_muzzleGlows[mi].life <= 0) { _muzzleGlows.splice(mi, 1); continue; }
     var mg2 = _muzzleGlows[mi];
-    var mgg = ctx.createRadialGradient(mg2.x, mg2.y, 0, mg2.x, mg2.y, mg2.r);
+    var mgg = _safeGrad(mg2.x, mg2.y, 0, mg2.x, mg2.y, mg2.r);
+    if (!mgg) continue;
     mgg.addColorStop(0,   'rgba(255,200,80,' + (mg2.life * 0.18) + ')');
     mgg.addColorStop(0.5, 'rgba(255,140,40,' + (mg2.life * 0.08) + ')');
     mgg.addColorStop(1,   'transparent');
@@ -578,7 +588,8 @@ function drawVertical(state) {
     // Very slow fade — stay for many waves
     dd.life -= 0.00008 * gs;
     if (dd.life <= 0) { _deathDecals.splice(di, 1); di--; continue; }
-    var dg = ctx.createRadialGradient(dd.x, dd.y, 0, dd.x, dd.y, dd.r * dpr);
+    var dg = _safeGrad(dd.x, dd.y, 0, dd.x, dd.y, dd.r * dpr);
+    if (!dg) continue;
     if (dd.kind === 'oil') {
       dg.addColorStop(0,   'rgba(30,20,10,' + (dd.life * 0.65) + ')');
       dg.addColorStop(0.6, 'rgba(20,12,6,' + (dd.life * 0.3) + ')');
@@ -1384,7 +1395,8 @@ function drawVertical(state) {
       const shadowW = er * (e.kind === 'juggernaut' || e.kind === 'warden' ? 2.2 : 1.6);
       const shadowH = er * 0.3;
       const shadowY = ey + er * 0.9;
-      const sg = ctx.createRadialGradient(ex, shadowY, 0, ex, shadowY, shadowW);
+      const sg = _safeGrad(ex, shadowY, 0, ex, shadowY, shadowW);
+      if (!sg) continue;
       sg.addColorStop(0,   'rgba(0,0,0,' + (0.35 * spawnAlpha) + ')');
       sg.addColorStop(0.6, 'rgba(0,0,0,' + (0.15 * spawnAlpha) + ')');
       sg.addColorStop(1,   'transparent');
@@ -1509,11 +1521,13 @@ function drawVertical(state) {
       ctx.fillRect(fromX_scr - 1*dpr, fromY_scr - flashSize, 2*dpr, flashSize*2);
       ctx.fillRect(fromX_scr - flashSize, fromY_scr - 1*dpr, flashSize*2, 2*dpr);
       // Bloom
-      const bg = ctx.createRadialGradient(fromX_scr, fromY_scr, 0, fromX_scr, fromY_scr, flashSize*1.5);
-      bg.addColorStop(0, p.color + 'cc');
-      bg.addColorStop(1, 'transparent');
-      ctx.fillStyle = bg;
-      ctx.beginPath(); ctx.arc(fromX_scr, fromY_scr, flashSize*1.5, 0, Math.PI*2); ctx.fill();
+      const bg = _safeGrad(fromX_scr, fromY_scr, 0, fromX_scr, fromY_scr, flashSize*1.5);
+      if (bg) {
+        bg.addColorStop(0, p.color + 'cc');
+        bg.addColorStop(1, 'transparent');
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.arc(fromX_scr, fromY_scr, flashSize*1.5, 0, Math.PI*2); ctx.fill();
+      }
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
     }
@@ -1552,13 +1566,15 @@ function drawVertical(state) {
       ctx.shadowBlur = 0;
       // Fireball core
       ctx.globalAlpha = a;
-      const fireGrad = ctx.createRadialGradient(fcx, fcy - coreR*0.2, 0, fcx, fcy, coreR);
-      fireGrad.addColorStop(0,   'rgba(255,255,200,' + a + ')');
-      fireGrad.addColorStop(0.3, 'rgba(255,200,60,' + a*0.95 + ')');
-      fireGrad.addColorStop(0.7, 'rgba(255,80,20,' + a*0.7 + ')');
-      fireGrad.addColorStop(1,   'rgba(100,30,5,0)');
-      ctx.fillStyle = fireGrad;
-      ctx.beginPath(); ctx.arc(fcx, fcy, coreR, 0, Math.PI*2); ctx.fill();
+      const fireGrad = _safeGrad(fcx, fcy - coreR*0.2, 0, fcx, fcy, coreR);
+      if (fireGrad) {
+        fireGrad.addColorStop(0,   'rgba(255,255,200,' + a + ')');
+        fireGrad.addColorStop(0.3, 'rgba(255,200,60,' + a*0.95 + ')');
+        fireGrad.addColorStop(0.7, 'rgba(255,80,20,' + a*0.7 + ')');
+        fireGrad.addColorStop(1,   'rgba(100,30,5,0)');
+        ctx.fillStyle = fireGrad;
+        ctx.beginPath(); ctx.arc(fcx, fcy, coreR, 0, Math.PI*2); ctx.fill();
+      }
       // Smoke puff above explosion
       ctx.globalAlpha = a * 0.4;
       ctx.fillStyle = 'rgba(60,55,45,' + a*0.5 + ')';
@@ -1579,13 +1595,15 @@ function drawVertical(state) {
       ctx.fillRect(fcx - 12*dpr, 0, 24*dpr, fcy);
       // Impact blast
       ctx.globalAlpha = a;
-      const orbGrad = ctx.createRadialGradient(fcx, fcy, 0, fcx, fcy, orbR);
-      orbGrad.addColorStop(0,   'rgba(240,250,255,' + a + ')');
-      orbGrad.addColorStop(0.25,'rgba(160,210,255,' + a*0.9 + ')');
-      orbGrad.addColorStop(0.6, 'rgba(80,150,255,' + a*0.5 + ')');
-      orbGrad.addColorStop(1,   'rgba(40,80,255,0)');
-      ctx.fillStyle = orbGrad;
-      ctx.beginPath(); ctx.arc(fcx, fcy, orbR, 0, Math.PI*2); ctx.fill();
+      const orbGrad = _safeGrad(fcx, fcy, 0, fcx, fcy, orbR);
+      if (orbGrad) {
+        orbGrad.addColorStop(0,   'rgba(240,250,255,' + a + ')');
+        orbGrad.addColorStop(0.25,'rgba(160,210,255,' + a*0.9 + ')');
+        orbGrad.addColorStop(0.6, 'rgba(80,150,255,' + a*0.5 + ')');
+        orbGrad.addColorStop(1,   'rgba(40,80,255,0)');
+        ctx.fillStyle = orbGrad;
+        ctx.beginPath(); ctx.arc(fcx, fcy, orbR, 0, Math.PI*2); ctx.fill();
+      }
       // Shockwave rings
       for (let ri = 0; ri < 3; ri++) {
         ctx.globalAlpha = a * (0.6 - ri*0.15);
