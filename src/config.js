@@ -20,8 +20,8 @@ const CFG = Object.freeze({
   TROOP_SLOTS:             5,
 
   // ── Spawning ─────────────────────────────────────────
-  SPAWN_BASE:              9,      // V8: -1, waves 1-4 slightly lighter
-  SPAWN_PER_WAVE:          2.8,    // V8: -0.1, gentler growth curve
+  SPAWN_BASE:              5,      // V73: reduced early wave pressure (was 9)
+  SPAWN_PER_WAVE:          1.8,    // V73: slower enemy count growth (was 2.8)
   SPAWN_INTERVAL_BASE:     0.78,   // V8: slightly slower early spawns
   SPAWN_INTERVAL_MIN:      0.15,
   SPAWN_INTERVAL_SCALE:    0.017,
@@ -93,7 +93,7 @@ const CFG = Object.freeze({
 const UNLOCKS = Object.freeze({
   active:          p => new Set(PERMANENT_UNLOCKS.filter(u => p >= u.rank).map(u => u.id)),
   has:             (p, id) => p >= (PERMANENT_UNLOCKS.find(u => u.id === id)?.rank ?? 99),
-  troopSlots:      p => UNLOCKS.has(p, 'u_troop7') ? 6 : CFG.TROOP_SLOTS,
+  troopSlots:      p => CFG.TROOP_SLOTS,   // V73: capped at 5, 6-slot unlock disabled
   startCr:         p => CFG.BASE_CREDITS + (UNLOCKS.has(p, 'u_startcr') ? 80 : 0),
   orbitalDmgBonus: p => UNLOCKS.has(p, 'u_orbital') ? CFG.ORBITAL_UNLOCK_DMG : 0,
   incomeBonus:     p => UNLOCKS.has(p, 'u_income') ? CFG.UNLOCK_INCOME_BONUS : 0,

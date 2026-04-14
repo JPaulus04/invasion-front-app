@@ -380,7 +380,7 @@ function enemyTemplate() {
   if (boss) {
     return {
       kind: 'warden', lane, y: lY, baseY: lY,
-      hp: (400 + s.wave * 70) * hm,
+      hp: (250 + s.wave * 45) * hm,          // V73: reduced from (400 + wave*70)
       speed: spd(18 + s.wave * 0.5),
       damage: 16 + Math.floor(s.wave * 0.45),
       r: 36, shield: 0,
@@ -390,7 +390,7 @@ function enemyTemplate() {
       _wardenFireCd: 2.0,     // suppressive fire cooldown
       _wardenFireRate: 1.8,   // seconds between shots
       _wardenSpawned: false,  // phase 2 reinforcement flag
-      _wardenMaxHp: (400 + s.wave * 70) * hm,
+      _wardenMaxHp: (250 + s.wave * 45) * hm, // V73: must match hp above
     };
   }
 

@@ -324,7 +324,7 @@ const PERMANENT_UNLOCKS = [
   { id:'u_sniper',    rank:2, name:'Sniper Program',      desc:'Sniper Team unit unlocked for deployment.' },
   { id:'u_barricade', rank:2, name:'Reinforced Walls',    desc:'Barricades block +0.5 extra damage per level.' },
   { id:'u_orbital',   rank:3, name:'Satellite Priority',  desc:'Orbital damage +22 permanently.' },
-  { id:'u_troop7',    rank:4, name:'Expanded Roster',     desc:'Lane troop cap increased from 5 to 6.' },
+  { id:'u_troop7',    rank:4, name:'Expanded Roster',     desc:'Lane troop cap: 5 per lane.' },
   { id:'u_income',    rank:5, name:'Supply Command',      desc:'+10% income from all sources.' },
   { id:'u_wave15',    rank:6, name:'Deep Strike Bonus',   desc:'+30 cr bonus per wave survived past wave 15.' },
   { id:'u_doctrine',  rank:8, name:'Doctrine Refinement', desc:'+5% to all doctrine stat bonuses.' },

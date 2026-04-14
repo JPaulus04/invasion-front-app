@@ -1687,7 +1687,7 @@ function _getRankPerks(rank) {
   if (rank >= 1) perks.push('★ Veteran Stipend: +50 starting credits');
   if (rank >= 2) perks.push('★ Sniper Program: Sniper unlocks at Wave 20 (was 25)');
   if (rank >= 3) perks.push('★ Satellite Priority: Orbital damage permanently +22');
-  if (rank >= 4) perks.push('★ Expanded Roster: Lane troop cap raised to 7');
+  if (rank >= 4) perks.push('★ Expanded Roster: Lane troop cap: 5 per lane');
   if (rank >= 5) perks.push('★ Supply Command: +10% income from all sources');
   if (rank >= 6) perks.push('★ Deep Strike Bonus: +30 cr per wave past Wave 15');
   if (rank >= 8) perks.push('★ Doctrine Refinement: All doctrine bonuses +5%');
