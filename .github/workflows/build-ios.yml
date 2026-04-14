@@ -74,7 +74,7 @@ jobs:
           path = "ios/App/App.xcodeproj/project.pbxproj"
           with open(path) as f:
               content = f.read()
-          content = re.sub(r'CURRENT_PROJECT_VERSION = \d+;', 'CURRENT_PROJECT_VERSION = 72;', content)
+          content = re.sub(r'CURRENT_PROJECT_VERSION = \d+;', 'CURRENT_PROJECT_VERSION = 73;', content)
           content = re.sub(r'MARKETING_VERSION = [^;]+;', 'MARKETING_VERSION = 1.0;', content)
           content = re.sub(
               r'(PRODUCT_BUNDLE_IDENTIFIER = com\.paulus\.laststandcommand;)',
@@ -88,7 +88,7 @@ jobs:
           )
           with open(path, "w") as f:
               f.write(content)
-          print("Project patched — version 1.0 build 72")
+          print("Project patched — version 1.0 build 73")
           EOF
 
       - name: Patch Podfile
