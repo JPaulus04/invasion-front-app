@@ -502,25 +502,29 @@ function drawVertical(state) {
       const fw  = (6 + Math.sin(fi * 1.3) * 2) * dpr;
       const flicker = 0.6 + 0.4 * Math.sin(t * (8 + fi * 0.5));
       // Outer smoke
-      const smk = ctx.createRadialGradient(fx, fy - fh * 0.3, 0, fx, fy, fw * 2.5);
-      smk.addColorStop(0,   'rgba(40,35,30,' + (fireIntensity * 0.35 * flicker) + ')');
-      smk.addColorStop(1,   'transparent');
-      ctx.fillStyle = smk;
-      ctx.beginPath(); ctx.ellipse(fx, fy - fh * 0.5, fw * 2, fh * 0.8, 0, 0, Math.PI*2); ctx.fill();
+      const smk = _safeGrad(fx, fy - fh * 0.3, 0, fx, fy, fw * 2.5);
+      if (smk) {
+        smk.addColorStop(0,   'rgba(40,35,30,' + (fireIntensity * 0.35 * flicker) + ')');
+        smk.addColorStop(1,   'transparent');
+        ctx.fillStyle = smk;
+        ctx.beginPath(); ctx.ellipse(fx, fy - fh * 0.5, fw * 2, fh * 0.8, 0, 0, Math.PI*2); ctx.fill();
+      }
       // Fire core — orange/yellow
-      const fireG = ctx.createLinearGradient(fx, fy, fx, fy - fh);
-      fireG.addColorStop(0,   'rgba(255,60,0,' + (0.7 * flicker * fireIntensity) + ')');
-      fireG.addColorStop(0.4, 'rgba(255,140,0,' + (0.85 * flicker * fireIntensity) + ')');
-      fireG.addColorStop(0.8, 'rgba(255,220,60,' + (0.6 * flicker * fireIntensity) + ')');
-      fireG.addColorStop(1,   'transparent');
-      ctx.fillStyle = fireG;
-      ctx.beginPath();
-      ctx.moveTo(fx, fy);
-      ctx.lineTo(fx - fw, fy);
-      ctx.quadraticCurveTo(fx - fw * 0.5, fy - fh * 0.6, fx, fy - fh);
-      ctx.quadraticCurveTo(fx + fw * 0.5, fy - fh * 0.6, fx + fw, fy);
-      ctx.closePath();
-      ctx.fill();
+      if (isFinite(fx) && isFinite(fy) && isFinite(fh) && fh > 0) {
+        const fireG = ctx.createLinearGradient(fx, fy, fx, fy - fh);
+        fireG.addColorStop(0,   'rgba(255,60,0,' + (0.7 * flicker * fireIntensity) + ')');
+        fireG.addColorStop(0.4, 'rgba(255,140,0,' + (0.85 * flicker * fireIntensity) + ')');
+        fireG.addColorStop(0.8, 'rgba(255,220,60,' + (0.6 * flicker * fireIntensity) + ')');
+        fireG.addColorStop(1,   'transparent');
+        ctx.fillStyle = fireG;
+        ctx.beginPath();
+        ctx.moveTo(fx, fy);
+        ctx.lineTo(fx - fw, fy);
+        ctx.quadraticCurveTo(fx - fw * 0.5, fy - fh * 0.6, fx, fy - fh);
+        ctx.quadraticCurveTo(fx + fw * 0.5, fy - fh * 0.6, fx + fw, fy);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
     // Glow across treeline base
     const treeGlow = ctx.createLinearGradient(0, treeH - 20*dpr, 0, treeH + 10*dpr);
@@ -1440,6 +1444,8 @@ function drawVertical(state) {
     const drawY_scr = fromY_scr + (toY_scr - fromY_scr) * frac;
     const angle     = Math.atan2(toY_scr - fromY_scr, toX_scr - fromX_scr);
     const dist      = Math.hypot(toX_scr - fromX_scr, toY_scr - fromY_scr);
+    // V74: skip render if any coordinate is non-finite — avoids createLinearGradient crash
+    if (!isFinite(drawX_scr) || !isFinite(drawY_scr) || !isFinite(dist) || !isFinite(angle)) continue;
 
     ctx.save();
     ctx.translate(drawX_scr, drawY_scr);

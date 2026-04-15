@@ -290,6 +290,8 @@ function buyLaneUpgrade(id) {
 function startWave(onBoss, onModifier, onHint) {
   const s = G.state;
   if (s.waveInProgress || s.gameOver) return;
+  // V74: safety net — if player pressed Launch Wave, the run is started regardless
+  if (!s.started) s.started = true;
   s.waveInProgress = true;
   s.lastWaveStats = { credits: 0, baseDamage: 0, lanePressure: [0, 0, 0] };
   s.runtime = freshRuntime();
@@ -981,14 +983,9 @@ function doPrestige(onComplete) {
   _restoreIAPPurchases();
   G.log(`Prestige! Rank → ${G.meta.prestige}.`, 'system');
   playSfx('prestige');
-  
-  // After prestige ceremony, show home then doctrine select
-  setTimeout(() => {
-    renderHomeScreen();
-    $id('homeScreen').style.display = 'flex';
-    $id('prestigeOverlay').style.display = 'none';
-  }, 2000);
-  
+  // V74: removed setTimeout homeScreen redirect — the prestige ceremony buttons
+  // (prestigeContinueBtn) handle post-ceremony navigation to startOverlay.
+  // The old setTimeout was racing with the ceremony and hiding doctrine select.
   onComplete?.();
 }
 
