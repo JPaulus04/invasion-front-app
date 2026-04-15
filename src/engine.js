@@ -371,7 +371,7 @@ function enemyTemplate() {
   const boss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
   const lane = Math.floor(Math.random() * 3);
   const lY = LANE_Y[lane];
-  const tough = 1 + s.wave * 0.10;
+  const tough = 1 + s.wave * 0.06;  // V75: reduced from 0.10 — enemies scale more gently
   const hm = s.runtime.hpMult ?? 1;
   const sw = s.runtime.swarmMult ?? 1;
   const sensorMult = 1 - s.lanes[lane].sensor * 0.10;
@@ -962,6 +962,8 @@ function doPrestige(onComplete) {
   if (G.meta._quests) {
     G.state._quests = JSON.parse(JSON.stringify(G.meta._quests));
   }
+  // V75: orbital unlock is permanent once earned — carry it forward through prestige
+  G.state._orbUnlocked = true;
   // V72: always start at wave 1 — no floor skip. Prestige power comes from bonuses, not wave position.
   G.state.wave = 1;
   // V72: hard-clear all prior run state so nothing carries over

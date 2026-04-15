@@ -14,6 +14,8 @@
 
       // Track kills for Orbital charge AND quest counter
       const newKills = (s.killsTotal || 0);
+      // V75: if killsTotal reset to 0 (new run after prestige), sync _prevKills to avoid phantom delta
+      if (newKills === 0 && _prevKills > 0) _prevKills = 0;
       if (newKills > _prevKills) {
         const killDelta = newKills - _prevKills;
         s._orbKills = ((s._orbKills || 0)) + killDelta;

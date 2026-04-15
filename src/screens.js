@@ -1448,29 +1448,61 @@ $id('sumDeployBtn').addEventListener('click', () => {
 
 // ── Reward choice ─────────────────────────────────────────────
 function renderRewardChoiceUI(onPick) {
-  const { picks, mastery, doc } = buildRewardChoices();
+  const { picks, mastery, doc, title, subtitle, cacheType, milestone, pickCount } = buildRewardChoices();
   const rWave = G.state.wave - 1;
-  const tierLabel = rWave < 10 ? 'Basic Intel' : rWave < 20 ? 'Field Upgrades' : rWave < 30 ? 'Advanced Protocols' : rWave < 40 ? 'Elite Programs' : 'Classified Assets';
-  const exclAvail = mastery >= 7 && rWave >= 40;
-  $id('rewardSub').textContent = exclAvail
-    ? 'Mastery unlocked — doctrine exclusives available.'
-    : '◆ Wave ' + rWave + ' · ' + tierLabel + (mastery >= 3 ? ' · Synergy active' : '');
+
+  // V75: title/subtitle driven by boss context — Command Cache vs Milestone Cache
+  const titleEl = $id('rewardTitle');
+  const subEl   = $id('rewardSub');
+  if (titleEl) {
+    if (cacheType === 'milestone') {
+      titleEl.textContent = '★ ' + (title || 'Milestone Cache');
+      titleEl.style.color = '#ffd700';
+    } else {
+      titleEl.textContent = title || 'Command Cache';
+      titleEl.style.color = 'var(--cyan)';
+    }
+  }
+  if (subEl) {
+    subEl.textContent = subtitle ||
+      (cacheType === 'milestone'
+        ? (milestone ? milestone.label + ' — ' + milestone.totalBosses + ' bosses' : 'Major milestone')
+        : 'Boss wave ' + rWave + ' cleared');
+  }
+
+  if (pickCount > 1 && subEl) {
+    subEl.textContent += ' · Choose ' + pickCount;
+  }
+
   const grid = $id('rewardGrid');
   grid.innerHTML = '';
+  let remaining = pickCount || 1;
   picks.forEach(p => {
     const isSyn  = p.docSynergy.includes(doc) && !p.docExclusive;
     const isExcl = p.docExclusive === doc;
     const isRare = p.tier === 3;
+    const isMilestone = cacheType === 'milestone';
     const card   = document.createElement('div');
-    card.className = 'choice-card' + (isExcl||isRare ? ' rare-card' : isSyn ? ' syn-card' : '');
+    card.className = 'choice-card' + (isExcl||isRare||isMilestone ? ' rare-card' : isSyn ? ' syn-card' : '');
     card.innerHTML =
-      '<div class="choice-title">' + (isRare ? '★ ' : '') + p.name + '</div>' +
+      '<div class="choice-title">' + (isRare||isMilestone ? '★ ' : '') + p.name + '</div>' +
       '<div class="choice-body">' + p.text + '</div>' +
-      (isExcl ? '<div class="rare-label">⚡ Exclusive</div>' : isSyn ? '<div class="syn-label">◆ Synergy</div>' : isRare ? '<div class="rare-label">★ Rare</div>' : '') +
-      '<div style="margin-top:8px"><button class="mBtn ' + (isRare||isExcl ? 'purple' : 'good') + '" style="font-size:13px;padding:9px">Select</button></div>';
+      (isExcl ? '<div class="rare-label">⚡ Exclusive</div>' :
+       isMilestone ? '<div class="rare-label">★ Milestone</div>' :
+       isSyn ? '<div class="syn-label">◆ Synergy</div>' :
+       isRare ? '<div class="rare-label">★ Rare</div>' : '') +
+      '<div style="margin-top:8px"><button class="mBtn ' + (isRare||isExcl||isMilestone ? 'purple' : 'good') + '" style="font-size:13px;padding:9px">Select</button></div>';
     card.querySelector('button').addEventListener('click', () => {
       applyReward(p);
-      if(onPick)onPick();
+      remaining--;
+      if (remaining <= 0) {
+        if (onPick) onPick();
+      } else {
+        // Multi-pick: disable this card, let player pick again
+        card.querySelector('button').disabled = true;
+        card.style.opacity = '0.45';
+        if (subEl) subEl.textContent = 'Choose ' + remaining + ' more';
+      }
     });
     grid.appendChild(card);
   });

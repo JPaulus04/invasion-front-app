@@ -20,8 +20,8 @@ const CFG = Object.freeze({
   TROOP_SLOTS:             5,
 
   // ── Spawning ─────────────────────────────────────────
-  SPAWN_BASE:              5,      // V73: reduced early wave pressure (was 9)
-  SPAWN_PER_WAVE:          1.8,    // V73: slower enemy count growth (was 2.8)
+  SPAWN_BASE:              4,      // V75: reduced further (was 5)
+  SPAWN_PER_WAVE:          1.4,    // V75: slower growth (was 1.8)
   SPAWN_INTERVAL_BASE:     0.78,   // V8: slightly slower early spawns
   SPAWN_INTERVAL_MIN:      0.15,
   SPAWN_INTERVAL_SCALE:    0.017,

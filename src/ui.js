@@ -1111,13 +1111,20 @@ function _renderResearchTree(container, s) {
         var canAfford = s.credits >= node.cost;
         var isInstant = false;
 
-        // Check prestige peak for instant repurchase
+        // V75: instant repurchase for any node type that was completed in a prior run.
+        // upgrade/lane nodes check researchPeak (tracks highest level reached).
+        // mod/perk nodes check researchNodes in meta (_metaNodes) — they had timers on
+        // every repurchase after prestige because they have no upgradeId/laneUpgradeId.
         if (node.type === 'upgrade' && node.upgradeId) {
           var pk = _peak('global_' + node.upgradeId);
           isInstant = pk > 0 && !isDone;
         } else if (node.type === 'lane' && node.laneUpgradeId) {
           var lpk = _peak('lane_' + node.laneUpgradeId);
           isInstant = lpk > 0 && !isDone;
+        } else if (node.type === 'mod' || node.type === 'perk') {
+          // Instant if this node was ever completed (stored in meta._completedNodes)
+          var completedNodes = (G.meta && G.meta._completedNodes) || {};
+          isInstant = !!completedNodes[node.id] && !isDone;
         }
 
         var canAct = unlocked && !isDone && !inQueue && !queueFull && canAfford && !node.locked;
@@ -1204,6 +1211,12 @@ function _purchaseTreeNode(node, timerSecs) {
     if (!G.meta.researchPeak) G.meta.researchPeak = {};
     if (node.upgradeId)   G.meta.researchPeak['global_' + node.upgradeId] = Math.max(G.meta.researchPeak['global_' + node.upgradeId] || 0, s.upgrades[node.upgradeId] || 1);
     if (node.laneUpgradeId) G.meta.researchPeak['lane_' + node.laneUpgradeId] = Math.max(G.meta.researchPeak['lane_' + node.laneUpgradeId] || 0, s.lanes[0][node.laneUpgradeId] || 1);
+    // V75: track mod/perk completion in meta so they're instant on future prestiges
+    if (node.type === 'mod' || node.type === 'perk') {
+      if (!G.meta._completedNodes) G.meta._completedNodes = {};
+      G.meta._completedNodes[node.id] = true;
+      saveMeta(G.meta);
+    }
     _questTick('research', 1);
     haptic('medium');
     showToast('✓ ' + node.name + ' unlocked');
@@ -1220,6 +1233,12 @@ function _purchaseTreeNode(node, timerSecs) {
     if (!G.meta.researchPeak) G.meta.researchPeak = {};
     G.meta.researchPeak['lane_' + node.laneUpgradeId] = Math.max(G.meta.researchPeak['lane_' + node.laneUpgradeId] || 0, s.lanes[0][node.laneUpgradeId]);
     applyUpgrades();
+  }
+  // V75: also track timed mod/perk nodes so they become instant after prestige
+  if (node.type === 'mod' || node.type === 'perk') {
+    if (!G.meta._completedNodes) G.meta._completedNodes = {};
+    G.meta._completedNodes[node.id] = true;
+    saveMeta(G.meta);
   }
   _researchQueue.push({
     nodeId: node.id,
