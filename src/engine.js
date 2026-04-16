@@ -403,29 +403,38 @@ function enemyTemplate() {
   const canPhalanx  = s.wave >= 10;
   const roll = Math.random();
 
+  // V76: speed helpers with soft caps — per-wave scaling reduced ~35% across all types
+  // Breacher was 78+wave*1.8 (W30=132) → now capped at 130, scaling 1.1
+  // Conscript was 38+wave*1.2 (W30=74)  → now capped at 95,  scaling 0.75
+  const bSpd = w => spd(Math.min(72 + w * 1.1,  130));  // breacher
+  const cSpd = w => spd(Math.min(38 + w * 0.75,  95));  // conscript
+  const jSpd = w => spd(Math.min(20 + w * 0.40,  60));  // juggernaut
+  const oSpd = w => spd(Math.min(32 + w * 0.60,  75));  // overwatch
+  const pSpd = w => spd(Math.min(28 + w * 0.50,  65));  // phalanx
+
   // Breacher — fast, fragile pressure (boosted during Breach Rush)
   if ((modBreachRush && roll < 0.45) || roll < 0.22)
-    return { kind:'breacher', lane, y:lY, baseY:lY, hp:14*tough*hm*sw, speed:spd(78+s.wave*1.8), damage:3+Math.floor(s.wave*.08), r:12, shield:0, color:'#d06060' };
+    return { kind:'breacher', lane, y:lY, baseY:lY, hp:14*tough*hm*sw, speed:bSpd(s.wave), damage:3+Math.floor(s.wave*.08), r:12, shield:0, color:'#d06060' };
 
   // Phalanx — shielded protector (wave 10+)
   if ((modArmored && roll < 0.42) || (canPhalanx && roll < 0.36))
-    return { kind:'phalanx', lane, y:lY, baseY:lY, hp:28*tough*hm, speed:spd(30+s.wave*0.85), damage:5+Math.floor(s.wave*.10), r:16, shield:30+s.wave*5, color:'#e09050' };
+    return { kind:'phalanx', lane, y:lY, baseY:lY, hp:28*tough*hm, speed:pSpd(s.wave), damage:5+Math.floor(s.wave*.10), r:16, shield:30+s.wave*5, color:'#e09050' };
 
   // Juggernaut — heavy tank (wave 6+)
   if ((modArmored && roll < 0.62) || (canJugg && roll < 0.52))
-    return { kind:'juggernaut', lane, y:lY, baseY:lY, hp:55*tough*hm, speed:spd(20+s.wave*0.65), damage:8+Math.floor(s.wave*.14), r:22, shield:0, color:'#a08040' };
+    return { kind:'juggernaut', lane, y:lY, baseY:lY, hp:55*tough*hm, speed:jSpd(s.wave), damage:8+Math.floor(s.wave*.14), r:22, shield:0, color:'#a08040' };
 
   // Overwatch — stops at range, fires at troops (wave 8+)
   if (canOverwatch && roll < 0.65)
-    return { kind:'overwatch', lane, y:lY, baseY:lY, hp:22*tough*hm, speed:spd(35+s.wave*1.0), damage:6+Math.floor(s.wave*.12), r:14, shield:0, color:'#7090c0',
-      _owRange: 320,          // stops at this X distance from base
-      _owFireCd: 0,           // current cooldown
-      _owFireRate: 1.4,       // seconds between shots
-      _owStopped: false,      // has reached firing position
+    return { kind:'overwatch', lane, y:lY, baseY:lY, hp:22*tough*hm, speed:oSpd(s.wave), damage:6+Math.floor(s.wave*.12), r:14, shield:0, color:'#7090c0',
+      _owRange: 320,
+      _owFireCd: 0,
+      _owFireRate: 1.4,
+      _owStopped: false,
     };
 
   // Conscript — baseline filler
-  return { kind:'conscript', lane, y:lY, baseY:lY, hp:22*tough*hm, speed:spd(38+s.wave*1.2), damage:4+Math.floor(s.wave*.09), r:14, shield:0, color:'#e06060' };
+  return { kind:'conscript', lane, y:lY, baseY:lY, hp:22*tough*hm, speed:cSpd(s.wave), damage:4+Math.floor(s.wave*.09), r:14, shield:0, color:'#e06060' };
 }
 
 // ── Elite Enemy Variants ─────────────────────────────────────
@@ -964,8 +973,9 @@ function doPrestige(onComplete) {
   }
   // V75: orbital unlock is permanent once earned — carry it forward through prestige
   G.state._orbUnlocked = true;
-  // V72: always start at wave 1 — no floor skip. Prestige power comes from bonuses, not wave position.
-  G.state.wave = 1;
+  // V76: fixed prestige floor — always start at wave 16 (past the tutorial waves,
+  // safely one past the wave 15 boss, never dynamically scales into deep water)
+  G.state.wave = 16;
   // V72: hard-clear all prior run state so nothing carries over
   G.state.waveInProgress   = false;
   G.state.enemiesToSpawn   = 0;
