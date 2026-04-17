@@ -382,7 +382,7 @@ function enemyTemplate() {
   if (boss) {
     return {
       kind: 'warden', lane, y: lY, baseY: lY,
-      hp: (250 + s.wave * 45) * hm,          // V73: reduced from (400 + wave*70)
+      hp: (150 + s.wave * 30) * hm,          // V77: reduced from (250 + wave*45) — early bosses more manageable
       speed: spd(18 + s.wave * 0.5),
       damage: 16 + Math.floor(s.wave * 0.45),
       r: 36, shield: 0,
@@ -392,7 +392,7 @@ function enemyTemplate() {
       _wardenFireCd: 2.0,     // suppressive fire cooldown
       _wardenFireRate: 1.8,   // seconds between shots
       _wardenSpawned: false,  // phase 2 reinforcement flag
-      _wardenMaxHp: (250 + s.wave * 45) * hm, // V73: must match hp above
+      _wardenMaxHp: (150 + s.wave * 30) * hm, // V77: must match hp above
     };
   }
 
@@ -1188,21 +1188,26 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
         e._owStopped = true;
       }
       if (e._owStopped) {
-        // Don't advance — fire at troops
-        e._owFireCd -= dt;
-        if (e._owFireCd <= 0) {
-          const targets = s.troops.filter(t => t.lane === e.lane);
-          if (targets.length) {
-            const tgt = targets[Math.floor(Math.random() * targets.length)];
+        // V77: if no live troops remain in this lane, resume advancing to base
+        // Previously overwatch would park forever causing wave-end deadlock
+        const liveTroops = s.troops.filter(t => t.lane === e.lane && t.hp > 0);
+        if (liveTroops.length === 0) {
+          e._owStopped = false; // resume advance — will breach like any other enemy
+        } else {
+          // Fire at live troops only
+          e._owFireCd -= dt;
+          if (e._owFireCd <= 0) {
+            const tgt = liveTroops[Math.floor(Math.random() * liveTroops.length)];
             tgt.hp -= e.damage * 0.4;
             tgt._lastHitTime = performance.now();
             if (tgt.hp <= 0) tgt.hp = 0;
             s.fx.push({ kind:'hit', x:tgt.x, y:tgt.y, life:.12, max:.12, r:6 });
             e._lastFireTime = performance.now();
+            e._owFireCd = e._owFireRate;
           }
-          e._owFireCd = e._owFireRate;
         }
-      } else {
+      }
+      if (!e._owStopped) {
         e.x -= e.speed * sf * ps * dt;
       }
 
