@@ -371,7 +371,7 @@ function enemyTemplate() {
   const boss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
   const lane = Math.floor(Math.random() * 3);
   const lY = LANE_Y[lane];
-  const tough = 1 + s.wave * 0.06;  // V75: reduced from 0.10 — enemies scale more gently
+  const tough = 1 + s.wave * 0.035;  // V78: halved from 0.06 — much gentler HP scaling
   const hm = s.runtime.hpMult ?? 1;
   const sw = s.runtime.swarmMult ?? 1;
   const sensorMult = 1 - s.lanes[lane].sensor * 0.10;
@@ -382,7 +382,7 @@ function enemyTemplate() {
   if (boss) {
     return {
       kind: 'warden', lane, y: lY, baseY: lY,
-      hp: (150 + s.wave * 30) * hm,          // V77: reduced from (250 + wave*45) — early bosses more manageable
+      hp: (100 + s.wave * 20) * hm,          // V78: reduced from (150 + wave*30)
       speed: spd(18 + s.wave * 0.5),
       damage: 16 + Math.floor(s.wave * 0.45),
       r: 36, shield: 0,
@@ -392,7 +392,7 @@ function enemyTemplate() {
       _wardenFireCd: 2.0,     // suppressive fire cooldown
       _wardenFireRate: 1.8,   // seconds between shots
       _wardenSpawned: false,  // phase 2 reinforcement flag
-      _wardenMaxHp: (150 + s.wave * 30) * hm, // V77: must match hp above
+      _wardenMaxHp: (100 + s.wave * 20) * hm, // V78: must match hp above
     };
   }
 
@@ -1237,7 +1237,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
         e.x -= e.speed * sf * ps * dt;
         e._wardenFireCd -= dt;
         if (e._wardenFireCd <= 0) {
-          const targets = s.troops.filter(t => t.lane === e.lane);
+          const targets = s.troops.filter(t => t.lane === e.lane && t.hp > 0);
           if (targets.length) {
             const tgt = targets[Math.floor(Math.random() * targets.length)];
             tgt.hp -= e.damage * 0.3;
@@ -1256,9 +1256,12 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
         if (!e._wardenSpawned) {
           e._wardenSpawned = true;
           // Spawn 2 conscripts in same lane
+          // V78: clamp x to max 1380 so reinforcements are never spawned off-screen
+          // (above treeline) where they'd be invisible but still process in the update loop
           for (let ri = 0; ri < 2; ri++) {
+            const reinX = Math.min(e.x + 60 + ri * 40, 1380);
             const rein = {
-              x: e.x + 60 + ri * 40, maxHp: 20 + s.wave * 2, hp: 20 + s.wave * 2,
+              x: reinX, maxHp: 20 + s.wave * 2, hp: 20 + s.wave * 2,
               kind: 'conscript', lane: e.lane, y: e.y + (ri === 0 ? -15 : 15), baseY: e.y + (ri === 0 ? -15 : 15),
               speed: e.speed * 1.5, damage: Math.floor(e.damage * 0.4), r: 14,
               shield: 0, maxShield: 0, color: '#e06060', slow: 0,
