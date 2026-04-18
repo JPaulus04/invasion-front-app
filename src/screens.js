@@ -1795,13 +1795,19 @@ function _runPrestigeCeremony() {
 // Returns human-readable perk lines for a given rank
 function _getRankPerks(rank) {
   const perks = [];
-  if (rank >= 1) perks.push('★ Veteran Stipend: +50 starting credits');
-  if (rank >= 2) perks.push('★ Sniper Program: Sniper unlocks at Wave 20 (was 25)');
-  if (rank >= 3) perks.push('★ Satellite Priority: Orbital damage permanently +22');
-  if (rank >= 4) perks.push('★ Expanded Roster: Lane troop cap: 5 per lane');
-  if (rank >= 5) perks.push('★ Supply Command: +10% income from all sources');
-  if (rank >= 6) perks.push('★ Deep Strike Bonus: +30 cr per wave past Wave 15');
-  if (rank >= 8) perks.push('★ Doctrine Refinement: All doctrine bonuses +5%');
+  if (rank >= 1)  perks.push('★ Veteran Stipend: +80 starting credits');
+  if (rank >= 2)  perks.push('★ Sniper Program: Sniper Team unlocked');
+  if (rank >= 2)  perks.push('★ Reinforced Walls: Barricades block +0.5 dmg/level');
+  if (rank >= 3)  perks.push('★ Satellite Priority: Orbital damage +22');
+  if (rank >= 5)  perks.push('★ Supply Command: +10% income from all sources');
+  if (rank >= 6)  perks.push('★ Deep Strike Bonus: +30 cr per wave past Wave 15');
+  if (rank >= 8)  perks.push('★ Doctrine Refinement: Doctrine bonuses +5%');
+  if (rank >= 10) perks.push('★ Iron Reserves: Base starts with +25 max HP');
+  if (rank >= 12) perks.push('★ Combat Surge: Kill rewards +8%');
+  if (rank >= 15) perks.push('★ Veteran\'s Edge: All troops start with +20% HP');
+  if (rank >= 18) perks.push('★ Strategic Reserves: +60 more starting credits');
+  if (rank >= 20) perks.push('★ Command Mastery: Doctrine bonuses +8% more');
+  if (rank >= 24) perks.push('★ Hardened Command: Base +40 max HP, barricades +0.5 dmg');
   return perks.slice(-3); // show most recent 3 to keep card compact
 }
 

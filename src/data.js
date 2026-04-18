@@ -320,14 +320,21 @@ const RESEARCH_DEPARTMENTS = [
 
 // ── Permanent Unlocks ──────────────────────────────────
 const PERMANENT_UNLOCKS = [
-  { id:'u_startcr',   rank:1, name:'Veteran Stipend',    desc:'Start every run with +80 cr. Unlocked at Rank 1.' },
-  { id:'u_sniper',    rank:2, name:'Sniper Program',      desc:'Sniper Team unit unlocked for deployment.' },
-  { id:'u_barricade', rank:2, name:'Reinforced Walls',    desc:'Barricades block +0.5 extra damage per level.' },
-  { id:'u_orbital',   rank:3, name:'Satellite Priority',  desc:'Orbital damage +22 permanently.' },
-  { id:'u_troop7',    rank:4, name:'Expanded Roster',     desc:'Lane troop cap: 5 per lane.' },
-  { id:'u_income',    rank:5, name:'Supply Command',      desc:'+10% income from all sources.' },
-  { id:'u_wave15',    rank:6, name:'Deep Strike Bonus',   desc:'+30 cr bonus per wave survived past wave 15.' },
-  { id:'u_doctrine',  rank:8, name:'Doctrine Refinement', desc:'+5% to all doctrine stat bonuses.' },
+  { id:'u_startcr',   rank:1,  name:'Veteran Stipend',    desc:'Start every run with +80 cr.' },
+  { id:'u_sniper',    rank:2,  name:'Sniper Program',      desc:'Sniper Team unit unlocked for deployment.' },
+  { id:'u_barricade', rank:2,  name:'Reinforced Walls',    desc:'Barricades block +0.5 extra damage per level.' },
+  { id:'u_orbital',   rank:3,  name:'Satellite Priority',  desc:'Orbital damage +22 permanently.' },
+  { id:'u_troop7',    rank:4,  name:'Expanded Roster',     desc:'Lane troop cap: 5 per lane.' },
+  { id:'u_income',    rank:5,  name:'Supply Command',      desc:'+10% income from all sources.' },
+  { id:'u_wave15',    rank:6,  name:'Deep Strike Bonus',   desc:'+30 cr bonus per wave survived past wave 15.' },
+  { id:'u_doctrine',  rank:8,  name:'Doctrine Refinement', desc:'+5% to all doctrine stat bonuses.' },
+  // V81: new unlocks for ranks 10–24
+  { id:'u_iron',      rank:10, name:'Iron Reserves',       desc:'Base starts every run with +25 max HP.' },
+  { id:'u_surge',     rank:12, name:'Combat Surge',        desc:'Kill rewards permanently +8%.' },
+  { id:'u_veteran',   rank:15, name:'Veteran\'s Edge',     desc:'All troops start each run with +20% max HP.' },
+  { id:'u_startcr2',  rank:18, name:'Strategic Reserves',  desc:'Start every run with an additional +60 cr.' },
+  { id:'u_mastery',   rank:20, name:'Command Mastery',     desc:'+8% to all doctrine stat bonuses (stacks with R8).' },
+  { id:'u_hardened',  rank:24, name:'Hardened Command',    desc:'Base max HP +40. Barricades block +0.5 more per level.' },
 ];
 
 

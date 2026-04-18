@@ -94,11 +94,19 @@ const UNLOCKS = Object.freeze({
   active:          p => new Set(PERMANENT_UNLOCKS.filter(u => p >= u.rank).map(u => u.id)),
   has:             (p, id) => p >= (PERMANENT_UNLOCKS.find(u => u.id === id)?.rank ?? 99),
   troopSlots:      p => CFG.TROOP_SLOTS,   // V73: capped at 5, 6-slot unlock disabled
-  startCr:         p => CFG.BASE_CREDITS + (UNLOCKS.has(p, 'u_startcr') ? 80 : 0),
+  startCr:         p => CFG.BASE_CREDITS + (UNLOCKS.has(p, 'u_startcr') ? 80 : 0) + (UNLOCKS.has(p, 'u_startcr2') ? 60 : 0),
   orbitalDmgBonus: p => UNLOCKS.has(p, 'u_orbital') ? CFG.ORBITAL_UNLOCK_DMG : 0,
   incomeBonus:     p => UNLOCKS.has(p, 'u_income') ? CFG.UNLOCK_INCOME_BONUS : 0,
-  barricadeBonus:  p => UNLOCKS.has(p, 'u_barricade') ? CFG.BARRICADE_UNLOCK_BONUS : 0,
+  killBonus:       p => UNLOCKS.has(p, 'u_surge') ? 0.08 : 0,          // V81: +8% kill rewards at R12
+  barricadeBonus:  p => (UNLOCKS.has(p, 'u_barricade') ? CFG.BARRICADE_UNLOCK_BONUS : 0) + (UNLOCKS.has(p, 'u_hardened') ? 0.5 : 0), // V81: +0.5 more at R24
   deepStrike:      (p, wave) => UNLOCKS.has(p, 'u_wave15') && wave > 15 ? 30 : 0,
-  docBoost:        p => UNLOCKS.has(p, 'u_doctrine') ? 1.05 : 1,
+  docBoost:        p => {
+    let boost = 1;
+    if (UNLOCKS.has(p, 'u_doctrine')) boost *= 1.05;  // R8: +5%
+    if (UNLOCKS.has(p, 'u_mastery'))  boost *= 1.08;  // R20: +8% stacks
+    return boost;
+  },
+  baseHpBonus:     p => (UNLOCKS.has(p, 'u_iron') ? 25 : 0) + (UNLOCKS.has(p, 'u_hardened') ? 40 : 0), // V81: R10+R24
+  troopHpBonus:    p => UNLOCKS.has(p, 'u_veteran') ? 0.20 : 0,        // V81: +20% troop HP at R15
 });
 
