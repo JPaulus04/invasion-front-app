@@ -1450,55 +1450,134 @@ $id('sumDeployBtn').addEventListener('click', () => {
 function renderRewardChoiceUI(onPick) {
   const { picks, mastery, doc, title, subtitle, cacheType, milestone, pickCount } = buildRewardChoices();
   const rWave = G.state.wave - 1;
+  const isMilestone = cacheType === 'milestone';
 
-  // V75: title/subtitle driven by boss context — Command Cache vs Milestone Cache
-  const titleEl = $id('rewardTitle');
-  const subEl   = $id('rewardSub');
-  if (titleEl) {
-    if (cacheType === 'milestone') {
-      titleEl.textContent = '★ ' + (title || 'Milestone Cache');
-      titleEl.style.color = '#ffd700';
+  // ── Modal accent class ────────────────────────────────────
+  const modal = $id('rewardModal');
+  if (modal) {
+    modal.classList.remove('milestone-m');
+    if (isMilestone) modal.classList.add('milestone-m');
+  }
+
+  // ── Chest reveal setup ────────────────────────────────────
+  const chestReveal  = $id('rewardChestReveal');
+  const cardArea     = $id('rewardCardArea');
+  const chestIcon    = $id('rewardChestIcon');
+  const chestLbl     = $id('rewardChestLabel');
+
+  if (chestReveal && cardArea && chestIcon) {
+    // Configure chest appearance for cache type
+    if (isMilestone) {
+      chestIcon.textContent = '★';
+      chestIcon.style.color = '#ffd700';
+      chestLbl.textContent  = 'MILESTONE CACHE';
+      chestLbl.style.color  = '#ffd700';
     } else {
-      titleEl.textContent = title || 'Command Cache';
-      titleEl.style.color = 'var(--cyan)';
+      chestIcon.textContent = '⬡';
+      chestIcon.style.color = 'var(--cyan)';
+      chestLbl.textContent  = 'COMMAND CACHE';
+      chestLbl.style.color  = 'var(--cyan)';
+    }
+
+    // Show chest, hide cards
+    chestReveal.style.display  = 'flex';
+    cardArea.style.display     = 'none';
+    cardArea.style.opacity     = '0';
+
+    // Animate chest icon
+    chestIcon.style.animation = 'none';
+    void chestIcon.offsetWidth; // reflow
+    chestIcon.style.animation = 'chestPulse .55s ease-in-out, chestOpen .5s .35s ease-out forwards';
+
+    // After reveal delay, swap to cards
+    setTimeout(function() {
+      chestReveal.style.display = 'none';
+      cardArea.style.display    = 'block';
+      // Fade cards in
+      cardArea.style.transition = 'opacity .2s';
+      cardArea.style.opacity    = '0';
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() { cardArea.style.opacity = '1'; });
+      });
+      haptic('success');
+    }, 900);
+  }
+
+  // ── Milestone banner ──────────────────────────────────────
+  const banner      = $id('rewardMilestoneBanner');
+  const bannerLabel = $id('rewardMilestoneLabel');
+  if (banner) {
+    if (isMilestone && milestone) {
+      banner.style.display = 'block';
+      if (bannerLabel) bannerLabel.textContent = milestone.label + ' · ' + milestone.totalBosses + ' bosses defeated';
+    } else {
+      banner.style.display = 'none';
     }
   }
+
+  // ── Cache header ──────────────────────────────────────────
+  const cacheIconEl = $id('rewardCacheIcon');
+  const titleEl     = $id('rewardTitle');
+  const subEl       = $id('rewardSub');
+
+  if (cacheIconEl) {
+    cacheIconEl.textContent = isMilestone ? '★' : '⬡';
+    cacheIconEl.style.color = isMilestone ? '#ffd700' : 'var(--cyan)';
+  }
+  if (titleEl) {
+    titleEl.textContent  = title || (isMilestone ? 'Milestone Cache' : 'Command Cache');
+    titleEl.style.color  = isMilestone ? '#ffd700' : 'var(--cyan)';
+  }
   if (subEl) {
-    subEl.textContent = subtitle ||
-      (cacheType === 'milestone'
-        ? (milestone ? milestone.label + ' — ' + milestone.totalBosses + ' bosses' : 'Major milestone')
-        : 'Boss wave ' + rWave + ' cleared');
+    let sub = subtitle || (isMilestone
+      ? (milestone ? milestone.label + ' — ' + milestone.totalBosses + ' bosses' : 'Major milestone')
+      : 'Boss wave ' + rWave + ' cleared');
+    if (pickCount > 1) sub += ' · Choose ' + pickCount;
+    subEl.textContent = sub;
   }
 
-  if (pickCount > 1 && subEl) {
-    subEl.textContent += ' · Choose ' + pickCount;
-  }
-
+  // ── Cards ─────────────────────────────────────────────────
   const grid = $id('rewardGrid');
   grid.innerHTML = '';
   let remaining = pickCount || 1;
-  picks.forEach(p => {
+
+  picks.forEach(function(p) {
     const isSyn  = p.docSynergy.includes(doc) && !p.docExclusive;
     const isExcl = p.docExclusive === doc;
     const isRare = p.tier === 3;
-    const isMilestone = cacheType === 'milestone';
-    const card   = document.createElement('div');
-    card.className = 'choice-card' + (isExcl||isRare||isMilestone ? ' rare-card' : isSyn ? ' syn-card' : '');
+    const isTier2 = p.tier === 2;
+
+    // Card class — milestone cards get strongest visual treatment
+    let cardClass = 'choice-card';
+    if (isMilestone)    cardClass += ' milestone-card';
+    else if (isExcl || isRare) cardClass += ' rare-card';
+    else if (isSyn || isTier2) cardClass += ' syn-card';
+
+    // Tier badge
+    let badge = '';
+    if (isMilestone)    badge = '<div class="milestone-label">★ Milestone</div>';
+    else if (isExcl)    badge = '<div class="rare-label">⚡ Exclusive</div>';
+    else if (isRare)    badge = '<div class="rare-label">★ Rare</div>';
+    else if (isSyn)     badge = '<div class="syn-label">◆ Synergy</div>';
+    else if (isTier2)   badge = '<div class="syn-label">◈ Uncommon</div>';
+
+    // Button color
+    const btnCls = (isMilestone || isExcl || isRare) ? 'purple' : 'good';
+
+    const card = document.createElement('div');
+    card.className = cardClass;
     card.innerHTML =
-      '<div class="choice-title">' + (isRare||isMilestone ? '★ ' : '') + p.name + '</div>' +
+      '<div class="choice-title">' + p.name + '</div>' +
       '<div class="choice-body">' + p.text + '</div>' +
-      (isExcl ? '<div class="rare-label">⚡ Exclusive</div>' :
-       isMilestone ? '<div class="rare-label">★ Milestone</div>' :
-       isSyn ? '<div class="syn-label">◆ Synergy</div>' :
-       isRare ? '<div class="rare-label">★ Rare</div>' : '') +
-      '<div style="margin-top:8px"><button class="mBtn ' + (isRare||isExcl||isMilestone ? 'purple' : 'good') + '" style="font-size:13px;padding:9px">Select</button></div>';
-    card.querySelector('button').addEventListener('click', () => {
+      badge +
+      '<div style="margin-top:8px"><button class="mBtn ' + btnCls + '" style="font-size:13px;padding:9px">Select</button></div>';
+
+    card.querySelector('button').addEventListener('click', function() {
       applyReward(p);
       remaining--;
       if (remaining <= 0) {
         if (onPick) onPick();
       } else {
-        // Multi-pick: disable this card, let player pick again
         card.querySelector('button').disabled = true;
         card.style.opacity = '0.45';
         if (subEl) subEl.textContent = 'Choose ' + remaining + ' more';
