@@ -27,7 +27,8 @@ const G = { state: null, meta: null, log: null, canvasWidth: () => 1400 };
 function applyDoctrine() {
   const s = G.state;
   const prev = s.baseHp;
-  s.maxBaseHp = CFG.BASE_HP; s.baseMaxBase = CFG.BASE_HP;
+  s.maxBaseHp = CFG.BASE_HP + UNLOCKS.baseHpBonus(s.prestige); // V81: R10+R24 base HP bonuses
+  s.baseMaxBase = s.maxBaseHp;
   s.mods = freshMods();
   s.mods.orbitalCdFlat = s._savedOrbitalFlat ?? 0;
   s.mods.orbitalDamage += UNLOCKS.orbitalDmgBonus(s.prestige);
@@ -220,6 +221,11 @@ function createTroop(id, lane, hp = null, cooldown = 0, slotOverride = null) {
   let maxHp = type.hp;
   if (id === 'heavy' && G.state && G.state.perks.heavyHpBonus)
     maxHp = Math.floor(maxHp * (1 + G.state.perks.heavyHpBonus));
+  // V81: Veteran's Edge — all troops get +20% max HP at Rank 15
+  if (G.state) {
+    const vetBonus = UNLOCKS.troopHpBonus(G.state.prestige);
+    if (vetBonus > 0) maxHp = Math.floor(maxHp * (1 + vetBonus));
+  }
   return {
     type, lane, slot,
     x: 160 + Math.min(slot, 5) * 48,
@@ -427,7 +433,7 @@ function enemyTemplate() {
   // Overwatch — stops at range, fires at troops (wave 8+)
   if (canOverwatch && roll < 0.65)
     return { kind:'overwatch', lane, y:lY, baseY:lY, hp:22*tough*hm, speed:oSpd(s.wave), damage:6+Math.floor(s.wave*.12), r:14, shield:0, color:'#7090c0',
-      _owRange: 320,
+      _owRange: 600,          // V82: was 320 — stopped inside troop formation (x=160-352), now stops in visible mid-battlefield
       _owFireCd: 0,
       _owFireRate: 1.4,
       _owStopped: false,
@@ -1312,7 +1318,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   }
 
   // Kill rewards
-  const incMult = 1 + UNLOCKS.incomeBonus(s.prestige);
+  const incMult = 1 + UNLOCKS.incomeBonus(s.prestige) + UNLOCKS.killBonus(s.prestige);
   for (const e of s.enemies) {
     if (e.hp <= 0) {
       const base = CFG.KILL_REWARDS[e.kind] ?? 12;
@@ -1347,6 +1353,7 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
     }
   }
   s.enemies = s.enemies.filter(e => e.hp > 0);
+  s.troops  = s.troops.filter(t => t.hp > 0);  // V82: remove ranged-killed troops (melee kills handled in applyTroopCombat)
 
   if (s.baseHp <= 0 && !s.gameOver) { s.baseHp = 0; onGameOver?.(); }
 }
