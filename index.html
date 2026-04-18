@@ -201,10 +201,27 @@
   <div class="sheet-body" id="store-body"></div>
 </div>
 <div class="overlay hidden" id="rewardOverlay">
-  <div class="modal">
-    <div class="modal-title">◆ Field Reinforcement</div>
-    <div class="modal-sub" id="rewardSub">Choose one upgrade to strengthen your run.</div>
-    <div class="choice-grid" id="rewardGrid"></div>
+  <div class="modal" id="rewardModal">
+    <!-- Chest reveal area — shown briefly before cards appear -->
+    <div id="rewardChestReveal" style="display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px 0 20px;">
+      <div id="rewardChestIcon" style="font-size:56px;line-height:1;filter:drop-shadow(0 0 18px currentColor);transition:transform .3s;">⬡</div>
+      <div id="rewardChestLabel" style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:3px;text-transform:uppercase;margin-top:10px;opacity:.8;">OPENING...</div>
+    </div>
+    <!-- Card area — hidden during chest reveal -->
+    <div id="rewardCardArea">
+      <div id="rewardMilestoneBanner" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,215,0,.35);background:rgba(255,215,0,.07);text-align:center;">
+        <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;color:#ffd700;text-transform:uppercase;">★ MILESTONE REACHED</div>
+        <div id="rewardMilestoneLabel" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,215,0,.7);margin-top:3px;"></div>
+      </div>
+      <div id="rewardCacheHeader" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div id="rewardCacheIcon" style="font-size:22px;line-height:1;flex-shrink:0;">⬡</div>
+        <div>
+          <div class="modal-title" id="rewardTitle" style="margin-bottom:0;font-size:18px;">Command Cache</div>
+          <div class="modal-sub" id="rewardSub" style="margin-bottom:0;margin-top:2px;"></div>
+        </div>
+      </div>
+      <div class="choice-grid" id="rewardGrid"></div>
+    </div>
   </div>
 </div>
 
