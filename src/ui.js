@@ -2088,7 +2088,9 @@ function _startAmbient() {
 
     var melodyGain = ac.createGain();
     melodyGain.gain.value = 1.0;
-    melodyGain.connect(ac.destination);
+    // V80: connect through _masterGain so mute/volume slider applies to ambient music
+    var musicDest = (typeof _masterGain !== 'undefined' && _masterGain) ? _masterGain : ac.destination;
+    melodyGain.connect(musicDest);
 
     var melStep = 0;
     var melScheduled = false;
