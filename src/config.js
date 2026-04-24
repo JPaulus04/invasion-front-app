@@ -5,7 +5,7 @@
 const CFG = Object.freeze({
 
   // ── Economy ──────────────────────────────────────────
-  BASE_CREDITS:            100,
+  BASE_CREDITS:            200,   // V84: raised from 100 — players need more to field a formation at wave 16
   TROOP_COST_SCALE:        1.13,   // each extra copy of same unit costs more
   TROOP_COST_MIN:          0.45,   // floor as fraction of base cost
   WAVE_REWARD_BASE:        45,     // tightened economy — fewer freebie credits
@@ -46,7 +46,7 @@ const CFG = Object.freeze({
   ORBITAL_UNLOCK_DMG:      22,
 
   // ── Progression ──────────────────────────────────────
-  PRESTIGE_WAVE_REQ:       20,
+  PRESTIGE_WAVE_REQ:       25,    // V84: raised from 20 — prevents accidental prestige on early deaths
   PRESTIGE_GAIN_DIV:       10,  // ranks gained = floor(wave / 10)
   PRESTIGE_INCOME_BONUS:   0.14,
   PRESTIGE_DMG_BONUS:      0.10,
@@ -94,7 +94,7 @@ const UNLOCKS = Object.freeze({
   active:          p => new Set(PERMANENT_UNLOCKS.filter(u => p >= u.rank).map(u => u.id)),
   has:             (p, id) => p >= (PERMANENT_UNLOCKS.find(u => u.id === id)?.rank ?? 99),
   troopSlots:      p => CFG.TROOP_SLOTS,   // V73: capped at 5, 6-slot unlock disabled
-  startCr:         p => CFG.BASE_CREDITS + (UNLOCKS.has(p, 'u_startcr') ? 80 : 0) + (UNLOCKS.has(p, 'u_startcr2') ? 60 : 0),
+  startCr: p => CFG.BASE_CREDITS + (UNLOCKS.has(p, 'u_startcr') ? 80 : 0) + (UNLOCKS.has(p, 'u_startcr2') ? 60 : 0) + p * 12,  // V84: +12 cr per prestige rank
   orbitalDmgBonus: p => UNLOCKS.has(p, 'u_orbital') ? CFG.ORBITAL_UNLOCK_DMG : 0,
   incomeBonus:     p => UNLOCKS.has(p, 'u_income') ? CFG.UNLOCK_INCOME_BONUS : 0,
   killBonus:       p => UNLOCKS.has(p, 'u_surge') ? 0.08 : 0,          // V81: +8% kill rewards at R12

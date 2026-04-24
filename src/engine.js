@@ -388,9 +388,9 @@ function enemyTemplate() {
   if (boss) {
     return {
       kind: 'warden', lane, y: lY, baseY: lY,
-      hp: (100 + s.wave * 20) * hm,          // V78: reduced from (150 + wave*30)
+      hp: (80 + s.wave * 15) * hm,           // V84: reduced from (100 + wave*20) — early bosses more approachable
       speed: spd(18 + s.wave * 0.5),
-      damage: 16 + Math.floor(s.wave * 0.45),
+      damage: 10 + Math.floor(s.wave * 0.30),  // V84: reduced from 16 + wave*0.45
       r: 36, shield: 0,
       color: '#cc3030',
       // Warden phase state
@@ -398,7 +398,7 @@ function enemyTemplate() {
       _wardenFireCd: 2.0,     // suppressive fire cooldown
       _wardenFireRate: 1.8,   // seconds between shots
       _wardenSpawned: false,  // phase 2 reinforcement flag
-      _wardenMaxHp: (100 + s.wave * 20) * hm, // V78: must match hp above
+      _wardenMaxHp: (80 + s.wave * 15) * hm,  // V84: must match hp above
     };
   }
 

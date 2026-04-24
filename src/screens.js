@@ -1676,9 +1676,12 @@ function renderGameOverUI(gradeInfo) {
     : 'Reach wave ' + CFG.PRESTIGE_WAVE_REQ + ' to unlock Prestige.';
   $id('goPrestigeBtn').disabled = gain <= 0;
 
-  // Show one-tap prestige+play when available
+  // Show one-tap prestige+play when available — label includes rank so player knows what they're doing
   const ppBtn = $id('goPrestigePlayBtn');
-  if (ppBtn) ppBtn.style.display = gain > 0 ? 'block' : 'none';
+  if (ppBtn) {
+    ppBtn.style.display = gain > 0 ? 'block' : 'none';
+    if (gain > 0) ppBtn.textContent = '★ Prestige to Rank ' + (m.prestige + gain) + ' & Play Again';
+  }
 }
 
 $id('goPrestigeBtn').addEventListener('click', () => {
