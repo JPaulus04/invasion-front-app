@@ -47,6 +47,7 @@ function applyDoctrine() {
 }
 
 function applyUpgrades() {
+  _initOpsNodes(G.state); // V85: ensure auto-nodes initialized on every state refresh
   UPGRADE_DEFS.forEach(u => u.apply(G.state));
   G.state.baseHp = Math.min(G.state.baseHp, G.state.maxBaseHp);
   _applyTreeNodeEffects(G.state);
@@ -433,7 +434,7 @@ function enemyTemplate() {
   // Overwatch — stops at range, fires at troops (wave 8+)
   if (canOverwatch && roll < 0.65)
     return { kind:'overwatch', lane, y:lY, baseY:lY, hp:22*tough*hm, speed:oSpd(s.wave), damage:6+Math.floor(s.wave*.12), r:14, shield:0, color:'#7090c0',
-      _owRange: 600,          // V82: was 320 — stopped inside troop formation (x=160-352), now stops in visible mid-battlefield
+      _owRange: 420,          // V85: was 600 — troops (range=280) at slot 0 (x=160) can now reach x=440; 420 puts OW in range of all slots
       _owFireCd: 0,
       _owFireRate: 1.4,
       _owStopped: false,

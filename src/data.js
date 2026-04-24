@@ -245,7 +245,7 @@ const REWARD_POOL = [
 
 // ── Units ──────────────────────────────────────────────
 const UNIT_DEFS = [
-  { id:'rifle',    name:'Rifle Squad',   cost:30,  hp:38, damage:9,  range:200, fireRate:0.78, color:'#5ab8e0', desc:'Reliable infantry. Scales well with Calibration upgrades.' },
+  { id:'rifle',    name:'Rifle Squad',   cost:30,  hp:38, damage:9,  range:280, fireRate:0.78, color:'#5ab8e0', desc:'Reliable infantry. Scales well with Calibration upgrades.' },
   { id:'heavy',    name:'Heavy Team',    cost:88,  hp:58, damage:27, range:188, fireRate:1.45, color:'#e0b830', desc:'High single-target damage. Best against bosses and Brutes.' },
   { id:'medic',    name:'Combat Medic',  cost:72,  hp:28, damage:0,  range:145, fireRate:1.30, color:'#30c050', desc:'Heals allies and base. Best in Mid (Sustain) lane.' },
   { id:'ew',       name:'EW Specialist', cost:96,  hp:26, damage:7,  range:240, fireRate:0.95, color:'#9860e8', desc:'Slows enemies, strips shields, reveals Stalkers. Best in Top (Control) lane.' },

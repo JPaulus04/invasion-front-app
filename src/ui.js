@@ -909,7 +909,9 @@ function _renderOpsSheet(container, s) {
   function _opsTierUnlocked(tier) {
     if (tier <= 1) return true;
     var prev = OPS_NODES.filter(function(n){ return n.tier === tier - 1; });
-    return prev.every(function(n){ return _opsDone(n.id); });
+    // V85: unlock when ANY prev-tier node is complete — requiring ALL locked T2
+    // forever if player skipped an optional node (e.g. Heavy Weapons Program)
+    return prev.some(function(n){ return _opsDone(n.id); });
   }
 
   var tiers = [1,2,3,4,5];
@@ -1202,11 +1204,20 @@ function _purchaseTreeNode(node, timerSecs) {
   if (timerSecs === 0) {
     s.credits -= node.cost;
     s.researchNodes[node.id] = { completedAt: Date.now(), migrated: false };
-    // Apply underlying upgrade for mapped nodes
-    if (node.type === 'upgrade' && node.upgradeId)   buyUpgrade(node.upgradeId);
-    if (node.type === 'lane'    && node.laneUpgradeId) buyLaneUpgrade(node.laneUpgradeId);
-    // Mod/perk nodes — re-apply via applyUpgrades
-    applyUpgrades();
+    // Apply upgrade effect directly — do NOT call buyUpgrade/buyLaneUpgrade
+    // as those functions deduct credits again causing a double-deduct
+    if (node.type === 'upgrade' && node.upgradeId) {
+      s.upgrades[node.upgradeId] = (s.upgrades[node.upgradeId] || 0) + 1;
+      applyUpgrades();
+      if (!G.meta.researchPeak) G.meta.researchPeak = {};
+      G.meta.researchPeak['global_' + node.upgradeId] = Math.max(G.meta.researchPeak['global_' + node.upgradeId] || 0, s.upgrades[node.upgradeId]);
+    }
+    if (node.type === 'lane' && node.laneUpgradeId) {
+      s.lanes.forEach(function(l) { l[node.laneUpgradeId]++; });
+      applyUpgrades();
+      if (!G.meta.researchPeak) G.meta.researchPeak = {};
+      G.meta.researchPeak['lane_' + node.laneUpgradeId] = Math.max(G.meta.researchPeak['lane_' + node.laneUpgradeId] || 0, s.lanes[0][node.laneUpgradeId]);
+    }
     // Track prestige peak
     if (!G.meta.researchPeak) G.meta.researchPeak = {};
     if (node.upgradeId)   G.meta.researchPeak['global_' + node.upgradeId] = Math.max(G.meta.researchPeak['global_' + node.upgradeId] || 0, s.upgrades[node.upgradeId] || 1);
