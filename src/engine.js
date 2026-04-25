@@ -964,6 +964,11 @@ function _markFirstTimeDone() {
 
 function doPrestige(onComplete) {
   const gain = prestigeGain();
+  // V86: capture wave before freshState wipes it — floor = 50% of prestige wave
+  const prestigeWave = G.state.wave || 1;
+  let prestigeFloor = Math.max(1, Math.floor(prestigeWave * 0.5) + 1);
+  // Never land on a boss wave — step back one if needed
+  if (prestigeFloor % CFG.BOSS_WAVE_EVERY === 0) prestigeFloor = Math.max(1, prestigeFloor - 1);
   recordRun(G.meta, G.state);
   _saveCareerStats();
   _checkAchievements();
@@ -980,9 +985,8 @@ function doPrestige(onComplete) {
   }
   // V75: orbital unlock is permanent once earned — carry it forward through prestige
   G.state._orbUnlocked = true;
-  // V76: fixed prestige floor — always start at wave 16 (past the tutorial waves,
-  // safely one past the wave 15 boss, never dynamically scales into deep water)
-  G.state.wave = 16;
+  // V86: 50% floor — if you reach wave 40, next run starts at wave 20
+  G.state.wave = prestigeFloor;
   // V72: hard-clear all prior run state so nothing carries over
   G.state.waveInProgress   = false;
   G.state.enemiesToSpawn   = 0;
@@ -994,6 +998,9 @@ function doPrestige(onComplete) {
   G.state.currentModifier  = 'none';
   G.state.runtime          = freshRuntime();
   G.state._pendingRewardContext = null;
+  G.state._stallCheck      = null;
+  G.state._stuckCheck      = null;   // V86: clear stall state so no carryover
+  G.state._stuckLastCount  = 0;
   G.state.paused           = false;
   G.state.gameOver         = false;
   G.state.started          = false;
@@ -1287,7 +1294,18 @@ function update(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
 
     // ── ALL OTHERS: standard advance ──────────────────
     } else {
-      e.x -= e.speed * sf * ps * dt;
+      // V86: Berserker charge — speed doubles below threshold HP
+      let moveMult = 1;
+      if (e._mutation === 'berserker' && e._berserkerThreshold && e.hp <= e._berserkerThreshold) {
+        moveMult = 2.0;
+        if (!e._berserkerCharging) {
+          e._berserkerCharging = true;
+          e.color = '#FF0000';
+          s.fx.push({ kind:'boom', x:e.x, y:e.y, life:.25, max:.25, r:e.r+10 });
+        }
+      }
+      // V86: Razorbacked reflect — 15% melee damage reflected back (handled via flag in applyTroopCombat)
+      e.x -= e.speed * moveMult * sf * ps * dt;
     }
 
     // Breach

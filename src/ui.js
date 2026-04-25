@@ -905,6 +905,12 @@ function _renderOpsSheet(container, s) {
     '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);margin-left:4px">earned from kills + wave clears</span>';
   container.appendChild(xpEl);
 
+  // V86: explain what Operations is
+  var tipEl = document.createElement('div');
+  tipEl.style.cssText = "font-size:9px;color:var(--muted);margin-bottom:12px;padding:0 2px;line-height:1.6;font-family:var(--font-mono,monospace);";
+  tipEl.textContent = 'Spend XP to unlock passive bonuses for your unit classes. Active this run only — resets on prestige, but XP carries forward.';
+  container.appendChild(tipEl);
+
   function _opsDone(id)     { return !!(s.opsNodes && s.opsNodes[id]); }
   function _opsTierUnlocked(tier) {
     if (tier <= 1) return true;

@@ -1121,7 +1121,7 @@ function _patchedUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
     return;
   }
 
-  // Wave stall safeguard — if wave is in progress but no enemies and nothing to spawn
+  // Wave stall safeguard — enemies.length===0 path (original)
   if (s.waveInProgress && s.enemiesToSpawn <= 0 && s.enemies.length === 0) {
     if (!s._stallCheck) { s._stallCheck = performance.now(); }
     else if (performance.now() - s._stallCheck > 2000) {
@@ -1129,8 +1129,25 @@ function _patchedUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       s._stallCheck = null;
       try { onWaveEnd?.(); } catch(e2) { console.error('onWaveEnd stall error:', e2); }
     }
+  // V86: stuck-enemy stall — spawning done, enemies present but count hasn't dropped in 7s
+  // Enemies advancing and dying will keep resetting the timer. Only fires if truly frozen.
+  } else if (s.waveInProgress && s.enemiesToSpawn <= 0 && s.enemies.length > 0) {
+    const now = performance.now();
+    const curCount = s.enemies.length;
+    if (!s._stuckCheck || s._stuckLastCount !== curCount) {
+      // enemy died this frame — reset timer
+      s._stuckCheck = now;
+      s._stuckLastCount = curCount;
+    } else if (now - s._stuckCheck > 7000) {
+      console.warn('Stuck enemy stall — force-clearing ' + s.enemies.length + ' enemies');
+      s.enemies = [];
+      s._stuckCheck = null;
+      s._stuckLastCount = 0;
+    }
   } else {
     s._stallCheck = null;
+    s._stuckCheck = null;
+    s._stuckLastCount = 0;
   }
 
   // Spawn death decals for enemies that died this frame
