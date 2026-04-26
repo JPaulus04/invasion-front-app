@@ -1736,15 +1736,20 @@ function renderStoreSheet() {
   const restore = document.createElement('button');
   restore.style.cssText = 'width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--muted);font-family:\'Share Tech Mono\',monospace;font-size:9px;cursor:pointer;-webkit-appearance:none;margin-top:4px;letter-spacing:1px;';
   restore.textContent = 'Restore Purchases';
-  restore.addEventListener('click', function() { showToast('Restore Purchases — IAP not yet connected'); });
+  restore.addEventListener('click', function() { rcRestore(); });
   body.appendChild(restore);
 }
 
-// IAP stub — replace with RevenueCat calls in Capacitor wrapper
-function _storePurchase(id) {
-  const ok = confirm(_storeConfirmMessage(id));
-  if (!ok) return;
-  _storeApplyPurchase(id);
+// V87: IAP — calls RevenueCat via Capacitor bridge (see iap.js)
+async function _storePurchase(id) {
+  const productId = {
+    autowav:   'com.paulus.laststandcommand.autowav',
+    quickbuy:  'com.paulus.laststandcommand.quickbuy',
+    supporter: 'com.paulus.laststandcommand.supporter',
+    commander: 'com.paulus.laststandcommand.commander',
+  }[id];
+  if (!productId) return;
+  await rcPurchase(productId);
 }
 
 // Restore IAP purchases from localStorage (persists across prestige)

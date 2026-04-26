@@ -94,6 +94,13 @@
   requestAnimationFrame(loop);
 })(performance.now());
 
+// V87: Initialize RevenueCat when app loads
+// Uses Capacitor bridge — no-op in browser, active in TestFlight/App Store
+document.addEventListener('DOMContentLoaded', function() {
+  // Small delay to let Capacitor bridge register the native plugin
+  setTimeout(function() { rcInitialize(); }, 500);
+});
+
 // Debug function - call debugIAP() in browser console to check purchase status
 window.debugIAP = function() {
   console.log('=== IAP STATUS ===');
