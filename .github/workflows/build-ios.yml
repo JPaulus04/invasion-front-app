@@ -42,7 +42,13 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build game bundle
-        run: npm run build
+        run: |
+          npm run build
+          if [ ! -f www/index.html ]; then
+            echo "ERROR: www/index.html not found — build failed or src/iap.js missing from repo"
+            exit 1
+          fi
+          echo "✅ www/index.html built ($(wc -c < www/index.html) bytes)"
 
       - name: Add iOS platform
         run: npx cap add ios
