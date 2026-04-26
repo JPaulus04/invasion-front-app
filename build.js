@@ -21,6 +21,7 @@ const ENGINE_SCRIPTS = [
 ];
 
 const CONTROLLER_SCRIPTS = [
+  'iap.js',       // V87: RevenueCat integration — must load before ui.js store functions
   'renderer.js',
   'ui.js',
   'screens.js',
