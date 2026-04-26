@@ -56,14 +56,17 @@ async function rcPurchase(productId) {
   }
   try {
     showToast('Opening purchase…');
-    // Get offerings to find the package
-    const { current } = await rc.getOfferings();
-    if (!current) {
-      showToast('Products unavailable — check connection');
-      return false;
+    // Get offerings — try 'default' first, fall back to current
+    const offeringsResult = await rc.getOfferings();
+    const offering = (offeringsResult.all && offeringsResult.all['default'])
+                   || offeringsResult.current;
+    if (!offering) {
+      // No offerings configured — go direct to product purchase
+      const result = await rc.purchaseStoreProduct({ product: { identifier: productId } });
+      return _rcHandleResult(result);
     }
     // Find matching package by product identifier
-    const pkg = current.availablePackages.find(function(p) {
+    const pkg = offering.availablePackages.find(function(p) {
       return p.product && p.product.identifier === productId;
     });
     if (!pkg) {
