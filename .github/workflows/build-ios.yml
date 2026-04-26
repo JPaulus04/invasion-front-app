@@ -39,7 +39,7 @@ jobs:
           xcodebuild -showsdks
 
       - name: Install deps
-        run: npm install
+        run: npm install --legacy-peer-deps
 
       - name: Build game bundle
         run: npm run build
