@@ -109,15 +109,15 @@ function _rcApplyEntitlements(info) {
   const effectiveAutowav   = hasAutowav   || hasCommander;
   const effectiveQuickbuy  = hasQuickbuy  || hasCommander;
 
-  if (hasAutowav)        localStorage.setItem(RC_KEYS.autowav,   '1');
-  if (effectiveQuickbuy) localStorage.setItem(RC_KEYS.quickbuy,  '1');
-  if (effectiveSupporter)localStorage.setItem(RC_KEYS.supporter, '1');
-  if (hasCommander)      localStorage.setItem(RC_KEYS.commander, '1');
+  if (effectiveAutowav)   localStorage.setItem(RC_KEYS.autowav,   '1');
+  if (effectiveQuickbuy)  localStorage.setItem(RC_KEYS.quickbuy,  '1');
+  if (effectiveSupporter) localStorage.setItem(RC_KEYS.supporter, '1');
+  if (hasCommander)       localStorage.setItem(RC_KEYS.commander, '1');
 
   // Apply to live game state
   _restoreIAPPurchases();
 
-  if (hasCommander)       { haptic('success'); showToast('👑 Commander Edition unlocked!'); }
+  if (hasCommander)       { haptic('success'); showToast('👑 Elite Edition unlocked!'); }
   else if (effectiveSupporter) { haptic('success'); showToast('🎖 Supporter Pack unlocked!'); }
   else if (effectiveAutowav)   { haptic('success'); showToast('⚡ Auto-Wave unlocked!'); }
   else if (effectiveQuickbuy)  { haptic('success'); showToast('⚡ Quick Buy unlocked!'); }
