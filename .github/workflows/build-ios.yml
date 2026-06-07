@@ -105,10 +105,13 @@ jobs:
           signing_code = """
             installer.pods_project.targets.each do |target|
               target.build_configurations.each do |config|
-                config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
+                # Use Manual signing on pods to match the main app target
+                # Automatic here would conflict and cause archive signing errors
+                config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
                 config.build_settings.delete('PROVISIONING_PROFILE')
                 config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
-                config.build_settings['CODE_SIGN_IDENTITY'] = 'Apple Development'
+                config.build_settings['CODE_SIGN_IDENTITY'] = ''
+                config.build_settings['EXPANDED_CODE_SIGN_IDENTITY'] = ''
               end
             end
           """
