@@ -18,7 +18,7 @@
 
   <!-- ══ HUD ══════════════════════════════════════════════════ -->
   <div id="hud">
-    <span id="hud-title">IFC</span>
+    <span id="hud-title">LSC</span>
     <div class="hud-stat stat-credits">
       <div class="hud-label">💰 Credits</div>
       <div class="hud-value" id="hud-credits">150</div>
@@ -344,7 +344,7 @@
     <div class="start-hero">
       <div class="start-title">Last Stand Command</div>
       <div class="start-sub">STRIKE · SURVIVE · COMMAND</div>
-      <div class="start-tag">V8 · iOS EDITION</div>
+      <div class="start-tag">TACTICAL DEFENSE</div>
       <div class="start-intro">Three lanes. Three roles. Defend your base against endless waves — choose your doctrine and hold the line.</div>
     </div>
     <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Choose Your Doctrine</div>
@@ -1111,22 +1111,73 @@
 </div>
 
 <!-- ══ SETTINGS PANEL ═════════════════════════════════════════════ -->
-<div id="settingsPanel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:5001;padding:40px 20px;justify-content:center;align-items:center">
-  <div style="background:#0a1118;border:2px solid #8855dd;border-radius:16px;padding:24px;max-width:400px;width:100%">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div id="settingsPanel" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:5001;padding:20px;justify-content:center;align-items:center;overflow-y:auto">
+  <div style="background:#0a1118;border:2px solid #8855dd;border-radius:16px;padding:24px;max-width:400px;width:100%;margin:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;color:#8855dd">⚙ Settings</div>
       <button id="settingsCloseBtn" style="background:none;border:none;color:#8855dd;font-size:20px;cursor:pointer">✕</button>
     </div>
-    
-    <!-- Sound Controls -->
+
+    <!-- AUDIO -->
     <div style="margin-bottom:20px">
       <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#aabbcc;margin-bottom:8px;letter-spacing:1px">AUDIO</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <button id="soundToggleBtn" style="background:none;border:none;font-size:24px;cursor:pointer;padding:4px">🔊</button>
         <input type="range" id="volumeSlider" min="0" max="100" value="100" style="flex:1;cursor:pointer">
         <span id="volumeLabel" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#aabbcc;min-width:30px">100%</span>
       </div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#666;text-align:center">Tap speaker icon to toggle · Drag slider to adjust volume</div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div style="margin-bottom:20px">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#aabbcc;margin-bottom:10px;letter-spacing:1px">CONTROLS</div>
+      <!-- Haptic -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div>
+          <div style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:14px;color:#dde8f0">Haptic Feedback</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#556677">Vibration on taps and events</div>
+        </div>
+        <button id="hapticToggleBtn" style="background:#1a2a3a;border:1px solid #8855dd;border-radius:20px;width:48px;height:26px;cursor:pointer;position:relative;transition:background .2s">
+          <span id="hapticKnob" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#8855dd;transition:transform .2s"></span>
+        </button>
+      </div>
+      <!-- Damage numbers -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div>
+          <div style="font-family:'Rajdhani',sans-serif;font-weight:600;font-size:14px;color:#dde8f0">Floating Numbers</div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#556677">Show +cr and kill floats on screen</div>
+        </div>
+        <button id="floatsToggleBtn" style="background:#1a2a3a;border:1px solid #22cc88;border-radius:20px;width:48px;height:26px;cursor:pointer;position:relative;transition:background .2s">
+          <span id="floatsKnob" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#22cc88;transition:transform .2s"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- GAMEPLAY -->
+    <div style="margin-bottom:20px">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#aabbcc;margin-bottom:10px;letter-spacing:1px">GAMEPLAY</div>
+      <button id="settingsReplayTutBtn" style="width:100%;background:#0d1f2d;border:1px solid #334455;border-radius:8px;padding:10px 14px;color:#aabbcc;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;cursor:pointer;text-align:left;margin-bottom:8px">
+        ↺ &nbsp;Replay Tutorial
+        <span style="float:right;font-family:'Share Tech Mono',monospace;font-size:9px;color:#556677">Restores first-run walkthrough</span>
+      </button>
+      <button id="settingsWipeBtn" style="width:100%;background:#0d1f2d;border:1px solid #551111;border-radius:8px;padding:10px 14px;color:#cc4444;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:13px;cursor:pointer;text-align:left">
+        ✕ &nbsp;Wipe Save Data
+        <span style="float:right;font-family:'Share Tech Mono',monospace;font-size:9px;color:#554444">Resets all progress</span>
+      </button>
+    </div>
+
+    <!-- ABOUT -->
+    <div style="border-top:1px solid #1a2a3a;padding-top:16px">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#aabbcc;margin-bottom:10px;letter-spacing:1px">ABOUT</div>
+      <div style="background:#060e16;border-radius:8px;padding:12px;font-family:'Share Tech Mono',monospace;font-size:10px;color:#556677;line-height:1.8">
+        <div style="color:#8899aa;font-weight:600;margin-bottom:4px">Last Stand Command</div>
+        <div>Tactical lane-defense · Build 90</div>
+        <div>Developed by Joshua Paulus</div>
+        <div style="margin-top:8px">
+          <a href="https://jpaulus04.github.io/last-stand-command" target="_blank" style="color:#8855dd;text-decoration:none">Support &amp; Privacy Policy ↗</a>
+        </div>
+      </div>
     </div>
   </div>
 </div>

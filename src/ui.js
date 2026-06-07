@@ -1633,8 +1633,8 @@ function renderStoreSheet() {
       perks: [
         '×5 Speed unlock — play faster',
         'Orbital Strike unlocked immediately',
-        'Heavy Team pre-unlocked (skip Wave 15 grind)',
-        'Grenadier pre-unlocked (skip Wave 25 grind)',
+        'Heavy Team pre-authorized (available from run start)',
+        'Grenadier pre-authorized (available from run start)',
         'Supporter badge in HUD',
       ],
       owned: localStorage.getItem('ifc_iap_supporter') === '1',
@@ -1642,7 +1642,7 @@ function renderStoreSheet() {
     },
     {
       id: 'commander',
-      title: 'Commander Edition',
+      title: 'Elite Edition',
       price: '$19.99',
       badge: 'BEST VALUE',
       badgeColor: '#ffd166',
@@ -1653,9 +1653,9 @@ function renderStoreSheet() {
         '×10 Speed (exclusive — members only)',
         'All 6 troop classes pre-unlocked from start',
         'All doctrines available immediately',
-        'Commander base skin (exclusive visual)',
+        'Elite base skin (exclusive visual)',
         '+50 bonus credits every run',
-        'Commander rank badge in HUD',
+        'Elite rank badge in HUD',
         'Includes Quick Buy Pack + Auto-Wave',
       ],
       owned: localStorage.getItem('ifc_iap_commander') === '1',
@@ -1712,7 +1712,7 @@ function renderStoreSheet() {
     // Buy button or owned state
     let buttonText = '';
     if (item.includedWithCommander) {
-      buttonText = 'INCLUDED WITH COMMANDER EDITION';
+      buttonText = 'INCLUDED WITH ELITE EDITION';
     } else if (isOwned) {
       buttonText = 'PURCHASED';
     } else {
@@ -1794,10 +1794,10 @@ function _restoreIAPPurchases() {
       }
     }
     
-    // Restore Commander Edition
+    // Restore Elite Edition
     if (localStorage.getItem('ifc_iap_commander') === '1') {
       try {
-        console.log('🔄 Restoring Commander Edition');
+        console.log('🔄 Restoring Elite Edition');
         if (!s._unlockedUnits) s._unlockedUnits = {};
         
         // Unlock all 5 troops
@@ -1823,7 +1823,7 @@ function _restoreIAPPurchases() {
         _quickBuyUnlocked = true;
         _autoWaveUnlocked = true;
         
-        console.log('✓ Restored Commander Edition');
+        console.log('✓ Restored Elite Edition');
       } catch(e) {
         console.error('⚠️ Commander restore error:', e.message);
       }
@@ -1870,7 +1870,7 @@ function _restoreIAPPurchases() {
 function _storeConfirmMessage(id) {
   if (id === 'autowav')    return 'Auto-Wave — $0.99\nLong-press LAUNCH WAVE to toggle automatic wave start.\n\nPermanent unlock (persists after prestige).\nPurchase now?';
   if (id === 'supporter')  return 'Supporter Pack — $4.99\n×5 speed + Heavy & Grenadier unlocked + Orbital Strike\n\nPermanent unlock (persists after prestige).\nPurchase now?';
-  if (id === 'commander')  return 'Commander Edition — $19.99\nAll troops unlocked + ×10 speed + Quick Buy + Orbital Strike\n\nPermanent unlock (persists after prestige).\nPurchase now?';
+  if (id === 'commander')  return 'Elite Edition — $19.99\nAll troops unlocked + ×10 speed + Quick Buy + Orbital Strike\n\nPermanent unlock (persists after prestige).\nPurchase now?';
   if (id === 'quickbuy')   return 'Quick Buy Pack — $0.99\n⚡ Buy All buttons on Research & Barracks\n\nPermanent unlock (persists after prestige).\nPurchase now?';
   return 'Purchase?';
 }
@@ -1938,7 +1938,7 @@ function _storeApplyPurchase(id) {
     console.log('🌟 Supporter Pack Complete');
     
   } else if (id === 'commander') {
-    console.log('👑 Commander Edition Purchase Started');
+    console.log('👑 Elite Edition Purchase Started');
     localStorage.setItem('ifc_iap_commander', '1');
     
     // Ensure state exists
@@ -1989,13 +1989,13 @@ function _storeApplyPurchase(id) {
     
     if (typeof haptic === 'function') haptic('success');
     if (typeof showToast === 'function') {
-      showToast('👑 Commander Edition activated! All troops, ×10 speed, Orbital Strike unlocked!');
+      showToast('👑 Elite Edition activated! All troops, ×10 speed, Orbital Strike unlocked!');
       console.log('✓ Toast shown');
     } else {
       console.warn('⚠️ showToast not found!');
     }
     
-    console.log('👑 Commander Edition Complete');
+    console.log('👑 Elite Edition Complete');
   } else if (id === 'quickbuy') {
     localStorage.setItem('ifc_quickbuy', '1');
     _quickBuyUnlocked = true;
@@ -2320,6 +2320,88 @@ $id('settingsCloseBtn')?.addEventListener('click', () => {
   $id('settingsPanel').style.display = 'none';
   $id('pauseMenuOverlay').style.display = 'flex';
 });
+
+// ── Haptic toggle ─────────────────────────────────────────────
+let _hapticEnabled = localStorage.getItem('lsc_haptic_off') !== '1';
+function _applyHapticUI() {
+  const btn = $id('hapticToggleBtn');
+  const knob = $id('hapticKnob');
+  if (!btn || !knob) return;
+  if (_hapticEnabled) {
+    btn.style.background = '#1a0a3a';
+    knob.style.transform = 'translateX(22px)';
+  } else {
+    btn.style.background = '#0d1a26';
+    knob.style.transform = 'translateX(0)';
+    knob.style.background = '#334455';
+  }
+}
+$id('hapticToggleBtn')?.addEventListener('click', () => {
+  _hapticEnabled = !_hapticEnabled;
+  localStorage.setItem('lsc_haptic_off', _hapticEnabled ? '0' : '1');
+  _applyHapticUI();
+});
+// Patch haptic to respect toggle
+const _origHaptic = (typeof haptic === 'function') ? haptic : null;
+window._hapticGate = function(type) {
+  if (!_hapticEnabled) return;
+  if (_origHaptic) _origHaptic(type);
+};
+
+// ── Floating numbers toggle ───────────────────────────────────
+window._floatsEnabled = localStorage.getItem('lsc_floats_off') !== '1';
+function _applyFloatsUI() {
+  const btn = $id('floatsToggleBtn');
+  const knob = $id('floatsKnob');
+  if (!btn || !knob) return;
+  if (window._floatsEnabled) {
+    btn.style.background = '#0a2a1a';
+    knob.style.transform = 'translateX(22px)';
+  } else {
+    btn.style.background = '#0d1a26';
+    knob.style.transform = 'translateX(0)';
+    knob.style.background = '#334455';
+  }
+}
+$id('floatsToggleBtn')?.addEventListener('click', () => {
+  window._floatsEnabled = !window._floatsEnabled;
+  localStorage.setItem('lsc_floats_off', window._floatsEnabled ? '0' : '1');
+  _applyFloatsUI();
+});
+
+// ── Tutorial reset ────────────────────────────────────────────
+$id('settingsReplayTutBtn')?.addEventListener('click', () => {
+  localStorage.removeItem('ifc_ob_done');
+  $id('settingsPanel').style.display = 'none';
+  if ($id('pauseMenuOverlay')) $id('pauseMenuOverlay').style.display = 'none';
+  showToast('Tutorial reset — start a new run to replay it');
+  haptic('medium');
+});
+
+// ── Wipe data from settings ───────────────────────────────────
+$id('settingsWipeBtn')?.addEventListener('click', () => {
+  if (confirm('Wipe all save data? This cannot be undone.')) {
+    const keysToKeep = ['lsc_haptic_off','lsc_floats_off','ifc_sound_enabled','ifc_volume',
+      'ifc_iap_supporter','ifc_iap_commander','ifc_autowav','ifc_quickbuy'];
+    Object.keys(localStorage).forEach(k => {
+      if (!keysToKeep.includes(k)) localStorage.removeItem(k);
+    });
+    localStorage.removeItem('ifc_save');
+    $id('settingsPanel').style.display = 'none';
+    location.reload();
+  }
+});
+
+// Apply initial states when settings panel opens
+function _initSettingsToggles() {
+  _applyHapticUI();
+  _applyFloatsUI();
+}
+// Call on panel open
+const _origPauseSettingsBtn = $id('pauseSettingsBtn');
+if (_origPauseSettingsBtn) {
+  _origPauseSettingsBtn.addEventListener('click', _initSettingsToggles);
+}
 
 // Sound controls
 let _soundUIEnabled = localStorage.getItem('ifc_sound_enabled') !== '0';
