@@ -1,7 +1,7 @@
 {
-  "name": "invasion-front-commander",
+  "name": "last-stand-command",
   "version": "1.0.0",
-  "description": "Invasion Front Commander — tactical lane-defense game",
+  "description": "Last Stand Command — tactical lane-defense game",
   "private": true,
   "scripts": {
     "build": "node build.js",

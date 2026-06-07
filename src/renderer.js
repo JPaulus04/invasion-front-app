@@ -154,7 +154,7 @@ try { _restoreIAPPurchases(); } catch(e) { _showErr('restoreIAP', e); }
     if (_isFirstTime()) {
       console.log('👋 First time player - showing tutorial');
       // Show tutorial modal over home screen
-      showToast('Welcome, Commander! Tap the question mark for tutorial.');
+      showToast('Welcome! Tap the question mark for the tutorial.');
       _markFirstTimeDone();
     }
     

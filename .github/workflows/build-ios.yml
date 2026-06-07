@@ -94,7 +94,7 @@ jobs:
           )
           with open(path, "w") as f:
               f.write(content)
-          print("Project patched — version 1.0 build 88")
+          print("Project patched — version 1.0 build 89")
           EOF
 
       - name: Patch Podfile
@@ -196,6 +196,6 @@ jobs:
       - name: Save IPA as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: invasion-front-ipa
+          name: last-stand-command-ipa
           path: build/ipa/App.ipa
           retention-days: 30

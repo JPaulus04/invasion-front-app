@@ -480,7 +480,15 @@ const OB_KEY = 'ifc_ob_done';
 // freeAction: what to do automatically when step activates
 const OB_STEPS = [
   {
-    step: '1 of 4', title: 'Deploy Your Troops',
+    step: '1 of 6', title: 'Your Doctrine Is Set',
+    body: 'You chose a Doctrine before this run — it reshapes your entire strategy. Blitzkrieg pushes speed, Fortress maximizes defense, Logistics Corps keeps credits flowing. Each run, choose differently.',
+    arrow: null, cardPos: 'top:22%',
+    spotlight: 'none',
+    waitForAction: null,
+    actionLabel: 'Got it ▶',
+  },
+  {
+    step: '2 of 6', title: 'Deploy Your Troops',
     body: 'Tap the glowing BARRACKS building at the bottom left. Your first Rifle Squad in each lane is free — no credits needed.',
     arrow: 'down', cardPos: 'top:18%',
     spotlight: 'barracks',
@@ -488,7 +496,7 @@ const OB_STEPS = [
     actionLabel: '▼ Tap Barracks',
   },
   {
-    step: '2 of 4', title: 'Research an Upgrade — Free!',
+    step: '3 of 6', title: 'Research an Upgrade — Free!',
     body: 'Tap the RESEARCH LAB at the bottom right. Weapon Calibration Lv1 will be applied free of charge.',
     arrow: 'down', cardPos: 'top:18%',
     spotlight: 'research',
@@ -496,20 +504,28 @@ const OB_STEPS = [
     actionLabel: '▼ Tap Research Lab',
   },
   {
-    step: '3 of 4', title: 'Launch the First Wave',
-    body: 'Tap the green LAUNCH WAVE button below to begin. Your troops fire automatically.',
+    step: '4 of 6', title: 'Launch the First Wave',
+    body: 'Tap the green LAUNCH WAVE button below to begin. Your troops fire automatically across LEFT, CTR, and RIGHT lanes.',
     arrow: null, cardPos: 'top:35%',
     spotlight: 'wave',
     waitForAction: 'wave',
     actionLabel: '▼ Tap Launch Wave',
   },
   {
-    step: '4 of 4', title: "You're Ready, Commander",
-    body: 'Survive each wave, earn credits, unlock new unit classes in the Barracks, and upgrade your base.',
+    step: '5 of 6', title: 'Wave Modifiers Incoming',
+    body: 'By wave 3, named modifiers activate — Ion Storm, Breach Rush, Blackout Protocol and more. Each one forces a real-time tactical shift. Adapt your doctrine or lose ground fast.',
     arrow: null, cardPos: 'top:30%',
     spotlight: 'none',
     waitForAction: null,
-    actionLabel: "Let's go ▶",
+    actionLabel: 'Got it ▶',
+  },
+  {
+    step: '6 of 6', title: "You're Ready, Operative",
+    body: 'Earn credits each wave. Upgrade units via Operations XP. At run end, your Command Rank grows — unlocking permanent bonuses, new doctrines, and deeper tactical options.',
+    arrow: null, cardPos: 'top:30%',
+    spotlight: 'none',
+    waitForAction: null,
+    actionLabel: "Begin operation ▶",
   },
 ];
 

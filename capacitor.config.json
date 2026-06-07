@@ -1,6 +1,6 @@
 {
   "appId": "com.paulus.laststandcommand",
-  "appName": "Invasion Front",
+  "appName": "Last Stand Command",
   "webDir": "www",
   "server": {
     "androidScheme": "https"

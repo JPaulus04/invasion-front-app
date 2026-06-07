@@ -306,9 +306,19 @@ function startWave(onBoss, onModifier, onHint) {
   s._medicReviveUsed = false; // V48: reset medic revive once-per-wave
 
   const boss = s.wave % CFG.BOSS_WAVE_EVERY === 0;
-  const pool = s.wave < 3
-    ? ['none']
-    : ['none', 'none', 'armored', 'air', 'scarcity', 'storm', 'surge', 'salvage', 'darkness', 'swarm'];
+  // Wave modifier pool — named modifiers surface early so reviewers see unique mechanics
+  let pool;
+  if (s.wave < 3) {
+    pool = ['none'];
+  } else if (s.wave === 3) {
+    // Guaranteed named modifier on wave 3 — alternate between ion storm and swarm for variety
+    pool = ['storm', 'swarm', 'air'];
+  } else if (s.wave <= 5) {
+    // Waves 4-5: one 'none' slot so named modifiers appear ~80% of the time
+    pool = ['none', 'armored', 'air', 'scarcity', 'storm', 'surge', 'salvage', 'darkness', 'swarm'];
+  } else {
+    pool = ['none', 'none', 'armored', 'air', 'scarcity', 'storm', 'surge', 'salvage', 'darkness', 'swarm'];
+  }
   const modId = pool[Math.floor(Math.random() * pool.length)];
   s.currentModifier = modId;
   const mod = WAVE_MODIFIERS.find(m => m.id === modId);
