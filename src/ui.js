@@ -1012,6 +1012,7 @@ function _renderResearchTree(container, s) {
   const usedQ  = _researchQueue.length;
   const timers = CFG.RESEARCH_TIMERS || [0,900,3600,10800,28800,86400];
 
+  // ── Helpers ───────────────────────────────────────────
   function _nodeComplete(id) {
     return !!(s.researchNodes && s.researchNodes[id]);
   }
@@ -1033,9 +1034,9 @@ function _renderResearchTree(container, s) {
     return '24h';
   }
 
-  // ── Queue indicator ───────────────────────────────────
-  const qRow = document.createElement('div');
-  qRow.style.cssText = 'display:flex;align-items:center;gap:7px;margin-bottom:16px;padding:9px 12px;border-radius:9px;border:1px solid rgba(34,212,255,.2);background:rgba(34,212,255,.05);';
+  // ── Queue bar ─────────────────────────────────────────
+  var qRow = document.createElement('div');
+  qRow.style.cssText = 'display:flex;align-items:center;gap:7px;margin-bottom:14px;padding:9px 12px;border-radius:9px;border:1px solid rgba(34,212,255,.2);background:rgba(34,212,255,.05);';
   var qDots = '';
   for (var qi = 0; qi < MAX_Q; qi++) {
     var qOn = qi < usedQ;
@@ -1046,157 +1047,248 @@ function _renderResearchTree(container, s) {
     (usedQ >= MAX_Q ? '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--amber);margin-left:auto">FULL</span>' : '');
   container.appendChild(qRow);
 
-  // ── Department cards ──────────────────────────────────
+  // ── Branch selector tabs ──────────────────────────────
+  // Persist selected branch across re-renders
+  if (typeof window._researchBranch === 'undefined') {
+    window._researchBranch = RESEARCH_DEPARTMENTS.find(function(d){ return !d.locked; })?.id || 'logistics';
+  }
+  // Ensure selected branch is valid (not locked)
+  if (RESEARCH_DEPARTMENTS.find(function(d){ return d.id === window._researchBranch && d.locked; })) {
+    window._researchBranch = RESEARCH_DEPARTMENTS.find(function(d){ return !d.locked; })?.id || 'logistics';
+  }
+
+  var tabRow = document.createElement('div');
+  tabRow.style.cssText = 'display:flex;gap:6px;margin-bottom:16px;';
+
   RESEARCH_DEPARTMENTS.forEach(function(dept) {
-    var deptNodes  = TREE_NODES.filter(function(n) { return n.dept === dept.id; });
-    var tierNums   = [...new Set(deptNodes.map(function(n){ return n.tier; }))].sort(function(a,b){return a-b;});
-    var deptDone   = deptNodes.filter(function(n){ return !n.locked; }).every(function(n){ return _nodeComplete(n.id); });
-    var hasSynergy = dept.docSynergy && dept.docSynergy.indexOf(s.selectedDoctrine) >= 0;
-    var deptColor  = dept.color;
+    var isActive = window._researchBranch === dept.id;
+    var deptNodes = TREE_NODES.filter(function(n){ return n.dept === dept.id && !n.locked; });
+    var doneCount = deptNodes.filter(function(n){ return _nodeComplete(n.id); }).length;
+    var allDone   = deptNodes.length > 0 && doneCount === deptNodes.length;
 
-    // Card wrapper
-    var card = document.createElement('div');
-    card.style.cssText = 'border:1px solid ' + deptColor + (dept.locked ? '25' : '44') + ';border-radius:14px;background:' + deptColor + (dept.locked ? '04' : '07') + ';margin-bottom:12px;overflow:hidden;' + (dept.locked ? 'opacity:.45;' : '');
+    var tab = document.createElement('button');
+    tab.style.cssText =
+      'flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:10px;cursor:' + (dept.locked ? 'default' : 'pointer') + ';-webkit-appearance:none;' +
+      'border:1px solid ' + (isActive ? dept.color : (dept.locked ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.1)')) + ';' +
+      'background:' + (isActive ? dept.color + '18' : 'rgba(0,0,0,.25)') + ';' +
+      'opacity:' + (dept.locked ? '.35' : '1') + ';' +
+      'transition:all .15s;';
 
-    // Department header
-    var hdr = document.createElement('div');
-    hdr.style.cssText = 'display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;';
-    var completedCount = deptNodes.filter(function(n){ return !n.locked && _nodeComplete(n.id); }).length;
-    var totalCount     = deptNodes.filter(function(n){ return !n.locked; }).length;
-    hdr.innerHTML =
-      '<span style="font-size:20px">' + dept.icon + '</span>' +
-      '<div style="flex:1">' +
-        '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:15px;color:' + deptColor + ';display:flex;align-items:center;gap:6px">' +
-          dept.name +
-          (hasSynergy ? '<span style="font-size:8px;color:' + deptColor + ';border:1px solid ' + deptColor + '55;border-radius:4px;padding:1px 5px;opacity:.8">SYNERGY</span>' : '') +
-          (dept.locked ? '<span style="font-size:8px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 5px">COMING V45</span>' : '') +
-        '</div>' +
-        '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);margin-top:1px">' +
-          (dept.locked ? dept.desc : completedCount + '/' + totalCount + ' nodes · ' + dept.desc) +
-        '</div>' +
-      '</div>' +
-      (!dept.locked ? '<span style="font-family:\'Share Tech Mono\',monospace;font-size:9px;color:' + (deptDone ? deptColor : 'var(--muted)') + '">' + (deptDone ? '✓' : '') + '</span>' : '');
+    var progressPct = deptNodes.length > 0 ? Math.round(doneCount / deptNodes.length * 100) : 0;
 
-    // Toggle expand/collapse
-    var body = document.createElement('div');
-    body.style.cssText = 'padding:0 10px 10px;';
-    var expanded = !dept.locked; // locked depts start collapsed
-    body.style.display = expanded ? 'block' : 'none';
-    hdr.addEventListener('click', function() {
-      expanded = !expanded;
-      body.style.display = expanded ? 'block' : 'none';
-    });
+    tab.innerHTML =
+      '<span style="font-size:16px;line-height:1">' + dept.icon + '</span>' +
+      '<span style="font-family:\'Share Tech Mono\',monospace;font-size:7px;color:' + (isActive ? dept.color : (dept.locked ? 'var(--muted)' : '#8899aa')) + ';letter-spacing:.5px;white-space:nowrap">' +
+        (dept.locked ? 'LOCKED' : (allDone ? '✓ DONE' : doneCount + '/' + deptNodes.length)) +
+      '</span>';
 
-    card.appendChild(hdr);
-    card.appendChild(body);
-
-    // ── Tier rows ───────────────────────────────────────
-    tierNums.forEach(function(tier, tIdx) {
-      var tierNodes  = deptNodes.filter(function(n){ return n.tier === tier; });
-      var unlocked   = _tierUnlocked(dept.id, tier);
-      var allDone    = tierNodes.every(function(n){ return _nodeComplete(n.id); });
-
-      // Tier label
-      var tierLabel = document.createElement('div');
-      tierLabel.style.cssText = 'display:flex;align-items:center;gap:8px;margin:' + (tIdx === 0 ? '4px' : '0') + ' 0 6px;';
-      tierLabel.innerHTML =
-        '<div style="flex:1;height:1px;background:' + deptColor + (unlocked ? '33' : '18') + '"></div>' +
-        '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:' + (unlocked ? deptColor : 'var(--muted)') + ';letter-spacing:1px;white-space:nowrap">' +
-          (unlocked ? (allDone ? '✓ ' : '') : '🔒 ') + 'TIER ' + tier +
-          (!unlocked ? ' — Complete Tier ' + (tier-1) : '') +
-        '</span>' +
-        '<div style="flex:1;height:1px;background:' + deptColor + (unlocked ? '33' : '18') + '"></div>';
-      body.appendChild(tierLabel);
-
-      // Node row
-      var nodeRow = document.createElement('div');
-      nodeRow.style.cssText = 'display:grid;grid-template-columns:repeat(' + Math.min(tierNodes.length, 3) + ',1fr);gap:6px;margin-bottom:4px;';
-
-      tierNodes.forEach(function(node) {
-        var isDone   = _nodeComplete(node.id);
-        var inQueue  = _nodeInQueue(node.id);
-        var queueFull = !inQueue && usedQ >= MAX_Q;
-        var canAfford = s.credits >= node.cost;
-        var isInstant = false;
-
-        // V75: instant repurchase for any node type that was completed in a prior run.
-        // upgrade/lane nodes check researchPeak (tracks highest level reached).
-        // mod/perk nodes check researchNodes in meta (_metaNodes) — they had timers on
-        // every repurchase after prestige because they have no upgradeId/laneUpgradeId.
-        if (node.type === 'upgrade' && node.upgradeId) {
-          var pk = _peak('global_' + node.upgradeId);
-          isInstant = pk > 0 && !isDone;
-        } else if (node.type === 'lane' && node.laneUpgradeId) {
-          var lpk = _peak('lane_' + node.laneUpgradeId);
-          isInstant = lpk > 0 && !isDone;
-        } else if (node.type === 'mod' || node.type === 'perk') {
-          // Instant if this node was ever completed (stored in meta._completedNodes)
-          var completedNodes = (G.meta && G.meta._completedNodes) || {};
-          isInstant = !!completedNodes[node.id] && !isDone;
-        }
-
-        var canAct = unlocked && !isDone && !inQueue && !queueFull && canAfford && !node.locked;
-        var timerSecs = timers[Math.min(node.timerLevel || 1, timers.length - 1)];
-        if (isInstant) timerSecs = 0;
-
-        // Node card
-        var nc = document.createElement('div');
-        var ncBorder = isDone ? deptColor + '44' : inQueue ? 'var(--cyan)' : (canAct ? deptColor + '66' : 'rgba(255,255,255,.07)');
-        var ncBg     = isDone ? deptColor + '10' : inQueue ? 'rgba(34,212,255,.08)' : (canAct ? 'rgba(0,0,0,.3)' : 'rgba(0,0,0,.5)');
-        nc.style.cssText = 'border:1px solid ' + ncBorder + ';border-radius:10px;padding:9px 8px;background:' + ncBg + ';' +
-          ((!unlocked || (node.locked && dept.locked)) ? 'opacity:.35;' : (!canAct && !isDone && !inQueue ? 'opacity:.55;' : ''));
-
-        // ── Node state: Locked / Available / Researching / Complete ──
-        var statusBadge = '';
-        if (isDone)       statusBadge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:' + deptColor + ';letter-spacing:.8px;margin-bottom:4px">✓ COMPLETE</div>';
-        else if (inQueue) {
-          var sl = Math.max(0, Math.ceil((inQueue.completesAt - Date.now()) / 1000));
-          statusBadge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--cyan);letter-spacing:.8px;margin-bottom:4px">🔬 RESEARCHING · ' + _fmtTime(sl) + '</div>';
-        } else if (!unlocked || node.locked) {
-          statusBadge = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);letter-spacing:.8px;margin-bottom:4px">🔒 LOCKED</div>';
-        }
-
-        // Button label — queue full shows cost greyed (no "Full" text)
-        var btnLabel = '';
-        if (isDone || !unlocked || node.locked) {
-          btnLabel = ''; // no button for Complete or Locked
-        } else if (inQueue) {
-          btnLabel = ''; // Researching state shown via badge
-        } else {
-          // Available (with or without queue full / affordability)
-          btnLabel = (isInstant ? '⚡ ' : (timerSecs > 0 ? _fmtTimer(timerSecs) + ' · ' : '')) + node.cost + ' cr';
-          if (!canAfford) btnLabel = '-' + (node.cost - Math.floor(s.credits)) + ' cr';
-        }
-
-        nc.innerHTML =
-          statusBadge +
-          '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:11px;color:' + (isDone ? deptColor : canAct ? '#e8eef4' : 'var(--muted)') + ';line-height:1.2;margin-bottom:3px">' + node.name + '</div>' +
-          '<div style="font-family:\'Share Tech Mono\',monospace;font-size:7.5px;color:var(--muted);line-height:1.3;margin-bottom:' + (btnLabel ? '7' : '0') + 'px">' + node.effect + '</div>' +
-          (btnLabel ? '<button style="width:100%;padding:5px 4px;border-radius:7px;border:1px solid ' + (canAct ? deptColor : 'rgba(255,255,255,.1)') + ';background:' + (canAct ? deptColor + '20' : 'transparent') + ';color:' + (canAct ? deptColor : 'var(--muted)') + ';font-family:\'Share Tech Mono\',monospace;font-size:8px;cursor:' + (canAct ? 'pointer' : 'default') + ';-webkit-appearance:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" ' + (canAct ? '' : 'disabled') + ' data-node="' + node.id + '">' + btnLabel + '</button>' : '');
-
-        if (canAct) {
-          nc.querySelector('[data-node]').addEventListener('click', function() {
-            _purchaseTreeNode(node, timerSecs);
-          });
-        }
-
-        nodeRow.appendChild(nc);
+    if (!dept.locked) {
+      tab.addEventListener('click', function() {
+        window._researchBranch = dept.id;
+        renderResearchSheet();
       });
+    }
+    tabRow.appendChild(tab);
+  });
+  container.appendChild(tabRow);
 
-      body.appendChild(nodeRow);
+  // ── Active branch header ──────────────────────────────
+  var activeDept = RESEARCH_DEPARTMENTS.find(function(d){ return d.id === window._researchBranch; });
+  if (!activeDept) return;
 
-      // Connector arrow between tiers (not after last tier)
-      if (tIdx < tierNums.length - 1) {
-        var conn = document.createElement('div');
-        conn.style.cssText = 'text-align:center;font-size:12px;color:' + deptColor + (unlocked && allDone ? '88' : '33') + ';margin:2px 0 4px;line-height:1;';
-        conn.textContent = '▼';
-        body.appendChild(conn);
+  var deptNodes  = TREE_NODES.filter(function(n){ return n.dept === activeDept.id; });
+  var tierNums   = [...new Set(deptNodes.map(function(n){ return n.tier; }))].sort(function(a,b){ return a-b; });
+  var doneTotal  = deptNodes.filter(function(n){ return !n.locked && _nodeComplete(n.id); }).length;
+  var totalNodes = deptNodes.filter(function(n){ return !n.locked; }).length;
+  var hasSynergy = activeDept.docSynergy && activeDept.docSynergy.indexOf(s.selectedDoctrine) >= 0;
+  var deptColor  = activeDept.color;
+
+  // Branch header card
+  var branchHdr = document.createElement('div');
+  branchHdr.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:14px;' +
+    'background:' + deptColor + '0d;border:1px solid ' + deptColor + '33;';
+  branchHdr.innerHTML =
+    '<span style="font-size:22px">' + activeDept.icon + '</span>' +
+    '<div style="flex:1">' +
+      '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:16px;color:' + deptColor + ';display:flex;align-items:center;gap:6px">' +
+        activeDept.name.toUpperCase() +
+        (hasSynergy ? '<span style="font-size:8px;border:1px solid ' + deptColor + '55;border-radius:4px;padding:1px 5px;opacity:.85">SYNERGY</span>' : '') +
+      '</div>' +
+      '<div style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);margin-top:2px">' + activeDept.desc + '</div>' +
+    '</div>' +
+    '<div style="text-align:right">' +
+      '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:18px;color:' + deptColor + '">' + doneTotal + '<span style="font-size:11px;color:var(--muted)">/' + totalNodes + '</span></div>' +
+      '<div style="font-family:\'Share Tech Mono\',monospace;font-size:7px;color:var(--muted);letter-spacing:.5px">NODES</div>' +
+      // Progress bar
+      '<div style="width:52px;height:3px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:4px;overflow:hidden">' +
+        '<div style="width:' + (totalNodes > 0 ? Math.round(doneTotal/totalNodes*100) : 0) + '%;height:100%;background:' + deptColor + ';border-radius:2px;transition:width .4s"></div>' +
+      '</div>' +
+    '</div>';
+  container.appendChild(branchHdr);
+
+  // ── Tier rows ─────────────────────────────────────────
+  tierNums.forEach(function(tier, tIdx) {
+    var tierNodes = deptNodes.filter(function(n){ return n.tier === tier; });
+    var unlocked  = _tierUnlocked(activeDept.id, tier);
+    var allDone   = tierNodes.filter(function(n){ return !n.locked; }).every(function(n){ return _nodeComplete(n.id); });
+
+    // Tier label row
+    var tierLabel = document.createElement('div');
+    tierLabel.style.cssText = 'display:flex;align-items:center;gap:8px;margin:' + (tIdx === 0 ? '2px' : '4px') + ' 0 8px;';
+    var tierBadgeColor = !unlocked ? 'var(--muted)' : (allDone ? deptColor : '#aabbcc');
+    tierLabel.innerHTML =
+      '<div style="flex:1;height:1px;background:' + deptColor + (unlocked ? '28' : '12') + '"></div>' +
+      '<div style="display:flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;border:1px solid ' + deptColor + (unlocked ? '30' : '12') + ';background:' + deptColor + (unlocked ? '0a' : '04') + '">' +
+        (unlocked
+          ? (allDone
+              ? '<span style="font-size:9px;color:' + deptColor + '">✓</span>'
+              : '<span style="width:6px;height:6px;border-radius:50%;background:' + deptColor + (unlocked ? 'aa' : '33') + ';display:inline-block"></span>')
+          : '<span style="font-size:9px">🔒</span>') +
+        '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:' + tierBadgeColor + ';letter-spacing:1px;white-space:nowrap">' +
+          'TIER ' + tier +
+          (!unlocked ? ' — Complete Tier ' + (tier - 1) : '') +
+        '</span>' +
+      '</div>' +
+      '<div style="flex:1;height:1px;background:' + deptColor + (unlocked ? '28' : '12') + '"></div>';
+    container.appendChild(tierLabel);
+
+    // Node grid for this tier
+    var nodeGrid = document.createElement('div');
+    nodeGrid.style.cssText = 'display:grid;grid-template-columns:repeat(' + Math.min(tierNodes.length, 2) + ',1fr);gap:8px;margin-bottom:4px;';
+
+    tierNodes.forEach(function(node) {
+      var isDone   = _nodeComplete(node.id);
+      var inQueue  = _nodeInQueue(node.id);
+      var queueFull = !inQueue && usedQ >= MAX_Q;
+      var canAfford = s.credits >= node.cost;
+      var isInstant = false;
+
+      if (node.type === 'upgrade' && node.upgradeId) {
+        var pk = _peak('global_' + node.upgradeId);
+        isInstant = pk > 0 && !isDone;
+      } else if (node.type === 'lane' && node.laneUpgradeId) {
+        var lpk = _peak('lane_' + node.laneUpgradeId);
+        isInstant = lpk > 0 && !isDone;
+      } else if (node.type === 'mod' || node.type === 'perk') {
+        var completedNodes = (G.meta && G.meta._completedNodes) || {};
+        isInstant = !!completedNodes[node.id] && !isDone;
       }
-    });
 
-    container.appendChild(card);
+      var canAct = unlocked && !isDone && !inQueue && !queueFull && canAfford && !node.locked;
+      var timerSecs = timers[Math.min(node.timerLevel || 1, timers.length - 1)];
+      if (isInstant) timerSecs = 0;
+
+      // Visual state system:
+      // COMPLETE  → filled bg with deptColor, checkmark, full opacity
+      // IN QUEUE  → cyan border pulse, "researching" badge
+      // AVAILABLE → deptColor border, glowing button
+      // LOCKED    → dark, low opacity, padlock
+      // UNAFFORD  → available style but cost shown in red, button disabled
+
+      var stateComplete = isDone;
+      var stateQueued   = !!inQueue;
+      var stateAvail    = unlocked && !isDone && !inQueue && !node.locked;
+      var stateLocked   = !unlocked || node.locked;
+
+      var nodeBg, nodeBorder, nodeOpacity;
+      if (stateComplete) {
+        nodeBg = deptColor + '18';
+        nodeBorder = deptColor + '66';
+        nodeOpacity = '1';
+      } else if (stateQueued) {
+        nodeBg = 'rgba(34,212,255,.06)';
+        nodeBorder = 'var(--cyan)';
+        nodeOpacity = '1';
+      } else if (stateAvail && canAfford) {
+        nodeBg = 'rgba(255,255,255,.04)';
+        nodeBorder = deptColor + '55';
+        nodeOpacity = '1';
+      } else if (stateAvail && !canAfford) {
+        nodeBg = 'rgba(0,0,0,.3)';
+        nodeBorder = 'rgba(255,255,255,.1)';
+        nodeOpacity = '.75';
+      } else {
+        nodeBg = 'rgba(0,0,0,.4)';
+        nodeBorder = 'rgba(255,255,255,.06)';
+        nodeOpacity = '.38';
+      }
+
+      var nc = document.createElement('div');
+      nc.style.cssText = 'border:1px solid ' + nodeBorder + ';border-radius:11px;padding:10px 10px 9px;background:' + nodeBg + ';opacity:' + nodeOpacity + ';position:relative;' +
+        (stateQueued ? 'box-shadow:0 0 8px rgba(34,212,255,.18);' : '') +
+        (stateAvail && canAfford ? 'box-shadow:0 0 6px ' + deptColor + '22;' : '');
+
+      // State badge
+      var badge = '';
+      if (stateComplete) {
+        badge = '<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">' +
+          '<div style="width:14px;height:14px;border-radius:50%;background:' + deptColor + ';display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0">✓</div>' +
+          '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:' + deptColor + ';letter-spacing:.8px">COMPLETE</span>' +
+          '</div>';
+      } else if (stateQueued) {
+        var sl = Math.max(0, Math.ceil(((inQueue.completesAt || 0) - Date.now()) / 1000));
+        badge = '<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">' +
+          '<div style="width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:obRingPulse 1.2s ease-in-out infinite;flex-shrink:0"></div>' +
+          '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--cyan);letter-spacing:.8px">RESEARCHING' + (sl > 0 ? ' · ' + _fmtTimer(sl) : '') + '</span>' +
+          '</div>';
+      } else if (stateLocked) {
+        badge = '<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">' +
+          '<span style="font-size:9px">🔒</span>' +
+          '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:var(--muted);letter-spacing:.8px">LOCKED</span>' +
+          '</div>';
+      } else if (stateAvail) {
+        badge = '<div style="display:flex;align-items:center;gap:4px;margin-bottom:5px">' +
+          '<div style="width:7px;height:7px;border-radius:50%;background:' + deptColor + ';flex-shrink:0"></div>' +
+          '<span style="font-family:\'Share Tech Mono\',monospace;font-size:8px;color:' + deptColor + ';letter-spacing:.8px">AVAILABLE</span>' +
+          '</div>';
+      }
+
+      // Cost/action button label
+      var btnLabel = '';
+      if (!stateComplete && !stateQueued && !stateLocked) {
+        if (!canAfford) {
+          btnLabel = '–' + (node.cost - Math.floor(s.credits)) + ' cr';
+        } else {
+          btnLabel = (isInstant ? '⚡ ' : (timerSecs > 0 ? _fmtTimer(timerSecs) + ' · ' : '')) + node.cost + ' cr';
+        }
+      }
+
+      var nameColor = stateComplete ? deptColor : (stateAvail && canAfford ? '#e8eef4' : 'var(--muted)');
+
+      nc.innerHTML = badge +
+        '<div style="font-family:\'Rajdhani\',sans-serif;font-weight:700;font-size:12px;color:' + nameColor + ';line-height:1.2;margin-bottom:2px">' + node.name + '</div>' +
+        '<div style="font-family:\'Share Tech Mono\',monospace;font-size:7.5px;color:var(--muted);line-height:1.35;margin-bottom:' + (btnLabel ? '8' : '0') + 'px">' + node.effect + '</div>' +
+        (btnLabel
+          ? '<button style="width:100%;padding:6px 4px;border-radius:7px;border:1px solid ' +
+              (canAct ? deptColor + '88' : 'rgba(255,255,255,.08)') + ';background:' +
+              (canAct ? deptColor + '22' : 'transparent') + ';color:' +
+              (canAct ? deptColor : '#cc4444') + ';font-family:\'Share Tech Mono\',monospace;font-size:8px;cursor:' +
+              (canAct ? 'pointer' : 'default') + ';-webkit-appearance:none;' +
+              (canAct ? 'box-shadow:0 0 6px ' + deptColor + '22;' : '') +
+              'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" ' +
+              (canAct ? '' : 'disabled') + ' data-node="' + node.id + '">' + btnLabel + '</button>'
+          : '');
+
+      if (canAct) {
+        nc.querySelector('[data-node]').addEventListener('click', function() {
+          _purchaseTreeNode(node, timerSecs);
+        });
+      }
+
+      nodeGrid.appendChild(nc);
+    });
+    container.appendChild(nodeGrid);
+
+    // Connector arrow between tiers — only if next tier exists
+    if (tIdx < tierNums.length - 1) {
+      var conn = document.createElement('div');
+      conn.style.cssText = 'text-align:center;font-size:14px;color:' + deptColor + (unlocked && allDone ? '66' : '22') + ';margin:6px 0 8px;line-height:1;';
+      conn.textContent = '▼';
+      container.appendChild(conn);
+    }
   });
 }
+
 
 // V44: purchase a tree node
 function _purchaseTreeNode(node, timerSecs) {

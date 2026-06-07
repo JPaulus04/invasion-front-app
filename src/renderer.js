@@ -1292,15 +1292,15 @@ function drawVertical(state) {
   // Slot layout within each position — 2+3 chevron facing the enemy (upward)
   // Front row (slots 0-1): 2 men at the wall edge
   // Back row (slots 2-4): 3 men standing behind (further from wall = higher Y = deeper into field)
-  const unitSpread = 28*dpr;  // horizontal spacing — wide enough for sprite art
-  const rowDepth   = 30*dpr;  // vertical gap between front and back row
+  const unitSpread = 32*dpr;  // horizontal spacing — widened to show all 5 slots clearly
+  const rowDepth   = 34*dpr;  // vertical gap between front and back row
 
   const slotLayout = [
-    { dx: -unitSpread*0.6, dy: -rowDepth * 0.2 }, // slot 0 — front left
-    { dx:  unitSpread*0.6, dy: -rowDepth * 0.2 }, // slot 1 — front right
-    { dx: -unitSpread*1.1, dy: -rowDepth * 1.1 }, // slot 2 — back left
-    { dx:  0,              dy: -rowDepth * 1.0 }, // slot 3 — back center
-    { dx:  unitSpread*1.1, dy: -rowDepth * 1.1 }, // slot 4 — back right
+    { dx: -unitSpread*0.55, dy: -rowDepth * 0.15 }, // slot 0 — front left
+    { dx:  unitSpread*0.55, dy: -rowDepth * 0.15 }, // slot 1 — front right
+    { dx: -unitSpread*1.15, dy: -rowDepth * 1.05 }, // slot 2 — back left
+    { dx:  0,               dy: -rowDepth * 1.10 }, // slot 3 — back center
+    { dx:  unitSpread*1.15, dy: -rowDepth * 1.05 }, // slot 4 — back right
   ];
 
   // Draw each fighting position with sandbag emplacement
