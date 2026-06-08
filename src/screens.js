@@ -620,10 +620,10 @@ function _getWaveTip(s) {
     blitz: [
       '💡 Blitzkrieg: Your orbital cooldown is already 20% shorter. Kill Chain research reduces it further with every kill — stack both.',
       '💡 Blitzkrieg: Volley Fire makes Rifle Squads fire 2 shots per attack. Combined with +28% damage, they become your primary wave-clear tool.',
-      '💡 Blitzkrieg: Your -30 base HP is a real cost. Don't overinvest in offense at the expense of barricades early.',
+      '💡 Blitzkrieg: Your -30 base HP is a real cost. Don\'t overinvest in offense at the expense of barricades early.',
     ],
     fortress: [
-      '💡 Fortress: Your barricades and +50 HP let you survive what others can't. Invest in Barricade upgrades and a Med Station — your economy will catch up.',
+      '💡 Fortress: Your barricades and +50 HP let you survive what others can\'t. Invest in Barricade upgrades and a Med Station — your economy will catch up.',
       '💡 Fortress: The Citadel Mode research node gives passive 1 HP/s base repair during waves. Combined with medics, your base almost never falls.',
       '💡 Fortress: Your -12% income means you need to be efficient. Prioritize the Logistics branch of Research before wave 8.',
     ],
@@ -633,7 +633,7 @@ function _getWaveTip(s) {
       '💡 Logistics: The Emergency Requisition node grants 400 credits automatically when your base drops below 25% HP. A strong safety net for late runs.',
     ],
     ew: [
-      '💡 EW Superiority: Shielded Phalanx enemies are your specialty. Your shield strip is +90% — they're nearly defenseless against your EW Specialists.',
+      '💡 EW Superiority: Shielded Phalanx enemies are your specialty. Your shield strip is +90% — they\'re nearly defenseless against your EW Specialists.',
       '💡 EW: The Disruption Network research node lets your EW slow chain to 2 nearby enemies. On swarm waves, this is devastating.',
       '💡 EW: Your raw damage is lower without shields to strip. On waves without shielded enemies, lead with Grenadiers and Snipers for raw output.',
     ],
@@ -655,7 +655,7 @@ function _getWaveTip(s) {
     '💡 Enemy HP scales exponentially past wave 50. Before then, invest in Command research and upgrade Heavy Teams — standard rifles lose effectiveness sharply past that threshold.',
     '💡 Killing enemies during a Salvage Wave pays +30% more. If you have orbital available, hold it for salvage waves to maximize credit generation.',
     '💡 Ion Storm waves boost your EW Specialist effectiveness by 45%. If you have EW units deployed, Ion Storm waves become an advantage rather than a threat.',
-    '💡 A Medic in the center lane heals troops in all adjacent positions. The center is your highest-value medical slot — don't waste it on an offensive unit.',
+    '💡 A Medic in the center lane heals troops in all adjacent positions. The center is your highest-value medical slot — don\'t waste it on an offensive unit.',
     '💡 Prestige early when you hit Wave 25+. Each rank unlocks permanent bonuses. The compounding effect of Rank 5+ (Supply Command, Wave 15 bonus) makes late runs dramatically easier.',
   ];
 
