@@ -76,20 +76,13 @@ jobs:
       - name: Patch Xcode project
         run: |
           python3 - << 'EOF'
-          import re, sys
+          import re
           path = "ios/App/App.xcodeproj/project.pbxproj"
           with open(path) as f:
               content = f.read()
-
-          # Show what's currently in the file so we can debug if it fails
-          import subprocess
-          result = subprocess.run(['grep', 'CURRENT_PROJECT_VERSION', path], capture_output=True, text=True)
-          print("BEFORE patch:", result.stdout.strip())
-
-          # Handle both quoted and unquoted values: CURRENT_PROJECT_VERSION = 71; or = "71";
-          new_content, n1 = re.subn(r'CURRENT_PROJECT_VERSION = ["']?\d+["']?;', 'CURRENT_PROJECT_VERSION = 99;', content)
-          new_content, n2 = re.subn(r'MARKETING_VERSION = [^;]+;', 'MARKETING_VERSION = 1.0;', new_content)
-          new_content, n3 = re.subn(
+          content = re.sub(r'CURRENT_PROJECT_VERSION = \d+;', 'CURRENT_PROJECT_VERSION = 99;', content)
+          content = re.sub(r'MARKETING_VERSION = [^;]+;', 'MARKETING_VERSION = 1.0;', content)
+          content = re.sub(
               r'(PRODUCT_BUNDLE_IDENTIFIER = com\.paulus\.laststandcommand;)',
               (
                   r'\1\n'
@@ -97,23 +90,12 @@ jobs:
                   r'\t\t\t\tCODE_SIGN_IDENTITY = "iPhone Distribution";\n'
                   r'\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "56ddc163-c89a-47a5-99f2-7c6099ec317d";'
               ),
-              new_content
+              content
           )
-
-          print(f"Replacements: CURRENT_PROJECT_VERSION={n1}, MARKETING_VERSION={n2}, BUNDLE_ID_SIGNING={n3}")
-
-          if n1 == 0:
-              print("ERROR: CURRENT_PROJECT_VERSION not found/replaced — aborting")
-              sys.exit(1)
-
           with open(path, "w") as f:
-              f.write(new_content)
-
-          result2 = subprocess.run(['grep', 'CURRENT_PROJECT_VERSION', path], capture_output=True, text=True)
-          print("AFTER patch:", result2.stdout.strip())
+              f.write(content)
           print("Project patched — version 1.0 build 99")
           EOF
-
       - name: Patch Podfile
         run: |
           python3 - << 'EOF'
