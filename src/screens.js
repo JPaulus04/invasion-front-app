@@ -673,7 +673,9 @@ let _obActive = false;
 let _obDone   = false;
 
 function _isFirstRun() {
-  return G.meta.totalRuns === 0;
+  // Use localStorage flag set by _obDismiss — totalRuns only increments on run end
+  // so checking it causes tutorial to re-trigger every wave of the first run
+  return localStorage.getItem(OB_KEY) !== '1';
 }
 
 function _obDismiss() {
@@ -892,14 +894,12 @@ function _showUnitTag(trp, x, y) {
 }
 
 function onBossAlert() {
-  const b = $id('bossAlert');
-  b.style.display = 'block';
-  setTimeout(() => b.style.display = 'none', 5000);
+  // showCountdown already handles the bossAlert overlay for boss waves
+  // This function handles the supporting effects only (shake, glitch, bossSky)
   const sky = $id('bossSky');
-  if (sky) sky.style.display = 'block';
+  if (sky) { sky.style.display = 'block'; setTimeout(() => sky.style.display = 'none', 4000); }
   triggerShake('heavy');
   setTimeout(() => triggerShake('heavy'), 500);
-  haptic('heavy');
   // Phase 2: EW static glitch on boss wave start
   _triggerBossGlitch();
 }
