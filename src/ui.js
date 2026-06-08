@@ -2349,6 +2349,8 @@ $id('pauseResumeBtn')?.addEventListener('click', () => {
 
 $id('pauseSettingsBtn')?.addEventListener('click', () => {
   $id('pauseMenuOverlay').style.display = 'none';
+  var buildEl = $id('about-build');
+  if (buildEl && typeof LSC_BUILD !== 'undefined') buildEl.textContent = LSC_BUILD;
   $id('settingsPanel').style.display = 'flex';
 });
 

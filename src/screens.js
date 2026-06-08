@@ -1,5 +1,8 @@
 $id('homeSettingsBtn')?.addEventListener('click', () => {
   $id('homeScreen').style.display = 'none';
+  // Update build number display dynamically
+  var buildEl = $id('about-build');
+  if (buildEl && typeof LSC_BUILD !== 'undefined') buildEl.textContent = LSC_BUILD;
   $id('settingsPanel').style.display = 'flex';
 });
 
@@ -313,25 +316,73 @@ try {
 function showCountdown(isBoss, callback) {
   const el = $id('waveCountdown');
   if (!el) { callback(); return; }
-  const nums = isBoss ? ['⚠', '3', '2', '1', '▶'] : ['3', '2', '1', '▶'];
-  let idx = 0;
-  const colors = isBoss
-    ? ['#ff3c3c','#ff3c3c','#ff8800','#ffbe00','#18f06a']
-    : ['#22d4ff','#ffbe00','#ff8800','#18f06a'];
 
-  function showNext() {
-    if (idx >= nums.length) { el.style.display = 'none'; callback(); return; }
-    el.textContent = nums[idx];
-    el.style.color = (colors[idx] !== undefined ? colors[idx] : '#18f06a');
-    el.style.display = 'block';
-    el.style.animation = 'none';
-    requestAnimationFrame(() => {
-      el.style.animation = 'countPop .85s ease-out forwards';
-    });
-    idx++;
-    setTimeout(showNext, 700);
+  function runCountdown() {
+    const nums = isBoss ? ['⚠', '3', '2', '1', '▶'] : ['3', '2', '1', '▶'];
+    let idx = 0;
+    const colors = isBoss
+      ? ['#ff3c3c','#ff3c3c','#ff8800','#ffbe00','#18f06a']
+      : ['#22d4ff','#ffbe00','#ff8800','#18f06a'];
+    function showNext() {
+      if (idx >= nums.length) { el.style.display = 'none'; callback(); return; }
+      el.textContent = nums[idx];
+      el.style.color = (colors[idx] !== undefined ? colors[idx] : '#18f06a');
+      el.style.display = 'block';
+      el.style.animation = 'none';
+      requestAnimationFrame(() => {
+        el.style.animation = 'countPop .85s ease-out forwards';
+      });
+      idx++;
+      setTimeout(showNext, 700);
+    }
+    showNext();
   }
-  showNext();
+
+  if (!isBoss) { runCountdown(); return; }
+
+  // Boss wave announcement
+  const alert = $id('bossAlert');
+  const waveNumEl = $id('bossAlertWaveNum');
+  if (!alert) { runCountdown(); return; }
+
+  if (waveNumEl && G && G.state) {
+    waveNumEl.textContent = '— WAVE ' + G.state.wave + ' —';
+  }
+
+  // Screen flash: red overlay
+  alert.style.background = 'rgba(80,0,0,0.72)';
+  alert.style.display = 'flex';
+  alert.style.transition = 'background 0.15s';
+
+  // Animate child elements in
+  var children = alert.querySelectorAll('div > div');
+  requestAnimationFrame(function() {
+    children.forEach(function(c) {
+      c.style.opacity = '1';
+      c.style.transform = c.style.transform ? 'scale(1)' : 'translateY(0)';
+    });
+  });
+
+  // Haptic
+  if (typeof haptic === 'function') haptic('error');
+
+  setTimeout(function() {
+    // Fade out overlay
+    alert.style.transition = 'background 0.4s, opacity 0.4s';
+    alert.style.opacity = '0';
+    setTimeout(function() {
+      alert.style.display = 'none';
+      alert.style.opacity = '';
+      // Reset child animations for next time
+      children.forEach(function(c) {
+        c.style.opacity = '0';
+        c.style.transition = 'none';
+        void c.offsetWidth;
+        c.style.transition = '';
+      });
+      runCountdown();
+    }, 400);
+  }, 1600);
 }
 
 // ── Screen shake ──────────────────────────────────────────────
@@ -480,54 +531,142 @@ const OB_KEY = 'ifc_ob_done';
 // freeAction: what to do automatically when step activates
 const OB_STEPS = [
   {
-    step: '1 of 6', title: 'Your Doctrine Is Set',
-    body: 'You chose a Doctrine before this run — it reshapes your entire strategy. Blitzkrieg pushes speed, Fortress maximizes defense, Logistics Corps keeps credits flowing. Each run, choose differently.',
-    arrow: null, cardPos: 'top:22%',
+    step: '1 of 8', title: 'Grid Sector 7 — Offline',
+    body: 'Year 2047. Eastern Command has gone dark. Enemy forces have breached the outer perimeter and are pushing toward the last defended sector.\n\nYou are the ranking officer. Hold the line — or it falls.',
+    arrow: null, cardPos: 'top:20%',
+    spotlight: 'none',
+    waitForAction: null,
+    actionLabel: 'Acknowledged ▶',
+  },
+  {
+    step: '2 of 8', title: 'Your Doctrine Is Your Identity',
+    body: 'The Doctrine you selected defines your starting advantages and shapes every decision this run.\n\nBlitzkrieg: raw damage and orbital speed. Fortress: extra HP and barricades. Logistics: cheaper troops and stronger economy. EW: slow and strip shields. Artillery: turrets dominate.\n\nEach doctrine rewards a different playstyle. Try them all across runs.',
+    arrow: null, cardPos: 'top:18%',
     spotlight: 'none',
     waitForAction: null,
     actionLabel: 'Got it ▶',
   },
   {
-    step: '2 of 6', title: 'Deploy Your Troops',
-    body: 'Tap the glowing BARRACKS building at the bottom left. Your first Rifle Squad in each lane is free — no credits needed.',
+    step: '3 of 8', title: 'Deploy Your Troops',
+    body: 'Tap BARRACKS to open your roster. Your first Rifle Squad in each lane is free.\n\nThere are three lanes: LEFT, CTR, and RIGHT. Each can hold up to 5 units. A medic sustains your line. A sniper reaches the furthest. A heavy team punishes bosses. Position matters.',
     arrow: 'down', cardPos: 'top:18%',
     spotlight: 'barracks',
     waitForAction: 'barracks',
     actionLabel: '▼ Tap Barracks',
   },
   {
-    step: '3 of 6', title: 'Research an Upgrade — Free!',
-    body: 'Tap the RESEARCH LAB at the bottom right. Weapon Calibration Lv1 will be applied free of charge.',
+    step: '4 of 8', title: 'Research Upgrades',
+    body: 'Tap RESEARCH to access your upgrade tree. Weapon Calibration Lv1 is free — activate it now.\n\nResearch has four branches: Logistics (income and costs), Engineering (lane structures), Command (weapons and orbital), and Operations (unit training). Everything here persists across waves.',
     arrow: 'down', cardPos: 'top:18%',
     spotlight: 'research',
     waitForAction: 'research',
     actionLabel: '▼ Tap Research Lab',
   },
   {
-    step: '4 of 6', title: 'Launch the First Wave',
-    body: 'Tap the green LAUNCH WAVE button below to begin. Your troops fire automatically across LEFT, CTR, and RIGHT lanes.',
+    step: '5 of 8', title: 'Launch the First Wave',
+    body: 'Tap LAUNCH WAVE. Enemies advance from the right across all three lanes — your troops engage automatically.\n\nWatch the lane pressure indicators. If a lane is overwhelmed, deploy a unit there or reinforce with a barricade. Breaches deal direct base damage.',
     arrow: null, cardPos: 'top:35%',
     spotlight: 'wave',
     waitForAction: 'wave',
     actionLabel: '▼ Tap Launch Wave',
   },
   {
-    step: '5 of 6', title: 'Wave Modifiers Incoming',
-    body: 'By wave 3, named modifiers activate — Ion Storm, Breach Rush, Blackout Protocol and more. Each one forces a real-time tactical shift. Adapt your doctrine or lose ground fast.',
-    arrow: null, cardPos: 'top:30%',
+    step: '6 of 8', title: 'Credits & Economy',
+    body: 'Every kill earns credits. Every cleared wave pays a bonus reward.\n\nSpend credits on new troops, lane upgrades (turrets, barricades, med stations, sensors), and research. The economy is tight by design — every credit decision matters. Logistics doctrine or the Supply Routes research node ease this early.',
+    arrow: null, cardPos: 'top:28%',
     spotlight: 'none',
     waitForAction: null,
     actionLabel: 'Got it ▶',
   },
   {
-    step: '6 of 6', title: "You're Ready, Operative",
-    body: 'Earn credits each wave. Upgrade units via Operations XP. At run end, your Command Rank grows — unlocking permanent bonuses, new doctrines, and deeper tactical options.',
-    arrow: null, cardPos: 'top:30%',
+    step: '7 of 8', title: 'Wave Modifiers & Boss Waves',
+    body: 'From wave 3 onward, named modifiers change conditions each wave: Ion Storm amplifies EW, Breach Rush floods the lanes with fast units, Blackout Protocol hardens enemy HP.\n\nEvery 5th wave is a BOSS WAVE — a Warden with massive HP leads the assault. Save your Orbital Strike for them. Kill Chain research helps reset it faster.',
+    arrow: null, cardPos: 'top:28%',
     spotlight: 'none',
     waitForAction: null,
-    actionLabel: "Begin operation ▶",
+    actionLabel: 'Got it ▶',
+  },
+  {
+    step: '8 of 8', title: 'Command Rank & Prestige',
+    body: 'When a run ends, your Command Rank grows — permanently unlocking bonuses that carry into every future run: extra starting credits, stronger orbital strikes, new unit types, and deeper doctrine boosts.\n\nThe further you push before the base falls, the more you unlock. Good luck, Operative.',
+    arrow: null, cardPos: 'top:28%',
+    spotlight: 'none',
+    waitForAction: null,
+    actionLabel: 'Begin Operation ▶',
   },
 ];
+
+
+// ── Wave tip system ───────────────────────────────────────────
+// Tips rotate based on wave, doctrine, and game state.
+// One tip shown per inter-wave summary screen.
+var _lastTipIdx = -1;
+
+function _getWaveTip(s) {
+  if (!s) return null;
+  const wave  = s.wave || 1;
+  const doc   = s.selectedDoctrine || 'blitz';
+  const hpPct = s.baseHp / Math.max(s.maxBaseHp, 1);
+
+  // Contextual high-priority tips
+  if (wave === 4) return '💡 Wave 5 is your first Boss Wave. Deploy a Heavy Team and save your Orbital Strike — Wardens have massive HP.';
+  if (wave === 9) return '💡 Wave 10 brings another Warden. Boss kills reset your Orbital if you have the Kill Chain research node unlocked.';
+  if (hpPct < 0.35 && wave > 3) return '💡 Base integrity is low. Fortress Formation (Medic + Heavy same lane) reduces breach damage by 15%. A Barricade upgrade also helps immediately.';
+  if (s.upgrades && s.upgrades.logistics === 0 && wave >= 4) return '💡 No Logistics research yet. The Logistics Network node gives +22% income from all sources — pays for itself within two waves.';
+  if (s.troops && s.troops.filter(t => t.lane === 1).length === 0 && wave >= 3) return '💡 Your center lane is empty. Undefended lanes breach directly into the base without any troop resistance.';
+
+  // Doctrine tips (shown early)
+  const docTips = {
+    blitz: [
+      '💡 Blitzkrieg: Your orbital cooldown is already 20% shorter. Kill Chain research reduces it further with every kill — stack both.',
+      '💡 Blitzkrieg: Volley Fire makes Rifle Squads fire 2 shots per attack. Combined with +28% damage, they become your primary wave-clear tool.',
+      '💡 Blitzkrieg: Your -30 base HP is a real cost. Don't overinvest in offense at the expense of barricades early.',
+    ],
+    fortress: [
+      '💡 Fortress: Your barricades and +50 HP let you survive what others can't. Invest in Barricade upgrades and a Med Station — your economy will catch up.',
+      '💡 Fortress: The Citadel Mode research node gives passive 1 HP/s base repair during waves. Combined with medics, your base almost never falls.',
+      '💡 Fortress: Your -12% income means you need to be efficient. Prioritize the Logistics branch of Research before wave 8.',
+    ],
+    logistics: [
+      '💡 Logistics: Your +80 starting credits and 22% cheaper troops let you field a full formation early. Do it — income compounds when you have more kills.',
+      '💡 Logistics: Total Supply Doctrine (tier 5 Logistics research) adds +20% wave rewards, +5 kill bonus, and an extra research queue slot simultaneously.',
+      '💡 Logistics: The Emergency Requisition node grants 400 credits automatically when your base drops below 25% HP. A strong safety net for late runs.',
+    ],
+    ew: [
+      '💡 EW Superiority: Shielded Phalanx enemies are your specialty. Your shield strip is +90% — they're nearly defenseless against your EW Specialists.',
+      '💡 EW: The Disruption Network research node lets your EW slow chain to 2 nearby enemies. On swarm waves, this is devastating.',
+      '💡 EW: Your raw damage is lower without shields to strip. On waves without shielded enemies, lead with Grenadiers and Snipers for raw output.',
+    ],
+    artillery: [
+      '💡 Artillery: Your lane turrets are 55% stronger from the start. The Turret Overcharge research node adds 40% more fire rate on top — turrets become your primary damage dealers.',
+      '💡 Artillery: Grid Fire Protocol focuses orbital strikes at 3× intensity on the selected lane. Pair it with a Boss Wave for massive burst damage.',
+      '💡 Artillery: Your -10% fire rate on troops is offset by strong turrets. Fill lanes with Heavies and Snipers and let the turrets carry the rate-of-fire load.',
+    ],
+  };
+  const myDocTips = docTips[doc] || [];
+
+  // General wave-range tips
+  const generalTips = [
+    '💡 Sensor Arrays slow enemies on entry by 10% per level. On lanes with fast breachers, a level 2 sensor can be the difference between a defense and a breach.',
+    '💡 Sniper Teams unlock at Command Rank 2. They have the longest range in the game and deal 46 base damage — ideal for picking off Juggernauts before they reach your line.',
+    '💡 The Research queue is persistent. Queue up long-timer nodes (tier 3+) before ending a session — they complete in real clock time.',
+    '💡 Operations XP accumulates from kills, boss kills, and wave clears. The Blitz Formation and Fortress Formation nodes are tier 4 — plan your Operations path early.',
+    '💡 Troop HP scales with your Command Rank. At Rank 15, all troops gain +20% max HP permanently. Early prestiges compound this benefit.',
+    '💡 Enemy HP scales exponentially past wave 50. Before then, invest in Command research and upgrade Heavy Teams — standard rifles lose effectiveness sharply past that threshold.',
+    '💡 Killing enemies during a Salvage Wave pays +30% more. If you have orbital available, hold it for salvage waves to maximize credit generation.',
+    '💡 Ion Storm waves boost your EW Specialist effectiveness by 45%. If you have EW units deployed, Ion Storm waves become an advantage rather than a threat.',
+    '💡 A Medic in the center lane heals troops in all adjacent positions. The center is your highest-value medical slot — don't waste it on an offensive unit.',
+    '💡 Prestige early when you hit Wave 25+. Each rank unlocks permanent bonuses. The compounding effect of Rank 5+ (Supply Command, Wave 15 bonus) makes late runs dramatically easier.',
+  ];
+
+  // Pick from doctrine tips first (first 5 waves), then general
+  const pool = wave <= 6 && myDocTips.length > 0 ? myDocTips : generalTips;
+  let idx = Math.floor(Math.random() * pool.length);
+  // Avoid repeating last tip
+  if (pool.length > 1 && idx === _lastTipIdx) idx = (idx + 1) % pool.length;
+  _lastTipIdx = idx;
+  return pool[idx];
+}
 
 let _obStep  = 0;
 let _obActive = false;
@@ -1410,6 +1549,14 @@ function renderWaveSummaryUI(reward, deep) {
   else if (hpPct < 0.32) advice = 'Base integrity critical — heal troops and reinforce barricades.';
   else if (hpPct < 0.55) advice = 'Base took heavy damage. Consider healing or a Medic.';
   sa.textContent = advice ? '⚠ ' + advice : ''; sa.style.display = advice ? 'block' : 'none';
+
+  // Tactical tip
+  var tipEl = $id('sumTip');
+  if (tipEl) {
+    var tip = _getWaveTip(s);
+    tipEl.textContent = tip || '';
+    tipEl.style.display = tip ? 'block' : 'none';
+  }
 
   // Next wave preview
   const nwEl = $id('sumNextWave');

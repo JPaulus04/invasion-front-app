@@ -101,6 +101,14 @@
     <div id="wave-chip">Ready</div>
     <div id="waveCountdown"></div>
     <div id="bossSky"></div>
+    <div id="bossAlert" style="display:none;position:fixed;inset:0;z-index:180;pointer-events:none;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0)">
+      <div id="bossAlertInner" style="text-align:center;padding:0 24px">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:4px;color:#ff3c3c;margin-bottom:8px;opacity:0;transform:translateY(-8px);transition:all .35s .1s">⚠ &nbsp; INCOMING THREAT &nbsp; ⚠</div>
+        <div style="font-family:'Rajdhani',sans-serif;font-weight:800;font-size:52px;color:#ff3c3c;line-height:1;text-shadow:0 0 40px rgba(255,60,60,.8),0 0 80px rgba(255,60,60,.4);opacity:0;transform:scale(.85);transition:all .4s .2s">BOSS WAVE</div>
+        <div id="bossAlertWaveNum" style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#ff8800;margin-top:10px;letter-spacing:2px;opacity:0;transition:all .3s .45s"></div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#cc4444;margin-top:14px;opacity:0;transition:all .3s .55s">WARDEN-CLASS ENEMY DETECTED &nbsp;·&nbsp; DEPLOY HEAVY SUPPORT</div>
+      </div>
+    </div>
     <div id="tutorialHint">👆 Tap BARRACKS or RESEARCH in the base below</div>
     <div id="waveClearedBanner"><div class="wcb-main">WAVE CLEARED</div><div class="wcb-sub" id="wcbSub">+68 CR · WAVE 1</div></div>
     <div id="killStreak"><div class="ks-number" id="ksNum">×5</div><div class="ks-label">KILL STREAK</div></div>
@@ -242,6 +250,7 @@
     <!-- Status cards -->
     <div id="sumGood"   class="good-card"   style="display:none"></div>
     <div id="sumAdvice" class="advice-card" style="display:none"></div>
+    <div id="sumTip" style="display:none;padding:7px 10px;border-radius:8px;border:1px solid rgba(136,85,232,.22);background:rgba(136,85,232,.05);margin-bottom:8px;font-family:'Share Tech Mono',monospace;font-size:9px;color:#aa88ee;line-height:1.6"></div>
 
     <!-- Next wave preview -->
     <div id="sumNextWave" style="display:none;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,190,0,.25);background:rgba(255,190,0,.05);margin-bottom:8px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--amber);line-height:1.5"></div>
@@ -1172,7 +1181,7 @@
       <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#aabbcc;margin-bottom:10px;letter-spacing:1px">ABOUT</div>
       <div style="background:#060e16;border-radius:8px;padding:12px;font-family:'Share Tech Mono',monospace;font-size:10px;color:#556677;line-height:1.8">
         <div style="color:#8899aa;font-weight:600;margin-bottom:4px">Last Stand Command</div>
-        <div>Tactical lane-defense · Build 90</div>
+        <div>Tactical lane-defense · Build <span id="about-build">94</span></div>
         <div>Developed by Joshua Paulus</div>
         <div style="margin-top:8px">
           <a href="https://jpaulus04.github.io/last-stand-command" target="_blank" style="color:#8855dd;text-decoration:none">Support &amp; Privacy Policy ↗</a>
