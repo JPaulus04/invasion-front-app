@@ -2,7 +2,7 @@
 //  config.js — all balance tunables
 //  Edit here. Nowhere else.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '100';
+const LSC_BUILD = '102';
 
 const CFG = Object.freeze({
 
@@ -111,4 +111,3 @@ const UNLOCKS = Object.freeze({
   baseHpBonus:     p => (UNLOCKS.has(p, 'u_iron') ? 25 : 0) + (UNLOCKS.has(p, 'u_hardened') ? 40 : 0), // V81: R10+R24
   troopHpBonus:    p => UNLOCKS.has(p, 'u_veteran') ? 0.20 : 0,        // V81: +20% troop HP at R15
 });
-
