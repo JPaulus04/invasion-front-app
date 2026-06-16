@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════
 // hotfixes.js — final App Store review fixes
-// Build 102: boss warning cleanup, wave-launch lock, tutorial replay fixes
+// Build 103: boss warning cleanup, wave-launch lock, tutorial replay fixes
 // Loads last so it can safely override older handlers without invasive rewrites.
 // ═══════════════════════════════════════════════════════
 (function lscHotfixes() {
@@ -8,6 +8,14 @@
 
   function byId(id) {
     return document.getElementById(id);
+  }
+
+  function getState() {
+    try {
+      return (typeof G !== 'undefined' && G && G.state) ? G.state : null;
+    } catch (e) {
+      return null;
+    }
   }
 
   // ── Boss visual cleanup ───────────────────────────────────────
@@ -52,7 +60,8 @@
     var existing = byId('lscBossCard');
     if (existing) existing.remove();
 
-    var wave = (window.G && G.state && G.state.wave) ? G.state.wave : '?';
+    var s = getState();
+    var wave = s && s.wave ? s.wave : '?';
     var card = document.createElement('div');
     card.id = 'lscBossCard';
     card.innerHTML =
@@ -149,12 +158,17 @@
     btn.__lscHotfixWave = true;
 
     btn.addEventListener('click', function(e) {
+      var s = getState();
+
+      // If the hotfix cannot see game state, do NOT swallow the original click.
+      // Build 102 used window.G here; G is a global lexical const, not window.G,
+      // so this blocked the bottom-left Launch/Resume Wave button.
+      if (!s) return;
+
       e.preventDefault();
       e.stopImmediatePropagation();
 
       if (typeof ensureAudio === 'function') ensureAudio();
-      var s = window.G && G.state;
-      if (!s) return;
 
       if (!s.started) {
         var begin = byId('beginBtn');
@@ -180,7 +194,7 @@
 
         // Failsafe from original handler, but without pause toggling.
         setTimeout(function() {
-          var st = window.G && G.state;
+          var st = getState();
           if (!st || st.gameOver || st.waveInProgress || !st.started) return;
           var nothingQueued = (st.enemiesToSpawn || 0) <= 0 && (!st.enemies || st.enemies.length === 0);
           if (!nothingQueued) return;
@@ -202,7 +216,7 @@
     try {
       // Deploy step is Step 3 of 8, array index 2.
       if (!_obActive || _obStep !== 2) return false;
-      var s = window.G && G.state;
+      var s = getState();
       if (!s || !s.troops) return false;
       return s.troops.filter(function(t) { return t.lane === laneIdx; }).length === 0;
     } catch (e) {
