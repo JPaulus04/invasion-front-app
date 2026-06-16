@@ -27,6 +27,7 @@ const CONTROLLER_SCRIPTS = [
   'screens.js',
   'systems.js',
   'main.js',
+  'hotfixes.js',  // Build 102: final boss/tutorial launch hotfixes must load last
 ];
 
 function read(file) {
