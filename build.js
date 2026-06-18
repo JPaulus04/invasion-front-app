@@ -31,6 +31,7 @@ const CONTROLLER_SCRIPTS = [
   'hotfixes.js',  // Build 102/103: final boss/tutorial launch hotfixes
   'build104_foundation.js', // Build 104: campaign worlds, world prestige, daily rewards, permanent research
   'build105_research_polish.js', // Build 105: research visual state polish and tier focus mode
+  'build106_research_layout_fix.js', // Build 106: fixes research queue/header overlap after visual polish
 ];
 
 function read(file) {
