@@ -30,6 +30,7 @@ const CONTROLLER_SCRIPTS = [
   'main.js',
   'hotfixes.js',  // Build 102/103: final boss/tutorial launch hotfixes
   'build104_foundation.js', // Build 104: campaign worlds, world prestige, daily rewards, permanent research
+  'build105_research_polish.js', // Build 105: research visual state polish and tier focus mode
 ];
 
 function read(file) {
