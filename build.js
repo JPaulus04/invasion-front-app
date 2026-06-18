@@ -16,6 +16,7 @@ const OUT = path.join(__dirname, 'www');
 const ENGINE_SCRIPTS = [
   'config.js',
   'data.js',
+  'worlds.js',    // Build 104: campaign world framework must load before engine/renderer/UI
   'audio.js',
   'engine.js',
 ];
@@ -27,7 +28,8 @@ const CONTROLLER_SCRIPTS = [
   'screens.js',
   'systems.js',
   'main.js',
-  'hotfixes.js',  // Build 102: final boss/tutorial launch hotfixes must load last
+  'hotfixes.js',  // Build 102/103: final boss/tutorial launch hotfixes
+  'build104_foundation.js', // Build 104: campaign worlds, world prestige, daily rewards, permanent research
 ];
 
 function read(file) {
