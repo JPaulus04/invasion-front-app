@@ -32,6 +32,7 @@ const CONTROLLER_SCRIPTS = [
   'campaignProgression.js', // Campaign worlds, world prestige, daily rewards, permanent research persistence
   'research.js',            // Consolidated research visuals/layout/queue polish
   'officers.js',            // Command Staff / Officers foundation
+  'hudLayout.js',           // Battlefield floating HUD layout polish
 ];
 
 function read(file) {
