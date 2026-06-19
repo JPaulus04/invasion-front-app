@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════
 //  hudLayout.js — battlefield HUD layout polish
-//  Build 110: keeps Daily + Staff away from Orders and compacts Orders.
+//  Build 111: compact Orders pass, smaller Staff/Daily dock.
 // ═══════════════════════════════════════════════════════
 (function () {
   if (window.__LSC_HUD_LAYOUT_POLISH__) return;
@@ -9,17 +9,21 @@
   function $(id) { return document.getElementById(id); }
 
   function installHudLayoutStyles() {
-    if ($('lsc-hud-layout-style')) return;
+    var old = $('lsc-hud-layout-style');
+    if (old && old.getAttribute('data-build') === '111') return;
+    if (old) old.remove();
+
     var style = document.createElement('style');
     style.id = 'lsc-hud-layout-style';
+    style.setAttribute('data-build', '111');
     style.textContent = `
-      /* Build 110 — compact command action dock */
+      /* Build 111 — compact command action dock */
       #lsc-hud-actions-dock {
         position: fixed;
         z-index: 44;
         left: 10px;
         top: calc(env(safe-area-inset-top,0px) + 138px);
-        width: min(230px, calc(100vw - 158px));
+        width: min(220px, calc(100vw - 150px));
         display: flex;
         gap: 6px;
         align-items: stretch;
@@ -32,22 +36,24 @@
         width: auto !important;
         min-width: 0 !important;
         flex: 1 1 0 !important;
-        height: 34px !important;
-        padding: 6px 7px !important;
-        border-radius: 11px !important;
-        font-size: 11px !important;
+        height: 30px !important;
+        min-height: 30px !important;
+        padding: 5px 7px !important;
+        border-radius: 10px !important;
+        font-size: 10px !important;
         line-height: 1 !important;
+        letter-spacing: 1.2px !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
       }
 
-      /* Compact Orders board so it no longer owns the right side of the battlefield */
+      /* Build 111 — Orders should be a mission tracker, not a panel wall */
       #quest-board {
-        right: 8px !important;
+        right: 7px !important;
         top: 78px !important;
-        width: 124px !important;
-        max-height: min(300px, 44vh) !important;
+        width: 116px !important;
+        max-height: min(242px, 36vh) !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
         padding-right: 1px !important;
@@ -63,44 +69,77 @@
         opacity: .78 !important;
         text-align: center !important;
       }
-      #quest-board > :not(#quest-board-head) {
-        margin: 0 0 7px 0 !important;
-        padding: 8px 9px !important;
-        border-radius: 11px !important;
+      #quest-board .lsc-order-card {
+        margin: 0 0 6px 0 !important;
+        padding: 7px 8px !important;
+        border-radius: 10px !important;
         min-height: 0 !important;
+        max-width: 116px !important;
       }
-      #quest-board > :not(#quest-board-head) * {
-        line-height: 1.18 !important;
+      #quest-board .lsc-order-card * {
+        line-height: 1.08 !important;
       }
-      #quest-board button {
-        min-height: 26px !important;
-        padding: 4px 6px !important;
-        border-radius: 8px !important;
+      #quest-board .lsc-order-card button {
+        min-height: 24px !important;
+        padding: 3px 5px !important;
+        border-radius: 7px !important;
+        font-size: 9px !important;
+      }
+
+      /* Completed orders collapse into quick claim rows */
+      #quest-board .lsc-order-complete {
+        padding: 5px 7px !important;
+        border-radius: 9px !important;
+        min-height: 44px !important;
+      }
+      #quest-board .lsc-order-complete * {
         font-size: 10px !important;
+        line-height: 1.02 !important;
+      }
+      #quest-board .lsc-order-complete div,
+      #quest-board .lsc-order-complete span {
+        margin-top: 1px !important;
+        margin-bottom: 1px !important;
+      }
+      #quest-board .lsc-order-complete [style*="height: 7"],
+      #quest-board .lsc-order-complete [style*="height:7"],
+      #quest-board .lsc-order-complete [style*="height: 8"],
+      #quest-board .lsc-order-complete [style*="height:8"] {
+        max-height: 4px !important;
+      }
+
+      /* Non-complete orders keep readable objective text, but tighter */
+      #quest-board .lsc-order-active {
+        min-height: 68px !important;
+      }
+      #quest-board .lsc-order-active * {
+        font-size: 10.5px !important;
       }
 
       @media (max-width: 380px) {
         #lsc-hud-actions-dock {
           top: calc(env(safe-area-inset-top,0px) + 136px);
-          width: min(214px, calc(100vw - 148px));
+          width: min(205px, calc(100vw - 142px));
           gap: 5px;
         }
         #lsc-hud-actions-dock #lsc-daily-btn,
         #lsc-hud-actions-dock #lsc-staff-btn {
-          height: 32px !important;
-          padding: 5px 6px !important;
-          font-size: 10px !important;
+          height: 28px !important;
+          min-height: 28px !important;
+          padding: 4px 6px !important;
+          font-size: 9.5px !important;
         }
         #quest-board {
-          width: 118px !important;
+          width: 110px !important;
           right: 6px !important;
-          max-height: min(270px, 40vh) !important;
+          max-height: min(224px, 34vh) !important;
         }
+        #quest-board .lsc-order-card { max-width: 110px !important; }
       }
 
       @media (max-height: 740px) {
         #lsc-hud-actions-dock { top: calc(env(safe-area-inset-top,0px) + 132px); }
-        #quest-board { max-height: min(245px, 38vh) !important; }
+        #quest-board { max-height: min(218px, 34vh) !important; }
       }
     `;
     document.head.appendChild(style);
@@ -120,20 +159,39 @@
     }
 
     // Move existing buttons into one layout zone. Listeners remain attached.
-    if (daily && daily.parentNode !== dock) dock.appendChild(daily);
     if (staff && staff.parentNode !== dock) dock.appendChild(staff);
+    if (daily && daily.parentNode !== dock) dock.appendChild(daily);
+  }
+
+  function markQuestCards(qb) {
+    var children = Array.prototype.slice.call(qb.children || []);
+    children.forEach(function (card) {
+      if (!card || card.id === 'quest-board-head') return;
+      card.classList.add('lsc-order-card');
+
+      var txt = (card.textContent || '').replace(/\s+/g, ' ').trim();
+      var hasCheck = txt.indexOf('✓') !== -1 || txt.indexOf('✔') !== -1;
+      var hasClaim = /\bClaim\b/i.test(txt);
+      var isComplete = hasCheck || hasClaim || !!card.querySelector('button:not(:disabled)');
+
+      card.classList.toggle('lsc-order-complete', !!isComplete);
+      card.classList.toggle('lsc-order-active', !isComplete);
+    });
   }
 
   function compactOrders() {
     installHudLayoutStyles();
     var qb = $('quest-board');
     if (!qb) return;
-    qb.setAttribute('data-lsc-compact', '1');
-    // Keep the newest/active order cards visible but scrollable; do not hide claims.
+    qb.setAttribute('data-lsc-compact', '111');
+    markQuestCards(qb);
+
+    // Keep only about three orders visible; remaining orders are available by scrolling.
     if (!qb.__lscQuestScrollGuard) {
       qb.__lscQuestScrollGuard = true;
       qb.addEventListener('touchstart', function (ev) { ev.stopPropagation(); }, { passive: true });
       qb.addEventListener('touchmove', function (ev) { ev.stopPropagation(); }, { passive: true });
+      qb.addEventListener('wheel', function (ev) { ev.stopPropagation(); }, { passive: true });
     }
   }
 
@@ -145,7 +203,7 @@
   function bootHudLayout() {
     tickHudLayout();
     var obs = new MutationObserver(function () { tickHudLayout(); });
-    try { obs.observe(document.body, { childList: true, subtree: true }); } catch (_) {}
+    try { obs.observe(document.body, { childList: true, subtree: true, characterData: true }); } catch (_) {}
     setInterval(tickHudLayout, 1500);
   }
 
