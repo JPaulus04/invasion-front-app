@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-//  worlds.js — Build 104 campaign world framework
+//  worlds.js — campaign world framework
 //  Purpose:
 //  - Defines campaign worlds/wave ranges
 //  - Supports world-based prestige reset points
