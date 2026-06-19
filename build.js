@@ -16,7 +16,7 @@ const OUT = path.join(__dirname, 'www');
 const ENGINE_SCRIPTS = [
   'config.js',
   'data.js',
-  'worlds.js',    // Build 104: campaign world framework must load before engine/renderer/UI
+  'worlds.js',    // Campaign world framework must load before engine/renderer/UI
   'audio.js',
   'engine.js',
 ];
@@ -29,9 +29,8 @@ const CONTROLLER_SCRIPTS = [
   'systems.js',
   'main.js',
   'hotfixes.js',  // Build 102/103: final boss/tutorial launch hotfixes
-  'build104_foundation.js', // Build 104: campaign worlds, world prestige, daily rewards, permanent research
-  'build105_research_polish.js', // Build 105: research visual state polish and tier focus mode
-  'build106_research_layout_fix.js', // Build 106: fixes research queue/header overlap after visual polish
+  'campaignProgression.js', // Campaign worlds, world prestige, daily rewards, permanent research persistence
+  'research.js',            // Consolidated research visuals/layout/queue polish
 ];
 
 function read(file) {
