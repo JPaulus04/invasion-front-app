@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════
 //  hudLayout.js — battlefield HUD layout polish
-//  Build 113: input-safe rollback from Build 112 fixed-panel behavior.
+//  Build 114: layout only; screen-state safety moved to screenGuard.js.
 // ═══════════════════════════════════════════════════════
 (function () {
   if (window.__LSC_HUD_LAYOUT_POLISH__) return;
@@ -10,28 +10,14 @@
 
   function installHudLayoutStyles() {
     var old = $('lsc-hud-layout-style');
-    if (old && old.getAttribute('data-build') === '113') return;
+    if (old && old.getAttribute('data-build') === '114') return;
     if (old) old.remove();
 
     var style = document.createElement('style');
     style.id = 'lsc-hud-layout-style';
-    style.setAttribute('data-build', '113');
+    style.setAttribute('data-build', '114');
     style.textContent = `
-      /* Build 113 — keep bottom controls above battlefield HUD helpers */
-      #controls,
-      #action-row,
-      #waveBtn,
-      #pauseBtn,
-      #orbitalBtn,
-      #careerBtn,
-      #storeBtn {
-        pointer-events: auto !important;
-      }
-      #controls {
-        position: relative !important;
-        z-index: 120 !important;
-      }
-
+      /* Build 114 — no global z-index override for #controls. screenGuard.js owns screen mode. */
       /* Compact command action dock — Staff + Daily stay away from Orders */
       #lsc-hud-actions-dock {
         position: fixed;
@@ -204,7 +190,7 @@
     installHudLayoutStyles();
     var qb = $('quest-board');
     if (!qb) return;
-    qb.setAttribute('data-lsc-compact', '113');
+    qb.setAttribute('data-lsc-compact', '114');
     markQuestCards(qb);
     // No touch/wheel guards in Build 113. They made Build 112 too aggressive on iOS.
   }
