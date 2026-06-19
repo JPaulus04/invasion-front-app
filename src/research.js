@@ -40,11 +40,12 @@
         50% { box-shadow: 0 0 18px rgba(34,212,255,.42), inset 0 0 0 1px rgba(34,212,255,.55); }
       }
       .lsc-b105-legend {
-        display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin:0 0 12px;
+        display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:0 0 8px;
       }
       .lsc-b105-legend div {
-        border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:6px 7px;background:rgba(0,0,0,.22);
-        font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;
+        border:1px solid rgba(255,255,255,.07);border-radius:7px;padding:4px 4px;background:rgba(0,0,0,.18);
+        font-family:'Share Tech Mono',monospace;font-size:6.8px;letter-spacing:.45px;color:var(--muted);text-transform:uppercase;text-align:center;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
       }
       .lsc-b105-op-card {
         position:relative;overflow:hidden;border-radius:12px;padding:11px 10px;min-height:112px;
@@ -198,10 +199,10 @@
         var legend = document.createElement('div');
         legend.className = 'lsc-b105-legend';
         legend.innerHTML =
-          '<div><span style="color:' + COLOR_DONE + '">✓ Complete</span></div>' +
-          '<div><span style="color:' + COLOR_AVAILABLE + '">● Available</span></div>' +
+          '<div><span style="color:' + COLOR_DONE + '">✓ Done</span></div>' +
+          '<div><span style="color:' + COLOR_AVAILABLE + '">● Now</span></div>' +
           '<div><span style="color:' + COLOR_MUTED + '">○ Need XP</span></div>' +
-          '<div><span style="color:' + COLOR_LOCKED + '">🔒 Locked tier</span></div>';
+          '<div><span style="color:' + COLOR_LOCKED + '">🔒 Locked</span></div>';
         container.appendChild(legend);
 
         if (typeof OPS_NODES === 'undefined' || !Array.isArray(OPS_NODES)) {
@@ -497,6 +498,14 @@
         background:rgba(0,0,0,.20);color:rgba(155,170,175,.72);font-family:'Share Tech Mono',monospace;
         font-size:7.5px;text-align:center;letter-spacing:.55px;
       }
+      .lsc-b108-hidden-tier {
+        display:none !important;
+      }
+      .lsc-b108-single-lock-note {
+        margin:0 0 12px;padding:8px 10px;border-radius:10px;border:1px dashed rgba(255,255,255,.10);
+        background:rgba(0,0,0,.18);color:rgba(155,170,175,.76);font-family:'Share Tech Mono',monospace;
+        font-size:7.5px;text-align:center;letter-spacing:.55px;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -637,26 +646,47 @@
   function collapseLockedFutureTiers(root) {
     if (!root) return;
     var kids = Array.prototype.slice.call(root.children || []);
+    var firstLockedTierKept = false;
+
+    function hide(el) {
+      if (el && el.classList) {
+        el.classList.add('lsc-b107-hidden-locked-grid');
+        el.classList.add('lsc-b108-hidden-tier');
+      }
+    }
+
+    function looksLikeLockedGrid(el) {
+      return !!(el && /LOCKED|Future upgrades hidden/i.test(el.textContent || ''));
+    }
+
     for (var i = 0; i < kids.length; i++) {
-      var txt = (kids[i].textContent || '').replace(/\s+/g, ' ').trim();
+      var label = kids[i];
+      var txt = (label.textContent || '').replace(/\s+/g, ' ').trim();
       if (!/🔒|LOCKED/i.test(txt)) continue;
       if (!/TIER\s+\d+\s+[-—]\s+Complete\s+Tier/i.test(txt)) continue;
 
       var grid = kids[i + 1];
-      if (grid && /LOCKED/i.test(grid.textContent || '')) {
-        grid.classList.add('lsc-b107-hidden-locked-grid');
-        if (!grid.nextElementSibling || !grid.nextElementSibling.classList || !grid.nextElementSibling.classList.contains('lsc-b107-locked-tier-note')) {
-          var note = document.createElement('div');
-          note.className = 'lsc-b107-locked-tier-note';
-          note.textContent = 'Future upgrades hidden until this tier unlocks.';
-          grid.parentNode.insertBefore(note, grid.nextSibling);
-          kids.splice(i + 2, 0, note);
-        }
-      }
-
       var arrow = kids[i + 2];
-      if (arrow && (arrow.textContent || '').trim() === '▼') {
-        arrow.classList.add('lsc-b107-hidden-locked-grid');
+      var nextNote = (grid && grid.nextElementSibling && grid.nextElementSibling.classList && grid.nextElementSibling.classList.contains('lsc-b107-locked-tier-note')) ? grid.nextElementSibling : null;
+
+      if (!firstLockedTierKept) {
+        firstLockedTierKept = true;
+        if (looksLikeLockedGrid(grid)) hide(grid);
+        if (nextNote) hide(nextNote);
+        if (arrow && (arrow.textContent || '').trim() === '▼') hide(arrow);
+
+        if (!label.nextElementSibling || !label.nextElementSibling.classList || !label.nextElementSibling.classList.contains('lsc-b108-single-lock-note')) {
+          var note = document.createElement('div');
+          note.className = 'lsc-b108-single-lock-note';
+          note.textContent = 'Future tiers unlock as you complete the current tier.';
+          label.parentNode.insertBefore(note, label.nextSibling);
+          kids.splice(i + 1, 0, note);
+        }
+      } else {
+        hide(label);
+        if (looksLikeLockedGrid(grid)) hide(grid);
+        if (nextNote) hide(nextNote);
+        if (arrow && (arrow.textContent || '').trim() === '▼') hide(arrow);
       }
     }
   }
@@ -735,3 +765,6 @@
 
   window.LSC_RESEARCH_QUEUE = { refreshResearchPolish: polishResearchLayout };
 })();
+
+
+// Build 108 final pass: compact research legend and single locked-tier gate behavior.
