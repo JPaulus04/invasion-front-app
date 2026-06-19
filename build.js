@@ -31,6 +31,7 @@ const CONTROLLER_SCRIPTS = [
   'hotfixes.js',  // Build 102/103: final boss/tutorial launch hotfixes
   'campaignProgression.js', // Campaign worlds, world prestige, daily rewards, permanent research persistence
   'research.js',            // Consolidated research visuals/layout/queue polish
+  'officers.js',            // Command Staff / Officers foundation
 ];
 
 function read(file) {
