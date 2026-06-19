@@ -33,6 +33,7 @@ const CONTROLLER_SCRIPTS = [
   'research.js',            // Consolidated research visuals/layout/queue polish
   'officers.js',            // Command Staff / Officers foundation
   'hudLayout.js',           // Battlefield floating HUD layout polish
+  'screenGuard.js',         // Screen-state/input isolation for Home vs Battlefield
 ];
 
 function read(file) {
