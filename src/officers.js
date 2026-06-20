@@ -4,7 +4,7 @@
 //
 //  Adds permanent officers, lane assignments, earnable-Gem
 //  recruiting, visible crate odds, starter officer, and safe
-//  lane auto-management hooks. Paid Gem packs are not enabled.
+//  lane auto-management hooks, detail cards, and lane bonus summaries. Paid Gem packs are not enabled.
 // ═══════════════════════════════════════════════════════
 (function () {
   if (window.__LSC_COMMAND_STAFF__) return;
@@ -163,6 +163,44 @@
     return b;
   }
 
+  function fmtPct(v) { return Math.round((v || 0) * 100); }
+  function bonusSummaryFromBonus(b) {
+    var parts = [];
+    if (!b) b = {};
+    if (b.cost) parts.push('Cost -' + fmtPct(b.cost) + '%');
+    if (b.troopHp) parts.push('HP +' + fmtPct(b.troopHp) + '%');
+    if (b.waveCredits) parts.push('+' + Math.floor(b.waveCredits) + ' cr/wave');
+    if (b.repair) parts.push('Repair +' + Math.floor(b.repair));
+    if (b.heal) parts.push('Heal +' + Math.floor(b.heal));
+    if (b.slow) parts.push('Disrupt +' + fmtPct(b.slow) + '%');
+    if (b.boss) parts.push('Boss +' + fmtPct(b.boss) + '%');
+    if (b.orbital) parts.push('Orbital +' + fmtPct(b.orbital) + '%');
+    return parts.length ? parts.join(' · ') : 'Lane support';
+  }
+  function rawOfficerBonus(def) {
+    return Object.assign({ cost:0, troopHp:0, heal:0, repair:0, waveCredits:0, slow:0, boss:0, orbital:0, legendary:false }, (def && def.bonus) || {});
+  }
+  function officerAuthorityText(def) {
+    if (!def || def.rarity !== 'legendary') return '';
+    var r = rank();
+    var pct = r >= 15 ? 100 : r >= 10 ? 85 : r >= 5 ? 65 : 45;
+    var next = r >= 15 ? 'Mastery active' : r >= 10 ? 'Rank 15 unlocks mastery' : r >= 5 ? 'Rank 10 increases authority' : 'Rank 5 increases authority';
+    return 'Legendary authority: ' + pct + '% · ' + next;
+  }
+  function laneBonusSummaryHtml() {
+    var html = '<div class="lsc-bonus-panel"><div class="lsc-bonus-title">ACTIVE LANE BONUSES</div>';
+    [0,1,2].forEach(function (lane) {
+      var id = assignment(lane), def = officerById(id);
+      if (def && isUnlocked(def.id)) {
+        var info = rarityInfo(def.rarity), b = assignedBonus(lane);
+        html += '<div class="lsc-bonus-row"><span style="color:' + info.color + '">' + LANE_LABELS[lane] + '</span><b>' + def.name + '</b><em>' + bonusSummaryFromBonus(b) + '</em></div>';
+      } else {
+        html += '<div class="lsc-bonus-row empty"><span>' + LANE_LABELS[lane] + '</span><b>Open slot</b><em>No officer assigned</em></div>';
+      }
+    });
+    return html + '</div>';
+  }
+
   function installStyles() {
     if ($('lsc-officer-style')) return;
     var css = document.createElement('style');
@@ -173,6 +211,7 @@
       #lsc-staff-card{width:min(460px,95vw);max-height:86vh;overflow:auto;border:1px solid rgba(34,212,255,.38);border-radius:18px;background:linear-gradient(180deg,rgba(10,19,34,.98),rgba(3,7,13,.96));box-shadow:0 22px 70px rgba(0,0,0,.66),inset 0 0 28px rgba(34,212,255,.05);padding:15px;color:white;-webkit-overflow-scrolling:touch}
       .lsc-staff-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0}.lsc-staff-tab{padding:8px 3px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);color:rgba(210,225,235,.72);font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.8px;-webkit-appearance:none}.lsc-staff-tab.active{border-color:var(--cyan);background:rgba(34,212,255,.12);color:var(--cyan)}
       .lsc-staff-row{display:flex;align-items:center;gap:8px;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);margin-bottom:8px}.lsc-officer-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,0,0,.26);border:1px solid rgba(255,255,255,.08);flex-shrink:0}.lsc-officer-name{font-family:'Rajdhani',sans-serif;font-weight:900;font-size:15px;line-height:1.05}.lsc-officer-sub{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);line-height:1.35;margin-top:2px}.lsc-officer-rarity{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1px;text-transform:uppercase}.lsc-staff-btn2{padding:7px 9px;border-radius:9px;border:1px solid rgba(34,212,255,.45);background:rgba(34,212,255,.12);color:var(--cyan);font-family:'Rajdhani',sans-serif;font-weight:900;font-size:12px;-webkit-appearance:none}.lsc-staff-btn2.gold{border-color:rgba(212,160,40,.55);background:rgba(212,160,40,.13);color:#ffd35a}.lsc-staff-btn2.dim{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.035);color:rgba(210,220,230,.64)}.lsc-staff-btn2:disabled{opacity:.48;filter:saturate(.55);pointer-events:none}.lsc-staff-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.lsc-lane-card{border-radius:13px;border:1px solid rgba(34,212,255,.18);background:rgba(34,212,255,.055);padding:11px;margin-bottom:8px}.lsc-lane-title{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--cyan);letter-spacing:1.2px}.lsc-odds{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}.lsc-odds div{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:5px 3px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(220,230,235,.72)}.lsc-staff-note{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);line-height:1.55;margin-bottom:10px}.lsc-staff-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 10px}.lsc-staff-mini div{border:1px solid rgba(34,212,255,.18);border-radius:10px;background:rgba(34,212,255,.05);padding:6px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(210,230,240,.82)}
+      .lsc-detail-card{border:1px solid rgba(34,212,255,.34);border-radius:14px;background:linear-gradient(180deg,rgba(34,212,255,.10),rgba(255,255,255,.035));padding:10px;margin:0 0 10px;box-shadow:inset 0 0 22px rgba(34,212,255,.045)}.lsc-detail-head{display:flex;align-items:center;gap:8px}.lsc-detail-title{font-family:'Rajdhani',sans-serif;font-weight:900;font-size:18px;line-height:1}.lsc-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}.lsc-detail-chip{border:1px solid rgba(255,255,255,.09);border-radius:9px;background:rgba(0,0,0,.18);padding:6px;font-family:'Share Tech Mono',monospace;font-size:7.5px;color:rgba(220,230,235,.78);line-height:1.35}.lsc-detail-chip b{display:block;font-family:'Rajdhani',sans-serif;font-size:12px;color:#fff;margin-bottom:1px}.lsc-bonus-panel{border:1px solid rgba(34,212,255,.16);border-radius:12px;background:rgba(34,212,255,.045);padding:8px;margin:8px 0 10px}.lsc-bonus-title{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.2px;color:var(--cyan);margin-bottom:5px}.lsc-bonus-row{display:grid;grid-template-columns:48px 1fr;gap:3px 6px;align-items:center;padding:4px 0;border-top:1px solid rgba(255,255,255,.045)}.lsc-bonus-row:first-of-type{border-top:0}.lsc-bonus-row span{font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--cyan);letter-spacing:.8px}.lsc-bonus-row b{font-family:'Rajdhani',sans-serif;font-size:12px;color:#eaf6ff}.lsc-bonus-row em{grid-column:2;font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--muted);font-style:normal}.lsc-bonus-row.empty{opacity:.62}
     `;
     document.head.appendChild(css);
   }
@@ -233,6 +272,23 @@
     if (tab === 'assign') renderAssignments(body);
     else if (tab === 'recruit') renderRecruitment(body);
     else renderRoster(body);
+    renderOfficerDetail(body);
+  }
+
+  function renderOfficerDetail(body) {
+    var id = window.__lscOfficerDetail;
+    var def = officerById(id);
+    if (!body || !def) return;
+    var info = rarityInfo(def.rarity), owned = isUnlocked(def.id), lane = assignedLaneOf(def.id);
+    var bonus = (owned && lane !== null) ? assignedBonus(lane) : rawOfficerBonus(def);
+    var auth = officerAuthorityText(def);
+    var card = document.createElement('div');
+    card.className = 'lsc-detail-card';
+    card.innerHTML = '<div class="lsc-detail-head"><div class="lsc-officer-icon" style="color:' + info.color + ';border-color:' + info.color + '55">' + def.icon + '</div><div style="flex:1"><div class="lsc-officer-rarity" style="color:' + info.color + '">' + info.label + (owned ? ' · RECRUITED' : ' · NOT RECRUITED') + '</div><div class="lsc-detail-title" style="color:' + info.color + '">' + def.name + '</div><div class="lsc-officer-sub">' + def.title + ' · ' + def.laneStyle + '</div></div><button class="lsc-staff-btn2 dim" data-close-detail="1">Close</button></div>' +
+      '<div class="lsc-detail-grid"><div class="lsc-detail-chip"><b>Lane Bonus</b>' + bonusSummaryFromBonus(bonus) + '</div><div class="lsc-detail-chip"><b>Auto Role</b>' + ((def.units || []).join(' → ') || 'support') + '</div><div class="lsc-detail-chip"><b>Event Specialty</b>' + (def.event || 'General operation support') + '</div><div class="lsc-detail-chip"><b>Status</b>' + (lane !== null ? 'Assigned to ' + LANE_LABELS[lane] : (owned ? 'Ready to assign' : 'Recruit with Gems or shards')) + '</div></div>' + (auth ? '<div class="lsc-officer-sub" style="margin-top:8px;color:' + info.color + '">' + auth + '</div>' : '');
+    body.insertBefore(card, body.firstChild);
+    var close = card.querySelector('[data-close-detail]');
+    if (close) close.addEventListener('click', function () { window.__lscOfficerDetail = null; renderStaffModal(); });
   }
 
   function officerRow(def, mode) {
@@ -263,10 +319,11 @@
 
     var ownedStyle = owned ? info.color + '66' : 'rgba(255,255,255,.09)';
     var laneText = lane !== null ? ' · ' + LANE_LABELS[lane] + ' lane' : '';
+    var actionStack = '<div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">' + action + '<button class="lsc-staff-btn2 dim" data-officer-detail="' + def.id + '">Info</button></div>';
     return '<div class="lsc-staff-row" style="border-color:' + ownedStyle + ';opacity:' + (owned ? '1' : '.74') + '">' +
       '<div class="lsc-officer-icon" style="border-color:' + info.color + '44;color:' + info.color + '">' + def.icon + '</div>' +
       '<div style="flex:1;min-width:0"><div class="lsc-officer-rarity" style="color:' + info.color + '">' + info.label + (owned ? ' · RECRUITED' + laneText : ' · ' + shards + '/' + need + ' SHARDS') + '</div><div class="lsc-officer-name" style="color:' + (owned ? info.color : '#dfe8ee') + '">' + def.name + '</div><div class="lsc-officer-sub">' + def.title + ' · ' + def.short + powerNote + '</div></div>' +
-      '<div style="flex-shrink:0">' + action + '</div></div>';
+      actionStack + '</div>';
   }
 
   function wireOfficerButtons(root) {
@@ -275,6 +332,7 @@
     root.querySelectorAll('[data-assign]').forEach(function (b) { b.addEventListener('click', function () { assignOfficer(b.dataset.assign, parseInt(b.dataset.lane, 10)); }); });
     root.querySelectorAll('[data-unassign-lane]').forEach(function (b) { b.addEventListener('click', function () { unassignLane(parseInt(b.dataset.unassignLane, 10)); }); });
     root.querySelectorAll('[data-open-crate]').forEach(function (b) { b.addEventListener('click', function () { openCrate(b.dataset.openCrate); }); });
+    root.querySelectorAll('[data-officer-detail]').forEach(function (b) { b.addEventListener('click', function () { window.__lscOfficerDetail = b.dataset.officerDetail; renderStaffModal(); }); });
   }
 
   function renderRoster(body) {
@@ -295,7 +353,7 @@
 
   function renderAssignments(body) {
     var cs = ensureStaffMeta();
-    var html = '<div class="lsc-staff-note">Assigned officers auto-fill their lane once at wave start when credits and slots allow. Legendary officers can be owned early; full authority unlocks with rank.</div>';
+    var html = '<div class="lsc-staff-note">Assigned officers auto-fill their lane once at wave start when credits and slots allow. Legendary officers can be owned early; full authority unlocks with rank.</div>' + laneBonusSummaryHtml();
     [0,1,2].forEach(function (lane) {
       var id = assignment(lane), def = officerById(id), bonus = assignedBonus(lane);
       html += '<div class="lsc-lane-card"><div class="lsc-lane-title">' + LANE_LABELS[lane] + ' LANE</div>';
@@ -322,7 +380,9 @@
     html += '<div class="lsc-staff-mini"><div>GEMS<br><b>' + ((m && m.gems) || 0) + '</b></div><div>FIELD<br><b>' + (vouchers.field || 0) + '</b></div><div>COMMAND<br><b>' + (vouchers.command || 0) + '</b></div></div>';
     html += '<div style="font-family:Share Tech Mono,monospace;font-size:8px;color:var(--cyan);letter-spacing:1.2px;margin:6px 0">RECRUITMENT BOARD</div>';
     html += featured.map(function (d) { return officerRow(d, 'roster'); }).join('');
+    var pity = cs && cs.draws ? (cs.draws.pity || 0) : 0;
     html += '<div style="font-family:Share Tech Mono,monospace;font-size:8px;color:var(--cyan);letter-spacing:1.2px;margin:12px 0 6px">RECRUITMENT CRATES</div>';
+    html += '<div class="lsc-staff-note" style="margin-bottom:6px">Legendary safety: ' + pity + '/50 pulls since last Legendary.</div>';
     Object.keys(CRATES).forEach(function (key) {
       var c = CRATES[key], vouchers = (m.recruitmentVouchers && m.recruitmentVouchers[c.voucherKey]) || 0;
       var canVoucher = vouchers > 0 && !c.disabled, canGem = (m.gems || 0) >= c.cost && !c.disabled;
