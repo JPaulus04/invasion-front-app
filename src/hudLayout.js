@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════
 //  hudLayout.js — battlefield HUD layout polish
-//  Build 114: layout only; screen-state safety moved to screenGuard.js.
+//  Build 120: compact Auto-Wave pill and safe HUD stacking.
 // ═══════════════════════════════════════════════════════
 (function () {
   if (window.__LSC_HUD_LAYOUT_POLISH__) return;
@@ -10,20 +10,75 @@
 
   function installHudLayoutStyles() {
     var old = $('lsc-hud-layout-style');
-    if (old && old.getAttribute('data-build') === '114') return;
+    if (old && old.getAttribute('data-build') === '120') return;
     if (old) old.remove();
 
     var style = document.createElement('style');
     style.id = 'lsc-hud-layout-style';
-    style.setAttribute('data-build', '114');
+    style.setAttribute('data-build', '120');
     style.textContent = `
-      /* Build 114 — no global z-index override for #controls. screenGuard.js owns screen mode. */
+      /* Build 120 — no global z-index override for #controls. screenGuard.js owns screen mode. */
+      /* Auto-Wave is a compact status pill now, not a full-width strip.
+         It gets its own reserved row under the world card so it cannot hide behind
+         the Earth progress bar or Orders. */
+      #autowav-strip {
+        position: fixed !important;
+        z-index: 43 !important;
+        left: 10px !important;
+        top: calc(env(safe-area-inset-top,0px) + 130px) !important;
+        width: min(220px, calc(100vw - 150px)) !important;
+        height: 22px !important;
+        min-height: 22px !important;
+        max-height: 22px !important;
+        padding: 3px 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 6px !important;
+        border-radius: 9px !important;
+        border: 1px solid rgba(34,212,255,.30) !important;
+        background: linear-gradient(135deg, rgba(4,12,20,.78), rgba(0,0,0,.48)) !important;
+        box-shadow: 0 6px 18px rgba(0,0,0,.28), inset 0 0 12px rgba(34,212,255,.05) !important;
+        backdrop-filter: blur(7px) !important;
+        -webkit-backdrop-filter: blur(7px) !important;
+        pointer-events: auto !important;
+        overflow: hidden !important;
+        transform: none !important;
+      }
+      #autowav-label {
+        font-family: 'Share Tech Mono', monospace !important;
+        font-size: 8px !important;
+        letter-spacing: 1.4px !important;
+        line-height: 1 !important;
+        color: var(--cyan) !important;
+        white-space: nowrap !important;
+        text-transform: uppercase !important;
+        opacity: .92 !important;
+      }
+      #autowav-right {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        font-family: 'Share Tech Mono', monospace !important;
+        font-size: 8px !important;
+        letter-spacing: .8px !important;
+        line-height: 1 !important;
+        color: rgba(210,230,235,.76) !important;
+        text-align: right !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      #autowav-strip:empty,
+      #autowav-strip[style*="display: none"] {
+        display: none !important;
+      }
+
       /* Compact command action dock — Staff + Daily stay away from Orders */
       #lsc-hud-actions-dock {
         position: fixed;
         z-index: 44;
         left: 10px;
-        top: calc(env(safe-area-inset-top,0px) + 138px);
+        top: calc(env(safe-area-inset-top,0px) + 158px);
         width: min(220px, calc(100vw - 150px));
         display: flex;
         gap: 6px;
@@ -120,8 +175,19 @@
       #quest-board .lsc-order-hidden-extra { display: block !important; }
 
       @media (max-width: 380px) {
+        #autowav-strip {
+          top: calc(env(safe-area-inset-top,0px) + 128px) !important;
+          width: min(205px, calc(100vw - 142px)) !important;
+          height: 21px !important;
+          min-height: 21px !important;
+          max-height: 21px !important;
+          padding: 3px 7px !important;
+        }
+        #autowav-label,
+        #autowav-right { font-size: 7.5px !important; }
+
         #lsc-hud-actions-dock {
-          top: calc(env(safe-area-inset-top,0px) + 136px);
+          top: calc(env(safe-area-inset-top,0px) + 156px);
           width: min(205px, calc(100vw - 142px));
           gap: 5px;
         }
@@ -141,7 +207,8 @@
       }
 
       @media (max-height: 740px) {
-        #lsc-hud-actions-dock { top: calc(env(safe-area-inset-top,0px) + 132px); }
+        #autowav-strip { top: calc(env(safe-area-inset-top,0px) + 124px) !important; }
+        #lsc-hud-actions-dock { top: calc(env(safe-area-inset-top,0px) + 152px); }
         #quest-board { max-height: min(218px, 34vh) !important; }
       }
     `;
@@ -190,14 +257,29 @@
     installHudLayoutStyles();
     var qb = $('quest-board');
     if (!qb) return;
-    qb.setAttribute('data-lsc-compact', '114');
+    qb.setAttribute('data-lsc-compact', '120');
     markQuestCards(qb);
     // No touch/wheel guards in Build 113. They made Build 112 too aggressive on iOS.
+  }
+
+
+  function compactAutoWavePill() {
+    installHudLayoutStyles();
+    var strip = $('autowav-strip');
+    if (!strip) return;
+    strip.setAttribute('data-lsc-layout', 'compact-pill');
+
+    var label = $('autowav-label');
+    if (label) {
+      var txt = (label.textContent || '').trim();
+      if (!txt || txt === '⚡ AUTO') label.textContent = '⚡ AUTO WAVE';
+    }
   }
 
   function tickHudLayout() {
     ensureActionDock();
     compactOrders();
+    compactAutoWavePill();
   }
 
   function bootHudLayout() {
