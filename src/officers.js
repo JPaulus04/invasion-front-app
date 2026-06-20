@@ -4,7 +4,7 @@
 //
 //  Adds permanent officers, lane assignments, earnable-Gem
 //  recruiting, visible crate odds, starter officer, and safe
-//  lane auto-management hooks, detail cards, and lane bonus summaries. Paid Gem packs are not enabled.
+//  lane auto-management hooks, detail cards, lane bonus summaries, recruit confirmations, and optional quick assignment. Paid Gem packs are not enabled.
 // ═══════════════════════════════════════════════════════
 (function () {
   if (window.__LSC_COMMAND_STAFF__) return;
@@ -67,6 +67,36 @@
   function officerById(id) { return OFFICER_DEFS.find(function (o) { return o.id === id; }) || null; }
   function rarityInfo(r) { return RARITY[r] || RARITY.common; }
   function rank() { var m = getMeta(); return (m && (m.prestige || 0)) || 0; }
+  function confirmAction(msg) {
+    try { return typeof window.confirm === 'function' ? window.confirm(msg) : true; }
+    catch (_) { return true; }
+  }
+  function firstOpenLane() {
+    var cs = ensureStaffMeta();
+    if (!cs || !cs.assignments) return null;
+    for (var i = 0; i < 3; i++) if (!cs.assignments[i]) return i;
+    return null;
+  }
+  function markRecentOfficer(id, source, extra) {
+    var cs = ensureStaffMeta();
+    if (!cs) return;
+    cs.lastRecruit = Object.assign({ id:id, source:source || 'recruitment', at:Date.now() }, extra || {});
+  }
+  function recentOfficerTag(id) {
+    var cs = ensureStaffMeta();
+    if (!cs || !cs.lastRecruit || cs.lastRecruit.id !== id) return '';
+    if (Date.now() - (cs.lastRecruit.at || 0) > 1000 * 60 * 20) return '';
+    return '<span class="lsc-new-tag">NEW</span>';
+  }
+  function tryQuickAssign(id) {
+    var lane = firstOpenLane();
+    var def = officerById(id);
+    if (lane === null || !def) return;
+    if (confirmAction('Assign ' + def.name + ' to ' + LANE_LABELS[lane] + ' lane now?')) {
+      assignOfficer(id, lane);
+      window.__lscStaffTab = 'assign';
+    }
+  }
 
   function ensureStaffMeta() {
     var m = getMeta();
@@ -119,10 +149,13 @@
     if (isUnlocked(id)) { toast(def.name + ' already recruited'); return; }
     var cost = rarityInfo(def.rarity).cost;
     if ((m.gems || 0) < cost) { toast('Need ' + (cost - (m.gems || 0)) + ' more Gems'); return; }
+    if (!confirmAction('Recruit ' + def.name + ' for ' + cost + ' Gems?')) return;
     m.gems -= cost;
     unlockOfficer(id, 'gems');
+    markRecentOfficer(id, 'gems');
     buzz('success');
     toast('✓ Recruited ' + def.name);
+    tryQuickAssign(id);
     renderStaffModal();
     ensureStaffButton();
     if (typeof updateHUD === 'function') updateHUD();
@@ -211,7 +244,7 @@
       #lsc-staff-card{width:min(460px,95vw);max-height:86vh;overflow:auto;border:1px solid rgba(34,212,255,.38);border-radius:18px;background:linear-gradient(180deg,rgba(10,19,34,.98),rgba(3,7,13,.96));box-shadow:0 22px 70px rgba(0,0,0,.66),inset 0 0 28px rgba(34,212,255,.05);padding:15px;color:white;-webkit-overflow-scrolling:touch}
       .lsc-staff-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0}.lsc-staff-tab{padding:8px 3px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.035);color:rgba(210,225,235,.72);font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.8px;-webkit-appearance:none}.lsc-staff-tab.active{border-color:var(--cyan);background:rgba(34,212,255,.12);color:var(--cyan)}
       .lsc-staff-row{display:flex;align-items:center;gap:8px;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);margin-bottom:8px}.lsc-officer-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,0,0,.26);border:1px solid rgba(255,255,255,.08);flex-shrink:0}.lsc-officer-name{font-family:'Rajdhani',sans-serif;font-weight:900;font-size:15px;line-height:1.05}.lsc-officer-sub{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);line-height:1.35;margin-top:2px}.lsc-officer-rarity{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1px;text-transform:uppercase}.lsc-staff-btn2{padding:7px 9px;border-radius:9px;border:1px solid rgba(34,212,255,.45);background:rgba(34,212,255,.12);color:var(--cyan);font-family:'Rajdhani',sans-serif;font-weight:900;font-size:12px;-webkit-appearance:none}.lsc-staff-btn2.gold{border-color:rgba(212,160,40,.55);background:rgba(212,160,40,.13);color:#ffd35a}.lsc-staff-btn2.dim{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.035);color:rgba(210,220,230,.64)}.lsc-staff-btn2:disabled{opacity:.48;filter:saturate(.55);pointer-events:none}.lsc-staff-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.lsc-lane-card{border-radius:13px;border:1px solid rgba(34,212,255,.18);background:rgba(34,212,255,.055);padding:11px;margin-bottom:8px}.lsc-lane-title{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--cyan);letter-spacing:1.2px}.lsc-odds{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}.lsc-odds div{border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:5px 3px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(220,230,235,.72)}.lsc-staff-note{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);line-height:1.55;margin-bottom:10px}.lsc-staff-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 10px}.lsc-staff-mini div{border:1px solid rgba(34,212,255,.18);border-radius:10px;background:rgba(34,212,255,.05);padding:6px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(210,230,240,.82)}
-      .lsc-detail-card{border:1px solid rgba(34,212,255,.34);border-radius:14px;background:linear-gradient(180deg,rgba(34,212,255,.10),rgba(255,255,255,.035));padding:10px;margin:0 0 10px;box-shadow:inset 0 0 22px rgba(34,212,255,.045)}.lsc-detail-head{display:flex;align-items:center;gap:8px}.lsc-detail-title{font-family:'Rajdhani',sans-serif;font-weight:900;font-size:18px;line-height:1}.lsc-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}.lsc-detail-chip{border:1px solid rgba(255,255,255,.09);border-radius:9px;background:rgba(0,0,0,.18);padding:6px;font-family:'Share Tech Mono',monospace;font-size:7.5px;color:rgba(220,230,235,.78);line-height:1.35}.lsc-detail-chip b{display:block;font-family:'Rajdhani',sans-serif;font-size:12px;color:#fff;margin-bottom:1px}.lsc-bonus-panel{border:1px solid rgba(34,212,255,.16);border-radius:12px;background:rgba(34,212,255,.045);padding:8px;margin:8px 0 10px}.lsc-bonus-title{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.2px;color:var(--cyan);margin-bottom:5px}.lsc-bonus-row{display:grid;grid-template-columns:48px 1fr;gap:3px 6px;align-items:center;padding:4px 0;border-top:1px solid rgba(255,255,255,.045)}.lsc-bonus-row:first-of-type{border-top:0}.lsc-bonus-row span{font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--cyan);letter-spacing:.8px}.lsc-bonus-row b{font-family:'Rajdhani',sans-serif;font-size:12px;color:#eaf6ff}.lsc-bonus-row em{grid-column:2;font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--muted);font-style:normal}.lsc-bonus-row.empty{opacity:.62}
+      .lsc-detail-card{border:1px solid rgba(34,212,255,.34);border-radius:14px;background:linear-gradient(180deg,rgba(34,212,255,.10),rgba(255,255,255,.035));padding:10px;margin:0 0 10px;box-shadow:inset 0 0 22px rgba(34,212,255,.045)}.lsc-detail-head{display:flex;align-items:center;gap:8px}.lsc-detail-title{font-family:'Rajdhani',sans-serif;font-weight:900;font-size:18px;line-height:1}.lsc-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}.lsc-detail-chip{border:1px solid rgba(255,255,255,.09);border-radius:9px;background:rgba(0,0,0,.18);padding:6px;font-family:'Share Tech Mono',monospace;font-size:7.5px;color:rgba(220,230,235,.78);line-height:1.35}.lsc-detail-chip b{display:block;font-family:'Rajdhani',sans-serif;font-size:12px;color:#fff;margin-bottom:1px}.lsc-detail-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.lsc-new-tag{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:999px;background:rgba(24,240,106,.15);border:1px solid rgba(24,240,106,.38);color:#18f06a;font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:.8px;vertical-align:middle}.lsc-recruit-result{border:1px solid rgba(24,240,106,.28);border-radius:11px;background:rgba(24,240,106,.055);padding:8px;margin:6px 0 10px;font-family:'Share Tech Mono',monospace;font-size:8px;color:#9fe8b5;line-height:1.45}.lsc-bonus-panel{border:1px solid rgba(34,212,255,.16);border-radius:12px;background:rgba(34,212,255,.045);padding:8px;margin:8px 0 10px}.lsc-bonus-title{font-family:'Share Tech Mono',monospace;font-size:7.5px;letter-spacing:1.2px;color:var(--cyan);margin-bottom:5px}.lsc-bonus-row{display:grid;grid-template-columns:48px 1fr;gap:3px 6px;align-items:center;padding:4px 0;border-top:1px solid rgba(255,255,255,.045)}.lsc-bonus-row:first-of-type{border-top:0}.lsc-bonus-row span{font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--cyan);letter-spacing:.8px}.lsc-bonus-row b{font-family:'Rajdhani',sans-serif;font-size:12px;color:#eaf6ff}.lsc-bonus-row em{grid-column:2;font-family:'Share Tech Mono',monospace;font-size:7.5px;color:var(--muted);font-style:normal}.lsc-bonus-row.empty{opacity:.62}
     `;
     document.head.appendChild(css);
   }
@@ -282,13 +315,26 @@
     var info = rarityInfo(def.rarity), owned = isUnlocked(def.id), lane = assignedLaneOf(def.id);
     var bonus = (owned && lane !== null) ? assignedBonus(lane) : rawOfficerBonus(def);
     var auth = officerAuthorityText(def);
+    var m = getMeta() || {}, cost = info.cost, shortage = Math.max(0, cost - (m.gems || 0));
+    var actions = '<div class="lsc-detail-actions">';
+    if (!owned) {
+      actions += shortage > 0
+        ? '<button class="lsc-staff-btn2 dim" disabled>Need ' + shortage + ' Gems</button>'
+        : '<button class="lsc-staff-btn2 gold" data-buy-officer="' + def.id + '">Recruit ' + cost + ' 💎</button>';
+    } else if (lane === null) {
+      actions += [0,1,2].map(function (l) { return '<button class="lsc-staff-btn2" data-assign="' + def.id + '" data-lane="' + l + '">Assign ' + LANE_LABELS[l] + '</button>'; }).join('');
+    } else {
+      actions += '<button class="lsc-staff-btn2 gold" data-tab-assign="1">Assigned: ' + LANE_LABELS[lane] + '</button><button class="lsc-staff-btn2 dim" data-unassign-lane="' + lane + '">Clear Lane</button>';
+    }
+    actions += '</div>';
     var card = document.createElement('div');
     card.className = 'lsc-detail-card';
-    card.innerHTML = '<div class="lsc-detail-head"><div class="lsc-officer-icon" style="color:' + info.color + ';border-color:' + info.color + '55">' + def.icon + '</div><div style="flex:1"><div class="lsc-officer-rarity" style="color:' + info.color + '">' + info.label + (owned ? ' · RECRUITED' : ' · NOT RECRUITED') + '</div><div class="lsc-detail-title" style="color:' + info.color + '">' + def.name + '</div><div class="lsc-officer-sub">' + def.title + ' · ' + def.laneStyle + '</div></div><button class="lsc-staff-btn2 dim" data-close-detail="1">Close</button></div>' +
-      '<div class="lsc-detail-grid"><div class="lsc-detail-chip"><b>Lane Bonus</b>' + bonusSummaryFromBonus(bonus) + '</div><div class="lsc-detail-chip"><b>Auto Role</b>' + ((def.units || []).join(' → ') || 'support') + '</div><div class="lsc-detail-chip"><b>Event Specialty</b>' + (def.event || 'General operation support') + '</div><div class="lsc-detail-chip"><b>Status</b>' + (lane !== null ? 'Assigned to ' + LANE_LABELS[lane] : (owned ? 'Ready to assign' : 'Recruit with Gems or shards')) + '</div></div>' + (auth ? '<div class="lsc-officer-sub" style="margin-top:8px;color:' + info.color + '">' + auth + '</div>' : '');
+    card.innerHTML = '<div class="lsc-detail-head"><div class="lsc-officer-icon" style="color:' + info.color + ';border-color:' + info.color + '55">' + def.icon + '</div><div style="flex:1"><div class="lsc-officer-rarity" style="color:' + info.color + '">' + info.label + (owned ? ' · RECRUITED' : ' · NOT RECRUITED') + recentOfficerTag(def.id) + '</div><div class="lsc-detail-title" style="color:' + info.color + '">' + def.name + '</div><div class="lsc-officer-sub">' + def.title + ' · ' + def.laneStyle + '</div></div><button class="lsc-staff-btn2 dim" data-close-detail="1">Close</button></div>' +
+      '<div class="lsc-detail-grid"><div class="lsc-detail-chip"><b>Lane Bonus</b>' + bonusSummaryFromBonus(bonus) + '</div><div class="lsc-detail-chip"><b>Auto Role</b>' + ((def.units || []).join(' → ') || 'support') + '</div><div class="lsc-detail-chip"><b>Event Specialty</b>' + (def.event || 'General operation support') + '</div><div class="lsc-detail-chip"><b>Status</b>' + (lane !== null ? 'Assigned to ' + LANE_LABELS[lane] : (owned ? 'Ready to assign' : 'Recruit with Gems or shards')) + '</div></div>' + (auth ? '<div class="lsc-officer-sub" style="margin-top:8px;color:' + info.color + '">' + auth + '</div>' : '') + actions;
     body.insertBefore(card, body.firstChild);
     var close = card.querySelector('[data-close-detail]');
     if (close) close.addEventListener('click', function () { window.__lscOfficerDetail = null; renderStaffModal(); });
+    wireOfficerButtons(card);
   }
 
   function officerRow(def, mode) {
@@ -322,7 +368,7 @@
     var actionStack = '<div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0">' + action + '<button class="lsc-staff-btn2 dim" data-officer-detail="' + def.id + '">Info</button></div>';
     return '<div class="lsc-staff-row" style="border-color:' + ownedStyle + ';opacity:' + (owned ? '1' : '.74') + '">' +
       '<div class="lsc-officer-icon" style="border-color:' + info.color + '44;color:' + info.color + '">' + def.icon + '</div>' +
-      '<div style="flex:1;min-width:0"><div class="lsc-officer-rarity" style="color:' + info.color + '">' + info.label + (owned ? ' · RECRUITED' + laneText : ' · ' + shards + '/' + need + ' SHARDS') + '</div><div class="lsc-officer-name" style="color:' + (owned ? info.color : '#dfe8ee') + '">' + def.name + '</div><div class="lsc-officer-sub">' + def.title + ' · ' + def.short + powerNote + '</div></div>' +
+      '<div style="flex:1;min-width:0"><div class="lsc-officer-rarity" style="color:' + info.color + '">' + info.label + (owned ? ' · RECRUITED' + laneText : ' · ' + shards + '/' + need + ' SHARDS') + recentOfficerTag(def.id) + '</div><div class="lsc-officer-name" style="color:' + (owned ? info.color : '#dfe8ee') + '">' + def.name + '</div><div class="lsc-officer-sub">' + def.title + ' · ' + def.short + powerNote + '</div></div>' +
       actionStack + '</div>';
   }
 
@@ -378,6 +424,10 @@
     var vouchers = (m && m.recruitmentVouchers) || { field:0, command:0, strategic:0 };
     var html = '<div class="lsc-staff-note">Recruit officers with earned Gems or crate vouchers. Random crate odds are visible before opening. Paid Gem packs are not enabled.</div>';
     html += '<div class="lsc-staff-mini"><div>GEMS<br><b>' + ((m && m.gems) || 0) + '</b></div><div>FIELD<br><b>' + (vouchers.field || 0) + '</b></div><div>COMMAND<br><b>' + (vouchers.command || 0) + '</b></div></div>';
+    if (cs && cs.lastRecruit && Date.now() - (cs.lastRecruit.at || 0) < 1000 * 60 * 20) {
+      var last = officerById(cs.lastRecruit.id);
+      if (last) html += '<div class="lsc-recruit-result">LATEST RECRUITMENT<br><b>' + last.name + '</b> · ' + rarityInfo(last.rarity).label + ' · ' + (cs.lastRecruit.source || 'recruitment') + '</div>';
+    }
     html += '<div style="font-family:Share Tech Mono,monospace;font-size:8px;color:var(--cyan);letter-spacing:1.2px;margin:6px 0">RECRUITMENT BOARD</div>';
     html += featured.map(function (d) { return officerRow(d, 'roster'); }).join('');
     var pity = cs && cs.draws ? (cs.draws.pity || 0) : 0;
@@ -411,15 +461,18 @@
   function openCrate(type) {
     var c = CRATES[type], m = getMeta(), cs = ensureStaffMeta();
     if (!c || c.disabled || !m || !cs) return;
-    var usedVoucher = false;
-    if (m.recruitmentVouchers && (m.recruitmentVouchers[c.voucherKey] || 0) > 0) {
-      m.recruitmentVouchers[c.voucherKey]--;
-      usedVoucher = true;
-    } else if ((m.gems || 0) >= c.cost) {
-      m.gems -= c.cost;
-    } else {
+    var hasVoucher = !!(m.recruitmentVouchers && (m.recruitmentVouchers[c.voucherKey] || 0) > 0);
+    if (!hasVoucher && (m.gems || 0) < c.cost) {
       toast('Need more Gems or a crate voucher');
       return;
+    }
+    if (!confirmAction('Open ' + c.label + (hasVoucher ? ' using 1 voucher?' : ' for ' + c.cost + ' Gems?') + '\n\nOdds are shown on the crate card before opening.')) return;
+    var usedVoucher = false;
+    if (hasVoucher) {
+      m.recruitmentVouchers[c.voucherKey]--;
+      usedVoucher = true;
+    } else {
+      m.gems -= c.cost;
     }
     var rarity = pickRarity(c.odds);
     // Pity protection: a Legendary is guaranteed after 50 non-Legendary crate pulls.
@@ -431,10 +484,13 @@
     if (isUnlocked(def.id)) {
       var shards = def.rarity === 'legendary' ? 30 : def.rarity === 'elite' ? 20 : def.rarity === 'rare' ? 12 : 8;
       addOfficerShards(def.id, shards);
+      markRecentOfficer(def.id, 'duplicate +' + shards + ' shards', { duplicate:true, shards:shards });
       toast(c.label + ': duplicate ' + def.name + ' → +' + shards + ' shards');
     } else {
       unlockOfficer(def.id, usedVoucher ? 'voucher' : 'crate');
+      markRecentOfficer(def.id, usedVoucher ? 'voucher' : 'crate');
       toast(c.label + ': recruited ' + def.name + ' (' + rarityInfo(def.rarity).label + ')');
+      tryQuickAssign(def.id);
     }
     buzz('success');
     saveAll();
