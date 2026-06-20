@@ -4,7 +4,7 @@
 //
 //  Adds permanent officers, lane assignments, earnable-Gem
 //  recruiting, visible crate odds, starter officer, and safe
-//  lane auto-management hooks, detail cards, lane bonus summaries, recruit confirmations, optional quick assignment, and clear Gem affordability states. Paid Gem packs are not enabled.
+//  lane auto-management hooks, detail cards, lane bonus summaries, recruit confirmations, optional quick assignment, clear Gem affordability states, and a starter Field Voucher. Paid Gem packs are not enabled.
 // ═══════════════════════════════════════════════════════
 (function () {
   if (window.__LSC_COMMAND_STAFF__) return;
@@ -115,6 +115,19 @@
     // Starter officer: gives the system immediate value without purchase.
     if (!cs.unlocked.mason) cs.unlocked.mason = { unlockedAt: Date.now(), source:'starter' };
     return cs;
+  }
+
+  function grantStarterFieldVoucher() {
+    var m = getMeta(), cs = ensureStaffMeta();
+    if (!m || !cs) return false;
+    if (cs.starterFieldVoucherGranted) return false;
+    if (!m.recruitmentVouchers) m.recruitmentVouchers = { field:0, command:0, strategic:0 };
+    m.recruitmentVouchers.field = (m.recruitmentVouchers.field || 0) + 1;
+    cs.starterFieldVoucherGranted = true;
+    cs.starterFieldVoucherAt = Date.now();
+    saveAll();
+    toast('Starter Field Voucher issued');
+    return true;
   }
 
   function isUnlocked(id) { var cs = ensureStaffMeta(); return !!(cs && cs.unlocked && cs.unlocked[id]); }
@@ -296,7 +309,8 @@
     installStyles();
     createModal();
     ensureStaffMeta();
-    window.__lscStaffTab = window.__lscStaffTab || 'roster';
+    grantStarterFieldVoucher();
+    window.__lscStaffTab = window.__lscStaffTab || 'recruit';
     renderStaffModal();
     $('lsc-staff-modal').style.display = 'flex';
     try { localStorage.setItem(STAFF_KEY, '1'); } catch (_) {}
@@ -435,7 +449,7 @@
     var m = getMeta(), cs = ensureStaffMeta();
     var featured = featuredOfficers();
     var vouchers = (m && m.recruitmentVouchers) || { field:0, command:0, strategic:0 };
-    var html = '<div class="lsc-staff-note">Recruit officers with earned Gems or crate vouchers. Random crate odds are visible before opening. Paid Gem packs are not enabled.</div>' + gemWalletHtml('Recruitment currency');
+    var html = '<div class="lsc-staff-note">Recruit officers with earned Gems or Field/Command vouchers. A starter Field Voucher is issued once so every player can try recruitment. Paid Gem packs are not enabled.</div>' + gemWalletHtml('Recruitment currency');
     html += '<div class="lsc-staff-mini"><div>FIELD VOUCHERS<br><b>' + (vouchers.field || 0) + '</b></div><div>COMMAND VOUCHERS<br><b>' + (vouchers.command || 0) + '</b></div><div>OWNED<br><b>' + ownedCount() + '/' + OFFICER_DEFS.length + '</b></div></div>';
     if (cs && cs.lastRecruit && Date.now() - (cs.lastRecruit.at || 0) < 1000 * 60 * 20) {
       var last = officerById(cs.lastRecruit.id);
@@ -450,7 +464,8 @@
       var c = CRATES[key], vouchers = (m.recruitmentVouchers && m.recruitmentVouchers[c.voucherKey]) || 0;
       var canVoucher = vouchers > 0 && !c.disabled, canGem = (m.gems || 0) >= c.cost && !c.disabled;
       var gemLabel = c.disabled ? 'Soon' : (canGem ? ('Open · ' + c.cost + ' 💎') : ('Need ' + Math.max(0, c.cost - (m.gems || 0)) + ' more 💎'));
-      html += '<div class="lsc-staff-row"><div class="lsc-officer-icon">' + c.icon + '</div><div style="flex:1"><div class="lsc-officer-name">' + c.label + '</div><div class="lsc-officer-sub">' + c.desc + '</div><div class="lsc-odds">' + Object.keys(c.odds).map(function (r) { return '<div><span style="color:' + rarityInfo(r).color + '">' + rarityInfo(r).label[0] + '</span><br>' + c.odds[r] + '%</div>'; }).join('') + '</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="lsc-staff-btn2 ' + (canVoucher ? 'gold' : 'dim') + '" ' + (canVoucher ? 'data-open-crate="' + key + '"' : 'disabled') + '>Voucher ' + vouchers + '</button><button class="lsc-staff-btn2 ' + (canGem ? 'gold' : 'dim') + '" ' + (canGem ? 'data-open-crate="' + key + '"' : 'disabled') + '>' + gemLabel + '</button></div></div>';
+      var voucherLabel = canVoucher ? 'Open Voucher' : ('Voucher ' + vouchers);
+      html += '<div class="lsc-staff-row"><div class="lsc-officer-icon">' + c.icon + '</div><div style="flex:1"><div class="lsc-officer-name">' + c.label + '</div><div class="lsc-officer-sub">' + c.desc + '</div><div class="lsc-odds">' + Object.keys(c.odds).map(function (r) { return '<div><span style="color:' + rarityInfo(r).color + '">' + rarityInfo(r).label[0] + '</span><br>' + c.odds[r] + '%</div>'; }).join('') + '</div></div><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="lsc-staff-btn2 ' + (canVoucher ? 'gold' : 'dim') + '" ' + (canVoucher ? 'data-open-crate="' + key + '"' : 'disabled') + '>' + voucherLabel + '</button><button class="lsc-staff-btn2 ' + (canGem ? 'gold' : 'dim') + '" ' + (canGem ? 'data-open-crate="' + key + '"' : 'disabled') + '>' + gemLabel + '</button></div></div>';
     });
     body.innerHTML = html;
     wireOfficerButtons(body);
