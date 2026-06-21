@@ -31,6 +31,7 @@ const CONTROLLER_SCRIPTS = [
   'hotfixes.js',  // Build 102/103: final boss/tutorial launch hotfixes
   'campaignProgression.js', // Campaign worlds, world prestige, daily rewards, permanent research persistence
   'research.js',            // Consolidated research visuals/layout/queue polish
+  'loadouts.js',           // Saved troop formation loadouts for officer auto-fill
   'officers.js',            // Command Staff / Officers foundation
   'hudLayout.js',           // Battlefield floating HUD layout polish
   'screenGuard.js',         // Screen-state/input isolation for Home vs Battlefield
