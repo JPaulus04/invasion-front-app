@@ -217,3 +217,162 @@
   setInterval(function () { safe('periodic update', function () { ensureMeta(); ensureWorldChip(); updateWorldChip(); updateDailyButton(); checkWorldTransition(); replaceOldResearchText(); }); }, 1500);
   window.LSC_CAMPAIGN = { showDailyRewards: showDailyModal, getDailyState: getDailyState, isDailyClaimable: isDailyClaimable, updateWorldChip: updateWorldChip };
 })();
+
+
+// ═══════════════════════════════════════════════════════
+//  Build 121 — Prestige screen clarity pass
+//  Keeps world-prestige logic unchanged; only clarifies labels and choices.
+// ═══════════════════════════════════════════════════════
+(function () {
+  if (window.__LSC_PRESTIGE_CLARITY_121__) return;
+  window.__LSC_PRESTIGE_CLARITY_121__ = true;
+
+  function $(id) { return document.getElementById(id); }
+  function safe(label, fn) { try { return fn(); } catch (e) { try { console.warn('[Prestige121]', label, e); } catch (_) {} } }
+  function getState() { return (typeof G !== 'undefined' && G.state) ? G.state : null; }
+  function getMeta() { return (typeof G !== 'undefined' && G.meta) ? G.meta : {}; }
+  function prestigeGainSafe() { try { return (typeof prestigeGain === 'function') ? prestigeGain() : 0; } catch (_) { return 0; } }
+  function rankAfter(gain) { var m = getMeta(); return (m.prestige || 0) + (gain || 0); }
+  function previewSafe() { var s = getState(); try { return (s && typeof getWorldPrestigePreview === 'function') ? getWorldPrestigePreview(s) : null; } catch (_) { return null; } }
+  function worldName(p) { return (p && p.world && p.world.name) ? p.world.name : 'Current Front'; }
+  function rewardText(p) {
+    if (!p) return 'Prestige reward available';
+    return '+' + (p.commandData || 0) + ' Command Data' + (p.gems ? ' · +' + p.gems + ' Gems' : '');
+  }
+
+  function installPrestigeClarityStyles() {
+    if ($('lsc-prestige-clarity-style')) return;
+    var css = document.createElement('style');
+    css.id = 'lsc-prestige-clarity-style';
+    css.textContent = '' +
+      '.lsc-prestige-choice{margin:10px 0 12px;padding:10px 12px;border-radius:12px;border:1px solid rgba(144,96,208,.42);background:linear-gradient(180deg,rgba(144,96,208,.13),rgba(20,10,44,.28));font-family:\'Share Tech Mono\',monospace;font-size:9px;line-height:1.65;color:rgba(225,215,245,.95);text-align:left}' +
+      '.lsc-prestige-choice b{color:#d6b2ff;font-family:\'Rajdhani\',sans-serif;font-size:14px;letter-spacing:.5px}' +
+      '.lsc-prestige-carry{margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.10);color:rgba(210,220,230,.82)}' +
+      '.lsc-prestige-primary{display:block!important;width:100%!important;margin-top:8px!important;padding:13px 12px!important;border-radius:12px!important;border:1px solid rgba(144,96,208,.9)!important;background:linear-gradient(180deg,#4c2485,#25104a)!important;color:#d9b7ff!important;font-family:\'Rajdhani\',sans-serif!important;font-weight:900!important;font-size:16px!important;letter-spacing:.8px!important;box-shadow:0 0 18px rgba(144,96,208,.22)!important}' +
+      '.lsc-newrun-secondary{background:linear-gradient(180deg,#18243a,#101827)!important;border-color:rgba(255,255,255,.14)!important;color:rgba(215,225,235,.78)!important}';
+    document.head.appendChild(css);
+  }
+
+  function clarifyGameOverPrestige() {
+    installPrestigeClarityStyles();
+    var gain = prestigeGainSafe();
+    var p = previewSafe();
+    var newRank = rankAfter(gain);
+    var prestigeBtn = $('goPrestigeBtn');
+    var prestigePlayBtn = $('goPrestigePlayBtn');
+    var newRunBtn = $('goNewRunBtn');
+    var preview = $('goPrestigePreview');
+    var row = prestigeBtn && prestigeBtn.parentNode;
+
+    if (newRunBtn) {
+      newRunBtn.textContent = '↻ New Run Without Prestige';
+      newRunBtn.title = 'Restart without gaining command rank or prestige rewards';
+      newRunBtn.classList.add('lsc-newrun-secondary');
+      newRunBtn.style.minHeight = '48px';
+    }
+
+    if (gain > 0) {
+      if (preview) {
+        preview.innerHTML = '<div class="lsc-prestige-choice">' +
+          '<b>Prestige to Rank ' + newRank + '</b><br>' +
+          'Gain: ' + rewardText(p) + '<br>' +
+          'Reset point: ' + worldName(p) + ' · Wave ' + (p ? p.resetWave : '—') +
+          '<div class="lsc-prestige-carry">Carries forward: officers, research, Gems, XP, purchases, world unlocks.</div>' +
+          '</div>';
+      }
+      if (prestigeBtn) {
+        prestigeBtn.style.display = 'none';
+        prestigeBtn.disabled = true;
+      }
+      if (row) {
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = '1fr';
+        row.style.gap = '8px';
+      }
+      if (prestigePlayBtn) {
+        prestigePlayBtn.classList.add('lsc-prestige-primary');
+        prestigePlayBtn.style.display = 'block';
+        prestigePlayBtn.disabled = false;
+        prestigePlayBtn.textContent = '★ Prestige to Rank ' + newRank;
+        prestigePlayBtn.title = 'Prestige, claim rewards, and begin again at the current front reset point';
+      }
+    } else {
+      if (preview) preview.textContent = 'Reach wave ' + ((typeof CFG !== 'undefined' && CFG.PRESTIGE_WAVE_REQ) || 30) + ' to unlock Prestige.';
+      if (prestigeBtn) prestigeBtn.style.display = '';
+      if (prestigePlayBtn) prestigePlayBtn.style.display = 'none';
+    }
+  }
+
+  function buildUnlockList(newRank, currentRank) {
+    try {
+      if (typeof PERMANENT_UNLOCKS === 'undefined' || !Array.isArray(PERMANENT_UNLOCKS)) return '';
+      var newUnlocks = PERMANENT_UNLOCKS.filter(function (u) { return u.rank > currentRank && u.rank <= newRank; });
+      var nextUnlock = PERMANENT_UNLOCKS.find(function (u) { return u.rank > newRank; });
+      var html = '';
+      if (newUnlocks.length) {
+        html += '<div style="margin-top:8px;color:var(--green)">' + newUnlocks.map(function (u) { return '★ ' + u.name + ' — ' + u.desc; }).join('<br>') + '</div>';
+      }
+      if (nextUnlock) html += '<div style="margin-top:7px;color:var(--muted)">Next: Rank ' + nextUnlock.rank + ' unlocks ' + nextUnlock.name + '</div>';
+      return html;
+    } catch (_) { return ''; }
+  }
+
+  function clarifyPrestigeConfirm() {
+    installPrestigeClarityStyles();
+    var gain = prestigeGainSafe();
+    if (gain <= 0) return;
+    var m = getMeta();
+    var p = previewSafe();
+    var newRank = rankAfter(gain);
+    var desc = $('prestigeDesc');
+    var confirmBtn = $('confirmPrestigeBtn');
+    var cancelBtn = $('cancelPrestigeBtn');
+    var title = document.querySelector('#prestige-confirm-phase .modal-title');
+    if (title) title.textContent = '★ Prestige to Rank ' + newRank;
+    if (confirmBtn) confirmBtn.textContent = 'Confirm Prestige to Rank ' + newRank;
+    if (cancelBtn) cancelBtn.textContent = 'Not Yet';
+    if (desc) {
+      var income = (typeof CFG !== 'undefined' && CFG.PRESTIGE_INCOME_BONUS) ? (newRank * CFG.PRESTIGE_INCOME_BONUS * 100).toFixed(0) : '—';
+      var dmg = (typeof CFG !== 'undefined' && CFG.PRESTIGE_DMG_BONUS) ? (newRank * CFG.PRESTIGE_DMG_BONUS * 100).toFixed(0) : '—';
+      desc.innerHTML =
+        '<div class="lsc-prestige-choice">' +
+        '<b>World Prestige</b><br>' +
+        'Reset to: ' + worldName(p) + ' · Wave ' + (p ? p.resetWave : '—') + '<br>' +
+        'Reward: ' + rewardText(p) + '<br>' +
+        'Rank bonuses after prestige: +' + income + '% income · +' + dmg + '% damage' +
+        '<div class="lsc-prestige-carry">Carries forward: permanent research, officers, Gems, XP, purchases, quests, and world unlocks.</div>' +
+        buildUnlockList(newRank, m.prestige || 0) +
+        '</div>';
+    }
+  }
+
+  safe('patch game-over prestige labels', function () {
+    if (typeof renderGameOverUI === 'function' && !renderGameOverUI.__prestigeClarity121) {
+      var oldRenderGameOverUI = renderGameOverUI;
+      renderGameOverUI = function () {
+        var result = oldRenderGameOverUI.apply(this, arguments);
+        clarifyGameOverPrestige();
+        return result;
+      };
+      renderGameOverUI.__prestigeClarity121 = true;
+    }
+  });
+
+  safe('patch prestige confirm labels', function () {
+    if (typeof openPrestigeUI === 'function' && !openPrestigeUI.__prestigeClarity121) {
+      var oldOpenPrestigeUI = openPrestigeUI;
+      openPrestigeUI = function () {
+        var result = oldOpenPrestigeUI.apply(this, arguments);
+        clarifyPrestigeConfirm();
+        return result;
+      };
+      openPrestigeUI.__prestigeClarity121 = true;
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(clarifyGameOverPrestige, 120); });
+  } else {
+    setTimeout(clarifyGameOverPrestige, 120);
+  }
+})();
