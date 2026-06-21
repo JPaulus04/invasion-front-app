@@ -4,7 +4,7 @@
 //
 //  Adds permanent officers, lane assignments, earnable-Gem
 //  recruiting, visible crate odds, starter officer, and safe
-//  lane auto-management hooks, detail cards, lane bonus summaries, recruit confirmations, optional quick assignment, clear Gem affordability states, and a starter Field Voucher. Paid Gem packs are not enabled.
+//  lane auto-management hooks, detail cards, lane bonus summaries, recruit confirmations, optional quick assignment, clear Gem affordability states, starter Field Voucher, and formation-preserving officer auto-fill. Paid Gem packs are not enabled.
 // ═══════════════════════════════════════════════════════
 (function () {
   if (window.__LSC_COMMAND_STAFF__) return;
@@ -538,7 +538,7 @@
       if (!def || !isUnlocked(def.id)) return;
       var slots = (typeof UNLOCKS !== 'undefined' && UNLOCKS.troopSlots) ? UNLOCKS.troopSlots(s.prestige) : 5;
       if (typeof laneTroopCount === 'function' && laneTroopCount(lane) >= slots) return;
-      var unit = chooseAutoUnit(def, s);
+      var unit = chooseAutoUnit(def, s, lane);
       if (!unit) return;
       s.selectedLane = lane;
       deployUnit(unit);
@@ -546,15 +546,44 @@
     s.selectedLane = oldLane;
   }
 
-  function chooseAutoUnit(def, s) {
+  function canAutoDeployUnit(id, s) {
+    if (!id || typeof UNIT_DEFS === 'undefined') return false;
+    var u = UNIT_DEFS.find(function (x) { return x.id === id; });
+    if (!u) return false;
+    if (typeof _isUnitUnlocked === 'function' && !_isUnitUnlocked(s, id)) return false;
+    if (typeof troopCost === 'function' && s.credits < troopCost(u)) return false;
+    return true;
+  }
+
+  function formationCandidateUnits(s, lane) {
+    var troops = ((s && s.troops) || [])
+      .filter(function (t) { return t && t.lane === lane && t.type && t.type.id; })
+      .sort(function (a, b) { return (a.slot || 0) - (b.slot || 0); });
+    if (!troops.length) return [];
+
+    // Preserve the player's current lane pattern. If the lane looks like
+    // rifle/medic/heavy, the next officer fill follows that pattern instead
+    // of turning the lane into all-heavy or all-rifle.
+    var pattern = troops.map(function (t) { return t.type.id; });
+    var start = troops.length % pattern.length;
+    var ordered = [];
+    for (var i = 0; i < pattern.length; i++) ordered.push(pattern[(start + i) % pattern.length]);
+    return ordered.filter(function (id, idx, arr) { return arr.indexOf(id) === idx; });
+  }
+
+  function chooseAutoUnit(def, s, lane) {
     if (!def.units || typeof UNIT_DEFS === 'undefined') return null;
+
+    // First choice: maintain the lane formation already built by the player.
+    var formation = formationCandidateUnits(s, lane);
+    for (var f = 0; f < formation.length; f++) {
+      if (canAutoDeployUnit(formation[f], s)) return formation[f];
+    }
+
+    // Fallback: officer specialty order if the lane is empty or the formation
+    // unit is locked/unaffordable.
     for (var i = 0; i < def.units.length; i++) {
-      var id = def.units[i];
-      var u = UNIT_DEFS.find(function (x) { return x.id === id; });
-      if (!u) continue;
-      if (typeof _isUnitUnlocked === 'function' && !_isUnitUnlocked(s, id)) continue;
-      if (typeof troopCost === 'function' && s.credits < troopCost(u)) continue;
-      return id;
+      if (canAutoDeployUnit(def.units[i], s)) return def.units[i];
     }
     return null;
   }

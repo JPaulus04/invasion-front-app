@@ -129,7 +129,6 @@
         var oldState = getState();
         var resetWave = (typeof getWorldPrestigeResetWave === 'function') ? getWorldPrestigeResetWave(oldState) : 1;
         var preview = (typeof getWorldPrestigePreview === 'function') ? getWorldPrestigePreview(oldState) : null;
-        var savedQuests = oldState && oldState._quests ? clone(oldState._quests) : null;
         var savedResearch = oldState && oldState.researchNodes ? clone(oldState.researchNodes) : {};
         var savedOps = oldState && oldState.opsNodes ? clone(oldState.opsNodes) : {};
         var savedXp = oldState ? (oldState.xp || 0) : 0;
@@ -138,20 +137,22 @@
         if (typeof _checkAchievements === 'function') _checkAchievements();
         var m = ensureMeta();
         if (typeof applyWorldPrestigeRewards === 'function') applyWorldPrestigeRewards(oldState, m);
-        if (savedQuests) m._quests = savedQuests;
+        if (m && m._quests) delete m._quests;
         m.prestige = (m.prestige || 0) + gain;
         Object.keys(savedResearch).forEach(function (k) { m.commandResearchNodes[k] = savedResearch[k]; });
         if (typeof saveMeta === 'function') saveMeta(m);
         try { localStorage.removeItem(CFG.SAVE_KEY); } catch (_) {}
         G.state = freshState(m.prestige);
         if (typeof ensureCampaignState === 'function') ensureCampaignState(G.state, m);
-        if (m._quests) G.state._quests = clone(m._quests);
+        if (m && m._quests) delete m._quests;
         G.state.researchNodes = clone(m.commandResearchNodes || savedResearch || {});
         G.state.opsNodes = savedOps;
         G.state.xp = savedXp;
         G.state.gems = m.gems || 0;
         G.state._orbUnlocked = true;
         G.state.wave = resetWave;
+        G.state._runStartWave = resetWave;
+        resetQuestStateForRun(G.state);
         applyPermanentMappedResearchLevels(G.state);
         G.state.waveInProgress = false; G.state.enemiesToSpawn = 0; G.state.spawnTimer = 0; G.state.spawnInterval = 0;
         G.state.enemies = []; G.state.projectiles = []; G.state.fx = []; G.state.currentModifier = 'none';
@@ -212,7 +213,155 @@
   });
 
   function replaceOldResearchText() { safe('replace research text', function () { var nodes = document.querySelectorAll('div,span'); for (var i = 0; i < nodes.length; i++) { var el = nodes[i], txt = el.textContent || ''; if (el.childNodes.length === 1 && txt.indexOf('Active this run only') >= 0) el.textContent = 'Spend XP to unlock passive bonuses for your unit classes. Command research now persists through World Prestige.'; } }); }
-  function boot() { installStyles(); removeLockedResearchPlaceholder(); ensureMeta(); if (typeof ensureCampaignState === 'function') ensureCampaignState(getState(), getMeta()); mergePermanentResearch(getState()); rememberResearchFromState(); ensureWorldChip(); updateWorldChip(); ensureDailyButton(); updateDailyButton(); checkWorldTransition(); replaceOldResearchText(); if (typeof renderResearchSheet === 'function' && $('upgrade-list-all')) safe('rerender research', renderResearchSheet); if (typeof updateHUD === 'function') updateHUD(); }
+
+
+  // Build 122: orders are run-local and active-card-local, not lifetime achievements.
+  // This prevents prestige/current-wave restores from instantly completing the visible Orders list.
+  function questCounterBaseline(def, s) {
+    if (!def || !s) return 0;
+    var c = (s._quests && s._quests.counters) || {};
+    if (def.type === 'wave') return Math.max(0, (s.wave || 1) - 1);
+    return Math.max(0, c[def.type] || 0);
+  }
+
+  function ensureQuestCounters(q) {
+    if (!q.counters) q.counters = {};
+    ['kills','bosses','deploys','research','orbital','nodamage','fullpos'].forEach(function (k) {
+      if (typeof q.counters[k] !== 'number') q.counters[k] = 0;
+    });
+  }
+
+  function stampQuestBaselines(s, force) {
+    if (!s || !s._quests || typeof QUEST_DEFS === 'undefined') return;
+    var q = s._quests;
+    ensureQuestCounters(q);
+    if (!Array.isArray(q.active)) q.active = [];
+    if (!Array.isArray(q.completed)) q.completed = [];
+
+    if (force || q.baselineVersion !== 122) {
+      // Old quest progress was lifetime-based. Reset visible Orders once into the new run-local model.
+      q.completed = [];
+      q.active.forEach(function (aq) {
+        var def = QUEST_DEFS.find(function (d) { return d.id === aq.id; });
+        aq.base = questCounterBaseline(def, s);
+        aq.claimed = false;
+        aq._rewarded = false;
+      });
+      q.baselineVersion = 122;
+    } else {
+      q.active.forEach(function (aq) {
+        var def = QUEST_DEFS.find(function (d) { return d.id === aq.id; });
+        if (typeof aq.base !== 'number') aq.base = questCounterBaseline(def, s);
+      });
+    }
+  }
+
+  function resetQuestStateForRun(s) {
+    if (!s) return;
+    s._quests = {
+      active: [],
+      completed: [],
+      progress: {},
+      counters: { kills:0, bosses:0, deploys:0, research:0, orbital:0, nodamage:0, fullpos:0 },
+      baselineVersion: 122
+    };
+    if (typeof _refreshActiveQuests === 'function') _refreshActiveQuests(s);
+    stampQuestBaselines(s, true);
+  }
+
+  function inferRunStartWave(s) {
+    if (!s) return 1;
+    if (typeof s._runStartWave === 'number' && s._runStartWave > 0) return s._runStartWave;
+    var m = ensureMeta();
+    var reset = (typeof getWorldPrestigeResetWave === 'function') ? getWorldPrestigeResetWave(s) : 1;
+    // If the commander has prestiged, runs inside a world should be graded from that world's reset point.
+    var inferred = (m && (m.prestige || 0) > 0 && (s.wave || 1) >= reset) ? reset : 1;
+    s._runStartWave = inferred;
+    return inferred;
+  }
+
+  function resetRunTracking(s) {
+    if (!s) return;
+    s._runStartWave = s.wave || 1;
+    resetQuestStateForRun(s);
+  }
+
+  function patchQuestAndRunTracking() {
+    safe('clear old persistent quests', function () {
+      var m = ensureMeta();
+      if (m && m._quests) { delete m._quests; saveMetaNow(); }
+    });
+
+    if (typeof _refreshActiveQuests === 'function' && !_refreshActiveQuests.__campaign122) {
+      _refreshActiveQuests = function (s) {
+        if (!s || !s._quests || typeof QUEST_DEFS === 'undefined') return;
+        var q = s._quests;
+        ensureQuestCounters(q);
+        if (!Array.isArray(q.active)) q.active = [];
+        if (!Array.isArray(q.completed)) q.completed = [];
+        var done = new Set(q.completed || []);
+        var active = new Set(q.active.map(function (a) { return a.id; }));
+        var available = QUEST_DEFS.filter(function (d) { return !done.has(d.id) && !active.has(d.id); });
+        while (q.active.length < 4 && available.length > 0) {
+          var pick = available.shift();
+          q.active.push({ id: pick.id, claimed: false, base: questCounterBaseline(pick, s) });
+        }
+        stampQuestBaselines(s, false);
+      };
+      _refreshActiveQuests.__campaign122 = true;
+    }
+
+    if (typeof _initQuestState === 'function' && !_initQuestState.__campaign122) {
+      var oldInitQuestState = _initQuestState;
+      _initQuestState = function (s) {
+        oldInitQuestState.apply(this, arguments);
+        stampQuestBaselines(s, false);
+      };
+      _initQuestState.__campaign122 = true;
+    }
+
+    if (typeof _questProgress === 'function' && !_questProgress.__campaign122) {
+      _questProgress = function (s, def) {
+        if (!s || !s._quests || !def) return 0;
+        stampQuestBaselines(s, false);
+        var q = s._quests;
+        var aq = (q.active || []).find(function (a) { return a.id === def.id; });
+        if (!aq) return 0;
+        if (typeof aq.base !== 'number') aq.base = questCounterBaseline(def, s);
+        var cur = questCounterBaseline(def, s);
+        return Math.min(Math.max(0, cur - aq.base), def.target);
+      };
+      _questProgress.__campaign122 = true;
+    }
+
+    if (typeof triggerGameOver === 'function' && !triggerGameOver.__campaign122) {
+      var oldTriggerGameOver = triggerGameOver;
+      triggerGameOver = function () {
+        var info = oldTriggerGameOver.apply(this, arguments) || {};
+        var s = getState();
+        var start = inferRunStartWave(s);
+        var attempted = Math.max(1, ((s && s.wave) || 1) - start + 1);
+        var GRADES = {
+          S: { min:25, color:'#3ab0d5', bg:'rgba(58,176,213,.06)',  tip:'Outstanding. This run pushed deep into the front.' },
+          A: { min:18, color:'#2db858', bg:'rgba(45,184,88,.06)',   tip:'Strong run. You pushed well beyond the reset line.' },
+          B: { min:10, color:'#d4a028', bg:'rgba(212,160,40,.06)',  tip:'Solid defense. Tune lanes before the next push.' },
+          C: { min:5,  color:'#d07030', bg:'rgba(208,120,48,.06)',  tip:'Early front-line loss. Strengthen formations before pushing.' },
+          D: { min:0,  color:'#d04040', bg:'rgba(208,64,64,.06)',   tip:'Early loss after reset. Rebuild lanes before advancing.' }
+        };
+        var grade = Object.keys(GRADES).find(function (g) { return attempted >= GRADES[g].min; }) || 'D';
+        return Object.assign({}, info, GRADES[grade], { grade: grade, runWaves: attempted, gain: info.gain || 0 });
+      };
+      triggerGameOver.__campaign122 = true;
+    }
+
+    var s = getState();
+    if (s) {
+      inferRunStartWave(s);
+      if (!s._quests || s._quests.baselineVersion !== 122) resetQuestStateForRun(s);
+    }
+  }
+
+  function boot() { installStyles(); removeLockedResearchPlaceholder(); ensureMeta(); patchQuestAndRunTracking(); if (typeof ensureCampaignState === 'function') ensureCampaignState(getState(), getMeta()); mergePermanentResearch(getState()); rememberResearchFromState(); ensureWorldChip(); updateWorldChip(); ensureDailyButton(); updateDailyButton(); checkWorldTransition(); replaceOldResearchText(); if (typeof renderResearchSheet === 'function' && $('upgrade-list-all')) safe('rerender research', renderResearchSheet); if (typeof updateHUD === 'function') updateHUD(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 60); }); else setTimeout(boot, 60);
   setInterval(function () { safe('periodic update', function () { ensureMeta(); ensureWorldChip(); updateWorldChip(); updateDailyButton(); checkWorldTransition(); replaceOldResearchText(); }); }, 1500);
   window.LSC_CAMPAIGN = { showDailyRewards: showDailyModal, getDailyState: getDailyState, isDailyClaimable: isDailyClaimable, updateWorldChip: updateWorldChip };
@@ -340,7 +489,7 @@
         'Reset to: ' + worldName(p) + ' · Wave ' + (p ? p.resetWave : '—') + '<br>' +
         'Reward: ' + rewardText(p) + '<br>' +
         'Rank bonuses after prestige: +' + income + '% income · +' + dmg + '% damage' +
-        '<div class="lsc-prestige-carry">Carries forward: permanent research, officers, Gems, XP, purchases, quests, and world unlocks.</div>' +
+        '<div class="lsc-prestige-carry">Carries forward: permanent research, officers, Gems, XP, purchases, and world unlocks.</div>' +
         buildUnlockList(newRank, m.prestige || 0) +
         '</div>';
     }
