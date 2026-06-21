@@ -4,7 +4,7 @@
 //
 //  Adds permanent officers, lane assignments, earnable-Gem
 //  recruiting, visible crate odds, starter officer, and safe
-//  lane auto-management hooks, detail cards, lane bonus summaries, recruit confirmations, optional quick assignment, clear Gem affordability states, starter Field Voucher, and formation-preserving officer auto-fill. Paid Gem packs are not enabled.
+//  lane auto-management hooks, detail cards, lane bonus summaries, recruit confirmations, optional quick assignment, clear Gem affordability states, starter Field Voucher, saved formation loadouts, and formation-preserving officer auto-fill. Paid Gem packs are not enabled.
 // ═══════════════════════════════════════════════════════
 (function () {
   if (window.__LSC_COMMAND_STAFF__) return;
@@ -426,7 +426,8 @@
 
   function renderAssignments(body) {
     var cs = ensureStaffMeta();
-    var html = '<div class="lsc-staff-note">Assigned officers auto-fill their lane once at wave start when credits and slots allow. Legendary officers can be owned early; full authority unlocks with rank.</div>' + laneBonusSummaryHtml();
+    var html = '<div class="lsc-staff-note">Assigned officers auto-fill their lane once at wave start when credits and slots allow. Legendary officers can be owned early; full authority unlocks with rank.</div>' +
+      (window.LSC_renderLoadoutPanel ? window.LSC_renderLoadoutPanel() : '') + laneBonusSummaryHtml();
     [0,1,2].forEach(function (lane) {
       var id = assignment(lane), def = officerById(id), bonus = assignedBonus(lane);
       html += '<div class="lsc-lane-card"><div class="lsc-lane-title">' + LANE_LABELS[lane] + ' LANE</div>';
@@ -443,6 +444,7 @@
     html += owned.length ? owned.map(function (d) { return officerRow(d, 'assign'); }).join('') : '<div class="lsc-staff-note">Recruit an officer first.</div>';
     body.innerHTML = html;
     wireOfficerButtons(body);
+    if (window.LSC_wireLoadoutPanel) window.LSC_wireLoadoutPanel(body, renderStaffModal);
   }
 
   function renderRecruitment(body) {
@@ -574,7 +576,16 @@
   function chooseAutoUnit(def, s, lane) {
     if (!def.units || typeof UNIT_DEFS === 'undefined') return null;
 
-    // First choice: maintain the lane formation already built by the player.
+    // First choice: selected saved formation loadout. This keeps officer auto-fill
+    // aligned with the player's preferred formation instead of forcing one unit type.
+    if (window.LSC_getLoadoutUnitCandidates) {
+      var loadoutUnits = window.LSC_getLoadoutUnitCandidates(s, lane) || [];
+      for (var l = 0; l < loadoutUnits.length; l++) {
+        if (canAutoDeployUnit(loadoutUnits[l], s)) return loadoutUnits[l];
+      }
+    }
+
+    // Second choice: maintain the lane formation already built by the player.
     var formation = formationCandidateUnits(s, lane);
     for (var f = 0; f < formation.length; f++) {
       if (canAutoDeployUnit(formation[f], s)) return formation[f];
