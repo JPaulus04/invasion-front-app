@@ -2,7 +2,7 @@
 //  config.js — all balance tunables
 //  Edit here. Nowhere else.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '124';
+const LSC_BUILD = '125';
 
 const CFG = Object.freeze({
 
@@ -52,7 +52,8 @@ const CFG = Object.freeze({
   PRESTIGE_GAIN_DIV:       10,  // ranks gained = floor(wave / 10)
   PRESTIGE_INCOME_BONUS:   0.14,
   PRESTIGE_DMG_BONUS:      0.10,
-  PRESTIGE_HP_BONUS:       0.15,  // +15% troop max HP per rank
+  PRESTIGE_HP_BONUS:       0.04,  // +4% troop max HP per Command Rank
+  PRESTIGE_HP_CAP:         0.40,  // cap prestige troop HP bonus at +40%
   UNLOCK_INCOME_BONUS:     0.10,
 
   // ── Phase Lord ───────────────────────────────────────
@@ -109,6 +110,6 @@ const UNLOCKS = Object.freeze({
     return boost;
   },
   baseHpBonus:     p => (UNLOCKS.has(p, 'u_iron') ? 25 : 0) + (UNLOCKS.has(p, 'u_hardened') ? 40 : 0), // V81: R10+R24
-  troopHpBonus:    p => UNLOCKS.has(p, 'u_veteran') ? 0.20 : 0,        // V81: +20% troop HP at R15
+  troopHpBonus:    p => Math.min(CFG.PRESTIGE_HP_CAP, Math.max(0, p) * CFG.PRESTIGE_HP_BONUS), // B125: +4% troop HP/rank, capped at +40%
 });
 

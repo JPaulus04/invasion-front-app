@@ -1955,7 +1955,7 @@ function _runPrestigeCeremony() {
   const bonusLines = [
     '⚡ +' + (newRank * CFG.PRESTIGE_INCOME_BONUS * 100).toFixed(0) + '% wave income',
     '⚔ +' + (newRank * CFG.PRESTIGE_DMG_BONUS * 100).toFixed(0) + '% all troop damage',
-    '🛡 +' + (newRank * CFG.PRESTIGE_HP_BONUS * 100).toFixed(0) + '% all troop HP',
+    '🛡 +' + _prestigeTroopHpBonusPercent(newRank) + '% all troop HP',
     '🔧 +' + (newRank * 3) + ' HP repaired per wave clear',
     '☄ Orbital damage +' + (newRank * CFG.ORBITAL_PRESTIGE_DMG) + ' permanently',
   ];
@@ -1975,6 +1975,12 @@ function _runPrestigeCeremony() {
     '<div>Credits earned: ' + runStats.credits.toLocaleString() + '</div>';
 }
 
+function _prestigeTroopHpBonusPercent(rank) {
+  if (typeof UNLOCKS !== 'undefined' && UNLOCKS.troopHpBonus) return Math.round(UNLOCKS.troopHpBonus(rank || 0) * 100);
+  if (typeof CFG !== 'undefined') return Math.round(Math.min(CFG.PRESTIGE_HP_CAP || 0.40, Math.max(0, rank || 0) * (CFG.PRESTIGE_HP_BONUS || 0.04)) * 100);
+  return 0;
+}
+
 // Returns human-readable perk lines for a given rank
 function _getRankPerks(rank) {
   const perks = [];
@@ -1987,7 +1993,7 @@ function _getRankPerks(rank) {
   if (rank >= 8)  perks.push('★ Doctrine Refinement: Doctrine bonuses +5%');
   if (rank >= 10) perks.push('★ Iron Reserves: Base starts with +25 max HP');
   if (rank >= 12) perks.push('★ Combat Surge: Kill rewards +8%');
-  if (rank >= 15) perks.push('★ Veteran\'s Edge: All troops start with +20% HP');
+  if (rank >= 10) perks.push('★ Combat Conditioning: Troop health prestige bonus capped at +40%');
   if (rank >= 18) perks.push('★ Strategic Reserves: +60 more starting credits');
   if (rank >= 20) perks.push('★ Command Mastery: Doctrine bonuses +8% more');
   if (rank >= 24) perks.push('★ Hardened Command: Base +40 max HP, barricades +0.5 dmg');
@@ -2001,7 +2007,7 @@ function buildDoctrineCards(onSelect) {
   grid.innerHTML = '';
   const srl = $id('startRankLine');
   if (srl) srl.textContent = m.prestige > 0
-    ? '★ Rank ' + m.prestige + ' · Troops +' + (m.prestige*15) + '% HP · +' + (m.prestige*14) + '% income · +' + (m.prestige*10) + '% dmg · ' + UNLOCKS.active(m.prestige).size + ' unlock(s) active'
+    ? '★ Rank ' + m.prestige + ' · Troops +' + _prestigeTroopHpBonusPercent(m.prestige) + '% HP · +' + (m.prestige*14) + '% income · +' + (m.prestige*10) + '% dmg · ' + UNLOCKS.active(m.prestige).size + ' unlock(s) active'
     : 'Each doctrine has unique synergies, rewards, and weaknesses.';
 
   // Update 8: doctrine → accent color class map

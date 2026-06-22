@@ -389,6 +389,25 @@
     return '+' + (p.commandData || 0) + ' Command Data' + (p.gems ? ' · +' + p.gems + ' Gems' : '');
   }
 
+  function troopHpBonusForRank(rank) {
+    try {
+      if (typeof UNLOCKS !== 'undefined' && UNLOCKS.troopHpBonus) return UNLOCKS.troopHpBonus(rank || 0);
+      if (typeof CFG !== 'undefined') return Math.min(CFG.PRESTIGE_HP_CAP || 0.40, Math.max(0, rank || 0) * (CFG.PRESTIGE_HP_BONUS || 0.04));
+    } catch (_) {}
+    return 0;
+  }
+
+  function troopHpText(rank) {
+    return '+' + Math.round(troopHpBonusForRank(rank) * 100) + '% troop health';
+  }
+
+  function troopHpGainText(oldRank, newRank) {
+    var before = Math.round(troopHpBonusForRank(oldRank || 0) * 100);
+    var after = Math.round(troopHpBonusForRank(newRank || 0) * 100);
+    var gain = Math.max(0, after - before);
+    return '+' + gain + '% troop health this prestige · ' + after + '% total';
+  }
+
   function installPrestigeClarityStyles() {
     if ($('lsc-prestige-clarity-style')) return;
     var css = document.createElement('style');
@@ -406,6 +425,7 @@
     installPrestigeClarityStyles();
     var gain = prestigeGainSafe();
     var p = previewSafe();
+    var currentRank = (getMeta().prestige || 0);
     var newRank = rankAfter(gain);
     var prestigeBtn = $('goPrestigeBtn');
     var prestigePlayBtn = $('goPrestigePlayBtn');
@@ -425,6 +445,7 @@
         preview.innerHTML = '<div class="lsc-prestige-choice">' +
           '<b>Prestige to Rank ' + newRank + '</b><br>' +
           'Gain: ' + rewardText(p) + '<br>' +
+          'Training bonus: ' + troopHpGainText(currentRank, newRank) + '<br>' +
           'Reset point: ' + worldName(p) + ' · Wave ' + (p ? p.resetWave : '—') +
           '<div class="lsc-prestige-carry">Carries forward: officers, research, Gems, XP, purchases, world unlocks.</div>' +
           '</div>';
@@ -472,6 +493,7 @@
     if (gain <= 0) return;
     var m = getMeta();
     var p = previewSafe();
+    var currentRank = (getMeta().prestige || 0);
     var newRank = rankAfter(gain);
     var desc = $('prestigeDesc');
     var confirmBtn = $('confirmPrestigeBtn');
@@ -483,12 +505,13 @@
     if (desc) {
       var income = (typeof CFG !== 'undefined' && CFG.PRESTIGE_INCOME_BONUS) ? (newRank * CFG.PRESTIGE_INCOME_BONUS * 100).toFixed(0) : '—';
       var dmg = (typeof CFG !== 'undefined' && CFG.PRESTIGE_DMG_BONUS) ? (newRank * CFG.PRESTIGE_DMG_BONUS * 100).toFixed(0) : '—';
+      var troopHp = troopHpGainText(currentRank, newRank);
       desc.innerHTML =
         '<div class="lsc-prestige-choice">' +
         '<b>World Prestige</b><br>' +
         'Reset to: ' + worldName(p) + ' · Wave ' + (p ? p.resetWave : '—') + '<br>' +
         'Reward: ' + rewardText(p) + '<br>' +
-        'Rank bonuses after prestige: +' + income + '% income · +' + dmg + '% damage' +
+        'Rank bonuses after prestige: +' + income + '% income · +' + dmg + '% damage · ' + troopHp +
         '<div class="lsc-prestige-carry">Carries forward: permanent research, officers, Gems, XP, purchases, and world unlocks.</div>' +
         buildUnlockList(newRank, m.prestige || 0) +
         '</div>';
