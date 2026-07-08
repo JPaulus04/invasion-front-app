@@ -24,6 +24,7 @@ const ENGINE_SCRIPTS = [
 const CONTROLLER_SCRIPTS = [
   'iap.js',       // V87: RevenueCat integration — must load before ui.js store functions
   'renderer.js',
+  'enemyVisuals.js',      // Build 127: stronger procedural enemy soldier visuals
   'ui.js',
   'screens.js',
   'systems.js',
