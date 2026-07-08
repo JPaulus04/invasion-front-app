@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════
-// Build 126 — Command Operations Identity Layer
+// Build 127 — Command HQ Operations Identity Layer
 // Purpose: make Last Stand Command read as a distinct command-operations
 // strategy game before combat begins, rather than a generic wave-defense app.
 // ══════════════════════════════════════════════════════════════
@@ -85,7 +85,14 @@
       '.lsc-op-intel-row span{font-family:\'Share Tech Mono\',monospace;font-size:9px;line-height:1.45;color:rgba(225,235,240,.82)}' +
       '.lsc-op-brief-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.lsc-op-brief-actions .mBtn{font-size:13px!important;padding:11px 10px!important}' +
       '.lsc-start-retitle .start-tag{background:rgba(34,212,255,.12)!important;border-color:rgba(34,212,255,.38)!important;color:#8eeeff!important}' +
-      '@media (min-width:420px){.lsc-ops-grid{grid-template-columns:1fr 1fr 1fr}.lsc-op-card{min-height:86px}}';
+      '.lsc-hq-op-card{position:fixed;z-index:118;left:14px;right:14px;top:calc(env(safe-area-inset-top,0px) + 92px);display:none;text-align:left;padding:12px 13px;border-radius:15px;border:1px solid rgba(34,212,255,.45);background:linear-gradient(135deg,rgba(4,17,31,.94),rgba(5,6,12,.86));box-shadow:0 16px 38px rgba(0,0,0,.48),inset 0 0 24px rgba(34,212,255,.07);color:#e8f8ff;-webkit-appearance:none}' +
+      '.lsc-hq-op-kicker{font-family:Share Tech Mono,monospace;font-size:8px;letter-spacing:2px;color:#22d4ff;text-transform:uppercase}' +
+      '.lsc-hq-op-name{margin-top:4px;font-family:Rajdhani,sans-serif;font-size:18px;line-height:1.05;font-weight:900;letter-spacing:.7px;text-transform:uppercase;color:#fff}' +
+      '.lsc-hq-op-sub{margin-top:4px;font-family:Share Tech Mono,monospace;font-size:9px;line-height:1.35;color:rgba(220,235,242,.78)}' +
+      '.lsc-hq-op-cta{margin-top:8px;display:inline-block;padding:5px 8px;border-radius:999px;background:rgba(34,212,255,.12);border:1px solid rgba(34,212,255,.35);font-family:Rajdhani,sans-serif;font-weight:900;font-size:10px;letter-spacing:.8px;color:#8eeeff}' +
+      '.lsc-op-select-card{width:min(94vw,460px);max-height:86vh;overflow:auto;border-radius:18px;border:1px solid rgba(34,212,255,.38);background:linear-gradient(180deg,rgba(5,18,32,.97),rgba(2,6,12,.97));box-shadow:0 25px 70px rgba(0,0,0,.58),inset 0 0 28px rgba(34,212,255,.06);padding:18px;text-align:left}' +
+      '.lsc-op-select-grid{display:grid;gap:9px;margin:12px 0 14px}.lsc-op-select-card-btn{width:100%;min-height:98px}' +
+      '@media (min-width:420px){.lsc-ops-grid{grid-template-columns:1fr 1fr 1fr}.lsc-op-card{min-height:86px}.lsc-hq-op-card{left:18px;right:auto;width:370px}}';
     document.head.appendChild(css);
   }
 
@@ -252,6 +259,90 @@
     });
   }
 
+
+
+  function isHomeVisible() {
+    var home = $('homeScreen');
+    if (!home) return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(home) : home.style;
+    return cs && cs.display !== 'none' && !home.classList.contains('hidden');
+  }
+
+  function ensureHQOperationCard() {
+    if ($('lsc-hq-op-card')) return;
+    var card = document.createElement('button');
+    card.type = 'button';
+    card.id = 'lsc-hq-op-card';
+    card.className = 'lsc-hq-op-card';
+    card.innerHTML = '<div class="lsc-hq-op-kicker">ACTIVE COMMAND OPERATION</div>' +
+      '<div class="lsc-hq-op-name" id="lsc-hq-op-name">Operation Iron Net</div>' +
+      '<div class="lsc-hq-op-sub" id="lsc-hq-op-sub">Tap to brief or change mission plan</div>' +
+      '<div class="lsc-hq-op-cta">MISSION BRIEFING</div>';
+    card.addEventListener('click', function () { showOperationSelectModal(); hapticLight(); });
+    document.body.appendChild(card);
+  }
+
+  function updateHQOperationCard() {
+    ensureHQOperationCard();
+    var card = $('lsc-hq-op-card');
+    if (!card) return;
+    card.style.display = isHomeVisible() ? 'block' : 'none';
+    var op = selectedOp();
+    var n = $('lsc-hq-op-name');
+    var sub = $('lsc-hq-op-sub');
+    if (n) n.textContent = op.name;
+    if (sub) sub.textContent = op.type + ' · ' + op.formation;
+  }
+
+  function ensureOperationSelectModal() {
+    if ($('lsc-op-select-modal')) return;
+    var node = document.createElement('div');
+    node.id = 'lsc-op-select-modal';
+    node.className = 'lsc-op-brief-backdrop lsc-op-select-backdrop';
+    node.innerHTML = '<div class="lsc-op-select-card">' +
+      '<div class="lsc-op-brief-top">Command HQ</div>' +
+      '<div class="lsc-op-brief-title">Select Operation</div>' +
+      '<div class="lsc-op-brief-type">Choose the mission framing before entering the front.</div>' +
+      '<div class="lsc-op-select-grid" id="lsc-op-select-grid"></div>' +
+      '<div class="lsc-op-brief-actions"><button class="mBtn ghost" id="lsc-op-select-close">Close HQ</button><button class="mBtn good" id="lsc-op-select-brief">Brief Selected</button></div>' +
+    '</div>';
+    document.body.appendChild(node);
+    $('lsc-op-select-close').addEventListener('click', function () { node.style.display = 'none'; });
+    $('lsc-op-select-brief').addEventListener('click', function () { node.style.display = 'none'; showBriefing(); });
+  }
+
+  function renderOperationSelectModalCards() {
+    ensureOperationSelectModal();
+    var grid = $('lsc-op-select-grid');
+    var s = state();
+    if (!grid || !s) return;
+    if (!s.selectedOperation) s.selectedOperation = chooseOperationForDoctrine(s.selectedDoctrine || 'blitz');
+    grid.innerHTML = '';
+    OPS.forEach(function (op) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'lsc-op-card lsc-op-select-card-btn' + (s.selectedOperation === op.id ? ' active' : '');
+      btn.innerHTML = '<div class="lsc-op-title">' + op.icon + ' ' + op.name + '</div>' +
+        '<div class="lsc-op-meta"><b>' + op.type + '</b><br>' + op.objective + '<br><br>Threat: ' + op.threat + '<br>Formation: ' + op.formation + '</div>';
+      btn.addEventListener('click', function () {
+        s.selectedOperation = op.id;
+        s._manualOperationChoice = true;
+        renderOperationSelectModalCards();
+        renderOperationCards();
+        updateHQOperationCard();
+        hapticLight();
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  function showOperationSelectModal() {
+    ensureOperationSelectModal();
+    renderOperationSelectModalCards();
+    var m = $('lsc-op-select-modal');
+    if (m) m.style.display = 'flex';
+  }
+
   function boot() {
     installStyles();
     retitleStartScreen();
@@ -261,9 +352,10 @@
     patchBeginButton();
     patchSummaries();
     patchStaticLanguage();
+    updateHQOperationCard();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 80); });
   else setTimeout(boot, 80);
-  setInterval(function () { safe('refresh operations panel', function () { retitleStartScreen(); renderOperationCards(); patchBeginButton(); }); }, 2500);
+  setInterval(function () { safe('refresh operations panel', function () { retitleStartScreen(); renderOperationCards(); patchBeginButton(); updateHQOperationCard(); }); }, 1200);
 })();
