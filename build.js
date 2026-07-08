@@ -30,6 +30,7 @@ const CONTROLLER_SCRIPTS = [
   'main.js',
   'hotfixes.js',  // Build 102/103: final boss/tutorial launch hotfixes
   'campaignProgression.js', // Campaign worlds, world prestige, daily rewards, permanent research persistence
+  'operationsIdentity.js',  // Build 126: Command Operations identity layer and mission briefing
   'research.js',            // Consolidated research visuals/layout/queue polish
   'loadouts.js',           // Saved troop formation loadouts for officer auto-fill
   'officers.js',            // Command Staff / Officers foundation
