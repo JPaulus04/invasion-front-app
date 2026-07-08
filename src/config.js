@@ -2,7 +2,7 @@
 //  config.js — all balance tunables
 //  Edit here. Nowhere else.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '127';
+const LSC_BUILD = '128';
 
 const CFG = Object.freeze({
 
@@ -112,4 +112,3 @@ const UNLOCKS = Object.freeze({
   baseHpBonus:     p => (UNLOCKS.has(p, 'u_iron') ? 25 : 0) + (UNLOCKS.has(p, 'u_hardened') ? 40 : 0), // V81: R10+R24
   troopHpBonus:    p => Math.min(CFG.PRESTIGE_HP_CAP, Math.max(0, p) * CFG.PRESTIGE_HP_BONUS), // B125: +4% troop HP/rank, capped at +40%
 });
-
