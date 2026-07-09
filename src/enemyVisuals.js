@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════════════════
-// Build 127 — Enemy Visual Identity Pass
+// Build 129 — Enemy Squad Visual Identity Pass
 // Replaces tiny/flat enemy sprite presentation with procedural tactical
-// soldier silhouettes so incoming contacts look like enemy squads advancing.
+// multi-contact squad silhouettes so incoming enemies read as advancing soldiers, shield teams, heavy units, and commanders.
 // ══════════════════════════════════════════════════════════════
 (function () {
   if (window.__LSC_ENEMY_VISUALS_127__) return;
@@ -25,6 +25,58 @@
 
   function bodyScale(kind) {
     return ({ conscript:1, breacher:.9, juggernaut:1.38, overwatch:1.02, phalanx:1.18, warden:1.75 }[kind] || 1);
+  }
+
+
+  function formationForKind(kind) {
+    if (kind === 'juggernaut') return [{x:0,y:0,scale:1.15,label:'HVY'}];
+    if (kind === 'warden') return [{x:0,y:0,scale:1.1,label:'CMD'}];
+    if (kind === 'phalanx') return [
+      {x:-7,y:1,scale:.86,label:'SHD'},
+      {x:6,y:-1,scale:.92,label:'SHD'}
+    ];
+    if (kind === 'overwatch') return [
+      {x:0,y:0,scale:.95,label:'OW'},
+      {x:8,y:6,scale:.70,label:'SPT'}
+    ];
+    if (kind === 'breacher') return [
+      {x:-8,y:4,scale:.78,label:'BCH'},
+      {x:0,y:-1,scale:.88,label:'BCH'},
+      {x:8,y:5,scale:.74,label:'BCH'}
+    ];
+    return [
+      {x:-8,y:4,scale:.72,label:'INF'},
+      {x:0,y:-2,scale:.88,label:'INF'},
+      {x:8,y:5,scale:.70,label:'INF'}
+    ];
+  }
+
+  function drawContactTag(ctx, label, col, s) {
+    ctx.save();
+    ctx.font = (6.5 * s) + 'px Share Tech Mono,monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var w = Math.max(20 * s, ctx.measureText(label).width + 8 * s);
+    var y = -28 * s;
+    ctx.fillStyle = 'rgba(0,0,0,.62)';
+    ctx.strokeStyle = col + 'aa';
+    ctx.lineWidth = 1 * s;
+    var x0 = -w/2, y0 = y - 5*s, h = 10*s, r = 4*s;
+    ctx.beginPath();
+    ctx.moveTo(x0 + r, y0);
+    ctx.lineTo(x0 + w - r, y0);
+    ctx.quadraticCurveTo(x0 + w, y0, x0 + w, y0 + r);
+    ctx.lineTo(x0 + w, y0 + h - r);
+    ctx.quadraticCurveTo(x0 + w, y0 + h, x0 + w - r, y0 + h);
+    ctx.lineTo(x0 + r, y0 + h);
+    ctx.quadraticCurveTo(x0, y0 + h, x0, y0 + h - r);
+    ctx.lineTo(x0, y0 + r);
+    ctx.quadraticCurveTo(x0, y0, x0 + r, y0);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f6fbff';
+    ctx.fillText(label, 0, y);
+    ctx.restore();
   }
 
   function drawContactSilhouette(ctx, kind, col, time, s, phase) {
@@ -176,7 +228,15 @@
         var hitDelta = performance.now() - (e._lastHitTime || 0);
         if (hitDelta < 150) ctx.filter = 'brightness(1.8) saturate(2)';
         ctx.translate(x + moveX, y + moveY);
-        drawContactSilhouette(ctx, kind, col, time, s, phase);
+        var squad = formationForKind(kind);
+        squad.forEach(function(member, idx) {
+          ctx.save();
+          ctx.translate(member.x * s, member.y * s);
+          ctx.scale(member.scale || 1, member.scale || 1);
+          drawContactSilhouette(ctx, kind, col, time + idx * 0.13, s, phase + idx * 0.7);
+          ctx.restore();
+        });
+        drawContactTag(ctx, squad[0] && squad[0].label ? squad[0].label : kind.toUpperCase().slice(0,3), col, s);
         ctx.restore();
         ctx.filter = 'none';
         if (kind === 'overwatch' && e._owStopped && e._lastFireTime) {
