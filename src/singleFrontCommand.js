@@ -1,18 +1,18 @@
 // ══════════════════════════════════════════════════════════════
-// Build 131 — Single Front Engagement Polish
+// Build 132 — Single Front UI Cleanup
 // Purpose: make Last Stand Command read as a hero-led single-front
 // squad defense game instead of a standard three-lane tower defense.
 // Keeps the old lane data internally as formation pods for stability.
 // ══════════════════════════════════════════════════════════════
 (function () {
-  if (window.__LSC_SINGLE_FRONT_131__) return;
-  window.__LSC_SINGLE_FRONT_131__ = true;
+  if (window.__LSC_SINGLE_FRONT_132__) return;
+  window.__LSC_SINGLE_FRONT_132__ = true;
 
   function $(id) { return document.getElementById(id); }
-  function safe(label, fn) { try { return fn(); } catch (e) { try { console.warn('[SingleFront131]' , label, e); } catch (_) {} } }
+  function safe(label, fn) { try { return fn(); } catch (e) { try { console.warn('[SingleFront132]' , label, e); } catch (_) {} } }
   function state() { return (typeof G !== 'undefined' && G.state) ? G.state : null; }
   function meta() { return (typeof G !== 'undefined' && G.meta) ? G.meta : {}; }
-  function toast(msg) { if (typeof showToast === 'function') showToast(msg); else console.log('[SingleFront131]' , msg); }
+  function toast(msg) { if (typeof showToast === 'function') showToast(msg); else console.log('[SingleFront132]' , msg); }
   function hapticLight() { try { if (typeof haptic === 'function') haptic('light'); } catch (_) {} }
 
   var FORMATION_NAMES = ['Support Row', 'Fireline Row', 'Vanguard Row'];
@@ -62,9 +62,9 @@
   }
 
   function installStyles() {
-    if ($('lsc-singlefront131-style')) return;
+    if ($('lsc-singlefront132-style')) return;
     var css = document.createElement('style');
-    css.id = 'lsc-singlefront131-style';
+    css.id = 'lsc-singlefront132-style';
     css.textContent = '' +
       '.lsc-hero-panel{margin:10px 0 12px;padding:11px;border-radius:15px;border:1px solid rgba(255,209,102,.24);background:linear-gradient(180deg,rgba(30,21,5,.72),rgba(5,10,16,.74));box-shadow:inset 0 0 24px rgba(255,209,102,.06)}' +
       '.lsc-hero-kicker{font-family:Share Tech Mono,monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,209,102,.88);margin-bottom:7px}' +
@@ -75,11 +75,11 @@
       '.lsc-hero-title{font-family:Rajdhani,sans-serif;font-weight:900;font-size:13px;letter-spacing:.5px;color:#fff}' +
       '.lsc-hero-meta{margin-top:2px;font-family:Share Tech Mono,monospace;font-size:8px;color:rgba(230,220,190,.78);line-height:1.45}' +
       '.lsc-front-pill{position:fixed;z-index:121;left:50%;top:calc(env(safe-area-inset-top,0px) + 54px);transform:translateX(-50%);padding:6px 10px;border-radius:999px;border:1px solid rgba(255,209,102,.42);background:rgba(3,8,13,.72);box-shadow:0 10px 28px rgba(0,0,0,.35);font-family:Share Tech Mono,monospace;font-size:9px;letter-spacing:1.5px;color:#ffd166;text-transform:uppercase;pointer-events:none;display:none}' +
-      '.lsc-hero-ability{position:fixed;z-index:124;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 86px);min-width:128px;padding:10px 11px;border-radius:15px;border:1px solid rgba(255,209,102,.50);background:linear-gradient(180deg,rgba(32,22,6,.95),rgba(5,7,10,.92));box-shadow:0 16px 38px rgba(0,0,0,.48),inset 0 0 18px rgba(255,209,102,.07);color:#fff;text-align:left;-webkit-appearance:none;display:none}' +
-      '.lsc-hero-ability b{display:block;font-family:Rajdhani,sans-serif;font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:#ffd166}' +
-      '.lsc-hero-ability span{display:block;margin-top:2px;font-family:Share Tech Mono,monospace;font-size:8px;line-height:1.3;color:rgba(235,230,210,.78)}' +
-      '.lsc-hero-ability.cooling{opacity:.55;border-color:rgba(255,255,255,.18)}' +
-      '@media (min-width:420px){.lsc-hero-grid{grid-template-columns:1fr 1fr}.lsc-hero-ability{right:20px;bottom:110px}}';
+      '.lsc-hero-ability{position:fixed;z-index:124;right:10px;top:calc(env(safe-area-inset-top,0px) + 214px);bottom:auto;width:148px;max-width:148px;padding:8px 9px;border-radius:13px;border:1px solid rgba(255,209,102,.50);background:linear-gradient(180deg,rgba(32,22,6,.95),rgba(5,7,10,.92));box-shadow:0 12px 28px rgba(0,0,0,.46),inset 0 0 16px rgba(255,209,102,.07);color:#fff;text-align:left;-webkit-appearance:none;display:none}' +
+      '.lsc-hero-ability b{display:block;font-family:Rajdhani,sans-serif;font-size:12px;line-height:1;letter-spacing:.8px;text-transform:uppercase;color:#ffd166;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '.lsc-hero-ability span{display:block;margin-top:4px;font-family:Share Tech Mono,monospace;font-size:8px;line-height:1.2;color:rgba(235,230,210,.78);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '.lsc-hero-ability.cooling{opacity:.60;border-color:rgba(255,255,255,.18)}' +
+      '@media (min-width:420px){.lsc-hero-grid{grid-template-columns:1fr 1fr}.lsc-hero-ability{right:16px;top:calc(env(safe-area-inset-top,0px) + 220px);width:156px;max-width:156px}}';
     document.head.appendChild(css);
   }
 
@@ -132,15 +132,39 @@
         if (tag) tag.textContent = 'SINGLE FRONT COMMAND';
         if (intro) intro.textContent = 'Choose a commander, arrange squad rows, and hold one command front against escalating enemy contacts.';
       }
-      Array.from(document.querySelectorAll('button,div,span')).forEach(function (el) {
+      Array.from(document.querySelectorAll('button,div,span,p')).forEach(function (el) {
+        // Only rewrite leaf text nodes so we do not flatten complex cards or lose nested layout.
+        if (el.children && el.children.length > 0) return;
         var t = (el.textContent || '').trim();
-        if (t === 'Top') el.textContent = 'Support';
-        if (t === 'Mid') el.textContent = 'Fireline';
-        if (t === 'Bottom') el.textContent = 'Vanguard';
-        if (t === 'LAUNCH WAVE') el.textContent = 'LAUNCH CONTACT';
-        if (t === 'BOSS WAVE') el.textContent = 'BOSS CONTACT';
-        if (t === 'Fill All Lanes') el.textContent = 'Fill Formation';
-        if (t === 'Save Current Lanes') el.textContent = 'Save Current Formation';
+        if (!t) return;
+        var nt = t;
+        var exact = {
+          'Top':'Support', 'Mid':'Fireline', 'Bottom':'Vanguard',
+          'Left':'Support', 'Center':'Fireline', 'Right':'Vanguard',
+          'LEFT':'SUPPORT', 'CTR':'FIRELINE', 'CENTER':'FIRELINE', 'RIGHT':'VANGUARD',
+          'LAUNCH WAVE':'LAUNCH CONTACT', 'BOSS WAVE':'BOSS CONTACT',
+          'Fill All Lanes':'Fill Formation', 'Fill all lanes':'Fill Formation',
+          'Save Current Lanes':'Save Current Formation',
+          'Save Current Battlefield as My Formation':'Save Current Front as My Formation'
+        };
+        if (exact[nt]) nt = exact[nt];
+        nt = nt
+          .replace(/\bLEFT\b/g, 'SUPPORT')
+          .replace(/\bCTR\b/g, 'FIRELINE')
+          .replace(/\bCENTER\b/g, 'FIRELINE')
+          .replace(/\bRIGHT\b/g, 'VANGUARD')
+          .replace(/\bLeft\b/g, 'Support')
+          .replace(/\bCenter\b/g, 'Fireline')
+          .replace(/\bRight\b/g, 'Vanguard')
+          .replace(/\bleft lane\b/gi, 'support row')
+          .replace(/\bcenter lane\b/gi, 'fireline row')
+          .replace(/\bright lane\b/gi, 'vanguard row')
+          .replace(/\bleft position\b/gi, 'support row position')
+          .replace(/\bcenter position\b/gi, 'fireline row position')
+          .replace(/\bright position\b/gi, 'vanguard row position')
+          .replace(/\blane\b/g, 'row')
+          .replace(/\bLane\b/g, 'Row');
+        if (nt !== t) el.textContent = nt;
       });
     });
   }
@@ -148,15 +172,15 @@
   // ── Internal game reinterpretation ───────────────────────────
   // Keep three lane arrays for stability, but treat them as formation rows.
   safe('patch laneName', function () {
-    if (typeof laneName === 'function' && !laneName.__singleFront130) {
+    if (typeof laneName === 'function' && !laneName.__singleFront132) {
       var oldLaneName = laneName;
       laneName = function (i) { return FORMATION_NAMES[i] || oldLaneName(i); };
-      laneName.__singleFront130 = true;
+      laneName.__singleFront132 = true;
     }
   });
 
   safe('patch spawnEnemy', function () {
-    if (typeof spawnEnemy === 'function' && !spawnEnemy.__singleFront130) {
+    if (typeof spawnEnemy === 'function' && !spawnEnemy.__singleFront132) {
       var oldSpawnEnemy = spawnEnemy;
       spawnEnemy = function () {
         var s = state();
@@ -182,12 +206,12 @@
         }
         return result;
       };
-      spawnEnemy.__singleFront130 = true;
+      spawnEnemy.__singleFront132 = true;
     }
   });
 
   safe('patch nearestEnemy', function () {
-    if (typeof nearestEnemy === 'function' && !nearestEnemy.__singleFront130) {
+    if (typeof nearestEnemy === 'function' && !nearestEnemy.__singleFront132) {
       var oldNearestEnemy = nearestEnemy;
       nearestEnemy = function (t) {
         var s = state();
@@ -211,13 +235,13 @@
         }
         return best;
       };
-      nearestEnemy.__singleFront130 = true;
+      nearestEnemy.__singleFront132 = true;
     }
   });
 
 
   safe('patch applyDamage visuals', function () {
-    if (typeof applyDamage === 'function' && !applyDamage.__singleFront131) {
+    if (typeof applyDamage === 'function' && !applyDamage.__singleFront132) {
       var oldApplyDamage = applyDamage;
       applyDamage = function (enemy, damage, source) {
         var beforeHp = enemy ? (enemy.hp || 0) : 0;
@@ -239,7 +263,7 @@
         } catch (_) {}
         return result;
       };
-      applyDamage.__singleFront131 = true;
+      applyDamage.__singleFront132 = true;
     }
   });
 
@@ -329,7 +353,10 @@
     var h = selectedHero();
     var cd = heroCooldownSeconds();
     btn.classList.toggle('cooling', cd > 0);
-    btn.innerHTML = '<b>' + h.icon + ' ' + h.name.replace('Commander ', '').replace('Artillery ', '') + '</b><span>' + (cd > 0 ? ('Cooling ' + cd + 's') : h.active) + '</span>';
+    var shortName = h.name.replace('Commander ', '').replace('Artillery ', '');
+    var shortActive = (h.active || 'Ready').split('—')[0].trim();
+    btn.title = h.name + ' · ' + h.active;
+    btn.innerHTML = '<b>' + h.icon + ' ' + shortName + '</b><span>' + (cd > 0 ? ('Cooling ' + cd + 's') : shortActive) + '</span>';
   }
 
   function drawSingleFrontOverlay(ctx, stateObj) {
@@ -442,16 +469,45 @@
       ctx.fillText(FORMATION_SHORT[r] + ' ' + count + '/5', rowX[r], rowY + 3*dpr);
     }
 
-    // Hero command badge behind formation.
-    var hro = selectedHero();
-    ctx.fillStyle = 'rgba(0,0,0,.60)';
-    ctx.strokeStyle = 'rgba(255,209,102,.50)';
-    ctx.lineWidth = 1.2 * dpr;
-    roundRect(ctx, W * .50 - 92*dpr, H - baseH + 7*dpr, 184*dpr, 22*dpr, 11*dpr); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#ffd166';
-    ctx.font = 'bold ' + (9*dpr) + 'px Share Tech Mono,monospace';
+    // Build 132: move Hero Command out of the command-base canvas stack.
+    // The active hero is now controlled by the compact DOM button in the upper-right field area.
+
+    // Cover legacy LEFT / CTR / RIGHT base labels from the older three-lane layout.
+    ctx.fillStyle = 'rgba(4,8,11,.76)';
+    roundRect(ctx, W * .03, H - baseH + 28*dpr, W * .94, 18*dpr, 9*dpr); ctx.fill();
+    var coverNames = ['SUPPORT ROW', 'FIRELINE ROW', 'VANGUARD ROW'];
+    ctx.font = 'bold ' + (7*dpr) + 'px Share Tech Mono,monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(hro.icon + ' HERO COMMAND: ' + hro.name.replace('Commander ', '').toUpperCase(), W * .50, H - baseH + 22*dpr);
+    for (var cr = 0; cr < 3; cr++) {
+      ctx.fillStyle = cr === 2 ? '#ffd166' : cr === 1 ? '#9cecff' : '#cfe4ff';
+      ctx.fillText(coverNames[cr], rowX[cr], H - baseH + 40*dpr);
+    }
+
+    // Single-front turret/emplacement overlay — gives turret upgrades a purpose-built formation position.
+    var guns = (stateObj.lanes || []).map(function (l) { return (l && l.gun) || 0; });
+    if (guns[0] || guns[1] || guns[2]) {
+      var emps = [
+        { x: W * .34, y: H - baseH - 76*dpr, label:'L-FLANK', lvl:guns[0] },
+        { x: W * .50, y: H - baseH - 100*dpr, label:'CENTER',  lvl:guns[1] },
+        { x: W * .66, y: H - baseH - 76*dpr, label:'R-FLANK', lvl:guns[2] }
+      ];
+      emps.forEach(function (em) {
+        if (!em.lvl) return;
+        ctx.save();
+        ctx.translate(em.x, em.y);
+        ctx.fillStyle = 'rgba(0,0,0,.48)';
+        ctx.strokeStyle = 'rgba(255,209,102,.45)';
+        ctx.lineWidth = 1 * dpr;
+        roundRect(ctx, -17*dpr, 1*dpr, 34*dpr, 13*dpr, 6*dpr); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = '#ffd166'; ctx.lineWidth = (2 + Math.min(2, em.lvl*.35)) * dpr; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(0, 1*dpr); ctx.lineTo(0, -19*dpr); ctx.stroke();
+        ctx.fillStyle = '#2f3a2a'; ctx.strokeStyle = '#9cecff'; ctx.lineWidth = 1 * dpr;
+        ctx.beginPath(); ctx.arc(0, 0, 8*dpr, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#ffd166'; ctx.font = 'bold ' + (6*dpr) + 'px Share Tech Mono,monospace'; ctx.textAlign = 'center';
+        ctx.fillText('T' + em.lvl, 0, 5*dpr);
+        ctx.restore();
+      });
+    }
 
     // Operation stage label.
     ctx.textAlign = 'left';
@@ -482,7 +538,7 @@
   }
 
   safe('patch drawVertical', function () {
-    if (typeof drawVertical === 'function' && !drawVertical.__singleFront130) {
+    if (typeof drawVertical === 'function' && !drawVertical.__singleFront132) {
       var oldDrawVertical = drawVertical;
       drawVertical = function (s) {
         if (s) s._singleFrontMode = true;
@@ -494,12 +550,12 @@
         } catch (_) {}
         return result;
       };
-      drawVertical.__singleFront130 = true;
+      drawVertical.__singleFront132 = true;
     }
   });
 
   safe('patch updateHUD', function () {
-    if (typeof updateHUD === 'function' && !updateHUD.__singleFront130) {
+    if (typeof updateHUD === 'function' && !updateHUD.__singleFront132) {
       var oldUpdateHUD = updateHUD;
       updateHUD = function () {
         applyHeroPassiveMarkers();
@@ -517,7 +573,7 @@
         if (wbSub && wbSub.textContent === 'BOSS WAVE') wbSub.textContent = 'BOSS CONTACT';
         return result;
       };
-      updateHUD.__singleFront130 = true;
+      updateHUD.__singleFront132 = true;
     }
   });
 
