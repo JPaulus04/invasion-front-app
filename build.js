@@ -24,14 +24,15 @@ const ENGINE_SCRIPTS = [
 const CONTROLLER_SCRIPTS = [
   'iap.js',       // V87: RevenueCat integration — must load before ui.js store functions
   'renderer.js',
-  'enemyVisuals.js',      // Build 127: stronger procedural enemy soldier visuals
+  'enemyVisuals.js',      // Build 127+: stronger procedural enemy/contact visuals
   'ui.js',
   'screens.js',
   'systems.js',
   'main.js',
   'hotfixes.js',  // Build 102/103: final boss/tutorial launch hotfixes
   'campaignProgression.js', // Campaign worlds, world prestige, daily rewards, permanent research persistence
-  'operationsIdentity.js',  // Build 126: Command Operations identity layer and mission briefing
+  'operationsIdentity.js',  // Build 126+: Command Operations identity layer and mission briefing
+  'singleFrontCommand.js',  // Build 130: hero-led single-front command prototype
   'research.js',            // Consolidated research visuals/layout/queue polish
   'loadouts.js',           // Saved troop formation loadouts for officer auto-fill
   'officers.js',            // Command Staff / Officers foundation
