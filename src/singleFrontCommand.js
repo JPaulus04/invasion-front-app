@@ -1,18 +1,18 @@
 // ══════════════════════════════════════════════════════════════
-// Build 132 — Single Front UI Cleanup
+// Build 133 — Orders Collapse + Turret Alignment
 // Purpose: make Last Stand Command read as a hero-led single-front
 // squad defense game instead of a standard three-lane tower defense.
 // Keeps the old lane data internally as formation pods for stability.
 // ══════════════════════════════════════════════════════════════
 (function () {
-  if (window.__LSC_SINGLE_FRONT_132__) return;
-  window.__LSC_SINGLE_FRONT_132__ = true;
+  if (window.__LSC_SINGLE_FRONT_133__) return;
+  window.__LSC_SINGLE_FRONT_133__ = true;
 
   function $(id) { return document.getElementById(id); }
-  function safe(label, fn) { try { return fn(); } catch (e) { try { console.warn('[SingleFront132]' , label, e); } catch (_) {} } }
+  function safe(label, fn) { try { return fn(); } catch (e) { try { console.warn('[SingleFront133]' , label, e); } catch (_) {} } }
   function state() { return (typeof G !== 'undefined' && G.state) ? G.state : null; }
   function meta() { return (typeof G !== 'undefined' && G.meta) ? G.meta : {}; }
-  function toast(msg) { if (typeof showToast === 'function') showToast(msg); else console.log('[SingleFront132]' , msg); }
+  function toast(msg) { if (typeof showToast === 'function') showToast(msg); else console.log('[SingleFront133]' , msg); }
   function hapticLight() { try { if (typeof haptic === 'function') haptic('light'); } catch (_) {} }
 
   var FORMATION_NAMES = ['Support Row', 'Fireline Row', 'Vanguard Row'];
@@ -62,9 +62,9 @@
   }
 
   function installStyles() {
-    if ($('lsc-singlefront132-style')) return;
+    if ($('lsc-singlefront133-style')) return;
     var css = document.createElement('style');
-    css.id = 'lsc-singlefront132-style';
+    css.id = 'lsc-singlefront133-style';
     css.textContent = '' +
       '.lsc-hero-panel{margin:10px 0 12px;padding:11px;border-radius:15px;border:1px solid rgba(255,209,102,.24);background:linear-gradient(180deg,rgba(30,21,5,.72),rgba(5,10,16,.74));box-shadow:inset 0 0 24px rgba(255,209,102,.06)}' +
       '.lsc-hero-kicker{font-family:Share Tech Mono,monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,209,102,.88);margin-bottom:7px}' +
@@ -75,12 +75,83 @@
       '.lsc-hero-title{font-family:Rajdhani,sans-serif;font-weight:900;font-size:13px;letter-spacing:.5px;color:#fff}' +
       '.lsc-hero-meta{margin-top:2px;font-family:Share Tech Mono,monospace;font-size:8px;color:rgba(230,220,190,.78);line-height:1.45}' +
       '.lsc-front-pill{position:fixed;z-index:121;left:50%;top:calc(env(safe-area-inset-top,0px) + 54px);transform:translateX(-50%);padding:6px 10px;border-radius:999px;border:1px solid rgba(255,209,102,.42);background:rgba(3,8,13,.72);box-shadow:0 10px 28px rgba(0,0,0,.35);font-family:Share Tech Mono,monospace;font-size:9px;letter-spacing:1.5px;color:#ffd166;text-transform:uppercase;pointer-events:none;display:none}' +
-      '.lsc-hero-ability{position:fixed;z-index:124;right:10px;top:calc(env(safe-area-inset-top,0px) + 214px);bottom:auto;width:148px;max-width:148px;padding:8px 9px;border-radius:13px;border:1px solid rgba(255,209,102,.50);background:linear-gradient(180deg,rgba(32,22,6,.95),rgba(5,7,10,.92));box-shadow:0 12px 28px rgba(0,0,0,.46),inset 0 0 16px rgba(255,209,102,.07);color:#fff;text-align:left;-webkit-appearance:none;display:none}' +
+      '.lsc-hero-ability{position:fixed;z-index:124;left:12px;right:auto;top:calc(env(safe-area-inset-top,0px) + 258px);bottom:auto;width:178px;max-width:178px;padding:8px 10px;border-radius:13px;border:1px solid rgba(255,209,102,.50);background:linear-gradient(180deg,rgba(32,22,6,.95),rgba(5,7,10,.92));box-shadow:0 12px 28px rgba(0,0,0,.46),inset 0 0 16px rgba(255,209,102,.07);color:#fff;text-align:left;-webkit-appearance:none;display:none}' +
       '.lsc-hero-ability b{display:block;font-family:Rajdhani,sans-serif;font-size:12px;line-height:1;letter-spacing:.8px;text-transform:uppercase;color:#ffd166;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
       '.lsc-hero-ability span{display:block;margin-top:4px;font-family:Share Tech Mono,monospace;font-size:8px;line-height:1.2;color:rgba(235,230,210,.78);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
       '.lsc-hero-ability.cooling{opacity:.60;border-color:rgba(255,255,255,.18)}' +
-      '@media (min-width:420px){.lsc-hero-grid{grid-template-columns:1fr 1fr}.lsc-hero-ability{right:16px;top:calc(env(safe-area-inset-top,0px) + 220px);width:156px;max-width:156px}}';
+      '.lsc-orders-compact{cursor:pointer!important;max-height:48px!important;overflow:hidden!important;transition:max-height .2s ease,width .2s ease,opacity .2s ease!important}' +
+      '.lsc-orders-compact.expanded{max-height:360px!important;overflow:visible!important}' +
+      '.lsc-orders-compact:not(.expanded) .quest-card{display:none!important}' +
+      '.lsc-orders-compact #quest-board-head{position:relative;padding-right:18px!important}' +
+      '.lsc-orders-compact #quest-board-head:after{content:"TAP";position:absolute;right:2px;top:0;font-size:7px;color:rgba(255,209,102,.72);letter-spacing:1px}' +
+      '.lsc-orders-compact.expanded #quest-board-head:after{content:"HIDE"}' +
+      '.lsc-order-summary{margin-top:6px;border-radius:10px;border:1px solid rgba(34,212,255,.34);background:rgba(3,11,20,.82);padding:7px 9px;font-family:Share Tech Mono,monospace;color:#dff7ff;box-shadow:0 10px 26px rgba(0,0,0,.35)}' +
+      '.lsc-orders-compact.expanded .lsc-order-summary{display:none!important}' +
+      '.lsc-order-summary-title{font-family:Rajdhani,sans-serif;font-weight:900;font-size:12px;line-height:1;color:#9cecff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '.lsc-order-summary-meta{margin-top:4px;font-size:8px;color:rgba(255,209,102,.86);letter-spacing:.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '@media (min-width:420px){.lsc-hero-grid{grid-template-columns:1fr 1fr}.lsc-hero-ability{left:16px;top:calc(env(safe-area-inset-top,0px) + 262px);width:188px;max-width:188px}}';
     document.head.appendChild(css);
+  }
+
+
+  function compactOrdersBoard() {
+    safe('compactOrdersBoard', function () {
+      var board = $('quest-board');
+      var head = $('quest-board-head');
+      if (!board || !head) return;
+      board.classList.add('lsc-orders-compact');
+      if (board.dataset.lscOrdersInit !== '1') {
+        board.dataset.lscOrdersInit = '1';
+        board.classList.remove('expanded');
+        board.addEventListener('click', function (ev) {
+          // A completed quest card should still be claimable while expanded.
+          if (board.classList.contains('expanded') && ev.target && ev.target.closest && ev.target.closest('.quest-card')) return;
+          board.classList.toggle('expanded');
+          hapticLight();
+        });
+      }
+      var old = board.querySelector('.lsc-order-summary');
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+      var s = state();
+      var title = 'Orders Ready';
+      var metaText = 'Tap to view objectives';
+      try {
+        if (s && s._quests && typeof QUEST_DEFS !== 'undefined' && typeof _questProgress === 'function') {
+          var active = s._quests.active || [];
+          var ready = 0;
+          var firstDef = null;
+          var firstPct = 0;
+          active.forEach(function (aq) {
+            var def = QUEST_DEFS.find(function (d) { return d.id === aq.id; });
+            if (!def) return;
+            var prog = _questProgress(s, def);
+            var pct = Math.min(100, Math.round(prog / def.target * 100));
+            if (aq.claimed || pct >= 100) ready++;
+            if (!firstDef) { firstDef = def; firstPct = pct; }
+          });
+          if (firstDef) title = (ready > 0 ? '★ ' : '') + firstDef.title;
+          metaText = (ready > 0 ? ready + ' ready · ' : '') + active.length + ' active · ' + firstPct + '%';
+        }
+      } catch (_) {}
+      var summary = document.createElement('div');
+      summary.className = 'lsc-order-summary';
+      summary.innerHTML = '<div class="lsc-order-summary-title">' + title + '</div><div class="lsc-order-summary-meta">' + metaText + '</div>';
+      if (head.nextSibling) board.insertBefore(summary, head.nextSibling);
+      else board.appendChild(summary);
+    });
+  }
+
+  function patchOrdersBoard() {
+    if (typeof renderQuestBoard === 'function' && !renderQuestBoard.__singleFront133) {
+      var oldRenderQuestBoard = renderQuestBoard;
+      renderQuestBoard = function () {
+        var result = oldRenderQuestBoard.apply(this, arguments);
+        compactOrdersBoard();
+        return result;
+      };
+      renderQuestBoard.__singleFront133 = true;
+    }
+    compactOrdersBoard();
   }
 
   function ensureHeroPanel() {
@@ -172,15 +243,15 @@
   // ── Internal game reinterpretation ───────────────────────────
   // Keep three lane arrays for stability, but treat them as formation rows.
   safe('patch laneName', function () {
-    if (typeof laneName === 'function' && !laneName.__singleFront132) {
+    if (typeof laneName === 'function' && !laneName.__singleFront133) {
       var oldLaneName = laneName;
       laneName = function (i) { return FORMATION_NAMES[i] || oldLaneName(i); };
-      laneName.__singleFront132 = true;
+      laneName.__singleFront133 = true;
     }
   });
 
   safe('patch spawnEnemy', function () {
-    if (typeof spawnEnemy === 'function' && !spawnEnemy.__singleFront132) {
+    if (typeof spawnEnemy === 'function' && !spawnEnemy.__singleFront133) {
       var oldSpawnEnemy = spawnEnemy;
       spawnEnemy = function () {
         var s = state();
@@ -206,12 +277,12 @@
         }
         return result;
       };
-      spawnEnemy.__singleFront132 = true;
+      spawnEnemy.__singleFront133 = true;
     }
   });
 
   safe('patch nearestEnemy', function () {
-    if (typeof nearestEnemy === 'function' && !nearestEnemy.__singleFront132) {
+    if (typeof nearestEnemy === 'function' && !nearestEnemy.__singleFront133) {
       var oldNearestEnemy = nearestEnemy;
       nearestEnemy = function (t) {
         var s = state();
@@ -235,13 +306,13 @@
         }
         return best;
       };
-      nearestEnemy.__singleFront132 = true;
+      nearestEnemy.__singleFront133 = true;
     }
   });
 
 
   safe('patch applyDamage visuals', function () {
-    if (typeof applyDamage === 'function' && !applyDamage.__singleFront132) {
+    if (typeof applyDamage === 'function' && !applyDamage.__singleFront133) {
       var oldApplyDamage = applyDamage;
       applyDamage = function (enemy, damage, source) {
         var beforeHp = enemy ? (enemy.hp || 0) : 0;
@@ -263,9 +334,25 @@
         } catch (_) {}
         return result;
       };
-      applyDamage.__singleFront132 = true;
+      applyDamage.__singleFront133 = true;
     }
   });
+
+
+  function normalizeTurretProjectiles() {
+    var s = state();
+    if (!s || !s.projectiles) return;
+    s.projectiles.forEach(function (p) {
+      if (!p || p._sfTurretAligned) return;
+      if (p.type === 'laneGun') {
+        // Make legacy lane-gun shots visually line up with the single-front emplacements.
+        var lane = (p.from && typeof p.from.lane === 'number') ? p.from.lane : 1;
+        p.from = { lane: lane, slot: lane === 1 ? 4 : 3 };
+        p.color = '#ffd166';
+        p._sfTurretAligned = true;
+      }
+    });
+  }
 
   function applyHeroPassiveMarkers() {
     var s = state();
@@ -483,28 +570,39 @@
       ctx.fillText(coverNames[cr], rowX[cr], H - baseH + 40*dpr);
     }
 
-    // Single-front turret/emplacement overlay — gives turret upgrades a purpose-built formation position.
+    // Single-front turret/emplacement overlay — covers the old lane-gun sprites and re-presents them as one front-defense battery.
     var guns = (stateObj.lanes || []).map(function (l) { return (l && l.gun) || 0; });
     if (guns[0] || guns[1] || guns[2]) {
+      var legacyX = [W * .18, W * .50, W * .82];
       var emps = [
-        { x: W * .34, y: H - baseH - 76*dpr, label:'L-FLANK', lvl:guns[0] },
-        { x: W * .50, y: H - baseH - 100*dpr, label:'CENTER',  lvl:guns[1] },
-        { x: W * .66, y: H - baseH - 76*dpr, label:'R-FLANK', lvl:guns[2] }
+        { x: legacyX[0], y: H - baseH - 66*dpr, label:'SUP', lvl:guns[0] },
+        { x: legacyX[1], y: H - baseH - 86*dpr, label:'FIRE', lvl:guns[1] },
+        { x: legacyX[2], y: H - baseH - 66*dpr, label:'VAN', lvl:guns[2] }
       ];
       emps.forEach(function (em) {
         if (!em.lvl) return;
         ctx.save();
         ctx.translate(em.x, em.y);
-        ctx.fillStyle = 'rgba(0,0,0,.48)';
-        ctx.strokeStyle = 'rgba(255,209,102,.45)';
+        // Dark cover hides the old sprite-based turret underneath without touching squad controls.
+        ctx.fillStyle = 'rgba(4,7,8,.88)';
+        ctx.strokeStyle = 'rgba(255,209,102,.28)';
         ctx.lineWidth = 1 * dpr;
-        roundRect(ctx, -17*dpr, 1*dpr, 34*dpr, 13*dpr, 6*dpr); ctx.fill(); ctx.stroke();
+        roundRect(ctx, -22*dpr, -23*dpr, 44*dpr, 43*dpr, 10*dpr); ctx.fill(); ctx.stroke();
+        var glow = ctx.createRadialGradient(0, -4*dpr, 0, 0, -4*dpr, 26*dpr);
+        glow.addColorStop(0, 'rgba(255,209,102,.20)');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, -4*dpr, 26*dpr, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,.54)';
+        ctx.strokeStyle = 'rgba(255,209,102,.55)';
+        roundRect(ctx, -18*dpr, 3*dpr, 36*dpr, 13*dpr, 6*dpr); ctx.fill(); ctx.stroke();
         ctx.strokeStyle = '#ffd166'; ctx.lineWidth = (2 + Math.min(2, em.lvl*.35)) * dpr; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(0, 1*dpr); ctx.lineTo(0, -19*dpr); ctx.stroke();
-        ctx.fillStyle = '#2f3a2a'; ctx.strokeStyle = '#9cecff'; ctx.lineWidth = 1 * dpr;
-        ctx.beginPath(); ctx.arc(0, 0, 8*dpr, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, 2*dpr); ctx.lineTo(0, -22*dpr); ctx.stroke();
+        ctx.fillStyle = '#1d2a24'; ctx.strokeStyle = '#9cecff'; ctx.lineWidth = 1.2 * dpr;
+        ctx.beginPath(); ctx.arc(0, -2*dpr, 9*dpr, 0, Math.PI*2); ctx.fill(); ctx.stroke();
         ctx.fillStyle = '#ffd166'; ctx.font = 'bold ' + (6*dpr) + 'px Share Tech Mono,monospace'; ctx.textAlign = 'center';
-        ctx.fillText('T' + em.lvl, 0, 5*dpr);
+        ctx.fillText('T' + em.lvl, 0, 2*dpr);
+        ctx.fillStyle = 'rgba(230,245,255,.78)'; ctx.font = 'bold ' + (5*dpr) + 'px Share Tech Mono,monospace';
+        ctx.fillText(em.label, 0, 13*dpr);
         ctx.restore();
       });
     }
@@ -538,7 +636,7 @@
   }
 
   safe('patch drawVertical', function () {
-    if (typeof drawVertical === 'function' && !drawVertical.__singleFront132) {
+    if (typeof drawVertical === 'function' && !drawVertical.__singleFront133) {
       var oldDrawVertical = drawVertical;
       drawVertical = function (s) {
         if (s) s._singleFrontMode = true;
@@ -550,15 +648,16 @@
         } catch (_) {}
         return result;
       };
-      drawVertical.__singleFront132 = true;
+      drawVertical.__singleFront133 = true;
     }
   });
 
   safe('patch updateHUD', function () {
-    if (typeof updateHUD === 'function' && !updateHUD.__singleFront132) {
+    if (typeof updateHUD === 'function' && !updateHUD.__singleFront133) {
       var oldUpdateHUD = updateHUD;
       updateHUD = function () {
         applyHeroPassiveMarkers();
+        normalizeTurretProjectiles();
         var result = oldUpdateHUD.apply(this, arguments);
         updateHeroAbilityButton();
         var s = state();
@@ -573,7 +672,7 @@
         if (wbSub && wbSub.textContent === 'BOSS WAVE') wbSub.textContent = 'BOSS CONTACT';
         return result;
       };
-      updateHUD.__singleFront132 = true;
+      updateHUD.__singleFront133 = true;
     }
   });
 
@@ -583,10 +682,11 @@
     retitleForSingleFront();
     applyHeroPassiveMarkers();
     ensureHeroAbilityButton();
+    patchOrdersBoard();
     updateHeroAbilityButton();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 120); });
   else setTimeout(boot, 120);
-  setInterval(function () { safe('single front refresh', function () { renderHeroCards(); retitleForSingleFront(); applyHeroPassiveMarkers(); updateHeroAbilityButton(); }); }, 1200);
+  setInterval(function () { safe('single front refresh', function () { renderHeroCards(); retitleForSingleFront(); applyHeroPassiveMarkers(); normalizeTurretProjectiles(); patchOrdersBoard(); updateHeroAbilityButton(); }); }, 1200);
 })();
