@@ -1,22 +1,24 @@
 // ══════════════════════════════════════════════════════════════
-// Build 130 — Single Front Command Prototype
+// Build 131 — Single Front Engagement Polish
 // Purpose: make Last Stand Command read as a hero-led single-front
 // squad defense game instead of a standard three-lane tower defense.
 // Keeps the old lane data internally as formation pods for stability.
 // ══════════════════════════════════════════════════════════════
 (function () {
-  if (window.__LSC_SINGLE_FRONT_130__) return;
-  window.__LSC_SINGLE_FRONT_130__ = true;
+  if (window.__LSC_SINGLE_FRONT_131__) return;
+  window.__LSC_SINGLE_FRONT_131__ = true;
 
   function $(id) { return document.getElementById(id); }
-  function safe(label, fn) { try { return fn(); } catch (e) { try { console.warn('[SingleFront130]', label, e); } catch (_) {} } }
+  function safe(label, fn) { try { return fn(); } catch (e) { try { console.warn('[SingleFront131]' , label, e); } catch (_) {} } }
   function state() { return (typeof G !== 'undefined' && G.state) ? G.state : null; }
   function meta() { return (typeof G !== 'undefined' && G.meta) ? G.meta : {}; }
-  function toast(msg) { if (typeof showToast === 'function') showToast(msg); else console.log('[SingleFront130]', msg); }
+  function toast(msg) { if (typeof showToast === 'function') showToast(msg); else console.log('[SingleFront131]' , msg); }
   function hapticLight() { try { if (typeof haptic === 'function') haptic('light'); } catch (_) {} }
 
   var FORMATION_NAMES = ['Support Row', 'Fireline Row', 'Vanguard Row'];
   var FORMATION_SHORT = ['SUPPORT', 'FIRELINE', 'VANGUARD'];
+  var SINGLE_FRONT_ENGAGE_X = 540;      // Lower number = closer to the command base before troops open fire.
+  var SINGLE_FRONT_SNIPER_BONUS = 130;  // Snipers can acquire earlier without making early rifle waves vanish.
 
   var HEROES = [
     {
@@ -60,9 +62,9 @@
   }
 
   function installStyles() {
-    if ($('lsc-singlefront130-style')) return;
+    if ($('lsc-singlefront131-style')) return;
     var css = document.createElement('style');
-    css.id = 'lsc-singlefront130-style';
+    css.id = 'lsc-singlefront131-style';
     css.textContent = '' +
       '.lsc-hero-panel{margin:10px 0 12px;padding:11px;border-radius:15px;border:1px solid rgba(255,209,102,.24);background:linear-gradient(180deg,rgba(30,21,5,.72),rgba(5,10,16,.74));box-shadow:inset 0 0 24px rgba(255,209,102,.06)}' +
       '.lsc-hero-kicker{font-family:Share Tech Mono,monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,209,102,.88);margin-bottom:7px}' +
@@ -169,6 +171,14 @@
             e.baseY = LANE_Y[1];
           }
           e._singleFrontContact = true;
+          // Single-front has all rows focusing one corridor, so contacts need a little more screen time.
+          if (!e._sfBuffed) {
+            var hpMult = e.kind === 'warden' ? 1.00 : 1.18;
+            e.maxHp = Math.max(1, Math.ceil((e.maxHp || e.hp || 1) * hpMult));
+            e.hp = Math.max(e.hp || 1, e.maxHp);
+            e.speed = Math.max(30, (e.speed || 80) * 0.92);
+            e._sfBuffed = true;
+          }
         }
         return result;
       };
@@ -185,18 +195,51 @@
         var best = null, bestD = Infinity;
         var extRange = (s.perks && s.perks.extendedRange) || 0;
         var sniperBonus = (t.type && t.type.id === 'sniper' && s.perks && s.perks.sniperRange) ? s.perks.sniperRange : 0;
-        var effectiveRange = (t.type.range || 500) * (1 + extRange + sniperBonus + 0.35);
+        var earlyAcquire = (t.type && t.type.id === 'sniper') ? SINGLE_FRONT_SNIPER_BONUS : 0;
+        var engageX = SINGLE_FRONT_ENGAGE_X + earlyAcquire;
+        var effectiveRange = (t.type.range || 500) * (1 + extRange + sniperBonus + 0.12);
         for (var i = 0; i < s.enemies.length; i++) {
           var e = s.enemies[i];
           var vis = !e.cloaked || e.slow > 0;
           if (!vis) continue;
-          // Single-front command: all formation rows can fire into the central contact corridor.
+          // Contacts must cross the visible engagement line before most squads open fire.
+          // This prevents early waves from disappearing halfway down the front before the player sees combat.
+          if ((e.x || 9999) > engageX && e.kind !== 'warden') continue;
+          e._sfAcquired = true;
           var d = Math.abs((e.x || 0) - (t.x || 0));
           if (d < effectiveRange && d < bestD) { best = e; bestD = d; }
         }
         return best;
       };
       nearestEnemy.__singleFront130 = true;
+    }
+  });
+
+
+  safe('patch applyDamage visuals', function () {
+    if (typeof applyDamage === 'function' && !applyDamage.__singleFront131) {
+      var oldApplyDamage = applyDamage;
+      applyDamage = function (enemy, damage, source) {
+        var beforeHp = enemy ? (enemy.hp || 0) : 0;
+        var beforeShield = enemy ? (enemy.shield || 0) : 0;
+        var result = oldApplyDamage.apply(this, arguments);
+        try {
+          if (enemy) {
+            var hpLoss = Math.max(0, beforeHp - (enemy.hp || 0));
+            var shieldLoss = Math.max(0, beforeShield - (enemy.shield || 0));
+            var visualLoss = hpLoss + shieldLoss * 0.35;
+            if (visualLoss > 0) {
+              enemy._lastHitTime = performance.now();
+              enemy._sfDamageUntil = performance.now() + 650;
+              enemy._sfLastDamage = Math.max(1, Math.round(visualLoss));
+              enemy._sfHitSeed = Math.random();
+              enemy._sfAcquired = true;
+            }
+          }
+        } catch (_) {}
+        return result;
+      };
+      applyDamage.__singleFront131 = true;
     }
   });
 
@@ -337,6 +380,51 @@
       ctx.closePath(); ctx.fill();
     }
     ctx.globalAlpha = 1;
+
+    // Engagement line — squads hold fire until contacts cross this line, so combat reads on-screen.
+    var engageY = treeH + ((1400 - SINGLE_FRONT_ENGAGE_X) / 1400) * fieldH;
+    ctx.strokeStyle = 'rgba(255,209,102,.34)';
+    ctx.lineWidth = 1 * dpr;
+    ctx.setLineDash([5*dpr, 5*dpr]);
+    ctx.beginPath(); ctx.moveTo(cx - corrWBot * .36, engageY); ctx.lineTo(cx + corrWBot * .36, engageY); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(0,0,0,.48)';
+    roundRect(ctx, cx - 60*dpr, engageY - 13*dpr, 120*dpr, 17*dpr, 8*dpr); ctx.fill();
+    ctx.fillStyle = '#ffd166';
+    ctx.font = 'bold ' + (7*dpr) + 'px Share Tech Mono,monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ENGAGEMENT LINE', cx, engageY - 2*dpr);
+
+    // Stronger hit feedback: red flash rings and damage chips on contacts that were just hit.
+    var now = performance.now();
+    (stateObj.enemies || []).forEach(function (e) {
+      if (!e || !e._sfDamageUntil || e._sfDamageUntil < now) return;
+      var ex = cx;
+      var ey = treeH + ((1400 - (e.x || 0)) / 1400) * fieldH;
+      var a = Math.max(0, Math.min(1, (e._sfDamageUntil - now) / 650));
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.strokeStyle = 'rgba(255,70,70,.92)';
+      ctx.lineWidth = 2.2 * dpr;
+      ctx.shadowColor = '#ff3030'; ctx.shadowBlur = 12 * a;
+      ctx.beginPath(); ctx.arc(ex, ey, (18 + (1-a) * 12) * dpr, 0, Math.PI*2); ctx.stroke();
+      ctx.shadowBlur = 0;
+      // Small spark cross so rifle hits are visible even when the enemy dies quickly.
+      ctx.strokeStyle = 'rgba(255,220,120,.90)';
+      ctx.lineWidth = 1.5 * dpr;
+      var spark = 8 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(ex - spark, ey); ctx.lineTo(ex + spark, ey);
+      ctx.moveTo(ex, ey - spark); ctx.lineTo(ex, ey + spark);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(0,0,0,.70)';
+      roundRect(ctx, ex + 11*dpr, ey - 25*dpr - (1-a)*8*dpr, 42*dpr, 17*dpr, 8*dpr); ctx.fill();
+      ctx.fillStyle = '#ffdddd';
+      ctx.font = 'bold ' + (8*dpr) + 'px Share Tech Mono,monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('-' + (e._sfLastDamage || 1), ex + 32*dpr, ey - 13*dpr - (1-a)*8*dpr);
+      ctx.restore();
+    });
 
     // Formation row labels over the three existing internal slots.
     var rowX = [W * 0.18, W * 0.50, W * 0.82];
