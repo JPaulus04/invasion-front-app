@@ -1,18 +1,18 @@
 // ══════════════════════════════════════════════════════════════
-// Build 133 — Orders Collapse + Turret Alignment
+// Build 134 — Tutorial Hero Guard
 // Purpose: make Last Stand Command read as a hero-led single-front
 // squad defense game instead of a standard three-lane tower defense.
 // Keeps the old lane data internally as formation pods for stability.
 // ══════════════════════════════════════════════════════════════
 (function () {
-  if (window.__LSC_SINGLE_FRONT_133__) return;
-  window.__LSC_SINGLE_FRONT_133__ = true;
+  if (window.__LSC_SINGLE_FRONT_134__) return;
+  window.__LSC_SINGLE_FRONT_134__ = true;
 
   function $(id) { return document.getElementById(id); }
-  function safe(label, fn) { try { return fn(); } catch (e) { try { console.warn('[SingleFront133]' , label, e); } catch (_) {} } }
+  function safe(label, fn) { try { return fn(); } catch (e) { try { console.warn('[SingleFront134]' , label, e); } catch (_) {} } }
   function state() { return (typeof G !== 'undefined' && G.state) ? G.state : null; }
   function meta() { return (typeof G !== 'undefined' && G.meta) ? G.meta : {}; }
-  function toast(msg) { if (typeof showToast === 'function') showToast(msg); else console.log('[SingleFront133]' , msg); }
+  function toast(msg) { if (typeof showToast === 'function') showToast(msg); else console.log('[SingleFront134]' , msg); }
   function hapticLight() { try { if (typeof haptic === 'function') haptic('light'); } catch (_) {} }
 
   var FORMATION_NAMES = ['Support Row', 'Fireline Row', 'Vanguard Row'];
@@ -62,9 +62,9 @@
   }
 
   function installStyles() {
-    if ($('lsc-singlefront133-style')) return;
+    if ($('lsc-singlefront134-style')) return;
     var css = document.createElement('style');
-    css.id = 'lsc-singlefront133-style';
+    css.id = 'lsc-singlefront134-style';
     css.textContent = '' +
       '.lsc-hero-panel{margin:10px 0 12px;padding:11px;border-radius:15px;border:1px solid rgba(255,209,102,.24);background:linear-gradient(180deg,rgba(30,21,5,.72),rgba(5,10,16,.74));box-shadow:inset 0 0 24px rgba(255,209,102,.06)}' +
       '.lsc-hero-kicker{font-family:Share Tech Mono,monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,209,102,.88);margin-bottom:7px}' +
@@ -142,14 +142,14 @@
   }
 
   function patchOrdersBoard() {
-    if (typeof renderQuestBoard === 'function' && !renderQuestBoard.__singleFront133) {
+    if (typeof renderQuestBoard === 'function' && !renderQuestBoard.__singleFront134) {
       var oldRenderQuestBoard = renderQuestBoard;
       renderQuestBoard = function () {
         var result = oldRenderQuestBoard.apply(this, arguments);
         compactOrdersBoard();
         return result;
       };
-      renderQuestBoard.__singleFront133 = true;
+      renderQuestBoard.__singleFront134 = true;
     }
     compactOrdersBoard();
   }
@@ -243,15 +243,15 @@
   // ── Internal game reinterpretation ───────────────────────────
   // Keep three lane arrays for stability, but treat them as formation rows.
   safe('patch laneName', function () {
-    if (typeof laneName === 'function' && !laneName.__singleFront133) {
+    if (typeof laneName === 'function' && !laneName.__singleFront134) {
       var oldLaneName = laneName;
       laneName = function (i) { return FORMATION_NAMES[i] || oldLaneName(i); };
-      laneName.__singleFront133 = true;
+      laneName.__singleFront134 = true;
     }
   });
 
   safe('patch spawnEnemy', function () {
-    if (typeof spawnEnemy === 'function' && !spawnEnemy.__singleFront133) {
+    if (typeof spawnEnemy === 'function' && !spawnEnemy.__singleFront134) {
       var oldSpawnEnemy = spawnEnemy;
       spawnEnemy = function () {
         var s = state();
@@ -277,12 +277,12 @@
         }
         return result;
       };
-      spawnEnemy.__singleFront133 = true;
+      spawnEnemy.__singleFront134 = true;
     }
   });
 
   safe('patch nearestEnemy', function () {
-    if (typeof nearestEnemy === 'function' && !nearestEnemy.__singleFront133) {
+    if (typeof nearestEnemy === 'function' && !nearestEnemy.__singleFront134) {
       var oldNearestEnemy = nearestEnemy;
       nearestEnemy = function (t) {
         var s = state();
@@ -306,13 +306,13 @@
         }
         return best;
       };
-      nearestEnemy.__singleFront133 = true;
+      nearestEnemy.__singleFront134 = true;
     }
   });
 
 
   safe('patch applyDamage visuals', function () {
-    if (typeof applyDamage === 'function' && !applyDamage.__singleFront133) {
+    if (typeof applyDamage === 'function' && !applyDamage.__singleFront134) {
       var oldApplyDamage = applyDamage;
       applyDamage = function (enemy, damage, source) {
         var beforeHp = enemy ? (enemy.hp || 0) : 0;
@@ -334,7 +334,7 @@
         } catch (_) {}
         return result;
       };
-      applyDamage.__singleFront133 = true;
+      applyDamage.__singleFront134 = true;
     }
   });
 
@@ -427,13 +427,31 @@
     if (typeof updateHUD === 'function') updateHUD();
   }
 
+  function isTutorialBlocking() {
+    try {
+      if (typeof _obActive !== 'undefined' && _obActive) return true;
+      var blockers = document.querySelectorAll('.overlay:not(.hidden), .modal, #tutorialOverlay, #onboardingOverlay, #waveCountdown');
+      for (var i = 0; i < blockers.length; i++) {
+        var el = blockers[i];
+        if (!el) continue;
+        if (el.id === 'startOverlay') continue;
+        var st = window.getComputedStyle ? getComputedStyle(el) : null;
+        if (st && (st.display === 'none' || st.visibility === 'hidden' || st.opacity === '0')) continue;
+        var txt = (el.textContent || '');
+        if (/skip tutorial|got it|tap research|doctrine|tutorial|research upgrades|your doctrine/i.test(txt)) return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   function updateHeroAbilityButton() {
     ensureHeroAbilityButton();
     var s = state();
     var btn = $('lsc-hero-ability');
     var pill = $('lsc-front-pill');
     if (!btn || !pill || !s) return;
-    var visible = !!(s.started && !s.gameOver);
+    var blockedByTutorial = isTutorialBlocking();
+    var visible = !!(s.started && !s.gameOver && !blockedByTutorial);
     btn.style.display = visible ? 'block' : 'none';
     pill.style.display = visible ? 'block' : 'none';
     if (!visible) return;
@@ -636,7 +654,7 @@
   }
 
   safe('patch drawVertical', function () {
-    if (typeof drawVertical === 'function' && !drawVertical.__singleFront133) {
+    if (typeof drawVertical === 'function' && !drawVertical.__singleFront134) {
       var oldDrawVertical = drawVertical;
       drawVertical = function (s) {
         if (s) s._singleFrontMode = true;
@@ -648,12 +666,12 @@
         } catch (_) {}
         return result;
       };
-      drawVertical.__singleFront133 = true;
+      drawVertical.__singleFront134 = true;
     }
   });
 
   safe('patch updateHUD', function () {
-    if (typeof updateHUD === 'function' && !updateHUD.__singleFront133) {
+    if (typeof updateHUD === 'function' && !updateHUD.__singleFront134) {
       var oldUpdateHUD = updateHUD;
       updateHUD = function () {
         applyHeroPassiveMarkers();
@@ -672,7 +690,7 @@
         if (wbSub && wbSub.textContent === 'BOSS WAVE') wbSub.textContent = 'BOSS CONTACT';
         return result;
       };
-      updateHUD.__singleFront133 = true;
+      updateHUD.__singleFront134 = true;
     }
   });
 
