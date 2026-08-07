@@ -38,6 +38,7 @@ const CONTROLLER_SCRIPTS = [
   'officers.js',            // Command Staff / Officers foundation
   'hudLayout.js',           // Battlefield floating HUD layout polish
   'screenGuard.js',         // Screen-state/input isolation for Home vs Battlefield
+  'centralHQPrototype.js',  // Build 135: true radial hero + central HQ combat prototype
 ];
 
 function read(file) {
@@ -67,6 +68,10 @@ const controllerCode = CONTROLLER_SCRIPTS.map(f => `// ── ${f} ──\n${rea
 html = html.replace(/<!-- ══ GAME ENGINE ═+[\s\S]*?<!-- ══ CONTROLLER \+ UI ═+[\s\S]*?<script src="src\/main\.js"><\/script>/,
   `<script>\n${engineCode}\n</script>\n\n<script>\n${controllerCode}\n</script>`
 );
+
+// centralHQPrototype.js is already included in CONTROLLER_SCRIPTS for the
+// production bundle; remove its development-only external script tag.
+html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 // Ensure output dir exists
 if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
