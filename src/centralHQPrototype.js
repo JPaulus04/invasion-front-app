@@ -1,12 +1,12 @@
 // ══════════════════════════════════════════════════════════════
-// Build 135 — Central HQ Combat Prototype
-// A self-contained radial survival-defense layer. Legacy campaign,
-// research, saves and iOS infrastructure remain available underneath.
+// Build 136 — Central HQ Combat Prototype
+// Owns the active stage-selection and combat flow. Legacy lane deployment,
+// commander selection and war-room setup are intentionally bypassed.
 // ══════════════════════════════════════════════════════════════
 (function () {
   'use strict';
-  if (window.__LSC_CENTRAL_HQ_135__) return;
-  window.__LSC_CENTRAL_HQ_135__ = true;
+  if (window.__LSC_CENTRAL_HQ_136__) return;
+  window.__LSC_CENTRAL_HQ_136__ = true;
 
   var oldUpdate = _patchedUpdate;
   var oldDraw = drawVertical;
@@ -22,11 +22,17 @@
   function nowSeconds() { return performance.now() / 1000; }
 
   function installStyles() {
-    if (el('central-hq-135-style')) return;
+    if (el('central-hq-136-style')) return;
     var style = document.createElement('style');
-    style.id = 'central-hq-135-style';
+    style.id = 'central-hq-136-style';
     style.textContent =
-      '#pressure-overlay,#quest-board,#tutorialHint,.lsc-front-pill,.lsc-hero-ability{display:none!important}' +
+      '#pressure-overlay,#quest-board,#tutorialHint,.lsc-front-pill,.lsc-hero-ability,#onboarding-overlay,#autowav-strip,#waveSky,#weatherCanvas,#damage-vignette{display:none!important}' +
+      'body.lsc-central-combat #hud,body.lsc-central-combat #controls{display:none!important}' +
+      '#lsc-stage-screen{position:fixed;z-index:20000;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 24px) 20px calc(env(safe-area-inset-bottom,0px) + 24px);background:radial-gradient(circle at 50% 38%,rgba(34,212,255,.13),transparent 31%),linear-gradient(180deg,#08121a,#030608 72%);font-family:Rajdhani,sans-serif;color:#fff}' +
+      '#lsc-stage-screen.hidden{display:none!important}.lsc136-brand{font:9px "Share Tech Mono",monospace;letter-spacing:3px;color:#75e8ff}.lsc136-title{margin-top:8px;font-size:34px;line-height:.95;font-weight:900;letter-spacing:1px}.lsc136-copy{margin-top:10px;max-width:330px;font:10px/1.55 "Share Tech Mono",monospace;color:rgba(225,238,244,.68)}' +
+      '.lsc136-card{position:relative;padding:18px;border:1px solid rgba(34,212,255,.38);border-radius:22px;background:linear-gradient(155deg,rgba(13,35,48,.96),rgba(5,11,16,.97));box-shadow:0 22px 70px rgba(0,0,0,.55),inset 0 0 32px rgba(34,212,255,.06);overflow:hidden}.lsc136-kicker{font:8px "Share Tech Mono",monospace;letter-spacing:2.4px;color:#ffd166}.lsc136-stage{font-size:25px;font-weight:900;margin:5px 0 2px}.lsc136-sector{font:9px "Share Tech Mono",monospace;color:#8eeeff}.lsc136-objective{margin:16px 0;padding:11px;border-left:2px solid #22d4ff;background:rgba(34,212,255,.06);font:10px/1.5 "Share Tech Mono",monospace;color:rgba(235,245,248,.82)}' +
+      '.lsc136-loadout{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}.lsc136-loadout div{padding:9px;border:1px solid rgba(255,255,255,.09);border-radius:11px;background:rgba(0,0,0,.2)}.lsc136-loadout b{display:block;font-size:12px;color:#fff}.lsc136-loadout span{font:8px "Share Tech Mono",monospace;color:rgba(220,235,240,.58)}' +
+      '#lsc136-deploy{width:100%;padding:15px;border:1px solid rgba(24,240,106,.55);border-radius:14px;background:linear-gradient(180deg,#168e48,#0a5c30);box-shadow:0 0 28px rgba(24,240,106,.16);font:900 17px Rajdhani,sans-serif;letter-spacing:1.4px;color:#fff}.lsc136-note{text-align:center;margin-top:10px;font:8px "Share Tech Mono",monospace;color:rgba(220,235,240,.48)}' +
       '#wave-chip{border-color:rgba(255,209,102,.6)!important;color:#ffd166!important}' +
       '#hq-prototype-banner{position:absolute;z-index:30;top:10px;left:50%;transform:translateX(-50%);padding:6px 11px;border:1px solid rgba(255,209,102,.4);border-radius:999px;background:rgba(3,8,12,.8);font:9px "Share Tech Mono",monospace;letter-spacing:1.4px;color:#ffd166;white-space:nowrap;pointer-events:none}' +
       '#hq-upgrade-overlay{position:fixed;z-index:10020;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.86);backdrop-filter:blur(8px)}' +
@@ -54,6 +60,30 @@
     document.body.appendChild(overlay);
   }
 
+  function installStageScreen() {
+    if (el('lsc-stage-screen')) return;
+    var screen = document.createElement('div');
+    screen.id = 'lsc-stage-screen';
+    screen.innerHTML = '<div><div class="lsc136-brand">LAST STAND COMMAND</div><div class="lsc136-title">DEFEND THE<br>CENTRAL HQ</div><div class="lsc136-copy">Choose the stage and deploy. Commander Holt, the defense squad, and the north turret deploy automatically.</div></div>' +
+      '<div class="lsc136-card"><div class="lsc136-kicker">AVAILABLE OPERATION</div><div class="lsc136-stage">STAGE 1 · OUTER PERIMETER</div><div class="lsc136-sector">CENTRAL COMMAND SECTOR · STANDARD RISK</div><div class="lsc136-objective">Hold the headquarters against a three-minute radial assault. Eliminate the Siege Breaker to secure the sector.</div><div class="lsc136-loadout"><div><b>Commander Holt</b><span>AUTO-ASSIGNED · ASSAULT</span></div><div><b>Defense Squad ×4</b><span>AUTO-DEPLOY · NO REFILLING</span></div><div><b>North Turret</b><span>AUTOMATIC FIRE</span></div><div><b>HQ Core</b><span>300 STRUCTURAL HP</span></div></div><button id="lsc136-deploy">DEPLOY TO STAGE</button><div class="lsc136-note">DRAG TO MOVE · WEAPONS FIRE AUTOMATICALLY</div></div>';
+    document.body.appendChild(screen);
+    el('lsc136-deploy').addEventListener('click', launchStage);
+  }
+
+  function launchStage() {
+    var home = el('homeScreen'); if (home) { home.style.display = 'none'; home.classList.remove('hs-visible'); }
+    var start = el('startOverlay');
+    if (G && G.state && !G.state.started) {
+      if (!G.state.selectedDoctrine) G.state.selectedDoctrine = 'fortress';
+      var begin = el('beginBtn'); if (begin) begin.click();
+    }
+    if (start) start.classList.add('hidden');
+    el('lsc-stage-screen').classList.add('hidden');
+    document.body.classList.remove('lsc-home-mode');
+    document.body.classList.add('lsc-central-combat');
+    beginPrototype();
+  }
+
   function createRun() {
     var W = canvas.width || 390;
     var H = canvas.height || 600;
@@ -64,6 +94,7 @@
       hero: { x: cx, y: cy + 105*dpr, r: 13*dpr, speed: 155*dpr, hp: 100, maxHp: 100, damage: 15, fireRate: 2.8, range: 150*dpr, cooldown: 0 },
       hq: { x: cx, y: cy, r: 36*dpr, hp: 300, maxHp: 300 },
       turret: { angle: -Math.PI/2, range: 210*dpr, damage: 9, fireRate: 3.2, cooldown: 0 },
+      squad: [0,1,2,3].map(function(i){var a=-Math.PI/2+i*TAU/4;return{x:cx+Math.cos(a)*70*dpr,y:cy+Math.sin(a)*70*dpr,r:8*dpr,range:125*dpr,damage:5,fireRate:1.25,cooldown:i*.12};}),
       enemies: [], bullets: [], particles: [], xp: 0, xpNext: 28, level: 1, kills: 0,
       bossSpawned: false, bossDefeated: false, upgradeOpen: false, lastHit: 0
     };
@@ -181,6 +212,7 @@
     run.turret.cooldown-=dt;
     var turretPos={x:hq.x+Math.cos(run.turret.angle)*hq.r*1.25,y:hq.y+Math.sin(run.turret.angle)*hq.r*1.25};
     var tt=nearest(turretPos,run.turret.range);if(tt&&run.turret.cooldown<=0){fire(turretPos,tt,run.turret.damage,'#ffd166');run.turret.cooldown=1/run.turret.fireRate;}
+    run.squad.forEach(function(s){s.cooldown-=dt;var st=nearest(s,s.range);if(st&&s.cooldown<=0){fire(s,st,s.damage,'#8cff9c');s.cooldown=1/s.fireRate;}});
     for(var i=run.enemies.length-1;i>=0;i--){
       var e=run.enemies[i],dx=hq.x-e.x,dy=hq.y-e.y,d=Math.hypot(dx,dy)||1;
       if(d>hq.r+e.r){e.x+=dx/d*e.speed*dt;e.y+=dy/d*e.speed*dt;}else{e.attackCd-=dt;if(e.attackCd<=0){hq.hp-=e.damage;e.attackCd=e.kind==='boss'?.7:1.15;run.lastHit=nowSeconds();}}
@@ -207,6 +239,7 @@
     circle(ctx,hq.x,hq.y,hq.r,'#172a31','#9cecff',3*dpr);circle(ctx,hq.x,hq.y,hq.r*.55,'#223d47','#ffd166',2*dpr);
     ctx.fillStyle='#fff';ctx.font=(10*dpr)+'px Rajdhani';ctx.textAlign='center';ctx.fillText('HQ',hq.x,hq.y+3*dpr);
     var tp={x:hq.x+Math.cos(run.turret.angle)*hq.r*1.25,y:hq.y+Math.sin(run.turret.angle)*hq.r*1.25};circle(ctx,tp.x,tp.y,10*dpr,'#5b4a20','#ffd166',2*dpr);
+    run.squad.forEach(function(s){circle(ctx,s.x,s.y,s.r,'#214b2d','#8cff9c',2*dpr);ctx.fillStyle='#dfffe6';ctx.fillRect(s.x-1*dpr,s.y-7*dpr,2*dpr,7*dpr);});
     run.enemies.forEach(function(e){var color=e.kind==='boss'?'#8d1515':e.kind==='armored'?'#754a2c':e.kind==='runner'?'#8b305f':'#5f2720';circle(ctx,e.x,e.y,e.r,color,e.kind==='boss'?'#ff3c3c':'#ff8c61',2*dpr);if(e.hp<e.maxHp||e.kind==='boss'){ctx.fillStyle='#220707';ctx.fillRect(e.x-e.r,e.y-e.r-6*dpr,e.r*2,3*dpr);ctx.fillStyle=e.kind==='boss'?'#ff3c3c':'#ff9f43';ctx.fillRect(e.x-e.r,e.y-e.r-6*dpr,e.r*2*(e.hp/e.maxHp),3*dpr);}});
     run.bullets.forEach(function(b){circle(ctx,b.x,b.y,3*dpr,b.color);});run.particles.forEach(function(p){ctx.globalAlpha=Math.max(0,p.life*2);circle(ctx,p.x,p.y,2*dpr,p.color);ctx.globalAlpha=1;});
     circle(ctx,hero.x,hero.y,hero.range,null,'rgba(156,236,255,.08)',1*dpr);circle(ctx,hero.x,hero.y,hero.r,'#17475b','#9cecff',3*dpr);ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(hero.x,hero.y-8*dpr);ctx.lineTo(hero.x+5*dpr,hero.y+6*dpr);ctx.lineTo(hero.x-5*dpr,hero.y+6*dpr);ctx.fill();
@@ -221,9 +254,10 @@
   function pointerUp(ev){if(pointer.id!==ev.pointerId)return;pointer.active=false;var joy=el('hq-joystick');if(joy){joy.style.display='none';joy.style.setProperty('--jx','0px');joy.style.setProperty('--jy','0px');}}
 
   installStyles();
+  installStageScreen();
   if(canvas){canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);}
   var waveButton=el('waveBtn');if(waveButton)waveButton.addEventListener('click',function(ev){if(G&&G.state&&G.state.started){ev.stopImmediatePropagation();beginPrototype();}},true);
   _patchedUpdate=function(dt,c,onEnd,onGameOver,onWarn){if(run&&G.state&&G.state._centralHQMode){updatePrototype(dt);return;}return oldUpdate&&oldUpdate(dt,c,onEnd,onGameOver,onWarn);};
   drawVertical=function(state){if(run&&state&&state._centralHQMode)return drawPrototype();return oldDraw&&oldDraw(state);};
-  setTimeout(function(){if(G&&G.state&&G.state.started&&!G.state._centralHQMode)beginPrototype();},700);
+  setTimeout(function(){var home=el('homeScreen'),start=el('startOverlay');if(home){home.style.display='none';home.classList.remove('hs-visible');}if(start)start.classList.add('hidden');document.body.classList.remove('lsc-home-mode');},120);
 })();
