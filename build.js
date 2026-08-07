@@ -38,7 +38,7 @@ const CONTROLLER_SCRIPTS = [
   'officers.js',            // Command Staff / Officers foundation
   'hudLayout.js',           // Battlefield floating HUD layout polish
   'screenGuard.js',         // Screen-state/input isolation for Home vs Battlefield
-  'centralHQPrototype.js',  // Build 135: true radial hero + central HQ combat prototype
+  'centralHQPrototype.js',  // Build 138: Command Base economy and rebuilt radial combat presentation
 ];
 
 function read(file) {
