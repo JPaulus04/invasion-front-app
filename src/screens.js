@@ -1255,7 +1255,7 @@ function _spdScale(wave) {
 // intercepts new enemies and applies steeper scaling curves.
 // Called from the RAF loop below as _patchedUpdate instead of update.
 const _origUpdate = update;
-function _patchedUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
+let _patchedUpdate = function(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
   const s = G.state;
   if (!s) return;
   const prevCount  = s.enemies.length;
@@ -1434,7 +1434,7 @@ function _patchedUpdate(dt, canvas, onWaveEnd, onGameOver, onPhaseWarn) {
       }
     }
   }
-}
+};
 
 // Elite variant definitions — layered on top of base enemy
 function _pickEliteVariant(kind, wave) {
