@@ -1,8 +1,8 @@
-// Build 139 — corrected combat shell, battle controls, and mission progress.
+// Build 140 — true pause, test speed controls, and threat-driven assaults.
 (function () {
   'use strict';
-  if (window.__LSC_COMMAND_BASE_139__) return;
-  window.__LSC_COMMAND_BASE_139__ = true;
+  if (window.__LSC_COMMAND_BASE_140__) return;
+  window.__LSC_COMMAND_BASE_140__ = true;
 
   var oldUpdate = _patchedUpdate;
   var oldDraw = drawVertical;
@@ -25,7 +25,7 @@
   function saveMeta() { localStorage.setItem(META_KEY, JSON.stringify(meta)); }
   function levelCost(type) {
     if (type === 'commander') return { credits: 200 * meta.commander, parts: 0 };
-    if (type === 'research') return { credits: 300 * (meta.research + 1), parts: 5 * (meta.research + 1) };
+    if (type === 'research') return { credits: 300, parts: 5 };
     return { credits: 250 * meta.hq, parts: 0 };
   }
 
@@ -33,7 +33,7 @@
     var s = document.createElement('style');
     s.id = 'lsc137-style';
     s.textContent =
-      '#pressure-overlay,#quest-board,#tutorialHint,.lsc-front-pill,.lsc-hero-ability,#onboarding-overlay,#autowav-strip,#waveSky,#weatherCanvas,#damage-vignette{display:none!important}' +
+      '#pressure-overlay,#quest-board,#tutorialHint,.lsc-front-pill,.lsc-hero-ability,#onboarding-overlay,#autowav-strip,#waveSky,#weatherCanvas,#damage-vignette,#wave-chip,#waveCountdown,#eventBanner,#phaseWarning,#bossSky,#bossAlert,#killStreak,#orbitalReticle,#waveClearedBanner{display:none!important}' +
       'body.lsc137-mode #hud,body.lsc137-mode #controls,body.lsc137-mode #world-progress-bar,body.lsc137-mode #autowav-strip,body.lsc137-mode #lsc-command-actions,body.lsc137-mode #lsc-front-status,body.lsc137-mode #lsc-front-pill,body.lsc137-mode #lsc-front-canvas,body.lsc137-mode #lsc-world-chip,body.lsc137-mode #lsc-daily-btn,body.lsc137-mode #lsc-staff-btn,body.lsc137-mode #lsc-hud-actions-dock,body.lsc137-mode #quest-hud,body.lsc137-mode #orbitalBtn,body.lsc137-mode #storeBtn{display:none!important}' +
       '#lsc137-app{position:fixed;z-index:30000;inset:0;color:#fff;font-family:Rajdhani,sans-serif;background:radial-gradient(circle at 50% 22%,#153343 0,#071119 42%,#03070a 100%)}' +
       '#lsc137-app.hidden{display:none}.l137-shell{height:100%;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 12px);box-sizing:border-box}' +
@@ -45,9 +45,9 @@
       '#lsc137-result{position:fixed;z-index:32000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,7,.9);backdrop-filter:blur(8px)}#lsc137-result.show{display:flex}.l137-result-card{width:min(420px,100%);padding:22px;border:1px solid rgba(34,212,255,.35);border-radius:20px;background:#08131a;text-align:center}.l137-result-card h2{font-size:28px;margin:3px}.l137-actions{display:grid;gap:8px;margin-top:17px}' +
       '#hq-upgrade-overlay{position:fixed;z-index:31000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.86)}#hq-upgrade-overlay.show{display:flex}.hq-upgrade-modal{width:min(420px,100%);padding:18px;border:1px solid #846e36;border-radius:18px;background:#09131a}.hq-upgrade-title{text-align:center;font-size:23px;font-weight:900}.hq-upgrade-sub{text-align:center;color:#ffd166;font:8px "Share Tech Mono",monospace;margin-bottom:12px}.hq-upgrade-grid{display:grid;gap:8px}.hq-upgrade-choice{text-align:left;padding:12px;border:1px solid #245363;border-radius:11px;background:#10252e;color:#fff}.hq-upgrade-choice b,.hq-upgrade-choice span{display:block}.hq-upgrade-choice span{font:8px/1.4 "Share Tech Mono",monospace;color:#9dafb8}' +
       '#lsc137-ability{position:absolute;z-index:35;right:14px;bottom:48px;width:68px;height:68px;border:2px solid #ffd166;border-radius:50%;background:#513d0e;color:white;font:800 10px Rajdhani,sans-serif;box-shadow:0 0 25px rgba(255,209,102,.25)}#lsc137-ability:disabled{opacity:.35}' +
-      '#l139-menu-btn{position:absolute;z-index:42;right:12px;top:calc(env(safe-area-inset-top,0px) + 8px);width:38px;height:34px;border:1px solid #58dfff;border-radius:9px;background:rgba(5,18,26,.94);color:#fff;font-size:18px}' +
+      '#l140-controls{position:absolute;z-index:42;right:12px;top:calc(env(safe-area-inset-top,0px) + 8px);display:flex;gap:6px}#l139-menu-btn,#l140-speed-btn{height:34px;border:1px solid #58dfff;border-radius:9px;background:rgba(5,18,26,.94);color:#fff;font:800 12px Rajdhani,sans-serif}#l139-menu-btn{width:38px;font-size:18px}#l140-speed-btn{width:42px;color:#ffd166}' +
       '#l139-pause{position:fixed;z-index:33000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.9);backdrop-filter:blur(8px)}#l139-pause.show{display:flex}.l139-pause-card{width:min(400px,100%);padding:20px;border:1px solid rgba(34,212,255,.4);border-radius:18px;background:#08141b}.l139-setting{display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:9px}.l139-setting button{min-width:58px}' +
-      '.l139-progress{position:absolute;z-index:39;left:12px;right:58px;top:calc(env(safe-area-inset-top,0px) + 7px);height:35px;pointer-events:none}.l139-progress-track{height:6px;margin-top:4px;border-radius:6px;background:#182a32;overflow:hidden}.l139-progress-fill{height:100%;background:linear-gradient(90deg,#22d4ff,#18f06a);box-shadow:0 0 10px #22d4ff}.l139-progress-text{font:8px "Share Tech Mono",monospace;color:#fff;display:flex;justify-content:space-between}';
+      '.l139-progress{position:absolute;z-index:39;left:12px;right:108px;top:calc(env(safe-area-inset-top,0px) + 7px);height:35px;pointer-events:none}.l139-progress-track{height:6px;margin-top:4px;border-radius:6px;background:#182a32;overflow:hidden}.l139-progress-fill{height:100%;background:linear-gradient(90deg,#22d4ff,#18f06a);box-shadow:0 0 10px #22d4ff}.l139-progress-text{font:8px "Share Tech Mono",monospace;color:#fff;display:flex;justify-content:space-between}';
     document.head.appendChild(s);
   }
 
@@ -71,7 +71,8 @@
     var wrap = id('battlefield-wrap'); if (wrap) {
       wrap.appendChild(ability);
       var progress=document.createElement('div');progress.className='l139-progress';progress.innerHTML='<div class="l139-progress-text"><span id="l139-progress-label">ASSAULT 1/3</span><span id="l139-progress-count">0 THREATS</span></div><div class="l139-progress-track"><div class="l139-progress-fill" id="l139-progress-fill"></div></div>';wrap.appendChild(progress);
-      var menuBtn=document.createElement('button');menuBtn.id='l139-menu-btn';menuBtn.setAttribute('aria-label','Battle menu');menuBtn.textContent='☰';menuBtn.onclick=openPause;wrap.appendChild(menuBtn);
+      var controls=document.createElement('div');controls.id='l140-controls';controls.innerHTML='<button id="l140-speed-btn" aria-label="Battle speed">1×</button><button id="l139-menu-btn" aria-label="Battle menu">☰</button>';wrap.appendChild(controls);
+      id('l139-menu-btn').onclick=openPause;id('l140-speed-btn').onclick=cycleSpeed;
     }
     var pause=document.createElement('div');pause.id='l139-pause';pause.innerHTML='<div class="l139-pause-card"><div class="l137-kicker">BATTLE PAUSED</div><div class="l137-h2">COMMAND MENU</div><div class="l137-actions"><button class="l137-btn good" id="l139-resume">RESUME BATTLE</button><button class="l137-btn" id="l139-restart">RESTART PHASE</button><button class="l137-btn" id="l139-return">RETURN TO COMMAND BASE</button></div><div class="l137-kicker" style="margin-top:16px">SETTINGS</div><div class="l139-setting"><span>Music</span><button class="l137-btn" data-setting="music">ON</button></div><div class="l139-setting"><span>Sound Effects</span><button class="l137-btn" data-setting="sound">ON</button></div><div class="l139-setting"><span>Haptics</span><button class="l137-btn" data-setting="haptics">ON</button></div></div>';document.body.appendChild(pause);
     id('l139-resume').onclick=closePause;
@@ -80,8 +81,11 @@
     pause.addEventListener('click',function(e){var b=e.target.closest('[data-setting]');if(!b)return;var key='lsc_'+b.dataset.setting;var on=localStorage.getItem(key)!=='off';localStorage.setItem(key,on?'off':'on');b.textContent=on?'OFF':'ON';});
   }
 
-  function openPause(){if(!run||!run.active)return;run.paused=true;G.state.paused=true;id('l139-pause').classList.add('show');}
-  function closePause(){if(run)run.paused=false;G.state.paused=false;id('l139-pause').classList.remove('show');}
+  function setSimulationPaused(paused){if(run)run.paused=paused;if(G&&G.state)G.state.paused=paused;}
+  function openPause(){if(!run||!run.active)return;setSimulationPaused(true);id('l139-pause').classList.add('show');}
+  function closePause(){setSimulationPaused(false);id('l139-pause').classList.remove('show');}
+  function setSpeed(value){if(!run)return;run.speed=value;_gameSpeed=value;var b=id('l140-speed-btn');if(b)b.textContent=value+'×';}
+  function cycleSpeed(){if(!run||run.paused)return;setSpeed(run.speed===1?2:run.speed===2?3:1);}
 
   function refreshHeader() {
     id('l137-res').innerHTML = '<b>' + meta.credits + '</b> CREDITS<br><b>' + meta.parts + '</b> TECH PARTS';
@@ -117,13 +121,14 @@
     if (start) start.classList.add('hidden');
     id('lsc137-app').classList.add('hidden');
     document.body.classList.add('lsc137-mode');
-    run = createRun();
+    run = createRun();setSpeed(1);
     G.state._centralHQMode = true; G.state.waveInProgress = true; G.state.gameOver = false; G.state.paused = false;
     id('lsc137-ability').disabled = false; id('lsc137-ability').textContent = 'ARTILLERY';
   }
   function createRun() {
     var W = canvas.width || 390, H = canvas.height || 600, s = dpr(), cx = W / 2, cy = H * .56;
-    return { active:true, paused:false, complete:false, elapsed:0, duration:150, spawn:0, spawned:0, kills:0, xp:0, xpNext:30, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, abilityCd:0, lastHit:0,
+    var targets=[8+meta.phase*2,12+meta.phase*2,16+meta.phase*2];
+    return { active:true, paused:false, complete:false, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, kills:0, xp:0, xpNext:30, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, abilityCd:0, lastHit:0,
       hq:{x:cx,y:cy,r:37*s,hp:300+(meta.hq-1)*75,maxHp:300+(meta.hq-1)*75},
       hero:{x:cx,y:cy+70*s,r:13*s,damage:16*(1+(meta.commander-1)*.15),rate:2.7*(1+(meta.commander-1)*.06),range:150*s,cd:0},
       turret:{x:cx,y:cy-58*s,r:10*s,damage:10*(1+meta.research*.12),rate:3.1,range:215*s,cd:0},
@@ -137,28 +142,28 @@
   }
   function nearest(o,range){var t=null,b=range;run.enemies.forEach(function(e){var x=dist(o,e);if(x<b){b=x;t=e;}});return t;}
   function fire(o,t,damage,color){if(!t)return;var x=t.x-o.x,y=t.y-o.y,l=Math.hypot(x,y)||1;run.bullets.push({x:o.x,y:o.y,vx:x/l*520*dpr(),vy:y/l*520*dpr(),damage:damage,life:.8,color:color});}
-  function kill(i,e){run.enemies.splice(i,1);run.kills++;run.xp+=e.kind==='boss'?100:e.kind==='armored'?10:6;if(e.kind==='boss')run.bossDefeated=true;if(run.xp>=run.xpNext&&!run.upgradeOpen)openUpgrade();}
+  function kill(i,e){run.enemies.splice(i,1);run.kills++;if(e.kind!=='boss')run.assaultKills++;run.xp+=e.kind==='boss'?100:e.kind==='armored'?10:6;if(e.kind==='boss')run.bossDefeated=true;if(run.xp>=run.xpNext&&!run.upgradeOpen)openUpgrade();}
   var upgrades=[['Rapid Fire','+25% commander fire rate',function(){run.hero.rate*=1.25;}],['Heavy Rounds','+30% commander damage',function(){run.hero.damage*=1.3;}],['Fortify HQ','Repair 75 and add 75 maximum HP',function(){run.hq.maxHp+=75;run.hq.hp=Math.min(run.hq.maxHp,run.hq.hp+75);}],["Turret Surge","+35% turret damage",function(){run.turret.damage*=1.35;}]];
   function openUpgrade(){run.upgradeOpen=true;run.xp-=run.xpNext;run.level++;run.xpNext=Math.floor(run.xpNext*1.4);var grid=id('hq-upgrade-grid');grid.innerHTML='';upgrades.slice().sort(function(){return Math.random()-.5;}).slice(0,3).forEach(function(u){var b=document.createElement('button');b.className='hq-upgrade-choice';b.innerHTML='<b>'+u[0]+'</b><span>'+u[1]+'</span>';b.onclick=function(){u[2]();run.upgradeOpen=false;id('hq-upgrade-overlay').classList.remove('show');};grid.appendChild(b);});id('hq-upgrade-overlay').classList.add('show');}
   function useAbility(){if(!run||!run.active||run.abilityCd>0)return;run.abilityCd=18;run.enemies.forEach(function(e){e.hp-=95;});for(var i=run.enemies.length-1;i>=0;i--)if(run.enemies[i].hp<=0)kill(i,run.enemies[i]);}
   function finish(won){if(!run||run.complete)return;run.complete=true;run.active=false;run.upgradeOpen=false;id('hq-upgrade-overlay').classList.remove('show');G.state.waveInProgress=false;var reward=won?250+run.kills*3:Math.floor(run.kills*1.5);var parts=won?3:0;meta.credits+=reward;meta.parts+=parts;if(won){meta.bestPhase=Math.max(meta.bestPhase,meta.phase);meta.phase++;}saveMeta();id('l137-result-kicker').textContent=won?'MISSION ACCOMPLISHED':'MISSION FAILED';id('l137-result-title').textContent=won?'PHASE SECURED':'HEADQUARTERS LOST';id('l137-result-copy').textContent=won?'The Siege Breaker is destroyed. The next defensive phase is now available.':'The combat state has been safely cleared. Upgrade at Command Base or retry immediately.';id('l137-result-reward').innerHTML='<b>'+reward+' CREDITS' +(parts?' · '+parts+' TECH PARTS':'')+'</b><small>'+run.kills+' ENEMIES ELIMINATED</small>';id('lsc137-result').classList.add('show');}
-  function returnHome(){closePause();id('lsc137-result').classList.remove('show');id('lsc137-app').classList.remove('hidden');document.body.classList.remove('lsc137-mode');if(run){run.enemies=[];run.bullets=[];run.active=false;}run=null;G.state._centralHQMode=false;G.state.waveInProgress=false;renderTab('campaign');}
+  function returnHome(){closePause();_gameSpeed=1;id('lsc137-result').classList.remove('show');id('lsc137-app').classList.remove('hidden');document.body.classList.remove('lsc137-mode');if(run){run.enemies=[];run.bullets=[];run.active=false;}run=null;G.state._centralHQMode=false;G.state.waveInProgress=false;renderTab('campaign');}
 
   function updateBattleHUD(){
     if(!run)return;
-    var assault=run.elapsed<45?1:run.elapsed<100?2:3;
-    var pct=run.bossDefeated?100:Math.min(99,Math.floor((run.elapsed/run.duration)*100));
+    var completed=0,total=1;for(var i=0;i<run.assaultTargets.length;i++){total+=run.assaultTargets[i];if(i<run.assault-1)completed+=run.assaultTargets[i];}completed+=run.assaultKills;if(run.bossDefeated)completed++;
+    var pct=Math.min(100,Math.floor((completed/total)*100));
     var fill=id('l139-progress-fill'),label=id('l139-progress-label'),count=id('l139-progress-count');
     if(fill)fill.style.width=pct+'%';
-    if(label)label.textContent=(run.bossSpawned&&!run.bossDefeated?'FINAL ASSAULT · SIEGE BREAKER':'PHASE '+meta.phase+' · ASSAULT '+assault+'/3')+' · '+pct+'%';
+    if(label)label.textContent=(run.bossSpawned&&!run.bossDefeated?'FINAL ASSAULT · SIEGE BREAKER':'PHASE '+meta.phase+' · ASSAULT '+run.assault+'/3')+' · '+pct+'%';
     if(count)count.textContent=run.enemies.length+' THREATS ACTIVE';
   }
 
-  function update(dt){if(!run||!run.active||run.upgradeOpen)return;run.elapsed+=dt;run.spawn-=dt;run.abilityCd=Math.max(0,run.abilityCd-dt);var ab=id('lsc137-ability');if(ab){ab.disabled=run.abilityCd>0;ab.textContent=run.abilityCd>0?Math.ceil(run.abilityCd)+'s':'ARTILLERY';}var interval=clamp(1.55-run.elapsed*.006,.55,1.55);if(run.spawn<=0&&run.elapsed<132){var r=Math.random(),k=run.elapsed>50&&r<.18?'armored':run.elapsed>25&&r>.84?'runner':'grunt';var group=run.elapsed<18?2:run.elapsed<70?3:4;for(var g=0;g<group;g++)run.enemies.push(enemy(k));run.spawn=interval*group;}if(run.elapsed>=120&&!run.bossSpawned){run.bossSpawned=true;run.enemies.push(enemy('boss'));}
+  function update(dt){if(!run||!run.active||run.paused||run.upgradeOpen)return;run.elapsed+=dt;run.assaultElapsed+=dt;run.spawn-=dt;run.abilityCd=Math.max(0,run.abilityCd-dt);var ab=id('lsc137-ability');if(ab){ab.disabled=run.abilityCd>0;ab.textContent=run.abilityCd>0?Math.ceil(run.abilityCd)+'s':'ARTILLERY';}var target=run.assaultTargets[run.assault-1],remaining=target-run.assaultSpawned;var interval=clamp(1.35-run.assault*.12,.7,1.3);if(run.spawn<=0&&remaining>0){var r=Math.random(),k=run.assault>1&&r<.2?'armored':r>.84?'runner':'grunt';var group=Math.min(remaining,run.assault===1?2:3);for(var g=0;g<group;g++){run.enemies.push(enemy(k));run.assaultSpawned++;}run.spawn=interval;}if(run.assault===3&&run.assaultSpawned>=target&&!run.bossSpawned){run.bossSpawned=true;run.enemies.push(enemy('boss'));}
     [run.hero,run.turret].concat(run.squad).forEach(function(a,n){a.cd-=dt;var t=nearest(a,a.range);if(t&&a.cd<=0){fire(a,t,a.damage,n===0?'#9cecff':n===1?'#ffd166':'#8cff9c');a.cd=1/a.rate;}});
     for(var i=run.enemies.length-1;i>=0;i--){var e=run.enemies[i],x=run.hq.x-e.x,y=run.hq.y-e.y,l=Math.hypot(x,y)||1;if(l>run.hq.r+e.r){e.x+=x/l*e.speed*dt;e.y+=y/l*e.speed*dt;}else{e.cd-=dt;if(e.cd<=0){run.hq.hp-=e.damage;e.cd=e.kind==='boss'?.75:1.2;run.lastHit=performance.now();}}}
     for(var b=run.bullets.length-1;b>=0;b--){var q=run.bullets[b];q.x+=q.vx*dt;q.y+=q.vy*dt;q.life-=dt;var hit=-1;for(var j=0;j<run.enemies.length;j++)if(dist(q,run.enemies[j])<run.enemies[j].r+4*dpr()){hit=j;break;}if(hit>=0){var target=run.enemies[hit];target.hp-=q.damage;run.bullets.splice(b,1);if(target.hp<=0)kill(hit,target);}else if(q.life<=0)run.bullets.splice(b,1);}
-    if(run.hq.hp<=0)finish(false);else if(run.elapsed>=run.duration&&run.bossDefeated)finish(true);
+    if(run.hq.hp<=0){finish(false);return;}var cleared=run.assaultSpawned>=target&&run.enemies.length===0&&run.bullets.length===0&&(run.assault<3||run.bossDefeated);if(cleared){run.transition+=dt;if(run.transition>=1.2){if(run.assault===3)finish(true);else{run.assault++;run.assaultElapsed=0;run.assaultSpawned=0;run.assaultKills=0;run.spawn=.6;run.transition=0;}}}else run.transition=0;
   }
   function circle(x,y,r,fill,stroke,w){ctx.beginPath();ctx.arc(x,y,r,0,TAU);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=w||1;ctx.stroke();}}
   function drawSoldier(a, hostile, heavy) {
@@ -179,7 +184,7 @@
   function draw(){if(!run||!ctx)return oldDraw&&oldDraw(G.state);var W=canvas.width,H=canvas.height,s=dpr(),h=run.hq;var bg=ctx.createRadialGradient(h.x,h.y,20,h.x,h.y,Math.max(W,H)*.7);bg.addColorStop(0,'#26301f');bg.addColorStop(1,'#080b09');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(120,145,100,.11)';for(var x=0;x<W;x+=34*s){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(var y=0;y<H;y+=34*s){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
     circle(h.x,h.y,105*s,'rgba(34,212,255,.025)','rgba(34,212,255,.16)',s);drawHQ(h);drawTurret(run.turret);run.squad.forEach(function(a){drawSoldier(a,false,false);});circle(run.hero.x,run.hero.y,run.hero.range,null,'rgba(156,236,255,.06)',s);drawSoldier(run.hero,false,true);
     run.enemies.forEach(function(e){if(e.kind==='boss'){circle(e.x,e.y,e.r,'#751719','#ff3c3c',3*s);ctx.fillStyle='#ffb14a';ctx.fillRect(e.x-15*s,e.y-5*s,30*s,10*s);ctx.fillStyle='#fff';ctx.font='bold '+7*s+'px Rajdhani';ctx.textAlign='center';ctx.fillText('SIEGE',e.x,e.y+3*s);}else drawSoldier(e,true,e.kind==='armored');if(e.hp<e.maxHp||e.kind==='boss'){ctx.fillStyle='#220707';ctx.fillRect(e.x-e.r,e.y-e.r-12*s,e.r*2,3*s);ctx.fillStyle='#ff694d';ctx.fillRect(e.x-e.r,e.y-e.r-12*s,e.r*2*(e.hp/e.maxHp),3*s);}});run.bullets.forEach(function(b){circle(b.x,b.y,3*s,b.color);});
-    var hp=clamp(h.hp/h.maxHp,0,1),xp=clamp(run.xp/run.xpNext,0,1),assault=run.elapsed<45?1:run.elapsed<100?2:3;ctx.fillStyle='rgba(3,10,15,.9)';ctx.fillRect(0,0,W,42*s);ctx.strokeStyle='rgba(34,212,255,.35)';ctx.beginPath();ctx.moveTo(0,42*s);ctx.lineTo(W,42*s);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold '+9*s+'px "Share Tech Mono"';ctx.textAlign='left';ctx.fillText('PHASE '+meta.phase+' · ASSAULT '+assault+'/3',12*s,16*s);ctx.fillStyle='#9cecff';ctx.fillText('FIELD RANK '+run.level,12*s,31*s);ctx.textAlign='right';var rem=Math.max(0,Math.ceil(run.duration-run.elapsed));ctx.fillStyle='#fff';ctx.fillText(Math.floor(rem/60)+':'+String(rem%60).padStart(2,'0'),W-12*s,16*s);ctx.fillStyle='rgba(0,0,0,.76)';ctx.fillRect(12*s,H-39*s,W-24*s,27*s);ctx.fillStyle=hp>.35?'#18f06a':'#ff3c3c';ctx.fillRect(14*s,H-35*s,(W-28*s)*hp,8*s);ctx.fillStyle='#22d4ff';ctx.fillRect(14*s,H-21*s,(W-28*s)*xp,5*s);ctx.fillStyle='#fff';ctx.font=7*s+'px "Share Tech Mono"';ctx.textAlign='left';ctx.fillText('HQ '+Math.ceil(h.hp)+' / '+h.maxHp,15*s,H-28*s);if(performance.now()-run.lastHit<180){ctx.fillStyle='rgba(255,0,0,.1)';ctx.fillRect(0,0,W,H);}}
+    var hp=clamp(h.hp/h.maxHp,0,1),xp=clamp(run.xp/run.xpNext,0,1);ctx.fillStyle='rgba(3,10,15,.9)';ctx.fillRect(0,0,W,42*s);ctx.strokeStyle='rgba(34,212,255,.35)';ctx.beginPath();ctx.moveTo(0,42*s);ctx.lineTo(W,42*s);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold '+9*s+'px "Share Tech Mono"';ctx.textAlign='left';ctx.fillText('PHASE '+meta.phase+' · ASSAULT '+run.assault+'/3',12*s,16*s);ctx.fillStyle='#9cecff';ctx.fillText('FIELD RANK '+run.level,12*s,31*s);ctx.textAlign='right';ctx.fillStyle='#ffd166';ctx.fillText(run.speed+'×',W-12*s,16*s);ctx.fillStyle='rgba(0,0,0,.76)';ctx.fillRect(12*s,H-39*s,W-24*s,27*s);ctx.fillStyle=hp>.35?'#18f06a':'#ff3c3c';ctx.fillRect(14*s,H-35*s,(W-28*s)*hp,8*s);ctx.fillStyle='#22d4ff';ctx.fillRect(14*s,H-21*s,(W-28*s)*xp,5*s);ctx.fillStyle='#fff';ctx.font=7*s+'px "Share Tech Mono"';ctx.textAlign='left';ctx.fillText('HQ '+Math.ceil(h.hp)+' / '+h.maxHp,15*s,H-28*s);if(performance.now()-run.lastHit<180){ctx.fillStyle='rgba(255,0,0,.1)';ctx.fillRect(0,0,W,H);}}
 
   installStyles(); installUI(); renderTab('campaign');
   var home=id('homeScreen'),start=id('startOverlay');if(home){home.style.display='none';home.classList.remove('hs-visible');}if(start)start.classList.add('hidden');document.body.classList.remove('lsc-home-mode');
