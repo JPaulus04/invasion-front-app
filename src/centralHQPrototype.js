@@ -1,8 +1,8 @@
-// Build 140 — true pause, test speed controls, and threat-driven assaults.
+// Build 141 — final combat cleanup, persistent speed control, and progression-first results.
 (function () {
   'use strict';
-  if (window.__LSC_COMMAND_BASE_140__) return;
-  window.__LSC_COMMAND_BASE_140__ = true;
+  if (window.__LSC_COMMAND_BASE_141__) return;
+  window.__LSC_COMMAND_BASE_141__ = true;
 
   var oldUpdate = _patchedUpdate;
   var oldDraw = drawVertical;
@@ -59,9 +59,10 @@
     id('l137-nav').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) renderTab(b.dataset.tab); });
     var result = document.createElement('div');
     result.id = 'lsc137-result';
-    result.innerHTML = '<div class="l137-result-card"><div class="l137-kicker" id="l137-result-kicker"></div><h2 id="l137-result-title"></h2><p class="l137-copy" id="l137-result-copy"></p><div class="l137-card" id="l137-result-reward"></div><div class="l137-actions"><button class="l137-btn good" id="l137-retry">RETRY PHASE</button><button class="l137-btn" id="l137-return">RETURN TO COMMAND BASE</button></div></div>';
+    result.innerHTML = '<div class="l137-result-card"><div class="l137-kicker" id="l137-result-kicker"></div><h2 id="l137-result-title"></h2><p class="l137-copy" id="l137-result-copy"></p><div class="l137-card" id="l137-result-reward"></div><div class="l137-actions"><button class="l137-btn good" id="l141-continue">CONTINUE</button><button class="l137-btn" id="l137-return">RETURN TO COMMAND BASE</button><button class="l137-btn" id="l137-retry">REPLAY PHASE</button></div></div>';
     document.body.appendChild(result);
-    id('l137-retry').onclick = function () { id('lsc137-result').classList.remove('show'); launchPhase(); };
+    id('l141-continue').onclick = function () { var retryPhase = id('l137-result-kicker').textContent === 'MISSION FAILED' && run ? run.phase : null; id('lsc137-result').classList.remove('show'); launchPhase(retryPhase); };
+    id('l137-retry').onclick = function () { var phase = run && run.phase ? run.phase : meta.phase; id('lsc137-result').classList.remove('show'); launchPhase(phase); };
     id('l137-return').onclick = returnHome;
     var up = document.createElement('div');
     up.id = 'hq-upgrade-overlay';
@@ -114,21 +115,21 @@
     meta.credits -= cost.credits; meta.parts -= cost.parts; meta[type]++; saveMeta(); renderTab(type);
   }
 
-  function launchPhase() {
+  function launchPhase(phaseOverride) {
     var home = id('homeScreen'); if (home) { home.style.display = 'none'; home.classList.remove('hs-visible'); }
     var start = id('startOverlay');
     if (G && G.state && !G.state.started) { if (!G.state.selectedDoctrine) G.state.selectedDoctrine = 'fortress'; var begin = id('beginBtn'); if (begin) begin.click(); }
     if (start) start.classList.add('hidden');
     id('lsc137-app').classList.add('hidden');
     document.body.classList.add('lsc137-mode');
-    run = createRun();setSpeed(1);
+    run = createRun(phaseOverride);setSpeed(1);
     G.state._centralHQMode = true; G.state.waveInProgress = true; G.state.gameOver = false; G.state.paused = false;
     id('lsc137-ability').disabled = false; id('lsc137-ability').textContent = 'ARTILLERY';
   }
-  function createRun() {
+  function createRun(phaseOverride) {
     var W = canvas.width || 390, H = canvas.height || 600, s = dpr(), cx = W / 2, cy = H * .56;
-    var targets=[8+meta.phase*2,12+meta.phase*2,16+meta.phase*2];
-    return { active:true, paused:false, complete:false, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, kills:0, xp:0, xpNext:30, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, abilityCd:0, lastHit:0,
+    var phase=Math.max(1,Number(phaseOverride)||meta.phase),targets=[8+phase*2,12+phase*2,16+phase*2];
+    return { active:true, paused:false, complete:false, phase:phase, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, kills:0, xp:0, xpNext:30, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, abilityCd:0, lastHit:0,
       hq:{x:cx,y:cy,r:37*s,hp:300+(meta.hq-1)*75,maxHp:300+(meta.hq-1)*75},
       hero:{x:cx,y:cy+70*s,r:13*s,damage:16*(1+(meta.commander-1)*.15),rate:2.7*(1+(meta.commander-1)*.06),range:150*s,cd:0},
       turret:{x:cx,y:cy-58*s,r:10*s,damage:10*(1+meta.research*.12),rate:3.1,range:215*s,cd:0},
@@ -136,7 +137,7 @@
       enemies:[],bullets:[],particles:[] };
   }
   function enemy(kind) {
-    var a=Math.random()*TAU,s=dpr(),radius=Math.min(canvas.width,canvas.height)*.54+45*s,scale=1+(meta.phase-1)*.16;
+    var a=Math.random()*TAU,s=dpr(),radius=Math.min(canvas.width,canvas.height)*.54+45*s,scale=1+(run.phase-1)*.16;
     var hp=kind==='boss'?900:kind==='armored'?82:kind==='runner'?25:40;
     run.spawned++;return{x:run.hq.x+Math.cos(a)*radius,y:run.hq.y+Math.sin(a)*radius,r:(kind==='boss'?28:kind==='armored'?15:11)*s,hp:hp*scale,maxHp:hp*scale,kind:kind,speed:(kind==='boss'?25:kind==='armored'?34:kind==='runner'?66:44)*s,damage:(kind==='boss'?28:kind==='armored'?14:8)*scale,cd:0};
   }
@@ -146,7 +147,32 @@
   var upgrades=[['Rapid Fire','+25% commander fire rate',function(){run.hero.rate*=1.25;}],['Heavy Rounds','+30% commander damage',function(){run.hero.damage*=1.3;}],['Fortify HQ','Repair 75 and add 75 maximum HP',function(){run.hq.maxHp+=75;run.hq.hp=Math.min(run.hq.maxHp,run.hq.hp+75);}],["Turret Surge","+35% turret damage",function(){run.turret.damage*=1.35;}]];
   function openUpgrade(){run.upgradeOpen=true;run.xp-=run.xpNext;run.level++;run.xpNext=Math.floor(run.xpNext*1.4);var grid=id('hq-upgrade-grid');grid.innerHTML='';upgrades.slice().sort(function(){return Math.random()-.5;}).slice(0,3).forEach(function(u){var b=document.createElement('button');b.className='hq-upgrade-choice';b.innerHTML='<b>'+u[0]+'</b><span>'+u[1]+'</span>';b.onclick=function(){u[2]();run.upgradeOpen=false;id('hq-upgrade-overlay').classList.remove('show');};grid.appendChild(b);});id('hq-upgrade-overlay').classList.add('show');}
   function useAbility(){if(!run||!run.active||run.abilityCd>0)return;run.abilityCd=18;run.enemies.forEach(function(e){e.hp-=95;});for(var i=run.enemies.length-1;i>=0;i--)if(run.enemies[i].hp<=0)kill(i,run.enemies[i]);}
-  function finish(won){if(!run||run.complete)return;run.complete=true;run.active=false;run.upgradeOpen=false;id('hq-upgrade-overlay').classList.remove('show');G.state.waveInProgress=false;var reward=won?250+run.kills*3:Math.floor(run.kills*1.5);var parts=won?3:0;meta.credits+=reward;meta.parts+=parts;if(won){meta.bestPhase=Math.max(meta.bestPhase,meta.phase);meta.phase++;}saveMeta();id('l137-result-kicker').textContent=won?'MISSION ACCOMPLISHED':'MISSION FAILED';id('l137-result-title').textContent=won?'PHASE SECURED':'HEADQUARTERS LOST';id('l137-result-copy').textContent=won?'The Siege Breaker is destroyed. The next defensive phase is now available.':'The combat state has been safely cleared. Upgrade at Command Base or retry immediately.';id('l137-result-reward').innerHTML='<b>'+reward+' CREDITS' +(parts?' · '+parts+' TECH PARTS':'')+'</b><small>'+run.kills+' ENEMIES ELIMINATED</small>';id('lsc137-result').classList.add('show');}
+  function finish(won) {
+    if (!run || run.complete) return;
+    run.complete = true;
+    run.active = false;
+    run.upgradeOpen = false;
+    id('hq-upgrade-overlay').classList.remove('show');
+    G.state.waveInProgress = false;
+    var clearedPhase = run.phase;
+    var reward = won ? 250 + run.kills * 3 : Math.floor(run.kills * 1.5);
+    var parts = won ? 3 : 0;
+    meta.credits += reward;
+    meta.parts += parts;
+    if (won) {
+      meta.bestPhase = Math.max(meta.bestPhase, clearedPhase);
+      if (clearedPhase >= meta.phase) meta.phase = clearedPhase + 1;
+    }
+    saveMeta();
+    id('l137-result-kicker').textContent = won ? 'MISSION ACCOMPLISHED' : 'MISSION FAILED';
+    id('l137-result-title').textContent = won ? 'PHASE ' + clearedPhase + ' SECURED' : 'HEADQUARTERS LOST';
+    id('l137-result-copy').textContent = won ? 'The Siege Breaker is destroyed. Phase ' + meta.phase + ' is ready for deployment.' : 'The combat state has been safely cleared. Upgrade at Command Base or retry immediately.';
+    id('l137-result-reward').innerHTML = '<b>' + reward + ' CREDITS' + (parts ? ' · ' + parts + ' TECH PARTS' : '') + '</b><small>' + run.kills + ' ENEMIES ELIMINATED</small>';
+    id('l141-continue').textContent = won ? 'CONTINUE TO PHASE ' + meta.phase : 'RETRY PHASE ' + clearedPhase;
+    id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
+    id('l137-retry').style.display = won ? '' : 'none';
+    id('lsc137-result').classList.add('show');
+  }
   function returnHome(){closePause();_gameSpeed=1;id('lsc137-result').classList.remove('show');id('lsc137-app').classList.remove('hidden');document.body.classList.remove('lsc137-mode');if(run){run.enemies=[];run.bullets=[];run.active=false;}run=null;G.state._centralHQMode=false;G.state.waveInProgress=false;renderTab('campaign');}
 
   function updateBattleHUD(){
@@ -155,7 +181,7 @@
     var pct=Math.min(100,Math.floor((completed/total)*100));
     var fill=id('l139-progress-fill'),label=id('l139-progress-label'),count=id('l139-progress-count');
     if(fill)fill.style.width=pct+'%';
-    if(label)label.textContent=(run.bossSpawned&&!run.bossDefeated?'FINAL ASSAULT · SIEGE BREAKER':'PHASE '+meta.phase+' · ASSAULT '+run.assault+'/3')+' · '+pct+'%';
+    if(label)label.textContent=(run.bossSpawned&&!run.bossDefeated?'FINAL ASSAULT · SIEGE BREAKER':'PHASE '+run.phase+' · ASSAULT '+run.assault+'/3')+' · '+pct+'%';
     if(count)count.textContent=run.enemies.length+' THREATS ACTIVE';
   }
 
@@ -184,7 +210,7 @@
   function draw(){if(!run||!ctx)return oldDraw&&oldDraw(G.state);var W=canvas.width,H=canvas.height,s=dpr(),h=run.hq;var bg=ctx.createRadialGradient(h.x,h.y,20,h.x,h.y,Math.max(W,H)*.7);bg.addColorStop(0,'#26301f');bg.addColorStop(1,'#080b09');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(120,145,100,.11)';for(var x=0;x<W;x+=34*s){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(var y=0;y<H;y+=34*s){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
     circle(h.x,h.y,105*s,'rgba(34,212,255,.025)','rgba(34,212,255,.16)',s);drawHQ(h);drawTurret(run.turret);run.squad.forEach(function(a){drawSoldier(a,false,false);});circle(run.hero.x,run.hero.y,run.hero.range,null,'rgba(156,236,255,.06)',s);drawSoldier(run.hero,false,true);
     run.enemies.forEach(function(e){if(e.kind==='boss'){circle(e.x,e.y,e.r,'#751719','#ff3c3c',3*s);ctx.fillStyle='#ffb14a';ctx.fillRect(e.x-15*s,e.y-5*s,30*s,10*s);ctx.fillStyle='#fff';ctx.font='bold '+7*s+'px Rajdhani';ctx.textAlign='center';ctx.fillText('SIEGE',e.x,e.y+3*s);}else drawSoldier(e,true,e.kind==='armored');if(e.hp<e.maxHp||e.kind==='boss'){ctx.fillStyle='#220707';ctx.fillRect(e.x-e.r,e.y-e.r-12*s,e.r*2,3*s);ctx.fillStyle='#ff694d';ctx.fillRect(e.x-e.r,e.y-e.r-12*s,e.r*2*(e.hp/e.maxHp),3*s);}});run.bullets.forEach(function(b){circle(b.x,b.y,3*s,b.color);});
-    var hp=clamp(h.hp/h.maxHp,0,1),xp=clamp(run.xp/run.xpNext,0,1);ctx.fillStyle='rgba(3,10,15,.9)';ctx.fillRect(0,0,W,42*s);ctx.strokeStyle='rgba(34,212,255,.35)';ctx.beginPath();ctx.moveTo(0,42*s);ctx.lineTo(W,42*s);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold '+9*s+'px "Share Tech Mono"';ctx.textAlign='left';ctx.fillText('PHASE '+meta.phase+' · ASSAULT '+run.assault+'/3',12*s,16*s);ctx.fillStyle='#9cecff';ctx.fillText('FIELD RANK '+run.level,12*s,31*s);ctx.textAlign='right';ctx.fillStyle='#ffd166';ctx.fillText(run.speed+'×',W-12*s,16*s);ctx.fillStyle='rgba(0,0,0,.76)';ctx.fillRect(12*s,H-39*s,W-24*s,27*s);ctx.fillStyle=hp>.35?'#18f06a':'#ff3c3c';ctx.fillRect(14*s,H-35*s,(W-28*s)*hp,8*s);ctx.fillStyle='#22d4ff';ctx.fillRect(14*s,H-21*s,(W-28*s)*xp,5*s);ctx.fillStyle='#fff';ctx.font=7*s+'px "Share Tech Mono"';ctx.textAlign='left';ctx.fillText('HQ '+Math.ceil(h.hp)+' / '+h.maxHp,15*s,H-28*s);if(performance.now()-run.lastHit<180){ctx.fillStyle='rgba(255,0,0,.1)';ctx.fillRect(0,0,W,H);}}
+    var hp=clamp(h.hp/h.maxHp,0,1),xp=clamp(run.xp/run.xpNext,0,1);ctx.fillStyle='rgba(3,10,15,.9)';ctx.fillRect(0,0,W,42*s);ctx.strokeStyle='rgba(34,212,255,.35)';ctx.beginPath();ctx.moveTo(0,42*s);ctx.lineTo(W,42*s);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold '+9*s+'px "Share Tech Mono"';ctx.textAlign='left';ctx.fillText('PHASE '+run.phase+' · ASSAULT '+run.assault+'/3',12*s,16*s);ctx.fillStyle='#9cecff';ctx.fillText('FIELD RANK '+run.level,12*s,31*s);ctx.fillStyle='rgba(0,0,0,.76)';ctx.fillRect(12*s,H-39*s,W-24*s,27*s);ctx.fillStyle=hp>.35?'#18f06a':'#ff3c3c';ctx.fillRect(14*s,H-35*s,(W-28*s)*hp,8*s);ctx.fillStyle='#22d4ff';ctx.fillRect(14*s,H-21*s,(W-28*s)*xp,5*s);ctx.fillStyle='#fff';ctx.font=7*s+'px "Share Tech Mono"';ctx.textAlign='left';ctx.fillText('HQ '+Math.ceil(h.hp)+' / '+h.maxHp,15*s,H-28*s);if(performance.now()-run.lastHit<180){ctx.fillStyle='rgba(255,0,0,.1)';ctx.fillRect(0,0,W,H);}}
 
   installStyles(); installUI(); renderTab('campaign');
   var home=id('homeScreen'),start=id('startOverlay');if(home){home.style.display='none';home.classList.remove('hs-visible');}if(start)start.classList.add('hidden');document.body.classList.remove('lsc-home-mode');

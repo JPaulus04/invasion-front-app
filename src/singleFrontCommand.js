@@ -465,6 +465,7 @@
   }
 
   function drawSingleFrontOverlay(ctx, stateObj) {
+    if (stateObj && stateObj._centralHQMode) return;
     if (!ctx || !stateObj || !stateObj.started) return;
     var canvas = ctx.canvas;
     var W = canvas.width, H = canvas.height;
@@ -657,6 +658,7 @@
     if (typeof drawVertical === 'function' && !drawVertical.__singleFront134) {
       var oldDrawVertical = drawVertical;
       drawVertical = function (s) {
+        if (s && s._centralHQMode) return oldDrawVertical.apply(this, arguments);
         if (s) s._singleFrontMode = true;
         var result = oldDrawVertical.apply(this, arguments);
         try {
@@ -674,6 +676,8 @@
     if (typeof updateHUD === 'function' && !updateHUD.__singleFront134) {
       var oldUpdateHUD = updateHUD;
       updateHUD = function () {
+        var currentState = state();
+        if (currentState && currentState._centralHQMode) return oldUpdateHUD.apply(this, arguments);
         applyHeroPassiveMarkers();
         normalizeTurretProjectiles();
         var result = oldUpdateHUD.apply(this, arguments);
