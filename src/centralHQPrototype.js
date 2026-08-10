@@ -1,4 +1,4 @@
-// Build 152 / 3D Prototype 5 — in-place animation, visible rifles, locked attack slots.
+// Build 153 — deterministic attack slots, hard visual locks, verified rifle mounts.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -144,7 +144,7 @@
   function enemy(kind) {
     var a=Math.random()*TAU,s=dpr(),radius=Math.min(canvas.width,canvas.height)*.54+45*s,scale=1+(run.phase-1)*.16;
     var hp=kind==='boss'?900:kind==='armored'?82:kind==='runner'?25:40;
-    var slotId=run.spawned++,slots=16,slotAngle=Math.round(a/(TAU/slots))*(TAU/slots),slotRadius=(kind==='boss'?108:84+(slotId%3)*10)*s;
+    var slotId=run.spawned++,slots=24,slotIndex=slotId%slots,slotLayer=Math.floor(slotId/slots)%3,slotAngle=(slotIndex/slots)*TAU,slotRadius=(kind==='boss'?112:86+slotLayer*13)*s;
     return{x:run.hq.x+Math.cos(a)*radius,y:run.hq.y+Math.sin(a)*radius,r:(kind==='boss'?28:kind==='armored'?15:11)*s,hp:hp*scale,maxHp:hp*scale,kind:kind,speed:(kind==='boss'?25:kind==='armored'?34:kind==='runner'?66:44)*s,damage:(kind==='boss'?28:kind==='armored'?14:8)*scale,cd:0,age:Math.random(),moving:true,engaged:false,attackSlot:slotId,hit:0,flash:0,slotX:run.hq.x+Math.cos(slotAngle)*slotRadius,slotY:run.hq.y+Math.sin(slotAngle)*slotRadius,aim:Math.atan2(-Math.sin(a),-Math.cos(a))};
   }
   function nearest(o,range){var t=null,b=range;run.enemies.forEach(function(e){var x=dist(o,e);if(x<b){b=x;t=e;}});return t;}

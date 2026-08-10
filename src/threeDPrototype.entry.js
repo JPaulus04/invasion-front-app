@@ -29,7 +29,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   function makeBadge() {
     badge = document.createElement('div');
     badge.id = 'lsc-3d-badge';
-    badge.textContent = '3D PROTOTYPE 5 · RIFLE COMBAT';
+    badge.textContent = 'CENTRAL HQ · LIVE CONTACT';
     badge.style.cssText = 'position:absolute;z-index:38;left:12px;top:calc(env(safe-area-inset-top,0px) + 48px);padding:5px 8px;border:1px solid rgba(116,233,255,.5);border-radius:6px;background:rgba(3,10,15,.78);color:#74e9ff;font:7px "Share Tech Mono",monospace;letter-spacing:1.3px;pointer-events:none';
     sourceCanvas.parentNode.appendChild(badge);
   }
@@ -113,7 +113,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   function makeClipInPlace(clip) {
     const result = clip.clone();
     result.tracks.forEach(track => {
-      if (!/hips\.position$/i.test(track.name)) return;
+      if (!/(?:^|[:|.])hips\.position$/i.test(track.name)) return;
       const itemSize = track.getValueSize();
       const baseX = track.values[0], baseZ = track.values[2];
       for (let i = 0; i < track.values.length; i += itemSize) {
@@ -148,10 +148,17 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     });
     discard.forEach(child => child.parent && child.parent.remove(child));
     const bounds = new THREE.Box3().setFromObject(object);
+    const size = bounds.getSize(new THREE.Vector3());
     const center = bounds.getCenter(new THREE.Vector3());
     object.position.sub(center);
-    object.name = 'Rifle 2 · mobile assault rifle';
-    return object;
+    // Normalize the imported rifle to Mixamo's centimeter-scale skeleton.
+    // This removes the model-file scale/origin from all attachment math.
+    const longest = Math.max(size.x, size.y, size.z, .001);
+    object.scale.setScalar(72 / longest);
+    const holder = new THREE.Group();
+    holder.name = 'Rifle 2 · right hand mount';
+    holder.add(object);
+    return holder;
   }
 
   function prepareModel(object) {
@@ -203,11 +210,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       prepareModel(modelTemplate);
       Object.keys(loaded).forEach(key => { clips[key] = makeClipInPlace(loaded[key].animations[0]); });
       if (!clips.idle || !clips.run || !clips.fire || !clips.death) throw new Error('Required soldier animation missing');
-      badge.textContent = '3D PROTOTYPE 5 · RIFLES ACTIVE';
+      badge.textContent = 'CENTRAL HQ · RIFLES ACTIVE';
       return true;
     })().catch(error => {
       console.warn('Prototype 5 asset fallback:', error);
-      badge.textContent = '3D PROTOTYPE 5 · ASSET FALLBACK';
+      badge.textContent = 'CENTRAL HQ · 2D FALLBACK';
       active = false;
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -232,25 +239,16 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   function attachRifle(root) {
     let hand = null;
     root.traverse(node => {
-      const name = (node.name || '').toLowerCase();
-      if (!hand && node.isBone && /right.*hand|hand.*right|r[_ .-]?hand|hand[_ .-]?r/.test(name)) hand = node;
+      const name = (node.name || '').toLowerCase().replace(/[^a-z]/g, '');
+      if (!hand && node.isBone && name.endsWith('right hand'.replace(/ /g, ''))) hand = node;
     });
-    if (!hand) root.traverse(node => { if (!hand && node.isBone && /hand/.test((node.name || '').toLowerCase())) hand = node; });
-    if (!rifleTemplate) return;
+    if (!hand || !rifleTemplate) return;
     const rifle = rifleTemplate.clone(true);
-    (hand || root).add(rifle);
-    if (hand) {
-      // Mixamo bones use centimeter-scale local coordinates. The soldier root
-      // is normalized later, so the imported rifle must remain large in this
-      // local space to be visible after inheriting that root scale.
-      rifle.position.set(5, -2, -31);
-      rifle.rotation.set(0, Math.PI, Math.PI / 2);
-      rifle.scale.setScalar(.16);
-    } else {
-      rifle.position.set(34, 112, -45);
-      rifle.rotation.set(0, Math.PI, Math.PI / 2);
-      rifle.scale.setScalar(.16);
-    }
+    hand.add(rifle);
+    // Verified Mixamo right-hand bone. The mount sits in the palm and points
+    // the barrel along the hand/forearm line used by all supplied rifle clips.
+    rifle.position.set(1.5, 7.5, -1.5);
+    rifle.rotation.set(Math.PI / 2, 0, Math.PI / 2);
   }
 
   function makeUnit(entity, faction, scale) {
@@ -262,7 +260,13 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     const mixer = new THREE.AnimationMixer(root), actions = {};
     Object.keys(clips).forEach(key => { actions[key] = mixer.clipAction(clips[key]); actions[key].enabled = true; });
     actions.idle.play();
-    const record = { entity, root, mixer, actions, state: 'idle', faction };
+    let hips = null;
+    root.traverse(node => {
+      const name = (node.name || '').toLowerCase().replace(/[^a-z]/g, '');
+      if (!hips && node.isBone && name.endsWith('hips')) hips = node;
+    });
+    const hipsAnchor = hips ? hips.position.clone() : null;
+    const record = { entity, root, mixer, actions, state: 'idle', faction, hips, hipsAnchor, lockedPosition: null };
     units.set(entity, record);
     return record;
   }
@@ -295,7 +299,13 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     let record = units.get(entity);
     if (!record) record = makeUnit(entity, faction, scale);
     live.add(entity);
-    const p = world(entity, run);
+    let p = world(entity, run);
+    if (faction === 'enemy' && entity.engaged) {
+      if (!record.lockedPosition) record.lockedPosition = world({ x: entity.slotX, y: entity.slotY }, run);
+      p = record.lockedPosition;
+    } else if (faction === 'enemy') {
+      record.lockedPosition = null;
+    }
     record.root.position.x = p[0];
     record.root.position.z = p[1];
     record.root.rotation.y = -(entity.aim || 0) + Math.PI / 2;
@@ -307,6 +317,12 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     });
     setState(record, selectState(entity, dead));
     record.mixer.update(dt);
+    // AnimationMixer writes directly to the Hips bone. Reassert its rest X/Z
+    // after every update so no FBX clip can move the visible mesh off entity.
+    if (record.hips && record.hipsAnchor) {
+      record.hips.position.x = record.hipsAnchor.x;
+      record.hips.position.z = record.hipsAnchor.z;
+    }
   }
 
   function resize() {
