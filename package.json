@@ -10,9 +10,11 @@
   "dependencies": {
     "@capacitor/core": "^6.2.0",
     "@capacitor/ios": "^6.2.0",
-    "@revenuecat/purchases-capacitor": "9.2.2"
+    "@revenuecat/purchases-capacitor": "9.2.2",
+    "three": "^0.185.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.2.0"
+    "@capacitor/cli": "^6.2.0",
+    "esbuild": "^0.28.2"
   }
 }

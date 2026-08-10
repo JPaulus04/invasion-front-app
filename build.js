@@ -8,9 +8,22 @@
  */
 const fs = require('fs');
 const path = require('path');
+const esbuild = require('esbuild');
 
 const SRC = path.join(__dirname, 'src');
 const OUT = path.join(__dirname, 'www');
+
+// Bundle Three.js, FBXLoader and SkeletonUtils into a classic script that the
+// existing single-file Capacitor build can execute without ES-module support.
+esbuild.buildSync({
+  entryPoints: [path.join(SRC, 'threeDPrototype.entry.js')],
+  bundle: true,
+  minify: true,
+  format: 'iife',
+  platform: 'browser',
+  target: ['ios15'],
+  outfile: path.join(SRC, 'threeDPrototype.bundle.js'),
+});
 
 // Order matters — later files depend on earlier ones
 const ENGINE_SCRIPTS = [
@@ -38,7 +51,7 @@ const CONTROLLER_SCRIPTS = [
   'officers.js',            // Command Staff / Officers foundation
   'hudLayout.js',           // Battlefield floating HUD layout polish
   'screenGuard.js',         // Screen-state/input isolation for Home vs Battlefield
-  'threeDPrototype.js',     // 3D Prototype 1: isolated WebGL battlefield renderer
+  'threeDPrototype.bundle.js', // Prototype 4: imported skinned FBX renderer
   'centralHQPrototype.js',  // Build 145: animated 2.5D unit integration
 ];
 
