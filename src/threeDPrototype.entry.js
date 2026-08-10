@@ -13,8 +13,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     fire: 'Firing-Rifle.fbx',
     death: 'Death-Front-Headshot.fbx',
   };
+  const TEXTURES = ['6_packed0_diffuse.png', '6_packed1_diffuse.png', '6_packed2_diffuse.png'];
   let sourceCanvas, view, renderer, scene, camera, clock, active = false;
-  let modelTemplate = null, clips = {}, loading = null, badge = null;
+  let modelTemplate = null, clips = {}, skinMaps = [], loading = null, badge = null;
   const units = new Map();
   const staticGroup = new THREE.Group();
 
@@ -78,16 +79,19 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.55;
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x283425);
-    scene.fog = new THREE.Fog(0x283425, 24, 46);
-    camera = new THREE.PerspectiveCamera(38, 1, .1, 100);
-    camera.position.set(0, 28, 30);
-    camera.lookAt(0, 0, -2.4);
-    scene.add(new THREE.HemisphereLight(0xcce8ff, 0x334029, 2.2));
-    const sun = new THREE.DirectionalLight(0xfff1d1, 3.1);
-    sun.position.set(-12, 24, 14);
+    scene.background = new THREE.Color(0x516653);
+    scene.fog = new THREE.Fog(0x516653, 34, 58);
+    camera = new THREE.PerspectiveCamera(36, 1, .1, 100);
+    camera.position.set(0, 25, 26);
+    camera.lookAt(0, 0, 2.2);
+    scene.add(new THREE.HemisphereLight(0xe8f5ff, 0x59664a, 3.15));
+    const fill = new THREE.DirectionalLight(0xb8d9ff, 1.35);
+    fill.position.set(14, 10, -10);
+    scene.add(fill);
+    const sun = new THREE.DirectionalLight(0xfff3d8, 4.35);
+    sun.position.set(-10, 22, 12);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
     scene.add(sun);
@@ -105,17 +109,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     object.scale.setScalar(1.72 / height);
     const scaled = new THREE.Box3().setFromObject(object);
     object.position.y -= scaled.min.y;
+    let meshIndex = 0;
     object.traverse(child => {
       if (!child.isMesh) return;
       child.castShadow = child.receiveShadow = true;
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       child.material = mats.map(m => {
         const copy = m.clone();
+        if (!copy.map && skinMaps.length) copy.map = skinMaps[meshIndex % skinMaps.length];
         copy.roughness = copy.roughness == null ? .7 : copy.roughness;
         copy.metalness = copy.metalness == null ? .05 : copy.metalness;
+        copy.needsUpdate = true;
         return copy;
       });
       if (child.material.length === 1) child.material = child.material[0];
+      meshIndex++;
     });
   }
 
@@ -124,6 +132,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     loading = (async () => {
       const loader = new FBXLoader();
       loader.setResourcePath(ASSET_ROOT);
+      const textureLoader = new THREE.TextureLoader();
+      skinMaps = await Promise.all(TEXTURES.map(file => textureLoader.loadAsync(ASSET_ROOT + file)));
+      skinMaps.forEach(map => { map.colorSpace = THREE.SRGBColorSpace; map.flipY = true; });
       const loaded = {};
       for (const key of Object.keys(FILES)) loaded[key] = await loadFBX(loader, FILES[key]);
       modelTemplate = loaded.idle;
@@ -149,16 +160,56 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       if (!child.isMesh) return;
       const materials = (Array.isArray(child.material) ? child.material : [child.material]).map(source => {
         const m = source.clone();
-        if (m.color) m.color.lerp(tintColor, .22);
+        if (m.color) m.color.multiply(tintColor).lerp(new THREE.Color(0xffffff), .42);
         return m;
       });
       child.material = Array.isArray(child.material) ? materials : materials[0];
     });
   }
 
+  function makeRifle() {
+    const rifle = new THREE.Group();
+    const material = new THREE.MeshStandardMaterial({ color: 0x171b1b, roughness: .48, metalness: .58 });
+    const stockMaterial = new THREE.MeshStandardMaterial({ color: 0x3b2b20, roughness: .82, metalness: .04 });
+    const part = (geometry, position, rotation, source = material) => {
+      const mesh = new THREE.Mesh(geometry, source);
+      mesh.position.set(...position);
+      mesh.rotation.set(...rotation);
+      mesh.castShadow = true;
+      rifle.add(mesh);
+    };
+    part(new THREE.BoxGeometry(.085, .11, .72), [0, 0, -.27], [0, 0, 0]);
+    part(new THREE.CylinderGeometry(.018, .023, .7, 8), [0, .01, -.96], [Math.PI / 2, 0, 0]);
+    part(new THREE.BoxGeometry(.12, .15, .36), [0, -.015, .25], [0, 0, 0], stockMaterial);
+    part(new THREE.BoxGeometry(.07, .25, .12), [0, -.17, -.18], [-.22, 0, 0]);
+    part(new THREE.BoxGeometry(.06, .07, .15), [0, .09, -.12], [0, 0, 0]);
+    rifle.name = 'Prototype 4.1 M16';
+    return rifle;
+  }
+
+  function attachRifle(root) {
+    let hand = null;
+    root.traverse(node => {
+      const name = (node.name || '').toLowerCase();
+      if (!hand && node.isBone && /right.*hand|hand.*right|r[_ .-]?hand|hand[_ .-]?r/.test(name)) hand = node;
+    });
+    if (!hand) root.traverse(node => { if (!hand && node.isBone && /hand/.test((node.name || '').toLowerCase())) hand = node; });
+    const rifle = makeRifle();
+    (hand || root).add(rifle);
+    if (hand) {
+      rifle.position.set(.02, .02, -.18);
+      rifle.rotation.set(-Math.PI / 2, 0, Math.PI / 2);
+      rifle.scale.setScalar(.9);
+    } else {
+      rifle.position.set(.34, 1.12, -.45);
+      rifle.rotation.y = Math.PI / 2;
+    }
+  }
+
   function makeUnit(entity, faction, scale) {
     const root = SkeletonUtils.clone(modelTemplate);
     tint(root, faction === 'enemy' ? 0xb83f32 : faction === 'holt' ? 0xd5b441 : 0x4b9a68);
+    attachRifle(root);
     root.scale.multiplyScalar(scale || 1);
     scene.add(root);
     const mixer = new THREE.AnimationMixer(root), actions = {};
@@ -201,6 +252,12 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     record.root.position.x = p[0];
     record.root.position.z = p[1];
     record.root.rotation.y = -(entity.aim || 0) + Math.PI / 2;
+    record.root.traverse(child => {
+      if (!child.isMesh || !child.material) return;
+      const opacity = dead ? Math.min(1, Math.max(0, (entity.life || 0) / .35)) : 1;
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach(material => { material.transparent = opacity < 1; material.opacity = opacity; });
+    });
     setState(record, selectState(entity, dead));
     record.mixer.update(dt);
   }
