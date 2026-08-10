@@ -1,4 +1,4 @@
-// Build 145 — animated 2.5D unit integration.
+// Build 146 / 3D Prototype 1 — existing game logic driving an isolated WebGL battlefield.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -127,6 +127,7 @@
     id('lsc137-app').classList.add('hidden');
     document.body.classList.add('lsc137-mode');
     run = createRun(phaseOverride);setSpeed(1);
+    if(window.LSC3DPrototype) window.LSC3DPrototype.start(canvas, run);
     G.state._centralHQMode = true; G.state.waveInProgress = true; G.state.gameOver = false; G.state.paused = false;
     id('lsc137-ability').disabled = false; id('lsc137-ability').textContent = 'ARTILLERY';
   }
@@ -177,7 +178,7 @@
     id('l137-retry').style.display = won ? '' : 'none';
     id('lsc137-result').classList.add('show');
   }
-  function returnHome(){closePause();_gameSpeed=1;id('lsc137-result').classList.remove('show');id('lsc137-app').classList.remove('hidden');document.body.classList.remove('lsc137-mode');if(run){run.enemies=[];run.bullets=[];run.active=false;}run=null;G.state._centralHQMode=false;G.state.waveInProgress=false;renderTab('campaign');}
+  function returnHome(){closePause();_gameSpeed=1;id('lsc137-result').classList.remove('show');id('lsc137-app').classList.remove('hidden');document.body.classList.remove('lsc137-mode');if(window.LSC3DPrototype)window.LSC3DPrototype.stop();if(run){run.enemies=[];run.bullets=[];run.active=false;}run=null;G.state._centralHQMode=false;G.state.waveInProgress=false;renderTab('campaign');}
 
   function updateBattleHUD(){
     if(!run)return;
@@ -218,6 +219,12 @@
   function draw(){if(!run||!ctx)return oldDraw&&oldDraw(G.state);var W=canvas.width,H=canvas.height,s=dpr(),h=run.hq;drawEnvironment(W,H,h);circle(h.x,h.y,112*s,'rgba(50,220,255,.018)','rgba(86,223,255,.075)',s);circle(run.turret.x,run.turret.y,run.turret.range,null,'rgba(255,151,55,.035)',s);drawProductionHQ(h);drawProductionTurret(run.turret);run.squad.forEach(function(a){a.age=run.elapsed;drawProductionSoldier(a,false,false,false);});circle(run.hero.x,run.hero.y,run.hero.range,null,'rgba(255,240,122,.04)',s);run.hero.age=run.elapsed;drawProductionSoldier(run.hero,false,true,true);run.corpses.forEach(function(e){animatedUnit(e,e.kind==='boss'?4:e.kind==='armored'?3:2,e.kind==='boss'?126:e.kind==='armored'?58:46,e.kind==='boss'?116:e.kind==='armored'?82:68,false,true);});
     run.enemies.forEach(function(e){if(e.kind==='boss')drawProductionBoss(e);else drawProductionSoldier(e,true,e.kind==='armored',false);if(e.hp<e.maxHp||e.kind==='boss'){ctx.fillStyle='rgba(35,3,3,.85)';ctx.fillRect(e.x-e.r,e.y-e.r-15*s,e.r*2,4*s);ctx.fillStyle=e.kind==='boss'?'#ff3c3c':'#ff694d';ctx.fillRect(e.x-e.r,e.y-e.r-15*s,e.r*2*(e.hp/e.maxHp),4*s);}});run.bullets.forEach(function(b){ctx.save();ctx.strokeStyle=b.color;ctx.lineWidth=(b.source==='turret'?5:b.source==='commander'?2.5:1.7)*s;ctx.shadowColor=b.color;ctx.shadowBlur=(b.source==='turret'?14:8)*s;ctx.beginPath();ctx.moveTo(b.px,b.py);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.restore();});run.particles.forEach(function(p){var a=p.life/p.max;ctx.globalAlpha=clamp(a,0,1);if(p.filled)circle(p.x,p.y,p.r*(1.2-a*.2),p.color);else circle(p.x,p.y,p.r*(1-a*.35),null,p.color,Math.max(1,4*a)*s);ctx.globalAlpha=1;});
     if(run.feedback){var fc=run.feedback.source==='commander'?'#fff07a':run.feedback.source==='turret'?'#ff8a2a':'#55e7ff',fa=Math.min(1,run.feedback.life/.35),fy=84*s;ctx.globalAlpha=fa;ctx.fillStyle='rgba(3,10,15,.92)';ctx.fillRect(W*.16,fy,W*.68,24*s);ctx.strokeStyle=fc;ctx.strokeRect(W*.16,fy,W*.68,24*s);ctx.fillStyle=fc;ctx.font='bold '+8*s+'px "Share Tech Mono"';ctx.textAlign='center';ctx.fillText(run.feedback.text,W/2,fy+15*s);ctx.globalAlpha=1;}var hp=clamp(h.hp/h.maxHp,0,1),xp=clamp(run.xp/run.xpNext,0,1);ctx.fillStyle='rgba(3,10,15,.9)';ctx.fillRect(0,0,W,42*s);ctx.strokeStyle='rgba(34,212,255,.35)';ctx.beginPath();ctx.moveTo(0,42*s);ctx.lineTo(W,42*s);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold '+9*s+'px "Share Tech Mono"';ctx.textAlign='left';ctx.fillText('PHASE '+run.phase+' · ASSAULT '+run.assault+'/3',12*s,16*s);ctx.fillStyle='#9cecff';ctx.fillText('FIELD RANK '+run.level,12*s,31*s);ctx.fillStyle='rgba(0,0,0,.76)';ctx.fillRect(12*s,H-39*s,W-24*s,27*s);ctx.fillStyle=hp>.35?'#18f06a':'#ff3c3c';ctx.fillRect(14*s,H-35*s,(W-28*s)*hp,8*s);ctx.fillStyle='#22d4ff';ctx.fillRect(14*s,H-21*s,(W-28*s)*xp,5*s);ctx.fillStyle='#fff';ctx.font=7*s+'px "Share Tech Mono"';ctx.textAlign='left';ctx.fillText('HQ '+Math.ceil(h.hp)+' / '+h.maxHp,15*s,H-28*s);if(performance.now()-run.lastHit<180){ctx.fillStyle='rgba(255,0,0,.1)';ctx.fillRect(0,0,W,H);}}
+
+  var draw2D = draw;
+  draw = function(){
+    if(run && window.LSC3DPrototype && window.LSC3DPrototype.render(run)) return;
+    return draw2D();
+  };
 
   installStyles(); installUI(); renderTab('campaign');
   var home=id('homeScreen'),start=id('startOverlay');if(home){home.style.display='none';home.classList.remove('hs-visible');}if(start)start.classList.add('hidden');document.body.classList.remove('lsc-home-mode');
