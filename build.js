@@ -62,6 +62,17 @@ function read(file) {
 // Read the dev index.html
 let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 
+function requireMatch(condition, message) {
+  if (!condition) throw new Error(`Build validation failed: ${message}`);
+}
+
+// Refuse to bundle a damaged source shell. This specifically catches the
+// Build 149 failure where index.html ended inside an embedded base64 image.
+requireMatch(html.includes('</body>'), 'source index.html is missing </body>');
+requireMatch(html.includes('</html>'), 'source index.html is missing </html>');
+requireMatch(html.includes('id="beginBtn"'), 'source index.html is missing Begin Operation');
+requireMatch(html.includes('<script src="src/main.js"></script>'), 'source main.js script marker is missing');
+
 // Read CSS
 const css = read('style.css');
 
@@ -77,15 +88,29 @@ const engineCode = ENGINE_SCRIPTS.map(f => `// ── ${f} ──\n${read(f)}`).
 // Build controller script block
 const controllerCode = CONTROLLER_SCRIPTS.map(f => `// ── ${f} ──\n${read(f)}`).join('\n\n');
 
-// Replace the individual <script src="..."> tags with inline scripts
-// Remove all individual script tags
-html = html.replace(/<!-- ══ GAME ENGINE ═+[\s\S]*?<!-- ══ CONTROLLER \+ UI ═+[\s\S]*?<script src="src\/main\.js"><\/script>/,
-  `<script>\n${engineCode}\n</script>\n\n<script>\n${controllerCode}\n</script>`
-);
+// Replace the full external-script region by explicit boundary tags. This is
+// deliberately independent of decorative comment width/characters.
+const firstScript = '<script src="src/config.js"></script>';
+const lastScript = '<script src="src/main.js"></script>';
+const scriptStart = html.indexOf(firstScript);
+const scriptEnd = html.indexOf(lastScript, scriptStart);
+requireMatch(scriptStart >= 0, 'config.js script boundary is missing');
+requireMatch(scriptEnd >= scriptStart, 'main.js script boundary is missing');
+html =
+  html.slice(0, scriptStart) +
+  `<script>\n${engineCode}\n</script>\n\n<script>\n${controllerCode}\n</script>` +
+  html.slice(scriptEnd + lastScript.length);
 
 // centralHQPrototype.js is already included in CONTROLLER_SCRIPTS for the
 // production bundle; remove its development-only external script tag.
 html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
+
+requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
+requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
+requireMatch(html.includes('const LSC_BUILD = \'150\';'), 'Build 150 config is not present');
+requireMatch(html.includes('</body>') && html.includes('</html>'), 'output shell is incomplete');
+requireMatch(html.trimEnd().endsWith('</html>'), 'output contains a truncated tail');
+requireMatch(html.includes('id="beginBtn"') && html.includes('id="helpBtn"'), 'start controls are missing');
 
 // Ensure output dir exists
 if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
@@ -108,6 +133,10 @@ if (fs.existsSync(ASSETS)) {
 
 const outPath = path.join(OUT, 'index.html');
 fs.writeFileSync(outPath, html, 'utf8');
+
+const written = fs.readFileSync(outPath, 'utf8');
+requireMatch(written.length === html.length, 'written output length does not match generated output');
+requireMatch(written.trimEnd().endsWith('</html>'), 'written output is truncated');
 
 const size = (fs.statSync(outPath).size / 1024).toFixed(0);
 console.log(`✅ Built www/index.html (${size} KB)`);
