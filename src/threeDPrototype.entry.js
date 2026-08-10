@@ -14,15 +14,22 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     death: 'Death-Front-Headshot.fbx',
   };
   const TEXTURES = ['6_packed0_diffuse.png', '6_packed1_diffuse.png', '6_packed2_diffuse.png'];
+  const WEAPON_ROOT = `${ASSET_ROOT}weapons/`;
+  const WEAPON_FILE = 'Rifle-Pack-2-In-1.fbx';
+  const WEAPON_TEXTURES = {
+    color: 'Rifle_2_Mat_AlbedoTransparency.png',
+    normal: 'Rifle_2_Mat_Normal.png',
+  };
   let sourceCanvas, view, renderer, scene, camera, clock, active = false;
   let modelTemplate = null, clips = {}, skinMaps = [], loading = null, badge = null;
+  let rifleTemplate = null;
   const units = new Map();
   const staticGroup = new THREE.Group();
 
   function makeBadge() {
     badge = document.createElement('div');
     badge.id = 'lsc-3d-badge';
-    badge.textContent = '3D PROTOTYPE 4 · IMPORTED SOLDIER';
+    badge.textContent = '3D PROTOTYPE 5 · RIFLE COMBAT';
     badge.style.cssText = 'position:absolute;z-index:38;left:12px;top:calc(env(safe-area-inset-top,0px) + 48px);padding:5px 8px;border:1px solid rgba(116,233,255,.5);border-radius:6px;background:rgba(3,10,15,.78);color:#74e9ff;font:7px "Share Tech Mono",monospace;letter-spacing:1.3px;pointer-events:none';
     sourceCanvas.parentNode.appendChild(badge);
   }
@@ -103,6 +110,50 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     return new Promise((resolve, reject) => loader.load(ASSET_ROOT + file, resolve, undefined, reject));
   }
 
+  function makeClipInPlace(clip) {
+    const result = clip.clone();
+    result.tracks.forEach(track => {
+      if (!/hips\.position$/i.test(track.name)) return;
+      const itemSize = track.getValueSize();
+      const baseX = track.values[0], baseZ = track.values[2];
+      for (let i = 0; i < track.values.length; i += itemSize) {
+        track.values[i] = baseX;
+        track.values[i + 2] = baseZ;
+      }
+    });
+    return result;
+  }
+
+  function prepareRifle(object, colorMap, normalMap) {
+    const discard = [];
+    object.traverse(child => {
+      if (!child.isMesh) return;
+      if (!/^Rifle_2(?:001|002)?$/i.test(child.name)) {
+        discard.push(child);
+        return;
+      }
+      child.castShadow = true;
+      child.frustumCulled = false;
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      child.material = materials.map(source => {
+        const material = source.clone();
+        material.map = colorMap;
+        material.normalMap = normalMap;
+        material.metalness = .48;
+        material.roughness = .44;
+        material.needsUpdate = true;
+        return material;
+      });
+      if (child.material.length === 1) child.material = child.material[0];
+    });
+    discard.forEach(child => child.parent && child.parent.remove(child));
+    const bounds = new THREE.Box3().setFromObject(object);
+    const center = bounds.getCenter(new THREE.Vector3());
+    object.position.sub(center);
+    object.name = 'Rifle 2 · mobile assault rifle';
+    return object;
+  }
+
   function prepareModel(object) {
     const bounds = new THREE.Box3().setFromObject(object);
     const height = Math.max(.01, bounds.max.y - bounds.min.y);
@@ -137,15 +188,26 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       skinMaps.forEach(map => { map.colorSpace = THREE.SRGBColorSpace; map.flipY = true; });
       const loaded = {};
       for (const key of Object.keys(FILES)) loaded[key] = await loadFBX(loader, FILES[key]);
+      const weaponLoader = new FBXLoader();
+      weaponLoader.setResourcePath(WEAPON_ROOT);
+      const [weapon, weaponColor, weaponNormal] = await Promise.all([
+        new Promise((resolve, reject) => weaponLoader.load(WEAPON_ROOT + WEAPON_FILE, resolve, undefined, reject)),
+        textureLoader.loadAsync(WEAPON_ROOT + WEAPON_TEXTURES.color),
+        textureLoader.loadAsync(WEAPON_ROOT + WEAPON_TEXTURES.normal),
+      ]);
+      weaponColor.colorSpace = THREE.SRGBColorSpace;
+      weaponColor.flipY = true;
+      weaponNormal.flipY = true;
+      rifleTemplate = prepareRifle(weapon, weaponColor, weaponNormal);
       modelTemplate = loaded.idle;
       prepareModel(modelTemplate);
-      Object.keys(loaded).forEach(key => { clips[key] = loaded[key].animations[0]; });
+      Object.keys(loaded).forEach(key => { clips[key] = makeClipInPlace(loaded[key].animations[0]); });
       if (!clips.idle || !clips.run || !clips.fire || !clips.death) throw new Error('Required soldier animation missing');
-      badge.textContent = '3D PROTOTYPE 4 · REAL ANIMATION ACTIVE';
+      badge.textContent = '3D PROTOTYPE 5 · RIFLES ACTIVE';
       return true;
     })().catch(error => {
-      console.warn('Prototype 4 asset fallback:', error);
-      badge.textContent = '3D PROTOTYPE 4 · ASSET FALLBACK';
+      console.warn('Prototype 5 asset fallback:', error);
+      badge.textContent = '3D PROTOTYPE 5 · ASSET FALLBACK';
       active = false;
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -167,26 +229,6 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     });
   }
 
-  function makeRifle() {
-    const rifle = new THREE.Group();
-    const material = new THREE.MeshStandardMaterial({ color: 0x171b1b, roughness: .48, metalness: .58 });
-    const stockMaterial = new THREE.MeshStandardMaterial({ color: 0x3b2b20, roughness: .82, metalness: .04 });
-    const part = (geometry, position, rotation, source = material) => {
-      const mesh = new THREE.Mesh(geometry, source);
-      mesh.position.set(...position);
-      mesh.rotation.set(...rotation);
-      mesh.castShadow = true;
-      rifle.add(mesh);
-    };
-    part(new THREE.BoxGeometry(.085, .11, .72), [0, 0, -.27], [0, 0, 0]);
-    part(new THREE.CylinderGeometry(.018, .023, .7, 8), [0, .01, -.96], [Math.PI / 2, 0, 0]);
-    part(new THREE.BoxGeometry(.12, .15, .36), [0, -.015, .25], [0, 0, 0], stockMaterial);
-    part(new THREE.BoxGeometry(.07, .25, .12), [0, -.17, -.18], [-.22, 0, 0]);
-    part(new THREE.BoxGeometry(.06, .07, .15), [0, .09, -.12], [0, 0, 0]);
-    rifle.name = 'Prototype 4.1 M16';
-    return rifle;
-  }
-
   function attachRifle(root) {
     let hand = null;
     root.traverse(node => {
@@ -194,15 +236,20 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       if (!hand && node.isBone && /right.*hand|hand.*right|r[_ .-]?hand|hand[_ .-]?r/.test(name)) hand = node;
     });
     if (!hand) root.traverse(node => { if (!hand && node.isBone && /hand/.test((node.name || '').toLowerCase())) hand = node; });
-    const rifle = makeRifle();
+    if (!rifleTemplate) return;
+    const rifle = rifleTemplate.clone(true);
     (hand || root).add(rifle);
     if (hand) {
-      rifle.position.set(.02, .02, -.18);
-      rifle.rotation.set(-Math.PI / 2, 0, Math.PI / 2);
-      rifle.scale.setScalar(.9);
+      // Mixamo bones use centimeter-scale local coordinates. The soldier root
+      // is normalized later, so the imported rifle must remain large in this
+      // local space to be visible after inheriting that root scale.
+      rifle.position.set(5, -2, -31);
+      rifle.rotation.set(0, Math.PI, Math.PI / 2);
+      rifle.scale.setScalar(.16);
     } else {
-      rifle.position.set(.34, 1.12, -.45);
-      rifle.rotation.y = Math.PI / 2;
+      rifle.position.set(34, 112, -45);
+      rifle.rotation.set(0, Math.PI, Math.PI / 2);
+      rifle.scale.setScalar(.16);
     }
   }
 
