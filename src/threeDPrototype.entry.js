@@ -7,6 +7,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
   const api = {};
   const ASSET_ROOT = 'assets/prototype4/';
+  const LANE_COUNT = 8;
+  const LANE_ANGLE_OFFSET = Math.PI / 8;
+  const BARRICADE_WORLD_RADIUS = 5.7;
+  const ATTACK_CYCLE_SECONDS = 1.45;
   const FILES = {
     model: 'Zombie-Soldier.fbx',
     run: 'Zombie-Run.fbx',
@@ -30,6 +34,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let turretGroup = null;
   let turretYaw = null;
   let turretMuzzle = null;
+  const barricadeGroups = [];
 
   const units = new Map();
   const tracers = new Map();
@@ -150,21 +155,24 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     box('HQ upper', [1.45, .65, 1.15], [0, 2.05, .28], 0x687c76);
     box('HQ mast', [.08, 1.3, .08], [0, 3, .28], 0xd0ded8, staticGroup, { metalness: .4 });
 
-    for (let q = 0; q < 4; q++) {
-      for (let i = -2; i <= 2; i++) {
-        const a = q * Math.PI / 2;
-        const side = i * 1.05;
-        box(
-          'Barricade',
-          [.78, .48, .36],
-          [
-            Math.sin(a) * side + Math.cos(a) * 5.7,
-            .25,
-            Math.cos(a) * side - Math.sin(a) * 5.7,
-          ],
-          0x806d4a
-        );
-      }
+    for (let lane = 0; lane < LANE_COUNT; lane++) {
+      const angle = LANE_ANGLE_OFFSET + lane / LANE_COUNT * Math.PI * 2;
+      const group = new THREE.Group();
+      group.name = `Barricade lane ${lane + 1}`;
+      group.position.set(
+        Math.cos(angle) * BARRICADE_WORLD_RADIUS,
+        0,
+        Math.sin(angle) * BARRICADE_WORLD_RADIUS
+      );
+      group.rotation.y = Math.PI / 2 - angle;
+      staticGroup.add(group);
+
+      const left = box('Barricade left', [.78, .5, .42], [-.4, .26, 0], 0x806d4a, group);
+      const right = box('Barricade right', [.78, .5, .42], [.4, .26, 0], 0x806d4a, group);
+      box('Barricade brace left', [.12, .62, .58], [-.78, .31, 0], 0x4d4d3d, group, { metalness: .22 });
+      box('Barricade brace right', [.12, .62, .58], [.78, .31, 0], 0x4d4d3d, group, { metalness: .22 });
+      group.userData.faceMaterials = [left.material, right.material];
+      barricadeGroups.push(group);
     }
 
     buildHero();
@@ -227,7 +235,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     });
   }
 
-  function makeClipInPlace(source, name) {
+  function makeClipInPlace(source, name, lockVertical) {
     if (!source || !source.animations || !source.animations[0]) {
       throw new Error(`Missing ${name} animation`);
     }
@@ -238,9 +246,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       if (!/hips\.position$/i.test(track.name)) return;
       const itemSize = track.getValueSize();
       const baseX = track.values[0];
+      const baseY = track.values[1];
       const baseZ = track.values[2];
       for (let i = 0; i < track.values.length; i += itemSize) {
         track.values[i] = baseX;
+        if (lockVertical) track.values[i + 1] = baseY;
         track.values[i + 2] = baseZ;
       }
     });
@@ -287,15 +297,15 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       prepareZombieModel(model);
       zombieTemplate = model;
       clips = {
-        run: makeClipInPlace(run, 'zombie-run'),
-        attack: makeClipInPlace(attack, 'zombie-attack'),
-        death: makeClipInPlace(death, 'zombie-death'),
+        run: makeClipInPlace(run, 'zombie-run', false),
+        attack: makeClipInPlace(attack, 'zombie-attack', true),
+        death: makeClipInPlace(death, 'zombie-death', false),
       };
 
       badge.textContent = 'CENTRAL HQ · INFECTED CONTACT';
       return true;
     })().catch(error => {
-      console.warn('Build 156 zombie asset fallback:', error);
+      console.warn('Build 157 zombie asset fallback:', error);
       badge.textContent = 'CENTRAL HQ · 2D FALLBACK';
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -397,6 +407,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     action.setLoop(next === 'death' ? THREE.LoopOnce : THREE.LoopRepeat, next === 'death' ? 1 : Infinity);
     action.clampWhenFinished = next === 'death';
     if (next === 'death' && deathDuration) action.setDuration(Math.max(.35, deathDuration));
+    if (next === 'attack') action.setDuration(ATTACK_CYCLE_SECONDS);
     action.play();
     if (previous) action.crossFadeFrom(previous, next === 'death' ? .08 : .16, true);
     record.state = next;
@@ -435,6 +446,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     record.root.rotation.y = rotation;
 
     setZombieState(record, selectZombieState(entity, dead), dead ? entity.max : null);
+    if (!dead && record.state === 'run') {
+      record.actions.run.setEffectiveTimeScale(entity.waiting ? .38 : 1);
+    }
     record.mixer.update(dt);
 
     // Mixamo motion clips animate the hips directly. Reset their horizontal
@@ -466,6 +480,23 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     turretYaw.rotation.y = -(run.turret.aim || 0) + Math.PI / 2;
     turretGroup.visible = true;
     turretMuzzle.intensity = (run.turret.flash || 0) > 0 ? 7 : 0;
+  }
+
+  function syncBarricades(run) {
+    barricadeGroups.forEach((group, index) => {
+      const state = run.lanes && run.lanes[index] && run.lanes[index].barricade;
+      const alive = !!state && state.hp > 0;
+      group.visible = alive;
+      if (!alive) return;
+
+      const ratio = Math.max(0, Math.min(1, state.hp / Math.max(1, state.maxHp)));
+      const color = state.flash > 0 ? 0xb34835 : ratio < .35 ? 0x594734 : ratio < .7 ? 0x705b3e : 0x806d4a;
+      group.userData.faceMaterials.forEach(item => {
+        item.color.setHex(color);
+        item.emissive.setHex(state.flash > 0 ? 0x45150e : 0x000000);
+        item.emissiveIntensity = state.flash > 0 ? .8 : 0;
+      });
+    });
   }
 
   function makeTracer(bullet) {
@@ -552,7 +583,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         sourceCanvas.style.visibility = 'hidden';
       });
     } catch (error) {
-      console.warn('Build 156 3D fallback:', error);
+      console.warn('Build 157 3D fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';
@@ -577,13 +608,14 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     syncHero(run);
     syncTurret(run);
+    syncBarricades(run);
 
     run.enemies.forEach(unit => {
-      const scale = unit.kind === 'boss' ? 1.62 : unit.kind === 'armored' ? 1.12 : unit.kind === 'runner' ? .86 : .94;
+      const scale = unit.kind === 'boss' ? 1.72 : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
       syncZombie(unit, run, scale, false, dt, liveUnits);
     });
     run.corpses.forEach(unit => {
-      const scale = unit.kind === 'boss' ? 1.62 : unit.kind === 'armored' ? 1.12 : unit.kind === 'runner' ? .86 : .94;
+      const scale = unit.kind === 'boss' ? 1.72 : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
       syncZombie(unit, run, scale, true, dt, liveUnits);
     });
 
