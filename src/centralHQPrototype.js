@@ -1,4 +1,4 @@
-// Build 153 — deterministic attack slots, hard visual locks, verified rifle mounts.
+// Build 154 — command-base startup migration plus Build 153 combat corrections.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -27,6 +27,64 @@
     catch (e) { return defaults(); }
   }
   function saveMeta() { localStorage.setItem(META_KEY, JSON.stringify(meta)); }
+
+  // Build 154: old TestFlight installs can retain tutorial/navigation flags from
+  // the retired three-lane game. Initialize the underlying state once, then
+  // permanently remove those obsolete entry screens without touching campaign,
+  // purchases, research, inventory, or Command Base progression.
+  function removeLegacyNode(nodeId) {
+    var node = id(nodeId);
+    if (!node) return;
+    node.classList.remove('active');
+    node.classList.add('hidden');
+    node.setAttribute('aria-hidden', 'true');
+    node.remove();
+  }
+
+  function enforceCommandBaseStartup() {
+    try {
+      localStorage.setItem('ifc_ob_done', '1');
+      localStorage.setItem('lsc_startup_schema', '154');
+
+      // The old engine still supplies shared audio/state helpers used in battle.
+      // Complete its one-time initialization before detaching its retired start UI.
+      if (G && G.state && !G.state.started) {
+        if (!G.state.selectedDoctrine) G.state.selectedDoctrine = 'fortress';
+        var begin = id('beginBtn');
+        if (begin) begin.click();
+        G.state.started = true;
+      }
+
+      if (typeof _obDismiss === 'function') _obDismiss();
+      removeLegacyNode('onboarding-overlay');
+      removeLegacyNode('startOverlay');
+
+      var home = id('homeScreen');
+      if (home) {
+        home.style.display = 'none';
+        home.classList.remove('hs-visible');
+        home.setAttribute('aria-hidden', 'true');
+      }
+      document.body.classList.remove('lsc-home-mode');
+
+      if (G && G.state) {
+        G.state._centralHQMode = false;
+        G.state.waveInProgress = false;
+        G.state.gameOver = false;
+        G.state.paused = false;
+      }
+
+      var commandBase = id('lsc137-app');
+      if (commandBase) {
+        commandBase.classList.remove('hidden');
+        commandBase.setAttribute('aria-hidden', 'false');
+      }
+    } catch (e) {
+      console.warn('[Build 154] startup migration recovered:', e.message);
+      var fallback = id('lsc137-app');
+      if (fallback) fallback.classList.remove('hidden');
+    }
+  }
   function levelCost(type) {
     if (type === 'commander') return { credits: 200 * meta.commander, parts: 0 };
     if (type === 'research') return { credits: 300, parts: 5 };
@@ -121,9 +179,7 @@
 
   function launchPhase(phaseOverride) {
     var home = id('homeScreen'); if (home) { home.style.display = 'none'; home.classList.remove('hs-visible'); }
-    var start = id('startOverlay');
-    if (G && G.state && !G.state.started) { if (!G.state.selectedDoctrine) G.state.selectedDoctrine = 'fortress'; var begin = id('beginBtn'); if (begin) begin.click(); }
-    if (start) start.classList.add('hidden');
+    if (G && G.state && !G.state.started) { if (!G.state.selectedDoctrine) G.state.selectedDoctrine = 'fortress'; G.state.started = true; }
     id('lsc137-app').classList.add('hidden');
     document.body.classList.add('lsc137-mode');
     run = createRun(phaseOverride);setSpeed(1);
@@ -227,8 +283,11 @@
     return draw2D();
   };
 
-  installStyles(); installUI(); renderTab('campaign');
-  var home=id('homeScreen'),start=id('startOverlay');if(home){home.style.display='none';home.classList.remove('hs-visible');}if(start)start.classList.add('hidden');document.body.classList.remove('lsc-home-mode');
+  installStyles(); installUI(); renderTab('campaign'); enforceCommandBaseStartup();
+  // iOS can restore a cached visual snapshot on pageshow. Reassert the current
+  // route after restoration; no progression data is cleared by this safeguard.
+  window.addEventListener('pageshow', function () { if (!run) enforceCommandBaseStartup(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && !run) enforceCommandBaseStartup(); });
   _patchedUpdate=function(dt,c,onEnd,onGameOver,onWarn){if(run&&G.state&&G.state._centralHQMode){if(!run.paused)update(dt);updateBattleHUD();return;}return oldUpdate&&oldUpdate(dt,c,onEnd,onGameOver,onWarn);};
   drawVertical=function(state){if(run&&state&&state._centralHQMode)return draw();return oldDraw&&oldDraw(state);};
 })();
