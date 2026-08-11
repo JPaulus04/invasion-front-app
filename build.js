@@ -108,18 +108,26 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'158\';'), 'Build 158 config is not present');
-requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 158 primary zombie renderer is missing');
-requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 158 second zombie renderer is missing');
-requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 158 clean melee animation is missing');
+requireMatch(html.includes('const LSC_BUILD = \'159\';'), 'Build 159 config is not present');
+requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 159 primary zombie renderer is missing');
+requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 159 second zombie renderer is missing');
+requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 159 clean melee animation is missing');
 requireMatch(!html.includes('Rifle-Pack-2-In-1.fbx'), 'retired detached-rifle loader is still bundled');
-requireMatch(html.includes('var LANE_COUNT = 8;'), 'Build 158 eight-lane simulation is missing');
-requireMatch(html.includes('Barricade lane '), 'Build 158 eight-lane renderer is missing');
-requireMatch(html.includes("targetType==='barricade'"), 'Build 158 barricade damage routing is missing');
-requireMatch(html.includes('Build 158 zombie asset fallback:'), 'Build 158 renderer marker is missing');
-requireMatch(html.includes("level:meta.hq"), 'Build 158 HQ level routing is missing');
-requireMatch(html.includes('HQ level 4 laser upgrade'), 'Build 158 visual HQ tiers are missing');
-requireMatch(html.includes("BOSS_LANE_INDEX = 6"), 'Build 158 exclusive boss lane is missing');
+requireMatch(html.includes('var LANE_COUNT = 8;'), 'Build 159 eight-lane simulation is missing');
+requireMatch(html.includes('var LANE_X_SCALE = .62;'), 'Build 159 portrait lane compression is missing');
+requireMatch(html.includes('Barricade lane '), 'Build 159 eight-lane renderer is missing');
+requireMatch(html.includes("targetType==='barricade'"), 'Build 159 barricade damage routing is missing');
+requireMatch(html.includes('Build 159 zombie asset fallback:'), 'Build 159 renderer marker is missing');
+requireMatch(html.includes("level:meta.hq"), 'Build 159 HQ level routing is missing');
+requireMatch(html.includes('HQ level 2 reinforced compound'), 'Build 159 reinforced HQ tier is missing');
+requireMatch(html.includes('HQ level 2 turret reinforcement'), 'Build 159 upgraded turret tier is missing');
+requireMatch(html.includes('HQ level 4 laser upgrade'), 'Build 159 visual HQ tiers are missing');
+requireMatch(html.includes("BOSS_LANE_INDEX = 6"), 'Build 159 exclusive boss lane is missing');
+requireMatch(html.includes('function phaseBalance(phase)'), 'Build 159 opening balance curve is missing');
+requireMatch(html.includes('function retryAssist(phase)'), 'Build 159 retry assistance is missing');
+requireMatch(html.includes('PROGRESS IS NEVER LOST'), 'Build 159 failure reward is missing');
+requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 159 startup shield is missing');
+requireMatch(html.includes("classList.add('lsc-command-ready')"), 'Build 159 startup-ready handoff is missing');
 requireMatch(html.includes('</body>') && html.includes('</html>'), 'output shell is incomplete');
 requireMatch(html.trimEnd().endsWith('</html>'), 'output contains a truncated tail');
 requireMatch(html.includes('id="beginBtn"') && html.includes('id="helpBtn"'), 'start controls are missing');
@@ -139,7 +147,7 @@ const ASSETS = path.join(__dirname, 'assets');
   'Zombie-Punch.fbx',
   'Zombie-Death.fbx',
 ].forEach(file => {
-  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', file)), `required Build 158 asset is missing: ${file}`);
+  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', file)), `required Build 159 asset is missing: ${file}`);
 });
 [
   'Center-Base.fbx',
@@ -149,7 +157,7 @@ const ASSETS = path.join(__dirname, 'assets');
   'Security-Tower.fbx',
   'Security-Tower-BaseColor.jpg',
 ].forEach(file => {
-  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', 'hq', file)), `required Build 158 HQ asset is missing: ${file}`);
+  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', 'hq', file)), `required Build 159 HQ asset is missing: ${file}`);
 });
 function copyDirSync(src, dest) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
