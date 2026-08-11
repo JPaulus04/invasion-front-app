@@ -108,7 +108,9 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'155\';'), 'Build 155 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'156\';'), 'Build 156 config is not present');
+requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 156 zombie renderer is missing');
+requireMatch(!html.includes('Rifle-Pack-2-In-1.fbx'), 'retired detached-rifle loader is still bundled');
 requireMatch(html.includes('</body>') && html.includes('</html>'), 'output shell is incomplete');
 requireMatch(html.trimEnd().endsWith('</html>'), 'output contains a truncated tail');
 requireMatch(html.includes('id="beginBtn"') && html.includes('id="helpBtn"'), 'start controls are missing');
@@ -121,6 +123,14 @@ if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
 
 // Copy assets directory to www/assets
 const ASSETS = path.join(__dirname, 'assets');
+[
+  'Zombie-Soldier.fbx',
+  'Zombie-Run.fbx',
+  'Zombie-Attack.fbx',
+  'Zombie-Death.fbx',
+].forEach(file => {
+  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', file)), `required Build 156 asset is missing: ${file}`);
+});
 function copyDirSync(src, dest) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
