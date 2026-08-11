@@ -8,9 +8,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const api = {};
   const ASSET_ROOT = 'assets/prototype4/';
   const HQ_ASSET_ROOT = 'assets/prototype4/hq/';
+  const HOLT_ASSET_ROOT = 'assets/prototype4/holt/';
   const LANE_COUNT = 8;
   const LANE_ANGLE_OFFSET = Math.PI / 8;
-  const LANE_X_SCALE = .62;
+  const LANE_X_SCALE = .52;
   const BARRICADE_WORLD_RADIUS = 5.2;
   const ATTACK_CYCLE_SECONDS = 1.05;
   const FILES = {
@@ -19,11 +20,17 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     run: 'Zombie-Run.fbx',
     attack: 'Zombie-Punch.fbx',
     death: 'Zombie-Death.fbx',
+    holtModel: 'Idle-Aiming.fbx',
+    holtFire: 'Firing-Rifle.fbx',
   };
   const HQ_FILES = {
     base: ['Center-Base.fbx', 'Center-Base-BaseColor.jpg'],
     radio: ['Radio-Tower.fbx', 'Radio-Tower-BaseColor.jpg'],
     tower: ['Security-Tower.fbx', 'Security-Tower-BaseColor.jpg'],
+  };
+  const HOLT_FILES = {
+    weapon: 'M4A1.fbx',
+    texture: 'texture.png',
   };
 
   let sourceCanvas;
@@ -38,10 +45,18 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const zombieTemplates = {};
   let clips = {};
   let heroGroup = null;
+  let heroFallbackGroup = null;
   let heroMuzzle = null;
+  let heroMuzzleLight = null;
+  let heroMixer = null;
+  let heroIdleAction = null;
+  let heroFireAction = null;
+  let heroFireTime = 0;
+  let heroWasFlashing = false;
   let turretGroup = null;
   let turretYaw = null;
   let turretMuzzle = null;
+  let turretFlashGroup = null;
   let turretLevel2Group = null;
   let turretLevel4Group = null;
   let hqFallbackGroup = null;
@@ -58,7 +73,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
   const units = new Map();
   const tracers = new Map();
+  const effects = new Map();
   const staticGroup = new THREE.Group();
+  const tracerAxis = new THREE.Vector3(0, 1, 0);
 
   function material(color, options = {}) {
     return new THREE.MeshStandardMaterial({
@@ -103,27 +120,28 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   }
 
   function buildHero() {
-    heroGroup = new THREE.Group();
-    heroGroup.name = 'Commander Holt';
+    heroFallbackGroup = new THREE.Group();
+    heroFallbackGroup.name = 'Commander Holt fallback';
+    heroGroup = heroFallbackGroup;
 
     // A compact armored silhouette reads far better from the top-down camera
     // than the old stack of rectangular blocks. The weapon is an integrated
     // forearm cannon, so it cannot detach from the commander.
-    shapedMesh('Holt left leg', new THREE.CylinderGeometry(.105, .12, .5, 9), [-.15, .31, 0], 0x172322, heroGroup, { metalness: .2 });
-    shapedMesh('Holt right leg', new THREE.CylinderGeometry(.105, .12, .5, 9), [.15, .31, 0], 0x172322, heroGroup, { metalness: .2 });
-    box('Holt left boot', [.25, .18, .38], [-.15, .1, .07], 0x101918, heroGroup, { metalness: .25 });
-    box('Holt right boot', [.25, .18, .38], [.15, .1, .07], 0x101918, heroGroup, { metalness: .25 });
-    shapedMesh('Holt torso', new THREE.CapsuleGeometry(.31, .48, 5, 10), [0, .88, 0], 0x2f7569, heroGroup, { metalness: .22, roughness: .56 });
-    box('Holt chest plate', [.56, .35, .2], [0, .96, .24], 0x163f40, heroGroup, { metalness: .42, roughness: .38 });
-    box('Holt command stripe', [.4, .055, .215], [0, 1.04, .255], 0xf0bf4b, heroGroup, { metalness: .32, emissive: 0x4a2700, emissiveIntensity: .24 });
-    shapedMesh('Holt left shoulder', new THREE.SphereGeometry(.17, 10, 7), [-.36, 1.07, .02], 0x245b57, heroGroup, { metalness: .26 });
-    shapedMesh('Holt right shoulder', new THREE.SphereGeometry(.19, 10, 7), [.36, 1.07, .02], 0x245b57, heroGroup, { metalness: .26 });
-    shapedMesh('Holt left forearm', new THREE.CylinderGeometry(.085, .11, .58, 9), [-.29, .92, .3], 0x244f4b, heroGroup, { metalness: .28 }, [Math.PI / 2, 0, 0]);
-    shapedMesh('Holt arm cannon', new THREE.CylinderGeometry(.105, .15, .82, 10), [.31, 1.02, .45], 0x18282d, heroGroup, { metalness: .62, roughness: .28 }, [Math.PI / 2, 0, 0]);
-    shapedMesh('Holt cannon ring', new THREE.TorusGeometry(.13, .035, 6, 12), [.31, 1.02, .85], 0x73e8ff, heroGroup, { metalness: .42, emissive: 0x1d7890, emissiveIntensity: .8 }, [0, 0, 0]);
-    shapedMesh('Holt helmet', new THREE.SphereGeometry(.25, 14, 9), [0, 1.43, 0], 0x263b3d, heroGroup, { metalness: .38, roughness: .42 });
-    box('Holt visor', [.37, .115, .21], [0, 1.43, .2], 0x81efff, heroGroup, { metalness: .28, emissive: 0x17667a, emissiveIntensity: .78 });
-    box('Holt helmet crest', [.07, .13, .34], [0, 1.66, -.01], 0xe7b64a, heroGroup, { metalness: .34 });
+    shapedMesh('Holt left leg', new THREE.CylinderGeometry(.105, .12, .5, 9), [-.15, .31, 0], 0x172322, heroFallbackGroup, { metalness: .2 });
+    shapedMesh('Holt right leg', new THREE.CylinderGeometry(.105, .12, .5, 9), [.15, .31, 0], 0x172322, heroFallbackGroup, { metalness: .2 });
+    box('Holt left boot', [.25, .18, .38], [-.15, .1, .07], 0x101918, heroFallbackGroup, { metalness: .25 });
+    box('Holt right boot', [.25, .18, .38], [.15, .1, .07], 0x101918, heroFallbackGroup, { metalness: .25 });
+    shapedMesh('Holt torso', new THREE.CapsuleGeometry(.31, .48, 5, 10), [0, .88, 0], 0x2f7569, heroFallbackGroup, { metalness: .22, roughness: .56 });
+    box('Holt chest plate', [.56, .35, .2], [0, .96, .24], 0x163f40, heroFallbackGroup, { metalness: .42, roughness: .38 });
+    box('Holt command stripe', [.4, .055, .215], [0, 1.04, .255], 0xf0bf4b, heroFallbackGroup, { metalness: .32, emissive: 0x4a2700, emissiveIntensity: .24 });
+    shapedMesh('Holt left shoulder', new THREE.SphereGeometry(.17, 10, 7), [-.36, 1.07, .02], 0x245b57, heroFallbackGroup, { metalness: .26 });
+    shapedMesh('Holt right shoulder', new THREE.SphereGeometry(.19, 10, 7), [.36, 1.07, .02], 0x245b57, heroFallbackGroup, { metalness: .26 });
+    shapedMesh('Holt left forearm', new THREE.CylinderGeometry(.085, .11, .58, 9), [-.29, .92, .3], 0x244f4b, heroFallbackGroup, { metalness: .28 }, [Math.PI / 2, 0, 0]);
+    shapedMesh('Holt arm cannon', new THREE.CylinderGeometry(.105, .15, .82, 10), [.31, 1.02, .45], 0x18282d, heroFallbackGroup, { metalness: .62, roughness: .28 }, [Math.PI / 2, 0, 0]);
+    shapedMesh('Holt cannon ring', new THREE.TorusGeometry(.13, .035, 6, 12), [.31, 1.02, .85], 0x73e8ff, heroFallbackGroup, { metalness: .42, emissive: 0x1d7890, emissiveIntensity: .8 }, [0, 0, 0]);
+    shapedMesh('Holt helmet', new THREE.SphereGeometry(.25, 14, 9), [0, 1.43, 0], 0x263b3d, heroFallbackGroup, { metalness: .38, roughness: .42 });
+    box('Holt visor', [.37, .115, .21], [0, 1.43, .2], 0x81efff, heroFallbackGroup, { metalness: .28, emissive: 0x17667a, emissiveIntensity: .78 });
+    box('Holt helmet crest', [.07, .13, .34], [0, 1.66, -.01], 0xe7b64a, heroFallbackGroup, { metalness: .34 });
 
     heroMuzzle = new THREE.Mesh(
       new THREE.ConeGeometry(.14, .34, 7),
@@ -133,8 +151,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     heroMuzzle.rotation.x = Math.PI / 2;
     heroMuzzle.position.set(.31, 1.02, .98);
     heroMuzzle.visible = false;
-    heroGroup.add(heroMuzzle);
-    staticGroup.add(heroGroup);
+    heroFallbackGroup.add(heroMuzzle);
+    heroMuzzleLight = new THREE.PointLight(0xffd05a, 0, 2.2, 2);
+    heroMuzzleLight.position.copy(heroMuzzle.position);
+    heroFallbackGroup.add(heroMuzzleLight);
+    staticGroup.add(heroFallbackGroup);
   }
 
   function buildTurret() {
@@ -153,6 +174,20 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     shapedMesh('Turret barrel right', new THREE.CylinderGeometry(.065, .09, 1.42, 9), [.13, .28, 1.12], 0x1d292b, turretYaw, { metalness: .78, roughness: .22 }, [Math.PI / 2, 0, 0]);
     shapedMesh('Turret muzzle left', new THREE.TorusGeometry(.085, .024, 6, 12), [-.13, .28, 1.82], 0x9cecff, turretYaw, { metalness: .52, emissive: 0x176b7a, emissiveIntensity: .75 });
     shapedMesh('Turret muzzle right', new THREE.TorusGeometry(.085, .024, 6, 12), [.13, .28, 1.82], 0x9cecff, turretYaw, { metalness: .52, emissive: 0x176b7a, emissiveIntensity: .75 });
+
+    turretFlashGroup = new THREE.Group();
+    turretFlashGroup.name = 'Turret muzzle flashes';
+    [-.13, .13].forEach(x => {
+      const flash = new THREE.Mesh(
+        new THREE.ConeGeometry(.13, .42, 7),
+        new THREE.MeshBasicMaterial({ color: 0xffd168, transparent: true, opacity: .96 })
+      );
+      flash.position.set(x, .28, 2.03);
+      flash.rotation.x = Math.PI / 2;
+      turretFlashGroup.add(flash);
+    });
+    turretFlashGroup.visible = false;
+    turretYaw.add(turretFlashGroup);
 
     turretLevel2Group = new THREE.Group();
     turretLevel2Group.name = 'HQ level 2 turret reinforcement';
@@ -296,8 +331,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     scene.background = new THREE.Color(0x41513f);
     scene.fog = new THREE.Fog(0x41513f, 31, 52);
 
-    camera = new THREE.PerspectiveCamera(43, 1, .1, 90);
-    camera.position.set(0, 25.5, 25);
+    camera = new THREE.PerspectiveCamera(40, 1, .1, 90);
+    camera.position.set(0, 24.5, 24.2);
     camera.lookAt(0, 0, -1.1);
 
     scene.add(new THREE.HemisphereLight(0xeaf7ff, 0x46513c, 2.7));
@@ -361,6 +396,23 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     return clip;
   }
 
+  function makeStaticPoseClip(source, name, sampleTime) {
+    if (!source || !source.animations || !source.animations[0]) {
+      throw new Error(`Missing ${name} pose source`);
+    }
+    const sourceClip = source.animations[0];
+    const time = Math.max(0, Math.min(sourceClip.duration - .0001, sampleTime || 0));
+    const tracks = sourceClip.tracks.map(track => {
+      const itemSize = track.getValueSize();
+      const sampled = track.createInterpolant(new Float32Array(itemSize)).evaluate(time);
+      const values = new Float32Array(itemSize * 2);
+      values.set(sampled, 0);
+      values.set(sampled, itemSize);
+      return new track.constructor(track.name, [0, 1], values, track.getInterpolation());
+    });
+    return new THREE.AnimationClip(name, 1, tracks);
+  }
+
   function prepareZombieModel(object) {
     const bounds = new THREE.Box3().setFromObject(object);
     const height = Math.max(.01, bounds.max.y - bounds.min.y);
@@ -415,6 +467,107 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     object.position.y -= scaledBounds.min.y;
     object.position.z -= scaledCenter.z;
     return wrapper;
+  }
+
+  function prepareHoltModel(object) {
+    const colors = {
+      Body: 0xb98163,
+      Eyes: 0x18201f,
+      Eyelashes: 0x101514,
+      Shoes: 0x111816,
+      Bottoms: 0x293b34,
+      Eyewear: 0x8fe8f5,
+      Hats: 0x20342f,
+      Tops: 0x3e5f52,
+    };
+    object.traverse(child => {
+      if (!child.isMesh) return;
+      child.material = new THREE.MeshStandardMaterial({
+        color: colors[child.name] || 0x405a50,
+        roughness: child.name === 'Eyewear' ? .34 : .7,
+        metalness: child.name === 'Eyewear' ? .24 : .04,
+        emissive: child.name === 'Eyewear' ? 0x0b3440 : 0x000000,
+        emissiveIntensity: child.name === 'Eyewear' ? .45 : 0,
+      });
+      child.castShadow = true;
+      child.receiveShadow = true;
+      child.frustumCulled = false;
+    });
+
+    const bounds = new THREE.Box3().setFromObject(object);
+    const height = Math.max(.01, bounds.max.y - bounds.min.y);
+    object.scale.setScalar(1.82 / height);
+    object.updateMatrixWorld(true);
+    const scaled = new THREE.Box3().setFromObject(object);
+    const center = scaled.getCenter(new THREE.Vector3());
+    object.position.x -= center.x;
+    object.position.y -= scaled.min.y;
+    object.position.z -= center.z;
+
+    const wrapper = new THREE.Group();
+    wrapper.name = 'Commander Holt animated model';
+    wrapper.add(object);
+    return wrapper;
+  }
+
+  async function loadHoltAssets() {
+    const [model, firing, weapon, weaponTexture] = await Promise.all([
+      loadFBX(FILES.holtModel),
+      loadFBX(FILES.holtFire),
+      loadFBX(HOLT_FILES.weapon, HOLT_ASSET_ROOT),
+      loadTexture(HOLT_FILES.texture, HOLT_ASSET_ROOT),
+    ]);
+
+    const idleClip = makeClipInPlace(model, 'holt-idle-aim', true);
+    const firingClip = makeClipInPlace(firing, 'holt-rifle-fire', true);
+    const wrapper = prepareHoltModel(model);
+
+    weapon.traverse(child => {
+      if (!child.isMesh) return;
+      child.material = new THREE.MeshStandardMaterial({
+        map: weaponTexture,
+        color: 0x4b5552,
+        roughness: .4,
+        metalness: .46,
+      });
+      child.castShadow = true;
+      child.receiveShadow = true;
+    });
+    weapon.position.set(0, 0, 0);
+    weapon.rotation.set(0, Math.PI / 2, 0);
+
+    let rightHand = null;
+    model.traverse(node => {
+      if (!rightHand && node.isBone && node.name === 'mixamorigRightHand') rightHand = node;
+    });
+    if (!rightHand) throw new Error('Commander Holt right-hand bone is missing');
+    rightHand.add(weapon);
+
+    heroMuzzle = new THREE.Mesh(
+      new THREE.ConeGeometry(4.2, 13, 7),
+      new THREE.MeshBasicMaterial({ color: 0xffef76, transparent: true, opacity: .96 })
+    );
+    heroMuzzle.name = 'Commander Holt rifle flash';
+    heroMuzzle.position.set(55.5, 6.4, 0);
+    heroMuzzle.rotation.z = -Math.PI / 2;
+    heroMuzzle.visible = false;
+    weapon.add(heroMuzzle);
+
+    heroMuzzleLight = new THREE.PointLight(0xffcf55, 0, 2.6, 2);
+    heroMuzzleLight.position.copy(heroMuzzle.position);
+    weapon.add(heroMuzzleLight);
+
+    heroMixer = new THREE.AnimationMixer(model);
+    heroIdleAction = heroMixer.clipAction(idleClip);
+    heroIdleAction.setLoop(THREE.LoopRepeat, Infinity);
+    heroIdleAction.play();
+    heroFireAction = heroMixer.clipAction(firingClip);
+    heroFireAction.setLoop(THREE.LoopOnce, 1);
+    heroFireAction.clampWhenFinished = true;
+
+    if (heroFallbackGroup) heroFallbackGroup.visible = false;
+    heroGroup = wrapper;
+    staticGroup.add(heroGroup);
   }
 
   async function loadHQAssets() {
@@ -477,20 +630,28 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       clips = {
         run: makeClipInPlace(run, 'zombie-run', false),
         attack: makeClipInPlace(attack, 'zombie-punch', true),
+        waiting: makeStaticPoseClip(attack, 'zombie-ready', 0),
         death: makeClipInPlace(death, 'zombie-death', false),
       };
 
       try {
+        await loadHoltAssets();
+      } catch (holtError) {
+        console.warn('Build 160 Commander Holt fallback:', holtError);
+        if (heroFallbackGroup) heroFallbackGroup.visible = true;
+      }
+
+      try {
         await loadHQAssets();
       } catch (hqError) {
-        console.warn('Build 159 modular HQ fallback:', hqError);
+        console.warn('Build 160 modular HQ fallback:', hqError);
         hqFallbackGroup.visible = true;
       }
 
-      badge.textContent = 'CENTRAL HQ · MIXED INFECTED CONTACT';
+      badge.textContent = 'CENTRAL HQ · HOLT ON STATION';
       return true;
     })().catch(error => {
-      console.warn('Build 159 zombie asset fallback:', error);
+      console.warn('Build 160 zombie asset fallback:', error);
       badge.textContent = 'CENTRAL HQ · 2D FALLBACK';
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -563,6 +724,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     const actions = {
       run: mixer.clipAction(clips.run),
       attack: mixer.clipAction(clips.attack),
+      waiting: mixer.clipAction(clips.waiting),
       death: mixer.clipAction(clips.death),
     };
 
@@ -587,7 +749,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     if (dead) return 'death';
     if (entity.moving) return 'run';
     if (entity.engaged) return 'attack';
-    return 'run';
+    return 'waiting';
   }
 
   function setZombieState(record, next, deathDuration) {
@@ -616,7 +778,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   }
 
   function updateZombieMaterials(record, entity, dead) {
-    const opacity = dead ? Math.min(1, Math.max(0, (entity.life || 0) / Math.max(.01, entity.max || 1))) : 1;
+    const fadeWindow = entity.kind === 'boss' ? .38 : .24;
+    const opacity = dead
+      ? (entity.life > fadeWindow ? 1 : Math.min(1, Math.max(0, (entity.life || 0) / fadeWindow)))
+      : 1;
     const hit = !dead && (entity.hit || 0) > 0;
 
     record.materials.forEach(item => {
@@ -642,9 +807,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     record.root.rotation.y = rotation;
 
     setZombieState(record, selectZombieState(entity, dead), dead ? entity.max : null);
-    if (!dead && record.state === 'run') {
-      record.actions.run.setEffectiveTimeScale(entity.waiting ? .38 : 1);
-    }
+    if (!dead && record.state === 'run') record.actions.run.setEffectiveTimeScale(1);
     record.mixer.update(dt);
 
     // Mixamo motion clips animate the hips directly. Reset their horizontal
@@ -677,18 +840,40 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     if (displayedHQLevel !== level) {
       displayedHQLevel = level;
-      badge.textContent = `CENTRAL HQ L${level} · MIXED INFECTED CONTACT`;
+      badge.textContent = `CENTRAL HQ L${level} · HOLT ON STATION`;
     }
   }
 
-  function syncHero(run) {
+  function syncHero(run, dt) {
     if (!heroGroup) return;
+    const flashing = (run.hero.flash || 0) > 0;
+    if (heroMixer && heroIdleAction && heroFireAction) {
+      if (flashing && !heroWasFlashing) {
+        heroFireTime = .24;
+        heroIdleAction.enabled = true;
+        heroIdleAction.setEffectiveWeight(.18);
+        heroFireAction.reset();
+        heroFireAction.enabled = true;
+        heroFireAction.setEffectiveWeight(1);
+        heroFireAction.setDuration(.24);
+        heroFireAction.play();
+      }
+      heroWasFlashing = flashing;
+      heroFireTime = Math.max(0, heroFireTime - dt);
+      if (heroFireTime <= 0 && heroFireAction.isRunning()) {
+        heroFireAction.stop();
+        heroIdleAction.enabled = true;
+        heroIdleAction.setEffectiveWeight(1);
+      }
+      heroMixer.update(dt);
+    }
     const p = world(run.hero, run);
-    heroGroup.position.set(p[0], Math.sin(run.elapsed * 2.8) * .025, p[1]);
+    heroGroup.position.set(p[0], Math.sin(run.elapsed * 2.8) * .018, p[1]);
     heroGroup.rotation.y = -(run.hero.aim || -Math.PI / 2) + Math.PI / 2;
     heroGroup.visible = true;
-    heroMuzzle.visible = (run.hero.flash || 0) > 0;
+    heroMuzzle.visible = flashing;
     if (heroMuzzle.visible) heroMuzzle.scale.setScalar(.82 + Math.random() * .4);
+    if (heroMuzzleLight) heroMuzzleLight.intensity = flashing ? 6.5 : 0;
   }
 
   function syncTurret(run) {
@@ -701,7 +886,15 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     if (turretLevel2Group) turretLevel2Group.visible = level >= 2;
     if (turretLevel4Group) turretLevel4Group.visible = level >= 4;
     turretMuzzle.color.setHex(level >= 4 ? 0x6eeeff : level >= 2 ? 0x9cecff : 0xffc05b);
-    turretMuzzle.intensity = (run.turret.flash || 0) > 0 ? 7 : 0;
+    const flashing = (run.turret.flash || 0) > 0;
+    turretMuzzle.intensity = flashing ? 8.5 : 0;
+    if (turretFlashGroup) {
+      turretFlashGroup.visible = flashing;
+      if (flashing) turretFlashGroup.scale.setScalar(.86 + Math.random() * .34);
+      turretFlashGroup.children.forEach(child => {
+        if (child.material) child.material.color.setHex(level >= 4 ? 0x8ef6ff : 0xffd168);
+      });
+    }
   }
 
   function syncBarricades(run) {
@@ -722,16 +915,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   }
 
   function makeTracer(bullet) {
-    const positions = new Float32Array(6);
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const line = new THREE.Line(
+    const radius = bullet.source === 'turret' ? .038 : .026;
+    const geometry = new THREE.CylinderGeometry(radius, radius * .72, 1, 6);
+    const tracer = new THREE.Mesh(
       geometry,
-      new THREE.LineBasicMaterial({ color: bullet.color || 0xffef75, transparent: true, opacity: .95 })
+      new THREE.MeshBasicMaterial({
+        color: bullet.color || 0xffef75,
+        transparent: true,
+        opacity: .98,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
     );
-    line.frustumCulled = false;
-    scene.add(line);
-    const record = { line, geometry, positions };
+    tracer.frustumCulled = false;
+    scene.add(tracer);
+    const record = { tracer, geometry };
     tracers.set(bullet, record);
     return record;
   }
@@ -743,21 +941,78 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       live.add(bullet);
       const previous = world({ x: bullet.px, y: bullet.py }, run);
       const current = world(bullet, run);
-      record.positions[0] = previous[0];
-      record.positions[1] = .78;
-      record.positions[2] = previous[1];
-      record.positions[3] = current[0];
-      record.positions[4] = .78;
-      record.positions[5] = current[1];
-      record.geometry.attributes.position.needsUpdate = true;
+      const start = new THREE.Vector3(previous[0], .8, previous[1]);
+      const end = new THREE.Vector3(current[0], .8, current[1]);
+      const direction = end.clone().sub(start);
+      const length = Math.max(.05, direction.length());
+      record.tracer.position.copy(start).add(end).multiplyScalar(.5);
+      record.tracer.quaternion.setFromUnitVectors(tracerAxis, direction.normalize());
+      record.tracer.scale.set(1, length, 1);
+      record.tracer.material.opacity = Math.min(1, Math.max(.42, bullet.life * 2.2));
     });
 
     for (const [bullet, record] of tracers) {
       if (live.has(bullet)) continue;
-      scene.remove(record.line);
+      scene.remove(record.tracer);
       record.geometry.dispose();
-      record.line.material.dispose();
+      record.tracer.material.dispose();
       tracers.delete(bullet);
+    }
+  }
+
+  function makeEffect(particle) {
+    const isArtillery = particle.type === 'artillery';
+    const geometry = isArtillery
+      ? new THREE.RingGeometry(.52, 1, 28)
+      : particle.type === 'debris'
+        ? new THREE.TetrahedronGeometry(1, 0)
+        : new THREE.OctahedronGeometry(1, 1);
+    const effect = new THREE.Mesh(
+      geometry,
+      new THREE.MeshBasicMaterial({
+        color: particle.color || 0xffffff,
+        transparent: true,
+        opacity: .9,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      })
+    );
+    effect.frustumCulled = false;
+    if (isArtillery) effect.rotation.x = -Math.PI / 2;
+    scene.add(effect);
+    const record = { effect, geometry, isArtillery };
+    effects.set(particle, record);
+    return record;
+  }
+
+  function syncEffects(run, live) {
+    const denominator = Math.min(sourceCanvas.width, sourceCanvas.height) * .54 + 45 * (devicePixelRatio || 1);
+    const radiusScale = 8.2 / Math.max(1, denominator);
+    run.particles.forEach(particle => {
+      let record = effects.get(particle);
+      if (!record) record = makeEffect(particle);
+      live.add(particle);
+      const position = world(particle, run);
+      const ratio = Math.max(0, Math.min(1, particle.life / Math.max(.01, particle.max || 1)));
+      const base = Math.max(.045, (particle.r || 8) * radiusScale);
+      const growth = record.isArtillery ? 1.2 + (1 - ratio) * .9 : .75 + (1 - ratio) * .55;
+      const height = record.isArtillery ? .055 : particle.type === 'barrier' ? .45 : .78;
+      record.effect.position.set(position[0], height, position[1]);
+      record.effect.scale.setScalar(base * growth);
+      record.effect.material.opacity = record.isArtillery ? ratio * .78 : ratio * .92;
+      if (particle.type === 'debris') {
+        record.effect.rotation.x += .18;
+        record.effect.rotation.y += .23;
+      }
+    });
+
+    for (const [particle, record] of effects) {
+      if (live.has(particle)) continue;
+      scene.remove(record.effect);
+      record.geometry.dispose();
+      record.effect.material.dispose();
+      effects.delete(particle);
     }
   }
 
@@ -771,11 +1026,17 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   function clearDynamic() {
     for (const [entity, record] of units) removeZombie(entity, record);
     for (const [, record] of tracers) {
-      scene.remove(record.line);
+      scene.remove(record.tracer);
       record.geometry.dispose();
-      record.line.material.dispose();
+      record.tracer.material.dispose();
     }
     tracers.clear();
+    for (const [, record] of effects) {
+      scene.remove(record.effect);
+      record.geometry.dispose();
+      record.effect.material.dispose();
+    }
+    effects.clear();
     if (heroGroup) heroGroup.visible = false;
     if (turretGroup) turretGroup.visible = false;
   }
@@ -795,7 +1056,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       if (!renderer) init();
       active = true;
       badge.style.display = 'block';
-      badge.textContent = zombieTemplates.soldier ? 'CENTRAL HQ · MIXED INFECTED CONTACT' : 'CENTRAL HQ · LOADING CONTACT';
+      badge.textContent = zombieTemplates.soldier ? 'CENTRAL HQ · HOLT ON STATION' : 'CENTRAL HQ · LOADING CONTACT';
       sourceCanvas.style.visibility = 'visible';
       view.style.display = 'none';
 
@@ -805,7 +1066,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         sourceCanvas.style.visibility = 'hidden';
       });
     } catch (error) {
-      console.warn('Build 159 3D fallback:', error);
+      console.warn('Build 160 3D fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';
@@ -814,6 +1075,15 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
   api.stop = function () {
     active = false;
+    heroWasFlashing = false;
+    heroFireTime = 0;
+    if (heroMuzzleLight) heroMuzzleLight.intensity = 0;
+    if (heroFireAction) heroFireAction.stop();
+    if (heroIdleAction) {
+      heroIdleAction.enabled = true;
+      heroIdleAction.setEffectiveWeight(1);
+      if (!heroIdleAction.isRunning()) heroIdleAction.play();
+    }
     clearDynamic();
     if (view) view.style.display = 'none';
     if (badge) badge.style.display = 'none';
@@ -827,9 +1097,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     const dt = Math.min(.05, clock.getDelta());
     const liveUnits = new Set();
     const liveTracers = new Set();
+    const liveEffects = new Set();
 
     syncHQ(run);
-    syncHero(run);
+    syncHero(run, dt);
     syncTurret(run);
     syncBarricades(run);
 
@@ -847,6 +1118,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     }
 
     syncTracers(run, liveTracers);
+    syncEffects(run, liveEffects);
     renderer.render(scene, camera);
     return true;
   };
