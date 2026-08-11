@@ -10,7 +10,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const HQ_ASSET_ROOT = 'assets/prototype4/hq/';
   const LANE_COUNT = 8;
   const LANE_ANGLE_OFFSET = Math.PI / 8;
-  const BARRICADE_WORLD_RADIUS = 5.7;
+  const LANE_X_SCALE = .62;
+  const BARRICADE_WORLD_RADIUS = 5.2;
   const ATTACK_CYCLE_SECONDS = 1.05;
   const FILES = {
     model: 'Zombie-Soldier.fbx',
@@ -41,12 +42,15 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let turretGroup = null;
   let turretYaw = null;
   let turretMuzzle = null;
+  let turretLevel2Group = null;
+  let turretLevel4Group = null;
   let hqFallbackGroup = null;
   let hqAssetGroup = null;
   let hqBase = null;
   let hqRadio = null;
   const hqTowers = [];
   let hqCommsGroup = null;
+  let hqReinforcementGroup = null;
   let hqLaserGroup = null;
   let hqShield = null;
   let displayedHQLevel = 0;
@@ -136,17 +140,37 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   function buildTurret() {
     turretGroup = new THREE.Group();
     turretGroup.name = 'Main turret';
-    box('Turret base', [1.05, .34, 1.05], [0, .18, 0], 0x303a36, turretGroup, { metalness: .25 });
+    shapedMesh('Turret armored base', new THREE.CylinderGeometry(.68, .82, .36, 12), [0, .18, 0], 0x303d3a, turretGroup, { metalness: .38, roughness: .48 });
+    shapedMesh('Turret rotation ring', new THREE.CylinderGeometry(.58, .58, .12, 16), [0, .4, 0], 0x79c7c9, turretGroup, { metalness: .58, roughness: .3, emissive: 0x103f43, emissiveIntensity: .35 });
 
     turretYaw = new THREE.Group();
-    turretYaw.position.y = .42;
+    turretYaw.position.y = .45;
     turretGroup.add(turretYaw);
-    box('Turret head', [.72, .5, .76], [0, .2, 0], 0x60736c, turretYaw, { metalness: .32 });
-    box('Turret barrel left', [.13, .13, 1.38], [-.14, .27, .8], 0xd2712c, turretYaw, { metalness: .55, roughness: .35 });
-    box('Turret barrel right', [.13, .13, 1.38], [.14, .27, .8], 0xd2712c, turretYaw, { metalness: .55, roughness: .35 });
+    shapedMesh('Turret gun housing', new THREE.CylinderGeometry(.48, .58, .48, 10), [0, .22, 0], 0x566a66, turretYaw, { metalness: .42, roughness: .4 });
+    box('Turret front armor', [.82, .42, .48], [0, .24, .25], 0x425653, turretYaw, { metalness: .46, roughness: .36 });
+    box('Turret barrel cradle', [.48, .22, .42], [0, .27, .52], 0x263535, turretYaw, { metalness: .58, roughness: .28 });
+    shapedMesh('Turret barrel left', new THREE.CylinderGeometry(.065, .09, 1.42, 9), [-.13, .28, 1.12], 0x1d292b, turretYaw, { metalness: .78, roughness: .22 }, [Math.PI / 2, 0, 0]);
+    shapedMesh('Turret barrel right', new THREE.CylinderGeometry(.065, .09, 1.42, 9), [.13, .28, 1.12], 0x1d292b, turretYaw, { metalness: .78, roughness: .22 }, [Math.PI / 2, 0, 0]);
+    shapedMesh('Turret muzzle left', new THREE.TorusGeometry(.085, .024, 6, 12), [-.13, .28, 1.82], 0x9cecff, turretYaw, { metalness: .52, emissive: 0x176b7a, emissiveIntensity: .75 });
+    shapedMesh('Turret muzzle right', new THREE.TorusGeometry(.085, .024, 6, 12), [.13, .28, 1.82], 0x9cecff, turretYaw, { metalness: .52, emissive: 0x176b7a, emissiveIntensity: .75 });
+
+    turretLevel2Group = new THREE.Group();
+    turretLevel2Group.name = 'HQ level 2 turret reinforcement';
+    box('Turret left armor wing', [.22, .5, .72], [-.53, .19, .08], 0x2e595b, turretLevel2Group, { metalness: .48, roughness: .34 });
+    box('Turret right armor wing', [.22, .5, .72], [.53, .19, .08], 0x2e595b, turretLevel2Group, { metalness: .48, roughness: .34 });
+    shapedMesh('Turret targeting sensor', new THREE.SphereGeometry(.13, 10, 7), [0, .62, .02], 0x7ef8ff, turretLevel2Group, { metalness: .36, emissive: 0x17788a, emissiveIntensity: 1.05 });
+    turretLevel2Group.visible = false;
+    turretYaw.add(turretLevel2Group);
+
+    turretLevel4Group = new THREE.Group();
+    turretLevel4Group.name = 'HQ level 4 turret laser conversion';
+    shapedMesh('Turret laser barrel', new THREE.CylinderGeometry(.1, .14, 1.34, 10), [0, .48, 1.12], 0x52e7ff, turretLevel4Group, { metalness: .7, roughness: .18, emissive: 0x176f84, emissiveIntensity: .85 }, [Math.PI / 2, 0, 0]);
+    shapedMesh('Turret laser focusing ring', new THREE.TorusGeometry(.14, .035, 7, 14), [0, .48, 1.8], 0xc8fbff, turretLevel4Group, { metalness: .52, emissive: 0x2dbbd1, emissiveIntensity: 1.2 });
+    turretLevel4Group.visible = false;
+    turretYaw.add(turretLevel4Group);
 
     turretMuzzle = new THREE.PointLight(0xffa83b, 0, 3.4, 2);
-    turretMuzzle.position.set(0, .27, 1.58);
+    turretMuzzle.position.set(0, .32, 1.88);
     turretYaw.add(turretMuzzle);
     staticGroup.add(turretGroup);
   }
@@ -184,11 +208,30 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     box('HQ fallback upper', [1.45, .65, 1.15], [0, 2.05, .28], 0x687c76, hqFallbackGroup);
     box('HQ fallback mast', [.08, 1.3, .08], [0, 3, .28], 0xd0ded8, hqFallbackGroup, { metalness: .4 });
 
+    hqReinforcementGroup = new THREE.Group();
+    hqReinforcementGroup.name = 'HQ level 2 reinforced compound';
+    box('HQ rear blast wall', [4.75, .62, .28], [0, .33, -2.12], 0x334b48, hqReinforcementGroup, { metalness: .28, roughness: .62 });
+    box('HQ west blast wall', [.28, .62, 4.0], [-2.38, .33, 0], 0x334b48, hqReinforcementGroup, { metalness: .28, roughness: .62 });
+    box('HQ east blast wall', [.28, .62, 4.0], [2.38, .33, 0], 0x334b48, hqReinforcementGroup, { metalness: .28, roughness: .62 });
+    box('HQ front wall west', [1.72, .62, .28], [-1.5, .33, 2.12], 0x334b48, hqReinforcementGroup, { metalness: .28, roughness: .62 });
+    box('HQ front wall east', [1.72, .62, .28], [1.5, .33, 2.12], 0x334b48, hqReinforcementGroup, { metalness: .28, roughness: .62 });
+    [-1, 1].forEach(side => {
+      shapedMesh('HQ reinforced corner post', new THREE.CylinderGeometry(.2, .25, .88, 8), [side * 2.38, .45, -2.12], 0x6f8580, hqReinforcementGroup, { metalness: .5, roughness: .34 });
+      box('HQ powered equipment crate', [.72, .48, .58], [side * 1.48, .25, 1.72], side < 0 ? 0x536455 : 0x475e63, hqReinforcementGroup, { metalness: .2, roughness: .66 });
+      box('HQ floodlight pole', [.08, 1.5, .08], [side * 2.05, .75, 1.78], 0x87928e, hqReinforcementGroup, { metalness: .5 });
+      shapedMesh('HQ floodlight', new THREE.SphereGeometry(.1, 9, 6), [side * 2.05, 1.55, 1.78], 0xd6fbff, hqReinforcementGroup, { emissive: 0x75ddeb, emissiveIntensity: 1.25 });
+      const flood = new THREE.PointLight(0x9cecff, 1.35, 4.2, 2);
+      flood.position.set(side * 2.05, 1.5, 1.65);
+      hqReinforcementGroup.add(flood);
+    });
+    hqReinforcementGroup.visible = false;
+    staticGroup.add(hqReinforcementGroup);
+
     hqCommsGroup = new THREE.Group();
     hqCommsGroup.name = 'HQ level 2 communications';
-    shapedMesh('HQ comms beacon', new THREE.SphereGeometry(.11, 10, 7), [-2.35, 3.28, -1.35], 0x6eeeff, hqCommsGroup, { emissive: 0x1f9ab5, emissiveIntensity: 1.2 });
+    shapedMesh('HQ comms beacon', new THREE.SphereGeometry(.11, 10, 7), [-1.82, 3.18, -1.18], 0x6eeeff, hqCommsGroup, { emissive: 0x1f9ab5, emissiveIntensity: 1.2 });
     const commsLight = new THREE.PointLight(0x6eeeff, 2.2, 4, 2);
-    commsLight.position.set(-2.35, 3.22, -1.35);
+    commsLight.position.set(-1.82, 3.12, -1.18);
     hqCommsGroup.add(commsLight);
     hqCommsGroup.visible = false;
     staticGroup.add(hqCommsGroup);
@@ -210,7 +253,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       const group = new THREE.Group();
       group.name = `Barricade lane ${lane + 1}`;
       group.position.set(
-        Math.cos(angle) * BARRICADE_WORLD_RADIUS,
+        Math.cos(angle) * BARRICADE_WORLD_RADIUS * LANE_X_SCALE,
         0,
         Math.sin(angle) * BARRICADE_WORLD_RADIUS
       );
@@ -253,7 +296,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     scene.background = new THREE.Color(0x41513f);
     scene.fog = new THREE.Fog(0x41513f, 31, 52);
 
-    camera = new THREE.PerspectiveCamera(39, 1, .1, 90);
+    camera = new THREE.PerspectiveCamera(43, 1, .1, 90);
     camera.position.set(0, 25.5, 25);
     camera.lookAt(0, 0, -1.1);
 
@@ -388,26 +431,26 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     hqAssetGroup.name = 'Modular headquarters';
     staticGroup.add(hqAssetGroup);
 
-    hqBase = prepareHQModel(baseObject, baseTexture, { footprint: 3.55 });
+    hqBase = prepareHQModel(baseObject, baseTexture, { footprint: 3.05 });
     hqBase.name = 'HQ level 1 center base';
     hqBase.position.z += .18;
     hqAssetGroup.add(hqBase);
 
-    hqRadio = prepareHQModel(radioObject, radioTexture, { height: 3.25 });
+    hqRadio = prepareHQModel(radioObject, radioTexture, { height: 3.15 });
     hqRadio.name = 'HQ level 2 radio tower';
-    hqRadio.position.set(-2.35, 0, -1.35);
+    hqRadio.position.set(-1.82, 0, -1.18);
     hqAssetGroup.add(hqRadio);
 
     const preparedTower = prepareHQModel(towerObject, towerTexture, { height: 1.9 });
     const leftTower = preparedTower;
     leftTower.name = 'HQ level 3 west security tower';
-    leftTower.position.set(-2.55, 0, .9);
+    leftTower.position.set(-2.02, 0, .82);
     hqAssetGroup.add(leftTower);
     hqTowers.push(leftTower);
 
     const rightTower = preparedTower.clone(true);
     rightTower.name = 'HQ level 3 east security tower';
-    rightTower.position.set(2.55, 0, .9);
+    rightTower.position.set(2.02, 0, .82);
     rightTower.rotation.y = Math.PI;
     hqAssetGroup.add(rightTower);
     hqTowers.push(rightTower);
@@ -440,14 +483,14 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       try {
         await loadHQAssets();
       } catch (hqError) {
-        console.warn('Build 158 modular HQ fallback:', hqError);
+        console.warn('Build 159 modular HQ fallback:', hqError);
         hqFallbackGroup.visible = true;
       }
 
       badge.textContent = 'CENTRAL HQ · MIXED INFECTED CONTACT';
       return true;
     })().catch(error => {
-      console.warn('Build 158 zombie asset fallback:', error);
+      console.warn('Build 159 zombie asset fallback:', error);
       badge.textContent = 'CENTRAL HQ · 2D FALLBACK';
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -628,6 +671,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       hqFallbackGroup.visible = true;
     }
     if (hqCommsGroup) hqCommsGroup.visible = level >= 2;
+    if (hqReinforcementGroup) hqReinforcementGroup.visible = level >= 2;
     if (hqLaserGroup) hqLaserGroup.visible = level >= 4;
     if (hqShield) hqShield.visible = level >= 5;
 
@@ -653,6 +697,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     turretGroup.position.set(p[0], 0, p[1]);
     turretYaw.rotation.y = -(run.turret.aim || 0) + Math.PI / 2;
     turretGroup.visible = true;
+    const level = Math.max(1, Number(run.hq && run.hq.level) || 1);
+    if (turretLevel2Group) turretLevel2Group.visible = level >= 2;
+    if (turretLevel4Group) turretLevel4Group.visible = level >= 4;
+    turretMuzzle.color.setHex(level >= 4 ? 0x6eeeff : level >= 2 ? 0x9cecff : 0xffc05b);
     turretMuzzle.intensity = (run.turret.flash || 0) > 0 ? 7 : 0;
   }
 
@@ -757,7 +805,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         sourceCanvas.style.visibility = 'hidden';
       });
     } catch (error) {
-      console.warn('Build 158 3D fallback:', error);
+      console.warn('Build 159 3D fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';

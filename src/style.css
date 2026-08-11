@@ -51,6 +51,34 @@ body::after {
   background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(58,176,213,.015) 2px,rgba(58,176,213,.015) 4px);
 }
 
+/* Build 159 startup shield: the retired battlefield exists in the source shell
+   for shared engine helpers, but it must never paint before Command Base mounts. */
+html:not(.lsc-command-ready)::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(26,74,91,.72), transparent 34%),
+    linear-gradient(180deg, #07131a 0%, #02070a 100%);
+  pointer-events: all;
+}
+html:not(.lsc-command-ready)::after {
+  content: 'LAST STAND COMMAND  ·  LOADING COMMAND BASE';
+  position: fixed;
+  z-index: 2147483647;
+  left: 18px;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #74e9ff;
+  font: 700 11px/1.5 'Share Tech Mono', monospace;
+  letter-spacing: 1.8px;
+  text-align: center;
+  text-shadow: 0 0 18px rgba(34,212,255,.7);
+  pointer-events: none;
+}
+
 /* ══ MAIN LAYOUT ══════════════════════════════════════════════ */
 #app {
   display: flex;
