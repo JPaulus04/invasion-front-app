@@ -52,7 +52,6 @@ const CONTROLLER_SCRIPTS = [
   'hudLayout.js',           // Battlefield floating HUD layout polish
   'screenGuard.js',         // Screen-state/input isolation for Home vs Battlefield
   'threeDPrototype.bundle.js', // Prototype 4: imported skinned FBX renderer
-  'centralHQPrototype.js',  // Build 145: animated 2.5D unit integration
 ];
 
 function read(file) {
@@ -87,6 +86,7 @@ const engineCode = ENGINE_SCRIPTS.map(f => `// ── ${f} ──\n${read(f)}`).
 
 // Build controller script block
 const controllerCode = CONTROLLER_SCRIPTS.map(f => `// ── ${f} ──\n${read(f)}`).join('\n\n');
+const commandBaseCode = read('centralHQPrototype.js');
 
 // Replace the full external-script region by explicit boundary tags. This is
 // deliberately independent of decorative comment width/characters.
@@ -98,7 +98,8 @@ requireMatch(scriptStart >= 0, 'config.js script boundary is missing');
 requireMatch(scriptEnd >= scriptStart, 'main.js script boundary is missing');
 html =
   html.slice(0, scriptStart) +
-  `<script>\n${engineCode}\n</script>\n\n<script>\n${controllerCode}\n</script>` +
+  `<script>\n${engineCode}\n</script>\n\n<script>\n${controllerCode}\n</script>\n\n` +
+  `<script>\n// ── centralHQPrototype.js ──\n${commandBaseCode}\n</script>` +
   html.slice(scriptEnd + lastScript.length);
 
 // centralHQPrototype.js is already included in CONTROLLER_SCRIPTS for the
@@ -111,7 +112,7 @@ requireMatch(html.includes('const LSC_BUILD = \'155\';'), 'Build 155 config is n
 requireMatch(html.includes('</body>') && html.includes('</html>'), 'output shell is incomplete');
 requireMatch(html.trimEnd().endsWith('</html>'), 'output contains a truncated tail');
 requireMatch(html.includes('id="beginBtn"') && html.includes('id="helpBtn"'), 'start controls are missing');
-requireMatch(html.includes('function enforceCommandBaseStartup()'), 'Build 155 startup migration is missing');
+requireMatch(html.includes('function enforceCommandBaseStartup()'), 'Build 154 startup migration is missing');
 requireMatch(html.includes("removeLegacyNode('onboarding-overlay')"), 'legacy onboarding removal is missing');
 requireMatch(html.includes("removeLegacyNode('startOverlay')"), 'legacy start-screen removal is missing');
 
