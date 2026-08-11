@@ -108,9 +108,13 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'156\';'), 'Build 156 config is not present');
-requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 156 zombie renderer is missing');
+requireMatch(html.includes('const LSC_BUILD = \'157\';'), 'Build 157 config is not present');
+requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 157 zombie renderer is missing');
 requireMatch(!html.includes('Rifle-Pack-2-In-1.fbx'), 'retired detached-rifle loader is still bundled');
+requireMatch(html.includes('var LANE_COUNT = 8;'), 'Build 157 eight-lane simulation is missing');
+requireMatch(html.includes('Barricade lane '), 'Build 157 eight-lane renderer is missing');
+requireMatch(html.includes("targetType==='barricade'"), 'Build 157 barricade damage routing is missing');
+requireMatch(html.includes('Build 157 zombie asset fallback:'), 'Build 157 renderer marker is missing');
 requireMatch(html.includes('</body>') && html.includes('</html>'), 'output shell is incomplete');
 requireMatch(html.trimEnd().endsWith('</html>'), 'output contains a truncated tail');
 requireMatch(html.includes('id="beginBtn"') && html.includes('id="helpBtn"'), 'start controls are missing');
@@ -129,7 +133,7 @@ const ASSETS = path.join(__dirname, 'assets');
   'Zombie-Attack.fbx',
   'Zombie-Death.fbx',
 ].forEach(file => {
-  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', file)), `required Build 156 asset is missing: ${file}`);
+  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', file)), `required Build 157 asset is missing: ${file}`);
 });
 function copyDirSync(src, dest) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
