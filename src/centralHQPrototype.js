@@ -1,4 +1,4 @@
-// Build 162 — working audio/haptics and a projection-corrected defensive compound.
+// Build 163 — combat-fire haptics and clean boss-to-victory handoff.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -363,10 +363,40 @@
     return unit;
   }
   function nearest(o,range){var t=null,b=range;run.enemies.forEach(function(e){var x=dist(o,e);if(x<b){b=x;t=e;}});return t;}
-  function fire(o,t,damage){if(!t)return;var x=t.x-o.x,y=t.y-o.y,l=Math.hypot(x,y)||1,source=o.source||'squad',speed=source==='turret'?390:source==='commander'?650:500;o.aim=Math.atan2(y,x);o.flash=.09;combatSfx(source==='commander'?'rifle':source==='turret'?'turret':'shoot',source==='turret'?185:source==='commander'?135:170);run.bullets.push({x:o.x+Math.cos(o.aim)*10*dpr(),y:o.y+Math.sin(o.aim)*10*dpr(),px:o.x,py:o.y,vx:x/l*speed*dpr(),vy:y/l*speed*dpr(),damage:damage,life:.9,source:source,color:source==='commander'?'#fff07a':source==='turret'?'#ff8a2a':'#8edcff'});}
-  function kill(i,e){for(var n=0;n<(e.kind==='boss'?18:7);n++)run.particles.push({x:e.x+(Math.random()-.5)*e.r,y:e.y+(Math.random()-.5)*e.r,life:.35+Math.random()*.3,max:.65,r:(2+Math.random()*5)*dpr(),color:e.kind==='boss'?'#ff6a38':'#e35238',filled:true,type:'debris'});removeFromLane(e);var corpseLife=e.kind==='boss'?1.05:.8;run.corpses.push({id:e.id,variant:e.variant,x:e.x,y:e.y,kind:e.kind,aim:e.aim,moving:false,waiting:false,engaged:false,life:corpseLife,max:corpseLife});while(run.corpses.length>3)run.corpses.shift();run.enemies.splice(i,1);run.kills++;if(e.kind!=='boss')run.assaultKills++;run.xp+=e.kind==='boss'?100:e.kind==='armored'?10:6;if(e.kind==='boss'){run.bossDefeated=true;combatSfx('bossDown');combatHaptic('heavy',300);}else combatSfx('enemyDown',175);if(run.xp>=run.xpNext&&!run.upgradeOpen)openUpgrade();}
+  function fire(o,t,damage){
+    if(!t)return;
+    var x=t.x-o.x,y=t.y-o.y,l=Math.hypot(x,y)||1,source=o.source||'squad',speed=source==='turret'?390:source==='commander'?650:500;
+    o.aim=Math.atan2(y,x);
+    o.flash=.09;
+    combatSfx(source==='commander'?'rifle':source==='turret'?'turret':'shoot',source==='turret'?185:source==='commander'?135:170);
+    // Give weapon fire physical feedback without stacking simultaneous impacts.
+    // Commander/squad fire shares the light channel; turret bursts use medium.
+    combatHaptic(source==='turret'?'medium':'light',source==='turret'?240:source==='commander'?140:180);
+    run.bullets.push({x:o.x+Math.cos(o.aim)*10*dpr(),y:o.y+Math.sin(o.aim)*10*dpr(),px:o.x,py:o.y,vx:x/l*speed*dpr(),vy:y/l*speed*dpr(),damage:damage,life:.9,source:source,color:source==='commander'?'#fff07a':source==='turret'?'#ff8a2a':'#8edcff'});
+  }
+  function kill(i,e){
+    var isBoss=e.kind==='boss';
+    for(var n=0;n<(isBoss?18:7);n++)run.particles.push({x:e.x+(Math.random()-.5)*e.r,y:e.y+(Math.random()-.5)*e.r,life:.35+Math.random()*.3,max:.65,r:(2+Math.random()*5)*dpr(),color:isBoss?'#ff6a38':'#e35238',filled:true,type:'debris'});
+    removeFromLane(e);
+    var corpseLife=isBoss?1.05:.8;
+    run.corpses.push({id:e.id,variant:e.variant,x:e.x,y:e.y,kind:e.kind,aim:e.aim,moving:false,waiting:false,engaged:false,life:corpseLife,max:corpseLife});
+    while(run.corpses.length>3)run.corpses.shift();
+    run.enemies.splice(i,1);
+    run.kills++;
+    if(isBoss){
+      // The boss ends the run, so it must never create a final field promotion.
+      run.bossDefeated=true;
+      combatSfx('bossDown');
+      combatHaptic('heavy',300);
+    }else{
+      run.assaultKills++;
+      run.xp+=e.kind==='armored'?10:6;
+      combatSfx('enemyDown',175);
+      if(run.xp>=run.xpNext&&!run.upgradeOpen)openUpgrade();
+    }
+  }
   var upgrades=[['Rapid Fire','+25% commander fire rate',function(){run.hero.rate*=1.25;}],['Heavy Rounds','+30% commander damage',function(){run.hero.damage*=1.3;}],['Fortify HQ','Repair 75 and add 75 maximum HP',function(){run.hq.maxHp+=75;run.hq.hp=Math.min(run.hq.maxHp,run.hq.hp+75);}],["Turret Surge","+35% turret damage",function(){run.turret.damage*=1.35;}]];
-  function openUpgrade(){run.upgradeOpen=true;run.xp-=run.xpNext;run.level++;run.xpNext=Math.floor(run.xpNext*1.4);combatSfx('rankUp');combatHaptic('success',220);var grid=id('hq-upgrade-grid');grid.innerHTML='';upgrades.slice().sort(function(){return Math.random()-.5;}).slice(0,3).forEach(function(u){var b=document.createElement('button');b.className='hq-upgrade-choice';b.innerHTML='<b>'+u[0]+'</b><span>'+u[1]+'</span>';b.onclick=function(){u[2]();var source=u[0].indexOf('Turret')>=0?'turret':u[0].indexOf('HQ')>=0?'hq':'commander';run.feedback={text:(source==='commander'?'HOLT':source==='turret'?'MAIN TURRET':'HEADQUARTERS')+' · '+u[0].toUpperCase(),source:source,life:1.7,max:1.7};combatSfx('promotion');combatHaptic('success',160);run.upgradeOpen=false;id('hq-upgrade-overlay').classList.remove('show');};grid.appendChild(b);});id('hq-upgrade-overlay').classList.add('show');}
+  function openUpgrade(){if(!run||run.complete||run.bossDefeated)return;run.upgradeOpen=true;run.xp-=run.xpNext;run.level++;run.xpNext=Math.floor(run.xpNext*1.4);combatSfx('rankUp');combatHaptic('success',220);var grid=id('hq-upgrade-grid');grid.innerHTML='';upgrades.slice().sort(function(){return Math.random()-.5;}).slice(0,3).forEach(function(u){var b=document.createElement('button');b.className='hq-upgrade-choice';b.innerHTML='<b>'+u[0]+'</b><span>'+u[1]+'</span>';b.onclick=function(){u[2]();var source=u[0].indexOf('Turret')>=0?'turret':u[0].indexOf('HQ')>=0?'hq':'commander';run.feedback={text:(source==='commander'?'HOLT':source==='turret'?'MAIN TURRET':'HEADQUARTERS')+' · '+u[0].toUpperCase(),source:source,life:1.7,max:1.7};combatSfx('promotion');combatHaptic('success',160);run.upgradeOpen=false;id('hq-upgrade-overlay').classList.remove('show');};grid.appendChild(b);});id('hq-upgrade-overlay').classList.add('show');}
   function useAbility(){if(!run||!run.active||run.abilityCd>0)return;run.abilityCd=18;combatSfx('orbital');combatHaptic('heavy',300);run.enemies.forEach(function(e){var dealt=Math.min(95,e.hp);e.hp-=95;run.damage.artillery+=dealt;run.particles.push({x:e.x,y:e.y,life:.55,max:.55,r:34*dpr(),color:'#ff3c27',type:'artillery'});});for(var i=run.enemies.length-1;i>=0;i--)if(run.enemies[i].hp<=0)kill(i,run.enemies[i]);}
   function defeatAdvice(){
     if(meta.hq<2)return 'Recommended next: upgrade Headquarters for more health, stronger barriers, and the reinforced Level 2 compound.';
