@@ -1129,12 +1129,19 @@
     <!-- AUDIO -->
     <div style="margin-bottom:20px">
       <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#aabbcc;margin-bottom:8px;letter-spacing:1px">AUDIO</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <button id="soundToggleBtn" style="background:none;border:none;font-size:24px;cursor:pointer;padding:4px">🔊</button>
-        <input type="range" id="volumeSlider" min="0" max="100" value="100" style="flex:1;cursor:pointer">
-        <span id="volumeLabel" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#aabbcc;min-width:30px">100%</span>
+      <div style="display:grid;grid-template-columns:54px 36px 1fr 38px;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;color:#dde8f0">Music</span>
+        <button id="musicToggleBtn" aria-label="Toggle music" style="background:none;border:none;font-size:21px;cursor:pointer;padding:3px">🎵</button>
+        <input type="range" id="musicVolumeSlider" min="0" max="100" value="60" style="width:100%;cursor:pointer">
+        <span id="musicVolumeLabel" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#aabbcc;text-align:right">60%</span>
       </div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#666;text-align:center">Tap speaker icon to toggle · Drag slider to adjust volume</div>
+      <div style="display:grid;grid-template-columns:54px 36px 1fr 38px;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;color:#dde8f0">Effects</span>
+        <button id="sfxToggleBtn" aria-label="Toggle sound effects" style="background:none;border:none;font-size:21px;cursor:pointer;padding:3px">🔊</button>
+        <input type="range" id="sfxVolumeSlider" min="0" max="100" value="85" style="width:100%;cursor:pointer">
+        <span id="sfxVolumeLabel" style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#aabbcc;text-align:right">85%</span>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:#666;text-align:center">Music and combat effects are controlled independently</div>
     </div>
 
     <!-- CONTROLS -->
