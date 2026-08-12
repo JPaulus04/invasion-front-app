@@ -74,6 +74,7 @@ requireMatch(html.includes('<script src="src/main.js"></script>'), 'source main.
 
 // Read CSS
 const css = read('style.css');
+const threeDSource = read('threeDPrototype.entry.js');
 
 // Replace the <link rel="stylesheet"> with inline <style>
 html = html.replace(
@@ -108,29 +109,38 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'160\';'), 'Build 160 config is not present');
-requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 160 primary zombie renderer is missing');
-requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 160 second zombie renderer is missing');
-requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 160 clean melee animation is missing');
+requireMatch(html.includes('const LSC_BUILD = \'161\';'), 'Build 161 config is not present');
+requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 161 primary zombie renderer is missing');
+requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 161 second zombie renderer is missing');
+requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 161 clean melee animation is missing');
 requireMatch(!html.includes('Rifle-Pack-2-In-1.fbx'), 'retired detached-rifle loader is still bundled');
-requireMatch(html.includes('var LANE_COUNT = 8;'), 'Build 160 eight-lane simulation is missing');
-requireMatch(html.includes('var LANE_X_SCALE = .52;'), 'Build 160 portrait lane compression is missing');
-requireMatch(html.includes('Barricade lane '), 'Build 160 eight-lane renderer is missing');
-requireMatch(html.includes("targetType==='barricade'"), 'Build 160 barricade damage routing is missing');
-requireMatch(html.includes('Build 160 zombie asset fallback:'), 'Build 160 renderer marker is missing');
-requireMatch(html.includes('Commander Holt animated model'), 'Build 160 animated Holt model is missing');
-requireMatch(html.includes('holt-rifle-fire'), 'Build 160 Holt firing animation is missing');
-requireMatch(html.includes('zombie-ready'), 'Build 160 upright waiting pose is missing');
-requireMatch(html.includes("level:meta.hq"), 'Build 160 HQ level routing is missing');
-requireMatch(html.includes('HQ level 2 reinforced compound'), 'Build 160 reinforced HQ tier is missing');
-requireMatch(html.includes('HQ level 2 turret reinforcement'), 'Build 160 upgraded turret tier is missing');
-requireMatch(html.includes('HQ level 4 laser upgrade'), 'Build 160 visual HQ tiers are missing');
-requireMatch(html.includes("BOSS_LANE_INDEX = 6"), 'Build 160 exclusive boss lane is missing');
-requireMatch(html.includes('function phaseBalance(phase)'), 'Build 160 opening balance curve is missing');
-requireMatch(html.includes('function retryAssist(phase)'), 'Build 160 retry assistance is missing');
-requireMatch(html.includes('PROGRESS IS NEVER LOST'), 'Build 160 failure reward is missing');
-requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 160 startup shield is missing');
-requireMatch(html.includes("classList.add('lsc-command-ready')"), 'Build 160 startup-ready handoff is missing');
+requireMatch(html.includes('var LANE_COUNT = 8;'), 'Build 161 eight-lane simulation is missing');
+requireMatch(html.includes('var LANE_X_SCALE = .52;'), 'Build 161 portrait lane compression is missing');
+requireMatch(html.includes('var BARRICADE_WORLD_RADIUS = 6.4;'), 'Build 161 expanded simulation perimeter is missing');
+requireMatch(html.includes('var BARRICADE_STOP_WORLD_RADIUS = 7.8;'), 'Build 161 barrier stop geometry is missing');
+requireMatch(html.includes('var QUEUE_START_WORLD_RADIUS = 8.75;'), 'Build 161 queue geometry is missing');
+requireMatch(html.includes('var SPAWN_WORLD_RADIUS = 9.9;'), 'Build 161 spawn geometry is missing');
+requireMatch(threeDSource.includes('const BARRICADE_WORLD_RADIUS = 6.4;'), 'Build 161 expanded 3D perimeter is missing');
+requireMatch(threeDSource.includes('new THREE.PerspectiveCamera(45'), 'Build 161 portrait camera framing is missing');
+requireMatch(html.includes('Barricade lane '), 'Build 161 eight-lane renderer is missing');
+requireMatch(html.includes("targetType==='barricade'"), 'Build 161 barricade damage routing is missing');
+requireMatch(html.includes('Build 161 zombie asset fallback:'), 'Build 161 renderer marker is missing');
+requireMatch(html.includes('Commander Holt animated model'), 'Build 161 animated Holt model is missing');
+requireMatch(html.includes('Commander Holt two-hand rifle mount'), 'Build 161 two-hand rifle alignment is missing');
+requireMatch(html.includes('holt-rifle-fire'), 'Build 161 Holt firing animation is missing');
+requireMatch(html.includes('zombie-ready'), 'Build 161 upright waiting pose is missing');
+requireMatch(html.includes("level:meta.hq"), 'Build 161 HQ level routing is missing');
+requireMatch(html.includes('HQ level 2 reinforced compound'), 'Build 161 reinforced HQ tier is missing');
+requireMatch(html.includes('HQ level 2 turret reinforcement'), 'Build 161 upgraded turret tier is missing');
+requireMatch(html.includes('HQ level 4 laser upgrade'), 'Build 161 visual HQ tiers are missing');
+requireMatch(html.includes("BOSS_LANE_INDEX = 6"), 'Build 161 exclusive boss lane is missing');
+requireMatch(html.includes('function phaseBalance(phase)'), 'Build 161 opening balance curve is missing');
+requireMatch(html.includes('function retryAssist(phase)'), 'Build 161 retry assistance is missing');
+requireMatch(html.includes('PROGRESS IS NEVER LOST'), 'Build 161 failure reward is missing');
+requireMatch(html.includes('CURRENT POWER'), 'Build 161 current-power display is missing');
+requireMatch(html.includes('lsc161-loading'), 'Build 161 battle loading screen is missing');
+requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 161 startup shield is missing');
+requireMatch(html.includes("classList.add('lsc-command-ready')"), 'Build 161 startup-ready handoff is missing');
 requireMatch(html.includes('</body>') && html.includes('</html>'), 'output shell is incomplete');
 requireMatch(html.trimEnd().endsWith('</html>'), 'output contains a truncated tail');
 requireMatch(html.includes('id="beginBtn"') && html.includes('id="helpBtn"'), 'start controls are missing');
@@ -152,7 +162,7 @@ const ASSETS = path.join(__dirname, 'assets');
   'Idle-Aiming.fbx',
   'Firing-Rifle.fbx',
 ].forEach(file => {
-  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', file)), `required Build 160 asset is missing: ${file}`);
+  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', file)), `required Build 161 asset is missing: ${file}`);
 });
 [
   'Center-Base.fbx',
@@ -162,13 +172,13 @@ const ASSETS = path.join(__dirname, 'assets');
   'Security-Tower.fbx',
   'Security-Tower-BaseColor.jpg',
 ].forEach(file => {
-  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', 'hq', file)), `required Build 160 HQ asset is missing: ${file}`);
+  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', 'hq', file)), `required Build 161 HQ asset is missing: ${file}`);
 });
 [
   'M4A1.fbx',
   'texture.png',
 ].forEach(file => {
-  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', 'holt', file)), `required Build 160 Holt asset is missing: ${file}`);
+  requireMatch(fs.existsSync(path.join(ASSETS, 'prototype4', 'holt', file)), `required Build 161 Holt asset is missing: ${file}`);
 });
 function copyDirSync(src, dest) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
