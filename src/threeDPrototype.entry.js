@@ -10,9 +10,16 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const HQ_ASSET_ROOT = 'assets/prototype4/hq/';
   const HOLT_ASSET_ROOT = 'assets/prototype4/holt/';
   const LANE_COUNT = 8;
-  const LANE_ANGLE_OFFSET = Math.PI / 8;
-  const LANE_X_SCALE = .52;
-  const BARRICADE_WORLD_RADIUS = 6.4;
+  const COMPOUND_LANES = [
+    { x: -1.55, z: -5.05, rotation: 0, side: 'north' },
+    { x:  1.55, z: -5.05, rotation: 0, side: 'north' },
+    { x:  3.15, z: -2.40, rotation: Math.PI / 2, side: 'east' },
+    { x:  3.15, z:  2.40, rotation: Math.PI / 2, side: 'east' },
+    { x:  1.55, z:  5.05, rotation: 0, side: 'south' },
+    { x: -1.55, z:  5.05, rotation: 0, side: 'south' },
+    { x: -3.15, z:  2.40, rotation: Math.PI / 2, side: 'west' },
+    { x: -3.15, z: -2.40, rotation: Math.PI / 2, side: 'west' },
+  ];
   const ATTACK_CYCLE_SECONDS = 1.05;
   const FILES = {
     model: 'Zombie-Soldier.fbx',
@@ -292,22 +299,31 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     hqShield = shapedMesh('HQ level 5 shield ring', new THREE.TorusGeometry(3.35, .035, 8, 48), [0, .12, 0], 0x55dffc, staticGroup, { emissive: 0x0d7088, emissiveIntensity: 1.1 }, [Math.PI / 2, 0, 0]);
     hqShield.visible = false;
 
+    // A connected concrete service strip gives the eight positions one clear
+    // rectangular/octagonal compound footprint instead of an oval of props.
+    box('Defensive compound north pad', [7.05, .09, .78], [0, .045, -5.05], 0x3b4338, staticGroup, { roughness: .96 });
+    box('Defensive compound south pad', [7.05, .09, .78], [0, .045, 5.05], 0x3b4338, staticGroup, { roughness: .96 });
+    box('Defensive compound east pad', [.78, .09, 10.1], [3.15, .045, 0], 0x3b4338, staticGroup, { roughness: .96 });
+    box('Defensive compound west pad', [.78, .09, 10.1], [-3.15, .045, 0], 0x3b4338, staticGroup, { roughness: .96 });
+    box('Defensive compound north rail', [7.0, .16, .1], [0, .13, -5.47], 0x9a8653, staticGroup, { metalness: .18, roughness: .66 });
+    box('Defensive compound south rail', [7.0, .16, .1], [0, .13, 5.47], 0x9a8653, staticGroup, { metalness: .18, roughness: .66 });
+    box('Defensive compound east rail', [.1, .16, 10.0], [3.57, .13, 0], 0x9a8653, staticGroup, { metalness: .18, roughness: .66 });
+    box('Defensive compound west rail', [.1, .16, 10.0], [-3.57, .13, 0], 0x9a8653, staticGroup, { metalness: .18, roughness: .66 });
+
     for (let lane = 0; lane < LANE_COUNT; lane++) {
-      const angle = LANE_ANGLE_OFFSET + lane / LANE_COUNT * Math.PI * 2;
+      const layout = COMPOUND_LANES[lane];
       const group = new THREE.Group();
       group.name = `Barricade lane ${lane + 1}`;
-      group.position.set(
-        Math.cos(angle) * BARRICADE_WORLD_RADIUS * LANE_X_SCALE,
-        0,
-        Math.sin(angle) * BARRICADE_WORLD_RADIUS
-      );
-      group.rotation.y = Math.PI / 2 - angle;
+      group.position.set(layout.x, 0, layout.z);
+      group.rotation.y = layout.rotation;
+      group.userData.side = layout.side;
       staticGroup.add(group);
 
-      const left = box('Barricade left', [.78, .5, .42], [-.4, .26, 0], 0x806d4a, group);
-      const right = box('Barricade right', [.78, .5, .42], [.4, .26, 0], 0x806d4a, group);
-      box('Barricade brace left', [.12, .62, .58], [-.78, .31, 0], 0x4d4d3d, group, { metalness: .22 });
-      box('Barricade brace right', [.12, .62, .58], [.78, .31, 0], 0x4d4d3d, group, { metalness: .22 });
+      const left = box('Barricade left', [1.02, .54, .46], [-.52, .29, 0], 0x806d4a, group);
+      const right = box('Barricade right', [1.02, .54, .46], [.52, .29, 0], 0x806d4a, group);
+      box('Barricade brace left', [.14, .68, .62], [-1.03, .34, 0], 0x4d4d3d, group, { metalness: .22 });
+      box('Barricade brace center', [.12, .62, .58], [0, .31, 0], 0x4d4d3d, group, { metalness: .22 });
+      box('Barricade brace right', [.14, .68, .62], [1.03, .34, 0], 0x4d4d3d, group, { metalness: .22 });
       group.userData.faceMaterials = [left.material, right.material];
       barricadeGroups.push(group);
     }
@@ -655,21 +671,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       try {
         await loadHoltAssets();
       } catch (holtError) {
-        console.warn('Build 161 Commander Holt fallback:', holtError);
+        console.warn('Build 162 Commander Holt fallback:', holtError);
         if (heroFallbackGroup) heroFallbackGroup.visible = true;
       }
 
       try {
         await loadHQAssets();
       } catch (hqError) {
-        console.warn('Build 161 modular HQ fallback:', hqError);
+        console.warn('Build 162 modular HQ fallback:', hqError);
         hqFallbackGroup.visible = true;
       }
 
       badge.textContent = 'CENTRAL HQ · HOLT ON STATION';
       return true;
     })().catch(error => {
-      console.warn('Build 161 zombie asset fallback:', error);
+      console.warn('Build 162 zombie asset fallback:', error);
       badge.textContent = 'CENTRAL HQ · 2D FALLBACK';
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -1122,7 +1138,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         if (initialRun) api.render(initialRun);
       });
     } catch (error) {
-      console.warn('Build 161 3D fallback:', error);
+      console.warn('Build 162 3D fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';

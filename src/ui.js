@@ -2075,14 +2075,14 @@ function _sfxBreachBase() {
     g1.gain.setValueAtTime(0.0001, ac.currentTime);
     g1.gain.linearRampToValueAtTime(0.15, ac.currentTime + 0.02);
     g1.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.6);
-    o1.connect(g1); g1.connect(ac.destination);
+    o1.connect(g1); g1.connect(typeof audioDestination === 'function' ? audioDestination('sfx') : ac.destination);
     o1.start(); o1.stop(ac.currentTime + 0.65);
     var o2 = ac.createOscillator(), g2 = ac.createGain();
     o2.type = 'square'; o2.frequency.value = 72;
     g2.gain.setValueAtTime(0.0001, ac.currentTime + 0.04);
     g2.gain.linearRampToValueAtTime(0.08, ac.currentTime + 0.06);
     g2.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.35);
-    o2.connect(g2); g2.connect(ac.destination);
+    o2.connect(g2); g2.connect(typeof audioDestination === 'function' ? audioDestination('sfx') : ac.destination);
     o2.start(ac.currentTime + 0.04); o2.stop(ac.currentTime + 0.4);
   } catch(e) {}
 }
@@ -2111,7 +2111,7 @@ function _sfxUnlockAvailable() {
       g.gain.setValueAtTime(0.0001, ac.currentTime + pair[1]);
       g.gain.linearRampToValueAtTime(0.045, ac.currentTime + pair[1] + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + pair[1] + 0.18);
-      o.connect(g); g.connect(ac.destination);
+      o.connect(g); g.connect(typeof audioDestination === 'function' ? audioDestination('sfx') : ac.destination);
       o.start(ac.currentTime + pair[1]); o.stop(ac.currentTime + pair[1] + 0.22);
     });
   } catch(e) {}
@@ -2129,7 +2129,7 @@ function _sfxChapterTransition() {
       g.gain.setValueAtTime(0.0001, ac.currentTime + p[1]);
       g.gain.linearRampToValueAtTime(p[3], ac.currentTime + p[1] + 0.3);
       g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + p[1] + 1.8);
-      o.connect(g); g.connect(ac.destination);
+      o.connect(g); g.connect(typeof audioDestination === 'function' ? audioDestination('sfx') : ac.destination);
       o.start(ac.currentTime + p[1]); o.stop(ac.currentTime + p[1] + 2.0);
     });
   } catch(e) {}
@@ -2168,8 +2168,8 @@ function _startAmbient() {
 
     var melodyGain = ac.createGain();
     melodyGain.gain.value = 1.0;
-    // V80: connect through _masterGain so mute/volume slider applies to ambient music
-    var musicDest = (typeof _masterGain !== 'undefined' && _masterGain) ? _masterGain : ac.destination;
+    // Build 162: ambient music uses the independent music channel.
+    var musicDest = typeof audioDestination === 'function' ? audioDestination('music') : ac.destination;
     melodyGain.connect(musicDest);
 
     var melStep = 0;
@@ -2261,7 +2261,7 @@ function _playHeartbeat(hpf) {
     g.gain.setValueAtTime(0.0001, ac.currentTime);
     g.gain.linearRampToValueAtTime(vol, ac.currentTime + 0.015);
     g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.12);
-    o.connect(g); g.connect(ac.destination);
+    o.connect(g); g.connect(typeof audioDestination === 'function' ? audioDestination('sfx') : ac.destination);
     o.start(); o.stop(ac.currentTime + 0.15);
     // Double beat (lub-dub)
     var o2 = ac.createOscillator(), g2 = ac.createGain();
@@ -2269,7 +2269,7 @@ function _playHeartbeat(hpf) {
     g2.gain.setValueAtTime(0.0001, ac.currentTime + 0.14);
     g2.gain.linearRampToValueAtTime(vol * 0.7, ac.currentTime + 0.155);
     g2.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.28);
-    o2.connect(g2); g2.connect(ac.destination);
+    o2.connect(g2); g2.connect(typeof audioDestination === 'function' ? audioDestination('sfx') : ac.destination);
     o2.start(ac.currentTime + 0.14); o2.stop(ac.currentTime + 0.30);
   } catch(e) {}
 }
@@ -2382,7 +2382,7 @@ $id('settingsCloseBtn')?.addEventListener('click', () => {
 });
 
 // ── Haptic toggle ─────────────────────────────────────────────
-let _hapticEnabled = localStorage.getItem('lsc_haptic_off') !== '1';
+let _hapticEnabled = localStorage.getItem('lsc_haptic_off') !== '1' && localStorage.getItem('lsc_haptics') !== 'off';
 function _applyHapticUI() {
   const btn = $id('hapticToggleBtn');
   const knob = $id('hapticKnob');
@@ -2390,6 +2390,7 @@ function _applyHapticUI() {
   if (_hapticEnabled) {
     btn.style.background = '#1a0a3a';
     knob.style.transform = 'translateX(22px)';
+    knob.style.background = '#8855dd';
   } else {
     btn.style.background = '#0d1a26';
     knob.style.transform = 'translateX(0)';
@@ -2399,13 +2400,14 @@ function _applyHapticUI() {
 $id('hapticToggleBtn')?.addEventListener('click', () => {
   _hapticEnabled = !_hapticEnabled;
   localStorage.setItem('lsc_haptic_off', _hapticEnabled ? '0' : '1');
+  localStorage.setItem('lsc_haptics', _hapticEnabled ? 'on' : 'off');
   _applyHapticUI();
+  if (_hapticEnabled) haptic('light');
 });
-// Patch haptic to respect toggle
-const _origHaptic = (typeof haptic === 'function') ? haptic : null;
+// Compatibility gate for older modules; systems.js performs the real native check.
 window._hapticGate = function(type) {
   if (!_hapticEnabled) return;
-  if (_origHaptic) _origHaptic(type);
+  if (typeof haptic === 'function') haptic(type);
 };
 
 // ── Floating numbers toggle ───────────────────────────────────
@@ -2441,7 +2443,8 @@ $id('settingsReplayTutBtn')?.addEventListener('click', () => {
 // ── Wipe data from settings ───────────────────────────────────
 $id('settingsWipeBtn')?.addEventListener('click', () => {
   if (confirm('Wipe all save data? This cannot be undone.')) {
-    const keysToKeep = ['lsc_haptic_off','lsc_floats_off','ifc_sound_enabled','ifc_volume',
+    const keysToKeep = ['lsc_haptic_off','lsc_haptics','lsc_floats_off','ifc_sound_enabled','ifc_volume',
+      'lsc_music_enabled','lsc_sfx_enabled','lsc_music_volume','lsc_sfx_volume','lsc_music','lsc_sound',
       'ifc_iap_supporter','ifc_iap_commander','ifc_autowav','ifc_quickbuy'];
     Object.keys(localStorage).forEach(k => {
       if (!keysToKeep.includes(k)) localStorage.removeItem(k);
@@ -2463,45 +2466,70 @@ if (_origPauseSettingsBtn) {
   _origPauseSettingsBtn.addEventListener('click', _initSettingsToggles);
 }
 
-// Sound controls
-let _soundUIEnabled = localStorage.getItem('ifc_sound_enabled') !== '0';
-function _updateSoundUI() {
-  const btn = $id('soundToggleBtn');
-  const slider = $id('volumeSlider');
-  if (btn) btn.textContent = _soundUIEnabled ? '🔊' : '🔇';
-  if (slider) slider.style.opacity = _soundUIEnabled ? '1' : '0.3';
+// Build 162: independent, persistent music and combat-effects controls.
+let _audioUI = typeof getAudioSettings === 'function' ? getAudioSettings() : {
+  musicEnabled: true,
+  sfxEnabled: true,
+  musicVolume: .7,
+  sfxVolume: .85,
+};
+
+function _updateAudioChannelUI() {
+  const musicBtn = $id('musicToggleBtn');
+  const musicSlider = $id('musicVolumeSlider');
+  const sfxBtn = $id('sfxToggleBtn');
+  const sfxSlider = $id('sfxVolumeSlider');
+  if (musicBtn) musicBtn.textContent = _audioUI.musicEnabled ? '🎵' : '🚫';
+  if (musicSlider) musicSlider.style.opacity = _audioUI.musicEnabled ? '1' : '.32';
+  if (sfxBtn) sfxBtn.textContent = _audioUI.sfxEnabled ? '🔊' : '🔇';
+  if (sfxSlider) sfxSlider.style.opacity = _audioUI.sfxEnabled ? '1' : '.32';
 }
 
-$id('soundToggleBtn')?.addEventListener('click', () => {
-  _soundUIEnabled = !_soundUIEnabled;
-  localStorage.setItem('ifc_sound_enabled', _soundUIEnabled ? '1' : '0');
-  setSoundEnabled(_soundUIEnabled);
-  _updateSoundUI();
-  showToast(_soundUIEnabled ? '🔊 Sound enabled' : '🔇 Sound disabled');
+$id('musicToggleBtn')?.addEventListener('click', () => {
+  ensureAudio();
+  _audioUI.musicEnabled = !_audioUI.musicEnabled;
+  setMusicEnabled(_audioUI.musicEnabled);
+  _updateAudioChannelUI();
+  showToast(_audioUI.musicEnabled ? '🎵 Music enabled' : '🚫 Music muted');
 });
 
-$id('volumeSlider')?.addEventListener('input', (e) => {
-  const vol = parseInt(e.target.value);
-  localStorage.setItem('ifc_volume', vol.toString());
-  $id('volumeLabel').textContent = vol + '%';
-  _soundUIEnabled = vol > 0;
-  localStorage.setItem('ifc_sound_enabled', _soundUIEnabled ? '1' : '0');
-  setMasterVolume(vol / 100);
-  setSoundEnabled(_soundUIEnabled);
-  _updateSoundUI();
+$id('sfxToggleBtn')?.addEventListener('click', () => {
+  ensureAudio();
+  _audioUI.sfxEnabled = !_audioUI.sfxEnabled;
+  setSfxEnabled(_audioUI.sfxEnabled);
+  _updateAudioChannelUI();
+  if (_audioUI.sfxEnabled) playSfx('event');
+  showToast(_audioUI.sfxEnabled ? '🔊 Sound effects enabled' : '🔇 Sound effects muted');
 });
 
-// Initialize sound UI
-(function() {
-  const savedVol = parseInt(localStorage.getItem('ifc_volume') || '100');
-  const slider = $id('volumeSlider');
-  if (slider) slider.value = savedVol;
-  const label = $id('volumeLabel');
-  if (label) label.textContent = savedVol + '%';
-  // Apply saved volume to audio engine
-  setMasterVolume(savedVol / 100);
-  setSoundEnabled(_soundUIEnabled);
-  _updateSoundUI();
+$id('musicVolumeSlider')?.addEventListener('input', (event) => {
+  const volume = Math.max(0, Math.min(100, parseInt(event.target.value, 10) || 0));
+  _audioUI.musicVolume = volume / 100;
+  _audioUI.musicEnabled = volume > 0;
+  setMusicVolume(_audioUI.musicVolume);
+  setMusicEnabled(_audioUI.musicEnabled);
+  $id('musicVolumeLabel').textContent = volume + '%';
+  _updateAudioChannelUI();
+});
+
+$id('sfxVolumeSlider')?.addEventListener('input', (event) => {
+  const volume = Math.max(0, Math.min(100, parseInt(event.target.value, 10) || 0));
+  _audioUI.sfxVolume = volume / 100;
+  _audioUI.sfxEnabled = volume > 0;
+  setSfxVolume(_audioUI.sfxVolume);
+  setSfxEnabled(_audioUI.sfxEnabled);
+  $id('sfxVolumeLabel').textContent = volume + '%';
+  _updateAudioChannelUI();
+});
+
+(function initializeAudioChannelUI() {
+  const musicValue = Math.round(_audioUI.musicVolume * 100);
+  const sfxValue = Math.round(_audioUI.sfxVolume * 100);
+  if ($id('musicVolumeSlider')) $id('musicVolumeSlider').value = musicValue;
+  if ($id('musicVolumeLabel')) $id('musicVolumeLabel').textContent = musicValue + '%';
+  if ($id('sfxVolumeSlider')) $id('sfxVolumeSlider').value = sfxValue;
+  if ($id('sfxVolumeLabel')) $id('sfxVolumeLabel').textContent = sfxValue + '%';
+  _updateAudioChannelUI();
 })();
 
 // ── HOME SCREEN BUTTONS ────────────────────────────────────────────

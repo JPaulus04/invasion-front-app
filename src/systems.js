@@ -13,11 +13,8 @@ function _unlockAudio() {
       _ctx.resume().catch(() => {});
     }
   } catch(e) {}
-  // Restore saved volume
-  const savedVol = parseInt(localStorage.getItem('ifc_volume') || '100');
-  const savedOn = localStorage.getItem('ifc_sound_enabled') !== '0';
-  setMasterVolume(savedVol / 100);
-  setSoundEnabled(savedOn);
+  // Build 162: the audio engine owns persistent music/SFX channel state.
+  if (typeof _applyAudioGains === 'function') _applyAudioGains();
   _audioUnlocked = true;
   document.removeEventListener('touchstart', _unlockAudio);
   document.removeEventListener('mousedown', _unlockAudio);
@@ -454,16 +451,15 @@ function fireOrbitalWithReticle() {
   }
 }
 
-// Haptic feedback
+// Build 162: native iPhone haptics with a browser vibration fallback.
 function haptic(type) {
   try {
-    if (navigator.vibrate) {
-      if (type === 'light')   navigator.vibrate(8);
-      if (type === 'medium')  navigator.vibrate(20);
-      if (type === 'heavy')   navigator.vibrate([30,10,30]);
-      if (type === 'success') navigator.vibrate([10,5,10,5,20]);
-      if (type === 'error')   navigator.vibrate([50,20,50]);
+    if (localStorage.getItem('lsc_haptic_off') === '1' || localStorage.getItem('lsc_haptics') === 'off') return;
+    if (window.LSCNativeHaptics && typeof window.LSCNativeHaptics.trigger === 'function') {
+      window.LSCNativeHaptics.trigger(type || 'light');
+      return;
     }
+    if (navigator.vibrate) navigator.vibrate(type === 'heavy' || type === 'error' ? 35 : type === 'medium' ? 20 : 8);
   } catch(e) {}
 }
 
