@@ -12,7 +12,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const LANE_COUNT = 8;
   const LANE_ANGLE_OFFSET = Math.PI / 8;
   const LANE_X_SCALE = .52;
-  const BARRICADE_WORLD_RADIUS = 5.2;
+  const BARRICADE_WORLD_RADIUS = 6.4;
   const ATTACK_CYCLE_SECONDS = 1.05;
   const FILES = {
     model: 'Zombie-Soldier.fbx',
@@ -51,6 +51,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let heroMixer = null;
   let heroIdleAction = null;
   let heroFireAction = null;
+  let heroWeaponMount = null;
+  let heroWeapon = null;
+  let heroRightHand = null;
+  let heroLeftHand = null;
   let heroFireTime = 0;
   let heroWasFlashing = false;
   let turretGroup = null;
@@ -76,6 +80,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const effects = new Map();
   const staticGroup = new THREE.Group();
   const tracerAxis = new THREE.Vector3(0, 1, 0);
+  const weaponForwardAxis = new THREE.Vector3(1, 0, 0);
+  const weaponHandTarget = new THREE.Vector3();
+  const weaponTargetQuaternion = new THREE.Quaternion();
+  let firstFrameCallback = null;
+  let firstFrameTimer = 0;
 
   function material(color, options = {}) {
     return new THREE.MeshStandardMaterial({
@@ -331,7 +340,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     scene.background = new THREE.Color(0x41513f);
     scene.fog = new THREE.Fog(0x41513f, 31, 52);
 
-    camera = new THREE.PerspectiveCamera(40, 1, .1, 90);
+    camera = new THREE.PerspectiveCamera(45, 1, .1, 90);
     camera.position.set(0, 24.5, 24.2);
     camera.lookAt(0, 0, -1.1);
 
@@ -533,15 +542,24 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       child.castShadow = true;
       child.receiveShadow = true;
     });
-    weapon.position.set(0, 0, 0);
-    weapon.rotation.set(0, Math.PI / 2, 0);
+    weapon.position.set(-2, -1.2, 0);
+    weapon.rotation.set(0, 0, 0);
 
     let rightHand = null;
+    let leftHand = null;
     model.traverse(node => {
       if (!rightHand && node.isBone && node.name === 'mixamorigRightHand') rightHand = node;
+      if (!leftHand && node.isBone && node.name === 'mixamorigLeftHand') leftHand = node;
     });
     if (!rightHand) throw new Error('Commander Holt right-hand bone is missing');
-    rightHand.add(weapon);
+    if (!leftHand) throw new Error('Commander Holt support-hand bone is missing');
+    heroRightHand = rightHand;
+    heroLeftHand = leftHand;
+    heroWeaponMount = new THREE.Group();
+    heroWeaponMount.name = 'Commander Holt two-hand rifle mount';
+    heroRightHand.add(heroWeaponMount);
+    heroWeaponMount.add(weapon);
+    heroWeapon = weapon;
 
     heroMuzzle = new THREE.Mesh(
       new THREE.ConeGeometry(4.2, 13, 7),
@@ -637,21 +655,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       try {
         await loadHoltAssets();
       } catch (holtError) {
-        console.warn('Build 160 Commander Holt fallback:', holtError);
+        console.warn('Build 161 Commander Holt fallback:', holtError);
         if (heroFallbackGroup) heroFallbackGroup.visible = true;
       }
 
       try {
         await loadHQAssets();
       } catch (hqError) {
-        console.warn('Build 160 modular HQ fallback:', hqError);
+        console.warn('Build 161 modular HQ fallback:', hqError);
         hqFallbackGroup.visible = true;
       }
 
       badge.textContent = 'CENTRAL HQ · HOLT ON STATION';
       return true;
     })().catch(error => {
-      console.warn('Build 160 zombie asset fallback:', error);
+      console.warn('Build 161 zombie asset fallback:', error);
       badge.textContent = 'CENTRAL HQ · 2D FALLBACK';
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -844,6 +862,19 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     }
   }
 
+  function alignHoltWeapon() {
+    if (!heroWeaponMount || !heroWeapon || !heroRightHand || !heroLeftHand) return;
+    heroGroup.updateMatrixWorld(true);
+    heroLeftHand.getWorldPosition(weaponHandTarget);
+    heroRightHand.worldToLocal(weaponHandTarget);
+    if (weaponHandTarget.lengthSq() < .0001) return;
+    weaponHandTarget.normalize();
+    weaponTargetQuaternion.setFromUnitVectors(weaponForwardAxis, weaponHandTarget);
+    // The mount follows both animated hands exactly. Interpolating here creates
+    // a visible lag during the short firing clip, making the grip look detached.
+    heroWeaponMount.quaternion.copy(weaponTargetQuaternion);
+  }
+
   function syncHero(run, dt) {
     if (!heroGroup) return;
     const flashing = (run.hero.flash || 0) > 0;
@@ -871,6 +902,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     heroGroup.position.set(p[0], Math.sin(run.elapsed * 2.8) * .018, p[1]);
     heroGroup.rotation.y = -(run.hero.aim || -Math.PI / 2) + Math.PI / 2;
     heroGroup.visible = true;
+    alignHoltWeapon();
     heroMuzzle.visible = flashing;
     if (heroMuzzle.visible) heroMuzzle.scale.setScalar(.82 + Math.random() * .4);
     if (heroMuzzleLight) heroMuzzleLight.intensity = flashing ? 6.5 : 0;
@@ -1050,31 +1082,57 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     camera.updateProjectionMatrix();
   }
 
-  api.start = function (canvas) {
+  function completeFirstFrame(ready) {
+    if (firstFrameTimer) {
+      clearTimeout(firstFrameTimer);
+      firstFrameTimer = 0;
+    }
+    const callback = firstFrameCallback;
+    firstFrameCallback = null;
+    if (callback) callback(ready);
+  }
+
+  api.start = function (canvas, initialRun, onReady) {
     sourceCanvas = canvas;
     try {
       if (!renderer) init();
       active = true;
+      firstFrameCallback = typeof onReady === 'function' ? onReady : null;
       badge.style.display = 'block';
       badge.textContent = zombieTemplates.soldier ? 'CENTRAL HQ · HOLT ON STATION' : 'CENTRAL HQ · LOADING CONTACT';
-      sourceCanvas.style.visibility = 'visible';
+      sourceCanvas.style.visibility = 'hidden';
       view.style.display = 'none';
+      if (firstFrameTimer) clearTimeout(firstFrameTimer);
+      firstFrameTimer = setTimeout(() => {
+        if (!firstFrameCallback) return;
+        active = false;
+        view.style.display = 'none';
+        sourceCanvas.style.visibility = 'visible';
+        completeFirstFrame(false);
+      }, 12000);
 
       loadAssets().then(ready => {
-        if (!active || !ready) return;
+        if (!active) return;
+        if (!ready) {
+          sourceCanvas.style.visibility = 'visible';
+          completeFirstFrame(false);
+          return;
+        }
         view.style.display = 'block';
-        sourceCanvas.style.visibility = 'hidden';
+        if (initialRun) api.render(initialRun);
       });
     } catch (error) {
-      console.warn('Build 160 3D fallback:', error);
+      console.warn('Build 161 3D fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';
+      completeFirstFrame(false);
     }
   };
 
   api.stop = function () {
     active = false;
+    completeFirstFrame(false);
     heroWasFlashing = false;
     heroFireTime = 0;
     if (heroMuzzleLight) heroMuzzleLight.intensity = 0;
@@ -1120,6 +1178,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     syncTracers(run, liveTracers);
     syncEffects(run, liveEffects);
     renderer.render(scene, camera);
+    if (firstFrameCallback) completeFirstFrame(true);
     return true;
   };
 

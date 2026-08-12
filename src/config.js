@@ -2,7 +2,7 @@
 //  config.js — all balance tunables
 //  Edit here. Nowhere else.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '160';
+const LSC_BUILD = '161';
 
 const CFG = Object.freeze({
 

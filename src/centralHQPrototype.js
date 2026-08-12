@@ -1,4 +1,4 @@
-// Build 160 — combat presentation polish, cleaner enemy staging, and a fair Phase 6 wall.
+// Build 161 — clean loading handoff, power comparison, expanded perimeter, and corrected Holt rifle alignment.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -14,12 +14,12 @@
   var LANE_ANGLE_OFFSET = Math.PI / 8;
   var LANE_X_SCALE = .52;
   var BOSS_LANE_INDEX = 6;
-  var BARRICADE_WORLD_RADIUS = 5.2;
-  var BARRICADE_STOP_WORLD_RADIUS = 6.95;
+  var BARRICADE_WORLD_RADIUS = 6.4;
+  var BARRICADE_STOP_WORLD_RADIUS = 7.8;
   var HQ_ATTACK_WORLD_RADIUS = 3.95;
-  var QUEUE_START_WORLD_RADIUS = 7.85;
+  var QUEUE_START_WORLD_RADIUS = 8.75;
   var QUEUE_GAP_WORLD_RADIUS = .9;
-  var SPAWN_WORLD_RADIUS = 8.75;
+  var SPAWN_WORLD_RADIUS = 9.9;
   var ENEMY_ATTACK_CYCLE = 1.05;
   var combatAtlas = new Image();
   combatAtlas.src = 'assets/visual144/combat-atlas.png';
@@ -51,7 +51,7 @@
       3:{targets:[9,12,15],hp:.90,damage:.72,bossHp:520,bossDamage:17,barricadeHp:62},
       4:{targets:[11,14,18],hp:1.03,damage:.88,bossHp:700,bossDamage:21,barricadeHp:64},
       5:{targets:[13,16,20],hp:1.15,damage:1,bossHp:850,bossDamage:24,barricadeHp:66},
-      // Phase 6 is the first deliberate progression check. Build 160 keeps the
+      // Phase 6 is the first deliberate progression check. Build 161 keeps the
       // full encounter after real-browser verification showed it remains
       // beatable without artillery once the player uses field promotions.
       6:{targets:[15,19,24],hp:1.30,damage:1.12,bossHp:1050,bossDamage:28,barricadeHp:68}
@@ -72,6 +72,16 @@
     node.classList.add('hidden');
     node.setAttribute('aria-hidden', 'true');
     node.remove();
+  }
+
+  function markCommandReady() {
+    if (document.documentElement.classList.contains('lsc-command-ready')) return;
+    var raf = window.requestAnimationFrame || function (callback) { return setTimeout(callback, 16); };
+    raf(function () {
+      raf(function () {
+        document.documentElement.classList.add('lsc-command-ready');
+      });
+    });
   }
 
   function enforceCommandBaseStartup() {
@@ -112,12 +122,12 @@
         commandBase.classList.remove('hidden');
         commandBase.setAttribute('aria-hidden', 'false');
       }
-      document.documentElement.classList.add('lsc-command-ready');
+      markCommandReady();
     } catch (e) {
-      console.warn('[Build 160] startup migration recovered:', e.message);
+      console.warn('[Build 161] startup migration recovered:', e.message);
       var fallback = id('lsc137-app');
       if (fallback) fallback.classList.remove('hidden');
-      document.documentElement.classList.add('lsc-command-ready');
+      markCommandReady();
     }
   }
   function levelCost(type) {
@@ -138,12 +148,14 @@
       '.l137-hero{height:34%;min-height:180px;display:flex;align-items:center;justify-content:center;position:relative}.l137-hq-art{width:150px;height:112px;border:2px solid #75e8ff;border-radius:18px 18px 28px 28px;background:linear-gradient(145deg,#294b57,#0d2028);box-shadow:0 0 55px rgba(34,212,255,.25),inset 0 -22px 35px #071117;position:relative;transition:.25s}.l137-hq-art:before{content:"HQ";position:absolute;inset:28px 38px;border:2px solid #ffd166;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:900;color:#fff}.l137-hq-art:after{content:"";position:absolute;left:72px;bottom:83px;width:5px;height:0;border-radius:5px;background:#9cecff;box-shadow:0 0 10px #22d4ff;transition:.25s}.l137-hq-art[data-tier="2"]:after,.l137-hq-art[data-tier="3"]:after{height:35px}.l137-hq-art[data-tier="3"]{border-color:#ffd166;box-shadow:0 0 62px rgba(255,209,102,.3),inset 0 -22px 35px #071117}.l137-hq-art[data-tier="4"]:after,.l137-hq-art[data-tier="5"]:after{height:42px;background:#7ef8ff;box-shadow:-40px 25px 0 2px #45d9ff,40px 25px 0 2px #45d9ff,0 0 16px #22d4ff}.l137-hq-art[data-tier="5"]{border-color:#7ef8ff;box-shadow:0 0 72px rgba(65,229,255,.5),inset 0 -22px 35px #071117}.l137-hq-lv{position:absolute;bottom:12px;font:9px "Share Tech Mono",monospace;color:#9cecff}' +
       '.l137-panel{flex:1;min-height:0;padding:15px;border:1px solid rgba(34,212,255,.22);border-radius:20px;background:rgba(6,16,23,.93);overflow:auto}.l137-kicker{font:8px "Share Tech Mono",monospace;letter-spacing:2px;color:#ffd166}.l137-h2{font-size:23px;font-weight:900;margin:3px 0 8px}.l137-copy{font:9px/1.55 "Share Tech Mono",monospace;color:#9eb1ba}.l137-card{margin-top:12px;padding:13px;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(255,255,255,.035)}' +
       '.l137-card-row{display:flex;justify-content:space-between;gap:12px;align-items:center}.l137-card b{font-size:15px}.l137-card small{display:block;font:8px/1.4 "Share Tech Mono",monospace;color:#82949d}.l137-btn{border:1px solid rgba(34,212,255,.35);border-radius:10px;padding:10px 13px;background:#103a4a;color:white;font:800 12px Rajdhani,sans-serif;white-space:nowrap}.l137-btn.good{background:#116c3b;border-color:#1ee873}.l137-btn:disabled{opacity:.38}.l137-deploy{width:100%;margin-top:14px;padding:14px;font-size:16px}' +
+      '.l161-power-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.l161-power-metric{padding:9px;border:1px solid rgba(255,255,255,.09);border-radius:9px;background:rgba(0,0,0,.18)}.l161-power-metric span{display:block;font:7px "Share Tech Mono",monospace;letter-spacing:1px;color:#82949d}.l161-power-metric strong{display:block;margin-top:2px;font-size:22px;line-height:1;color:#fff}.l161-power-state{margin-top:8px;padding:8px 10px;border-radius:8px;text-align:center;font:800 10px "Share Tech Mono",monospace;letter-spacing:1px}.l161-power-state.underpowered{color:#ff8e78;background:rgba(140,39,26,.28);border:1px solid rgba(255,91,68,.38)}.l161-power-state.ready{color:#7fffae;background:rgba(17,108,59,.25);border:1px solid rgba(30,232,115,.34)}.l161-power-state.overmatch{color:#8fefff;background:rgba(16,91,117,.3);border:1px solid rgba(34,212,255,.4)}' +
       '.l137-nav{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:10px}.l137-nav button{padding:9px 2px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:#09141b;color:#91a7b1;font:700 9px Rajdhani,sans-serif}.l137-nav button.active{color:#fff;border-color:#22d4ff;background:#103040}' +
       '#lsc137-result{position:fixed;z-index:32000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,7,.9);backdrop-filter:blur(8px)}#lsc137-result.show{display:flex}.l137-result-card{width:min(420px,100%);padding:22px;border:1px solid rgba(34,212,255,.35);border-radius:20px;background:#08131a;text-align:center}.l137-result-card h2{font-size:28px;margin:3px}.l137-actions{display:grid;gap:8px;margin-top:17px}' +
       '#hq-upgrade-overlay{position:fixed;z-index:31000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.86)}#hq-upgrade-overlay.show{display:flex}.hq-upgrade-modal{width:min(420px,100%);padding:18px;border:1px solid #846e36;border-radius:18px;background:#09131a}.hq-upgrade-title{text-align:center;font-size:23px;font-weight:900}.hq-upgrade-sub{text-align:center;color:#ffd166;font:8px "Share Tech Mono",monospace;margin-bottom:12px}.hq-upgrade-grid{display:grid;gap:8px}.hq-upgrade-choice{text-align:left;padding:12px;border:1px solid #245363;border-radius:11px;background:#10252e;color:#fff}.hq-upgrade-choice b,.hq-upgrade-choice span{display:block}.hq-upgrade-choice span{font:8px/1.4 "Share Tech Mono",monospace;color:#9dafb8}' +
       '#lsc137-ability{position:absolute;z-index:35;right:14px;bottom:48px;width:68px;height:68px;border:2px solid #ffd166;border-radius:50%;background:#513d0e;color:white;font:800 10px Rajdhani,sans-serif;box-shadow:0 0 25px rgba(255,209,102,.25)}#lsc137-ability:disabled{opacity:.35}' +
       '#l140-controls{position:absolute;z-index:42;right:12px;top:calc(env(safe-area-inset-top,0px) + 8px);display:flex;gap:6px}#l139-menu-btn,#l140-speed-btn{height:34px;border:1px solid #58dfff;border-radius:9px;background:rgba(5,18,26,.94);color:#fff;font:800 12px Rajdhani,sans-serif}#l139-menu-btn{width:38px;font-size:18px}#l140-speed-btn{width:42px;color:#ffd166}' +
       '#l139-pause{position:fixed;z-index:33000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.9);backdrop-filter:blur(8px)}#l139-pause.show{display:flex}.l139-pause-card{width:min(400px,100%);padding:20px;border:1px solid rgba(34,212,255,.4);border-radius:18px;background:#08141b}.l139-setting{display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:9px}.l139-setting button{min-width:58px}' +
+      '#lsc161-loading{position:fixed;z-index:32950;inset:0;display:none;place-items:center;padding:24px;background:radial-gradient(circle at 50% 42%,rgba(24,74,89,.78),transparent 38%),linear-gradient(180deg,#07131a,#02070a);color:#fff;text-align:center}#lsc161-loading.show{display:grid}.l161-load-mark{width:82px;height:82px;margin:0 auto 18px;border:2px solid #74e9ff;border-radius:24px;display:grid;place-items:center;color:#ffd166;font-size:31px;font-weight:900;box-shadow:0 0 36px rgba(34,212,255,.25),inset 0 0 22px rgba(34,212,255,.08)}.l161-load-title{font-size:24px;font-weight:900;letter-spacing:1px}.l161-load-copy{margin-top:6px;color:#74e9ff;font:8px "Share Tech Mono",monospace;letter-spacing:1.7px}.l161-load-track{width:min(260px,72vw);height:5px;margin:20px auto 0;overflow:hidden;border-radius:5px;background:#142731}.l161-load-bar{width:44%;height:100%;background:linear-gradient(90deg,transparent,#74e9ff,#ffd166,transparent);animation:l161LoadSweep 1.15s ease-in-out infinite}@keyframes l161LoadSweep{0%{transform:translateX(-115%)}100%{transform:translateX(255%)}}' +
       '.l139-progress{position:absolute;z-index:39;left:12px;right:108px;top:calc(env(safe-area-inset-top,0px) + 7px);height:35px;pointer-events:none}.l139-progress-track{height:6px;margin-top:4px;border-radius:6px;background:#182a32;overflow:hidden}.l139-progress-fill{height:100%;background:linear-gradient(90deg,#22d4ff,#18f06a);box-shadow:0 0 10px #22d4ff}.l139-progress-text{font:8px "Share Tech Mono",monospace;color:#fff;display:flex;justify-content:space-between}';
     document.head.appendChild(s);
   }
@@ -177,6 +189,7 @@
     id('l139-restart').onclick=function(){if(confirm('Restart this phase? Current battle progress will be lost.')){closePause();launchPhase();}};
     id('l139-return').onclick=function(){if(confirm('Return to Command Base? Current battle progress will be lost.')){closePause();returnHome();}};
     pause.addEventListener('click',function(e){var b=e.target.closest('[data-setting]');if(!b)return;var key='lsc_'+b.dataset.setting;var on=localStorage.getItem(key)!=='off';localStorage.setItem(key,on?'off':'on');b.textContent=on?'OFF':'ON';});
+    var loadingScreen=document.createElement('div');loadingScreen.id='lsc161-loading';loadingScreen.setAttribute('aria-hidden','true');loadingScreen.innerHTML='<div><div class="l161-load-mark">HQ</div><div class="l161-load-title">DEPLOYING TO OUTER PERIMETER</div><div class="l161-load-copy">INITIALIZING COMMAND SYSTEMS</div><div class="l161-load-track"><div class="l161-load-bar"></div></div></div>';document.body.appendChild(loadingScreen);
   }
 
   function setSimulationPaused(paused){if(run)run.paused=paused;if(G&&G.state)G.state.paused=paused;}
@@ -185,8 +198,22 @@
   function setSpeed(value){if(!run)return;run.speed=value;_gameSpeed=value;var b=id('l140-speed-btn');if(b)b.textContent=value+'×';}
   function cycleSpeed(){if(!run||run.paused)return;setSpeed(run.speed===1?2:run.speed===2?3:1);}
 
+  function showBattleLoading(){var loading=id('lsc161-loading');if(!loading)return;loading.classList.add('show');loading.setAttribute('aria-hidden','false');}
+  function hideBattleLoading(){var loading=id('lsc161-loading');if(!loading)return;loading.classList.remove('show');loading.setAttribute('aria-hidden','true');}
+
+  function currentPower() {
+    return 355 + Math.max(0, meta.commander - 1) * 55 + Math.max(0, meta.hq - 1) * 65 + Math.max(0, meta.research) * 50;
+  }
+  function recommendedPower(phase) { return 320 + Math.max(1, Number(phase) || 1) * 35; }
+  function powerAssessment(phase) {
+    var current=currentPower(),recommended=recommendedPower(phase),difference=current-recommended,percent=Math.round(Math.abs(difference)/Math.max(1,recommended)*100),ratio=current/recommended;
+    if(ratio<.9)return{current:current,recommended:recommended,label:'UNDERPOWERED · '+percent+'% BELOW',className:'underpowered'};
+    if(ratio>1.15)return{current:current,recommended:recommended,label:'OVERMATCH · '+percent+'% ABOVE',className:'overmatch'};
+    return{current:current,recommended:recommended,label:'COMBAT READY · '+(difference>=0?percent+'% ABOVE':percent+'% BELOW'),className:'ready'};
+  }
+
   function refreshHeader() {
-    id('l137-res').innerHTML = '<b>' + meta.credits + '</b> CREDITS<br><b>' + meta.parts + '</b> TECH PARTS';
+    id('l137-res').innerHTML = '<b>' + currentPower() + '</b> POWER<br><b>' + meta.credits + '</b> CREDITS · <b>' + meta.parts + '</b> PARTS';
     id('l137-hq-lv').textContent = 'HEADQUARTERS · LEVEL ' + meta.hq;
     var art=document.querySelector('.l137-hq-art');if(art)art.setAttribute('data-tier',String(Math.min(5,Math.max(1,meta.hq))));
   }
@@ -195,8 +222,8 @@
     Array.prototype.forEach.call(id('l137-nav').children, function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
     var p = id('l137-panel');
     if (tab === 'campaign') {
-      var support=retryAssist(meta.phase),supportText=support>0?'<small>RETRY SUPPORT ACTIVE · ENEMY HEALTH AND DAMAGE -'+Math.round(support*100)+'%</small>':'';
-      p.innerHTML = '<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Recommended Power</b><small>' + (320 + meta.phase * 35) + ' · ' + (meta.phase<4?'OPENING OPERATION':'STANDARD RISK') + '</small>'+supportText+'</div><div><b>Victory Rewards</b><small>' + (150 + meta.phase * 75) + '+ CREDITS · 3 TECH PARTS</small></div></div></div><button class="l137-btn good l137-deploy" id="l137-deploy">CHALLENGE PHASE ' + meta.phase + '</button>';
+      var support=retryAssist(meta.phase),supportText=support>0?'<small>RETRY SUPPORT ACTIVE · ENEMY HEALTH AND DAMAGE -'+Math.round(support*100)+'%</small>':'',power=powerAssessment(meta.phase);
+      p.innerHTML = '<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small>' + (150 + meta.phase * 75) + '+ CREDITS · 3 TECH PARTS</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div><button class="l137-btn good l137-deploy" id="l137-deploy">CHALLENGE PHASE ' + meta.phase + '</button>';
     }
     if (tab === 'commander') p.innerHTML = upgradePanel('commander', 'COMMANDER HOLT', 'Permanent rifle damage and fire-rate training.', 'Combat Level ' + meta.commander);
     if (tab === 'research') p.innerHTML = upgradePanel('research', 'DEFENSE RESEARCH', 'Permanent turret and support-squad effectiveness.', 'Research Tier ' + meta.research);
@@ -221,13 +248,14 @@
     if (G && G.state && !G.state.started) { if (!G.state.selectedDoctrine) G.state.selectedDoctrine = 'fortress'; G.state.started = true; }
     id('lsc137-app').classList.add('hidden');
     document.body.classList.add('lsc137-mode');
+    showBattleLoading();
     run = createRun(phaseOverride);setSpeed(1);
-    if(window.LSC3DPrototype) window.LSC3DPrototype.start(canvas, run);
+    if(window.LSC3DPrototype) window.LSC3DPrototype.start(canvas, run, hideBattleLoading);else hideBattleLoading();
     G.state._centralHQMode = true; G.state.waveInProgress = true; G.state.gameOver = false; G.state.paused = false;
     id('lsc137-ability').disabled = false; id('lsc137-ability').textContent = 'ARTILLERY';
   }
   function createRun(phaseOverride) {
-    var W = canvas.width || 390, H = canvas.height || 600, s = dpr(), cx = W / 2, cy = H * .56;
+    var W = canvas.width || 390, H = canvas.height || 600, s = dpr(), cx = W / 2, cy = H * .52;
     var phase=Math.max(1,Number(phaseOverride)||meta.phase),balance=phaseBalance(phase),assist=retryAssist(phase),targets=balance.targets.slice();
     var worldScale=(Math.min(W,H)*.54+45*s)/8.2;
     var barricadeHp=balance.barricadeHp+(meta.hq-1)*4;
@@ -237,7 +265,7 @@
       hq:{x:cx,y:cy,r:37*s,level:meta.hq,hp:300+(meta.hq-1)*75,maxHp:300+(meta.hq-1)*75},
       hero:{source:'commander',x:cx,y:cy+70*s,r:13*s,damage:16*(1+(meta.commander-1)*.15),rate:2.7*(1+(meta.commander-1)*.06),range:150*s,cd:0},
       turret:{source:'turret',x:cx,y:cy-58*s,r:10*s,damage:10*(1+meta.research*.12),rate:3.1,range:215*s,cd:0},
-      // Build 160 keeps Commander Holt + the main turret as the readable
+      // Build 161 keeps Commander Holt + the main turret as the readable
       // defense line while mixed infected use the eight barricade lanes.
       squad:[],
       enemies:[],corpses:[],bullets:[],particles:[],damage:{commander:0,turret:0,squad:0,artillery:0},feedback:null };
@@ -309,7 +337,7 @@
     id('l137-retry').style.display = won ? '' : 'none';
     id('lsc137-result').classList.add('show');
   }
-  function returnHome(){closePause();_gameSpeed=1;id('lsc137-result').classList.remove('show');id('lsc137-app').classList.remove('hidden');document.body.classList.remove('lsc137-mode');if(window.LSC3DPrototype)window.LSC3DPrototype.stop();if(run){run.enemies=[];run.corpses=[];run.bullets=[];run.lanes.forEach(function(lane){lane.queue=[];});run.active=false;}run=null;G.state._centralHQMode=false;G.state.waveInProgress=false;renderTab('campaign');}
+  function returnHome(){closePause();hideBattleLoading();_gameSpeed=1;id('lsc137-result').classList.remove('show');id('lsc137-app').classList.remove('hidden');document.body.classList.remove('lsc137-mode');if(window.LSC3DPrototype)window.LSC3DPrototype.stop();if(run){run.enemies=[];run.corpses=[];run.bullets=[];run.lanes.forEach(function(lane){lane.queue=[];});run.active=false;}run=null;G.state._centralHQMode=false;G.state.waveInProgress=false;renderTab('campaign');}
 
   function updateBattleHUD(){
     if(!run)return;
