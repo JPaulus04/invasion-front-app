@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'162\';'), 'Build 162 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'163\';'), 'Build 163 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -157,6 +157,8 @@ requireMatch(html.includes('function setSfxEnabled(on)'), 'Build 162 SFX channel
 requireMatch(html.includes('musicToggleBtn') && html.includes('sfxToggleBtn'), 'Build 162 audio settings UI is missing');
 requireMatch(html.includes('LSCNativeHaptics'), 'Build 162 native haptics bridge is missing');
 requireMatch(html.includes("combatSfx('barrierBreak')"), 'Build 162 combat sound routing is missing');
+requireMatch(html.includes("combatHaptic(source==='turret'?'medium':'light'"), 'Build 163 weapon-fire haptics are missing');
+requireMatch(html.includes("if(isBoss){") && html.includes("if(!run||run.complete||run.bossDefeated)return;"), 'Build 163 boss promotion guard is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
 requireMatch(html.includes("classList.add('lsc-command-ready')"), 'Build 162 startup-ready handoff is missing');
