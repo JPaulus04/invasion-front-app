@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'163\';'), 'Build 163 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'164\';'), 'Build 164 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -159,6 +159,13 @@ requireMatch(html.includes('LSCNativeHaptics'), 'Build 162 native haptics bridge
 requireMatch(html.includes("combatSfx('barrierBreak')"), 'Build 162 combat sound routing is missing');
 requireMatch(html.includes("combatHaptic(source==='turret'?'medium':'light'"), 'Build 163 weapon-fire haptics are missing');
 requireMatch(html.includes("if(isBoss){") && html.includes("if(!run||run.complete||run.bossDefeated)return;"), 'Build 163 boss promotion guard is missing');
+requireMatch(html.includes('1:{targets:[9,12,15]') && html.includes('6:{targets:[20,28,37]'), 'Build 164 extended assault counts are missing');
+requireMatch(html.includes('function assaultPacing(assault)') && html.includes('function chooseEnemyKind(assault)'), 'Build 164 staged spawn pacing is missing');
+requireMatch(html.includes('var FIELD_RARITY=') && html.includes("legendary:{label:'LEGENDARY'"), 'Build 164 promotion rarity system is missing');
+requireMatch(html.includes('function chooseFieldUpgrades(rank)') && html.includes('function rarityPlan(rank)'), 'Build 164 promotion choice routing is missing');
+requireMatch(html.includes('xpNext:36') && html.includes('run.xpNext*1.32'), 'Build 164 field-rank pacing is missing');
+requireMatch(html.includes("button.className='hq-upgrade-choice '+rarity.className"), 'Build 164 rarity presentation is missing');
+requireMatch(html.includes('function victoryRewardPreview(phase)') && html.includes('victoryRewardPreview(meta.phase)'), 'Build 164 reward preview is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
 requireMatch(html.includes("classList.add('lsc-command-ready')"), 'Build 162 startup-ready handoff is missing');
