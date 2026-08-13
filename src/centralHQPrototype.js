@@ -1,4 +1,4 @@
-// Build 166 — expanded research, resource iconography, and fortress readability.
+// Build 167 — persistent field equipment, recovered drops, and readiness calibration.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -39,7 +39,11 @@
   var soundTimes = {};
   var hapticTimes = {};
   var activeResearchBranch = 'fire-control';
+  var activeInventoryFilter = 'all';
+  var selectedInventoryUid = null;
   var RESEARCH_SCHEMA = 166;
+  var EQUIPMENT_SCHEMA = 167;
+  var INVENTORY_CAPACITY = 24;
   var HQ_TIER_NAMES = ['FIELD COMMAND POST','REINFORCED COMPOUND','FORTIFIED HEADQUARTERS','ARMORED CITADEL','COMMAND FORTRESS'];
   var RESEARCH_BRANCHES = [
     {id:'fire-control',short:'FIRE',name:'FIRE CONTROL',description:'Main-turret targeting, output, armor penetration, and priority-target logic.'},
@@ -77,6 +81,30 @@
     {id:'sup-kill-chain',branch:'combat-support',tier:4,name:'Kill-Chain Relay',effectText:'Each artillery elimination reduces its active cooldown by 0.35 seconds.',requires:['sup-intel'],cost:{credits:850,parts:10},power:75,effects:{artilleryKillCooldown:.35}},
     {id:'sup-network',branch:'combat-support',tier:5,name:'Integrated Battle Network',effectText:'Artillery is ready every assault and Field Promotions show a fourth option.',requires:['sup-barrage','sup-kill-chain'],cost:{credits:1200,parts:14},power:100,capstone:true,effects:{assaultArtilleryReady:1,promotionChoiceBonus:1}}
   ];
+  var EQUIPMENT_SLOTS = [
+    {id:'weapon',label:'PRIMARY WEAPON',short:'WEAPON',description:'Commander Holt damage, fire rate, and boss pressure.'},
+    {id:'rig',label:'COMMAND RIG',short:'RIG',description:'Headquarters and perimeter protection.'},
+    {id:'module',label:'TACTICAL MODULE',short:'MODULE',description:'Main-turret and artillery coordination.'}
+  ];
+  var EQUIPMENT_CATALOG = [
+    {id:'weapon-service-rifle',slot:'weapon',rarity:'common',minPhase:1,name:'Service Rifle Mk II',effectText:'Holt damage +10%.',power:18,effects:{commanderDamage:.10}},
+    {id:'weapon-cycling-kit',slot:'weapon',rarity:'common',minPhase:3,name:'Rapid-Cycle Carbine',effectText:'Holt fire rate +9%.',power:20,effects:{commanderRate:.09}},
+    {id:'weapon-stabilized-carbine',slot:'weapon',rarity:'epic',minPhase:5,name:'Stabilized Carbine',effectText:'Holt damage +16% and fire rate +8%.',power:42,effects:{commanderDamage:.16,commanderRate:.08}},
+    {id:'weapon-siege-rifle',slot:'weapon',rarity:'epic',minPhase:8,name:'Siege Rifle',effectText:'Holt damage +18%; boss damage +22%.',power:48,effects:{commanderDamage:.18,commanderBossDamage:.22}},
+    {id:'weapon-last-word',slot:'weapon',rarity:'legendary',minPhase:10,name:'Last Word',effectText:'Holt damage +28%, fire rate +15%, and boss damage +25%.',power:72,effects:{commanderDamage:.28,commanderRate:.15,commanderBossDamage:.25}},
+
+    {id:'rig-field-plates',slot:'rig',rarity:'common',minPhase:1,name:'Field Armor Plates',effectText:'Headquarters capacity +50.',power:18,effects:{hqHp:50}},
+    {id:'rig-perimeter-braces',slot:'rig',rarity:'common',minPhase:3,name:'Perimeter Braces',effectText:'Every barrier gains 12 maximum health.',power:20,effects:{barrierHp:12}},
+    {id:'rig-repair-harness',slot:'rig',rarity:'epic',minPhase:5,name:'Repair Crew Harness',effectText:'HQ capacity +75; repair HQ 15 between assaults.',power:42,effects:{hqHp:75,assaultHqRepair:15}},
+    {id:'rig-bastion-frame',slot:'rig',rarity:'epic',minPhase:8,name:'Bastion Frame',effectText:'Barrier capacity +20; barrier damage taken -5%.',power:48,effects:{barrierHp:20,barrierDamageReduction:.05}},
+    {id:'rig-citadel-aegis',slot:'rig',rarity:'legendary',minPhase:10,name:'Citadel Aegis',effectText:'HQ capacity +125, barrier capacity +25, and HQ damage taken -8%.',power:72,effects:{hqHp:125,barrierHp:25,hqDamageReduction:.08}},
+
+    {id:'module-turret-link',slot:'module',rarity:'common',minPhase:1,name:'Turret Data Link',effectText:'Main-turret damage +8%.',power:18,effects:{turretDamage:.08}},
+    {id:'module-fire-mission',slot:'module',rarity:'common',minPhase:3,name:'Fire Mission Board',effectText:'Artillery damage +15.',power:20,effects:{artilleryDamage:15}},
+    {id:'module-combat-telemetry',slot:'module',rarity:'epic',minPhase:5,name:'Combat Telemetry Suite',effectText:'Turret fire rate +8%; field experience +10%.',power:42,effects:{turretRate:.08,fieldXp:.10}},
+    {id:'module-strike-computer',slot:'module',rarity:'epic',minPhase:8,name:'Strike Computer',effectText:'Artillery damage +25 and cooldown -2 seconds.',power:48,effects:{artilleryDamage:25,artilleryCooldown:2}},
+    {id:'module-omega-relay',slot:'module',rarity:'legendary',minPhase:10,name:'Omega Relay',effectText:'Turret damage +16%; artillery damage +35 and cooldown -2.5 seconds.',power:72,effects:{turretDamage:.16,artilleryDamage:35,artilleryCooldown:2.5}}
+  ];
   var meta = loadMeta();
 
   function id(x) { return document.getElementById(x); }
@@ -91,6 +119,18 @@
   }
   function resourceMarkup(type,value,label){return '<span class="l166-resource '+type+'">'+resourceIcon(type)+'<b>'+formatNumber(value)+'</b><span>'+label+'</span></span>';}
   function resourcePair(credits,parts){return resourceMarkup('credits',credits,'CREDITS')+'<i class="l166-resource-separator">·</i>'+resourceMarkup('parts',parts,'TECH PARTS');}
+  function equipmentIcon(slot){
+    if(slot==='weapon')return '<svg class="l167-equipment-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 18h16l5-5h3v4l-5 4H13l-4 7H5l3-7H4zM12 15V9h3v6M20 17l4 4"></path></svg>';
+    if(slot==='rig')return '<svg class="l167-equipment-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 27 7v8c0 7-4.6 11.6-11 14-6.4-2.4-11-7-11-14V7zM10 12h12v9H10zM13 9v3M19 9v3"></path></svg>';
+    return '<svg class="l167-equipment-icon" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10"></circle><circle cx="16" cy="16" r="3"></circle><path d="M16 2v7M16 23v7M2 16h7M23 16h7"></path></svg>';
+  }
+  function equipmentSlot(slotId){return EQUIPMENT_SLOTS.filter(function(slot){return slot.id===slotId;})[0]||EQUIPMENT_SLOTS[0];}
+  function equipmentDefinition(itemId){return EQUIPMENT_CATALOG.filter(function(item){return item.id===itemId;})[0]||null;}
+  function equipmentRarity(rarity){
+    if(rarity==='legendary')return{label:'LEGENDARY',rank:3,salvage:{credits:350,parts:2}};
+    if(rarity==='epic')return{label:'EPIC',rank:2,salvage:{credits:180,parts:1}};
+    return{label:'COMMON',rank:1,salvage:{credits:90,parts:0}};
+  }
   function combatSfx(kind,minGap){
     try{
       var now=performance.now(),gap=Math.max(0,Number(minGap)||0);
@@ -108,7 +148,7 @@
       if(typeof haptic==='function')haptic(key);
     }catch(e){}
   }
-  function defaults() { return { credits: 500, parts: 12, phase: 1, bestPhase: 0, commander: 1, research: 0, researchSchema:RESEARCH_SCHEMA, researchNodes:{}, researchPoints:0, legacyResearchLevels:0, legacyResearchDamage:0, hq: 1, phaseLosses: {} }; }
+  function defaults() { return { credits: 500, parts: 12, phase: 1, bestPhase: 0, commander: 1, research: 0, researchSchema:RESEARCH_SCHEMA, researchNodes:{}, researchPoints:0, legacyResearchLevels:0, legacyResearchDamage:0, hq: 1, phaseLosses: {}, equipmentSchema:EQUIPMENT_SCHEMA, equipment:[], equipped:{weapon:null,rig:null,module:null}, equipmentNextId:1, equipmentNotice:null }; }
   function loadMeta() {
     try {
       var source=JSON.parse(localStorage.getItem(META_KEY) || '{}');
@@ -130,11 +170,108 @@
       // Build 166 adds nodes around the existing Build 165 IDs. No purchased
       // node is renamed, removed, refunded, or silently granted.
       loaded.researchSchema=RESEARCH_SCHEMA;
+      loaded.equipmentNextId=Math.max(1,Math.floor(Number(loaded.equipmentNextId)||1));
+      if(!Array.isArray(loaded.equipment))loaded.equipment=[];
+      var usedEquipmentIds={};
+      loaded.equipment=loaded.equipment.filter(function(instance){return !!(instance&&equipmentDefinition(instance.itemId));}).map(function(instance){
+        var uid=String(instance.uid||'');
+        if(!uid||usedEquipmentIds[uid])uid='eq-'+loaded.equipmentNextId++;
+        usedEquipmentIds[uid]=true;
+        var numericId=Number(uid.replace(/^eq-/,''));
+        if(Number.isFinite(numericId))loaded.equipmentNextId=Math.max(loaded.equipmentNextId,Math.floor(numericId)+1);
+        return {uid:uid,itemId:instance.itemId,acquiredPhase:Math.max(0,Math.floor(Number(instance.acquiredPhase)||0)),acquiredAt:Math.max(0,Number(instance.acquiredAt)||Date.now()),locked:!!instance.locked,source:String(instance.source||'RECOVERED')};
+      });
+      if(!loaded.equipped||typeof loaded.equipped!=='object'||Array.isArray(loaded.equipped))loaded.equipped={};
+      EQUIPMENT_SLOTS.forEach(function(slot){
+        var uid=loaded.equipped[slot.id],instance=loaded.equipment.filter(function(item){return item.uid===uid;})[0],definition=instance&&equipmentDefinition(instance.itemId);
+        loaded.equipped[slot.id]=definition&&definition.slot===slot.id?instance.uid:null;
+      });
+      if(Math.max(0,Number(source.equipmentSchema)||0)<EQUIPMENT_SCHEMA&&loaded.bestPhase>0){
+        var veteranItemId=loaded.bestPhase>=10?'weapon-siege-rifle':loaded.bestPhase>=5?'weapon-stabilized-carbine':'weapon-service-rifle';
+        var veteranUid='eq-'+loaded.equipmentNextId++;
+        loaded.equipment.push({uid:veteranUid,itemId:veteranItemId,acquiredPhase:loaded.bestPhase,acquiredAt:Date.now(),locked:true,source:'VETERAN CACHE'});
+        if(!loaded.equipped.weapon)loaded.equipped.weapon=veteranUid;
+        loaded.equipmentNotice={type:'veteran',uid:veteranUid};
+      }
+      loaded.equipmentSchema=EQUIPMENT_SCHEMA;
       return loaded;
     }
     catch (e) { return defaults(); }
   }
   function saveMeta() { localStorage.setItem(META_KEY, JSON.stringify(meta)); }
+  function equipmentInstance(uid){return meta.equipment.filter(function(instance){return instance.uid===uid;})[0]||null;}
+  function equippedInstance(slotId){return equipmentInstance(meta.equipped&&meta.equipped[slotId]);}
+  function isEquipmentEquipped(uid){return EQUIPMENT_SLOTS.some(function(slot){return meta.equipped&&meta.equipped[slot.id]===uid;});}
+  function equipmentPower(){
+    return EQUIPMENT_SLOTS.reduce(function(total,slot){var instance=equippedInstance(slot.id),definition=instance&&equipmentDefinition(instance.itemId);return total+(definition?Number(definition.power)||0:0);},0);
+  }
+  function equipmentEffects(){
+    var result={commanderDamage:0,commanderRate:0,commanderBossDamage:0,turretDamage:0,turretRate:0,turretRange:0,hqHp:0,barrierHp:0,assaultHqRepair:0,assaultBarrierRepair:0,hqDamageReduction:0,barrierDamageReduction:0,artilleryDamage:0,artilleryCooldown:0,fieldXp:0};
+    EQUIPMENT_SLOTS.forEach(function(slot){
+      var instance=equippedInstance(slot.id),definition=instance&&equipmentDefinition(instance.itemId);
+      Object.keys(definition&&definition.effects||{}).forEach(function(key){result[key]=(result[key]||0)+(Number(definition.effects[key])||0);});
+    });
+    return result;
+  }
+  function nextEquipmentUid(){return'eq-'+meta.equipmentNextId++;}
+  function salvageValue(definition){return equipmentRarity(definition&&definition.rarity).salvage;}
+  function removeEquipmentInstance(instance,grantSalvage){
+    if(!instance)return null;
+    var definition=equipmentDefinition(instance.itemId),value=salvageValue(definition);
+    meta.equipment=meta.equipment.filter(function(item){return item.uid!==instance.uid;});
+    EQUIPMENT_SLOTS.forEach(function(slot){if(meta.equipped[slot.id]===instance.uid)meta.equipped[slot.id]=null;});
+    if(grantSalvage){meta.credits+=value.credits;meta.parts+=value.parts;}
+    return{instance:instance,definition:definition,value:value};
+  }
+  function addEquipment(definition,phase,source){
+    var displaced=null;
+    if(meta.equipment.length>=INVENTORY_CAPACITY){
+      var disposable=meta.equipment.filter(function(instance){var item=equipmentDefinition(instance.itemId);return item&&item.rarity==='common'&&!instance.locked&&!isEquipmentEquipped(instance.uid);}).sort(function(a,b){return a.acquiredAt-b.acquiredAt;})[0];
+      if(disposable)displaced=removeEquipmentInstance(disposable,true);
+    }
+    var instance={uid:nextEquipmentUid(),itemId:definition.id,acquiredPhase:Math.max(1,Math.floor(Number(phase)||1)),acquiredAt:Date.now(),locked:false,source:String(source||'RECOVERED')};
+    meta.equipment.push(instance);
+    return{instance:instance,definition:definition,displaced:displaced,overCapacity:meta.equipment.length>INVENTORY_CAPACITY};
+  }
+  function equipmentDropRarity(phase,firstClear){
+    var roll=Math.random(),legendaryChance=phase>=15?.08:phase>=10?.04:phase>=8?.02:0,epicChance=phase>=15?.47:phase>=10?.41:phase>=8?.30:phase>=4?.18:0;
+    if(roll<legendaryChance)return'legendary';
+    if(roll<legendaryChance+epicChance)return'epic';
+    return firstClear&&phase>=10?'epic':'common';
+  }
+  function chooseEquipmentDrop(phase,rarity){
+    var candidates=EQUIPMENT_CATALOG.filter(function(item){return item.rarity===rarity&&item.minPhase<=phase;});
+    if(!candidates.length&&rarity==='legendary')candidates=EQUIPMENT_CATALOG.filter(function(item){return item.rarity==='epic'&&item.minPhase<=phase;});
+    if(!candidates.length)candidates=EQUIPMENT_CATALOG.filter(function(item){return item.rarity==='common'&&item.minPhase<=phase;});
+    var owned={};meta.equipment.forEach(function(instance){owned[instance.itemId]=true;});
+    var fresh=candidates.filter(function(item){return !owned[item.id];});if(fresh.length)candidates=fresh;
+    var counts={weapon:0,rig:0,module:0};meta.equipment.forEach(function(instance){var item=equipmentDefinition(instance.itemId);if(item)counts[item.slot]++;});
+    var least=Math.min.apply(Math,candidates.map(function(item){return counts[item.slot]||0;})),balanced=candidates.filter(function(item){return(counts[item.slot]||0)===least;});
+    return balanced[Math.floor(Math.random()*balanced.length)]||candidates[0]||null;
+  }
+  function awardEquipmentDrop(phase,firstClear){
+    if(!firstClear&&Math.random()>=.30)return null;
+    var rarity=equipmentDropRarity(phase,firstClear),definition=chooseEquipmentDrop(phase,rarity);
+    if(!definition)return null;
+    var award=addEquipment(definition,phase,firstClear?'FIRST CLEAR':'PHASE REPLAY');
+    award.firstClear=firstClear;
+    return award;
+  }
+  function equipEquipment(uid,skipRender){
+    var instance=equipmentInstance(uid),definition=instance&&equipmentDefinition(instance.itemId);if(!definition)return false;
+    meta.equipped[definition.slot]=instance.uid;saveMeta();combatSfx('upgrade');combatHaptic('success',150);selectedInventoryUid=instance.uid;
+    if(!skipRender)renderTab('inventory');
+    return true;
+  }
+  function toggleEquipmentLock(uid){
+    var instance=equipmentInstance(uid);if(!instance)return;instance.locked=!instance.locked;saveMeta();combatSfx('event');combatHaptic('light',120);selectedInventoryUid=uid;renderTab('inventory');
+  }
+  function salvageEquipment(uid){
+    var instance=equipmentInstance(uid),definition=instance&&equipmentDefinition(instance.itemId);if(!definition||instance.locked||isEquipmentEquipped(uid))return;
+    var value=salvageValue(definition);
+    if(!confirm('Salvage '+definition.name+' for '+value.credits+' Credits'+(value.parts?' and '+value.parts+' Tech Part'+(value.parts===1?'':'s'):'')+'?'))return;
+    removeEquipmentInstance(instance,true);selectedInventoryUid=null;saveMeta();combatSfx('upgrade');combatHaptic('medium',160);renderTab('inventory');
+  }
   function researchNode(nodeId){
     for(var i=0;i<RESEARCH_NODES.length;i++)if(RESEARCH_NODES[i].id===nodeId)return RESEARCH_NODES[i];
     return null;
@@ -151,8 +288,11 @@
   }
   function purchasedResearchCount(){return RESEARCH_NODES.filter(function(node){return researchPurchased(node.id);}).length;}
   function researchPower(){
-    var tierPower=[0,30,40,55,75,100],total=Math.max(0,Number(meta.legacyResearchLevels)||0)*50;
-    RESEARCH_NODES.forEach(function(node){if(researchPurchased(node.id))total+=Number(node.power)||tierPower[node.tier]||30;});
+    // Build 167 rates upgrades by their actual share of battlefield output.
+    // Build 166's tier values made a healthy save appear dramatically stronger
+    // than the same save performed in combat.
+    var tierPower=[0,16,22,28,36,48],total=Math.max(0,Number(meta.legacyResearchLevels)||0)*20;
+    RESEARCH_NODES.forEach(function(node){if(researchPurchased(node.id))total+=tierPower[node.tier]||16;});
     return total;
   }
   function researchEffects(){
@@ -308,8 +448,9 @@
       '.l161-power-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.l161-power-metric{padding:9px;border:1px solid rgba(255,255,255,.09);border-radius:9px;background:rgba(0,0,0,.18)}.l161-power-metric span{display:block;font:7px "Share Tech Mono",monospace;letter-spacing:1px;color:#82949d}.l161-power-metric strong{display:block;margin-top:2px;font-size:22px;line-height:1;color:#fff}.l161-power-state{margin-top:8px;padding:8px 10px;border-radius:8px;text-align:center;font:800 10px "Share Tech Mono",monospace;letter-spacing:1px}.l161-power-state.underpowered{color:#ff8e78;background:rgba(140,39,26,.28);border:1px solid rgba(255,91,68,.38)}.l161-power-state.ready{color:#7fffae;background:rgba(17,108,59,.25);border:1px solid rgba(30,232,115,.34)}.l161-power-state.overmatch{color:#8fefff;background:rgba(16,91,117,.3);border:1px solid rgba(34,212,255,.4)}' +
       '.l165-research-points{margin:10px 0;padding:10px 12px;border:1px solid rgba(255,209,102,.48);border-radius:10px;background:rgba(106,74,12,.22)}.l165-research-points b,.l165-research-points span{display:block}.l165-research-points b{color:#ffd166;font-size:13px}.l165-research-points span{margin-top:3px;color:#bac8cd;font:7px/1.45 "Share Tech Mono",monospace}.l165-research-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:10px}.l165-research-summary div{padding:7px 4px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(0,0,0,.18);text-align:center}.l165-research-summary span,.l165-research-summary b{display:block}.l165-research-summary span{font:6px "Share Tech Mono",monospace;color:#82949d}.l165-research-summary b{margin-top:3px;font-size:12px;color:#fff}.l165-legacy-note{margin-top:6px;text-align:center;color:#8fefff;font:7px "Share Tech Mono",monospace}.l165-research-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:12px}.l165-research-tab{padding:8px 3px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#09141b;color:#8da2ab;font:800 9px Rajdhani,sans-serif}.l165-research-tab span,.l165-research-tab small{display:block}.l165-research-tab small{margin-top:2px;font:6px "Share Tech Mono",monospace}.l165-research-tab.active{color:#fff;border-color:#22d4ff;background:#103040}.l165-branch-head{margin-top:11px}.l165-branch-head b,.l165-branch-head span{display:block}.l165-branch-head b{color:#ffd166;font-size:15px}.l165-branch-head span{font:7px/1.4 "Share Tech Mono",monospace;color:#8fa3ac}.l165-research-tree{display:grid;gap:7px;margin-top:8px}.l165-research-node{position:relative;padding:10px 10px 10px 42px;border:1px solid rgba(34,212,255,.28);border-radius:10px;background:rgba(12,28,36,.94)}.l165-research-node:before{content:"";position:absolute;left:19px;top:0;bottom:-8px;width:2px;background:rgba(34,212,255,.23)}.l165-research-node:last-child:before{bottom:50%}.l165-research-node:after{content:"";position:absolute;left:13px;top:21px;width:12px;height:12px;border:2px solid #22d4ff;border-radius:50%;background:#071119;box-shadow:0 0 8px rgba(34,212,255,.4)}.l165-research-node.complete{border-color:rgba(30,232,115,.42);background:rgba(15,70,43,.25)}.l165-research-node.complete:after{border-color:#1ee873;background:#1a9151}.l165-research-node.locked{opacity:.48;border-color:rgba(255,255,255,.1)}.l165-research-node.locked:after{border-color:#68757b;box-shadow:none}.l165-node-tier{color:#74e9ff;font:6px "Share Tech Mono",monospace;letter-spacing:1.3px}.l165-node-name{margin-top:2px;font-size:15px;font-weight:800}.l165-node-effect{margin:2px 0 7px;color:#aebcc1;font:7px/1.4 "Share Tech Mono",monospace}.l165-node-action{width:100%;padding:7px;border:1px solid rgba(30,232,115,.44);border-radius:7px;background:#115b38;color:#fff;font:800 9px Rajdhani,sans-serif}.l165-node-action small{display:block;margin-top:2px;color:#cce0d4;font:6px "Share Tech Mono",monospace}.l165-node-action:disabled{opacity:.55;background:#18242a;border-color:rgba(255,255,255,.12)}' +
       '.l166-research-tier{position:relative;margin-top:8px;padding-top:14px}.l166-research-tier:before{content:"";position:absolute;left:50%;top:-8px;width:1px;height:17px;background:rgba(34,212,255,.28)}.l166-research-tier:first-child:before{display:none}.l166-tier-label{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);z-index:2;padding:2px 7px;border:1px solid rgba(34,212,255,.3);border-radius:10px;background:#071119;color:#74e9ff;font:6px "Share Tech Mono",monospace;letter-spacing:1px;white-space:nowrap}.l166-tier-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.l166-research-tier.single .l166-tier-grid{grid-template-columns:1fr}.l166-research-tier.capstone .l166-tier-label{color:#ffd166;border-color:rgba(255,209,102,.48)}.l165-research-node{padding:9px;min-width:0}.l165-research-node:before,.l165-research-node:after{display:none}.l165-research-node.capstone{border-color:rgba(255,209,102,.62);background:linear-gradient(145deg,rgba(91,65,12,.44),rgba(12,28,36,.96));box-shadow:0 0 15px rgba(255,209,102,.1)}.l165-research-node.capstone.complete{border-color:#1ee873;background:linear-gradient(145deg,rgba(15,92,50,.42),rgba(12,28,36,.96))}.l165-node-name{font-size:13px;line-height:1.05}.l165-node-effect{min-height:39px;font-size:6.5px}.l166-node-preview{margin:-2px 0 6px;padding:4px 5px;border-radius:5px;background:rgba(0,0,0,.22);color:#8fefff;font:5.5px/1.3 "Share Tech Mono",monospace}.l165-research-node.complete .l166-node-preview{color:#7fffae}.l166-node-requires{min-height:17px;margin:-2px 0 6px;color:#f2b567;font:5.5px/1.35 "Share Tech Mono",monospace}.l165-research-node.complete .l166-node-requires{color:#78dca3}.l165-node-action{padding:6px 4px;font-size:8px}.l165-node-action small{font-size:5.5px}.l166-research-header{scroll-margin-top:0}.l166-research-footnote{margin-top:10px;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#82949d;font:6px/1.45 "Share Tech Mono",monospace;text-align:center}' +
+      '.l167-equipment-notice{margin:9px 0;padding:9px;border:1px solid rgba(255,209,102,.58);border-radius:9px;background:rgba(92,65,14,.28);color:#ffd166;font:7px/1.45 "Share Tech Mono",monospace}.l167-equipped-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:11px}.l167-equipped-slot{min-width:0;padding:8px 5px;border:1px solid rgba(34,212,255,.25);border-radius:10px;background:rgba(7,22,29,.92);text-align:center;color:#8fa4ad}.l167-equipped-slot.filled{color:#fff;border-color:rgba(30,232,115,.38);background:rgba(14,55,38,.45)}.l167-equipped-slot .l167-equipment-icon{width:25px;height:25px;margin:auto}.l167-equipped-slot span,.l167-equipped-slot b,.l167-equipped-slot small{display:block}.l167-equipped-slot span{margin-top:4px;color:#74e9ff;font:6px "Share Tech Mono",monospace}.l167-equipped-slot b{margin-top:3px;font-size:10px;line-height:1.05}.l167-equipped-slot small{margin-top:3px;color:#8598a1;font:5.5px/1.35 "Share Tech Mono",monospace}.l167-equipment-icon{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.l167-inventory-summary{display:flex;justify-content:space-between;gap:8px;margin-top:9px;padding:7px 9px;border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#8fa3ac;font:6px "Share Tech Mono",monospace}.l167-inventory-summary strong{color:#fff}.l167-inventory-summary.over{border-color:#ff765e;color:#ff927f}.l167-inventory-filters{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:9px}.l167-filter{padding:6px 2px;border:1px solid rgba(255,255,255,.1);border-radius:7px;background:#09141b;color:#80939c;font:800 7px Rajdhani,sans-serif}.l167-filter.active{color:#fff;border-color:#22d4ff;background:#103040}.l167-inventory-list{display:grid;gap:7px;margin-top:8px}.l167-item-card{padding:9px;border:1px solid #63727a;border-radius:10px;background:#111d23;color:#fff}.l167-item-card.epic{border-color:#955fe0;background:#21152f}.l167-item-card.legendary{border-color:#d5a73a;background:#30250e}.l167-item-card.selected{box-shadow:0 0 0 1px #22d4ff,0 0 15px rgba(34,212,255,.16)}.l167-item-card.equipped{box-shadow:inset 3px 0 0 #1ee873}.l167-item-head{display:flex;align-items:center;gap:9px}.l167-item-head .l167-equipment-icon{flex:0 0 auto}.l167-item-copy{flex:1;min-width:0}.l167-item-copy small,.l167-item-copy b,.l167-item-copy span{display:block}.l167-item-copy small{color:#aab4b9;font:6px "Share Tech Mono",monospace;letter-spacing:1px}.l167-item-card.epic .l167-item-copy small{color:#ca9bff}.l167-item-card.legendary .l167-item-copy small{color:#ffd166}.l167-item-copy b{margin-top:2px;font-size:14px;line-height:1}.l167-item-copy span{margin-top:3px;color:#b4c0c5;font:7px/1.35 "Share Tech Mono",monospace}.l167-item-state{flex:0 0 auto;color:#7fffae;font:6px "Share Tech Mono",monospace;text-align:right}.l167-item-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}.l167-item-action{padding:7px 3px;border:1px solid rgba(34,212,255,.32);border-radius:7px;background:#103444;color:#fff;font:800 8px Rajdhani,sans-serif}.l167-item-action.good{border-color:#1ee873;background:#11643a}.l167-item-action.salvage{border-color:#a66b37;background:#3d2814}.l167-item-action:disabled{opacity:.35}.l167-empty{padding:18px 10px;border:1px dashed rgba(255,255,255,.16);border-radius:10px;color:#84969e;text-align:center;font:7px/1.5 "Share Tech Mono",monospace}.l167-result-survival{margin-top:5px;color:#8fefff!important}.l167-result-drop{margin-top:9px;padding:9px;border:1px solid #66747b;border-radius:10px;background:#111d23;text-align:left}.l167-result-drop.epic{border-color:#955fe0;background:#21152f}.l167-result-drop.legendary{border-color:#d5a73a;background:#30250e}.l167-result-drop-head{display:flex;align-items:center;gap:9px}.l167-result-drop .l167-equipment-icon{flex:0 0 auto}.l167-result-drop-copy{flex:1;min-width:0}.l167-result-drop-copy small,.l167-result-drop-copy b,.l167-result-drop-copy span{display:block}.l167-result-drop-copy small{color:#ffd166;font:6px "Share Tech Mono",monospace;letter-spacing:1px}.l167-result-drop-copy b{font-size:14px}.l167-result-drop-copy span{color:#bac4c8;font:7px/1.35 "Share Tech Mono",monospace}.l167-result-drop button{width:100%;margin-top:7px;padding:7px;border:1px solid #1ee873;border-radius:7px;background:#11643a;color:#fff;font:800 9px Rajdhani,sans-serif}.l167-result-drop button:disabled{opacity:.55}' +
       '.l137-nav{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:10px}.l137-nav button{padding:9px 2px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:#09141b;color:#91a7b1;font:700 9px Rajdhani,sans-serif}.l137-nav button.active{color:#fff;border-color:#22d4ff;background:#103040}' +
-      '#lsc137-result{position:fixed;z-index:32000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,7,.9);backdrop-filter:blur(8px)}#lsc137-result.show{display:flex}.l137-result-card{width:min(420px,100%);padding:22px;border:1px solid rgba(34,212,255,.35);border-radius:20px;background:#08131a;text-align:center}.l137-result-card h2{font-size:28px;margin:3px}.l137-actions{display:grid;gap:8px;margin-top:17px}' +
+      '#lsc137-result{position:fixed;z-index:32000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,7,.9);backdrop-filter:blur(8px)}#lsc137-result.show{display:flex}.l137-result-card{width:min(420px,100%);max-height:calc(100vh - 44px);overflow:auto;box-sizing:border-box;padding:22px;border:1px solid rgba(34,212,255,.35);border-radius:20px;background:#08131a;text-align:center}.l137-result-card h2{font-size:28px;margin:3px}.l137-actions{display:grid;gap:8px;margin-top:17px}' +
       '#hq-upgrade-overlay{position:fixed;z-index:31000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.86)}#hq-upgrade-overlay.show{display:flex}.hq-upgrade-modal{width:min(420px,100%);padding:18px;border:1px solid #846e36;border-radius:18px;background:#09131a}.hq-upgrade-title{text-align:center;font-size:23px;font-weight:900}.hq-upgrade-sub{text-align:center;color:#ffd166;font:8px "Share Tech Mono",monospace;margin-bottom:12px}.hq-upgrade-grid{display:grid;gap:8px}.hq-upgrade-choice{text-align:left;padding:12px;border:1px solid #64727a;border-radius:11px;background:#121d23;color:#fff;box-shadow:inset 3px 0 0 #7e8a90}.hq-upgrade-choice b,.hq-upgrade-choice span,.hq-upgrade-choice small{display:block}.hq-upgrade-choice b{font-size:15px}.hq-upgrade-choice span{font:8px/1.45 "Share Tech Mono",monospace;color:#b8c2c7}.hq-upgrade-choice small{margin-bottom:4px;font:7px "Share Tech Mono",monospace;letter-spacing:1.5px;color:#aab4b9}.hq-upgrade-choice.epic{border-color:#8f58d8;background:#21152f;box-shadow:inset 3px 0 0 #b477ff,0 0 14px rgba(164,92,255,.12)}.hq-upgrade-choice.epic small{color:#c99aff}.hq-upgrade-choice.legendary{border-color:#c79c32;background:#30250e;box-shadow:inset 3px 0 0 #ffd166,0 0 16px rgba(255,209,102,.14)}.hq-upgrade-choice.legendary small{color:#ffd166}' +
       '#lsc137-ability{position:absolute;z-index:35;right:14px;bottom:48px;width:68px;height:68px;border:2px solid #ffd166;border-radius:50%;background:#513d0e;color:white;font:800 10px Rajdhani,sans-serif;box-shadow:0 0 25px rgba(255,209,102,.25)}#lsc137-ability:disabled{opacity:.35}' +
       '#l140-controls{position:absolute;z-index:42;right:12px;top:calc(env(safe-area-inset-top,0px) + 8px);display:flex;gap:6px}#l139-menu-btn,#l140-speed-btn{height:34px;border:1px solid #58dfff;border-radius:9px;background:rgba(5,18,26,.94);color:#fff;font:800 12px Rajdhani,sans-serif}#l139-menu-btn{width:38px;font-size:18px}#l140-speed-btn{width:42px;color:#ffd166}' +
@@ -393,9 +534,9 @@
   function hideBattleLoading(){var loading=id('lsc161-loading');if(!loading)return;loading.classList.remove('show');loading.setAttribute('aria-hidden','true');}
 
   function currentPower() {
-    return 355 + Math.max(0, meta.commander - 1) * 55 + Math.max(0, meta.hq - 1) * 65 + researchPower();
+    return 320 + Math.max(0, meta.commander - 1) * 42 + Math.max(0, meta.hq - 1) * 50 + researchPower() + equipmentPower();
   }
-  function recommendedPower(phase) { return 320 + Math.max(1, Number(phase) || 1) * 35; }
+  function recommendedPower(phase) { return 300 + Math.max(1, Number(phase) || 1) * 40; }
   function victoryRewardPreview(phase) {
     var targets=phaseBalance(Math.max(1,Number(phase)||1)).targets;
     return 250+(targets.reduce(function(total,count){return total+count;},0)+1)*3;
@@ -441,6 +582,36 @@
     Array.prototype.forEach.call(panel.querySelectorAll('[data-research-branch]'),function(button){button.onclick=function(){activeResearchBranch=button.dataset.researchBranch;renderTab('research',{scrollTop:0});};});
     Array.prototype.forEach.call(panel.querySelectorAll('[data-research-node]'),function(button){button.onclick=function(){buyResearchNode(button.dataset.researchNode);};});
   }
+  function renderInventoryTab(panel){
+    var notice='';
+    if(meta.equipmentNotice&&meta.equipmentNotice.type==='veteran'){
+      var veteran=equipmentInstance(meta.equipmentNotice.uid),veteranDefinition=veteran&&equipmentDefinition(veteran.itemId);
+      if(veteranDefinition)notice='<div class="l167-equipment-notice"><b>VETERAN CACHE OPENED</b><br>'+veteranDefinition.name+' was issued for reaching Phase '+Math.max(1,meta.bestPhase)+'. It is equipped and locked for safekeeping.</div>';
+      meta.equipmentNotice=null;saveMeta();
+    }
+    var equippedCards=EQUIPMENT_SLOTS.map(function(slot){
+      var instance=equippedInstance(slot.id),definition=instance&&equipmentDefinition(instance.itemId);
+      return '<div class="l167-equipped-slot '+(definition?'filled '+definition.rarity:'')+'" '+(instance?'data-equipment-select="'+instance.uid+'"':'')+'>'+equipmentIcon(slot.id)+'<span>'+slot.short+'</span><b>'+(definition?definition.name:'EMPTY SLOT')+'</b><small>'+(definition?definition.effectText:slot.description)+'</small></div>';
+    }).join('');
+    var filterButtons=[{id:'all',label:'ALL'}].concat(EQUIPMENT_SLOTS.map(function(slot){return{id:slot.id,label:slot.short};})).map(function(filter){return '<button class="l167-filter '+(activeInventoryFilter===filter.id?'active':'')+'" data-equipment-filter="'+filter.id+'">'+filter.label+'</button>';}).join('');
+    var visible=meta.equipment.filter(function(instance){var definition=equipmentDefinition(instance.itemId);return definition&&(activeInventoryFilter==='all'||definition.slot===activeInventoryFilter);}).sort(function(a,b){
+      var aEquipped=isEquipmentEquipped(a.uid)?1:0,bEquipped=isEquipmentEquipped(b.uid)?1:0;if(aEquipped!==bEquipped)return bEquipped-aEquipped;
+      var aDefinition=equipmentDefinition(a.itemId),bDefinition=equipmentDefinition(b.itemId),rarityDifference=equipmentRarity(bDefinition.rarity).rank-equipmentRarity(aDefinition.rarity).rank;
+      return rarityDifference||b.acquiredAt-a.acquiredAt;
+    });
+    if(selectedInventoryUid&&!equipmentInstance(selectedInventoryUid))selectedInventoryUid=null;
+    var cards=visible.map(function(instance){
+      var definition=equipmentDefinition(instance.itemId),rarity=equipmentRarity(definition.rarity),equipped=isEquipmentEquipped(instance.uid),selected=selectedInventoryUid===instance.uid,value=salvageValue(definition),slot=equipmentSlot(definition.slot);
+      var state=equipped?'EQUIPPED':instance.locked?'LOCKED':'';
+      var actions=selected?'<div class="l167-item-actions"><button class="l167-item-action good" data-equipment-action="equip" data-equipment-uid="'+instance.uid+'" '+(equipped?'disabled':'')+'>'+(equipped?'EQUIPPED':'EQUIP')+'</button><button class="l167-item-action" data-equipment-action="lock" data-equipment-uid="'+instance.uid+'">'+(instance.locked?'UNLOCK':'LOCK')+'</button><button class="l167-item-action salvage" data-equipment-action="salvage" data-equipment-uid="'+instance.uid+'" '+(equipped||instance.locked?'disabled':'')+'>SALVAGE +'+value.credits+(value.parts?' / '+value.parts+' PART':'')+'</button></div>':'';
+      return '<article class="l167-item-card '+definition.rarity+(selected?' selected':'')+(equipped?' equipped':'')+'" data-equipment-select="'+instance.uid+'"><div class="l167-item-head">'+equipmentIcon(definition.slot)+'<div class="l167-item-copy"><small>'+rarity.label+' · '+slot.label+'</small><b>'+definition.name+'</b><span>'+definition.effectText+' · POWER +'+definition.power+'</span></div><div class="l167-item-state">'+state+'</div></div>'+actions+'</article>';
+    }).join('');
+    var over=meta.equipment.length>INVENTORY_CAPACITY;
+    panel.innerHTML='<div class="l137-kicker">ARMORY</div><div class="l137-h2">FIELD EQUIPMENT</div><div class="l137-copy">Recovered equipment is permanent, shared by future commanders, and active as soon as it is equipped.</div>'+notice+'<div class="l167-equipped-grid">'+equippedCards+'</div><div class="l167-inventory-summary '+(over?'over':'')+'"><span><strong>'+meta.equipment.length+'</strong> / '+INVENTORY_CAPACITY+' ITEMS'+(over?' · SALVAGE REQUIRED':'')+'</span><span>EQUIPPED POWER <strong>+'+equipmentPower()+'</strong></span></div><div class="l167-inventory-filters">'+filterButtons+'</div><div class="l167-inventory-list">'+(cards||'<div class="l167-empty">NO '+(activeInventoryFilter==='all'?'RECOVERED EQUIPMENT':equipmentSlot(activeInventoryFilter).label)+'<br>FIRST-CLEAR PHASE VICTORIES GUARANTEE A DROP.</div>')+'</div>';
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-equipment-filter]'),function(button){button.onclick=function(){activeInventoryFilter=button.dataset.equipmentFilter;selectedInventoryUid=null;renderTab('inventory',{scrollTop:0});};});
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-equipment-select]'),function(card){card.onclick=function(event){if(event.target.closest('[data-equipment-action]'))return;var oldScroll=panel.scrollTop;selectedInventoryUid=selectedInventoryUid===card.dataset.equipmentSelect?null:card.dataset.equipmentSelect;renderTab('inventory',{scrollTop:oldScroll});};});
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-equipment-action]'),function(button){button.onclick=function(event){event.stopPropagation();var action=button.dataset.equipmentAction,uid=button.dataset.equipmentUid;if(action==='equip')equipEquipment(uid);if(action==='lock')toggleEquipmentLock(uid);if(action==='salvage')salvageEquipment(uid);};});
+  }
   function renderTab(tab,options) {
     refreshHeader();
     Array.prototype.forEach.call(id('l137-nav').children, function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
@@ -452,7 +623,7 @@
     if (tab === 'commander') p.innerHTML = upgradePanel('commander', 'COMMANDER HOLT', 'Permanent rifle damage and fire-rate training.', 'Combat Level ' + meta.commander);
     if (tab === 'research') renderResearchTab(p);
     if (tab === 'hq') p.innerHTML = upgradePanel('hq', 'HEADQUARTERS', 'Grow the central base from a field post into a visibly larger fortified command fortress. Every level strengthens HQ health and all perimeter barriers.', meta.hq>=5?'COMMAND FORTRESS · MAXIMUM LEVEL':'UPGRADE TO LEVEL '+(meta.hq+1)+' · '+HQ_TIER_NAMES[Math.min(4,meta.hq)]);
-    if (tab === 'inventory') p.innerHTML = '<div class="l137-kicker">ARMORY</div><div class="l137-h2">INVENTORY</div><div class="l137-copy">Recovered equipment will appear here. The first functional equipment drops arrive after the core phase loop is balanced.</div><div class="l137-card"><b>Standard Issue Rifle</b><small>EQUIPPED · ASSAULT CLASS</small></div><div class="l137-card"><b>Field Armor</b><small>EQUIPPED · STANDARD PROTECTION</small></div>';
+    if (tab === 'inventory') renderInventoryTab(p);
     var dep = id('l137-deploy'); if (dep) dep.onclick = launchPhase;
     var buy = id('l137-buy'); if (buy) buy.onclick = function () { buyUpgrade(tab); };
     if(p)p.scrollTop=options&&Number.isFinite(options.scrollTop)?Math.max(0,options.scrollTop):0;
@@ -484,19 +655,19 @@
   }
   function createRun(phaseOverride) {
     var W = canvas.width || 390, H = canvas.height || 600, s = dpr(), cx = W / 2, cy = H * .52;
-    var phase=Math.max(1,Number(phaseOverride)||meta.phase),balance=phaseBalance(phase),assist=retryAssist(phase),targets=balance.targets.slice(),tech=researchEffects();
+    var phase=Math.max(1,Number(phaseOverride)||meta.phase),balance=phaseBalance(phase),assist=retryAssist(phase),targets=balance.targets.slice(),tech=researchEffects(),gear=equipmentEffects();
     var worldScale=(Math.min(W,H)*.54+45*s)/8.2;
-    var barricadeHp=balance.barricadeHp+(meta.hq-1)*10+tech.barrierHp;
+    var barricadeHp=balance.barricadeHp+(meta.hq-1)*10+tech.barrierHp+gear.barrierHp;
     var lanes=[];
     for(var lane=0;lane<LANE_COUNT;lane++){
       var layout=COMPOUND_LANES[lane],angle=Math.atan2(layout.y,layout.x);
       lanes.push({index:lane,angle:angle,baseX:layout.x,baseY:layout.y,rotation:layout.rotation,side:layout.side,queue:[],barricade:{hp:barricadeHp,maxHp:barricadeHp,flash:0}});
     }
-    var hqCapacity=300+(meta.hq-1)*75+tech.hqHp,artilleryDamage=(95+tech.artilleryDamage)*(1+tech.artilleryMultiplier);
-    return { active:true, paused:false, complete:false, phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:36, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, upgradeStacks:{}, lastUpgradeChoices:[], legendaryMisses:0, abilityCd:0, abilityMaxCd:Math.max(8,18-tech.artilleryCooldown), abilityDamage:artilleryDamage, artilleryKillCooldown:tech.artilleryKillCooldown, assaultArtilleryReady:tech.assaultArtilleryReady, fieldXpMultiplier:1+tech.fieldXp, promotionChoiceBonus:tech.promotionChoiceBonus, turretBossDamage:tech.turretBossDamage, turretArmoredDamage:tech.turretArmoredDamage, turretPriority:tech.turretPriority, assaultHqRepair:tech.assaultHqRepair, assaultBarrierRepair:tech.assaultBarrierRepair, rebuildBarrierFraction:tech.rebuildBarrierFraction, hqDamageReduction:tech.hqDamageReduction, hqEmergencyReduction:tech.hqEmergencyReduction, barrierDamageReduction:tech.barrierDamageReduction, research:tech, lastHit:0,
+    var hqCapacity=300+(meta.hq-1)*75+tech.hqHp+gear.hqHp,artilleryDamage=(95+tech.artilleryDamage+gear.artilleryDamage)*(1+tech.artilleryMultiplier);
+    return { active:true, paused:false, complete:false, phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:36, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, upgradeStacks:{}, lastUpgradeChoices:[], legendaryMisses:0, abilityCd:0, abilityMaxCd:Math.max(8,18-tech.artilleryCooldown-gear.artilleryCooldown), abilityDamage:artilleryDamage, artilleryKillCooldown:tech.artilleryKillCooldown, assaultArtilleryReady:tech.assaultArtilleryReady, fieldXpMultiplier:1+tech.fieldXp+gear.fieldXp, promotionChoiceBonus:tech.promotionChoiceBonus, commanderBossDamage:gear.commanderBossDamage, turretBossDamage:tech.turretBossDamage, turretArmoredDamage:tech.turretArmoredDamage, turretPriority:tech.turretPriority, assaultHqRepair:tech.assaultHqRepair+gear.assaultHqRepair, assaultBarrierRepair:tech.assaultBarrierRepair+gear.assaultBarrierRepair, rebuildBarrierFraction:tech.rebuildBarrierFraction, hqDamageReduction:tech.hqDamageReduction+gear.hqDamageReduction, hqEmergencyReduction:tech.hqEmergencyReduction, barrierDamageReduction:tech.barrierDamageReduction+gear.barrierDamageReduction, research:tech, equipment:gear, lastHit:0,
       hq:{x:cx,y:cy,r:37*s,level:meta.hq,hp:hqCapacity,maxHp:hqCapacity},
-      hero:{source:'commander',x:cx,y:cy+70*s,r:13*s,damage:16*(1+(meta.commander-1)*.15),rate:2.7*(1+(meta.commander-1)*.06),range:150*s,cd:0},
-      turret:{source:'turret',x:cx,y:cy-58*s,r:10*s,damage:10*(1+tech.turretDamage),rate:3.1*(1+tech.turretRate),range:215*s*(1+tech.turretRange),cd:0},
+      hero:{source:'commander',x:cx,y:cy+70*s,r:13*s,damage:16*(1+(meta.commander-1)*.15)*(1+gear.commanderDamage),rate:2.7*(1+(meta.commander-1)*.06)*(1+gear.commanderRate),range:150*s,cd:0},
+      turret:{source:'turret',x:cx,y:cy-58*s,r:10*s,damage:10*(1+tech.turretDamage+gear.turretDamage),rate:3.1*(1+tech.turretRate+gear.turretRate),range:215*s*(1+tech.turretRange+gear.turretRange),cd:0},
       // Commander Holt + the main turret remain the readable defense line
       // defense line while mixed infected use the eight barricade lanes.
       squad:[],
@@ -547,6 +718,7 @@
     // Commander/squad fire shares the light channel; turret bursts use medium.
     combatHaptic(source==='turret'?'medium':'light',source==='turret'?240:source==='commander'?140:180);
     var shotDamage=damage;
+    if(source==='commander'&&t.kind==='boss')shotDamage*=1+(run.commanderBossDamage||0);
     if(source==='turret'&&t.kind==='boss')shotDamage*=1+(run.turretBossDamage||0);
     if(source==='turret'&&t.kind==='armored')shotDamage*=1+(run.turretArmoredDamage||0);
     run.bullets.push({x:o.x+Math.cos(o.aim)*10*dpr(),y:o.y+Math.sin(o.aim)*10*dpr(),px:o.x,py:o.y,vx:x/l*speed*dpr(),vy:y/l*speed*dpr(),damage:shotDamage,life:.9,source:source,color:source==='commander'?'#fff07a':source==='turret'?'#ff8a2a':'#8edcff'});
@@ -681,6 +853,13 @@
     if(meta.commander<4)return 'Recommended next: upgrade Commander Holt to increase damage and fire rate.';
     return 'Recommended next: advance the Fire Control or Fortifications research branch.';
   }
+  function equipmentDropMarkup(award){
+    if(!award||!award.definition||!award.instance)return'';
+    var definition=award.definition,rarity=equipmentRarity(definition.rarity),slot=equipmentSlot(definition.slot),capacityNote='STORED IN INVENTORY';
+    if(award.displaced)capacityNote='ARMORY FULL · '+award.displaced.definition.name.toUpperCase()+' AUTO-SALVAGED FOR '+award.displaced.value.credits+' CREDITS'+(award.displaced.value.parts?' + '+award.displaced.value.parts+' TECH PART'+(award.displaced.value.parts===1?'':'S'):'');
+    else if(award.overCapacity)capacityNote='ARMORY OVER CAPACITY · LOCKED OR EQUIPPED ITEMS WERE PRESERVED';
+    return '<div class="l167-result-drop '+definition.rarity+'"><div class="l167-result-drop-head">'+equipmentIcon(definition.slot)+'<div class="l167-result-drop-copy"><small>'+(award.firstClear?'FIRST-CLEAR EQUIPMENT':'EQUIPMENT RECOVERED')+' · '+rarity.label+' · '+slot.short+'</small><b>'+definition.name+'</b><span>'+definition.effectText+'</span><span>'+capacityNote+'</span></div></div><button id="l167-equip-drop" data-equipment-uid="'+award.instance.uid+'">EQUIP NOW · POWER +'+definition.power+'</button></div>';
+  }
   function finish(won) {
     if (!run || run.complete) return;
     run.complete = true;
@@ -693,8 +872,10 @@
     var clearedPhase = run.phase;
     var reward = won ? 250 + run.kills * 3 : Math.min(250,100+clearedPhase*25+Math.floor(run.kills*2));
     var parts = won ? 3 : 0;
+    var firstClear=won&&clearedPhase>meta.bestPhase;
     meta.credits += reward;
     meta.parts += parts;
+    var equipmentAward=won?awardEquipmentDrop(clearedPhase,firstClear):null;
     if (won) {
       meta.bestPhase = Math.max(meta.bestPhase, clearedPhase);
       if (clearedPhase >= meta.phase) meta.phase = clearedPhase + 1;
@@ -707,7 +888,9 @@
     id('l137-result-kicker').textContent = won ? 'MISSION ACCOMPLISHED' : 'MISSION FAILED';
     id('l137-result-title').textContent = won ? 'PHASE ' + clearedPhase + ' SECURED' : 'HEADQUARTERS LOST';
     id('l137-result-copy').textContent = won ? 'The Siege Breaker is destroyed. Phase ' + meta.phase + ' is ready for deployment.' : defeatAdvice()+supportCopy;
-    id('l137-result-reward').innerHTML = '<div class="l166-reward-resources">'+(parts?resourcePair(reward,parts):resourceMarkup('credits',reward,'CREDITS'))+'</div><small>' + (won?'VICTORY REWARD':'SALVAGE REWARD · PROGRESS IS NEVER LOST') + '</small><small>' + formatNumber(run.kills) + ' ENEMIES ELIMINATED</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small>';
+    var integrity=Math.max(0,Math.round(run.hq.hp/Math.max(1,run.hq.maxHp)*100)),survivingBarriers=run.lanes.filter(function(lane){return lane.barricade.hp>0;}).length;
+    id('l137-result-reward').innerHTML = '<div class="l166-reward-resources">'+(parts?resourcePair(reward,parts):resourceMarkup('credits',reward,'CREDITS'))+'</div><small>' + (won?'VICTORY REWARD':'SALVAGE REWARD · PROGRESS IS NEVER LOST') + '</small><small>' + formatNumber(run.kills) + ' ENEMIES ELIMINATED</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small class="l167-result-survival">HQ INTEGRITY '+integrity+'% · '+survivingBarriers+'/'+LANE_COUNT+' BARRIERS SURVIVED</small>'+equipmentDropMarkup(equipmentAward);
+    var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
     id('l141-continue').textContent = won ? 'CONTINUE TO PHASE ' + meta.phase : 'RETRY PHASE ' + clearedPhase;
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
     id('l137-retry').style.display = won ? '' : 'none';
