@@ -53,6 +53,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let clips = {};
   let heroGroup = null;
   let heroFallbackGroup = null;
+  let heroBaseScale = new THREE.Vector3(1, 1, 1);
   let heroMuzzle = null;
   let heroMuzzleLight = null;
   let heroMixer = null;
@@ -70,6 +71,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let turretFlashGroup = null;
   let turretLevel2Group = null;
   let turretLevel4Group = null;
+  let commandBastionGroup = null;
+  let commandBastionTier2Group = null;
+  let commandBastionTier3Group = null;
+  let commandBastionTier4Group = null;
+  let commandBastionTier5Group = null;
   let hqFallbackGroup = null;
   let hqAssetGroup = null;
   let hqBase = null;
@@ -142,6 +148,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     heroFallbackGroup = new THREE.Group();
     heroFallbackGroup.name = 'Commander Holt fallback';
     heroGroup = heroFallbackGroup;
+    heroBaseScale.copy(heroGroup.scale);
 
     // A compact armored silhouette reads far better from the top-down camera
     // than the old stack of rectangular blocks. The weapon is an integrated
@@ -255,6 +262,43 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     staticGroup.add(eastWest);
 
     box('HQ foundation', [3.7, .28, 3.2], [0, .14, 0], 0x26342e);
+    commandBastionGroup = new THREE.Group();
+    commandBastionGroup.name = 'Command Bastion shared Holt and turret fixture';
+    box('Command Bastion Holt deck', [1.9, .16, 1.2], [0, .1, 1.72], 0x263d3b, commandBastionGroup, { metalness: .3, roughness: .52 });
+    box('Command Bastion turret deck', [1.9, .16, 1.2], [0, .1, -1.5], 0x263d3b, commandBastionGroup, { metalness: .3, roughness: .52 });
+    box('Command Bastion west spine', [.12, .12, 3.35], [-.94, .12, .1], 0x6e7d72, commandBastionGroup, { metalness: .48, roughness: .4 });
+    box('Command Bastion east spine', [.12, .12, 3.35], [.94, .12, .1], 0x6e7d72, commandBastionGroup, { metalness: .48, roughness: .4 });
+    staticGroup.add(commandBastionGroup);
+
+    commandBastionTier2Group = new THREE.Group();
+    commandBastionTier2Group.name = 'Command Bastion level 2 armored rails';
+    box('Bastion west command rail', [.12, .48, 1.22], [-.91, .34, 1.72], 0x355a57, commandBastionTier2Group, { metalness: .48, roughness: .36 });
+    box('Bastion east command rail', [.12, .48, 1.22], [.91, .34, 1.72], 0x355a57, commandBastionTier2Group, { metalness: .48, roughness: .36 });
+    commandBastionTier2Group.visible = false;
+    staticGroup.add(commandBastionTier2Group);
+
+    commandBastionTier3Group = new THREE.Group();
+    commandBastionTier3Group.name = 'Command Bastion level 3 raised deck';
+    box('Bastion raised command pad', [1.72, .22, .94], [0, .21, 1.72], 0x47645f, commandBastionTier3Group, { metalness: .5, roughness: .36 });
+    box('Bastion command step', [1.2, .16, .35], [0, .08, 2.45], 0x667770, commandBastionTier3Group, { metalness: .38, roughness: .48 });
+    commandBastionTier3Group.visible = false;
+    staticGroup.add(commandBastionTier3Group);
+
+    commandBastionTier4Group = new THREE.Group();
+    commandBastionTier4Group.name = 'Command Bastion level 4 armored nest';
+    box('Bastion west armor screen', [.28, .82, .72], [-.78, .55, 1.72], 0x2e5556, commandBastionTier4Group, { metalness: .68, roughness: .28 });
+    box('Bastion east armor screen', [.28, .82, .72], [.78, .55, 1.72], 0x2e5556, commandBastionTier4Group, { metalness: .68, roughness: .28 });
+    [-1,1].forEach(side => shapedMesh('Bastion targeting light', new THREE.SphereGeometry(.07, 8, 6), [side*.79, .98, 1.92], 0x87f5ff, commandBastionTier4Group, { emissive: 0x2dbbd1, emissiveIntensity: 1.2 }));
+    commandBastionTier4Group.visible = false;
+    staticGroup.add(commandBastionTier4Group);
+
+    commandBastionTier5Group = new THREE.Group();
+    commandBastionTier5Group.name = 'Command Bastion level 5 command fortress';
+    box('Bastion west energy rail', [.08, .08, 3.3], [-1.02, .82, .08], 0x8ef6ff, commandBastionTier5Group, { emissive: 0x26aabd, emissiveIntensity: 1.25 });
+    box('Bastion east energy rail', [.08, .08, 3.3], [1.02, .82, .08], 0x8ef6ff, commandBastionTier5Group, { emissive: 0x26aabd, emissiveIntensity: 1.25 });
+    box('Bastion command shield lip', [1.76, .18, .12], [0, .84, 2.14], 0x65dce7, commandBastionTier5Group, { metalness: .56, emissive: 0x1c7888, emissiveIntensity: .78 });
+    commandBastionTier5Group.visible = false;
+    staticGroup.add(commandBastionTier5Group);
     hqFallbackGroup = new THREE.Group();
     hqFallbackGroup.name = 'HQ loading fallback';
     staticGroup.add(hqFallbackGroup);
@@ -658,6 +702,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     if (heroFallbackGroup) heroFallbackGroup.visible = false;
     heroGroup = wrapper;
+    heroBaseScale.copy(heroGroup.scale);
     staticGroup.add(heroGroup);
   }
 
@@ -790,6 +835,30 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     return materials;
   }
 
+  function addBossArmor(root, grade) {
+    if (!root || grade < 2) return { materials: [], geometries: [] };
+    const armor = new THREE.Group();
+    armor.name = grade >= 3 ? 'Siege Breaker veteran armor' : 'Siege Breaker reinforced armor';
+    box('Siege Breaker chest plate', [.82, .36, .22], [0, 1.12, .28], grade >= 3 ? 0x6a342d : 0x55443a, armor, { metalness: .58, roughness: .34 });
+    shapedMesh('Siege Breaker left shoulder plate', new THREE.SphereGeometry(.23, 9, 7), [-.46, 1.3, .02], grade >= 3 ? 0x82382f : 0x645246, armor, { metalness: .46, roughness: .4 });
+    shapedMesh('Siege Breaker right shoulder plate', new THREE.SphereGeometry(.23, 9, 7), [.46, 1.3, .02], grade >= 3 ? 0x82382f : 0x645246, armor, { metalness: .46, roughness: .4 });
+    if (grade >= 3) {
+      shapedMesh('Siege Breaker warning core', new THREE.SphereGeometry(.09, 9, 6), [0, 1.13, .41], 0xff6d3c, armor, { emissive: 0x8a1d0c, emissiveIntensity: 1.35 });
+      box('Siege Breaker back spine', [.16, .62, .2], [0, 1.48, -.21], 0x3f2422, armor, { metalness: .62, roughness: .3 });
+    }
+    root.add(armor);
+    const materials = [];
+    const geometries = [];
+    armor.traverse(child => {
+      if (!child.isMesh) return;
+      if (child.geometry) geometries.push(child.geometry);
+      (Array.isArray(child.material) ? child.material : [child.material]).forEach(material => {
+        if (material) materials.push(material);
+      });
+    });
+    return { materials, geometries };
+  }
+
   function findHips(root) {
     let hips = null;
     root.traverse(node => {
@@ -808,9 +877,12 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     root.name = entity.kind === 'boss' ? 'Infected boss' : 'Infected enemy';
     root.add(model);
     root.scale.setScalar(scale || 1);
+    const bossArmorResources = entity.kind === 'boss'
+      ? addBossArmor(root, Math.max(1, Number(entity.bossGrade) || 1))
+      : { materials: [], geometries: [] };
     scene.add(root);
 
-    const materials = tintZombie(model, entity.kind, variant);
+    const materials = tintZombie(model, entity.kind, variant).concat(bossArmorResources.materials);
     const mixer = new THREE.AnimationMixer(root);
     const actions = {
       run: mixer.clipAction(clips.run),
@@ -831,6 +903,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       hips,
       hipsAnchor: hips ? hips.position.clone() : null,
       materials,
+      ownedGeometries: bossArmorResources.geometries,
     };
     units.set(entity, record);
     return record;
@@ -933,6 +1006,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     if (hqTier5WallGroup) hqTier5WallGroup.visible = level >= 5;
     if (hqLaserGroup) hqLaserGroup.visible = level >= 4;
     if (hqShield) hqShield.visible = level >= 5;
+    if (commandBastionTier2Group) commandBastionTier2Group.visible = level >= 2;
+    if (commandBastionTier3Group) commandBastionTier3Group.visible = level >= 3;
+    if (commandBastionTier4Group) commandBastionTier4Group.visible = level >= 4;
+    if (commandBastionTier5Group) commandBastionTier5Group.visible = level >= 5;
 
     if (displayedHQLevel !== level) {
       displayedHQLevel = level;
@@ -978,6 +1055,14 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     }
     const p = world(run.hero, run);
     heroGroup.position.set(p[0], Math.sin(run.elapsed * 2.8) * .018, p[1]);
+    const visualTier = Math.max(1, Math.min(5, Number(run.commanderVisualTier) || 1));
+    // Mastery adds armor mass and presence, not giant height. The final tier is
+    // roughly fourteen percent broader and only three percent taller.
+    heroGroup.scale.set(
+      heroBaseScale.x * (1 + (visualTier - 1) * .035),
+      heroBaseScale.y * (1 + (visualTier - 1) * .0075),
+      heroBaseScale.z * (1 + (visualTier - 1) * .035)
+    );
     heroGroup.rotation.y = -(run.hero.aim || -Math.PI / 2) + Math.PI / 2;
     heroGroup.visible = true;
     alignHoltWeapon();
@@ -1142,6 +1227,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     record.mixer.stopAllAction();
     scene.remove(record.root);
     record.materials.forEach(item => item && item.dispose && item.dispose());
+    (record.ownedGeometries || []).forEach(item => item && item.dispose && item.dispose());
     units.delete(entity);
   }
 
@@ -1253,11 +1339,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     syncBarricades(run);
 
     run.enemies.forEach(unit => {
-      const scale = unit.kind === 'boss' ? 1.72 : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
+      const scale = unit.kind === 'boss' ? 1.98 : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
       syncZombie(unit, run, scale, false, dt, liveUnits);
     });
     run.corpses.forEach(unit => {
-      const scale = unit.kind === 'boss' ? 1.72 : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
+      const scale = unit.kind === 'boss' ? 1.98 : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
       syncZombie(unit, run, scale, true, dt, liveUnits);
     });
 
