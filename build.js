@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'166\';'), 'Build 166 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'167\';'), 'Build 167 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -188,6 +188,15 @@ requireMatch(html.includes('function recoverBetweenAssaults()') && html.includes
 requireMatch(html.includes('l166-resource-icon credits') && html.includes('l166-resource-icon parts'), 'Build 166 resource icons are missing');
 requireMatch(html.includes("el.closest('#lsc137-app')"), 'Build 166 Research Center terminology guard is missing');
 requireMatch(threeDSource.includes('Level 4 gate pillar west') && !threeDSource.includes('Level 4 fortified gate header'), 'Build 166 Holt visibility gate is missing');
+requireMatch(html.includes('var EQUIPMENT_SCHEMA = 167;') && html.includes('var INVENTORY_CAPACITY = 24;'), 'Build 167 equipment schema is missing');
+requireMatch((html.match(/minPhase:/g)||[]).length===15, 'Build 167 must contain fifteen curated equipment items');
+requireMatch(html.includes("id:'weapon-last-word'") && html.includes("id:'rig-citadel-aegis'") && html.includes("id:'module-omega-relay'"), 'Build 167 legendary equipment set is incomplete');
+requireMatch(html.includes('function awardEquipmentDrop(phase,firstClear)') && html.includes("firstClear?'FIRST CLEAR':'PHASE REPLAY'"), 'Build 167 equipment drop routing is missing');
+requireMatch(html.includes('VETERAN CACHE') && html.includes('equipmentNotice'), 'Build 167 veteran save migration is missing');
+requireMatch(html.includes('function renderInventoryTab(panel)') && html.includes('data-equipment-action="salvage"'), 'Build 167 Inventory controls are missing');
+requireMatch(html.includes('function equipmentEffects()') && html.includes('commanderBossDamage:gear.commanderBossDamage'), 'Build 167 equipped combat effects are missing');
+requireMatch(html.includes('researchPower() + equipmentPower()') && html.includes('recommendedPower(phase)'), 'Build 167 readiness recalibration is missing');
+requireMatch(html.includes('HQ INTEGRITY ') && html.includes('BARRIERS SURVIVED'), 'Build 167 survival reporting is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
 requireMatch(html.includes("classList.add('lsc-command-ready')"), 'Build 162 startup-ready handoff is missing');
