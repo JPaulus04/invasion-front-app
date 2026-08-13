@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'164\';'), 'Build 164 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'165\';'), 'Build 165 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -166,6 +166,17 @@ requireMatch(html.includes('function chooseFieldUpgrades(rank)') && html.include
 requireMatch(html.includes('xpNext:36') && html.includes('run.xpNext*1.32'), 'Build 164 field-rank pacing is missing');
 requireMatch(html.includes("button.className='hq-upgrade-choice '+rarity.className"), 'Build 164 rarity presentation is missing');
 requireMatch(html.includes('function victoryRewardPreview(phase)') && html.includes('victoryRewardPreview(meta.phase)'), 'Build 164 reward preview is missing');
+requireMatch(html.includes('var RESEARCH_BRANCHES = [') && html.includes('var RESEARCH_NODES = ['), 'Build 165 permanent research tree is missing');
+requireMatch(html.includes("id:'fire-control'") && html.includes("id:'fortifications'") && html.includes("id:'combat-support'"), 'Build 165 research branches are incomplete');
+requireMatch(html.includes('function researchEffects()') && html.includes('function buyResearchNode(nodeId)'), 'Build 165 research behavior is missing');
+requireMatch(html.includes('legacyResearchDamage') && html.includes('LEGACY RESEARCH POINT'), 'Build 165 research migration is missing');
+requireMatch(html.includes("if(rank===5){run.legendaryMisses=0") && html.includes('Math.random()<.30'), 'Build 165 legendary cadence is missing');
+requireMatch(html.includes('NEXT STACK '), 'Build 165 field-promotion stack labeling is missing');
+requireMatch(html.includes('COMMAND FORTRESS · MAXIMUM LEVEL') && html.includes('meta.hq>=5'), 'Build 165 five-tier HQ cap is missing');
+requireMatch(threeDSource.includes('HQ level 3 raised fortified walls'), 'Build 165 level 3 fortress geometry is missing');
+requireMatch(threeDSource.includes('HQ level 4 armored perimeter wall'), 'Build 165 level 4 fortress geometry is missing');
+requireMatch(threeDSource.includes('HQ level 5 command fortress wall'), 'Build 165 level 5 fortress geometry is missing');
+requireMatch(threeDSource.includes('HQ level 4 armored barrier'), 'Build 165 perimeter growth is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
 requireMatch(html.includes("classList.add('lsc-command-ready')"), 'Build 162 startup-ready handoff is missing');
