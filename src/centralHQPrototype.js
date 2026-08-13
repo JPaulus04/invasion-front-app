@@ -1,4 +1,4 @@
-// Build 163 — combat-fire haptics and clean boss-to-victory handoff.
+// Build 164 — longer assault pacing and rarity-based field promotions.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -75,19 +75,18 @@
   function retryAssist(phase){var losses=phaseLossCount(phase);return Math.min(.24,Math.max(0,losses-1)*.08);}
   function phaseBalance(phase){
     var profiles={
-      1:{targets:[6,8,10],hp:.72,damage:.52,bossHp:300,bossDamage:11,barricadeHp:58},
-      2:{targets:[8,10,13],hp:.82,damage:.65,bossHp:400,bossDamage:14,barricadeHp:60},
-      3:{targets:[9,12,15],hp:.90,damage:.72,bossHp:520,bossDamage:17,barricadeHp:62},
-      4:{targets:[11,14,18],hp:1.03,damage:.88,bossHp:700,bossDamage:21,barricadeHp:64},
-      5:{targets:[13,16,20],hp:1.15,damage:1,bossHp:850,bossDamage:24,barricadeHp:66},
-      // Phase 6 is the first deliberate progression check. Build 162 keeps the
-      // full encounter after real-browser verification showed it remains
-      // beatable without artillery once the player uses field promotions.
-      6:{targets:[15,19,24],hp:1.30,damage:1.12,bossHp:1050,bossDamage:28,barricadeHp:68}
+      // Build 164 lengthens runs with additional contacts, not inflated health.
+      // Assault totals rise about 45–50% while all verified HP/damage values stay put.
+      1:{targets:[9,12,15],hp:.72,damage:.52,bossHp:300,bossDamage:11,barricadeHp:58},
+      2:{targets:[11,15,20],hp:.82,damage:.65,bossHp:400,bossDamage:14,barricadeHp:60},
+      3:{targets:[13,18,24],hp:.90,damage:.72,bossHp:520,bossDamage:17,barricadeHp:62},
+      4:{targets:[15,21,28],hp:1.03,damage:.88,bossHp:700,bossDamage:21,barricadeHp:64},
+      5:{targets:[17,24,32],hp:1.15,damage:1,bossHp:850,bossDamage:24,barricadeHp:66},
+      6:{targets:[20,28,37],hp:1.30,damage:1.12,bossHp:1050,bossDamage:28,barricadeHp:68}
     };
     if(profiles[phase])return profiles[phase];
     var extra=phase-6;
-    return {targets:[15+extra,19+Math.ceil(extra*1.5),24+extra*2],hp:1.30+extra*.11,damage:1.12+extra*.09,bossHp:1050+extra*140,bossDamage:28+extra*2.4,barricadeHp:68+extra*6};
+    return {targets:[20+extra*2,28+extra*3,37+extra*4],hp:1.30+extra*.11,damage:1.12+extra*.09,bossHp:1050+extra*140,bossDamage:28+extra*2.4,barricadeHp:68+extra*6};
   }
 
   // Build 154: old TestFlight installs can retain tutorial/navigation flags from
@@ -180,7 +179,7 @@
       '.l161-power-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.l161-power-metric{padding:9px;border:1px solid rgba(255,255,255,.09);border-radius:9px;background:rgba(0,0,0,.18)}.l161-power-metric span{display:block;font:7px "Share Tech Mono",monospace;letter-spacing:1px;color:#82949d}.l161-power-metric strong{display:block;margin-top:2px;font-size:22px;line-height:1;color:#fff}.l161-power-state{margin-top:8px;padding:8px 10px;border-radius:8px;text-align:center;font:800 10px "Share Tech Mono",monospace;letter-spacing:1px}.l161-power-state.underpowered{color:#ff8e78;background:rgba(140,39,26,.28);border:1px solid rgba(255,91,68,.38)}.l161-power-state.ready{color:#7fffae;background:rgba(17,108,59,.25);border:1px solid rgba(30,232,115,.34)}.l161-power-state.overmatch{color:#8fefff;background:rgba(16,91,117,.3);border:1px solid rgba(34,212,255,.4)}' +
       '.l137-nav{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:10px}.l137-nav button{padding:9px 2px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:#09141b;color:#91a7b1;font:700 9px Rajdhani,sans-serif}.l137-nav button.active{color:#fff;border-color:#22d4ff;background:#103040}' +
       '#lsc137-result{position:fixed;z-index:32000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,7,.9);backdrop-filter:blur(8px)}#lsc137-result.show{display:flex}.l137-result-card{width:min(420px,100%);padding:22px;border:1px solid rgba(34,212,255,.35);border-radius:20px;background:#08131a;text-align:center}.l137-result-card h2{font-size:28px;margin:3px}.l137-actions{display:grid;gap:8px;margin-top:17px}' +
-      '#hq-upgrade-overlay{position:fixed;z-index:31000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.86)}#hq-upgrade-overlay.show{display:flex}.hq-upgrade-modal{width:min(420px,100%);padding:18px;border:1px solid #846e36;border-radius:18px;background:#09131a}.hq-upgrade-title{text-align:center;font-size:23px;font-weight:900}.hq-upgrade-sub{text-align:center;color:#ffd166;font:8px "Share Tech Mono",monospace;margin-bottom:12px}.hq-upgrade-grid{display:grid;gap:8px}.hq-upgrade-choice{text-align:left;padding:12px;border:1px solid #245363;border-radius:11px;background:#10252e;color:#fff}.hq-upgrade-choice b,.hq-upgrade-choice span{display:block}.hq-upgrade-choice span{font:8px/1.4 "Share Tech Mono",monospace;color:#9dafb8}' +
+      '#hq-upgrade-overlay{position:fixed;z-index:31000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.86)}#hq-upgrade-overlay.show{display:flex}.hq-upgrade-modal{width:min(420px,100%);padding:18px;border:1px solid #846e36;border-radius:18px;background:#09131a}.hq-upgrade-title{text-align:center;font-size:23px;font-weight:900}.hq-upgrade-sub{text-align:center;color:#ffd166;font:8px "Share Tech Mono",monospace;margin-bottom:12px}.hq-upgrade-grid{display:grid;gap:8px}.hq-upgrade-choice{text-align:left;padding:12px;border:1px solid #64727a;border-radius:11px;background:#121d23;color:#fff;box-shadow:inset 3px 0 0 #7e8a90}.hq-upgrade-choice b,.hq-upgrade-choice span,.hq-upgrade-choice small{display:block}.hq-upgrade-choice b{font-size:15px}.hq-upgrade-choice span{font:8px/1.45 "Share Tech Mono",monospace;color:#b8c2c7}.hq-upgrade-choice small{margin-bottom:4px;font:7px "Share Tech Mono",monospace;letter-spacing:1.5px;color:#aab4b9}.hq-upgrade-choice.epic{border-color:#8f58d8;background:#21152f;box-shadow:inset 3px 0 0 #b477ff,0 0 14px rgba(164,92,255,.12)}.hq-upgrade-choice.epic small{color:#c99aff}.hq-upgrade-choice.legendary{border-color:#c79c32;background:#30250e;box-shadow:inset 3px 0 0 #ffd166,0 0 16px rgba(255,209,102,.14)}.hq-upgrade-choice.legendary small{color:#ffd166}' +
       '#lsc137-ability{position:absolute;z-index:35;right:14px;bottom:48px;width:68px;height:68px;border:2px solid #ffd166;border-radius:50%;background:#513d0e;color:white;font:800 10px Rajdhani,sans-serif;box-shadow:0 0 25px rgba(255,209,102,.25)}#lsc137-ability:disabled{opacity:.35}' +
       '#l140-controls{position:absolute;z-index:42;right:12px;top:calc(env(safe-area-inset-top,0px) + 8px);display:flex;gap:6px}#l139-menu-btn,#l140-speed-btn{height:34px;border:1px solid #58dfff;border-radius:9px;background:rgba(5,18,26,.94);color:#fff;font:800 12px Rajdhani,sans-serif}#l139-menu-btn{width:38px;font-size:18px}#l140-speed-btn{width:42px;color:#ffd166}' +
       '#l139-pause{position:fixed;z-index:33000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.9);backdrop-filter:blur(8px)}#l139-pause.show{display:flex}.l139-pause-card{width:min(400px,100%);padding:20px;border:1px solid rgba(34,212,255,.4);border-radius:18px;background:#08141b}.l139-setting{display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:9px}.l139-setting button{min-width:58px}' +
@@ -235,7 +234,7 @@
     id('l137-return').onclick = returnHome;
     var up = document.createElement('div');
     up.id = 'hq-upgrade-overlay';
-    up.innerHTML = '<div class="hq-upgrade-modal"><div class="hq-upgrade-title">FIELD PROMOTION</div><div class="hq-upgrade-sub">SELECT ONE COMBAT UPGRADE</div><div class="hq-upgrade-grid" id="hq-upgrade-grid"></div></div>';
+    up.innerHTML = '<div class="hq-upgrade-modal"><div class="hq-upgrade-title">FIELD PROMOTION</div><div class="hq-upgrade-sub" id="hq-upgrade-sub">SELECT ONE COMBAT UPGRADE</div><div class="hq-upgrade-grid" id="hq-upgrade-grid"></div></div>';
     document.body.appendChild(up);
     var ability = document.createElement('button'); ability.id = 'lsc137-ability'; ability.textContent = 'ARTILLERY'; ability.onclick = useAbility;
     var wrap = id('battlefield-wrap'); if (wrap) {
@@ -266,6 +265,10 @@
     return 355 + Math.max(0, meta.commander - 1) * 55 + Math.max(0, meta.hq - 1) * 65 + Math.max(0, meta.research) * 50;
   }
   function recommendedPower(phase) { return 320 + Math.max(1, Number(phase) || 1) * 35; }
+  function victoryRewardPreview(phase) {
+    var targets=phaseBalance(Math.max(1,Number(phase)||1)).targets;
+    return 250+(targets.reduce(function(total,count){return total+count;},0)+1)*3;
+  }
   function powerAssessment(phase) {
     var current=currentPower(),recommended=recommendedPower(phase),difference=current-recommended,percent=Math.round(Math.abs(difference)/Math.max(1,recommended)*100),ratio=current/recommended;
     if(ratio<.9)return{current:current,recommended:recommended,label:'UNDERPOWERED · '+percent+'% BELOW',className:'underpowered'};
@@ -284,7 +287,7 @@
     var p = id('l137-panel');
     if (tab === 'campaign') {
       var support=retryAssist(meta.phase),supportText=support>0?'<small>RETRY SUPPORT ACTIVE · ENEMY HEALTH AND DAMAGE -'+Math.round(support*100)+'%</small>':'',power=powerAssessment(meta.phase);
-      p.innerHTML = '<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small>' + (150 + meta.phase * 75) + '+ CREDITS · 3 TECH PARTS</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div><button class="l137-btn good l137-deploy" id="l137-deploy">CHALLENGE PHASE ' + meta.phase + '</button>';
+      p.innerHTML = '<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small>' + victoryRewardPreview(meta.phase) + ' CREDITS · 3 TECH PARTS</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div><button class="l137-btn good l137-deploy" id="l137-deploy">CHALLENGE PHASE ' + meta.phase + '</button>';
     }
     if (tab === 'commander') p.innerHTML = upgradePanel('commander', 'COMMANDER HOLT', 'Permanent rifle damage and fire-rate training.', 'Combat Level ' + meta.commander);
     if (tab === 'research') p.innerHTML = upgradePanel('research', 'DEFENSE RESEARCH', 'Permanent turret and support-squad effectiveness.', 'Research Tier ' + meta.research);
@@ -327,11 +330,11 @@
       var layout=COMPOUND_LANES[lane],angle=Math.atan2(layout.y,layout.x);
       lanes.push({index:lane,angle:angle,baseX:layout.x,baseY:layout.y,rotation:layout.rotation,side:layout.side,queue:[],barricade:{hp:barricadeHp,maxHp:barricadeHp,flash:0}});
     }
-    return { active:true, paused:false, complete:false, phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:30, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, abilityCd:0, lastHit:0,
+    return { active:true, paused:false, complete:false, phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:36, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, upgradeStacks:{}, lastUpgradeChoices:[], abilityCd:0, abilityMaxCd:18, abilityDamage:95, lastHit:0,
       hq:{x:cx,y:cy,r:37*s,level:meta.hq,hp:300+(meta.hq-1)*75,maxHp:300+(meta.hq-1)*75},
       hero:{source:'commander',x:cx,y:cy+70*s,r:13*s,damage:16*(1+(meta.commander-1)*.15),rate:2.7*(1+(meta.commander-1)*.06),range:150*s,cd:0},
       turret:{source:'turret',x:cx,y:cy-58*s,r:10*s,damage:10*(1+meta.research*.12),rate:3.1,range:215*s,cd:0},
-      // Build 162 keeps Commander Holt + the main turret as the readable
+      // Commander Holt + the main turret remain the readable defense line
       // defense line while mixed infected use the eight barricade lanes.
       squad:[],
       enemies:[],corpses:[],bullets:[],particles:[],damage:{commander:0,turret:0,squad:0,artillery:0},feedback:null };
@@ -395,9 +398,101 @@
       if(run.xp>=run.xpNext&&!run.upgradeOpen)openUpgrade();
     }
   }
-  var upgrades=[['Rapid Fire','+25% commander fire rate',function(){run.hero.rate*=1.25;}],['Heavy Rounds','+30% commander damage',function(){run.hero.damage*=1.3;}],['Fortify HQ','Repair 75 and add 75 maximum HP',function(){run.hq.maxHp+=75;run.hq.hp=Math.min(run.hq.maxHp,run.hq.hp+75);}],["Turret Surge","+35% turret damage",function(){run.turret.damage*=1.35;}]];
-  function openUpgrade(){if(!run||run.complete||run.bossDefeated)return;run.upgradeOpen=true;run.xp-=run.xpNext;run.level++;run.xpNext=Math.floor(run.xpNext*1.4);combatSfx('rankUp');combatHaptic('success',220);var grid=id('hq-upgrade-grid');grid.innerHTML='';upgrades.slice().sort(function(){return Math.random()-.5;}).slice(0,3).forEach(function(u){var b=document.createElement('button');b.className='hq-upgrade-choice';b.innerHTML='<b>'+u[0]+'</b><span>'+u[1]+'</span>';b.onclick=function(){u[2]();var source=u[0].indexOf('Turret')>=0?'turret':u[0].indexOf('HQ')>=0?'hq':'commander';run.feedback={text:(source==='commander'?'HOLT':source==='turret'?'MAIN TURRET':'HEADQUARTERS')+' · '+u[0].toUpperCase(),source:source,life:1.7,max:1.7};combatSfx('promotion');combatHaptic('success',160);run.upgradeOpen=false;id('hq-upgrade-overlay').classList.remove('show');};grid.appendChild(b);});id('hq-upgrade-overlay').classList.add('show');}
-  function useAbility(){if(!run||!run.active||run.abilityCd>0)return;run.abilityCd=18;combatSfx('orbital');combatHaptic('heavy',300);run.enemies.forEach(function(e){var dealt=Math.min(95,e.hp);e.hp-=95;run.damage.artillery+=dealt;run.particles.push({x:e.x,y:e.y,life:.55,max:.55,r:34*dpr(),color:'#ff3c27',type:'artillery'});});for(var i=run.enemies.length-1;i>=0;i--)if(run.enemies[i].hp<=0)kill(i,run.enemies[i]);}
+  var FIELD_RARITY={common:{label:'COMMON',className:'common'},epic:{label:'EPIC',className:'epic'},legendary:{label:'LEGENDARY',className:'legendary'}};
+  var upgrades=[
+    {id:'rapid-fire',name:'Rapid Fire',description:'Commander fire rate +18%.',rarity:'common',minRank:2,maxStacks:3,source:'commander',apply:function(){run.hero.rate*=1.18;}},
+    {id:'heavy-rounds',name:'Heavy Rounds',description:'Commander rifle damage +22%.',rarity:'common',minRank:2,maxStacks:3,source:'commander',apply:function(){run.hero.damage*=1.22;}},
+    {id:'turret-calibration',name:'Turret Calibration',description:'Main-turret damage +22%.',rarity:'common',minRank:2,maxStacks:3,source:'turret',apply:function(){run.turret.damage*=1.22;}},
+    {id:'reinforced-hq',name:'Reinforced HQ',description:'Maximum HQ health +50 and repair 50.',rarity:'common',minRank:2,maxStacks:3,source:'hq',apply:function(){run.hq.maxHp+=50;run.hq.hp=Math.min(run.hq.maxHp,run.hq.hp+50);}},
+    {id:'field-repairs',name:'Field Repairs',description:'Restore 30 health to every surviving barrier.',rarity:'common',minRank:2,maxStacks:3,source:'compound',available:function(){return run.lanes.some(function(lane){return lane.barricade.hp>0&&lane.barricade.hp<lane.barricade.maxHp;});},apply:function(){run.lanes.forEach(function(lane){if(lane.barricade.hp>0)lane.barricade.hp=Math.min(lane.barricade.maxHp,lane.barricade.hp+30);});}},
+    {id:'forward-observer',name:'Forward Observer',description:'Artillery damage +15 and cooldown -1.5 seconds.',rarity:'common',minRank:2,maxStacks:3,source:'artillery',apply:function(){run.abilityDamage+=15;run.abilityMaxCd=Math.max(8,run.abilityMaxCd-1.5);run.abilityCd=Math.min(run.abilityCd,run.abilityMaxCd);}},
+
+    {id:'command-overdrive',name:'Command Overdrive',description:'Commander damage +25% and fire rate +20%.',rarity:'epic',minRank:3,maxStacks:2,source:'commander',apply:function(){run.hero.damage*=1.25;run.hero.rate*=1.20;}},
+    {id:'turret-overdrive',name:'Turret Overdrive',description:'Main-turret damage +32% and fire rate +15%.',rarity:'epic',minRank:3,maxStacks:2,source:'turret',apply:function(){run.turret.damage*=1.32;run.turret.rate*=1.15;}},
+    {id:'reactive-armor',name:'Reactive Armor',description:'Maximum HQ health +100 and repair 100.',rarity:'epic',minRank:3,maxStacks:2,source:'hq',apply:function(){run.hq.maxHp+=100;run.hq.hp=Math.min(run.hq.maxHp,run.hq.hp+100);}},
+    {id:'barrier-rebuild',name:'Barrier Rebuild',description:'Barrier capacity +18; rebuild destroyed positions at 40%.',rarity:'epic',minRank:3,maxStacks:2,source:'compound',apply:function(){run.lanes.forEach(function(lane){var wasDestroyed=lane.barricade.hp<=0;lane.barricade.maxHp+=18;lane.barricade.hp=wasDestroyed?Math.ceil(lane.barricade.maxHp*.4):Math.min(lane.barricade.maxHp,lane.barricade.hp+40);});}},
+    {id:'fire-support',name:'Fire Support',description:'Artillery damage +35 and cooldown -3 seconds.',rarity:'epic',minRank:3,maxStacks:2,source:'artillery',apply:function(){run.abilityDamage+=35;run.abilityMaxCd=Math.max(6,run.abilityMaxCd-3);run.abilityCd=Math.min(run.abilityCd,run.abilityMaxCd);}},
+    {id:'crossfire',name:'Crossfire Protocol',description:'Commander and main-turret damage +16%.',rarity:'epic',minRank:3,maxStacks:2,source:'compound',apply:function(){run.hero.damage*=1.16;run.turret.damage*=1.16;}},
+
+    {id:'apex-commander',name:'Apex Commander',description:'Commander damage +50% and fire rate +35%.',rarity:'legendary',minRank:5,maxStacks:1,source:'commander',apply:function(){run.hero.damage*=1.50;run.hero.rate*=1.35;}},
+    {id:'siege-cannon',name:'Siege Cannon',description:'Main-turret damage +75% and fire rate +30%.',rarity:'legendary',minRank:5,maxStacks:1,source:'turret',apply:function(){run.turret.damage*=1.75;run.turret.rate*=1.30;}},
+    {id:'fortress-protocol',name:'Fortress Protocol',description:'HQ capacity +200; fully restore HQ and every barrier.',rarity:'legendary',minRank:5,maxStacks:1,source:'hq',apply:function(){run.hq.maxHp+=200;run.hq.hp=run.hq.maxHp;run.lanes.forEach(function(lane){lane.barricade.maxHp+=35;lane.barricade.hp=lane.barricade.maxHp;});}},
+    {id:'fire-mission-control',name:'Fire Mission Control',description:'Artillery damage +70 and cooldown -6 seconds.',rarity:'legendary',minRank:5,maxStacks:1,source:'artillery',apply:function(){run.abilityDamage+=70;run.abilityMaxCd=Math.max(6,run.abilityMaxCd-6);run.abilityCd=Math.min(run.abilityCd,run.abilityMaxCd);}},
+    {id:'combined-arms',name:'Combined Arms',description:'Commander and turret damage +40%; range +12%.',rarity:'legendary',minRank:5,maxStacks:1,source:'compound',apply:function(){run.hero.damage*=1.40;run.turret.damage*=1.40;run.hero.range*=1.12;run.turret.range*=1.12;}}
+  ];
+  function upgradeSourceLabel(source){return source==='commander'?'HOLT':source==='turret'?'MAIN TURRET':source==='artillery'?'ARTILLERY':source==='compound'?'COMPOUND':'HEADQUARTERS';}
+  function upgradeAvailable(upgrade){
+    if(!run||run.level<upgrade.minRank)return false;
+    if((run.upgradeStacks[upgrade.id]||0)>=upgrade.maxStacks)return false;
+    return !upgrade.available||upgrade.available();
+  }
+  function shuffled(list){
+    var copy=list.slice();
+    for(var i=copy.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),held=copy[i];copy[i]=copy[j];copy[j]=held;}
+    return copy;
+  }
+  function rarityPlan(rank){
+    if(rank<=2)return['common','common','common'];
+    if(rank===3)return['common','common','epic'];
+    if(rank===4)return['common','epic','epic'];
+    return['common','epic','legendary'];
+  }
+  function chooseFieldUpgrades(rank){
+    var choices=[],recent=run.lastUpgradeChoices||[];
+    rarityPlan(rank).forEach(function(rarity){
+      var candidates=upgrades.filter(function(upgrade){return upgrade.rarity===rarity&&upgradeAvailable(upgrade)&&!choices.some(function(choice){return choice.id===upgrade.id;});});
+      var fresh=candidates.filter(function(upgrade){return recent.indexOf(upgrade.id)<0;});
+      var choice=shuffled(fresh.length?fresh:candidates)[0];
+      if(!choice){
+        var fallback=upgrades.filter(function(upgrade){return upgradeAvailable(upgrade)&&!choices.some(function(selected){return selected.id===upgrade.id;});});
+        choice=shuffled(fallback)[0];
+      }
+      if(choice)choices.push(choice);
+    });
+    run.lastUpgradeChoices=choices.map(function(choice){return choice.id;});
+    return choices;
+  }
+  function applyFieldUpgrade(upgrade){
+    if(!run||!run.upgradeOpen)return;
+    upgrade.apply();
+    run.upgradeStacks[upgrade.id]=(run.upgradeStacks[upgrade.id]||0)+1;
+    run.feedback={text:upgradeSourceLabel(upgrade.source)+' · '+upgrade.name.toUpperCase(),source:upgrade.source,life:1.7,max:1.7};
+    combatSfx('promotion');
+    combatHaptic(upgrade.rarity==='legendary'?'heavy':'success',160);
+    run.upgradeOpen=false;
+    id('hq-upgrade-overlay').classList.remove('show');
+    if(run.xp>=run.xpNext&&!run.bossDefeated)setTimeout(function(){if(run&&run.active&&!run.upgradeOpen)openUpgrade();},180);
+  }
+  function openUpgrade(){
+    if(!run||run.complete||run.bossDefeated)return;
+    run.upgradeOpen=true;
+    run.xp-=run.xpNext;
+    run.level++;
+    run.xpNext=Math.floor(run.xpNext*1.32);
+    combatSfx('rankUp');
+    combatHaptic('success',220);
+    var subtitle=id('hq-upgrade-sub');
+    if(subtitle)subtitle.textContent='FIELD RANK '+run.level+' · SELECT ONE UPGRADE';
+    var grid=id('hq-upgrade-grid');
+    grid.innerHTML='';
+    chooseFieldUpgrades(run.level).forEach(function(upgrade){
+      var rarity=FIELD_RARITY[upgrade.rarity],nextStack=(run.upgradeStacks[upgrade.id]||0)+1;
+      var button=document.createElement('button');
+      button.className='hq-upgrade-choice '+rarity.className;
+      button.innerHTML='<small>'+rarity.label+' · '+upgradeSourceLabel(upgrade.source)+'</small><b>'+upgrade.name+'</b><span>'+upgrade.description+(upgrade.maxStacks>1?' · STACK '+nextStack+'/'+upgrade.maxStacks:'')+'</span>';
+      button.onclick=function(){applyFieldUpgrade(upgrade);};
+      grid.appendChild(button);
+    });
+    id('hq-upgrade-overlay').classList.add('show');
+  }
+  function useAbility(){
+    if(!run||!run.active||run.abilityCd>0)return;
+    run.abilityCd=run.abilityMaxCd;
+    combatSfx('orbital');
+    combatHaptic('heavy',300);
+    run.enemies.forEach(function(e){var dealt=Math.min(run.abilityDamage,e.hp);e.hp-=run.abilityDamage;run.damage.artillery+=dealt;run.particles.push({x:e.x,y:e.y,life:.55,max:.55,r:34*dpr(),color:'#ff3c27',type:'artillery'});});
+    for(var i=run.enemies.length-1;i>=0;i--)if(run.enemies[i].hp<=0)kill(i,run.enemies[i]);
+  }
   function defeatAdvice(){
     if(meta.hq<2)return 'Recommended next: upgrade Headquarters for more health, stronger barriers, and the reinforced Level 2 compound.';
     if(meta.commander<=meta.research+1)return 'Recommended next: upgrade Commander Holt to increase damage and fire rate.';
@@ -447,7 +542,32 @@
     if(count){var barriers=run.lanes.filter(function(lane){return lane.barricade.hp>0;}).length;count.textContent=run.enemies.filter(function(e){return e.hp>0;}).length+' THREATS · '+barriers+'/'+LANE_COUNT+' BARRIERS';}
   }
 
-  function update(dt){if(!run||!run.active||run.paused||run.upgradeOpen)return;run.elapsed+=dt;run.assaultElapsed+=dt;run.spawn-=dt;run.abilityCd=Math.max(0,run.abilityCd-dt);var ab=id('lsc137-ability');if(ab){ab.disabled=run.abilityCd>0;ab.textContent=run.abilityCd>0?Math.ceil(run.abilityCd)+'s':'ARTILLERY';}var target=run.assaultTargets[run.assault-1],remaining=target-run.assaultSpawned;var interval=clamp(1.35-run.assault*.12,.7,1.3);if(run.spawn<=0&&remaining>0){var r=Math.random(),k=run.assault>1&&r<.2?'armored':r>.84?'runner':'grunt';var group=Math.min(remaining,run.assault===1?2:3);for(var g=0;g<group;g++){run.enemies.push(enemy(k));run.assaultSpawned++;}run.spawn=interval;}if(run.assault===3&&run.assaultSpawned>=target&&!run.bossSpawned&&run.enemies.length===0&&run.bullets.length===0){run.bossSpawned=true;run.enemies.push(enemy('boss'));combatSfx('bossAlarm');combatHaptic('heavy',300);}
+  function assaultPacing(assault){
+    if(assault===1)return{interval:1.18,group:2};
+    if(assault===2)return{interval:1.02,group:2};
+    return{interval:.90,group:3};
+  }
+  function chooseEnemyKind(assault){
+    var roll=Math.random();
+    if(assault===1)return roll>.82?'runner':'grunt';
+    if(assault===2)return roll<.18?'armored':roll>.78?'runner':'grunt';
+    return roll<.27?'armored':roll>.78?'runner':'grunt';
+  }
+  function update(dt){
+    if(!run||!run.active||run.paused||run.upgradeOpen)return;
+    run.elapsed+=dt;
+    run.assaultElapsed+=dt;
+    run.spawn-=dt;
+    run.abilityCd=Math.max(0,run.abilityCd-dt);
+    var ab=id('lsc137-ability');
+    if(ab){ab.disabled=run.abilityCd>0;ab.textContent=run.abilityCd>0?Math.ceil(run.abilityCd)+'s':'ARTILLERY';}
+    var target=run.assaultTargets[run.assault-1],remaining=target-run.assaultSpawned,pacing=assaultPacing(run.assault);
+    if(run.spawn<=0&&remaining>0){
+      var group=Math.min(remaining,pacing.group);
+      for(var g=0;g<group;g++){run.enemies.push(enemy(chooseEnemyKind(run.assault)));run.assaultSpawned++;}
+      run.spawn=pacing.interval*(.92+Math.random()*.16);
+    }
+    if(run.assault===3&&run.assaultSpawned>=target&&!run.bossSpawned&&run.enemies.length===0&&run.bullets.length===0){run.bossSpawned=true;run.enemies.push(enemy('boss'));combatSfx('bossAlarm');combatHaptic('heavy',300);}
     [run.hero,run.turret].concat(run.squad).forEach(function(a){a.cd-=dt;var t=nearest(a,a.range);if(t&&a.cd<=0){fire(a,t,a.damage);a.cd=1/a.rate;}});
     run.lanes.forEach(function(lane){lane.barricade.flash=Math.max(0,lane.barricade.flash-dt);});
     for(var i=run.enemies.length-1;i>=0;i--){var e=run.enemies[i],lane=run.lanes[e.lane],queueIndex=lane?lane.queue.indexOf(e):-1;if(!lane||queueIndex<0)continue;var front=queueIndex===0,barrierUp=lane.barricade.hp>0,bossPadding=e.kind==='boss'?.72:e.kind==='armored'?.2:0,targetWorld=front?(barrierUp?BARRICADE_STOP_WORLD_RADIUS+bossPadding:HQ_ATTACK_WORLD_RADIUS+bossPadding):QUEUE_START_WORLD_RADIUS+Math.max(0,queueIndex-1)*QUEUE_GAP_WORLD_RADIUS,targetPoint=lanePoint(lane,targetWorld,0),tx=targetPoint.x,ty=targetPoint.y,x=tx-e.x,y=ty-e.y,l=Math.hypot(x,y);e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.flash=Math.max(0,e.flash-dt);e.aim=Math.atan2(run.hq.y-e.y,run.hq.x-e.x);e.waiting=!front;
