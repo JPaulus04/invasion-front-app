@@ -1,4 +1,4 @@
-// Build 165 — permanent research branches and visible fortress progression.
+// Build 166 — expanded research, resource iconography, and fortress readability.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -39,26 +39,43 @@
   var soundTimes = {};
   var hapticTimes = {};
   var activeResearchBranch = 'fire-control';
-  var RESEARCH_SCHEMA = 165;
+  var RESEARCH_SCHEMA = 166;
   var HQ_TIER_NAMES = ['FIELD COMMAND POST','REINFORCED COMPOUND','FORTIFIED HEADQUARTERS','ARMORED CITADEL','COMMAND FORTRESS'];
   var RESEARCH_BRANCHES = [
-    {id:'fire-control',short:'FIRE',name:'FIRE CONTROL',description:'Main-turret targeting, output, range, and boss-killing capability.'},
-    {id:'fortifications',short:'DEFENSE',name:'FORTIFICATIONS',description:'Headquarters capacity, perimeter durability, repairs, and damage resistance.'},
-    {id:'combat-support',short:'SUPPORT',name:'COMBAT SUPPORT',description:'Artillery effectiveness and faster access to field promotions.'}
+    {id:'fire-control',short:'FIRE',name:'FIRE CONTROL',description:'Main-turret targeting, output, armor penetration, and priority-target logic.'},
+    {id:'fortifications',short:'DEFENSE',name:'FORTIFICATIONS',description:'Headquarters capacity, perimeter durability, emergency armor, and reconstruction.'},
+    {id:'combat-support',short:'SUPPORT',name:'COMBAT SUPPORT',description:'Artillery effectiveness, field intelligence, and integrated command support.'}
   ];
   var RESEARCH_NODES = [
-    {id:'fc-calibration',branch:'fire-control',tier:1,name:'Targeting Calibration',effectText:'Main-turret damage +15%.',cost:{credits:250,parts:3},effects:{turretDamage:.15}},
-    {id:'fc-servos',branch:'fire-control',tier:2,name:'Servo Motors',effectText:'Main-turret fire rate +12%.',cost:{credits:400,parts:5},effects:{turretRate:.12}},
-    {id:'fc-optics',branch:'fire-control',tier:3,name:'Extended Optics',effectText:'Main-turret range +12%.',cost:{credits:600,parts:7},effects:{turretRange:.12}},
-    {id:'fc-siege',branch:'fire-control',tier:4,name:'Siege Ammunition',effectText:'Main-turret damage against bosses +35%.',cost:{credits:850,parts:10},effects:{turretBossDamage:.35}},
-    {id:'fort-perimeter',branch:'fortifications',tier:1,name:'Reinforced Perimeter',effectText:'Every barrier gains 20 maximum health.',cost:{credits:250,parts:3},effects:{barrierHp:20}},
-    {id:'fort-command',branch:'fortifications',tier:2,name:'Hardened Command',effectText:'Headquarters capacity +100.',cost:{credits:400,parts:5},effects:{hqHp:100}},
-    {id:'fort-repair',branch:'fortifications',tier:3,name:'Repair Crews',effectText:'Between assaults: repair HQ 35 and surviving barriers 24.',cost:{credits:600,parts:7},effects:{assaultHqRepair:35,assaultBarrierRepair:24}},
-    {id:'fort-grid',branch:'fortifications',tier:4,name:'Fortress Grid',effectText:'HQ and barriers take 15% less damage.',cost:{credits:850,parts:10},effects:{hqDamageReduction:.15,barrierDamageReduction:.15}},
-    {id:'sup-shells',branch:'combat-support',tier:1,name:'Improved Shells',effectText:'Artillery damage +25.',cost:{credits:250,parts:3},effects:{artilleryDamage:25}},
-    {id:'sup-relay',branch:'combat-support',tier:2,name:'Fire Mission Relay',effectText:'Artillery cooldown -3 seconds.',cost:{credits:400,parts:5},effects:{artilleryCooldown:3}},
-    {id:'sup-intel',branch:'combat-support',tier:3,name:'Combat Intelligence',effectText:'Field experience earned +15%.',cost:{credits:600,parts:7},effects:{fieldXp:.15}},
-    {id:'sup-barrage',branch:'combat-support',tier:4,name:'Saturation Barrage',effectText:'Artillery damage +35%.',cost:{credits:850,parts:10},effects:{artilleryMultiplier:.35}}
+    // FIRE CONTROL — existing Build 165 IDs retain their purchases and power.
+    {id:'fc-calibration',branch:'fire-control',tier:1,name:'Targeting Calibration',effectText:'Main-turret damage +15%.',cost:{credits:250,parts:3},power:30,effects:{turretDamage:.15}},
+    {id:'fc-servos',branch:'fire-control',tier:2,name:'Servo Motors',effectText:'Main-turret fire rate +12%.',requires:['fc-calibration'],cost:{credits:400,parts:5},power:40,effects:{turretRate:.12}},
+    {id:'fc-optics',branch:'fire-control',tier:2,name:'Extended Optics',effectText:'Main-turret range +12%.',requires:['fc-calibration'],cost:{credits:400,parts:5},power:55,effects:{turretRange:.12}},
+    {id:'fc-cooling',branch:'fire-control',tier:3,name:'Heat Exchangers',effectText:'Main-turret fire rate +10%.',requires:['fc-servos'],cost:{credits:600,parts:7},power:55,effects:{turretRate:.10}},
+    {id:'fc-tracking',branch:'fire-control',tier:3,name:'Threat Acquisition',effectText:'Main-turret damage against armored enemies +30%.',requires:['fc-optics'],cost:{credits:600,parts:7},power:55,effects:{turretArmoredDamage:.30}},
+    {id:'fc-siege',branch:'fire-control',tier:4,name:'Siege Ammunition',effectText:'Main-turret damage against bosses +35%.',requires:['fc-cooling'],cost:{credits:850,parts:10},power:75,effects:{turretBossDamage:.35}},
+    {id:'fc-penetrators',branch:'fire-control',tier:4,name:'Kinetic Penetrators',effectText:'Main-turret damage +18%.',requires:['fc-tracking'],cost:{credits:850,parts:10},power:75,effects:{turretDamage:.18}},
+    {id:'fc-hunter-killer',branch:'fire-control',tier:5,name:'Hunter-Killer Logic',effectText:'Prioritize bosses and armored threats; +20% damage against both.',requires:['fc-siege','fc-penetrators'],cost:{credits:1200,parts:14},power:100,capstone:true,effects:{turretPriority:1,turretBossDamage:.20,turretArmoredDamage:.20}},
+
+    // FORTIFICATIONS
+    {id:'fort-perimeter',branch:'fortifications',tier:1,name:'Reinforced Perimeter',effectText:'Every barrier gains 20 maximum health.',cost:{credits:250,parts:3},power:30,effects:{barrierHp:20}},
+    {id:'fort-command',branch:'fortifications',tier:2,name:'Hardened Command',effectText:'Headquarters capacity +100.',requires:['fort-perimeter'],cost:{credits:400,parts:5},power:40,effects:{hqHp:100}},
+    {id:'fort-baffles',branch:'fortifications',tier:2,name:'Blast Baffles',effectText:'Every barrier gains 25 maximum health.',requires:['fort-perimeter'],cost:{credits:400,parts:5},power:40,effects:{barrierHp:25}},
+    {id:'fort-repair',branch:'fortifications',tier:3,name:'Repair Crews',effectText:'Between assaults: repair HQ 35 and surviving barriers 24.',requires:['fort-command'],cost:{credits:600,parts:7},power:55,effects:{assaultHqRepair:35,assaultBarrierRepair:24}},
+    {id:'fort-reactive',branch:'fortifications',tier:3,name:'Reactive Plating',effectText:'Barriers take 8% less damage.',requires:['fort-baffles'],cost:{credits:600,parts:7},power:55,effects:{barrierDamageReduction:.08}},
+    {id:'fort-grid',branch:'fortifications',tier:4,name:'Fortress Grid',effectText:'HQ and barriers take 15% less damage.',requires:['fort-repair'],cost:{credits:850,parts:10},power:75,effects:{hqDamageReduction:.15,barrierDamageReduction:.15}},
+    {id:'fort-bulkheads',branch:'fortifications',tier:4,name:'Emergency Bulkheads',effectText:'When HQ falls below 35%, incoming damage is reduced an additional 20%.',requires:['fort-reactive'],cost:{credits:850,parts:10},power:75,effects:{hqEmergencyReduction:.20}},
+    {id:'fort-reconstruction',branch:'fortifications',tier:5,name:'Emergency Reconstruction',effectText:'Between assaults: rebuild one destroyed barrier at 45% and repair HQ 20.',requires:['fort-grid','fort-bulkheads'],cost:{credits:1200,parts:14},power:100,capstone:true,effects:{rebuildBarrierFraction:.45,assaultHqRepair:20}},
+
+    // COMBAT SUPPORT
+    {id:'sup-shells',branch:'combat-support',tier:1,name:'Improved Shells',effectText:'Artillery damage +25.',cost:{credits:250,parts:3},power:30,effects:{artilleryDamage:25}},
+    {id:'sup-relay',branch:'combat-support',tier:2,name:'Fire Mission Relay',effectText:'Artillery cooldown -3 seconds.',requires:['sup-shells'],cost:{credits:400,parts:5},power:40,effects:{artilleryCooldown:3}},
+    {id:'sup-telemetry',branch:'combat-support',tier:2,name:'Battlefield Telemetry',effectText:'Field experience earned +10%.',requires:['sup-shells'],cost:{credits:400,parts:5},power:40,effects:{fieldXp:.10}},
+    {id:'sup-targeting',branch:'combat-support',tier:3,name:'Precision Coordinates',effectText:'Artillery damage +20.',requires:['sup-relay'],cost:{credits:600,parts:7},power:55,effects:{artilleryDamage:20}},
+    {id:'sup-intel',branch:'combat-support',tier:3,name:'Combat Intelligence',effectText:'Field experience earned +15%.',requires:['sup-telemetry'],cost:{credits:600,parts:7},power:55,effects:{fieldXp:.15}},
+    {id:'sup-barrage',branch:'combat-support',tier:4,name:'Saturation Barrage',effectText:'Artillery damage +35%.',requires:['sup-targeting'],cost:{credits:850,parts:10},power:75,effects:{artilleryMultiplier:.35}},
+    {id:'sup-kill-chain',branch:'combat-support',tier:4,name:'Kill-Chain Relay',effectText:'Each artillery elimination reduces its active cooldown by 0.35 seconds.',requires:['sup-intel'],cost:{credits:850,parts:10},power:75,effects:{artilleryKillCooldown:.35}},
+    {id:'sup-network',branch:'combat-support',tier:5,name:'Integrated Battle Network',effectText:'Artillery is ready every assault and Field Promotions show a fourth option.',requires:['sup-barrage','sup-kill-chain'],cost:{credits:1200,parts:14},power:100,capstone:true,effects:{assaultArtilleryReady:1,promotionChoiceBonus:1}}
   ];
   var meta = loadMeta();
 
@@ -66,6 +83,14 @@
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
   function dpr() { return window.devicePixelRatio || 1; }
+  function formatNumber(value){return Math.max(0,Math.floor(Number(value)||0)).toLocaleString('en-US');}
+  function resourceIcon(type){
+    if(type==='credits')return '<svg class="l166-resource-icon credits" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7.2" ry="3.2"></ellipse><path d="M4.8 6v4c0 1.8 3.2 3.2 7.2 3.2s7.2-1.4 7.2-3.2V6M4.8 10v4c0 1.8 3.2 3.2 7.2 3.2s7.2-1.4 7.2-3.2v-4M4.8 14v3.5c0 1.8 3.2 3.2 7.2 3.2s7.2-1.4 7.2-3.2V14"></path></svg>';
+    if(type==='parts')return '<svg class="l166-resource-icon parts" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 2h5l.7 2.5 2 .9 2.3-1.2 2.5 4.3-2 1.7.2 2.2 2 1.7-2.5 4.3-2.4-1.1-2 .8-.8 2.5h-5L8.8 18l-2-.9-2.3 1.2L2 14l2-1.7-.2-2.2-2-1.7 2.5-4.3 2.4 1.1 2-.8L9.5 2z"></path><circle cx="12" cy="12" r="3.1"></circle></svg>';
+    return '<svg class="l166-resource-icon power" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.8 1.8 5.4 13h5.1l-.6 9.2L18.6 10h-5.1l.3-8.2z"></path></svg>';
+  }
+  function resourceMarkup(type,value,label){return '<span class="l166-resource '+type+'">'+resourceIcon(type)+'<b>'+formatNumber(value)+'</b><span>'+label+'</span></span>';}
+  function resourcePair(credits,parts){return resourceMarkup('credits',credits,'CREDITS')+'<i class="l166-resource-separator">·</i>'+resourceMarkup('parts',parts,'TECH PARTS');}
   function combatSfx(kind,minGap){
     try{
       var now=performance.now(),gap=Math.max(0,Number(minGap)||0);
@@ -91,7 +116,8 @@
       if(!loaded.phaseLosses||typeof loaded.phaseLosses!=='object'||Array.isArray(loaded.phaseLosses))loaded.phaseLosses={};
       if(!loaded.researchNodes||typeof loaded.researchNodes!=='object'||Array.isArray(loaded.researchNodes))loaded.researchNodes={};
       loaded.researchPoints=Math.max(0,Math.floor(Number(loaded.researchPoints)||0));
-      if(Number(source.researchSchema)!==RESEARCH_SCHEMA){
+      var sourceSchema=Math.max(0,Number(source.researchSchema)||0);
+      if(sourceSchema<165){
         // Build 164 used one linear turret-research level. Each old level becomes
         // a free allocation point. Its existing turret bonus is also retained,
         // so installing the new tree can never make an established save weaker.
@@ -100,8 +126,10 @@
         loaded.legacyResearchLevels=Math.max(Number(loaded.legacyResearchLevels)||0,legacyLevels);
         loaded.legacyResearchDamage=Math.max(Number(loaded.legacyResearchDamage)||0,legacyLevels*.12);
         loaded.research=0;
-        loaded.researchSchema=RESEARCH_SCHEMA;
       }
+      // Build 166 adds nodes around the existing Build 165 IDs. No purchased
+      // node is renamed, removed, refunded, or silently granted.
+      loaded.researchSchema=RESEARCH_SCHEMA;
       return loaded;
     }
     catch (e) { return defaults(); }
@@ -113,24 +141,46 @@
   }
   function researchPurchased(nodeId){return !!(meta.researchNodes&&meta.researchNodes[nodeId]);}
   function branchNodes(branchId){return RESEARCH_NODES.filter(function(node){return node.branch===branchId;}).sort(function(a,b){return a.tier-b.tier;});}
+  function researchRequirements(node){return Array.isArray(node&&node.requires)?node.requires:[];}
   function researchUnlocked(node){
-    if(node.tier<=1)return true;
-    var previous=branchNodes(node.branch).filter(function(candidate){return candidate.tier===node.tier-1;})[0];
-    return !!previous&&researchPurchased(previous.id);
+    return researchRequirements(node).every(function(nodeId){return researchPurchased(nodeId);});
+  }
+  function researchRequirementText(node){
+    var missing=researchRequirements(node).filter(function(nodeId){return !researchPurchased(nodeId);}).map(function(nodeId){var requirement=researchNode(nodeId);return requirement?requirement.name:nodeId;});
+    return missing.length?'REQUIRES '+missing.join(' + ').toUpperCase():'';
   }
   function purchasedResearchCount(){return RESEARCH_NODES.filter(function(node){return researchPurchased(node.id);}).length;}
   function researchPower(){
-    var tierPower=[0,30,40,55,75],total=Math.max(0,Number(meta.legacyResearchLevels)||0)*50;
-    RESEARCH_NODES.forEach(function(node){if(researchPurchased(node.id))total+=tierPower[node.tier]||30;});
+    var tierPower=[0,30,40,55,75,100],total=Math.max(0,Number(meta.legacyResearchLevels)||0)*50;
+    RESEARCH_NODES.forEach(function(node){if(researchPurchased(node.id))total+=Number(node.power)||tierPower[node.tier]||30;});
     return total;
   }
   function researchEffects(){
-    var result={turretDamage:Math.max(0,Number(meta.legacyResearchDamage)||0),turretRate:0,turretRange:0,turretBossDamage:0,barrierHp:0,hqHp:0,assaultHqRepair:0,assaultBarrierRepair:0,hqDamageReduction:0,barrierDamageReduction:0,artilleryDamage:0,artilleryCooldown:0,fieldXp:0,artilleryMultiplier:0};
+    var result={turretDamage:Math.max(0,Number(meta.legacyResearchDamage)||0),turretRate:0,turretRange:0,turretBossDamage:0,turretArmoredDamage:0,turretPriority:0,barrierHp:0,hqHp:0,assaultHqRepair:0,assaultBarrierRepair:0,hqDamageReduction:0,hqEmergencyReduction:0,barrierDamageReduction:0,rebuildBarrierFraction:0,artilleryDamage:0,artilleryCooldown:0,artilleryKillCooldown:0,assaultArtilleryReady:0,fieldXp:0,artilleryMultiplier:0,promotionChoiceBonus:0};
     RESEARCH_NODES.forEach(function(node){
       if(!researchPurchased(node.id))return;
       Object.keys(node.effects||{}).forEach(function(key){result[key]=(result[key]||0)+node.effects[key];});
     });
     return result;
+  }
+  var RESEARCH_EFFECT_DISPLAY={
+    turretDamage:{label:'TURRET DAMAGE',kind:'percent'},turretRate:{label:'FIRE RATE',kind:'percent'},turretRange:{label:'TURRET RANGE',kind:'percent'},turretBossDamage:{label:'BOSS DAMAGE',kind:'percent'},turretArmoredDamage:{label:'ARMORED DAMAGE',kind:'percent'},
+    barrierHp:{label:'BARRIER CAPACITY',kind:'number'},hqHp:{label:'HQ CAPACITY',kind:'number'},assaultHqRepair:{label:'HQ REPAIR / ASSAULT',kind:'number'},assaultBarrierRepair:{label:'BARRIER REPAIR / ASSAULT',kind:'number'},hqDamageReduction:{label:'HQ DAMAGE REDUCTION',kind:'percent'},hqEmergencyReduction:{label:'EMERGENCY REDUCTION',kind:'percent'},barrierDamageReduction:{label:'BARRIER REDUCTION',kind:'percent'},rebuildBarrierFraction:{label:'REBUILD HEALTH',kind:'percent'},
+    artilleryDamage:{label:'ARTILLERY DAMAGE',kind:'number'},artilleryCooldown:{label:'COOLDOWN REDUCTION',kind:'seconds'},artilleryKillCooldown:{label:'REFUND / KILL',kind:'seconds'},fieldXp:{label:'FIELD EXPERIENCE',kind:'percent'},artilleryMultiplier:{label:'ARTILLERY MULTIPLIER',kind:'percent'},promotionChoiceBonus:{label:'PROMOTION OPTIONS',kind:'choices'}
+  };
+  function researchEffectValue(key,value){
+    var display=RESEARCH_EFFECT_DISPLAY[key],number=Number(value)||0;
+    if(!display)return String(number);
+    if(display.kind==='percent')return Math.round(number*100)+'%';
+    if(display.kind==='seconds')return number.toFixed(number%1?2:0)+'s';
+    if(display.kind==='choices')return String(3+Math.round(number));
+    return formatNumber(number);
+  }
+  function researchPreview(node,effects,purchased){
+    var keys=Object.keys(node.effects||{}).filter(function(key){return !!RESEARCH_EFFECT_DISPLAY[key];}),key=keys[0];
+    if(!key)return purchased?'ACTIVE SYSTEM':'NEW COMBAT SYSTEM';
+    var display=RESEARCH_EFFECT_DISPLAY[key],current=Number(effects[key])||0,next=current+(purchased?0:Number(node.effects[key])||0);
+    return purchased?'ACTIVE · '+display.label+' '+researchEffectValue(key,current):display.label+' '+researchEffectValue(key,current)+' → '+researchEffectValue(key,next);
   }
   function buyResearchNode(nodeId){
     var node=researchNode(nodeId);
@@ -145,7 +195,8 @@
     saveMeta();
     combatSfx('upgrade');
     combatHaptic('success',180);
-    renderTab('research');
+    var panel=id('l137-panel'),oldScroll=panel?panel.scrollTop:0;
+    renderTab('research',{scrollTop:oldScroll});
   }
   saveMeta();
   function phaseLossCount(phase){return Math.max(0,Number(meta.phaseLosses[String(phase)])||0);}
@@ -250,11 +301,13 @@
       '#lsc137-app{position:fixed;z-index:30000;inset:0;color:#fff;font-family:Rajdhani,sans-serif;background:radial-gradient(circle at 50% 22%,#153343 0,#071119 42%,#03070a 100%)}' +
       '#lsc137-app.hidden{display:none}.l137-shell{height:100%;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 12px);box-sizing:border-box}' +
       '.l137-top{display:flex;justify-content:space-between;align-items:flex-start}.l137-brand{font:8px "Share Tech Mono",monospace;letter-spacing:2.5px;color:#74e9ff}.l137-title{font-size:28px;font-weight:900;line-height:1}.l137-res{font:9px "Share Tech Mono",monospace;color:#dcebf0;text-align:right}.l137-res b{color:#ffd166}' +
+      '.l166-resource-row{display:flex;justify-content:flex-end;align-items:center;gap:4px;min-height:15px;white-space:nowrap}.l166-resource-row+.l166-resource-row{margin-top:2px}.l166-resource{display:inline-flex!important;align-items:center;gap:3px;color:#dcebf0;font:7px "Share Tech Mono",monospace;white-space:nowrap}.l166-resource b{font-size:9px;color:#fff}.l166-resource.credits,.l166-resource.credits b{color:#ffd166}.l166-resource.parts,.l166-resource.parts b{color:#8fefff}.l166-resource.power,.l166-resource.power b{color:#fff}.l166-resource-icon{width:12px;height:12px;overflow:visible;stroke:currentColor;fill:none;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}.l166-resource-icon.power{fill:#ffd166;stroke:#ffd166;width:11px}.l166-resource-separator{color:#52646d;font-style:normal;margin:0 2px}.l166-cost{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap}.l166-cost .l166-resource{font-size:6px}.l166-cost .l166-resource b{font-size:7px}.l166-cost .l166-resource-icon{width:10px;height:10px}.l166-reward-resources{display:flex;justify-content:center;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:3px}.l166-reward-resources .l166-resource b{font-size:16px}.l166-reward-resources .l166-resource span{font-size:11px}.l166-reward-resources .l166-resource-icon{width:18px;height:18px}' +
       '.l137-hero{height:34%;min-height:180px;display:flex;align-items:center;justify-content:center;position:relative}.l137-hq-art{width:150px;height:102px;position:relative;border:2px solid #9a8653;border-radius:18px;background:linear-gradient(145deg,rgba(41,75,87,.75),rgba(7,17,23,.96));box-shadow:0 0 42px rgba(34,212,255,.18),inset 0 -20px 32px #071117;transition:width .3s,height .3s,border .3s,box-shadow .3s}.l137-hq-art[data-tier="2"]{width:162px;height:112px;border-width:3px}.l137-hq-art[data-tier="3"]{width:176px;height:124px;border-width:4px;border-color:#d4b45e;box-shadow:0 0 58px rgba(255,209,102,.25),inset 0 -22px 35px #071117}.l137-hq-art[data-tier="4"]{width:188px;height:134px;border-width:5px;border-color:#e0c56d}.l137-hq-art[data-tier="5"]{width:202px;height:144px;border-width:6px;border-color:#7ef8ff;box-shadow:0 0 76px rgba(65,229,255,.46),inset 0 -24px 38px #071117}.l165-hq-wall{position:absolute;inset:13px 10px 8px;border:2px solid #806d4a;border-radius:12px;transition:.3s}.l137-hq-art[data-tier="2"] .l165-hq-wall{border-width:4px;border-color:#a08b59}.l137-hq-art[data-tier="3"] .l165-hq-wall{border-width:6px;border-color:#bca366;box-shadow:inset 0 0 0 2px #4d5142}.l137-hq-art[data-tier="4"] .l165-hq-wall{border-width:8px;border-color:#879695;box-shadow:inset 0 0 0 3px #394b4b}.l137-hq-art[data-tier="5"] .l165-hq-wall{border-width:10px;border-color:#70cbd2;box-shadow:inset 0 0 0 3px #274a50,0 0 15px rgba(64,227,246,.34)}.l165-hq-core{position:absolute;left:50%;top:51%;width:68px;height:52px;transform:translate(-50%,-50%);display:grid;place-items:center;border:2px solid #ffd166;border-radius:14px;background:linear-gradient(145deg,#426467,#172a30);box-shadow:0 8px 15px rgba(0,0,0,.34);transition:.3s}.l165-hq-core span{font-size:23px;font-weight:900}.l137-hq-art[data-tier="2"] .l165-hq-core{width:76px;height:58px}.l137-hq-art[data-tier="3"] .l165-hq-core{width:84px;height:64px;border-width:3px}.l137-hq-art[data-tier="4"] .l165-hq-core{width:92px;height:70px;background:linear-gradient(145deg,#4d7073,#172b34)}.l137-hq-art[data-tier="5"] .l165-hq-core{width:100px;height:76px;border-color:#9cecff;box-shadow:0 0 19px rgba(80,225,245,.42)}.l165-hq-mast{position:absolute;left:50%;bottom:76%;width:5px;height:0;transform:translateX(-50%);border-radius:5px;background:#9cecff;box-shadow:0 0 10px #22d4ff;transition:.3s}.l137-hq-art[data-tier="2"] .l165-hq-mast,.l137-hq-art[data-tier="3"] .l165-hq-mast{height:34px}.l137-hq-art[data-tier="4"] .l165-hq-mast,.l137-hq-art[data-tier="5"] .l165-hq-mast{height:42px;box-shadow:-38px 27px 0 1px #45d9ff,38px 27px 0 1px #45d9ff,0 0 15px #22d4ff}.l165-hq-tower{display:none;position:absolute;width:18px;height:18px;border:2px solid #d7bd75;border-radius:4px;background:#2c4143;box-shadow:0 4px 8px rgba(0,0,0,.35)}.l137-hq-art[data-tier="3"] .l165-hq-tower,.l137-hq-art[data-tier="4"] .l165-hq-tower,.l137-hq-art[data-tier="5"] .l165-hq-tower{display:block}.l165-hq-tower.nw{left:-9px;top:-9px}.l165-hq-tower.ne{right:-9px;top:-9px}.l165-hq-tower.sw{left:-9px;bottom:-9px}.l165-hq-tower.se{right:-9px;bottom:-9px}.l137-hq-art[data-tier="5"] .l165-hq-tower{width:23px;height:23px;border-color:#7ef8ff;background:#274b50}.l137-hq-lv{position:absolute;bottom:7px;font:9px "Share Tech Mono",monospace;color:#9cecff;letter-spacing:.4px}' +
       '.l137-panel{flex:1;min-height:0;padding:15px;border:1px solid rgba(34,212,255,.22);border-radius:20px;background:rgba(6,16,23,.93);overflow:auto}.l137-kicker{font:8px "Share Tech Mono",monospace;letter-spacing:2px;color:#ffd166}.l137-h2{font-size:23px;font-weight:900;margin:3px 0 8px}.l137-copy{font:9px/1.55 "Share Tech Mono",monospace;color:#9eb1ba}.l137-card{margin-top:12px;padding:13px;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(255,255,255,.035)}' +
       '.l137-card-row{display:flex;justify-content:space-between;gap:12px;align-items:center}.l137-card b{font-size:15px}.l137-card small{display:block;font:8px/1.4 "Share Tech Mono",monospace;color:#82949d}.l137-btn{border:1px solid rgba(34,212,255,.35);border-radius:10px;padding:10px 13px;background:#103a4a;color:white;font:800 12px Rajdhani,sans-serif;white-space:nowrap}.l137-btn.good{background:#116c3b;border-color:#1ee873}.l137-btn:disabled{opacity:.38}.l137-deploy{width:100%;margin-top:14px;padding:14px;font-size:16px}' +
       '.l161-power-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.l161-power-metric{padding:9px;border:1px solid rgba(255,255,255,.09);border-radius:9px;background:rgba(0,0,0,.18)}.l161-power-metric span{display:block;font:7px "Share Tech Mono",monospace;letter-spacing:1px;color:#82949d}.l161-power-metric strong{display:block;margin-top:2px;font-size:22px;line-height:1;color:#fff}.l161-power-state{margin-top:8px;padding:8px 10px;border-radius:8px;text-align:center;font:800 10px "Share Tech Mono",monospace;letter-spacing:1px}.l161-power-state.underpowered{color:#ff8e78;background:rgba(140,39,26,.28);border:1px solid rgba(255,91,68,.38)}.l161-power-state.ready{color:#7fffae;background:rgba(17,108,59,.25);border:1px solid rgba(30,232,115,.34)}.l161-power-state.overmatch{color:#8fefff;background:rgba(16,91,117,.3);border:1px solid rgba(34,212,255,.4)}' +
       '.l165-research-points{margin:10px 0;padding:10px 12px;border:1px solid rgba(255,209,102,.48);border-radius:10px;background:rgba(106,74,12,.22)}.l165-research-points b,.l165-research-points span{display:block}.l165-research-points b{color:#ffd166;font-size:13px}.l165-research-points span{margin-top:3px;color:#bac8cd;font:7px/1.45 "Share Tech Mono",monospace}.l165-research-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:10px}.l165-research-summary div{padding:7px 4px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(0,0,0,.18);text-align:center}.l165-research-summary span,.l165-research-summary b{display:block}.l165-research-summary span{font:6px "Share Tech Mono",monospace;color:#82949d}.l165-research-summary b{margin-top:3px;font-size:12px;color:#fff}.l165-legacy-note{margin-top:6px;text-align:center;color:#8fefff;font:7px "Share Tech Mono",monospace}.l165-research-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:12px}.l165-research-tab{padding:8px 3px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#09141b;color:#8da2ab;font:800 9px Rajdhani,sans-serif}.l165-research-tab span,.l165-research-tab small{display:block}.l165-research-tab small{margin-top:2px;font:6px "Share Tech Mono",monospace}.l165-research-tab.active{color:#fff;border-color:#22d4ff;background:#103040}.l165-branch-head{margin-top:11px}.l165-branch-head b,.l165-branch-head span{display:block}.l165-branch-head b{color:#ffd166;font-size:15px}.l165-branch-head span{font:7px/1.4 "Share Tech Mono",monospace;color:#8fa3ac}.l165-research-tree{display:grid;gap:7px;margin-top:8px}.l165-research-node{position:relative;padding:10px 10px 10px 42px;border:1px solid rgba(34,212,255,.28);border-radius:10px;background:rgba(12,28,36,.94)}.l165-research-node:before{content:"";position:absolute;left:19px;top:0;bottom:-8px;width:2px;background:rgba(34,212,255,.23)}.l165-research-node:last-child:before{bottom:50%}.l165-research-node:after{content:"";position:absolute;left:13px;top:21px;width:12px;height:12px;border:2px solid #22d4ff;border-radius:50%;background:#071119;box-shadow:0 0 8px rgba(34,212,255,.4)}.l165-research-node.complete{border-color:rgba(30,232,115,.42);background:rgba(15,70,43,.25)}.l165-research-node.complete:after{border-color:#1ee873;background:#1a9151}.l165-research-node.locked{opacity:.48;border-color:rgba(255,255,255,.1)}.l165-research-node.locked:after{border-color:#68757b;box-shadow:none}.l165-node-tier{color:#74e9ff;font:6px "Share Tech Mono",monospace;letter-spacing:1.3px}.l165-node-name{margin-top:2px;font-size:15px;font-weight:800}.l165-node-effect{margin:2px 0 7px;color:#aebcc1;font:7px/1.4 "Share Tech Mono",monospace}.l165-node-action{width:100%;padding:7px;border:1px solid rgba(30,232,115,.44);border-radius:7px;background:#115b38;color:#fff;font:800 9px Rajdhani,sans-serif}.l165-node-action small{display:block;margin-top:2px;color:#cce0d4;font:6px "Share Tech Mono",monospace}.l165-node-action:disabled{opacity:.55;background:#18242a;border-color:rgba(255,255,255,.12)}' +
+      '.l166-research-tier{position:relative;margin-top:8px;padding-top:14px}.l166-research-tier:before{content:"";position:absolute;left:50%;top:-8px;width:1px;height:17px;background:rgba(34,212,255,.28)}.l166-research-tier:first-child:before{display:none}.l166-tier-label{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);z-index:2;padding:2px 7px;border:1px solid rgba(34,212,255,.3);border-radius:10px;background:#071119;color:#74e9ff;font:6px "Share Tech Mono",monospace;letter-spacing:1px;white-space:nowrap}.l166-tier-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.l166-research-tier.single .l166-tier-grid{grid-template-columns:1fr}.l166-research-tier.capstone .l166-tier-label{color:#ffd166;border-color:rgba(255,209,102,.48)}.l165-research-node{padding:9px;min-width:0}.l165-research-node:before,.l165-research-node:after{display:none}.l165-research-node.capstone{border-color:rgba(255,209,102,.62);background:linear-gradient(145deg,rgba(91,65,12,.44),rgba(12,28,36,.96));box-shadow:0 0 15px rgba(255,209,102,.1)}.l165-research-node.capstone.complete{border-color:#1ee873;background:linear-gradient(145deg,rgba(15,92,50,.42),rgba(12,28,36,.96))}.l165-node-name{font-size:13px;line-height:1.05}.l165-node-effect{min-height:39px;font-size:6.5px}.l166-node-preview{margin:-2px 0 6px;padding:4px 5px;border-radius:5px;background:rgba(0,0,0,.22);color:#8fefff;font:5.5px/1.3 "Share Tech Mono",monospace}.l165-research-node.complete .l166-node-preview{color:#7fffae}.l166-node-requires{min-height:17px;margin:-2px 0 6px;color:#f2b567;font:5.5px/1.35 "Share Tech Mono",monospace}.l165-research-node.complete .l166-node-requires{color:#78dca3}.l165-node-action{padding:6px 4px;font-size:8px}.l165-node-action small{font-size:5.5px}.l166-research-header{scroll-margin-top:0}.l166-research-footnote{margin-top:10px;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#82949d;font:6px/1.45 "Share Tech Mono",monospace;text-align:center}' +
       '.l137-nav{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:10px}.l137-nav button{padding:9px 2px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:#09141b;color:#91a7b1;font:700 9px Rajdhani,sans-serif}.l137-nav button.active{color:#fff;border-color:#22d4ff;background:#103040}' +
       '#lsc137-result{position:fixed;z-index:32000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,7,.9);backdrop-filter:blur(8px)}#lsc137-result.show{display:flex}.l137-result-card{width:min(420px,100%);padding:22px;border:1px solid rgba(34,212,255,.35);border-radius:20px;background:#08131a;text-align:center}.l137-result-card h2{font-size:28px;margin:3px}.l137-actions{display:grid;gap:8px;margin-top:17px}' +
       '#hq-upgrade-overlay{position:fixed;z-index:31000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.86)}#hq-upgrade-overlay.show{display:flex}.hq-upgrade-modal{width:min(420px,100%);padding:18px;border:1px solid #846e36;border-radius:18px;background:#09131a}.hq-upgrade-title{text-align:center;font-size:23px;font-weight:900}.hq-upgrade-sub{text-align:center;color:#ffd166;font:8px "Share Tech Mono",monospace;margin-bottom:12px}.hq-upgrade-grid{display:grid;gap:8px}.hq-upgrade-choice{text-align:left;padding:12px;border:1px solid #64727a;border-radius:11px;background:#121d23;color:#fff;box-shadow:inset 3px 0 0 #7e8a90}.hq-upgrade-choice b,.hq-upgrade-choice span,.hq-upgrade-choice small{display:block}.hq-upgrade-choice b{font-size:15px}.hq-upgrade-choice span{font:8px/1.45 "Share Tech Mono",monospace;color:#b8c2c7}.hq-upgrade-choice small{margin-bottom:4px;font:7px "Share Tech Mono",monospace;letter-spacing:1.5px;color:#aab4b9}.hq-upgrade-choice.epic{border-color:#8f58d8;background:#21152f;box-shadow:inset 3px 0 0 #b477ff,0 0 14px rgba(164,92,255,.12)}.hq-upgrade-choice.epic small{color:#c99aff}.hq-upgrade-choice.legendary{border-color:#c79c32;background:#30250e;box-shadow:inset 3px 0 0 #ffd166,0 0 16px rgba(255,209,102,.14)}.hq-upgrade-choice.legendary small{color:#ffd166}' +
@@ -355,7 +408,7 @@
   }
 
   function refreshHeader() {
-    id('l137-res').innerHTML = '<b>' + currentPower() + '</b> POWER<br><b>' + meta.credits + '</b> CREDITS · <b>' + meta.parts + '</b> PARTS';
+    id('l137-res').innerHTML = '<div class="l166-resource-row">'+resourceMarkup('power',currentPower(),'POWER')+'</div><div class="l166-resource-row">'+resourcePair(meta.credits,meta.parts)+'</div>';
     var visibleTier=Math.min(5,Math.max(1,meta.hq));
     id('l137-hq-lv').textContent = HQ_TIER_NAMES[visibleTier-1]+' · LEVEL ' + meta.hq;
     var art=document.querySelector('.l137-hq-art');if(art)art.setAttribute('data-tier',String(Math.min(5,Math.max(1,meta.hq))));
@@ -364,31 +417,37 @@
     var branch=RESEARCH_BRANCHES.filter(function(item){return item.id===activeResearchBranch;})[0]||RESEARCH_BRANCHES[0];
     var nodes=branchNodes(branch.id),effects=researchEffects(),legacy=Math.round((Number(meta.legacyResearchDamage)||0)*100);
     var tabs=RESEARCH_BRANCHES.map(function(item){
-      var count=branchNodes(item.id).filter(function(node){return researchPurchased(node.id);}).length;
-      return '<button class="l165-research-tab '+(item.id===branch.id?'active':'')+'" data-research-branch="'+item.id+'"><span>'+item.short+'</span><small>'+count+'/4</small></button>';
+      var branchList=branchNodes(item.id),count=branchList.filter(function(node){return researchPurchased(node.id);}).length;
+      return '<button class="l165-research-tab '+(item.id===branch.id?'active':'')+'" data-research-branch="'+item.id+'"><span>'+item.short+'</span><small>'+count+'/'+branchList.length+'</small></button>';
     }).join('');
-    var cards=nodes.map(function(node){
-      var purchased=researchPurchased(node.id),unlocked=researchUnlocked(node),short=meta.researchPoints<=0&&(meta.credits<node.cost.credits||meta.parts<node.cost.parts),disabled=purchased||!unlocked||short;
-      var state=purchased?'COMPLETE':!unlocked?'LOCKED':short?'NEED RESOURCES':meta.researchPoints>0?'USE LEGACY POINT':'RESEARCH';
-      var cost=node.cost.credits+' CREDITS · '+node.cost.parts+' TECH PARTS';
-      if(meta.researchPoints>0&&!purchased&&unlocked)cost='LEGACY POINT AVAILABLE · '+cost;
-      return '<div class="l165-research-node '+(purchased?'complete':!unlocked?'locked':'available')+'"><div class="l165-node-tier">TIER '+node.tier+'</div><div class="l165-node-name">'+node.name+'</div><div class="l165-node-effect">'+node.effectText+'</div><button class="l165-node-action" data-research-node="'+node.id+'" '+(disabled?'disabled':'')+'>'+state+'<small>'+cost+'</small></button></div>';
+    var cards=[1,2,3,4,5].map(function(tier){
+      var tierNodes=nodes.filter(function(node){return node.tier===tier;});
+      if(!tierNodes.length)return'';
+      var nodeCards=tierNodes.map(function(node){
+        var purchased=researchPurchased(node.id),unlocked=researchUnlocked(node),short=meta.researchPoints<=0&&(meta.credits<node.cost.credits||meta.parts<node.cost.parts),disabled=purchased||!unlocked||short;
+        var state=purchased?'COMPLETE':!unlocked?'LOCKED':short?'NEED RESOURCES':meta.researchPoints>0?'USE LEGACY POINT':'RESEARCH';
+        var requirement=purchased?(node.capstone?'CAPSTONE ACTIVE':'RESEARCH ACTIVE'):researchRequirementText(node)||(node.capstone?'BRANCH CAPSTONE':'PATH AVAILABLE');
+        var cost='<span class="l166-cost">'+resourcePair(node.cost.credits,node.cost.parts)+'</span>';
+        if(meta.researchPoints>0&&!purchased&&unlocked)cost='<span class="l166-cost">LEGACY POINT AVAILABLE</span>'+cost;
+        return '<div class="l165-research-node '+(purchased?'complete':!unlocked?'locked':'available')+(node.capstone?' capstone':'')+'" data-node-card="'+node.id+'"><div class="l165-node-tier">'+(node.capstone?'TIER 5 · CAPSTONE':'TIER '+node.tier)+'</div><div class="l165-node-name">'+node.name+'</div><div class="l165-node-effect">'+node.effectText+'</div><div class="l166-node-preview">'+researchPreview(node,effects,purchased)+'</div><div class="l166-node-requires">'+requirement+'</div><button class="l165-node-action" data-research-node="'+node.id+'" '+(disabled?'disabled':'')+'>'+state+'<small>'+cost+'</small></button></div>';
+      }).join('');
+      return '<section class="l166-research-tier '+(tierNodes.length===1?'single ':'')+(tier===5?'capstone':'')+'"><div class="l166-tier-label">'+(tier===5?'TIER 5 · CAPSTONE':'TIER '+tier)+'</div><div class="l166-tier-grid">'+nodeCards+'</div></section>';
     }).join('');
-    panel.innerHTML='<div class="l137-kicker">PERMANENT PROGRESSION</div><div class="l137-h2">RESEARCH CENTER</div><div class="l137-copy">Choose a branch and build from Tier 1 through Tier 4. Research is immediate and remains active in every phase.</div>'+
+    panel.innerHTML='<div class="l166-research-header"><div class="l137-kicker">PERMANENT PROGRESSION</div><div class="l137-h2" id="l166-research-title">RESEARCH CENTER</div><div class="l137-copy">Develop two connected paths in each branch across five tiers. Research is immediate, permanent, and never mutually exclusive.</div></div>'+
       (meta.researchPoints>0?'<div class="l165-research-points"><b>'+meta.researchPoints+' LEGACY RESEARCH POINT'+(meta.researchPoints===1?'':'S')+'</b><span>Converted from the previous Research Tier system. Spend these before Credits or Tech Parts.</span></div>':'')+
       '<div class="l165-research-summary"><div><span>RESEARCHED</span><b>'+purchasedResearchCount()+' / '+RESEARCH_NODES.length+'</b></div><div><span>TURRET DAMAGE</span><b>+'+Math.round(effects.turretDamage*100)+'%</b></div><div><span>HQ CAPACITY</span><b>+'+effects.hqHp+'</b></div><div><span>ARTILLERY</span><b>+'+effects.artilleryDamage+'</b></div></div>'+
       (legacy>0?'<div class="l165-legacy-note">LEGACY CALIBRATION RETAINED · TURRET DAMAGE +'+legacy+'%</div>':'')+
-      '<div class="l165-research-tabs">'+tabs+'</div><div class="l165-branch-head"><b>'+branch.name+'</b><span>'+branch.description+'</span></div><div class="l165-research-tree">'+cards+'</div>';
-    Array.prototype.forEach.call(panel.querySelectorAll('[data-research-branch]'),function(button){button.onclick=function(){activeResearchBranch=button.dataset.researchBranch;renderTab('research');};});
+      '<div class="l165-research-tabs">'+tabs+'</div><div class="l165-branch-head"><b>'+branch.name+'</b><span>'+branch.description+'</span></div><div class="l165-research-tree">'+cards+'</div><div class="l166-research-footnote">BOTH PATHS REMAIN AVAILABLE · COMPLETE BOTH TIER 4 NODES TO UNLOCK THE BRANCH CAPSTONE</div>';
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-research-branch]'),function(button){button.onclick=function(){activeResearchBranch=button.dataset.researchBranch;renderTab('research',{scrollTop:0});};});
     Array.prototype.forEach.call(panel.querySelectorAll('[data-research-node]'),function(button){button.onclick=function(){buyResearchNode(button.dataset.researchNode);};});
   }
-  function renderTab(tab) {
+  function renderTab(tab,options) {
     refreshHeader();
     Array.prototype.forEach.call(id('l137-nav').children, function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
     var p = id('l137-panel');
     if (tab === 'campaign') {
       var support=retryAssist(meta.phase),supportText=support>0?'<small>RETRY SUPPORT ACTIVE · ENEMY HEALTH AND DAMAGE -'+Math.round(support*100)+'%</small>':'',power=powerAssessment(meta.phase);
-      p.innerHTML = '<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small>' + victoryRewardPreview(meta.phase) + ' CREDITS · 3 TECH PARTS</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div><button class="l137-btn good l137-deploy" id="l137-deploy">CHALLENGE PHASE ' + meta.phase + '</button>';
+      p.innerHTML = '<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small class="l166-cost">' + resourcePair(victoryRewardPreview(meta.phase),3) + '</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div><button class="l137-btn good l137-deploy" id="l137-deploy">CHALLENGE PHASE ' + meta.phase + '</button>';
     }
     if (tab === 'commander') p.innerHTML = upgradePanel('commander', 'COMMANDER HOLT', 'Permanent rifle damage and fire-rate training.', 'Combat Level ' + meta.commander);
     if (tab === 'research') renderResearchTab(p);
@@ -396,12 +455,13 @@
     if (tab === 'inventory') p.innerHTML = '<div class="l137-kicker">ARMORY</div><div class="l137-h2">INVENTORY</div><div class="l137-copy">Recovered equipment will appear here. The first functional equipment drops arrive after the core phase loop is balanced.</div><div class="l137-card"><b>Standard Issue Rifle</b><small>EQUIPPED · ASSAULT CLASS</small></div><div class="l137-card"><b>Field Armor</b><small>EQUIPPED · STANDARD PROTECTION</small></div>';
     var dep = id('l137-deploy'); if (dep) dep.onclick = launchPhase;
     var buy = id('l137-buy'); if (buy) buy.onclick = function () { buyUpgrade(tab); };
+    if(p)p.scrollTop=options&&Number.isFinite(options.scrollTop)?Math.max(0,options.scrollTop):0;
   }
   function upgradePanel(type, title, copy, level) {
     var cost = levelCost(type);
-    var price = cost.credits + ' CREDITS' + (cost.parts ? ' · ' + cost.parts + ' TECH PARTS' : '');
+    var price = cost.parts?resourcePair(cost.credits,cost.parts):resourceMarkup('credits',cost.credits,'CREDITS');
     var maximum=type==='hq'&&meta.hq>=5,short = meta.credits < cost.credits || meta.parts < cost.parts;
-    return '<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">' + title + '</div><div class="l137-copy">' + copy + '</div><div class="l137-card"><div class="l137-card-row"><div><b>' + level + '</b><small>' + (maximum?'ALL FORTRESS TIERS DEPLOYED':'NEXT UPGRADE COST · '+price) + '</small></div><button class="l137-btn good" id="l137-buy" ' + (maximum||short ? 'disabled' : '') + '>' + (maximum?'MAX LEVEL':short ? 'NEED RESOURCES' : 'UPGRADE') + '</button></div></div>';
+    return '<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">' + title + '</div><div class="l137-copy">' + copy + '</div><div class="l137-card"><div class="l137-card-row"><div><b>' + level + '</b><small>' + (maximum?'ALL FORTRESS TIERS DEPLOYED':'NEXT UPGRADE COST') + '</small>'+(maximum?'':'<div class="l166-cost" style="justify-content:flex-start;margin-top:4px">'+price+'</div>')+'</div><button class="l137-btn good" id="l137-buy" ' + (maximum||short ? 'disabled' : '') + '>' + (maximum?'MAX LEVEL':short ? 'NEED RESOURCES' : 'UPGRADE') + '</button></div></div>';
   }
   function buyUpgrade(type) {
     if(type==='research'||(type==='hq'&&meta.hq>=5))return;
@@ -433,7 +493,7 @@
       lanes.push({index:lane,angle:angle,baseX:layout.x,baseY:layout.y,rotation:layout.rotation,side:layout.side,queue:[],barricade:{hp:barricadeHp,maxHp:barricadeHp,flash:0}});
     }
     var hqCapacity=300+(meta.hq-1)*75+tech.hqHp,artilleryDamage=(95+tech.artilleryDamage)*(1+tech.artilleryMultiplier);
-    return { active:true, paused:false, complete:false, phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:36, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, upgradeStacks:{}, lastUpgradeChoices:[], legendaryMisses:0, abilityCd:0, abilityMaxCd:Math.max(8,18-tech.artilleryCooldown), abilityDamage:artilleryDamage, fieldXpMultiplier:1+tech.fieldXp, turretBossDamage:tech.turretBossDamage, assaultHqRepair:tech.assaultHqRepair, assaultBarrierRepair:tech.assaultBarrierRepair, hqDamageReduction:tech.hqDamageReduction, barrierDamageReduction:tech.barrierDamageReduction, research:tech, lastHit:0,
+    return { active:true, paused:false, complete:false, phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:36, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, upgradeStacks:{}, lastUpgradeChoices:[], legendaryMisses:0, abilityCd:0, abilityMaxCd:Math.max(8,18-tech.artilleryCooldown), abilityDamage:artilleryDamage, artilleryKillCooldown:tech.artilleryKillCooldown, assaultArtilleryReady:tech.assaultArtilleryReady, fieldXpMultiplier:1+tech.fieldXp, promotionChoiceBonus:tech.promotionChoiceBonus, turretBossDamage:tech.turretBossDamage, turretArmoredDamage:tech.turretArmoredDamage, turretPriority:tech.turretPriority, assaultHqRepair:tech.assaultHqRepair, assaultBarrierRepair:tech.assaultBarrierRepair, rebuildBarrierFraction:tech.rebuildBarrierFraction, hqDamageReduction:tech.hqDamageReduction, hqEmergencyReduction:tech.hqEmergencyReduction, barrierDamageReduction:tech.barrierDamageReduction, research:tech, lastHit:0,
       hq:{x:cx,y:cy,r:37*s,level:meta.hq,hp:hqCapacity,maxHp:hqCapacity},
       hero:{source:'commander',x:cx,y:cy+70*s,r:13*s,damage:16*(1+(meta.commander-1)*.15),rate:2.7*(1+(meta.commander-1)*.06),range:150*s,cd:0},
       turret:{source:'turret',x:cx,y:cy-58*s,r:10*s,damage:10*(1+tech.turretDamage),rate:3.1*(1+tech.turretRate),range:215*s*(1+tech.turretRange),cd:0},
@@ -468,7 +528,15 @@
     lane.queue.push(unit);
     return unit;
   }
-  function nearest(o,range){var t=null,b=range;run.enemies.forEach(function(e){var x=dist(o,e);if(x<b){b=x;t=e;}});return t;}
+  function nearest(o,range){
+    var t=null,b=range,bestPriority=-1,priorityTarget=o&&o.source==='turret'&&run&&run.turretPriority>0;
+    run.enemies.forEach(function(e){
+      var x=dist(o,e);if(x>=range)return;
+      var priority=priorityTarget?(e.kind==='boss'?3:e.kind==='armored'?2:1):0;
+      if(priority>bestPriority||(priority===bestPriority&&x<b)){bestPriority=priority;b=x;t=e;}
+    });
+    return t;
+  }
   function fire(o,t,damage){
     if(!t)return;
     var x=t.x-o.x,y=t.y-o.y,l=Math.hypot(x,y)||1,source=o.source||'squad',speed=source==='turret'?390:source==='commander'?650:500;
@@ -480,6 +548,7 @@
     combatHaptic(source==='turret'?'medium':'light',source==='turret'?240:source==='commander'?140:180);
     var shotDamage=damage;
     if(source==='turret'&&t.kind==='boss')shotDamage*=1+(run.turretBossDamage||0);
+    if(source==='turret'&&t.kind==='armored')shotDamage*=1+(run.turretArmoredDamage||0);
     run.bullets.push({x:o.x+Math.cos(o.aim)*10*dpr(),y:o.y+Math.sin(o.aim)*10*dpr(),px:o.x,py:o.y,vx:x/l*speed*dpr(),vy:y/l*speed*dpr(),damage:shotDamage,life:.9,source:source,color:source==='commander'?'#fff07a':source==='turret'?'#ff8a2a':'#8edcff'});
   }
   function kill(i,e){
@@ -549,6 +618,7 @@
   }
   function chooseFieldUpgrades(rank){
     var choices=[],recent=run.lastUpgradeChoices||[],plan=rarityPlan(rank),legendaryPlanned=plan.indexOf('legendary')>=0;
+    if(run.promotionChoiceBonus>0)plan.push('common');
     plan.forEach(function(rarity){
       var candidates=upgrades.filter(function(upgrade){return upgrade.rarity===rarity&&upgradeAvailable(upgrade)&&!choices.some(function(choice){return choice.id===upgrade.id;});});
       var fresh=candidates.filter(function(upgrade){return recent.indexOf(upgrade.id)<0;});
@@ -601,7 +671,9 @@
     combatSfx('orbital');
     combatHaptic('heavy',300);
     run.enemies.forEach(function(e){var dealt=Math.min(run.abilityDamage,e.hp);e.hp-=run.abilityDamage;run.damage.artillery+=dealt;run.particles.push({x:e.x,y:e.y,life:.55,max:.55,r:34*dpr(),color:'#ff3c27',type:'artillery'});});
-    for(var i=run.enemies.length-1;i>=0;i--)if(run.enemies[i].hp<=0)kill(i,run.enemies[i]);
+    var artilleryEliminations=0;
+    for(var i=run.enemies.length-1;i>=0;i--)if(run.enemies[i].hp<=0){artilleryEliminations++;kill(i,run.enemies[i]);}
+    if(artilleryEliminations&&run.artilleryKillCooldown>0)run.abilityCd=Math.max(0,run.abilityCd-artilleryEliminations*run.artilleryKillCooldown);
   }
   function defeatAdvice(){
     if(meta.hq<2)return 'Recommended next: upgrade Headquarters for more health, stronger barriers, and the reinforced Level 2 compound.';
@@ -635,7 +707,7 @@
     id('l137-result-kicker').textContent = won ? 'MISSION ACCOMPLISHED' : 'MISSION FAILED';
     id('l137-result-title').textContent = won ? 'PHASE ' + clearedPhase + ' SECURED' : 'HEADQUARTERS LOST';
     id('l137-result-copy').textContent = won ? 'The Siege Breaker is destroyed. Phase ' + meta.phase + ' is ready for deployment.' : defeatAdvice()+supportCopy;
-    id('l137-result-reward').innerHTML = '<b>' + reward + ' CREDITS' + (parts ? ' · ' + parts + ' TECH PARTS' : '') + '</b><small>' + (won?'VICTORY REWARD':'SALVAGE REWARD · PROGRESS IS NEVER LOST') + '</small><small>' + run.kills + ' ENEMIES ELIMINATED</small><small>HOLT '+Math.round(run.damage.commander)+' · TURRET '+Math.round(run.damage.turret)+' · ARTILLERY '+Math.round(run.damage.artillery)+'</small>';
+    id('l137-result-reward').innerHTML = '<div class="l166-reward-resources">'+(parts?resourcePair(reward,parts):resourceMarkup('credits',reward,'CREDITS'))+'</div><small>' + (won?'VICTORY REWARD':'SALVAGE REWARD · PROGRESS IS NEVER LOST') + '</small><small>' + formatNumber(run.kills) + ' ENEMIES ELIMINATED</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small>';
     id('l141-continue').textContent = won ? 'CONTINUE TO PHASE ' + meta.phase : 'RETRY PHASE ' + clearedPhase;
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
     id('l137-retry').style.display = won ? '' : 'none';
@@ -664,6 +736,15 @@
     if(assault===2)return roll<.18?'armored':roll>.78?'runner':'grunt';
     return roll<.27?'armored':roll>.78?'runner':'grunt';
   }
+  function recoverBetweenAssaults(){
+    if(run.assaultHqRepair>0)run.hq.hp=Math.min(run.hq.maxHp,run.hq.hp+run.assaultHqRepair);
+    if(run.assaultBarrierRepair>0)run.lanes.forEach(function(repairLane){if(repairLane.barricade.hp>0)repairLane.barricade.hp=Math.min(repairLane.barricade.maxHp,repairLane.barricade.hp+run.assaultBarrierRepair);});
+    if(run.rebuildBarrierFraction>0){
+      var destroyed=run.lanes.filter(function(repairLane){return repairLane.barricade.hp<=0;})[0];
+      if(destroyed)destroyed.barricade.hp=Math.max(1,Math.ceil(destroyed.barricade.maxHp*run.rebuildBarrierFraction));
+    }
+    if(run.assaultArtilleryReady>0)run.abilityCd=0;
+  }
   function update(dt){
     if(!run||!run.active||run.paused||run.upgradeOpen)return;
     run.elapsed+=dt;
@@ -684,11 +765,23 @@
     for(var i=run.enemies.length-1;i>=0;i--){var e=run.enemies[i],lane=run.lanes[e.lane],queueIndex=lane?lane.queue.indexOf(e):-1;if(!lane||queueIndex<0)continue;var front=queueIndex===0,barrierUp=lane.barricade.hp>0,bossPadding=e.kind==='boss'?.72:e.kind==='armored'?.2:0,targetWorld=front?(barrierUp?BARRICADE_STOP_WORLD_RADIUS+bossPadding:HQ_ATTACK_WORLD_RADIUS+bossPadding):QUEUE_START_WORLD_RADIUS+Math.max(0,queueIndex-1)*QUEUE_GAP_WORLD_RADIUS,targetPoint=lanePoint(lane,targetWorld,0),tx=targetPoint.x,ty=targetPoint.y,x=tx-e.x,y=ty-e.y,l=Math.hypot(x,y);e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.flash=Math.max(0,e.flash-dt);e.aim=Math.atan2(run.hq.y-e.y,run.hq.x-e.x);e.waiting=!front;
       if(!front){e.engaged=false;e.targetType='queue';if(l>2*dpr()){e.moving=true;var queueStep=Math.min(l,e.speed*dt);e.x+=x/l*queueStep;e.y+=y/l*queueStep;}else{e.moving=false;e.x=tx;e.y=ty;}continue;}
       var targetType=barrierUp?'barricade':'hq';if(e.targetType!==targetType){e.engaged=false;e.targetType=targetType;e.cd=Math.min(e.cd,.18);}
-      if(!e.engaged){if(l>2*dpr()){e.moving=true;var step=Math.min(l,e.speed*dt);e.x+=x/l*step;e.y+=y/l*step;}else{e.engaged=true;e.moving=false;e.x=tx;e.y=ty;e.cd=Math.min(e.cd,.18);}}else{e.x=tx;e.y=ty;e.moving=false;e.cd-=dt;if(e.cd<=0){if(targetType==='barricade'){var beforeHp=lane.barricade.hp,barrierDamage=e.damage*(1-(run.barrierDamageReduction||0));lane.barricade.hp=Math.max(0,beforeHp-barrierDamage);lane.barricade.flash=.2;var barrierFx=lanePoint(lane,BARRICADE_WORLD_RADIUS,0);run.particles.push({x:barrierFx.x,y:barrierFx.y,life:.26,max:.26,r:11*dpr(),color:'#e1aa67',type:'barrier'});combatSfx('barrierHit',145);if(lane.barricade.hp<=0&&beforeHp>0){combatSfx('barrierBreak');combatHaptic('medium',260);e.engaged=false;e.targetType='hq';}}else{run.hq.hp-=e.damage*(1-(run.hqDamageReduction||0));run.lastHit=performance.now();run.particles.push({x:run.hq.x+(Math.random()-.5)*run.hq.r,y:run.hq.y+(Math.random()-.5)*run.hq.r,life:.24,max:.24,r:13*dpr(),color:'#ff6248',type:'hq-hit'});combatSfx('hqHit',280);combatHaptic('medium',650);}e.cd=e.attackCycle||ENEMY_ATTACK_CYCLE;e.flash=.18;}}
+      if(!e.engaged){if(l>2*dpr()){e.moving=true;var step=Math.min(l,e.speed*dt);e.x+=x/l*step;e.y+=y/l*step;}else{e.engaged=true;e.moving=false;e.x=tx;e.y=ty;e.cd=Math.min(e.cd,.18);}}else{e.x=tx;e.y=ty;e.moving=false;e.cd-=dt;if(e.cd<=0){if(targetType==='barricade'){var beforeHp=lane.barricade.hp,barrierDamage=e.damage*(1-(run.barrierDamageReduction||0));lane.barricade.hp=Math.max(0,beforeHp-barrierDamage);lane.barricade.flash=.2;var barrierFx=lanePoint(lane,BARRICADE_WORLD_RADIUS,0);run.particles.push({x:barrierFx.x,y:barrierFx.y,life:.26,max:.26,r:11*dpr(),color:'#e1aa67',type:'barrier'});combatSfx('barrierHit',145);if(lane.barricade.hp<=0&&beforeHp>0){combatSfx('barrierBreak');combatHaptic('medium',260);e.engaged=false;e.targetType='hq';}}else{var hqReduction=run.hqDamageReduction||0;if(run.hq.maxHp>0&&run.hq.hp/run.hq.maxHp<=.35)hqReduction+=run.hqEmergencyReduction||0;run.hq.hp-=e.damage*(1-clamp(hqReduction,0,.8));run.lastHit=performance.now();run.particles.push({x:run.hq.x+(Math.random()-.5)*run.hq.r,y:run.hq.y+(Math.random()-.5)*run.hq.r,life:.24,max:.24,r:13*dpr(),color:'#ff6248',type:'hq-hit'});combatSfx('hqHit',280);combatHaptic('medium',650);}e.cd=e.attackCycle||ENEMY_ATTACK_CYCLE;e.flash=.18;}}
     }
     for(var b=run.bullets.length-1;b>=0;b--){var q=run.bullets[b];q.px=q.x;q.py=q.y;q.x+=q.vx*dt;q.y+=q.vy*dt;q.life-=dt;var hit=-1;for(var j=0;j<run.enemies.length;j++)if(dist(q,run.enemies[j])<run.enemies[j].r+4*dpr()){hit=j;break;}if(hit>=0){var target=run.enemies[hit],dealt=Math.min(q.damage,target.hp);target.hp-=q.damage;target.hit=.16;run.damage[q.source]+=dealt;run.particles.push({x:target.x,y:target.y,life:.26,max:.26,r:(q.source==='turret'?14:9)*dpr(),color:q.color,type:q.source==='turret'?'turret-impact':'commander-impact'});run.bullets.splice(b,1);if(target.hp<=0)kill(hit,target);}else if(q.life<=0)run.bullets.splice(b,1);}
     [run.hero,run.turret].concat(run.squad).forEach(function(a){a.flash=Math.max(0,(a.flash||0)-dt);});for(var c=run.corpses.length-1;c>=0;c--){run.corpses[c].life-=dt;if(run.corpses[c].life<=0)run.corpses.splice(c,1);}for(var p=run.particles.length-1;p>=0;p--){run.particles[p].life-=dt;if(run.particles[p].life<=0)run.particles.splice(p,1);}if(run.feedback){run.feedback.life-=dt;if(run.feedback.life<=0)run.feedback=null;}
-    if(run.hq.hp<=0){finish(false);return;}var cleared=run.assaultSpawned>=target&&run.enemies.length===0&&run.bullets.length===0&&(run.assault<3||run.bossDefeated);if(cleared){run.transition+=dt;if(run.transition>=1.2){if(run.assault===3)finish(true);else{if(run.assaultHqRepair>0)run.hq.hp=Math.min(run.hq.maxHp,run.hq.hp+run.assaultHqRepair);if(run.assaultBarrierRepair>0)run.lanes.forEach(function(repairLane){if(repairLane.barricade.hp>0)repairLane.barricade.hp=Math.min(repairLane.barricade.maxHp,repairLane.barricade.hp+run.assaultBarrierRepair);});run.assault++;run.assaultElapsed=0;run.assaultSpawned=0;run.assaultKills=0;run.spawn=.6;run.transition=0;combatSfx('phase');combatHaptic('light',180);}}}else run.transition=0;
+    if(run.hq.hp<=0){finish(false);return;}
+    var cleared=run.assaultSpawned>=target&&run.enemies.length===0&&run.bullets.length===0&&(run.assault<3||run.bossDefeated);
+    if(cleared){
+      run.transition+=dt;
+      if(run.transition>=1.2){
+        if(run.assault===3)finish(true);
+        else{
+          recoverBetweenAssaults();
+          run.assault++;run.assaultElapsed=0;run.assaultSpawned=0;run.assaultKills=0;run.spawn=.6;run.transition=0;
+          combatSfx('phase');combatHaptic('light',180);
+        }
+      }
+    }else run.transition=0;
   }
   function circle(x,y,r,fill,stroke,w){ctx.beginPath();ctx.arc(x,y,r,0,TAU);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=w||1;ctx.stroke();}}
   function poly(points,fill,stroke,w){ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);for(var i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=w||1;ctx.stroke();}}

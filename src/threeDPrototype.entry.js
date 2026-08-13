@@ -301,7 +301,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     box('Level 4 east armor course', [.46, .5, 4.56], [2.55, 1.18, 0], 0x3f5e60, hqTier4WallGroup, { metalness: .62, roughness: .32 });
     box('Level 4 front armor west', [1.94, .5, .46], [-1.67, 1.18, 2.25], 0x3f5e60, hqTier4WallGroup, { metalness: .62, roughness: .32 });
     box('Level 4 front armor east', [1.94, .5, .46], [1.67, 1.18, 2.25], 0x3f5e60, hqTier4WallGroup, { metalness: .62, roughness: .32 });
-    box('Level 4 fortified gate header', [1.35, .38, .5], [0, 1.55, 2.25], 0x2d484c, hqTier4WallGroup, { metalness: .68, roughness: .28 });
+    // Keep the front gate visibly fortified without placing a solid header
+    // directly between the portrait camera and Commander Holt.
+    box('Level 4 gate pillar west', [.22, 1.34, .5], [-.72, .67, 2.25], 0x2d484c, hqTier4WallGroup, { metalness: .68, roughness: .28 });
+    box('Level 4 gate pillar east', [.22, 1.34, .5], [.72, .67, 2.25], 0x2d484c, hqTier4WallGroup, { metalness: .68, roughness: .28 });
+    box('Level 4 gate threshold', [1.28, .1, .58], [0, .05, 2.25], 0x6f8580, hqTier4WallGroup, { metalness: .5, roughness: .38 });
     hqTier4WallGroup.visible = false;
     staticGroup.add(hqTier4WallGroup);
 

@@ -204,6 +204,10 @@
         if (intro) intro.textContent = 'Choose a commander, arrange squad rows, and hold one command front against escalating enemy contacts.';
       }
       Array.from(document.querySelectorAll('button,div,span,p')).forEach(function (el) {
+        // Build 166: this legacy formatter only belongs to the retired three-row
+        // formation UI. Command Base owns its terminology, including the fixed
+        // RESEARCH CENTER title, and must never be globally rewritten.
+        if (el.closest && (el.closest('#lsc137-app') || el.closest('#lsc137-result') || el.closest('#hq-upgrade-overlay') || el.closest('#l139-pause'))) return;
         // Only rewrite leaf text nodes so we do not flatten complex cards or lose nested layout.
         if (el.children && el.children.length > 0) return;
         var t = (el.textContent || '').trim();
