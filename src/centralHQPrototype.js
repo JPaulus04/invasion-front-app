@@ -1,4 +1,4 @@
-// Build 164 — longer assault pacing and rarity-based field promotions.
+// Build 165 — permanent research branches and visible fortress progression.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -36,9 +36,31 @@
   var animationAtlas = new Image();
   animationAtlas.src = 'assets/unit-animation-atlas.png';
   var META_KEY = 'lsc_command_base_137'; // Preserve Build 137 progression.
-  var meta = loadMeta();
   var soundTimes = {};
   var hapticTimes = {};
+  var activeResearchBranch = 'fire-control';
+  var RESEARCH_SCHEMA = 165;
+  var HQ_TIER_NAMES = ['FIELD COMMAND POST','REINFORCED COMPOUND','FORTIFIED HEADQUARTERS','ARMORED CITADEL','COMMAND FORTRESS'];
+  var RESEARCH_BRANCHES = [
+    {id:'fire-control',short:'FIRE',name:'FIRE CONTROL',description:'Main-turret targeting, output, range, and boss-killing capability.'},
+    {id:'fortifications',short:'DEFENSE',name:'FORTIFICATIONS',description:'Headquarters capacity, perimeter durability, repairs, and damage resistance.'},
+    {id:'combat-support',short:'SUPPORT',name:'COMBAT SUPPORT',description:'Artillery effectiveness and faster access to field promotions.'}
+  ];
+  var RESEARCH_NODES = [
+    {id:'fc-calibration',branch:'fire-control',tier:1,name:'Targeting Calibration',effectText:'Main-turret damage +15%.',cost:{credits:250,parts:3},effects:{turretDamage:.15}},
+    {id:'fc-servos',branch:'fire-control',tier:2,name:'Servo Motors',effectText:'Main-turret fire rate +12%.',cost:{credits:400,parts:5},effects:{turretRate:.12}},
+    {id:'fc-optics',branch:'fire-control',tier:3,name:'Extended Optics',effectText:'Main-turret range +12%.',cost:{credits:600,parts:7},effects:{turretRange:.12}},
+    {id:'fc-siege',branch:'fire-control',tier:4,name:'Siege Ammunition',effectText:'Main-turret damage against bosses +35%.',cost:{credits:850,parts:10},effects:{turretBossDamage:.35}},
+    {id:'fort-perimeter',branch:'fortifications',tier:1,name:'Reinforced Perimeter',effectText:'Every barrier gains 20 maximum health.',cost:{credits:250,parts:3},effects:{barrierHp:20}},
+    {id:'fort-command',branch:'fortifications',tier:2,name:'Hardened Command',effectText:'Headquarters capacity +100.',cost:{credits:400,parts:5},effects:{hqHp:100}},
+    {id:'fort-repair',branch:'fortifications',tier:3,name:'Repair Crews',effectText:'Between assaults: repair HQ 35 and surviving barriers 24.',cost:{credits:600,parts:7},effects:{assaultHqRepair:35,assaultBarrierRepair:24}},
+    {id:'fort-grid',branch:'fortifications',tier:4,name:'Fortress Grid',effectText:'HQ and barriers take 15% less damage.',cost:{credits:850,parts:10},effects:{hqDamageReduction:.15,barrierDamageReduction:.15}},
+    {id:'sup-shells',branch:'combat-support',tier:1,name:'Improved Shells',effectText:'Artillery damage +25.',cost:{credits:250,parts:3},effects:{artilleryDamage:25}},
+    {id:'sup-relay',branch:'combat-support',tier:2,name:'Fire Mission Relay',effectText:'Artillery cooldown -3 seconds.',cost:{credits:400,parts:5},effects:{artilleryCooldown:3}},
+    {id:'sup-intel',branch:'combat-support',tier:3,name:'Combat Intelligence',effectText:'Field experience earned +15%.',cost:{credits:600,parts:7},effects:{fieldXp:.15}},
+    {id:'sup-barrage',branch:'combat-support',tier:4,name:'Saturation Barrage',effectText:'Artillery damage +35%.',cost:{credits:850,parts:10},effects:{artilleryMultiplier:.35}}
+  ];
+  var meta = loadMeta();
 
   function id(x) { return document.getElementById(x); }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -61,16 +83,71 @@
       if(typeof haptic==='function')haptic(key);
     }catch(e){}
   }
-  function defaults() { return { credits: 500, parts: 12, phase: 1, bestPhase: 0, commander: 1, research: 0, hq: 1, phaseLosses: {} }; }
+  function defaults() { return { credits: 500, parts: 12, phase: 1, bestPhase: 0, commander: 1, research: 0, researchSchema:RESEARCH_SCHEMA, researchNodes:{}, researchPoints:0, legacyResearchLevels:0, legacyResearchDamage:0, hq: 1, phaseLosses: {} }; }
   function loadMeta() {
     try {
-      var loaded=Object.assign(defaults(), JSON.parse(localStorage.getItem(META_KEY) || '{}'));
+      var source=JSON.parse(localStorage.getItem(META_KEY) || '{}');
+      var loaded=Object.assign(defaults(), source);
       if(!loaded.phaseLosses||typeof loaded.phaseLosses!=='object'||Array.isArray(loaded.phaseLosses))loaded.phaseLosses={};
+      if(!loaded.researchNodes||typeof loaded.researchNodes!=='object'||Array.isArray(loaded.researchNodes))loaded.researchNodes={};
+      loaded.researchPoints=Math.max(0,Math.floor(Number(loaded.researchPoints)||0));
+      if(Number(source.researchSchema)!==RESEARCH_SCHEMA){
+        // Build 164 used one linear turret-research level. Each old level becomes
+        // a free allocation point. Its existing turret bonus is also retained,
+        // so installing the new tree can never make an established save weaker.
+        var legacyLevels=Math.max(0,Math.floor(Number(source.research)||0));
+        loaded.researchPoints+=legacyLevels;
+        loaded.legacyResearchLevels=Math.max(Number(loaded.legacyResearchLevels)||0,legacyLevels);
+        loaded.legacyResearchDamage=Math.max(Number(loaded.legacyResearchDamage)||0,legacyLevels*.12);
+        loaded.research=0;
+        loaded.researchSchema=RESEARCH_SCHEMA;
+      }
       return loaded;
     }
     catch (e) { return defaults(); }
   }
   function saveMeta() { localStorage.setItem(META_KEY, JSON.stringify(meta)); }
+  function researchNode(nodeId){
+    for(var i=0;i<RESEARCH_NODES.length;i++)if(RESEARCH_NODES[i].id===nodeId)return RESEARCH_NODES[i];
+    return null;
+  }
+  function researchPurchased(nodeId){return !!(meta.researchNodes&&meta.researchNodes[nodeId]);}
+  function branchNodes(branchId){return RESEARCH_NODES.filter(function(node){return node.branch===branchId;}).sort(function(a,b){return a.tier-b.tier;});}
+  function researchUnlocked(node){
+    if(node.tier<=1)return true;
+    var previous=branchNodes(node.branch).filter(function(candidate){return candidate.tier===node.tier-1;})[0];
+    return !!previous&&researchPurchased(previous.id);
+  }
+  function purchasedResearchCount(){return RESEARCH_NODES.filter(function(node){return researchPurchased(node.id);}).length;}
+  function researchPower(){
+    var tierPower=[0,30,40,55,75],total=Math.max(0,Number(meta.legacyResearchLevels)||0)*50;
+    RESEARCH_NODES.forEach(function(node){if(researchPurchased(node.id))total+=tierPower[node.tier]||30;});
+    return total;
+  }
+  function researchEffects(){
+    var result={turretDamage:Math.max(0,Number(meta.legacyResearchDamage)||0),turretRate:0,turretRange:0,turretBossDamage:0,barrierHp:0,hqHp:0,assaultHqRepair:0,assaultBarrierRepair:0,hqDamageReduction:0,barrierDamageReduction:0,artilleryDamage:0,artilleryCooldown:0,fieldXp:0,artilleryMultiplier:0};
+    RESEARCH_NODES.forEach(function(node){
+      if(!researchPurchased(node.id))return;
+      Object.keys(node.effects||{}).forEach(function(key){result[key]=(result[key]||0)+node.effects[key];});
+    });
+    return result;
+  }
+  function buyResearchNode(nodeId){
+    var node=researchNode(nodeId);
+    if(!node||researchPurchased(node.id)||!researchUnlocked(node))return;
+    if(meta.researchPoints>0)meta.researchPoints--;
+    else{
+      if(meta.credits<node.cost.credits||meta.parts<node.cost.parts)return;
+      meta.credits-=node.cost.credits;
+      meta.parts-=node.cost.parts;
+    }
+    meta.researchNodes[node.id]={purchasedAt:Date.now()};
+    saveMeta();
+    combatSfx('upgrade');
+    combatHaptic('success',180);
+    renderTab('research');
+  }
+  saveMeta();
   function phaseLossCount(phase){return Math.max(0,Number(meta.phaseLosses[String(phase)])||0);}
   function retryAssist(phase){var losses=phaseLossCount(phase);return Math.min(.24,Math.max(0,losses-1)*.08);}
   function phaseBalance(phase){
@@ -173,10 +250,11 @@
       '#lsc137-app{position:fixed;z-index:30000;inset:0;color:#fff;font-family:Rajdhani,sans-serif;background:radial-gradient(circle at 50% 22%,#153343 0,#071119 42%,#03070a 100%)}' +
       '#lsc137-app.hidden{display:none}.l137-shell{height:100%;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 12px);box-sizing:border-box}' +
       '.l137-top{display:flex;justify-content:space-between;align-items:flex-start}.l137-brand{font:8px "Share Tech Mono",monospace;letter-spacing:2.5px;color:#74e9ff}.l137-title{font-size:28px;font-weight:900;line-height:1}.l137-res{font:9px "Share Tech Mono",monospace;color:#dcebf0;text-align:right}.l137-res b{color:#ffd166}' +
-      '.l137-hero{height:34%;min-height:180px;display:flex;align-items:center;justify-content:center;position:relative}.l137-hq-art{width:150px;height:112px;border:2px solid #75e8ff;border-radius:18px 18px 28px 28px;background:linear-gradient(145deg,#294b57,#0d2028);box-shadow:0 0 55px rgba(34,212,255,.25),inset 0 -22px 35px #071117;position:relative;transition:.25s}.l137-hq-art:before{content:"HQ";position:absolute;inset:28px 38px;border:2px solid #ffd166;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:900;color:#fff}.l137-hq-art:after{content:"";position:absolute;left:72px;bottom:83px;width:5px;height:0;border-radius:5px;background:#9cecff;box-shadow:0 0 10px #22d4ff;transition:.25s}.l137-hq-art[data-tier="2"]:after,.l137-hq-art[data-tier="3"]:after{height:35px}.l137-hq-art[data-tier="3"]{border-color:#ffd166;box-shadow:0 0 62px rgba(255,209,102,.3),inset 0 -22px 35px #071117}.l137-hq-art[data-tier="4"]:after,.l137-hq-art[data-tier="5"]:after{height:42px;background:#7ef8ff;box-shadow:-40px 25px 0 2px #45d9ff,40px 25px 0 2px #45d9ff,0 0 16px #22d4ff}.l137-hq-art[data-tier="5"]{border-color:#7ef8ff;box-shadow:0 0 72px rgba(65,229,255,.5),inset 0 -22px 35px #071117}.l137-hq-lv{position:absolute;bottom:12px;font:9px "Share Tech Mono",monospace;color:#9cecff}' +
+      '.l137-hero{height:34%;min-height:180px;display:flex;align-items:center;justify-content:center;position:relative}.l137-hq-art{width:150px;height:102px;position:relative;border:2px solid #9a8653;border-radius:18px;background:linear-gradient(145deg,rgba(41,75,87,.75),rgba(7,17,23,.96));box-shadow:0 0 42px rgba(34,212,255,.18),inset 0 -20px 32px #071117;transition:width .3s,height .3s,border .3s,box-shadow .3s}.l137-hq-art[data-tier="2"]{width:162px;height:112px;border-width:3px}.l137-hq-art[data-tier="3"]{width:176px;height:124px;border-width:4px;border-color:#d4b45e;box-shadow:0 0 58px rgba(255,209,102,.25),inset 0 -22px 35px #071117}.l137-hq-art[data-tier="4"]{width:188px;height:134px;border-width:5px;border-color:#e0c56d}.l137-hq-art[data-tier="5"]{width:202px;height:144px;border-width:6px;border-color:#7ef8ff;box-shadow:0 0 76px rgba(65,229,255,.46),inset 0 -24px 38px #071117}.l165-hq-wall{position:absolute;inset:13px 10px 8px;border:2px solid #806d4a;border-radius:12px;transition:.3s}.l137-hq-art[data-tier="2"] .l165-hq-wall{border-width:4px;border-color:#a08b59}.l137-hq-art[data-tier="3"] .l165-hq-wall{border-width:6px;border-color:#bca366;box-shadow:inset 0 0 0 2px #4d5142}.l137-hq-art[data-tier="4"] .l165-hq-wall{border-width:8px;border-color:#879695;box-shadow:inset 0 0 0 3px #394b4b}.l137-hq-art[data-tier="5"] .l165-hq-wall{border-width:10px;border-color:#70cbd2;box-shadow:inset 0 0 0 3px #274a50,0 0 15px rgba(64,227,246,.34)}.l165-hq-core{position:absolute;left:50%;top:51%;width:68px;height:52px;transform:translate(-50%,-50%);display:grid;place-items:center;border:2px solid #ffd166;border-radius:14px;background:linear-gradient(145deg,#426467,#172a30);box-shadow:0 8px 15px rgba(0,0,0,.34);transition:.3s}.l165-hq-core span{font-size:23px;font-weight:900}.l137-hq-art[data-tier="2"] .l165-hq-core{width:76px;height:58px}.l137-hq-art[data-tier="3"] .l165-hq-core{width:84px;height:64px;border-width:3px}.l137-hq-art[data-tier="4"] .l165-hq-core{width:92px;height:70px;background:linear-gradient(145deg,#4d7073,#172b34)}.l137-hq-art[data-tier="5"] .l165-hq-core{width:100px;height:76px;border-color:#9cecff;box-shadow:0 0 19px rgba(80,225,245,.42)}.l165-hq-mast{position:absolute;left:50%;bottom:76%;width:5px;height:0;transform:translateX(-50%);border-radius:5px;background:#9cecff;box-shadow:0 0 10px #22d4ff;transition:.3s}.l137-hq-art[data-tier="2"] .l165-hq-mast,.l137-hq-art[data-tier="3"] .l165-hq-mast{height:34px}.l137-hq-art[data-tier="4"] .l165-hq-mast,.l137-hq-art[data-tier="5"] .l165-hq-mast{height:42px;box-shadow:-38px 27px 0 1px #45d9ff,38px 27px 0 1px #45d9ff,0 0 15px #22d4ff}.l165-hq-tower{display:none;position:absolute;width:18px;height:18px;border:2px solid #d7bd75;border-radius:4px;background:#2c4143;box-shadow:0 4px 8px rgba(0,0,0,.35)}.l137-hq-art[data-tier="3"] .l165-hq-tower,.l137-hq-art[data-tier="4"] .l165-hq-tower,.l137-hq-art[data-tier="5"] .l165-hq-tower{display:block}.l165-hq-tower.nw{left:-9px;top:-9px}.l165-hq-tower.ne{right:-9px;top:-9px}.l165-hq-tower.sw{left:-9px;bottom:-9px}.l165-hq-tower.se{right:-9px;bottom:-9px}.l137-hq-art[data-tier="5"] .l165-hq-tower{width:23px;height:23px;border-color:#7ef8ff;background:#274b50}.l137-hq-lv{position:absolute;bottom:7px;font:9px "Share Tech Mono",monospace;color:#9cecff;letter-spacing:.4px}' +
       '.l137-panel{flex:1;min-height:0;padding:15px;border:1px solid rgba(34,212,255,.22);border-radius:20px;background:rgba(6,16,23,.93);overflow:auto}.l137-kicker{font:8px "Share Tech Mono",monospace;letter-spacing:2px;color:#ffd166}.l137-h2{font-size:23px;font-weight:900;margin:3px 0 8px}.l137-copy{font:9px/1.55 "Share Tech Mono",monospace;color:#9eb1ba}.l137-card{margin-top:12px;padding:13px;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(255,255,255,.035)}' +
       '.l137-card-row{display:flex;justify-content:space-between;gap:12px;align-items:center}.l137-card b{font-size:15px}.l137-card small{display:block;font:8px/1.4 "Share Tech Mono",monospace;color:#82949d}.l137-btn{border:1px solid rgba(34,212,255,.35);border-radius:10px;padding:10px 13px;background:#103a4a;color:white;font:800 12px Rajdhani,sans-serif;white-space:nowrap}.l137-btn.good{background:#116c3b;border-color:#1ee873}.l137-btn:disabled{opacity:.38}.l137-deploy{width:100%;margin-top:14px;padding:14px;font-size:16px}' +
       '.l161-power-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.l161-power-metric{padding:9px;border:1px solid rgba(255,255,255,.09);border-radius:9px;background:rgba(0,0,0,.18)}.l161-power-metric span{display:block;font:7px "Share Tech Mono",monospace;letter-spacing:1px;color:#82949d}.l161-power-metric strong{display:block;margin-top:2px;font-size:22px;line-height:1;color:#fff}.l161-power-state{margin-top:8px;padding:8px 10px;border-radius:8px;text-align:center;font:800 10px "Share Tech Mono",monospace;letter-spacing:1px}.l161-power-state.underpowered{color:#ff8e78;background:rgba(140,39,26,.28);border:1px solid rgba(255,91,68,.38)}.l161-power-state.ready{color:#7fffae;background:rgba(17,108,59,.25);border:1px solid rgba(30,232,115,.34)}.l161-power-state.overmatch{color:#8fefff;background:rgba(16,91,117,.3);border:1px solid rgba(34,212,255,.4)}' +
+      '.l165-research-points{margin:10px 0;padding:10px 12px;border:1px solid rgba(255,209,102,.48);border-radius:10px;background:rgba(106,74,12,.22)}.l165-research-points b,.l165-research-points span{display:block}.l165-research-points b{color:#ffd166;font-size:13px}.l165-research-points span{margin-top:3px;color:#bac8cd;font:7px/1.45 "Share Tech Mono",monospace}.l165-research-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:10px}.l165-research-summary div{padding:7px 4px;border:1px solid rgba(255,255,255,.09);border-radius:8px;background:rgba(0,0,0,.18);text-align:center}.l165-research-summary span,.l165-research-summary b{display:block}.l165-research-summary span{font:6px "Share Tech Mono",monospace;color:#82949d}.l165-research-summary b{margin-top:3px;font-size:12px;color:#fff}.l165-legacy-note{margin-top:6px;text-align:center;color:#8fefff;font:7px "Share Tech Mono",monospace}.l165-research-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:12px}.l165-research-tab{padding:8px 3px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#09141b;color:#8da2ab;font:800 9px Rajdhani,sans-serif}.l165-research-tab span,.l165-research-tab small{display:block}.l165-research-tab small{margin-top:2px;font:6px "Share Tech Mono",monospace}.l165-research-tab.active{color:#fff;border-color:#22d4ff;background:#103040}.l165-branch-head{margin-top:11px}.l165-branch-head b,.l165-branch-head span{display:block}.l165-branch-head b{color:#ffd166;font-size:15px}.l165-branch-head span{font:7px/1.4 "Share Tech Mono",monospace;color:#8fa3ac}.l165-research-tree{display:grid;gap:7px;margin-top:8px}.l165-research-node{position:relative;padding:10px 10px 10px 42px;border:1px solid rgba(34,212,255,.28);border-radius:10px;background:rgba(12,28,36,.94)}.l165-research-node:before{content:"";position:absolute;left:19px;top:0;bottom:-8px;width:2px;background:rgba(34,212,255,.23)}.l165-research-node:last-child:before{bottom:50%}.l165-research-node:after{content:"";position:absolute;left:13px;top:21px;width:12px;height:12px;border:2px solid #22d4ff;border-radius:50%;background:#071119;box-shadow:0 0 8px rgba(34,212,255,.4)}.l165-research-node.complete{border-color:rgba(30,232,115,.42);background:rgba(15,70,43,.25)}.l165-research-node.complete:after{border-color:#1ee873;background:#1a9151}.l165-research-node.locked{opacity:.48;border-color:rgba(255,255,255,.1)}.l165-research-node.locked:after{border-color:#68757b;box-shadow:none}.l165-node-tier{color:#74e9ff;font:6px "Share Tech Mono",monospace;letter-spacing:1.3px}.l165-node-name{margin-top:2px;font-size:15px;font-weight:800}.l165-node-effect{margin:2px 0 7px;color:#aebcc1;font:7px/1.4 "Share Tech Mono",monospace}.l165-node-action{width:100%;padding:7px;border:1px solid rgba(30,232,115,.44);border-radius:7px;background:#115b38;color:#fff;font:800 9px Rajdhani,sans-serif}.l165-node-action small{display:block;margin-top:2px;color:#cce0d4;font:6px "Share Tech Mono",monospace}.l165-node-action:disabled{opacity:.55;background:#18242a;border-color:rgba(255,255,255,.12)}' +
       '.l137-nav{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:10px}.l137-nav button{padding:9px 2px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:#09141b;color:#91a7b1;font:700 9px Rajdhani,sans-serif}.l137-nav button.active{color:#fff;border-color:#22d4ff;background:#103040}' +
       '#lsc137-result{position:fixed;z-index:32000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,7,.9);backdrop-filter:blur(8px)}#lsc137-result.show{display:flex}.l137-result-card{width:min(420px,100%);padding:22px;border:1px solid rgba(34,212,255,.35);border-radius:20px;background:#08131a;text-align:center}.l137-result-card h2{font-size:28px;margin:3px}.l137-actions{display:grid;gap:8px;margin-top:17px}' +
       '#hq-upgrade-overlay{position:fixed;z-index:31000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.86)}#hq-upgrade-overlay.show{display:flex}.hq-upgrade-modal{width:min(420px,100%);padding:18px;border:1px solid #846e36;border-radius:18px;background:#09131a}.hq-upgrade-title{text-align:center;font-size:23px;font-weight:900}.hq-upgrade-sub{text-align:center;color:#ffd166;font:8px "Share Tech Mono",monospace;margin-bottom:12px}.hq-upgrade-grid{display:grid;gap:8px}.hq-upgrade-choice{text-align:left;padding:12px;border:1px solid #64727a;border-radius:11px;background:#121d23;color:#fff;box-shadow:inset 3px 0 0 #7e8a90}.hq-upgrade-choice b,.hq-upgrade-choice span,.hq-upgrade-choice small{display:block}.hq-upgrade-choice b{font-size:15px}.hq-upgrade-choice span{font:8px/1.45 "Share Tech Mono",monospace;color:#b8c2c7}.hq-upgrade-choice small{margin-bottom:4px;font:7px "Share Tech Mono",monospace;letter-spacing:1.5px;color:#aab4b9}.hq-upgrade-choice.epic{border-color:#8f58d8;background:#21152f;box-shadow:inset 3px 0 0 #b477ff,0 0 14px rgba(164,92,255,.12)}.hq-upgrade-choice.epic small{color:#c99aff}.hq-upgrade-choice.legendary{border-color:#c79c32;background:#30250e;box-shadow:inset 3px 0 0 #ffd166,0 0 16px rgba(255,209,102,.14)}.hq-upgrade-choice.legendary small{color:#ffd166}' +
@@ -222,7 +300,7 @@
   function installUI() {
     var app = document.createElement('div');
     app.id = 'lsc137-app';
-    app.innerHTML = '<div class="l137-shell"><div class="l137-top"><div><div class="l137-brand">LAST STAND COMMAND</div><div class="l137-title">COMMAND BASE</div></div><div class="l137-res" id="l137-res"></div></div><div class="l137-hero"><div class="l137-hq-art"></div><div class="l137-hq-lv" id="l137-hq-lv"></div></div><main class="l137-panel" id="l137-panel"></main><nav class="l137-nav" id="l137-nav"><button data-tab="campaign">CAMPAIGN</button><button data-tab="commander">COMMANDER</button><button data-tab="research">RESEARCH</button><button data-tab="hq">HQ</button><button data-tab="inventory">INVENTORY</button></nav></div>';
+    app.innerHTML = '<div class="l137-shell"><div class="l137-top"><div><div class="l137-brand">LAST STAND COMMAND</div><div class="l137-title">COMMAND BASE</div></div><div class="l137-res" id="l137-res"></div></div><div class="l137-hero"><div class="l137-hq-art"><div class="l165-hq-wall"><i class="l165-hq-tower nw"></i><i class="l165-hq-tower ne"></i><i class="l165-hq-tower sw"></i><i class="l165-hq-tower se"></i></div><div class="l165-hq-core"><span>HQ</span></div><i class="l165-hq-mast"></i></div><div class="l137-hq-lv" id="l137-hq-lv"></div></div><main class="l137-panel" id="l137-panel"></main><nav class="l137-nav" id="l137-nav"><button data-tab="campaign">CAMPAIGN</button><button data-tab="commander">COMMANDER</button><button data-tab="research">RESEARCH</button><button data-tab="hq">HQ</button><button data-tab="inventory">INVENTORY</button></nav></div>';
     document.body.appendChild(app);
     id('l137-nav').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) renderTab(b.dataset.tab); });
     var result = document.createElement('div');
@@ -262,7 +340,7 @@
   function hideBattleLoading(){var loading=id('lsc161-loading');if(!loading)return;loading.classList.remove('show');loading.setAttribute('aria-hidden','true');}
 
   function currentPower() {
-    return 355 + Math.max(0, meta.commander - 1) * 55 + Math.max(0, meta.hq - 1) * 65 + Math.max(0, meta.research) * 50;
+    return 355 + Math.max(0, meta.commander - 1) * 55 + Math.max(0, meta.hq - 1) * 65 + researchPower();
   }
   function recommendedPower(phase) { return 320 + Math.max(1, Number(phase) || 1) * 35; }
   function victoryRewardPreview(phase) {
@@ -278,8 +356,31 @@
 
   function refreshHeader() {
     id('l137-res').innerHTML = '<b>' + currentPower() + '</b> POWER<br><b>' + meta.credits + '</b> CREDITS · <b>' + meta.parts + '</b> PARTS';
-    id('l137-hq-lv').textContent = 'HEADQUARTERS · LEVEL ' + meta.hq;
+    var visibleTier=Math.min(5,Math.max(1,meta.hq));
+    id('l137-hq-lv').textContent = HQ_TIER_NAMES[visibleTier-1]+' · LEVEL ' + meta.hq;
     var art=document.querySelector('.l137-hq-art');if(art)art.setAttribute('data-tier',String(Math.min(5,Math.max(1,meta.hq))));
+  }
+  function renderResearchTab(panel){
+    var branch=RESEARCH_BRANCHES.filter(function(item){return item.id===activeResearchBranch;})[0]||RESEARCH_BRANCHES[0];
+    var nodes=branchNodes(branch.id),effects=researchEffects(),legacy=Math.round((Number(meta.legacyResearchDamage)||0)*100);
+    var tabs=RESEARCH_BRANCHES.map(function(item){
+      var count=branchNodes(item.id).filter(function(node){return researchPurchased(node.id);}).length;
+      return '<button class="l165-research-tab '+(item.id===branch.id?'active':'')+'" data-research-branch="'+item.id+'"><span>'+item.short+'</span><small>'+count+'/4</small></button>';
+    }).join('');
+    var cards=nodes.map(function(node){
+      var purchased=researchPurchased(node.id),unlocked=researchUnlocked(node),short=meta.researchPoints<=0&&(meta.credits<node.cost.credits||meta.parts<node.cost.parts),disabled=purchased||!unlocked||short;
+      var state=purchased?'COMPLETE':!unlocked?'LOCKED':short?'NEED RESOURCES':meta.researchPoints>0?'USE LEGACY POINT':'RESEARCH';
+      var cost=node.cost.credits+' CREDITS · '+node.cost.parts+' TECH PARTS';
+      if(meta.researchPoints>0&&!purchased&&unlocked)cost='LEGACY POINT AVAILABLE · '+cost;
+      return '<div class="l165-research-node '+(purchased?'complete':!unlocked?'locked':'available')+'"><div class="l165-node-tier">TIER '+node.tier+'</div><div class="l165-node-name">'+node.name+'</div><div class="l165-node-effect">'+node.effectText+'</div><button class="l165-node-action" data-research-node="'+node.id+'" '+(disabled?'disabled':'')+'>'+state+'<small>'+cost+'</small></button></div>';
+    }).join('');
+    panel.innerHTML='<div class="l137-kicker">PERMANENT PROGRESSION</div><div class="l137-h2">RESEARCH CENTER</div><div class="l137-copy">Choose a branch and build from Tier 1 through Tier 4. Research is immediate and remains active in every phase.</div>'+
+      (meta.researchPoints>0?'<div class="l165-research-points"><b>'+meta.researchPoints+' LEGACY RESEARCH POINT'+(meta.researchPoints===1?'':'S')+'</b><span>Converted from the previous Research Tier system. Spend these before Credits or Tech Parts.</span></div>':'')+
+      '<div class="l165-research-summary"><div><span>RESEARCHED</span><b>'+purchasedResearchCount()+' / '+RESEARCH_NODES.length+'</b></div><div><span>TURRET DAMAGE</span><b>+'+Math.round(effects.turretDamage*100)+'%</b></div><div><span>HQ CAPACITY</span><b>+'+effects.hqHp+'</b></div><div><span>ARTILLERY</span><b>+'+effects.artilleryDamage+'</b></div></div>'+
+      (legacy>0?'<div class="l165-legacy-note">LEGACY CALIBRATION RETAINED · TURRET DAMAGE +'+legacy+'%</div>':'')+
+      '<div class="l165-research-tabs">'+tabs+'</div><div class="l165-branch-head"><b>'+branch.name+'</b><span>'+branch.description+'</span></div><div class="l165-research-tree">'+cards+'</div>';
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-research-branch]'),function(button){button.onclick=function(){activeResearchBranch=button.dataset.researchBranch;renderTab('research');};});
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-research-node]'),function(button){button.onclick=function(){buyResearchNode(button.dataset.researchNode);};});
   }
   function renderTab(tab) {
     refreshHeader();
@@ -290,8 +391,8 @@
       p.innerHTML = '<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small>' + victoryRewardPreview(meta.phase) + ' CREDITS · 3 TECH PARTS</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div><button class="l137-btn good l137-deploy" id="l137-deploy">CHALLENGE PHASE ' + meta.phase + '</button>';
     }
     if (tab === 'commander') p.innerHTML = upgradePanel('commander', 'COMMANDER HOLT', 'Permanent rifle damage and fire-rate training.', 'Combat Level ' + meta.commander);
-    if (tab === 'research') p.innerHTML = upgradePanel('research', 'DEFENSE RESEARCH', 'Permanent turret and support-squad effectiveness.', 'Research Tier ' + meta.research);
-    if (tab === 'hq') p.innerHTML = upgradePanel('hq', 'HEADQUARTERS', 'Permanent structural health for every phase.', 'Upgrade to HQ Level ' + (meta.hq + 1));
+    if (tab === 'research') renderResearchTab(p);
+    if (tab === 'hq') p.innerHTML = upgradePanel('hq', 'HEADQUARTERS', 'Grow the central base from a field post into a visibly larger fortified command fortress. Every level strengthens HQ health and all perimeter barriers.', meta.hq>=5?'COMMAND FORTRESS · MAXIMUM LEVEL':'UPGRADE TO LEVEL '+(meta.hq+1)+' · '+HQ_TIER_NAMES[Math.min(4,meta.hq)]);
     if (tab === 'inventory') p.innerHTML = '<div class="l137-kicker">ARMORY</div><div class="l137-h2">INVENTORY</div><div class="l137-copy">Recovered equipment will appear here. The first functional equipment drops arrive after the core phase loop is balanced.</div><div class="l137-card"><b>Standard Issue Rifle</b><small>EQUIPPED · ASSAULT CLASS</small></div><div class="l137-card"><b>Field Armor</b><small>EQUIPPED · STANDARD PROTECTION</small></div>';
     var dep = id('l137-deploy'); if (dep) dep.onclick = launchPhase;
     var buy = id('l137-buy'); if (buy) buy.onclick = function () { buyUpgrade(tab); };
@@ -299,10 +400,11 @@
   function upgradePanel(type, title, copy, level) {
     var cost = levelCost(type);
     var price = cost.credits + ' CREDITS' + (cost.parts ? ' · ' + cost.parts + ' TECH PARTS' : '');
-    var short = meta.credits < cost.credits || meta.parts < cost.parts;
-    return '<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">' + title + '</div><div class="l137-copy">' + copy + '</div><div class="l137-card"><div class="l137-card-row"><div><b>' + level + '</b><small>NEXT UPGRADE COST · ' + price + '</small></div><button class="l137-btn good" id="l137-buy" ' + (short ? 'disabled' : '') + '>' + (short ? 'NEED RESOURCES' : 'UPGRADE') + '</button></div></div>';
+    var maximum=type==='hq'&&meta.hq>=5,short = meta.credits < cost.credits || meta.parts < cost.parts;
+    return '<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">' + title + '</div><div class="l137-copy">' + copy + '</div><div class="l137-card"><div class="l137-card-row"><div><b>' + level + '</b><small>' + (maximum?'ALL FORTRESS TIERS DEPLOYED':'NEXT UPGRADE COST · '+price) + '</small></div><button class="l137-btn good" id="l137-buy" ' + (maximum||short ? 'disabled' : '') + '>' + (maximum?'MAX LEVEL':short ? 'NEED RESOURCES' : 'UPGRADE') + '</button></div></div>';
   }
   function buyUpgrade(type) {
+    if(type==='research'||(type==='hq'&&meta.hq>=5))return;
     var cost = levelCost(type); if (meta.credits < cost.credits || meta.parts < cost.parts) return;
     meta.credits -= cost.credits; meta.parts -= cost.parts; meta[type]++; saveMeta(); combatSfx('upgrade'); combatHaptic('success',180); renderTab(type);
   }
@@ -322,18 +424,19 @@
   }
   function createRun(phaseOverride) {
     var W = canvas.width || 390, H = canvas.height || 600, s = dpr(), cx = W / 2, cy = H * .52;
-    var phase=Math.max(1,Number(phaseOverride)||meta.phase),balance=phaseBalance(phase),assist=retryAssist(phase),targets=balance.targets.slice();
+    var phase=Math.max(1,Number(phaseOverride)||meta.phase),balance=phaseBalance(phase),assist=retryAssist(phase),targets=balance.targets.slice(),tech=researchEffects();
     var worldScale=(Math.min(W,H)*.54+45*s)/8.2;
-    var barricadeHp=balance.barricadeHp+(meta.hq-1)*4;
+    var barricadeHp=balance.barricadeHp+(meta.hq-1)*10+tech.barrierHp;
     var lanes=[];
     for(var lane=0;lane<LANE_COUNT;lane++){
       var layout=COMPOUND_LANES[lane],angle=Math.atan2(layout.y,layout.x);
       lanes.push({index:lane,angle:angle,baseX:layout.x,baseY:layout.y,rotation:layout.rotation,side:layout.side,queue:[],barricade:{hp:barricadeHp,maxHp:barricadeHp,flash:0}});
     }
-    return { active:true, paused:false, complete:false, phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:36, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, upgradeStacks:{}, lastUpgradeChoices:[], abilityCd:0, abilityMaxCd:18, abilityDamage:95, lastHit:0,
-      hq:{x:cx,y:cy,r:37*s,level:meta.hq,hp:300+(meta.hq-1)*75,maxHp:300+(meta.hq-1)*75},
+    var hqCapacity=300+(meta.hq-1)*75+tech.hqHp,artilleryDamage=(95+tech.artilleryDamage)*(1+tech.artilleryMultiplier);
+    return { active:true, paused:false, complete:false, phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:36, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, upgradeStacks:{}, lastUpgradeChoices:[], legendaryMisses:0, abilityCd:0, abilityMaxCd:Math.max(8,18-tech.artilleryCooldown), abilityDamage:artilleryDamage, fieldXpMultiplier:1+tech.fieldXp, turretBossDamage:tech.turretBossDamage, assaultHqRepair:tech.assaultHqRepair, assaultBarrierRepair:tech.assaultBarrierRepair, hqDamageReduction:tech.hqDamageReduction, barrierDamageReduction:tech.barrierDamageReduction, research:tech, lastHit:0,
+      hq:{x:cx,y:cy,r:37*s,level:meta.hq,hp:hqCapacity,maxHp:hqCapacity},
       hero:{source:'commander',x:cx,y:cy+70*s,r:13*s,damage:16*(1+(meta.commander-1)*.15),rate:2.7*(1+(meta.commander-1)*.06),range:150*s,cd:0},
-      turret:{source:'turret',x:cx,y:cy-58*s,r:10*s,damage:10*(1+meta.research*.12),rate:3.1,range:215*s,cd:0},
+      turret:{source:'turret',x:cx,y:cy-58*s,r:10*s,damage:10*(1+tech.turretDamage),rate:3.1*(1+tech.turretRate),range:215*s*(1+tech.turretRange),cd:0},
       // Commander Holt + the main turret remain the readable defense line
       // defense line while mixed infected use the eight barricade lanes.
       squad:[],
@@ -375,7 +478,9 @@
     // Give weapon fire physical feedback without stacking simultaneous impacts.
     // Commander/squad fire shares the light channel; turret bursts use medium.
     combatHaptic(source==='turret'?'medium':'light',source==='turret'?240:source==='commander'?140:180);
-    run.bullets.push({x:o.x+Math.cos(o.aim)*10*dpr(),y:o.y+Math.sin(o.aim)*10*dpr(),px:o.x,py:o.y,vx:x/l*speed*dpr(),vy:y/l*speed*dpr(),damage:damage,life:.9,source:source,color:source==='commander'?'#fff07a':source==='turret'?'#ff8a2a':'#8edcff'});
+    var shotDamage=damage;
+    if(source==='turret'&&t.kind==='boss')shotDamage*=1+(run.turretBossDamage||0);
+    run.bullets.push({x:o.x+Math.cos(o.aim)*10*dpr(),y:o.y+Math.sin(o.aim)*10*dpr(),px:o.x,py:o.y,vx:x/l*speed*dpr(),vy:y/l*speed*dpr(),damage:shotDamage,life:.9,source:source,color:source==='commander'?'#fff07a':source==='turret'?'#ff8a2a':'#8edcff'});
   }
   function kill(i,e){
     var isBoss=e.kind==='boss';
@@ -393,7 +498,7 @@
       combatHaptic('heavy',300);
     }else{
       run.assaultKills++;
-      run.xp+=e.kind==='armored'?10:6;
+      run.xp+=(e.kind==='armored'?10:6)*(run.fieldXpMultiplier||1);
       combatSfx('enemyDown',175);
       if(run.xp>=run.xpNext&&!run.upgradeOpen)openUpgrade();
     }
@@ -435,16 +540,21 @@
     if(rank<=2)return['common','common','common'];
     if(rank===3)return['common','common','epic'];
     if(rank===4)return['common','epic','epic'];
-    return['common','epic','legendary'];
+    if(rank===5){run.legendaryMisses=0;return['common','epic','legendary'];}
+    var legendaryAvailable=upgrades.some(function(upgrade){return upgrade.rarity==='legendary'&&upgradeAvailable(upgrade);});
+    var includeLegendary=legendaryAvailable&&(run.legendaryMisses>=2||Math.random()<.30);
+    if(includeLegendary){run.legendaryMisses=0;return['common','epic','legendary'];}
+    if(legendaryAvailable)run.legendaryMisses++;
+    return['common','epic','epic'];
   }
   function chooseFieldUpgrades(rank){
-    var choices=[],recent=run.lastUpgradeChoices||[];
-    rarityPlan(rank).forEach(function(rarity){
+    var choices=[],recent=run.lastUpgradeChoices||[],plan=rarityPlan(rank),legendaryPlanned=plan.indexOf('legendary')>=0;
+    plan.forEach(function(rarity){
       var candidates=upgrades.filter(function(upgrade){return upgrade.rarity===rarity&&upgradeAvailable(upgrade)&&!choices.some(function(choice){return choice.id===upgrade.id;});});
       var fresh=candidates.filter(function(upgrade){return recent.indexOf(upgrade.id)<0;});
       var choice=shuffled(fresh.length?fresh:candidates)[0];
       if(!choice){
-        var fallback=upgrades.filter(function(upgrade){return upgradeAvailable(upgrade)&&!choices.some(function(selected){return selected.id===upgrade.id;});});
+        var fallback=upgrades.filter(function(upgrade){return upgradeAvailable(upgrade)&&(legendaryPlanned||upgrade.rarity!=='legendary')&&!choices.some(function(selected){return selected.id===upgrade.id;});});
         choice=shuffled(fallback)[0];
       }
       if(choice)choices.push(choice);
@@ -479,7 +589,7 @@
       var rarity=FIELD_RARITY[upgrade.rarity],nextStack=(run.upgradeStacks[upgrade.id]||0)+1;
       var button=document.createElement('button');
       button.className='hq-upgrade-choice '+rarity.className;
-      button.innerHTML='<small>'+rarity.label+' · '+upgradeSourceLabel(upgrade.source)+'</small><b>'+upgrade.name+'</b><span>'+upgrade.description+(upgrade.maxStacks>1?' · STACK '+nextStack+'/'+upgrade.maxStacks:'')+'</span>';
+      button.innerHTML='<small>'+rarity.label+' · '+upgradeSourceLabel(upgrade.source)+'</small><b>'+upgrade.name+'</b><span>'+upgrade.description+(upgrade.maxStacks>1?' · NEXT STACK '+nextStack+'/'+upgrade.maxStacks:'')+'</span>';
       button.onclick=function(){applyFieldUpgrade(upgrade);};
       grid.appendChild(button);
     });
@@ -495,8 +605,9 @@
   }
   function defeatAdvice(){
     if(meta.hq<2)return 'Recommended next: upgrade Headquarters for more health, stronger barriers, and the reinforced Level 2 compound.';
-    if(meta.commander<=meta.research+1)return 'Recommended next: upgrade Commander Holt to increase damage and fire rate.';
-    return 'Recommended next: upgrade Defense Research to increase main-turret damage.';
+    if(purchasedResearchCount()<3)return 'Recommended next: open the Research Center and complete an available permanent upgrade.';
+    if(meta.commander<4)return 'Recommended next: upgrade Commander Holt to increase damage and fire rate.';
+    return 'Recommended next: advance the Fire Control or Fortifications research branch.';
   }
   function finish(won) {
     if (!run || run.complete) return;
@@ -573,11 +684,11 @@
     for(var i=run.enemies.length-1;i>=0;i--){var e=run.enemies[i],lane=run.lanes[e.lane],queueIndex=lane?lane.queue.indexOf(e):-1;if(!lane||queueIndex<0)continue;var front=queueIndex===0,barrierUp=lane.barricade.hp>0,bossPadding=e.kind==='boss'?.72:e.kind==='armored'?.2:0,targetWorld=front?(barrierUp?BARRICADE_STOP_WORLD_RADIUS+bossPadding:HQ_ATTACK_WORLD_RADIUS+bossPadding):QUEUE_START_WORLD_RADIUS+Math.max(0,queueIndex-1)*QUEUE_GAP_WORLD_RADIUS,targetPoint=lanePoint(lane,targetWorld,0),tx=targetPoint.x,ty=targetPoint.y,x=tx-e.x,y=ty-e.y,l=Math.hypot(x,y);e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.flash=Math.max(0,e.flash-dt);e.aim=Math.atan2(run.hq.y-e.y,run.hq.x-e.x);e.waiting=!front;
       if(!front){e.engaged=false;e.targetType='queue';if(l>2*dpr()){e.moving=true;var queueStep=Math.min(l,e.speed*dt);e.x+=x/l*queueStep;e.y+=y/l*queueStep;}else{e.moving=false;e.x=tx;e.y=ty;}continue;}
       var targetType=barrierUp?'barricade':'hq';if(e.targetType!==targetType){e.engaged=false;e.targetType=targetType;e.cd=Math.min(e.cd,.18);}
-      if(!e.engaged){if(l>2*dpr()){e.moving=true;var step=Math.min(l,e.speed*dt);e.x+=x/l*step;e.y+=y/l*step;}else{e.engaged=true;e.moving=false;e.x=tx;e.y=ty;e.cd=Math.min(e.cd,.18);}}else{e.x=tx;e.y=ty;e.moving=false;e.cd-=dt;if(e.cd<=0){if(targetType==='barricade'){var beforeHp=lane.barricade.hp;lane.barricade.hp=Math.max(0,beforeHp-e.damage);lane.barricade.flash=.2;var barrierFx=lanePoint(lane,BARRICADE_WORLD_RADIUS,0);run.particles.push({x:barrierFx.x,y:barrierFx.y,life:.26,max:.26,r:11*dpr(),color:'#e1aa67',type:'barrier'});combatSfx('barrierHit',145);if(lane.barricade.hp<=0&&beforeHp>0){combatSfx('barrierBreak');combatHaptic('medium',260);e.engaged=false;e.targetType='hq';}}else{run.hq.hp-=e.damage;run.lastHit=performance.now();run.particles.push({x:run.hq.x+(Math.random()-.5)*run.hq.r,y:run.hq.y+(Math.random()-.5)*run.hq.r,life:.24,max:.24,r:13*dpr(),color:'#ff6248',type:'hq-hit'});combatSfx('hqHit',280);combatHaptic('medium',650);}e.cd=e.attackCycle||ENEMY_ATTACK_CYCLE;e.flash=.18;}}
+      if(!e.engaged){if(l>2*dpr()){e.moving=true;var step=Math.min(l,e.speed*dt);e.x+=x/l*step;e.y+=y/l*step;}else{e.engaged=true;e.moving=false;e.x=tx;e.y=ty;e.cd=Math.min(e.cd,.18);}}else{e.x=tx;e.y=ty;e.moving=false;e.cd-=dt;if(e.cd<=0){if(targetType==='barricade'){var beforeHp=lane.barricade.hp,barrierDamage=e.damage*(1-(run.barrierDamageReduction||0));lane.barricade.hp=Math.max(0,beforeHp-barrierDamage);lane.barricade.flash=.2;var barrierFx=lanePoint(lane,BARRICADE_WORLD_RADIUS,0);run.particles.push({x:barrierFx.x,y:barrierFx.y,life:.26,max:.26,r:11*dpr(),color:'#e1aa67',type:'barrier'});combatSfx('barrierHit',145);if(lane.barricade.hp<=0&&beforeHp>0){combatSfx('barrierBreak');combatHaptic('medium',260);e.engaged=false;e.targetType='hq';}}else{run.hq.hp-=e.damage*(1-(run.hqDamageReduction||0));run.lastHit=performance.now();run.particles.push({x:run.hq.x+(Math.random()-.5)*run.hq.r,y:run.hq.y+(Math.random()-.5)*run.hq.r,life:.24,max:.24,r:13*dpr(),color:'#ff6248',type:'hq-hit'});combatSfx('hqHit',280);combatHaptic('medium',650);}e.cd=e.attackCycle||ENEMY_ATTACK_CYCLE;e.flash=.18;}}
     }
     for(var b=run.bullets.length-1;b>=0;b--){var q=run.bullets[b];q.px=q.x;q.py=q.y;q.x+=q.vx*dt;q.y+=q.vy*dt;q.life-=dt;var hit=-1;for(var j=0;j<run.enemies.length;j++)if(dist(q,run.enemies[j])<run.enemies[j].r+4*dpr()){hit=j;break;}if(hit>=0){var target=run.enemies[hit],dealt=Math.min(q.damage,target.hp);target.hp-=q.damage;target.hit=.16;run.damage[q.source]+=dealt;run.particles.push({x:target.x,y:target.y,life:.26,max:.26,r:(q.source==='turret'?14:9)*dpr(),color:q.color,type:q.source==='turret'?'turret-impact':'commander-impact'});run.bullets.splice(b,1);if(target.hp<=0)kill(hit,target);}else if(q.life<=0)run.bullets.splice(b,1);}
     [run.hero,run.turret].concat(run.squad).forEach(function(a){a.flash=Math.max(0,(a.flash||0)-dt);});for(var c=run.corpses.length-1;c>=0;c--){run.corpses[c].life-=dt;if(run.corpses[c].life<=0)run.corpses.splice(c,1);}for(var p=run.particles.length-1;p>=0;p--){run.particles[p].life-=dt;if(run.particles[p].life<=0)run.particles.splice(p,1);}if(run.feedback){run.feedback.life-=dt;if(run.feedback.life<=0)run.feedback=null;}
-    if(run.hq.hp<=0){finish(false);return;}var cleared=run.assaultSpawned>=target&&run.enemies.length===0&&run.bullets.length===0&&(run.assault<3||run.bossDefeated);if(cleared){run.transition+=dt;if(run.transition>=1.2){if(run.assault===3)finish(true);else{run.assault++;run.assaultElapsed=0;run.assaultSpawned=0;run.assaultKills=0;run.spawn=.6;run.transition=0;combatSfx('phase');combatHaptic('light',180);}}}else run.transition=0;
+    if(run.hq.hp<=0){finish(false);return;}var cleared=run.assaultSpawned>=target&&run.enemies.length===0&&run.bullets.length===0&&(run.assault<3||run.bossDefeated);if(cleared){run.transition+=dt;if(run.transition>=1.2){if(run.assault===3)finish(true);else{if(run.assaultHqRepair>0)run.hq.hp=Math.min(run.hq.maxHp,run.hq.hp+run.assaultHqRepair);if(run.assaultBarrierRepair>0)run.lanes.forEach(function(repairLane){if(repairLane.barricade.hp>0)repairLane.barricade.hp=Math.min(repairLane.barricade.maxHp,repairLane.barricade.hp+run.assaultBarrierRepair);});run.assault++;run.assaultElapsed=0;run.assaultSpawned=0;run.assaultKills=0;run.spawn=.6;run.transition=0;combatSfx('phase');combatHaptic('light',180);}}}else run.transition=0;
   }
   function circle(x,y,r,fill,stroke,w){ctx.beginPath();ctx.arc(x,y,r,0,TAU);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=w||1;ctx.stroke();}}
   function poly(points,fill,stroke,w){ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);for(var i=1;i<points.length;i++)ctx.lineTo(points[i][0],points[i][1]);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=w||1;ctx.stroke();}}
@@ -585,10 +696,10 @@
   function animationCell(row,frame,x,y,w,h,flip,alpha,rotation){if(!animationAtlas.complete||!animationAtlas.naturalWidth)return false;var sw=animationAtlas.naturalWidth/5,sh=animationAtlas.naturalHeight/5;ctx.save();ctx.translate(x,y);if(rotation)ctx.rotate(rotation);ctx.scale(flip?-1:1,1);ctx.globalAlpha=alpha==null?1:alpha;ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(animationAtlas,frame*sw,row*sh,sw,sh,-w/2,-h,w,h);ctx.restore();return true;}
   function animatedUnit(a,row,w,h,moving,dead){var s=dpr(),clock=(a.age==null?run.elapsed:a.age),frame=0,bob=0,rot=0;if(dead){frame=4;rot=(1-(a.life/a.max))*.12;}else if((a.hit||0)>0){frame=4;rot=Math.sin(clock*70)*.035;}else if((a.flash||0)>0){frame=3;rot=-.025;}else if(moving){frame=1+(Math.floor(clock*7)%2);bob=Math.sin(clock*14)*2.2*s;}else{bob=Math.sin(clock*3.2)*.8*s;}var aim=a.aim==null?-Math.PI/2:a.aim,flip=Math.cos(aim)<0;return animationCell(row,frame,a.x,a.y+bob,w*s,h*s,flip,dead?clamp(a.life/a.max,0,1):1,rot);}
   function drawProductionSoldier(a,hostile,heavy,commander){var s=dpr(),row=commander?0:hostile?(heavy?3:2):1;if(!animatedUnit(a,row,heavy?58:46,heavy?82:68,!!a.moving,false)){var cell=commander?0:hostile?(heavy?3:2):1;if(!spriteCell(cell,a.x,a.y+(heavy?22:17)*s,(heavy?52:43)*s,(heavy?76:65)*s))return drawSoldier(a,hostile,heavy,commander);}if(a.flash){var aim=a.aim==null?-Math.PI/2:a.aim,color=commander?'#fff07a':hostile?'#ff6a4a':'#8edcff';ctx.save();ctx.translate(a.x,a.y);ctx.rotate(aim);ctx.shadowColor=color;ctx.shadowBlur=12*s;poly([[29*s,0],[20*s,-5*s],[20*s,5*s]],color);ctx.restore();}}
-  function drawProductionHQ(h){var s=dpr();if(!spriteCell(4,h.x,h.y+43*s,128*s,120*s))drawHQ(h);}
+  function drawProductionHQ(h){var s=dpr(),level=Math.min(5,Math.max(1,Number(h.level)||1)),wallW=(50+(level-1)*7)*s,wallH=(37+(level-1)*5)*s;ctx.save();ctx.translate(h.x,h.y+5*s);ctx.fillStyle=level>=4?'rgba(45,83,86,.72)':'rgba(61,76,67,.64)';ctx.strokeStyle=level>=5?'#7ef8ff':level>=3?'#d4b45e':'#9a8653';ctx.lineWidth=(1+level)*s;ctx.fillRect(-wallW,-wallH,wallW*2,wallH*2);ctx.strokeRect(-wallW,-wallH,wallW*2,wallH*2);if(level>=3){[[-wallW,-wallH],[wallW,-wallH],[-wallW,wallH],[wallW,wallH]].forEach(function(point){circle(point[0],point[1],(4+level)*s,level>=5?'#2e686e':'#526b68',level>=5?'#9cecff':'#d4b45e',2*s);});}ctx.restore();if(!spriteCell(4,h.x,h.y+43*s,(128+(level-1)*4)*s,(120+(level-1)*4)*s))drawHQ(h);}
   function drawProductionTurret(t){var s=dpr(),target=nearest(t,t.range),ang=target?Math.atan2(target.y-t.y,target.x-t.x):(t.aim||0);t.aim=ang;if(!spriteCell(5,t.x,t.y+26*s,88*s,80*s))return drawTurret(t);if(t.flash){ctx.save();ctx.translate(t.x,t.y);ctx.rotate(ang);ctx.shadowColor='#ff9d35';ctx.shadowBlur=18*s;poly([[47*s,0],[35*s,-8*s],[35*s,8*s]],'#ffd166');ctx.restore();}}
   function drawProductionBoss(e){var s=dpr();if(!animatedUnit(e,4,126,116,!!e.moving,false)&&!spriteCell(7,e.x,e.y+43*s,122*s,116*s))drawBoss(e);}
-  function drawProductionPerimeter(h){var s=dpr();if(!combatAtlas.complete||!combatAtlas.naturalWidth)return drawPerimeter(h);run.lanes.forEach(function(lane){if(lane.barricade.hp<=0)return;var point=lanePoint(lane,BARRICADE_WORLD_RADIUS,0),alpha=lane.barricade.flash>0?.58:1;ctx.save();ctx.translate(point.x,point.y);ctx.rotate(lane.rotation);spriteCell(6,0,12*s,66*s,42*s,alpha);ctx.restore();});}
+  function drawProductionPerimeter(h){var s=dpr(),level=Math.min(5,Math.max(1,Number(h.level)||1));if(!combatAtlas.complete||!combatAtlas.naturalWidth)return drawPerimeter(h);run.lanes.forEach(function(lane){if(lane.barricade.hp<=0)return;var point=lanePoint(lane,BARRICADE_WORLD_RADIUS,0),alpha=lane.barricade.flash>0?.58:1,width=(66+(level-1)*4)*s,height=(42+(level-1)*5)*s;ctx.save();ctx.translate(point.x,point.y);ctx.rotate(lane.rotation);spriteCell(6,0,12*s,width,height,alpha);if(level>=2){ctx.strokeStyle=level>=5?'#7ef8ff':level>=4?'#86a5a5':'#c3ad70';ctx.lineWidth=Math.max(1,level-1)*s;ctx.strokeRect(-width*.48,-height*.35,width*.96,height*.28);}ctx.restore();});}
   function drawEnvironment(W,H,h){var s=dpr(),lane='#2a3128';ctx.fillStyle='#111710';ctx.fillRect(0,0,W,H);var glow=ctx.createRadialGradient(h.x,h.y,30*s,h.x,h.y,Math.max(W,H)*.7);glow.addColorStop(0,'rgba(73,91,53,.78)');glow.addColorStop(.55,'rgba(37,48,31,.55)');glow.addColorStop(1,'rgba(7,10,8,.92)');ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(h.x,h.y);ctx.strokeStyle=lane;ctx.lineWidth=28*s;ctx.setLineDash([12*s,8*s]);for(var a=0;a<TAU;a+=Math.PI/2){ctx.beginPath();ctx.moveTo(Math.cos(a)*112*s,Math.sin(a)*112*s);ctx.lineTo(Math.cos(a)*Math.max(W,H),Math.sin(a)*Math.max(W,H));ctx.stroke();}ctx.restore();ctx.save();ctx.strokeStyle='rgba(219,205,140,.22)';ctx.lineWidth=8*s;ctx.setLineDash([18*s,7*s]);run.lanes.forEach(function(item,index){var p=lanePoint(item,BARRICADE_WORLD_RADIUS,0);if(index===0){ctx.beginPath();ctx.moveTo(p.x,p.y);}else ctx.lineTo(p.x,p.y);});ctx.closePath();ctx.stroke();ctx.restore();for(var i=0;i<34;i++){var px=(i*83%Math.max(1,W-20*s))+10*s,py=(i*137%Math.max(1,H-80*s))+46*s;ctx.fillStyle=i%3?'rgba(124,137,95,.14)':'rgba(73,83,62,.22)';ctx.fillRect(px,py,(i%4+2)*s,(i%3+1)*s);}drawProductionPerimeter(h);}
   function drawPerimeter(h){var s=dpr();run.lanes.forEach(function(lane){if(lane.barricade.hp<=0)return;var point=lanePoint(lane,BARRICADE_WORLD_RADIUS,0),x=point.x,y=point.y;ctx.save();ctx.translate(x,y);ctx.rotate(lane.rotation);ctx.fillStyle=lane.barricade.flash>0?'#a24736':'#5d5138';ctx.fillRect(-27*s,-6*s,54*s,12*s);ctx.fillStyle='#887450';ctx.fillRect(-25*s,-6*s,50*s,4*s);ctx.strokeStyle='rgba(255,216,139,.3)';ctx.strokeRect(-27*s,-6*s,54*s,12*s);ctx.restore();});}
   function drawSoldier(a, hostile, heavy, commander) {

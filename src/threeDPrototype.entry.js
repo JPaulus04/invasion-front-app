@@ -77,6 +77,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const hqTowers = [];
   let hqCommsGroup = null;
   let hqReinforcementGroup = null;
+  let hqTier3WallGroup = null;
+  let hqTier4WallGroup = null;
+  let hqTier5WallGroup = null;
   let hqLaserGroup = null;
   let hqShield = null;
   let displayedHQLevel = 0;
@@ -278,6 +281,42 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     hqReinforcementGroup.visible = false;
     staticGroup.add(hqReinforcementGroup);
 
+    hqTier3WallGroup = new THREE.Group();
+    hqTier3WallGroup.name = 'HQ level 3 raised fortified walls';
+    box('Level 3 rear upper wall', [5.05, .42, .38], [0, .78, -2.18], 0x64746c, hqTier3WallGroup, { metalness: .42, roughness: .46 });
+    box('Level 3 west upper wall', [.38, .42, 4.35], [-2.44, .78, 0], 0x64746c, hqTier3WallGroup, { metalness: .42, roughness: .46 });
+    box('Level 3 east upper wall', [.38, .42, 4.35], [2.44, .78, 0], 0x64746c, hqTier3WallGroup, { metalness: .42, roughness: .46 });
+    box('Level 3 front upper wall west', [1.82, .42, .38], [-1.56, .78, 2.18], 0x64746c, hqTier3WallGroup, { metalness: .42, roughness: .46 });
+    box('Level 3 front upper wall east', [1.82, .42, .38], [1.56, .78, 2.18], 0x64746c, hqTier3WallGroup, { metalness: .42, roughness: .46 });
+    [[-2.44,-2.18],[2.44,-2.18],[-2.44,2.18],[2.44,2.18]].forEach((position, index) => {
+      shapedMesh(`Level 3 corner bastion ${index + 1}`, new THREE.CylinderGeometry(.31, .38, 1.42, 8), [position[0], .71, position[1]], 0x526b68, hqTier3WallGroup, { metalness: .48, roughness: .4 });
+    });
+    hqTier3WallGroup.visible = false;
+    staticGroup.add(hqTier3WallGroup);
+
+    hqTier4WallGroup = new THREE.Group();
+    hqTier4WallGroup.name = 'HQ level 4 armored perimeter wall';
+    box('Level 4 rear armor course', [5.34, .5, .46], [0, 1.18, -2.25], 0x3f5e60, hqTier4WallGroup, { metalness: .62, roughness: .32 });
+    box('Level 4 west armor course', [.46, .5, 4.56], [-2.55, 1.18, 0], 0x3f5e60, hqTier4WallGroup, { metalness: .62, roughness: .32 });
+    box('Level 4 east armor course', [.46, .5, 4.56], [2.55, 1.18, 0], 0x3f5e60, hqTier4WallGroup, { metalness: .62, roughness: .32 });
+    box('Level 4 front armor west', [1.94, .5, .46], [-1.67, 1.18, 2.25], 0x3f5e60, hqTier4WallGroup, { metalness: .62, roughness: .32 });
+    box('Level 4 front armor east', [1.94, .5, .46], [1.67, 1.18, 2.25], 0x3f5e60, hqTier4WallGroup, { metalness: .62, roughness: .32 });
+    box('Level 4 fortified gate header', [1.35, .38, .5], [0, 1.55, 2.25], 0x2d484c, hqTier4WallGroup, { metalness: .68, roughness: .28 });
+    hqTier4WallGroup.visible = false;
+    staticGroup.add(hqTier4WallGroup);
+
+    hqTier5WallGroup = new THREE.Group();
+    hqTier5WallGroup.name = 'HQ level 5 command fortress wall';
+    [[-2.72,-2.42],[2.72,-2.42],[-2.72,2.42],[2.72,2.42]].forEach((position, index) => {
+      shapedMesh(`Level 5 heavy bastion ${index + 1}`, new THREE.CylinderGeometry(.46, .58, 2.05, 10), [position[0], 1.03, position[1]], 0x2e5e64, hqTier5WallGroup, { metalness: .68, roughness: .28, emissive: 0x092e35, emissiveIntensity: .32 });
+      shapedMesh(`Level 5 bastion beacon ${index + 1}`, new THREE.SphereGeometry(.1, 9, 6), [position[0], 2.12, position[1]], 0x86f6ff, hqTier5WallGroup, { emissive: 0x2dbbd1, emissiveIntensity: 1.35 });
+    });
+    box('Level 5 rear energy rail', [5.3, .08, .08], [0, 1.52, -2.42], 0x8ef6ff, hqTier5WallGroup, { emissive: 0x26aabd, emissiveIntensity: 1.2 });
+    box('Level 5 west energy rail', [.08, .08, 4.8], [-2.72, 1.52, 0], 0x8ef6ff, hqTier5WallGroup, { emissive: 0x26aabd, emissiveIntensity: 1.2 });
+    box('Level 5 east energy rail', [.08, .08, 4.8], [2.72, 1.52, 0], 0x8ef6ff, hqTier5WallGroup, { emissive: 0x26aabd, emissiveIntensity: 1.2 });
+    hqTier5WallGroup.visible = false;
+    staticGroup.add(hqTier5WallGroup);
+
     hqCommsGroup = new THREE.Group();
     hqCommsGroup.name = 'HQ level 2 communications';
     shapedMesh('HQ comms beacon', new THREE.SphereGeometry(.11, 10, 7), [-1.82, 3.18, -1.18], 0x6eeeff, hqCommsGroup, { emissive: 0x1f9ab5, emissiveIntensity: 1.2 });
@@ -324,7 +363,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       box('Barricade brace left', [.14, .68, .62], [-1.03, .34, 0], 0x4d4d3d, group, { metalness: .22 });
       box('Barricade brace center', [.12, .62, .58], [0, .31, 0], 0x4d4d3d, group, { metalness: .22 });
       box('Barricade brace right', [.14, .68, .62], [1.03, .34, 0], 0x4d4d3d, group, { metalness: .22 });
+      const reinforced = new THREE.Group();
+      reinforced.name = `HQ level 2 reinforced barrier ${lane + 1}`;
+      box('Reinforced barrier upper plate', [2.22, .42, .5], [0, .76, 0], 0x6f7d65, reinforced, { metalness: .34, roughness: .5 });
+      box('Reinforced barrier top rail', [2.42, .12, .62], [0, 1.02, 0], 0x95a27b, reinforced, { metalness: .46, roughness: .38 });
+      reinforced.visible = false;
+      group.add(reinforced);
+      const fortress = new THREE.Group();
+      fortress.name = `HQ level 4 armored barrier ${lane + 1}`;
+      box('Armored barrier face', [2.34, .58, .62], [0, .88, -.035], 0x3f6263, fortress, { metalness: .62, roughness: .3 });
+      box('Armored barrier energy strip', [1.86, .07, .66], [0, 1.04, -.045], 0x75e8ff, fortress, { emissive: 0x208a9b, emissiveIntensity: 1.05 });
+      fortress.visible = false;
+      group.add(fortress);
       group.userData.faceMaterials = [left.material, right.material];
+      group.userData.reinforced = reinforced;
+      group.userData.fortress = fortress;
       barricadeGroups.push(group);
     }
 
@@ -860,15 +913,20 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     const level = Math.max(1, Number(run.hq && run.hq.level) || 1);
     if (hqAssetGroup) {
       hqAssetGroup.visible = true;
+      hqAssetGroup.scale.setScalar(1 + Math.min(4, level - 1) * .035);
       hqBase.visible = true;
       hqRadio.visible = level >= 2;
       hqTowers.forEach(tower => { tower.visible = level >= 3; });
       hqFallbackGroup.visible = false;
     } else if (hqFallbackGroup) {
       hqFallbackGroup.visible = true;
+      hqFallbackGroup.scale.setScalar(1 + Math.min(4, level - 1) * .06);
     }
     if (hqCommsGroup) hqCommsGroup.visible = level >= 2;
     if (hqReinforcementGroup) hqReinforcementGroup.visible = level >= 2;
+    if (hqTier3WallGroup) hqTier3WallGroup.visible = level >= 3;
+    if (hqTier4WallGroup) hqTier4WallGroup.visible = level >= 4;
+    if (hqTier5WallGroup) hqTier5WallGroup.visible = level >= 5;
     if (hqLaserGroup) hqLaserGroup.visible = level >= 4;
     if (hqShield) hqShield.visible = level >= 5;
 
@@ -946,6 +1004,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   }
 
   function syncBarricades(run) {
+    const level = Math.max(1, Number(run.hq && run.hq.level) || 1);
+    const researchedPerimeter = !!(run.research && run.research.barrierHp > 0);
+    const researchedArmor = !!(run.research && run.research.barrierDamageReduction > 0);
     barricadeGroups.forEach((group, index) => {
       const state = run.lanes && run.lanes[index] && run.lanes[index].barricade;
       const alive = !!state && state.hp > 0;
@@ -953,12 +1014,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       if (!alive) return;
 
       const ratio = Math.max(0, Math.min(1, state.hp / Math.max(1, state.maxHp)));
-      const color = state.flash > 0 ? 0xb34835 : ratio < .35 ? 0x594734 : ratio < .7 ? 0x705b3e : 0x806d4a;
+      const healthyColor = level >= 5 ? 0x3c6d70 : level >= 4 ? 0x526b68 : level >= 3 ? 0x73785d : level >= 2 ? 0x85744e : 0x806d4a;
+      const color = state.flash > 0 ? 0xb34835 : ratio < .35 ? 0x594734 : ratio < .7 ? 0x705b3e : healthyColor;
       group.userData.faceMaterials.forEach(item => {
         item.color.setHex(color);
         item.emissive.setHex(state.flash > 0 ? 0x45150e : 0x000000);
         item.emissiveIntensity = state.flash > 0 ? .8 : 0;
       });
+      if (group.userData.reinforced) {
+        group.userData.reinforced.visible = level >= 2 || researchedPerimeter;
+        group.userData.reinforced.scale.y = level >= 3 ? 1.18 : 1;
+      }
+      if (group.userData.fortress) {
+        group.userData.fortress.visible = level >= 4 || researchedArmor;
+        group.userData.fortress.scale.y = level >= 5 ? 1.22 : 1;
+      }
     });
   }
 
