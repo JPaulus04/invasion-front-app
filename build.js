@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'165\';'), 'Build 165 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'166\';'), 'Build 166 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -177,6 +177,17 @@ requireMatch(threeDSource.includes('HQ level 3 raised fortified walls'), 'Build 
 requireMatch(threeDSource.includes('HQ level 4 armored perimeter wall'), 'Build 165 level 4 fortress geometry is missing');
 requireMatch(threeDSource.includes('HQ level 5 command fortress wall'), 'Build 165 level 5 fortress geometry is missing');
 requireMatch(threeDSource.includes('HQ level 4 armored barrier'), 'Build 165 perimeter growth is missing');
+requireMatch(html.includes('var RESEARCH_SCHEMA = 166;'), 'Build 166 research schema is missing');
+requireMatch((html.match(/branch:'fire-control'/g)||[]).length===8, 'Build 166 Fire Control branch must contain eight nodes');
+requireMatch((html.match(/branch:'fortifications'/g)||[]).length===8, 'Build 166 Fortifications branch must contain eight nodes');
+requireMatch((html.match(/branch:'combat-support'/g)||[]).length===8, 'Build 166 Combat Support branch must contain eight nodes');
+requireMatch(html.includes("id:'fc-hunter-killer'") && html.includes("id:'fort-reconstruction'") && html.includes("id:'sup-network'"), 'Build 166 research capstones are incomplete');
+requireMatch(html.includes('function researchRequirements(node)') && html.includes('COMPLETE BOTH TIER 4 NODES'), 'Build 166 branching prerequisites are missing');
+requireMatch(html.includes('function researchPreview(node,effects,purchased)') && html.includes('l166-node-preview'), 'Build 166 current-versus-upgraded research previews are missing');
+requireMatch(html.includes('function recoverBetweenAssaults()') && html.includes('artilleryKillCooldown'), 'Build 166 capstone combat effects are missing');
+requireMatch(html.includes('l166-resource-icon credits') && html.includes('l166-resource-icon parts'), 'Build 166 resource icons are missing');
+requireMatch(html.includes("el.closest('#lsc137-app')"), 'Build 166 Research Center terminology guard is missing');
+requireMatch(threeDSource.includes('Level 4 gate pillar west') && !threeDSource.includes('Level 4 fortified gate header'), 'Build 166 Holt visibility gate is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
 requireMatch(html.includes("classList.add('lsc-command-ready')"), 'Build 162 startup-ready handoff is missing');
