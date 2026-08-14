@@ -1075,12 +1075,12 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     if (!dead && record.state === 'run') record.actions.run.setEffectiveTimeScale(1);
     record.mixer.update(dt);
 
-    // Mixamo motion clips animate the hips directly. Reset their horizontal
-    // translation after every mixer update, then reassert the entity transform.
-    // The visible zombie therefore cannot wander away from its simulation slot.
+    // Mixamo motion clips animate the hips directly. Reset their translation
+    // after every mixer update, then reassert the entity transform. This keeps
+    // every unit grounded; the enlarged operation boss made vertical drift
+    // especially visible in the forward camera.
     if (record.hips && record.hipsAnchor) {
-      record.hips.position.x = record.hipsAnchor.x;
-      record.hips.position.z = record.hipsAnchor.z;
+      record.hips.position.copy(record.hipsAnchor);
     }
     record.root.position.set(position[0], 0, position[1]);
     record.root.rotation.y = rotation;
