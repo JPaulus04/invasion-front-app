@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'173\';'), 'Build 173 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'174\';'), 'Build 174 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -208,7 +208,7 @@ requireMatch(html.includes('var HQ_ATTACK_WORLD_RADIUS = 6.75;') && html.include
 requireMatch(threeDSource.includes('roughly fourteen percent broader') && threeDSource.includes('const BOSS_VISUAL_SCALE = 1.98;'), 'Build 170 Holt and boss scale tuning is missing');
 requireMatch(html.includes('var ENERGY_SCHEMA = 171;') && html.includes('function reserveEnergy(cost)') && html.includes('ENERGY_RECHARGE_MS'), 'Build 171 campaign energy ledger is missing');
 requireMatch(html.includes('campaignRetryPhase') && html.includes('energyCommitted<run.assault+1'), 'Build 171 assault-by-assault energy and free retry protection is missing');
-requireMatch(html.includes('operationLastClearDay') && html.includes("if(won)meta.operationLastClearDay=localDayKey()"), 'Build 171 daily reward protection is missing');
+requireMatch(html.includes('operationLastClearDay') && html.includes('meta.operationLastClearDay=localDayKey()'), 'Build 171 daily reward protection is missing');
 requireMatch(html.includes('var OPERATION_LANES = [') && (html.match(/side:'forward'/g)||[]).length===3, 'Build 172 three-lane operation simulation is missing');
 requireMatch(html.includes("if(target&&target.kind==='boss')return true") && html.includes("e.kind==='boss'?4"), 'Build 172 reliable boss targeting is missing');
 requireMatch(html.includes('function drawOperationEnvironment(W,H,h)') && threeDSource.includes('Build 172 forward containment battlefield'), 'Build 172 distinct operation battlefield is missing');
@@ -217,6 +217,11 @@ requireMatch(threeDSource.includes('OPERATION_BOSS_VISUAL_SCALE') && threeDSourc
 requireMatch(html.includes('var COMMANDER_COMPOUND_RANGE_WORLD = 7.65;') && html.includes('var COMMANDER_APPROACH_DEPTH_WORLD = 1;') && html.includes('worldScale*COMMANDER_COMPOUND_RANGE_WORLD') && html.includes('range:commanderRange') && html.includes('function commanderTargetInPerimeter(source,target)') && html.includes('!commanderTargetInPerimeter(o,e)'), 'Build 173 balanced full-perimeter Holt targeting is missing');
 requireMatch(html.includes('var OPERATION_BOSS_PADDING_WORLD = .2;') && html.includes('var OPERATION_BOSS_HQ_STOP_WORLD_RADIUS = 7.65;') && html.includes('run.operation?OPERATION_BOSS_HQ_STOP_WORLD_RADIUS:BOSS_HQ_STOP_WORLD_RADIUS'), 'Build 173 operation boss approach geometry is missing');
 requireMatch(threeDSource.includes('record.hips.position.copy(record.hipsAnchor)'), 'Build 173 grounded zombie animation guard is missing');
+requireMatch(html.includes('var OPERATION_SCHEMA = 174;') && html.includes('operationLevel:1') && html.includes('loaded.operationLevel=Math.max(2,loaded.operationLevel)'), 'Build 174 operation level migration is missing');
+requireMatch(html.includes('function operationDifficulty(level)') && html.includes('operationTargets(phase,operationLevel)') && html.includes('operationScale.bossHealth') && html.includes('targetBonus:Math.min(6'), 'Build 174 sustainable operation difficulty curve is missing');
+requireMatch(html.includes('function operationRewardCredits(level)') && html.includes('function operationRewardParts(level)') && html.includes('meta.operationLevel=Math.min(OPERATION_LEVEL_GUARD,operationLevel+1)'), 'Build 174 operation reward progression is missing');
+requireMatch(html.includes('CONTAINMENT SWEEP · LEVEL ') && html.includes('CLEAR LEVEL ') && html.includes('LEVEL '+"'+operationLevel+'"+' DAILY REWARD'), 'Build 174 operation level presentation is missing');
+requireMatch(html.includes('operationLevel:run.operationLevel') && html.includes('operation:true,operationLevel:operationLevel') && html.includes('CONTAINMENT ALPHA · LEVEL '), 'Build 174 operation retry and HUD continuity is missing');
 requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && !threeDSource.includes('addBossArmor') && !threeDSource.includes('Siege Breaker left shoulder plate'), 'Build 169 stable boss material grades are missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
