@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'169\';'), 'Build 169 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'170\';'), 'Build 170 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -200,10 +200,13 @@ requireMatch(html.includes('HQ INTEGRITY ') && html.includes('BARRIERS SURVIVED'
 requireMatch(html.includes('var COMMANDER_SCHEMA = 168;') && html.includes('var COMMANDER_MAX_LEVEL = 20;'), 'Build 168 Commander Mastery schema is missing');
 requireMatch(html.includes('function commanderMastery(level)') && html.includes('function renderCommanderTab(panel)'), 'Build 168 Commander profile is missing');
 requireMatch(html.includes('COMMAND BURST') && html.includes('function useCommandAbility()'), 'Build 168 signature command is missing');
-requireMatch(html.includes('l168-boss-hud') && html.includes("e.kind==='boss'&&e.hp>0"), 'Build 168 Siege Breaker HUD is missing');
+requireMatch(html.includes('l168-boss-hud') && html.includes("run.bossEntityId!=null&&e.id===run.bossEntityId"), 'Build 170 deterministic Siege Breaker HUD is missing');
 requireMatch(threeDSource.includes('Command Bastion rooftop emplacement'), 'Build 169 rooftop Command Bastion is missing');
-requireMatch(threeDSource.includes('COMMAND_BASTION_DECK_Y') && html.includes("x:cx-24*s,y:cy-31*s") && html.includes("x:cx+24*s,y:cy-31*s"), 'Build 169 Holt and turret station alignment is missing');
-requireMatch(threeDSource.includes('roughly fourteen percent broader') && threeDSource.includes('1.98'), 'Build 168 Holt and boss scale tuning is missing');
+requireMatch(threeDSource.includes('COMMAND_BASTION_DECK_Y') && html.includes("x:cx-28*s,y:cy-19*s") && html.includes("x:cx+25*s,y:cy-40*s"), 'Build 170 protected Holt and turret stations are missing');
+requireMatch(html.includes('function firingLineClearsHolt(source,target)') && html.includes("a.source==='turret')a.aim=a.parkAim"), 'Build 170 turret firing clearance is missing');
+requireMatch(html.includes('var HQ_ATTACK_WORLD_RADIUS = 6.75;') && html.includes('var BOSS_HQ_STOP_WORLD_RADIUS = 8.55;') && html.includes("e.kind==='boss'?BOSS_HQ_STOP_WORLD_RADIUS"), 'Build 170 enemy and boss stand-off geometry is missing');
+requireMatch(threeDSource.includes('roughly fourteen percent broader') && threeDSource.includes('const BOSS_VISUAL_SCALE = 1.98;'), 'Build 170 Holt and boss scale tuning is missing');
+requireMatch(html.includes('var ENERGY_SCHEMA = 170;') && html.includes('function reserveEnergy(cost)') && html.includes('ENERGY_RECHARGE_MS'), 'Build 170 dungeon energy foundation is missing');
 requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && !threeDSource.includes('addBossArmor') && !threeDSource.includes('Siege Breaker left shoulder plate'), 'Build 169 stable boss material grades are missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
