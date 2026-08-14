@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'172\';'), 'Build 172 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'173\';'), 'Build 173 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -204,7 +204,7 @@ requireMatch(html.includes('l168-boss-hud') && html.includes("run.bossEntityId!=
 requireMatch(threeDSource.includes('Command Bastion rooftop emplacement'), 'Build 169 rooftop Command Bastion is missing');
 requireMatch(threeDSource.includes('COMMAND_BASTION_DECK_Y') && html.includes("x:cx-(operation?34:28)*s") && html.includes("x:cx+(operation?34:25)*s"), 'Build 172 campaign and forward-operation Holt/turret stations are missing');
 requireMatch(html.includes('function firingLineClearsHolt(source,target)') && html.includes("a.source==='turret')a.aim=a.parkAim"), 'Build 170 turret firing clearance is missing');
-requireMatch(html.includes('var HQ_ATTACK_WORLD_RADIUS = 6.75;') && html.includes('var BOSS_HQ_STOP_WORLD_RADIUS = 8.55;') && html.includes("e.kind==='boss'?BOSS_HQ_STOP_WORLD_RADIUS"), 'Build 170 enemy and boss stand-off geometry is missing');
+requireMatch(html.includes('var HQ_ATTACK_WORLD_RADIUS = 6.75;') && html.includes('var BOSS_HQ_STOP_WORLD_RADIUS = 8.55;') && html.includes('run.operation?OPERATION_BOSS_HQ_STOP_WORLD_RADIUS:BOSS_HQ_STOP_WORLD_RADIUS'), 'Build 170 campaign enemy and boss stand-off geometry is missing');
 requireMatch(threeDSource.includes('roughly fourteen percent broader') && threeDSource.includes('const BOSS_VISUAL_SCALE = 1.98;'), 'Build 170 Holt and boss scale tuning is missing');
 requireMatch(html.includes('var ENERGY_SCHEMA = 171;') && html.includes('function reserveEnergy(cost)') && html.includes('ENERGY_RECHARGE_MS'), 'Build 171 campaign energy ledger is missing');
 requireMatch(html.includes('campaignRetryPhase') && html.includes('energyCommitted<run.assault+1'), 'Build 171 assault-by-assault energy and free retry protection is missing');
@@ -214,6 +214,9 @@ requireMatch(html.includes("if(target&&target.kind==='boss')return true") && htm
 requireMatch(html.includes('function drawOperationEnvironment(W,H,h)') && threeDSource.includes('Build 172 forward containment battlefield'), 'Build 172 distinct operation battlefield is missing');
 requireMatch(threeDSource.includes('function setWorldMode(run)') && threeDSource.includes("camera.position.set(0, 7.4, 13.8)"), 'Build 172 lowered operation camera is missing');
 requireMatch(threeDSource.includes('OPERATION_BOSS_VISUAL_SCALE') && threeDSource.includes('DAILY OPERATION · FORWARD CONTAINMENT LINE'), 'Build 172 operation boss presentation is missing');
+requireMatch(html.includes('var COMMANDER_COMPOUND_RANGE_WORLD = 7.65;') && html.includes('var COMMANDER_APPROACH_DEPTH_WORLD = 1;') && html.includes('worldScale*COMMANDER_COMPOUND_RANGE_WORLD') && html.includes('range:commanderRange') && html.includes('function commanderTargetInPerimeter(source,target)') && html.includes('!commanderTargetInPerimeter(o,e)'), 'Build 173 balanced full-perimeter Holt targeting is missing');
+requireMatch(html.includes('var OPERATION_BOSS_PADDING_WORLD = .2;') && html.includes('var OPERATION_BOSS_HQ_STOP_WORLD_RADIUS = 7.65;') && html.includes('run.operation?OPERATION_BOSS_HQ_STOP_WORLD_RADIUS:BOSS_HQ_STOP_WORLD_RADIUS'), 'Build 173 operation boss approach geometry is missing');
+requireMatch(threeDSource.includes('record.hips.position.copy(record.hipsAnchor)'), 'Build 173 grounded zombie animation guard is missing');
 requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && !threeDSource.includes('addBossArmor') && !threeDSource.includes('Siege Breaker left shoulder plate'), 'Build 169 stable boss material grades are missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
