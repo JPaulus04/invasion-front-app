@@ -16,6 +16,13 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const COMMAND_BASTION_DECK_Y = 1.15;
   const COMMAND_BASTION_CENTER_Z = -1.0;
   const BOSS_VISUAL_SCALE = 1.98;
+  const OPERATION_BOSS_VISUAL_SCALE = 2.14;
+  const OPERATION_DECK_Y = .24;
+  const OPERATION_LANES = [
+    { x: -2.15, z: -5.10 },
+    { x:  0.00, z: -5.35 },
+    { x:  2.15, z: -5.10 },
+  ];
   const COMPOUND_LANES = [
     { x: -1.55, z: -5.05, rotation: 0, side: 'north' },
     { x:  1.55, z: -5.05, rotation: 0, side: 'north' },
@@ -96,6 +103,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let hqShield = null;
   let displayedHQLevel = 0;
   const barricadeGroups = [];
+  const operationBarricadeGroups = [];
+  let operationWorldGroup = null;
+  let campaignWorldObjects = [];
+  let activeWorldMode = '';
 
   const units = new Map();
   const tracers = new Map();
@@ -240,6 +251,72 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     turretMuzzle.position.set(0, .32, 1.88);
     turretYaw.add(turretMuzzle);
     staticGroup.add(turretGroup);
+  }
+
+  function buildOperationWorld() {
+    operationWorldGroup = new THREE.Group();
+    operationWorldGroup.name = 'Build 172 forward containment battlefield';
+    operationWorldGroup.visible = false;
+    staticGroup.add(operationWorldGroup);
+
+    const yard = new THREE.Mesh(
+      new THREE.PlaneGeometry(14, 27),
+      material(0x172326, { roughness: 1, metalness: 0 })
+    );
+    yard.name = 'Containment yard asphalt';
+    yard.rotation.x = -Math.PI / 2;
+    yard.position.set(0, 0, -2.6);
+    yard.receiveShadow = true;
+    operationWorldGroup.add(yard);
+
+    box('Containment approach bed', [8.8, .07, 20.8], [0, .035, -3.2], 0x243336, operationWorldGroup, { roughness: .96 });
+    OPERATION_LANES.forEach((layout, index) => {
+      box(`Forward lane ${index + 1}`, [1.62, .035, 18.5], [layout.x, .085, -3.4], index === 1 ? 0x31484b : 0x293d40, operationWorldGroup, { roughness: .91 });
+      [-.76, .76].forEach(offset => {
+        box(`Forward lane ${index + 1} guide`, [.055, .025, 18.2], [layout.x + offset, .115, -3.4], 0x52747a, operationWorldGroup, { emissive: 0x183b43, emissiveIntensity: .38 });
+      });
+      for (let marker = 0; marker < 6; marker++) {
+        box(`Forward lane ${index + 1} marker ${marker + 1}`, [.12, .03, .75], [layout.x, .12, 3.2 - marker * 2.85], 0xd0ad54, operationWorldGroup, { emissive: 0x473000, emissiveIntensity: .18 });
+      }
+    });
+
+    [-4.72, 4.72].forEach((x, sideIndex) => {
+      box(`Containment fence ${sideIndex + 1}`, [.12, .72, 21.5], [x, .37, -3.0], 0x59686a, operationWorldGroup, { metalness: .62, roughness: .34 });
+      for (let post = 0; post < 8; post++) {
+        box(`Containment fence post ${sideIndex + 1}-${post + 1}`, [.18, 1.25, .18], [x, .63, 5.6 - post * 2.45], 0x839092, operationWorldGroup, { metalness: .66, roughness: .3 });
+      }
+    });
+    box('Quarantine gate header', [9.65, .46, .38], [0, 2.02, -11.1], 0x263c42, operationWorldGroup, { metalness: .52, roughness: .36 });
+    [-4.35, 4.35].forEach((x, index) => {
+      box(`Quarantine gate column ${index + 1}`, [.56, 3.8, .56], [x, 1.9, -11.1], 0x344b50, operationWorldGroup, { metalness: .48, roughness: .4 });
+      shapedMesh(`Quarantine warning lamp ${index + 1}`, new THREE.SphereGeometry(.12, 9, 6), [x, 3.92, -11.05], 0xffb34e, operationWorldGroup, { emissive: 0xb74d08, emissiveIntensity: 1.25 });
+      const warningLight = new THREE.PointLight(0xff8b35, 1.7, 4.8, 2);
+      warningLight.position.set(x, 3.7, -10.8);
+      operationWorldGroup.add(warningLight);
+    });
+    box('Quarantine warning stripe', [7.5, .08, .42], [0, 1.99, -10.86], 0xd0ad54, operationWorldGroup, { emissive: 0x4a2b00, emissiveIntensity: .24 });
+
+    box('Forward command platform', [5.6, .24, 2.8], [0, .12, 1.25], 0x29484a, operationWorldGroup, { metalness: .38, roughness: .46 });
+    box('Forward command platform lip', [5.6, .46, .18], [0, .32, -.08], 0x173438, operationWorldGroup, { metalness: .58, roughness: .32 });
+    box('Forward command rear rail', [5.6, .72, .12], [0, .5, 2.58], 0x687b7d, operationWorldGroup, { metalness: .62, roughness: .3 });
+    [-2.55, 2.55].forEach((x, index) => {
+      box(`Forward command side rail ${index + 1}`, [.12, .72, 2.55], [x, .5, 1.25], 0x687b7d, operationWorldGroup, { metalness: .62, roughness: .3 });
+      shapedMesh(`Forward command beacon ${index + 1}`, new THREE.SphereGeometry(.09, 8, 6), [x, .94, .12], 0x85f5ff, operationWorldGroup, { emissive: 0x2dbbd1, emissiveIntensity: 1.35 });
+    });
+    box('Forward command stripe', [4.7, .035, .16], [0, .255, .2], 0xd4b45e, operationWorldGroup, { emissive: 0x473000, emissiveIntensity: .2 });
+
+    OPERATION_LANES.forEach((layout, index) => {
+      const group = new THREE.Group();
+      group.name = `Forward barricade lane ${index + 1}`;
+      group.position.set(layout.x, 0, layout.z);
+      operationWorldGroup.add(group);
+      const left = box('Forward barricade left', [.66, .68, .52], [-.35, .36, 0], 0x52706e, group, { metalness: .42, roughness: .42 });
+      const right = box('Forward barricade right', [.66, .68, .52], [.35, .36, 0], 0x52706e, group, { metalness: .42, roughness: .42 });
+      box('Forward barricade brace', [1.5, .13, .68], [0, .76, 0], 0x839591, group, { metalness: .58, roughness: .3 });
+      box('Forward barricade energy strip', [1.22, .065, .7], [0, .79, -.02], 0x7eeeff, group, { emissive: 0x238a98, emissiveIntensity: .92 });
+      group.userData.faceMaterials = [left.material, right.material];
+      operationBarricadeGroups.push(group);
+    });
   }
 
   function buildWorld() {
@@ -439,6 +516,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       barricadeGroups.push(group);
     }
 
+    campaignWorldObjects = staticGroup.children.slice();
+    buildOperationWorld();
     buildHero();
     buildTurret();
   }
@@ -489,6 +568,35 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     clock = new THREE.Clock();
     buildWorld();
+  }
+
+  function setWorldMode(run) {
+    const nextMode = run && run.operation ? 'operation' : 'campaign';
+    if (activeWorldMode === nextMode) return;
+    activeWorldMode = nextMode;
+    const operation = nextMode === 'operation';
+    campaignWorldObjects.forEach(object => { object.visible = !operation; });
+    if (operationWorldGroup) operationWorldGroup.visible = operation;
+    if (operation) {
+      camera.fov = 51;
+      camera.position.set(0, 7.4, 13.8);
+      camera.lookAt(0, .65, -3.9);
+      scene.background.setHex(0x111d22);
+      scene.fog.color.setHex(0x111d22);
+      scene.fog.near = 18;
+      scene.fog.far = 38;
+      if (badge) badge.textContent = 'DAILY OPERATION · FORWARD CONTAINMENT LINE';
+    } else {
+      camera.fov = 45;
+      camera.position.set(0, 24.5, 24.2);
+      camera.lookAt(0, 0, -1.1);
+      scene.background.setHex(0x41513f);
+      scene.fog.color.setHex(0x41513f);
+      scene.fog.near = 31;
+      scene.fog.far = 52;
+      if (badge) badge.textContent = 'CENTRAL HQ · HOLT ON STATION';
+    }
+    camera.updateProjectionMatrix();
   }
 
   function loadFBX(file, root = ASSET_ROOT) {
@@ -794,7 +902,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         hqFallbackGroup.visible = true;
       }
 
-      badge.textContent = 'CENTRAL HQ · HOLT ON STATION';
+      badge.textContent = activeWorldMode === 'operation' ? 'DAILY OPERATION · FORWARD CONTAINMENT LINE' : 'CENTRAL HQ · HOLT ON STATION';
       return true;
     })().catch(error => {
       console.warn('Build 162 zombie asset fallback:', error);
@@ -980,7 +1088,16 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   }
 
   function syncHQ(run) {
+    if (run.operation) {
+      [hqAssetGroup, hqFallbackGroup, hqCommsGroup, hqReinforcementGroup, hqTier3WallGroup, hqTier4WallGroup, hqTier5WallGroup, hqLaserGroup, hqShield, commandBastionGroup, commandBastionTier2Group, commandBastionTier3Group, commandBastionTier4Group, commandBastionTier5Group].forEach(group => {
+        if (group) group.visible = false;
+      });
+      displayedHQLevel = 0;
+      if (badge) badge.textContent = 'DAILY OPERATION · FORWARD CONTAINMENT LINE';
+      return;
+    }
     const level = Math.max(1, Number(run.hq && run.hq.level) || 1);
+    if (commandBastionGroup) commandBastionGroup.visible = true;
     if (hqAssetGroup) {
       hqAssetGroup.visible = true;
       hqAssetGroup.scale.setScalar(1 + Math.min(4, level - 1) * .035);
@@ -1047,7 +1164,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       heroMixer.update(dt);
     }
     const p = world(run.hero, run);
-    heroGroup.position.set(p[0], COMMAND_BASTION_DECK_Y + Math.sin(run.elapsed * 2.8) * .018, p[1]);
+    const deckY = run.operation ? OPERATION_DECK_Y : COMMAND_BASTION_DECK_Y;
+    heroGroup.position.set(p[0], deckY + Math.sin(run.elapsed * 2.8) * .018, p[1]);
     const visualTier = Math.max(1, Math.min(5, Number(run.commanderVisualTier) || 1));
     // Mastery adds armor mass and presence, not giant height. The final tier is
     // roughly fourteen percent broader and only three percent taller.
@@ -1067,7 +1185,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   function syncTurret(run) {
     if (!turretGroup || !turretYaw) return;
     const p = world(run.turret, run);
-    turretGroup.position.set(p[0], COMMAND_BASTION_DECK_Y, p[1]);
+    turretGroup.position.set(p[0], run.operation ? OPERATION_DECK_Y : COMMAND_BASTION_DECK_Y, p[1]);
     turretYaw.rotation.y = -(run.turret.aim || 0) + Math.PI / 2;
     turretGroup.visible = true;
     const level = Math.max(1, Number(run.hq && run.hq.level) || 1);
@@ -1085,32 +1203,38 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     }
   }
 
+  function syncBarricadeGroup(group, state, level, researchedPerimeter, researchedArmor) {
+    const alive = !!state && state.hp > 0;
+    group.visible = alive;
+    if (!alive) return;
+    const ratio = Math.max(0, Math.min(1, state.hp / Math.max(1, state.maxHp)));
+    const healthyColor = level >= 5 ? 0x3c6d70 : level >= 4 ? 0x526b68 : level >= 3 ? 0x73785d : level >= 2 ? 0x85744e : 0x806d4a;
+    const color = state.flash > 0 ? 0xb34835 : ratio < .35 ? 0x594734 : ratio < .7 ? 0x705b3e : healthyColor;
+    group.userData.faceMaterials.forEach(item => {
+      item.color.setHex(color);
+      item.emissive.setHex(state.flash > 0 ? 0x45150e : 0x000000);
+      item.emissiveIntensity = state.flash > 0 ? .8 : 0;
+    });
+    if (group.userData.reinforced) {
+      group.userData.reinforced.visible = level >= 2 || researchedPerimeter;
+      group.userData.reinforced.scale.y = level >= 3 ? 1.18 : 1;
+    }
+    if (group.userData.fortress) {
+      group.userData.fortress.visible = level >= 4 || researchedArmor;
+      group.userData.fortress.scale.y = level >= 5 ? 1.22 : 1;
+    }
+  }
+
   function syncBarricades(run) {
     const level = Math.max(1, Number(run.hq && run.hq.level) || 1);
     const researchedPerimeter = !!(run.research && run.research.barrierHp > 0);
     const researchedArmor = !!(run.research && run.research.barrierDamageReduction > 0);
-    barricadeGroups.forEach((group, index) => {
+    const activeGroups = run.operation ? operationBarricadeGroups : barricadeGroups;
+    const inactiveGroups = run.operation ? barricadeGroups : operationBarricadeGroups;
+    inactiveGroups.forEach(group => { group.visible = false; });
+    activeGroups.forEach((group, index) => {
       const state = run.lanes && run.lanes[index] && run.lanes[index].barricade;
-      const alive = !!state && state.hp > 0;
-      group.visible = alive;
-      if (!alive) return;
-
-      const ratio = Math.max(0, Math.min(1, state.hp / Math.max(1, state.maxHp)));
-      const healthyColor = level >= 5 ? 0x3c6d70 : level >= 4 ? 0x526b68 : level >= 3 ? 0x73785d : level >= 2 ? 0x85744e : 0x806d4a;
-      const color = state.flash > 0 ? 0xb34835 : ratio < .35 ? 0x594734 : ratio < .7 ? 0x705b3e : healthyColor;
-      group.userData.faceMaterials.forEach(item => {
-        item.color.setHex(color);
-        item.emissive.setHex(state.flash > 0 ? 0x45150e : 0x000000);
-        item.emissiveIntensity = state.flash > 0 ? .8 : 0;
-      });
-      if (group.userData.reinforced) {
-        group.userData.reinforced.visible = level >= 2 || researchedPerimeter;
-        group.userData.reinforced.scale.y = level >= 3 ? 1.18 : 1;
-      }
-      if (group.userData.fortress) {
-        group.userData.fortress.visible = level >= 4 || researchedArmor;
-        group.userData.fortress.scale.y = level >= 5 ? 1.22 : 1;
-      }
+      syncBarricadeGroup(group, state, level, researchedPerimeter, researchedArmor);
     });
   }
 
@@ -1141,10 +1265,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       live.add(bullet);
       const previous = world({ x: bullet.px, y: bullet.py }, run);
       const current = world(bullet, run);
+      const deckY = run.operation ? OPERATION_DECK_Y : COMMAND_BASTION_DECK_Y;
       const tracerHeight = bullet.source === 'commander'
-        ? COMMAND_BASTION_DECK_Y + 1.08
+        ? deckY + 1.08
         : bullet.source === 'turret'
-          ? COMMAND_BASTION_DECK_Y + .76
+          ? deckY + .76
           : .8;
       const start = new THREE.Vector3(previous[0], tracerHeight, previous[1]);
       const end = new THREE.Vector3(current[0], tracerHeight, current[1]);
@@ -1270,9 +1395,12 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     try {
       if (!renderer) init();
       active = true;
+      setWorldMode(initialRun || { operation: false });
       firstFrameCallback = typeof onReady === 'function' ? onReady : null;
       badge.style.display = 'block';
-      badge.textContent = zombieTemplates.soldier ? 'CENTRAL HQ · HOLT ON STATION' : 'CENTRAL HQ · LOADING CONTACT';
+      badge.textContent = zombieTemplates.soldier
+        ? (initialRun && initialRun.operation ? 'DAILY OPERATION · FORWARD CONTAINMENT LINE' : 'CENTRAL HQ · HOLT ON STATION')
+        : (initialRun && initialRun.operation ? 'DAILY OPERATION · ESTABLISHING FORWARD LINE' : 'CENTRAL HQ · LOADING CONTACT');
       sourceCanvas.style.visibility = 'hidden';
       view.style.display = 'none';
       if (firstFrameTimer) clearTimeout(firstFrameTimer);
@@ -1305,6 +1433,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
   api.stop = function () {
     active = false;
+    activeWorldMode = '';
     completeFirstFrame(false);
     heroWasFlashing = false;
     heroFireTime = 0;
@@ -1324,6 +1453,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   api.render = function (run) {
     if (!active || !renderer || !zombieTemplates.soldier) return false;
 
+    setWorldMode(run);
     resize();
     const dt = Math.min(.05, clock.getDelta());
     const liveUnits = new Set();
@@ -1336,11 +1466,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     syncBarricades(run);
 
     run.enemies.forEach(unit => {
-      const scale = unit.kind === 'boss' ? BOSS_VISUAL_SCALE : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
+      const scale = unit.kind === 'boss' ? (run.operation ? OPERATION_BOSS_VISUAL_SCALE : BOSS_VISUAL_SCALE) : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
       syncZombie(unit, run, scale, false, dt, liveUnits);
     });
     run.corpses.forEach(unit => {
-      const scale = unit.kind === 'boss' ? BOSS_VISUAL_SCALE : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
+      const scale = unit.kind === 'boss' ? (run.operation ? OPERATION_BOSS_VISUAL_SCALE : BOSS_VISUAL_SCALE) : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
       syncZombie(unit, run, scale, true, dt, liveUnits);
     });
 
