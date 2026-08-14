@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'168\';'), 'Build 168 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'169\';'), 'Build 169 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -201,9 +201,10 @@ requireMatch(html.includes('var COMMANDER_SCHEMA = 168;') && html.includes('var 
 requireMatch(html.includes('function commanderMastery(level)') && html.includes('function renderCommanderTab(panel)'), 'Build 168 Commander profile is missing');
 requireMatch(html.includes('COMMAND BURST') && html.includes('function useCommandAbility()'), 'Build 168 signature command is missing');
 requireMatch(html.includes('l168-boss-hud') && html.includes("e.kind==='boss'&&e.hp>0"), 'Build 168 Siege Breaker HUD is missing');
-requireMatch(threeDSource.includes('Command Bastion shared Holt and turret fixture'), 'Build 168 Command Bastion is missing');
+requireMatch(threeDSource.includes('Command Bastion rooftop emplacement'), 'Build 169 rooftop Command Bastion is missing');
+requireMatch(threeDSource.includes('COMMAND_BASTION_DECK_Y') && html.includes("x:cx-24*s,y:cy-31*s") && html.includes("x:cx+24*s,y:cy-31*s"), 'Build 169 Holt and turret station alignment is missing');
 requireMatch(threeDSource.includes('roughly fourteen percent broader') && threeDSource.includes('1.98'), 'Build 168 Holt and boss scale tuning is missing');
-requireMatch(threeDSource.includes('Siege Breaker veteran armor'), 'Build 168 boss visual grades are missing');
+requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && !threeDSource.includes('addBossArmor') && !threeDSource.includes('Siege Breaker left shoulder plate'), 'Build 169 stable boss material grades are missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
