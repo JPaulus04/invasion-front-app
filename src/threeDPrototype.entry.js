@@ -10,6 +10,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const HQ_ASSET_ROOT = 'assets/prototype4/hq/';
   const HOLT_ASSET_ROOT = 'assets/prototype4/holt/';
   const LANE_COUNT = 8;
+  // Holt and the main turret stay as independent combat sources, but both
+  // stand on this authored rooftop deck. Keeping one shared elevation and one
+  // simulation row prevents the fixture from splitting apart visually.
+  const COMMAND_BASTION_DECK_Y = 1.15;
+  const COMMAND_BASTION_CENTER_Z = -1.0;
   const COMPOUND_LANES = [
     { x: -1.55, z: -5.05, rotation: 0, side: 'north' },
     { x:  1.55, z: -5.05, rotation: 0, side: 'north' },
@@ -263,48 +268,52 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     box('HQ foundation', [3.7, .28, 3.2], [0, .14, 0], 0x26342e);
     commandBastionGroup = new THREE.Group();
-    commandBastionGroup.name = 'Command Bastion shared Holt and turret fixture';
-    box('Command Bastion Holt deck', [1.9, .16, 1.2], [0, .1, 1.72], 0x263d3b, commandBastionGroup, { metalness: .3, roughness: .52 });
-    box('Command Bastion turret deck', [1.9, .16, 1.2], [0, .1, -1.5], 0x263d3b, commandBastionGroup, { metalness: .3, roughness: .52 });
-    box('Command Bastion west spine', [.12, .12, 3.35], [-.94, .12, .1], 0x6e7d72, commandBastionGroup, { metalness: .48, roughness: .4 });
-    box('Command Bastion east spine', [.12, .12, 3.35], [.94, .12, .1], 0x6e7d72, commandBastionGroup, { metalness: .48, roughness: .4 });
+    commandBastionGroup.name = 'Command Bastion rooftop emplacement';
+    box('Command Bastion shared rooftop deck', [3.55, .22, 1.55], [0, COMMAND_BASTION_DECK_Y - .11, COMMAND_BASTION_CENTER_Z], 0x314c49, commandBastionGroup, { metalness: .42, roughness: .42 });
+    box('Command Bastion front armored lip', [3.55, .34, .16], [0, COMMAND_BASTION_DECK_Y - .02, COMMAND_BASTION_CENTER_Z + .69], 0x203b3c, commandBastionGroup, { metalness: .56, roughness: .34 });
+    box('Command Bastion rear safety rail', [3.55, .42, .12], [0, COMMAND_BASTION_DECK_Y + .18, COMMAND_BASTION_CENTER_Z - .70], 0x6e7d72, commandBastionGroup, { metalness: .58, roughness: .34 });
+    [-1.48, 1.48].forEach(x => {
+      box('Command Bastion rooftop support', [.22, 1.02, .88], [x, .54, COMMAND_BASTION_CENTER_Z], 0x263d3b, commandBastionGroup, { metalness: .46, roughness: .46 });
+      box('Command Bastion side rail', [.12, .42, 1.45], [x, COMMAND_BASTION_DECK_Y + .18, COMMAND_BASTION_CENTER_Z], 0x6e7d72, commandBastionGroup, { metalness: .58, roughness: .34 });
+    });
+    box('Command Bastion access step', [.68, .18, .42], [0, .91, COMMAND_BASTION_CENTER_Z + 1.0], 0x667770, commandBastionGroup, { metalness: .38, roughness: .48 });
+    box('Command Bastion command stripe', [3.18, .025, .18], [0, COMMAND_BASTION_DECK_Y + .015, COMMAND_BASTION_CENTER_Z + .42], 0xd4b45e, commandBastionGroup, { metalness: .42, emissive: 0x473000, emissiveIntensity: .18 });
     staticGroup.add(commandBastionGroup);
 
     commandBastionTier2Group = new THREE.Group();
     commandBastionTier2Group.name = 'Command Bastion level 2 armored rails';
-    box('Bastion west command rail', [.12, .48, 1.22], [-.91, .34, 1.72], 0x355a57, commandBastionTier2Group, { metalness: .48, roughness: .36 });
-    box('Bastion east command rail', [.12, .48, 1.22], [.91, .34, 1.72], 0x355a57, commandBastionTier2Group, { metalness: .48, roughness: .36 });
+    box('Bastion west command shield', [.26, .62, 1.15], [-1.44, COMMAND_BASTION_DECK_Y + .28, COMMAND_BASTION_CENTER_Z], 0x355a57, commandBastionTier2Group, { metalness: .52, roughness: .34 });
+    box('Bastion east command shield', [.26, .62, 1.15], [1.44, COMMAND_BASTION_DECK_Y + .28, COMMAND_BASTION_CENTER_Z], 0x355a57, commandBastionTier2Group, { metalness: .52, roughness: .34 });
     commandBastionTier2Group.visible = false;
     staticGroup.add(commandBastionTier2Group);
 
     commandBastionTier3Group = new THREE.Group();
-    commandBastionTier3Group.name = 'Command Bastion level 3 raised deck';
-    box('Bastion raised command pad', [1.72, .22, .94], [0, .21, 1.72], 0x47645f, commandBastionTier3Group, { metalness: .5, roughness: .36 });
-    box('Bastion command step', [1.2, .16, .35], [0, .08, 2.45], 0x667770, commandBastionTier3Group, { metalness: .38, roughness: .48 });
+    commandBastionTier3Group.name = 'Command Bastion level 3 reinforced deck';
+    box('Bastion reinforced front plate', [2.15, .54, .18], [0, COMMAND_BASTION_DECK_Y - .02, COMMAND_BASTION_CENTER_Z + .71], 0x47645f, commandBastionTier3Group, { metalness: .58, roughness: .32 });
+    box('Bastion stair tread', [1.05, .16, .34], [0, .73, COMMAND_BASTION_CENTER_Z + 1.24], 0x667770, commandBastionTier3Group, { metalness: .4, roughness: .46 });
     commandBastionTier3Group.visible = false;
     staticGroup.add(commandBastionTier3Group);
 
     commandBastionTier4Group = new THREE.Group();
     commandBastionTier4Group.name = 'Command Bastion level 4 armored nest';
-    box('Bastion west armor screen', [.28, .82, .72], [-.78, .55, 1.72], 0x2e5556, commandBastionTier4Group, { metalness: .68, roughness: .28 });
-    box('Bastion east armor screen', [.28, .82, .72], [.78, .55, 1.72], 0x2e5556, commandBastionTier4Group, { metalness: .68, roughness: .28 });
-    [-1,1].forEach(side => shapedMesh('Bastion targeting light', new THREE.SphereGeometry(.07, 8, 6), [side*.79, .98, 1.92], 0x87f5ff, commandBastionTier4Group, { emissive: 0x2dbbd1, emissiveIntensity: 1.2 }));
+    box('Bastion center command console', [.46, .52, .42], [0, COMMAND_BASTION_DECK_Y + .25, COMMAND_BASTION_CENTER_Z - .34], 0x2e5556, commandBastionTier4Group, { metalness: .68, roughness: .28 });
+    [-1,1].forEach(side => shapedMesh('Bastion targeting light', new THREE.SphereGeometry(.07, 8, 6), [side*1.47, COMMAND_BASTION_DECK_Y + .66, COMMAND_BASTION_CENTER_Z - .50], 0x87f5ff, commandBastionTier4Group, { emissive: 0x2dbbd1, emissiveIntensity: 1.2 }));
     commandBastionTier4Group.visible = false;
     staticGroup.add(commandBastionTier4Group);
 
     commandBastionTier5Group = new THREE.Group();
     commandBastionTier5Group.name = 'Command Bastion level 5 command fortress';
-    box('Bastion west energy rail', [.08, .08, 3.3], [-1.02, .82, .08], 0x8ef6ff, commandBastionTier5Group, { emissive: 0x26aabd, emissiveIntensity: 1.25 });
-    box('Bastion east energy rail', [.08, .08, 3.3], [1.02, .82, .08], 0x8ef6ff, commandBastionTier5Group, { emissive: 0x26aabd, emissiveIntensity: 1.25 });
-    box('Bastion command shield lip', [1.76, .18, .12], [0, .84, 2.14], 0x65dce7, commandBastionTier5Group, { metalness: .56, emissive: 0x1c7888, emissiveIntensity: .78 });
+    box('Bastion west energy rail', [.08, .08, 1.35], [-1.62, COMMAND_BASTION_DECK_Y + .52, COMMAND_BASTION_CENTER_Z], 0x8ef6ff, commandBastionTier5Group, { emissive: 0x26aabd, emissiveIntensity: 1.25 });
+    box('Bastion east energy rail', [.08, .08, 1.35], [1.62, COMMAND_BASTION_DECK_Y + .52, COMMAND_BASTION_CENTER_Z], 0x8ef6ff, commandBastionTier5Group, { emissive: 0x26aabd, emissiveIntensity: 1.25 });
+    box('Bastion command shield lip', [3.1, .12, .12], [0, COMMAND_BASTION_DECK_Y + .56, COMMAND_BASTION_CENTER_Z - .64], 0x65dce7, commandBastionTier5Group, { metalness: .56, emissive: 0x1c7888, emissiveIntensity: .78 });
     commandBastionTier5Group.visible = false;
     staticGroup.add(commandBastionTier5Group);
     hqFallbackGroup = new THREE.Group();
     hqFallbackGroup.name = 'HQ loading fallback';
     staticGroup.add(hqFallbackGroup);
-    box('HQ fallback body', [2.35, 1.45, 1.85], [0, 1.02, .2], 0x465c58, hqFallbackGroup);
-    box('HQ fallback upper', [1.45, .65, 1.15], [0, 2.05, .28], 0x687c76, hqFallbackGroup);
-    box('HQ fallback mast', [.08, 1.3, .08], [0, 3, .28], 0xd0ded8, hqFallbackGroup, { metalness: .4 });
+    box('HQ fallback body', [2.35, .72, 1.85], [0, .5, .2], 0x465c58, hqFallbackGroup);
+    box('HQ fallback upper', [1.45, .28, 1.15], [0, .91, .28], 0x687c76, hqFallbackGroup);
+    box('HQ fallback mast', [.08, 1.3, .08], [0, 1.68, .28], 0xd0ded8, hqFallbackGroup, { metalness: .4 });
 
     hqReinforcementGroup = new THREE.Group();
     hqReinforcementGroup.name = 'HQ level 2 reinforced compound';
@@ -804,16 +813,20 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     return 'soldier';
   }
 
-  function zombieTint(kind, variant) {
-    if (kind === 'boss') return 0x9b4038;
+  function zombieTint(kind, variant, bossGrade) {
+    if (kind === 'boss') {
+      const grade = Math.max(1, Math.min(3, Number(bossGrade) || 1));
+      return grade === 3 ? 0x63332f : grade === 2 ? 0x7d3e36 : 0x9b4038;
+    }
     if (kind === 'armored') return 0x786b4d;
     if (kind === 'runner') return 0x829ba6;
     if (variant === 'scout') return 0x9a8d83;
     return 0x789078;
   }
 
-  function tintZombie(root, kind, variant) {
-    const tintColor = new THREE.Color(zombieTint(kind, variant));
+  function tintZombie(root, kind, variant, bossGrade) {
+    const tintColor = new THREE.Color(zombieTint(kind, variant, bossGrade));
+    const grade = kind === 'boss' ? Math.max(1, Math.min(3, Number(bossGrade) || 1)) : 0;
     const materials = [];
 
     root.traverse(child => {
@@ -822,7 +835,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       const tinted = sources.map(source => {
         if (!source) return source;
         const copy = source.clone();
-        if (copy.color) copy.color.multiply(tintColor).lerp(new THREE.Color(0xffffff), .32);
+        if (copy.color) copy.color.multiply(tintColor).lerp(new THREE.Color(0xffffff), kind === 'boss' ? .18 : .32);
+        if (kind === 'boss') {
+          copy.roughness = grade >= 3 ? .9 : grade === 2 ? .82 : .74;
+          copy.metalness = Math.min(.16, Number(copy.metalness) || 0);
+        }
         copy.transparent = false;
         copy.opacity = 1;
         copy.needsUpdate = true;
@@ -833,30 +850,6 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     });
 
     return materials;
-  }
-
-  function addBossArmor(root, grade) {
-    if (!root || grade < 2) return { materials: [], geometries: [] };
-    const armor = new THREE.Group();
-    armor.name = grade >= 3 ? 'Siege Breaker veteran armor' : 'Siege Breaker reinforced armor';
-    box('Siege Breaker chest plate', [.82, .36, .22], [0, 1.12, .28], grade >= 3 ? 0x6a342d : 0x55443a, armor, { metalness: .58, roughness: .34 });
-    shapedMesh('Siege Breaker left shoulder plate', new THREE.SphereGeometry(.23, 9, 7), [-.46, 1.3, .02], grade >= 3 ? 0x82382f : 0x645246, armor, { metalness: .46, roughness: .4 });
-    shapedMesh('Siege Breaker right shoulder plate', new THREE.SphereGeometry(.23, 9, 7), [.46, 1.3, .02], grade >= 3 ? 0x82382f : 0x645246, armor, { metalness: .46, roughness: .4 });
-    if (grade >= 3) {
-      shapedMesh('Siege Breaker warning core', new THREE.SphereGeometry(.09, 9, 6), [0, 1.13, .41], 0xff6d3c, armor, { emissive: 0x8a1d0c, emissiveIntensity: 1.35 });
-      box('Siege Breaker back spine', [.16, .62, .2], [0, 1.48, -.21], 0x3f2422, armor, { metalness: .62, roughness: .3 });
-    }
-    root.add(armor);
-    const materials = [];
-    const geometries = [];
-    armor.traverse(child => {
-      if (!child.isMesh) return;
-      if (child.geometry) geometries.push(child.geometry);
-      (Array.isArray(child.material) ? child.material : [child.material]).forEach(material => {
-        if (material) materials.push(material);
-      });
-    });
-    return { materials, geometries };
   }
 
   function findHips(root) {
@@ -877,12 +870,12 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     root.name = entity.kind === 'boss' ? 'Infected boss' : 'Infected enemy';
     root.add(model);
     root.scale.setScalar(scale || 1);
-    const bossArmorResources = entity.kind === 'boss'
-      ? addBossArmor(root, Math.max(1, Number(entity.bossGrade) || 1))
-      : { materials: [], geometries: [] };
     scene.add(root);
 
-    const materials = tintZombie(model, entity.kind, variant).concat(bossArmorResources.materials);
+    // Boss distinction is deliberately material-only. The imported animation
+    // has no stable attachment sockets, so procedural armor would drift away
+    // from the body as the skeleton moves.
+    const materials = tintZombie(model, entity.kind, variant, entity.bossGrade);
     const mixer = new THREE.AnimationMixer(root);
     const actions = {
       run: mixer.clipAction(clips.run),
@@ -903,7 +896,6 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       hips,
       hipsAnchor: hips ? hips.position.clone() : null,
       materials,
-      ownedGeometries: bossArmorResources.geometries,
     };
     units.set(entity, record);
     return record;
@@ -1054,7 +1046,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       heroMixer.update(dt);
     }
     const p = world(run.hero, run);
-    heroGroup.position.set(p[0], Math.sin(run.elapsed * 2.8) * .018, p[1]);
+    heroGroup.position.set(p[0], COMMAND_BASTION_DECK_Y + Math.sin(run.elapsed * 2.8) * .018, p[1]);
     const visualTier = Math.max(1, Math.min(5, Number(run.commanderVisualTier) || 1));
     // Mastery adds armor mass and presence, not giant height. The final tier is
     // roughly fourteen percent broader and only three percent taller.
@@ -1074,7 +1066,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   function syncTurret(run) {
     if (!turretGroup || !turretYaw) return;
     const p = world(run.turret, run);
-    turretGroup.position.set(p[0], 0, p[1]);
+    turretGroup.position.set(p[0], COMMAND_BASTION_DECK_Y, p[1]);
     turretYaw.rotation.y = -(run.turret.aim || 0) + Math.PI / 2;
     turretGroup.visible = true;
     const level = Math.max(1, Number(run.hq && run.hq.level) || 1);
@@ -1148,8 +1140,13 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       live.add(bullet);
       const previous = world({ x: bullet.px, y: bullet.py }, run);
       const current = world(bullet, run);
-      const start = new THREE.Vector3(previous[0], .8, previous[1]);
-      const end = new THREE.Vector3(current[0], .8, current[1]);
+      const tracerHeight = bullet.source === 'commander'
+        ? COMMAND_BASTION_DECK_Y + 1.08
+        : bullet.source === 'turret'
+          ? COMMAND_BASTION_DECK_Y + .76
+          : .8;
+      const start = new THREE.Vector3(previous[0], tracerHeight, previous[1]);
+      const end = new THREE.Vector3(current[0], tracerHeight, current[1]);
       const direction = end.clone().sub(start);
       const length = Math.max(.05, direction.length());
       record.tracer.position.copy(start).add(end).multiplyScalar(.5);
@@ -1227,7 +1224,6 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     record.mixer.stopAllAction();
     scene.remove(record.root);
     record.materials.forEach(item => item && item.dispose && item.dispose());
-    (record.ownedGeometries || []).forEach(item => item && item.dispose && item.dispose());
     units.delete(entity);
   }
 
