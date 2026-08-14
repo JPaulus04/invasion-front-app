@@ -1,4 +1,4 @@
-// Build 174 — Persistent Daily Operation levels with sustainable reward growth.
+// Build 175 — QA access, Operation ladder clarity, and guarded auto-clear.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -60,6 +60,7 @@
   var activeResearchBranch = 'fire-control';
   var activeInventoryFilter = 'all';
   var selectedInventoryUid = null;
+  var operationNotice = null;
   var RESEARCH_SCHEMA = 166;
   var EQUIPMENT_SCHEMA = 167;
   var COMMANDER_SCHEMA = 168;
@@ -67,7 +68,10 @@
   var ENERGY_MAX = 9;
   var ENERGY_RECHARGE_MS = 45 * 60 * 1000;
   var CAMPAIGN_DEPLOY_ENERGY = 3;
-  var OPERATION_SCHEMA = 174;
+  var OPERATION_SCHEMA = 175;
+  // Build-scoped QA access deliberately expires as soon as LSC_BUILD changes.
+  // It never mutates the stored energy reserve or duplicates daily resources.
+  var QA_TEST_ACCESS = typeof LSC_BUILD !== 'undefined' && String(LSC_BUILD) === '175';
   // This is only a damaged-save guard, not a designed progression ceiling.
   var OPERATION_LEVEL_GUARD = 9999;
   var COMMANDER_MAX_LEVEL = 20;
@@ -204,7 +208,7 @@
       if(typeof haptic==='function')haptic(key);
     }catch(e){}
   }
-  function defaults() { return { credits: 500, parts: 12, phase: 1, bestPhase: 0, commander: 1, commanderSchema:COMMANDER_SCHEMA, commanderNotice:null, research: 0, researchSchema:RESEARCH_SCHEMA, researchNodes:{}, researchPoints:0, legacyResearchLevels:0, legacyResearchDamage:0, hq: 1, phaseLosses: {}, equipmentSchema:EQUIPMENT_SCHEMA, equipment:[], equipped:{weapon:null,rig:null,module:null}, equipmentNextId:1, equipmentNotice:null, energySchema:ENERGY_SCHEMA, energy:ENERGY_MAX, energyMax:ENERGY_MAX, energyUpdatedAt:Date.now(), campaignRetryPhase:null, operationSchema:OPERATION_SCHEMA, operationLevel:1, operationLastClearDay:'' }; }
+  function defaults() { return { credits: 500, parts: 12, phase: 1, bestPhase: 0, commander: 1, commanderSchema:COMMANDER_SCHEMA, commanderNotice:null, research: 0, researchSchema:RESEARCH_SCHEMA, researchNodes:{}, researchPoints:0, legacyResearchLevels:0, legacyResearchDamage:0, hq: 1, phaseLosses: {}, equipmentSchema:EQUIPMENT_SCHEMA, equipment:[], equipped:{weapon:null,rig:null,module:null}, equipmentNextId:1, equipmentNotice:null, energySchema:ENERGY_SCHEMA, energy:ENERGY_MAX, energyMax:ENERGY_MAX, energyUpdatedAt:Date.now(), campaignRetryPhase:null, operationSchema:OPERATION_SCHEMA, operationLevel:1, operationManualBest:0, operationLastClearDay:'' }; }
   function loadMeta() {
     try {
       var source=JSON.parse(localStorage.getItem(META_KEY) || '{}');
@@ -280,11 +284,18 @@
       loaded.campaignRetryPhase=loaded.campaignRetryPhase==null?null:Math.max(1,Math.floor(Number(loaded.campaignRetryPhase)||1));
       loaded.operationLastClearDay=String(loaded.operationLastClearDay||'');
       loaded.operationLevel=Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(loaded.operationLevel)||1)));
-      if(Math.max(0,Number(source.operationSchema)||0)<OPERATION_SCHEMA&&loaded.operationLastClearDay){
+      var sourceOperationSchema=Math.max(0,Number(source.operationSchema)||0);
+      if(sourceOperationSchema<174&&loaded.operationLastClearDay){
         // Anyone who already completed the original unnumbered operation has
         // earned Level 2. Its daily claim remains intact; migration never
         // grants a second reward on the same calendar day.
         loaded.operationLevel=Math.max(2,loaded.operationLevel);
+      }
+      loaded.operationManualBest=Math.max(0,Math.min(loaded.operationLevel-1,Math.floor(Number(loaded.operationManualBest)||0)));
+      if(sourceOperationSchema<OPERATION_SCHEMA){
+        // Every pre-175 Operation clear was manual, so existing commanders
+        // retain the auto-clear eligibility they already earned.
+        loaded.operationManualBest=Math.max(loaded.operationManualBest,loaded.operationLevel-1);
       }
       loaded.operationSchema=OPERATION_SCHEMA;
       loaded.energySchema=ENERGY_SCHEMA;
@@ -294,6 +305,7 @@
   }
   function saveMeta() { localStorage.setItem(META_KEY, JSON.stringify(meta)); }
   function availableEnergy(){
+    if(QA_TEST_ACCESS)return meta.energyMax;
     var now=Date.now();
     if(meta.energy<meta.energyMax){
       var recovered=Math.floor(Math.max(0,now-meta.energyUpdatedAt)/ENERGY_RECHARGE_MS);
@@ -303,6 +315,7 @@
   }
   function reserveEnergy(cost){
     cost=Math.max(0,Math.floor(Number(cost)||0));
+    if(QA_TEST_ACCESS)return true;
     if(availableEnergy()<cost)return false;
     if(meta.energy===meta.energyMax)meta.energyUpdatedAt=Date.now();
     meta.energy-=cost;saveMeta();return true;
@@ -311,7 +324,8 @@
     var value=date||new Date();
     return value.getFullYear()+'-'+String(value.getMonth()+1).padStart(2,'0')+'-'+String(value.getDate()).padStart(2,'0');
   }
-  function operationAvailable(){return meta.operationLastClearDay!==localDayKey();}
+  function operationRewardAvailable(){return meta.operationLastClearDay!==localDayKey();}
+  function operationAvailable(){return QA_TEST_ACCESS||operationRewardAvailable();}
   function operationDifficulty(level){
     level=Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(level)||1)));
     var depth=Math.log(level)/Math.LN2;
@@ -334,8 +348,30 @@
     level=Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(level)||1)));
     return Math.min(3,1+Math.floor((level-1)/20));
   }
+  function operationRecommendedPower(level){
+    var curve=operationDifficulty(level);
+    var pressure=curve.health*.35+curve.damage*.25+curve.bossHealth*.25+curve.bossDamage*.15;
+    return Math.max(200,Math.round(recommendedPower(meta.phase)*.82*pressure/5)*5);
+  }
+  function operationAutoClearState(level){
+    level=Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(level)||1)));
+    var recommended=operationRecommendedPower(level),required=Math.ceil(recommended*1.15/5)*5;
+    var manualRequired=Math.max(1,level-1),manualReady=meta.operationManualBest>=manualRequired,powerReady=currentPower()>=required,rewardReady=operationRewardAvailable();
+    return {level:level,recommended:recommended,required:required,manualRequired:manualRequired,manualReady:manualReady,powerReady:powerReady,rewardReady:rewardReady,available:manualReady&&powerReady&&(QA_TEST_ACCESS||rewardReady)};
+  }
+  function autoClearOperation(){
+    var level=meta.operationLevel,state=operationAutoClearState(level);
+    if(!state.available)return;
+    var rewarded=operationRewardAvailable(),credits=rewarded?operationRewardCredits(level):0,parts=rewarded?operationRewardParts(level):0;
+    meta.credits+=credits;meta.parts+=parts;
+    if(rewarded)meta.operationLastClearDay=localDayKey();
+    meta.operationLevel=Math.min(OPERATION_LEVEL_GUARD,level+1);
+    operationNotice={level:level,nextLevel:meta.operationLevel,rewarded:rewarded,credits:credits,parts:parts};
+    saveMeta();combatSfx('victory');combatHaptic('success',250);renderTab('campaign');
+  }
   function isFreeCampaignRetry(phase){return meta.campaignRetryPhase===Math.max(1,Math.floor(Number(phase)||1));}
   function energyRechargeCopy(){
+    if(QA_TEST_ACCESS)return'BUILD 175 QA ACCESS';
     availableEnergy();
     if(meta.energy>=meta.energyMax)return'RESERVE FULL';
     var remaining=Math.max(0,ENERGY_RECHARGE_MS-(Date.now()-meta.energyUpdatedAt));
@@ -345,6 +381,7 @@
   function energyCardMarkup(){
     var energy=availableEnergy(),pips='';
     for(var index=0;index<meta.energyMax;index++)pips+='<i class="'+(index<energy?'full':'')+'"></i>';
+    if(QA_TEST_ACCESS)return '<div class="l171-energy-card l175-qa-energy"><div class="l171-energy-head"><b>COMMAND ENERGY · QA</b><strong>∞</strong></div><div class="l171-energy-copy"><span>CAMPAIGN ENERGY IS NOT CONSUMED IN THIS TEST BUILD.</span><span>'+energyRechargeCopy()+'</span></div><div class="l171-energy-pips">'+pips+'</div><div class="l171-energy-copy"><span>UNLIMITED DEPLOYMENTS</span><span>STORED RESERVE UNCHANGED</span></div></div>';
     return '<div class="l171-energy-card"><div class="l171-energy-head"><b>COMMAND ENERGY</b><strong>'+energy+' / '+meta.energyMax+'</strong></div><div class="l171-energy-copy"><span>ONE ENERGY IS COMMITTED AT THE START OF EACH ASSAULT.</span><span>'+energyRechargeCopy()+'</span></div><div class="l171-energy-pips">'+pips+'</div><div class="l171-energy-copy"><span>'+CAMPAIGN_DEPLOY_ENERGY+' ENERGY REQUIRED TO DEPLOY</span><span>'+(energy>=CAMPAIGN_DEPLOY_ENERGY?'READY':'RECHARGING')+'</span></div></div>';
   }
   function commanderTier(level){
@@ -616,7 +653,8 @@
       '#l139-pause{position:fixed;z-index:33000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.9);backdrop-filter:blur(8px)}#l139-pause.show{display:flex}.l139-pause-card{width:min(400px,100%);padding:20px;border:1px solid rgba(34,212,255,.4);border-radius:18px;background:#08141b}.l139-setting{display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:9px}.l139-setting button{min-width:58px}' +
       '#lsc161-loading{position:fixed;z-index:32950;inset:0;display:none;place-items:center;padding:24px;background:radial-gradient(circle at 50% 42%,rgba(24,74,89,.78),transparent 38%),linear-gradient(180deg,#07131a,#02070a);color:#fff;text-align:center}#lsc161-loading.show{display:grid}.l161-load-mark{width:82px;height:82px;margin:0 auto 18px;border:2px solid #74e9ff;border-radius:24px;display:grid;place-items:center;color:#ffd166;font-size:31px;font-weight:900;box-shadow:0 0 36px rgba(34,212,255,.25),inset 0 0 22px rgba(34,212,255,.08)}.l161-load-title{font-size:24px;font-weight:900;letter-spacing:1px}.l161-load-copy{margin-top:6px;color:#74e9ff;font:8px "Share Tech Mono",monospace;letter-spacing:1.7px}.l161-load-track{width:min(260px,72vw);height:5px;margin:20px auto 0;overflow:hidden;border-radius:5px;background:#142731}.l161-load-bar{width:44%;height:100%;background:linear-gradient(90deg,transparent,#74e9ff,#ffd166,transparent);animation:l161LoadSweep 1.15s ease-in-out infinite}@keyframes l161LoadSweep{0%{transform:translateX(-115%)}100%{transform:translateX(255%)}}' +
       '.l139-progress{position:absolute;z-index:39;left:12px;right:108px;top:calc(env(safe-area-inset-top,0px) + 7px);height:35px;pointer-events:none}.l139-progress-track{height:6px;margin-top:4px;border-radius:6px;background:#182a32;overflow:hidden}.l139-progress-fill{height:100%;background:linear-gradient(90deg,#22d4ff,#18f06a);box-shadow:0 0 10px #22d4ff}.l139-progress-text{font:8px "Share Tech Mono",monospace;color:#fff;display:flex;justify-content:space-between}' +
-      '.l171-energy-card{margin-top:10px;padding:11px 12px;border:1px solid rgba(255,209,102,.4);border-radius:13px;background:linear-gradient(145deg,rgba(68,51,17,.32),rgba(7,19,24,.96))}.l171-energy-head{display:flex;align-items:end;justify-content:space-between;gap:12px}.l171-energy-head b{color:#ffd166;font-size:14px}.l171-energy-head strong{font-size:20px}.l171-energy-copy{display:flex;justify-content:space-between;gap:8px;margin-top:3px;color:#97a7ad;font:6px "Share Tech Mono",monospace}.l171-energy-pips{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-top:9px}.l171-energy-pips i{height:6px;border-radius:6px;background:#17272d;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}.l171-energy-pips i.full{background:#ffd166;box-shadow:0 0 8px rgba(255,209,102,.34)}.l171-operation-card{margin-top:10px;padding:12px;border:1px solid rgba(34,212,255,.34);border-radius:13px;background:linear-gradient(145deg,rgba(8,43,54,.74),rgba(6,16,22,.98))}.l171-operation-card h3{margin:2px 0 4px;color:#84efff;font-size:18px}.l171-operation-card p{margin:0;color:#aab8bd;font:7px/1.45 "Share Tech Mono",monospace}.l171-operation-state{display:flex;justify-content:space-between;gap:8px;margin:9px 0;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:8px;font:6px "Share Tech Mono",monospace}.l171-operation-state span:last-child{text-align:right;color:#9cecff}.l171-pass-placeholder{margin-top:9px;padding:9px;border:1px dashed rgba(255,209,102,.35);border-radius:9px;color:#9eaaae;font:6px/1.4 "Share Tech Mono",monospace}.l171-pass-placeholder b{display:block;color:#ffd166;font-size:8px}.l171-energy-row{color:#ffd166!important}.l172-operation-mode #lsc168-command{border-color:#63efff;background:#073f50}.l172-operation-mode #lsc137-ability{border-color:#ffd166;background:#503b0b}.l172-operation-mode .l168-boss-hud .l139-progress-track{border-color:#ff9f54}.l172-operation-mode .l139-progress-fill{background:linear-gradient(90deg,#45e7ff,#68ffa9)}';
+      '.l171-energy-card{margin-top:10px;padding:11px 12px;border:1px solid rgba(255,209,102,.4);border-radius:13px;background:linear-gradient(145deg,rgba(68,51,17,.32),rgba(7,19,24,.96))}.l171-energy-head{display:flex;align-items:end;justify-content:space-between;gap:12px}.l171-energy-head b{color:#ffd166;font-size:14px}.l171-energy-head strong{font-size:20px}.l171-energy-copy{display:flex;justify-content:space-between;gap:8px;margin-top:3px;color:#97a7ad;font:6px "Share Tech Mono",monospace}.l171-energy-pips{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-top:9px}.l171-energy-pips i{height:6px;border-radius:6px;background:#17272d;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}.l171-energy-pips i.full{background:#ffd166;box-shadow:0 0 8px rgba(255,209,102,.34)}.l171-operation-card{margin-top:10px;padding:12px;border:1px solid rgba(34,212,255,.34);border-radius:13px;background:linear-gradient(145deg,rgba(8,43,54,.74),rgba(6,16,22,.98))}.l171-operation-card h3{margin:2px 0 4px;color:#84efff;font-size:18px}.l171-operation-card p{margin:0;color:#aab8bd;font:7px/1.45 "Share Tech Mono",monospace}.l171-operation-state{display:flex;justify-content:space-between;gap:8px;margin:9px 0;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:8px;font:6px "Share Tech Mono",monospace}.l171-operation-state span:last-child{text-align:right;color:#9cecff}.l171-pass-placeholder{margin-top:9px;padding:9px;border:1px dashed rgba(255,209,102,.35);border-radius:9px;color:#9eaaae;font:6px/1.4 "Share Tech Mono",monospace}.l171-pass-placeholder b{display:block;color:#ffd166;font-size:8px}.l171-energy-row{color:#ffd166!important}.l172-operation-mode #lsc168-command{border-color:#63efff;background:#073f50}.l172-operation-mode #lsc137-ability{border-color:#ffd166;background:#503b0b}.l172-operation-mode .l168-boss-hud .l139-progress-track{border-color:#ff9f54}.l172-operation-mode .l139-progress-fill{background:linear-gradient(90deg,#45e7ff,#68ffa9)}'+
+      '.l175-qa-banner{margin-bottom:10px;padding:9px 11px;border:1px solid rgba(255,209,102,.6);border-radius:10px;background:rgba(78,55,8,.45);color:#d7e1e4;font:7px/1.45 "Share Tech Mono",monospace}.l175-qa-banner b{display:block;color:#ffd166;font-size:9px}.l175-qa-energy{box-shadow:0 0 18px rgba(255,209,102,.12)}.l175-operation-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:9px 0}.l175-operation-grid div{padding:7px 4px;border:1px solid rgba(255,255,255,.08);border-radius:8px;text-align:center}.l175-operation-grid span{display:block;color:#7e939a;font:6px "Share Tech Mono",monospace}.l175-operation-grid b{display:block;margin-top:2px;color:#eef6f7;font-size:12px}.l175-operation-notice{margin:8px 0;padding:8px;border:1px solid rgba(83,244,162,.55);border-radius:8px;background:rgba(13,80,51,.28);color:#9ff7c8;font:7px/1.4 "Share Tech Mono",monospace}.l175-operation-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.l175-operation-actions .l137-btn{margin-top:0;min-height:47px;padding:8px 5px;font-size:9px}.l175-auto-copy{margin:7px 0;color:#94a5aa;font:6px/1.4 "Share Tech Mono",monospace}.l175-no-reward{padding:8px;color:#9cecff;font:10px "Share Tech Mono",monospace;text-align:center}';
     document.head.appendChild(s);
   }
 
@@ -665,7 +703,7 @@
       if(!run)return;
       var operation=!!run.operation,won=!!run.won,phase=run.phase,operationLevel=run.operationLevel;
       id('lsc137-result').classList.remove('show');
-      if(operation){if(won)returnHome();else launchPhase({phase:phase,operation:true,operationLevel:operationLevel});}
+      if(operation){if(won&&QA_TEST_ACCESS)launchPhase({phase:phase,operation:true,operationLevel:meta.operationLevel});else if(won)returnHome();else launchPhase({phase:phase,operation:true,operationLevel:operationLevel,operationRewardEligible:run.operationRewardEligible});}
       else launchPhase({phase:won?meta.phase:phase});
     };
     id('l137-retry').onclick = function () { var phase = run && run.phase ? run.phase : meta.phase; id('lsc137-result').classList.remove('show'); launchPhase({phase:phase}); };
@@ -685,7 +723,7 @@
     }
     var pause=document.createElement('div');pause.id='l139-pause';pause.innerHTML='<div class="l139-pause-card"><div class="l137-kicker">BATTLE PAUSED</div><div class="l137-h2">COMMAND MENU</div><div class="l137-actions"><button class="l137-btn good" id="l139-resume">RESUME BATTLE</button><button class="l137-btn" id="l139-restart">RESTART PHASE</button><button class="l137-btn" id="l139-return">RETURN TO COMMAND BASE</button></div><div class="l137-kicker" style="margin-top:16px">SETTINGS</div><div class="l139-setting"><span>Music</span><button class="l137-btn" data-setting="music">ON</button></div><div class="l139-setting"><span>Sound Effects</span><button class="l137-btn" data-setting="sound">ON</button></div><div class="l139-setting"><span>Haptics</span><button class="l137-btn" data-setting="haptics">ON</button></div></div>';document.body.appendChild(pause);
     id('l139-resume').onclick=closePause;
-    id('l139-restart').onclick=function(){if(confirm('Restart this deployment? Current battle progress will be lost.')){var settings=run?{phase:run.phase,operation:!!run.operation,operationLevel:run.operationLevel,restart:true,freeRetry:!!run.freeRetry,energyCommitted:run.energyCommitted||0}:null;closePause();launchPhase(settings);}};
+    id('l139-restart').onclick=function(){if(confirm('Restart this deployment? Current battle progress will be lost.')){var settings=run?{phase:run.phase,operation:!!run.operation,operationLevel:run.operationLevel,operationRewardEligible:run.operationRewardEligible,restart:true,freeRetry:!!run.freeRetry,energyCommitted:run.energyCommitted||0}:null;closePause();launchPhase(settings);}};
     id('l139-return').onclick=function(){if(confirm('Return to Command Base? Current battle progress will be lost.')){closePause();returnHome();}};
     pause.addEventListener('click',function(e){var b=e.target.closest('[data-setting]');if(!b)return;toggleBattleSetting(b.dataset.setting);});
     syncBattleSettings();
@@ -717,7 +755,8 @@
   }
 
   function refreshHeader() {
-    id('l137-res').innerHTML = '<div class="l166-resource-row">'+resourceMarkup('power',currentPower(),'POWER')+'</div><div class="l166-resource-row">'+resourcePair(meta.credits,meta.parts)+'</div><div class="l166-resource-row l171-energy-row">'+resourceMarkup('power',availableEnergy(),'/ '+meta.energyMax+' ENERGY')+'</div>';
+    var energyResource=QA_TEST_ACCESS?'<span class="l166-resource power">'+resourceIcon('power')+'<b>∞</b><span>ENERGY · QA</span></span>':resourceMarkup('power',availableEnergy(),'/ '+meta.energyMax+' ENERGY');
+    id('l137-res').innerHTML = '<div class="l166-resource-row">'+resourceMarkup('power',currentPower(),'POWER')+'</div><div class="l166-resource-row">'+resourcePair(meta.credits,meta.parts)+'</div><div class="l166-resource-row l171-energy-row">'+energyResource+'</div>';
     var visibleTier=Math.min(5,Math.max(1,meta.hq));
     id('l137-hq-lv').textContent = HQ_TIER_NAMES[visibleTier-1]+' · LEVEL ' + meta.hq;
     var art=document.querySelector('.l137-hq-art');if(art)art.setAttribute('data-tier',String(Math.min(5,Math.max(1,meta.hq))));
@@ -800,8 +839,13 @@
     Array.prototype.forEach.call(id('l137-nav').children, function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
     var p = id('l137-panel');
     if (tab === 'campaign') {
-      var support=retryAssist(meta.phase),supportText=support>0?'<small>RETRY SUPPORT ACTIVE · ENEMY HEALTH AND DAMAGE -'+Math.round(support*100)+'%</small>':'',power=powerAssessment(meta.phase),energy=availableEnergy(),freeRetry=isFreeCampaignRetry(meta.phase),operationOpen=operationAvailable(),operationLevel=meta.operationLevel,operationCredits=operationRewardCredits(operationLevel),operationParts=operationRewardParts(operationLevel);
-      p.innerHTML = '<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small class="l166-cost">' + resourcePair(victoryRewardPreview(meta.phase),3) + '</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div>'+energyCardMarkup()+'<button class="l137-btn good l137-deploy" id="l137-deploy" '+(!freeRetry&&energy<CAMPAIGN_DEPLOY_ENERGY?'disabled':'')+'>'+(freeRetry?'RETRY PHASE '+meta.phase+' · ENERGY FREE':'CHALLENGE PHASE '+meta.phase+' · '+CAMPAIGN_DEPLOY_ENERGY+' ENERGY')+'</button><section class="l171-operation-card"><div class="l137-kicker">SPECIAL OPERATIONS · DAILY</div><h3>CONTAINMENT SWEEP · LEVEL '+operationLevel+'</h3><p>Hold the forward three-lane command line. A successful clear unlocks the next level; campaign energy is not consumed.</p><div class="l171-operation-state"><span>'+resourcePair(operationCredits,operationParts)+'</span><span>LEVEL '+operationLevel+' REWARD · ONE CLEAR PER DAY<br>CLEAR LEVEL '+operationLevel+' TO UNLOCK LEVEL '+Math.min(OPERATION_LEVEL_GUARD,operationLevel+1)+'</span></div><button class="l137-btn good l137-deploy" id="l171-operation" '+(operationOpen?'':'disabled')+'>'+(operationOpen?'DEPLOY LEVEL '+operationLevel:'LEVEL '+operationLevel+' REWARD CLAIMED')+'</button></section><div class="l171-pass-placeholder"><b>COMMAND PASS · COMING SOON</b>Future convenience option. No purchase, ad skip, unlimited energy, or auto-clear is active in this build.</div>';
+      var support=retryAssist(meta.phase),supportText=support>0?'<small>RETRY SUPPORT ACTIVE · ENEMY HEALTH AND DAMAGE -'+Math.round(support*100)+'%</small>':'',power=powerAssessment(meta.phase),energy=availableEnergy(),freeRetry=isFreeCampaignRetry(meta.phase),operationOpen=operationAvailable(),operationRewardOpen=operationRewardAvailable(),operationLevel=meta.operationLevel,operationCredits=operationRewardCredits(operationLevel),operationParts=operationRewardParts(operationLevel),nextOperationLevel=Math.min(OPERATION_LEVEL_GUARD,operationLevel+1),autoClear=operationAutoClearState(operationLevel);
+      var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 175 · QA TEST ACCESS</b>UNLIMITED CAMPAIGN ENERGY · REPEATABLE OPERATIONS · ONLY THE FIRST OPERATION CLEAR OF THE DAY AWARDS RESOURCES</div>':'';
+      var notice=operationNotice?'<div class="l175-operation-notice">AUTO-CLEAR LEVEL '+operationNotice.level+' COMPLETE · LEVEL '+operationNotice.nextLevel+' UNLOCKED · '+(operationNotice.rewarded?formatNumber(operationNotice.credits)+' CREDITS + '+operationNotice.parts+' TECH PART'+(operationNotice.parts===1?'':'S'):'NO ADDITIONAL DAILY RESOURCES')+'</div>':'';
+      var rewardState=operationRewardOpen?'DAILY REWARD AVAILABLE':QA_TEST_ACCESS?'DAILY REWARD CLAIMED · QA PROGRESSION REMAINS OPEN':'DAILY REWARD CLAIMED';
+      var autoLabel=autoClear.available?'AUTO-CLEAR LEVEL '+operationLevel:!autoClear.manualReady?'AUTO-CLEAR LOCKED · MANUAL CLEAR '+autoClear.manualRequired:!autoClear.powerReady?'AUTO-CLEAR REQUIRES '+autoClear.required+' POWER':'AUTO-CLEAR USED TODAY';
+      var campaignLabel=freeRetry?'RETRY PHASE '+meta.phase+' · ENERGY FREE':QA_TEST_ACCESS?'CHALLENGE PHASE '+meta.phase+' · QA ENERGY FREE':'CHALLENGE PHASE '+meta.phase+' · '+CAMPAIGN_DEPLOY_ENERGY+' ENERGY';
+      p.innerHTML = qaBanner+'<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small class="l166-cost">' + resourcePair(victoryRewardPreview(meta.phase),3) + '</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div>'+energyCardMarkup()+'<button class="l137-btn good l137-deploy" id="l137-deploy" '+(!freeRetry&&energy<CAMPAIGN_DEPLOY_ENERGY?'disabled':'')+'>'+campaignLabel+'</button><section class="l171-operation-card"><div class="l137-kicker">SPECIAL OPERATIONS · DAILY LADDER</div><h3>CONTAINMENT SWEEP · LEVEL '+operationLevel+'</h3><p>Hold the forward three-lane command line. Manual clears advance the ladder and unlock guarded auto-clear access for the following level.</p>'+notice+'<div class="l175-operation-grid"><div><span>CURRENT POWER</span><b>'+currentPower()+'</b></div><div><span>RECOMMENDED</span><b>'+autoClear.recommended+'</b></div><div><span>BEST MANUAL</span><b>LEVEL '+meta.operationManualBest+'</b></div></div><div class="l171-operation-state"><span>'+resourcePair(operationCredits,operationParts)+'</span><span>LEVEL '+operationLevel+' DAILY REWARD<br>'+rewardState+'<br>NEXT LEVEL '+nextOperationLevel+' · '+formatNumber(operationRewardCredits(nextOperationLevel))+' CREDITS</span></div><div class="l175-auto-copy">AUTO-CLEAR REQUIRES A MANUAL CLEAR OF THE PREVIOUS LEVEL AND '+autoClear.required+' POWER. IT ADVANCES ONE LEVEL AND USES THE SAME DAILY REWARD CLAIM.</div><div class="l175-operation-actions"><button class="l137-btn good" id="l171-operation" '+(operationOpen?'':'disabled')+'>'+(operationOpen?(QA_TEST_ACCESS?'DEPLOY LEVEL '+operationLevel+' · QA REPEAT':'DEPLOY LEVEL '+operationLevel):'LEVEL '+operationLevel+' REWARD CLAIMED')+'</button><button class="l137-btn" id="l175-auto-clear" '+(autoClear.available?'':'disabled')+'>'+autoLabel+'</button></div></section><div class="l171-pass-placeholder"><b>COMMAND PASS · COMING SOON</b>Auto-clear is being validated as a convenience feature. No purchase, ad skip, or production unlimited-energy benefit is active in this build.</div>';
     }
     if (tab === 'commander') renderCommanderTab(p);
     if (tab === 'research') renderResearchTab(p);
@@ -809,6 +853,7 @@
     if (tab === 'inventory') renderInventoryTab(p);
     var dep = id('l137-deploy'); if (dep) dep.onclick = function(){launchPhase({phase:meta.phase});};
     var operationButton=id('l171-operation');if(operationButton)operationButton.onclick=function(){launchPhase({phase:meta.phase,operation:true,operationLevel:meta.operationLevel});};
+    var autoClearButton=id('l175-auto-clear');if(autoClearButton)autoClearButton.onclick=autoClearOperation;
     var buy = id('l137-buy'); if (buy) buy.onclick = function () { buyUpgrade(tab); };
     if(p)p.scrollTop=options&&Number.isFinite(options.scrollTop)?Math.max(0,options.scrollTop):0;
   }
@@ -829,6 +874,7 @@
     settings.phase=Math.max(1,Number(settings.phase)||meta.phase);
     settings.operation=!!settings.operation;
     settings.operationLevel=settings.operation?Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(settings.operationLevel)||meta.operationLevel))):0;
+    if(settings.operation&&typeof settings.operationRewardEligible!=='boolean')settings.operationRewardEligible=operationRewardAvailable();
     settings.restart=!!settings.restart;
     settings.freeRetry=!settings.operation&&(!!settings.freeRetry||(!settings.restart&&isFreeCampaignRetry(settings.phase)));
     settings.energyCommitted=Math.max(0,Math.floor(Number(settings.energyCommitted)||0));
@@ -870,7 +916,7 @@
       lanes.push({index:lane,angle:angle,baseX:layout.x,baseY:layout.y,rotation:layout.rotation,side:layout.side,queue:[],barricade:{hp:barricadeHp,maxHp:barricadeHp,flash:0}});
     }
     var hqCapacity=300+(meta.hq-1)*75+tech.hqHp+gear.hqHp,artilleryDamage=(95+tech.artilleryDamage+gear.artilleryDamage)*(1+tech.artilleryMultiplier),mastery=commanderMastery(meta.commander),commanderRange=operation?335*s:Math.max(150*s,worldScale*COMMANDER_COMPOUND_RANGE_WORLD);
-    return { active:true, paused:false, complete:false, won:false, operation:operation, operationLevel:operationLevel, freeRetry:!!settings.freeRetry, energyCommitted:Math.max(0,Math.floor(Number(settings.energyCommitted)||0)), phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:36, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, upgradeStacks:{}, lastUpgradeChoices:[], legendaryMisses:0, abilityCd:0, abilityMaxCd:Math.max(8,18-tech.artilleryCooldown-gear.artilleryCooldown), abilityDamage:artilleryDamage, artilleryKillCooldown:tech.artilleryKillCooldown, assaultArtilleryReady:tech.assaultArtilleryReady, fieldXpMultiplier:1+tech.fieldXp+gear.fieldXp, promotionChoiceBonus:tech.promotionChoiceBonus, commanderLevel:mastery.level,commanderVisualTier:mastery.tier,commanderBossDamage:mastery.bossBonus+gear.commanderBossDamage,commandUnlocked:mastery.commandUnlocked,commandCd:0,commandMaxCd:mastery.commandCooldown,commandDuration:mastery.commandDuration,commandRate:mastery.commandRate,commandActive:0, turretBossDamage:tech.turretBossDamage, turretArmoredDamage:tech.turretArmoredDamage, turretPriority:tech.turretPriority, assaultHqRepair:tech.assaultHqRepair+gear.assaultHqRepair, assaultBarrierRepair:tech.assaultBarrierRepair+gear.assaultBarrierRepair, rebuildBarrierFraction:tech.rebuildBarrierFraction, hqDamageReduction:tech.hqDamageReduction+gear.hqDamageReduction, hqEmergencyReduction:tech.hqEmergencyReduction, barrierDamageReduction:tech.barrierDamageReduction+gear.barrierDamageReduction, research:tech, equipment:gear, lastHit:0,
+    return { active:true, paused:false, complete:false, won:false, operation:operation, operationLevel:operationLevel, operationRewardEligible:operation&&settings.operationRewardEligible!==false, freeRetry:!!settings.freeRetry, energyCommitted:Math.max(0,Math.floor(Number(settings.energyCommitted)||0)), phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:36, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, upgradeStacks:{}, lastUpgradeChoices:[], legendaryMisses:0, abilityCd:0, abilityMaxCd:Math.max(8,18-tech.artilleryCooldown-gear.artilleryCooldown), abilityDamage:artilleryDamage, artilleryKillCooldown:tech.artilleryKillCooldown, assaultArtilleryReady:tech.assaultArtilleryReady, fieldXpMultiplier:1+tech.fieldXp+gear.fieldXp, promotionChoiceBonus:tech.promotionChoiceBonus, commanderLevel:mastery.level,commanderVisualTier:mastery.tier,commanderBossDamage:mastery.bossBonus+gear.commanderBossDamage,commandUnlocked:mastery.commandUnlocked,commandCd:0,commandMaxCd:mastery.commandCooldown,commandDuration:mastery.commandDuration,commandRate:mastery.commandRate,commandActive:0, turretBossDamage:tech.turretBossDamage, turretArmoredDamage:tech.turretArmoredDamage, turretPriority:tech.turretPriority, assaultHqRepair:tech.assaultHqRepair+gear.assaultHqRepair, assaultBarrierRepair:tech.assaultBarrierRepair+gear.assaultBarrierRepair, rebuildBarrierFraction:tech.rebuildBarrierFraction, hqDamageReduction:tech.hqDamageReduction+gear.hqDamageReduction, hqEmergencyReduction:tech.hqEmergencyReduction, barrierDamageReduction:tech.barrierDamageReduction+gear.barrierDamageReduction, research:tech, equipment:gear, lastHit:0,
       hq:{x:cx,y:cy,r:37*s,level:meta.hq,hp:hqCapacity,maxHp:hqCapacity},
       hero:{source:'commander',x:cx-(operation?34:28)*s,y:cy+(operation?30:-19)*s,r:13*s,damage:16*(1+mastery.damageBonus)*(1+gear.commanderDamage),rate:2.7*(1+mastery.rateBonus)*(1+gear.commanderRate),range:commanderRange,cd:0},
       turret:{source:'turret',x:cx+(operation?34:25)*s,y:cy+(operation?9:-40)*s,r:10*s,damage:10*(1+tech.turretDamage+gear.turretDamage),rate:3.1*(1+tech.turretRate+gear.turretRate),range:(operation?350:215)*s*(1+tech.turretRange+gear.turretRange),cd:0,parkAim:-Math.PI/2},
@@ -1101,16 +1147,17 @@
     combatHaptic(won?'success':'error',300);
     id('hq-upgrade-overlay').classList.remove('show');
     G.state.waveInProgress = false;
-    var clearedPhase = run.phase,operation=!!run.operation,operationLevel=operation?run.operationLevel:0;
-    var reward = operation?(won?operationRewardCredits(operationLevel):0):(won?250+run.kills*3:(run.freeRetry?0:Math.min(250,100+clearedPhase*25+Math.floor(run.kills*2))));
-    var parts = won?(operation?operationRewardParts(operationLevel):3):0;
+    var clearedPhase = run.phase,operation=!!run.operation,operationLevel=operation?run.operationLevel:0,operationRewarded=operation&&won&&!!run.operationRewardEligible;
+    var reward = operation?(operationRewarded?operationRewardCredits(operationLevel):0):(won?250+run.kills*3:(run.freeRetry?0:Math.min(250,100+clearedPhase*25+Math.floor(run.kills*2))));
+    var parts = won?(operation?(operationRewarded?operationRewardParts(operationLevel):0):3):0;
     var firstClear=!operation&&won&&clearedPhase>meta.bestPhase;
     meta.credits += reward;
     meta.parts += parts;
     var equipmentAward=!operation&&won?awardEquipmentDrop(clearedPhase,firstClear):null;
     if(operation){
       if(won){
-        meta.operationLastClearDay=localDayKey();
+        if(operationRewarded)meta.operationLastClearDay=localDayKey();
+        meta.operationManualBest=Math.max(meta.operationManualBest,operationLevel);
         meta.operationLevel=Math.min(OPERATION_LEVEL_GUARD,operationLevel+1);
       }
     }else if (won) {
@@ -1128,13 +1175,14 @@
     var nextSupport=operation||won?0:retryAssist(clearedPhase),supportCopy=nextSupport>0?' Field support is active for the next paid attempt: enemy health and damage -'+Math.round(nextSupport*100)+'%.':'';
     id('l137-result-kicker').textContent = operation?(won?'DAILY OPERATION COMPLETE':'DAILY OPERATION FAILED'):(won?'MISSION ACCOMPLISHED':'MISSION FAILED');
     id('l137-result-title').textContent = operation?(won?'CONTAINMENT LEVEL '+operationLevel+' SECURED':'CONTAINMENT LEVEL '+operationLevel+' LOST'):(won?'PHASE '+clearedPhase+' SECURED':'HEADQUARTERS LOST');
-    id('l137-result-copy').textContent = operation?(won?'Containment Level '+operationLevel+' is secure. Level '+meta.operationLevel+' is ready for the next rewarded daily deployment.':'The infected breached Containment Level '+operationLevel+'. This level remains open until its first successful clear.'):(won?'The Siege Breaker is destroyed. Phase '+meta.phase+' is ready for deployment.':defeatAdvice()+supportCopy);
+    id('l137-result-copy').textContent = operation?(won?(operationRewarded?'Containment Level '+operationLevel+' is secure and today’s reward is claimed. Level '+meta.operationLevel+' is ready.':'QA clear recorded without additional resources. Containment Level '+meta.operationLevel+' is ready for continued testing.'):'The infected breached Containment Level '+operationLevel+'. This level remains open until its first successful clear.'):(won?'The Siege Breaker is destroyed. Phase '+meta.phase+' is ready for deployment.':defeatAdvice()+supportCopy);
     var integrity=Math.max(0,Math.round(run.hq.hp/Math.max(1,run.hq.maxHp)*100)),survivingBarriers=run.lanes.filter(function(lane){return lane.barricade.hp>0;}).length;
-    var rewardLabel=operation?(won?'LEVEL '+operationLevel+' DAILY REWARD':'NO DAILY REWARD · LEVEL '+operationLevel+' REMAINS OPEN'):(won?'VICTORY REWARD':run.freeRetry?'NO ADDITIONAL SALVAGE · FREE RETRY SPENT':'SALVAGE REWARD · ONE ENERGY-FREE RETRY AVAILABLE');
+    var rewardLabel=operation?(won?(operationRewarded?'LEVEL '+operationLevel+' DAILY REWARD':'QA PROGRESSION CLEAR · DAILY REWARD ALREADY CLAIMED'):'NO DAILY REWARD · LEVEL '+operationLevel+' REMAINS OPEN'):(won?'VICTORY REWARD':run.freeRetry?'NO ADDITIONAL SALVAGE · FREE RETRY SPENT':'SALVAGE REWARD · ONE ENERGY-FREE RETRY AVAILABLE');
     var survivalLabel=operation?'FORWARD LINE '+integrity+'% · '+survivingBarriers+'/'+run.lanes.length+' LANES HELD':'HQ INTEGRITY '+integrity+'% · '+survivingBarriers+'/'+run.lanes.length+' BARRIERS SURVIVED';
-    id('l137-result-reward').innerHTML = '<div class="l166-reward-resources">'+(parts?resourcePair(reward,parts):resourceMarkup('credits',reward,'CREDITS'))+'</div><small>'+rewardLabel+'</small><small>'+formatNumber(run.kills)+' ENEMIES ELIMINATED</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small class="l167-result-survival">'+survivalLabel+'</small>'+equipmentDropMarkup(equipmentAward);
+    var rewardResources=operation&&won&&!operationRewarded?'<div class="l175-no-reward">NO ADDITIONAL RESOURCES</div>':'<div class="l166-reward-resources">'+(parts?resourcePair(reward,parts):resourceMarkup('credits',reward,'CREDITS'))+'</div>';
+    id('l137-result-reward').innerHTML = rewardResources+'<small>'+rewardLabel+'</small><small>'+formatNumber(run.kills)+' ENEMIES ELIMINATED</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small class="l167-result-survival">'+survivalLabel+'</small>'+equipmentDropMarkup(equipmentAward);
     var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
-    id('l141-continue').textContent = operation?(won?'RETURN TO COMMAND BASE':'RETRY CONTAINMENT LEVEL '+operationLevel):(won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+(run.freeRetry?'':' · ENERGY FREE'));
+    id('l141-continue').textContent = operation?(won?(QA_TEST_ACCESS?'DEPLOY CONTAINMENT LEVEL '+meta.operationLevel:'RETURN TO COMMAND BASE'):'RETRY CONTAINMENT LEVEL '+operationLevel):(won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+(run.freeRetry?'':' · ENERGY FREE'));
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
     id('l137-retry').style.display = !operation&&won ? '' : 'none';
     id('lsc137-result').classList.add('show');
