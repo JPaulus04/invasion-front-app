@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'170\';'), 'Build 170 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'171\';'), 'Build 171 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -206,7 +206,12 @@ requireMatch(threeDSource.includes('COMMAND_BASTION_DECK_Y') && html.includes("x
 requireMatch(html.includes('function firingLineClearsHolt(source,target)') && html.includes("a.source==='turret')a.aim=a.parkAim"), 'Build 170 turret firing clearance is missing');
 requireMatch(html.includes('var HQ_ATTACK_WORLD_RADIUS = 6.75;') && html.includes('var BOSS_HQ_STOP_WORLD_RADIUS = 8.55;') && html.includes("e.kind==='boss'?BOSS_HQ_STOP_WORLD_RADIUS"), 'Build 170 enemy and boss stand-off geometry is missing');
 requireMatch(threeDSource.includes('roughly fourteen percent broader') && threeDSource.includes('const BOSS_VISUAL_SCALE = 1.98;'), 'Build 170 Holt and boss scale tuning is missing');
-requireMatch(html.includes('var ENERGY_SCHEMA = 170;') && html.includes('function reserveEnergy(cost)') && html.includes('ENERGY_RECHARGE_MS'), 'Build 170 dungeon energy foundation is missing');
+requireMatch(html.includes('var ENERGY_SCHEMA = 171;') && html.includes('var ENERGY_MAX = 9;') && html.includes('var ENERGY_DEPLOY_REQUIREMENT = 3;') && html.includes('var ENERGY_RECHARGE_MS = 45 * 60 * 1000;'), 'Build 171 campaign energy ledger is missing');
+requireMatch(html.includes('function spendAssaultEnergy(activeRun,assault)') && html.includes('spendAssaultEnergy(run,run.assault+1)'), 'Build 171 per-assault energy spending is missing');
+requireMatch(html.includes('FIRST RETRY · NO ENERGY COST') && html.includes('campaignRetryPhase'), 'Build 171 free campaign retry is missing');
+requireMatch(html.includes("var DAILY_OPERATION_ID = 'containment-sweep';") && html.includes('function operationBalance(phase)') && html.includes("mode==='operation'"), 'Build 171 Daily Containment operation is missing');
+requireMatch(html.includes('ONE REWARDED CLEAR PER DAY') && html.includes('FAILED ATTEMPTS REMAIN OPEN') && html.includes('meta.dailyOperationDay=localDayKey()'), 'Build 171 daily reward guard is missing');
+requireMatch(html.includes('COMMAND PASS · COMING SOON') && html.includes('No purchase, ad skip, or unlimited energy is active in this build.'), 'Build 171 Command Pass placeholder is missing');
 requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && !threeDSource.includes('addBossArmor') && !threeDSource.includes('Siege Breaker left shoulder plate'), 'Build 169 stable boss material grades are missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
