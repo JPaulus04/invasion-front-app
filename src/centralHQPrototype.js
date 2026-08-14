@@ -1,4 +1,4 @@
-// Build 169 — Rooftop Command Bastion alignment and stable boss presentation.
+// Build 170 — Command Bastion firing clearance, enemy stand-off, and energy foundation.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -26,7 +26,10 @@
   ];
   var BARRICADE_WORLD_RADIUS = 6.4;
   var BARRICADE_STOP_WORLD_RADIUS = 7.8;
-  var HQ_ATTACK_WORLD_RADIUS = 3.95;
+  // Enemies attack the HQ from outside its authored footprint. The boss uses a
+  // larger stand-off because its visual model is intentionally broader.
+  var HQ_ATTACK_WORLD_RADIUS = 6.75;
+  var BOSS_HQ_STOP_WORLD_RADIUS = 8.55;
   var QUEUE_START_WORLD_RADIUS = 8.75;
   var QUEUE_GAP_WORLD_RADIUS = .9;
   var SPAWN_WORLD_RADIUS = 9.9;
@@ -44,6 +47,9 @@
   var RESEARCH_SCHEMA = 166;
   var EQUIPMENT_SCHEMA = 167;
   var COMMANDER_SCHEMA = 168;
+  var ENERGY_SCHEMA = 170;
+  var ENERGY_MAX = 5;
+  var ENERGY_RECHARGE_MS = 30 * 60 * 1000;
   var COMMANDER_MAX_LEVEL = 20;
   var INVENTORY_CAPACITY = 24;
   var HQ_TIER_NAMES = ['FIELD COMMAND POST','REINFORCED COMPOUND','FORTIFIED HEADQUARTERS','ARMORED CITADEL','COMMAND FORTRESS'];
@@ -178,7 +184,7 @@
       if(typeof haptic==='function')haptic(key);
     }catch(e){}
   }
-  function defaults() { return { credits: 500, parts: 12, phase: 1, bestPhase: 0, commander: 1, commanderSchema:COMMANDER_SCHEMA, commanderNotice:null, research: 0, researchSchema:RESEARCH_SCHEMA, researchNodes:{}, researchPoints:0, legacyResearchLevels:0, legacyResearchDamage:0, hq: 1, phaseLosses: {}, equipmentSchema:EQUIPMENT_SCHEMA, equipment:[], equipped:{weapon:null,rig:null,module:null}, equipmentNextId:1, equipmentNotice:null }; }
+  function defaults() { return { credits: 500, parts: 12, phase: 1, bestPhase: 0, commander: 1, commanderSchema:COMMANDER_SCHEMA, commanderNotice:null, research: 0, researchSchema:RESEARCH_SCHEMA, researchNodes:{}, researchPoints:0, legacyResearchLevels:0, legacyResearchDamage:0, hq: 1, phaseLosses: {}, equipmentSchema:EQUIPMENT_SCHEMA, equipment:[], equipped:{weapon:null,rig:null,module:null}, equipmentNextId:1, equipmentNotice:null, energySchema:ENERGY_SCHEMA, energy:ENERGY_MAX, energyMax:ENERGY_MAX, energyUpdatedAt:Date.now() }; }
   function loadMeta() {
     try {
       var source=JSON.parse(localStorage.getItem(META_KEY) || '{}');
@@ -236,11 +242,41 @@
         loaded.equipmentNotice={type:'veteran',uid:veteranUid};
       }
       loaded.equipmentSchema=EQUIPMENT_SCHEMA;
+      var now=Date.now(),sourceEnergySchema=Math.max(0,Number(source.energySchema)||0);
+      loaded.energyMax=ENERGY_MAX;
+      if(sourceEnergySchema<ENERGY_SCHEMA){
+        // Build 170 only establishes the future dungeon ledger. Campaign play
+        // does not spend energy, and every existing commander starts full.
+        loaded.energy=ENERGY_MAX;
+        loaded.energyUpdatedAt=now;
+      }else{
+        loaded.energy=Math.max(0,Math.min(loaded.energyMax,Math.floor(Number(loaded.energy)||0)));
+        loaded.energyUpdatedAt=Math.max(0,Number(loaded.energyUpdatedAt)||now);
+        if(loaded.energy<loaded.energyMax){
+          var recovered=Math.floor(Math.max(0,now-loaded.energyUpdatedAt)/ENERGY_RECHARGE_MS);
+          if(recovered>0){loaded.energy=Math.min(loaded.energyMax,loaded.energy+recovered);loaded.energyUpdatedAt+=recovered*ENERGY_RECHARGE_MS;}
+        }else loaded.energyUpdatedAt=now;
+      }
+      loaded.energySchema=ENERGY_SCHEMA;
       return loaded;
     }
     catch (e) { return defaults(); }
   }
   function saveMeta() { localStorage.setItem(META_KEY, JSON.stringify(meta)); }
+  function availableEnergy(){
+    var now=Date.now();
+    if(meta.energy<meta.energyMax){
+      var recovered=Math.floor(Math.max(0,now-meta.energyUpdatedAt)/ENERGY_RECHARGE_MS);
+      if(recovered>0){meta.energy=Math.min(meta.energyMax,meta.energy+recovered);meta.energyUpdatedAt+=recovered*ENERGY_RECHARGE_MS;saveMeta();}
+    }
+    return meta.energy;
+  }
+  function reserveEnergy(cost){
+    cost=Math.max(0,Math.floor(Number(cost)||0));
+    if(availableEnergy()<cost)return false;
+    if(meta.energy===meta.energyMax)meta.energyUpdatedAt=Date.now();
+    meta.energy-=cost;saveMeta();return true;
+  }
   function commanderTier(level){
     level=Math.max(1,Math.min(COMMANDER_MAX_LEVEL,Math.floor(Number(level)||1)));
     if(level>=20)return 5;if(level>=15)return 4;if(level>=10)return 3;if(level>=5)return 2;return 1;
@@ -738,8 +774,8 @@
     var hqCapacity=300+(meta.hq-1)*75+tech.hqHp+gear.hqHp,artilleryDamage=(95+tech.artilleryDamage+gear.artilleryDamage)*(1+tech.artilleryMultiplier),mastery=commanderMastery(meta.commander);
     return { active:true, paused:false, complete:false, phase:phase, balance:balance, assist:assist, elapsed:0, speed:1, assault:1, assaultElapsed:0, assaultSpawned:0, assaultKills:0, assaultTargets:targets, transition:0, spawn:0, spawned:0, nextLane:0, lanes:lanes, worldScale:worldScale, kills:0, xp:0, xpNext:36, level:1, bossSpawned:false, bossDefeated:false, upgradeOpen:false, upgradeStacks:{}, lastUpgradeChoices:[], legendaryMisses:0, abilityCd:0, abilityMaxCd:Math.max(8,18-tech.artilleryCooldown-gear.artilleryCooldown), abilityDamage:artilleryDamage, artilleryKillCooldown:tech.artilleryKillCooldown, assaultArtilleryReady:tech.assaultArtilleryReady, fieldXpMultiplier:1+tech.fieldXp+gear.fieldXp, promotionChoiceBonus:tech.promotionChoiceBonus, commanderLevel:mastery.level,commanderVisualTier:mastery.tier,commanderBossDamage:mastery.bossBonus+gear.commanderBossDamage,commandUnlocked:mastery.commandUnlocked,commandCd:0,commandMaxCd:mastery.commandCooldown,commandDuration:mastery.commandDuration,commandRate:mastery.commandRate,commandActive:0, turretBossDamage:tech.turretBossDamage, turretArmoredDamage:tech.turretArmoredDamage, turretPriority:tech.turretPriority, assaultHqRepair:tech.assaultHqRepair+gear.assaultHqRepair, assaultBarrierRepair:tech.assaultBarrierRepair+gear.assaultBarrierRepair, rebuildBarrierFraction:tech.rebuildBarrierFraction, hqDamageReduction:tech.hqDamageReduction+gear.hqDamageReduction, hqEmergencyReduction:tech.hqEmergencyReduction, barrierDamageReduction:tech.barrierDamageReduction+gear.barrierDamageReduction, research:tech, equipment:gear, lastHit:0,
       hq:{x:cx,y:cy,r:37*s,level:meta.hq,hp:hqCapacity,maxHp:hqCapacity},
-      hero:{source:'commander',x:cx-24*s,y:cy-31*s,r:13*s,damage:16*(1+mastery.damageBonus)*(1+gear.commanderDamage),rate:2.7*(1+mastery.rateBonus)*(1+gear.commanderRate),range:150*s,cd:0},
-      turret:{source:'turret',x:cx+24*s,y:cy-31*s,r:10*s,damage:10*(1+tech.turretDamage+gear.turretDamage),rate:3.1*(1+tech.turretRate+gear.turretRate),range:215*s*(1+tech.turretRange+gear.turretRange),cd:0},
+      hero:{source:'commander',x:cx-28*s,y:cy-19*s,r:13*s,damage:16*(1+mastery.damageBonus)*(1+gear.commanderDamage),rate:2.7*(1+mastery.rateBonus)*(1+gear.commanderRate),range:150*s,cd:0},
+      turret:{source:'turret',x:cx+25*s,y:cy-40*s,r:10*s,damage:10*(1+tech.turretDamage+gear.turretDamage),rate:3.1*(1+tech.turretRate+gear.turretRate),range:215*s*(1+tech.turretRange+gear.turretRange),cd:0,parkAim:-Math.PI/2},
       // Holt and the turret remain independent combat sources but occupy one
       // authored Command Bastion fixture in both the 2D and 3D renderers.
       squad:[],
@@ -774,11 +810,20 @@
   function nearest(o,range){
     var t=null,b=range,bestPriority=-1,priorityTarget=o&&o.source==='turret'&&run&&run.turretPriority>0;
     run.enemies.forEach(function(e){
-      var x=dist(o,e);if(x>=range)return;
+      var x=dist(o,e);if(x>=range||!firingLineClearsHolt(o,e))return;
       var priority=priorityTarget?(e.kind==='boss'?3:e.kind==='armored'?2:1):0;
       if(priority>bestPriority||(priority===bestPriority&&x<b)){bestPriority=priority;b=x;t=e;}
     });
     return t;
+  }
+  function firingLineClearsHolt(source,target){
+    if(!run||!source||source.source!=='turret'||!run.hero)return true;
+    var dx=target.x-source.x,dy=target.y-source.y,lengthSquared=dx*dx+dy*dy;
+    if(lengthSquared<=0)return true;
+    var hx=run.hero.x-source.x,hy=run.hero.y-source.y,projection=(hx*dx+hy*dy)/lengthSquared;
+    if(projection<=0||projection>=1)return true;
+    var closestX=source.x+dx*projection,closestY=source.y+dy*projection;
+    return Math.hypot(run.hero.x-closestX,run.hero.y-closestY)>run.hero.r+8*dpr();
   }
   function fire(o,t,damage){
     if(!t)return;
@@ -982,7 +1027,7 @@
     if(!run)return;
     var completed=0,total=1;for(var i=0;i<run.assaultTargets.length;i++){total+=run.assaultTargets[i];if(i<run.assault-1)completed+=run.assaultTargets[i];}completed+=run.assaultKills;if(run.bossDefeated)completed++;
     var pct=Math.min(100,Math.floor((completed/total)*100));
-    var fill=id('l139-progress-fill'),label=id('l139-progress-label'),count=id('l139-progress-count'),progress=id('l139-progress'),boss=run.enemies.filter(function(e){return e.kind==='boss'&&e.hp>0;})[0];
+    var fill=id('l139-progress-fill'),label=id('l139-progress-label'),count=id('l139-progress-count'),progress=id('l139-progress'),boss=run.enemies.filter(function(e){return e.hp>0&&((run.bossEntityId!=null&&e.id===run.bossEntityId)||e.kind==='boss');})[0];
     if(progress)progress.classList.toggle('l168-boss-hud',!!boss);
     if(boss){
       var bossPct=Math.max(0,Math.ceil(boss.hp/Math.max(1,boss.maxHp)*100));
@@ -1033,10 +1078,10 @@
       for(var g=0;g<group;g++){run.enemies.push(enemy(chooseEnemyKind(run.assault)));run.assaultSpawned++;}
       run.spawn=pacing.interval*(.92+Math.random()*.16);
     }
-    if(run.assault===3&&run.assaultSpawned>=target&&!run.bossSpawned&&run.enemies.length===0&&run.bullets.length===0){run.bossSpawned=true;run.enemies.push(enemy('boss'));combatSfx('bossAlarm');combatHaptic('heavy',300);}
-    [run.hero,run.turret].concat(run.squad).forEach(function(a){a.cd-=dt;var t=nearest(a,a.range);if(t&&a.cd<=0){fire(a,t,a.damage);var rally=a.source==='commander'||a.source==='turret'?run.commandActive>0?run.commandRate:1:1;a.cd=1/(a.rate*rally);}});
+    if(run.assault===3&&run.assaultSpawned>=target&&!run.bossSpawned&&run.enemies.length===0&&run.bullets.length===0){var siegeBreaker=enemy('boss');run.bossSpawned=true;run.bossEntityId=siegeBreaker.id;run.enemies.push(siegeBreaker);updateBattleHUD();combatSfx('bossAlarm');combatHaptic('heavy',300);}
+    [run.hero,run.turret].concat(run.squad).forEach(function(a){a.cd-=dt;var t=nearest(a,a.range);if(!t&&a.source==='turret')a.aim=a.parkAim;if(t&&a.cd<=0){fire(a,t,a.damage);var rally=a.source==='commander'||a.source==='turret'?run.commandActive>0?run.commandRate:1:1;a.cd=1/(a.rate*rally);}});
     run.lanes.forEach(function(lane){lane.barricade.flash=Math.max(0,lane.barricade.flash-dt);});
-    for(var i=run.enemies.length-1;i>=0;i--){var e=run.enemies[i],lane=run.lanes[e.lane],queueIndex=lane?lane.queue.indexOf(e):-1;if(!lane||queueIndex<0)continue;var front=queueIndex===0,barrierUp=lane.barricade.hp>0,bossPadding=e.kind==='boss'?.72:e.kind==='armored'?.2:0,targetWorld=front?(barrierUp?BARRICADE_STOP_WORLD_RADIUS+bossPadding:HQ_ATTACK_WORLD_RADIUS+bossPadding):QUEUE_START_WORLD_RADIUS+Math.max(0,queueIndex-1)*QUEUE_GAP_WORLD_RADIUS,targetPoint=lanePoint(lane,targetWorld,0),tx=targetPoint.x,ty=targetPoint.y,x=tx-e.x,y=ty-e.y,l=Math.hypot(x,y);e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.flash=Math.max(0,e.flash-dt);e.aim=Math.atan2(run.hq.y-e.y,run.hq.x-e.x);e.waiting=!front;
+    for(var i=run.enemies.length-1;i>=0;i--){var e=run.enemies[i],lane=run.lanes[e.lane],queueIndex=lane?lane.queue.indexOf(e):-1;if(!lane||queueIndex<0)continue;var front=queueIndex===0,barrierUp=lane.barricade.hp>0,bossPadding=e.kind==='boss'?.9:e.kind==='armored'?.25:0,hqStop=e.kind==='boss'?BOSS_HQ_STOP_WORLD_RADIUS:HQ_ATTACK_WORLD_RADIUS+bossPadding,targetWorld=front?(barrierUp?BARRICADE_STOP_WORLD_RADIUS+bossPadding:hqStop):QUEUE_START_WORLD_RADIUS+Math.max(0,queueIndex-1)*QUEUE_GAP_WORLD_RADIUS,targetPoint=lanePoint(lane,targetWorld,0),tx=targetPoint.x,ty=targetPoint.y,x=tx-e.x,y=ty-e.y,l=Math.hypot(x,y);e.age+=dt;e.hit=Math.max(0,e.hit-dt);e.flash=Math.max(0,e.flash-dt);e.aim=Math.atan2(run.hq.y-e.y,run.hq.x-e.x);e.waiting=!front;
       if(!front){e.engaged=false;e.targetType='queue';if(l>2*dpr()){e.moving=true;var queueStep=Math.min(l,e.speed*dt);e.x+=x/l*queueStep;e.y+=y/l*queueStep;}else{e.moving=false;e.x=tx;e.y=ty;}continue;}
       var targetType=barrierUp?'barricade':'hq';if(e.targetType!==targetType){e.engaged=false;e.targetType=targetType;e.cd=Math.min(e.cd,.18);}
       if(!e.engaged){if(l>2*dpr()){e.moving=true;var step=Math.min(l,e.speed*dt);e.x+=x/l*step;e.y+=y/l*step;}else{e.engaged=true;e.moving=false;e.x=tx;e.y=ty;e.cd=Math.min(e.cd,.18);}}else{e.x=tx;e.y=ty;e.moving=false;e.cd-=dt;if(e.cd<=0){if(targetType==='barricade'){var beforeHp=lane.barricade.hp,barrierDamage=e.damage*(1-(run.barrierDamageReduction||0));lane.barricade.hp=Math.max(0,beforeHp-barrierDamage);lane.barricade.flash=.2;var barrierFx=lanePoint(lane,BARRICADE_WORLD_RADIUS,0);run.particles.push({x:barrierFx.x,y:barrierFx.y,life:.26,max:.26,r:11*dpr(),color:'#e1aa67',type:'barrier'});combatSfx('barrierHit',145);if(lane.barricade.hp<=0&&beforeHp>0){combatSfx('barrierBreak');combatHaptic('medium',260);e.engaged=false;e.targetType='hq';}}else{var hqReduction=run.hqDamageReduction||0;if(run.hq.maxHp>0&&run.hq.hp/run.hq.maxHp<=.35)hqReduction+=run.hqEmergencyReduction||0;run.hq.hp-=e.damage*(1-clamp(hqReduction,0,.8));run.lastHit=performance.now();run.particles.push({x:run.hq.x+(Math.random()-.5)*run.hq.r,y:run.hq.y+(Math.random()-.5)*run.hq.r,life:.24,max:.24,r:13*dpr(),color:'#ff6248',type:'hq-hit'});combatSfx('hqHit',280);combatHaptic('medium',650);}e.cd=e.attackCycle||ENEMY_ATTACK_CYCLE;e.flash=.18;}}
@@ -1064,7 +1109,7 @@
   function animatedUnit(a,row,w,h,moving,dead){var s=dpr(),clock=(a.age==null?run.elapsed:a.age),frame=0,bob=0,rot=0;if(dead){frame=4;rot=(1-(a.life/a.max))*.12;}else if((a.hit||0)>0){frame=4;rot=Math.sin(clock*70)*.035;}else if((a.flash||0)>0){frame=3;rot=-.025;}else if(moving){frame=1+(Math.floor(clock*7)%2);bob=Math.sin(clock*14)*2.2*s;}else{bob=Math.sin(clock*3.2)*.8*s;}var aim=a.aim==null?-Math.PI/2:a.aim,flip=Math.cos(aim)<0;return animationCell(row,frame,a.x,a.y+bob,w*s,h*s,flip,dead?clamp(a.life/a.max,0,1):1,rot);}
   function drawProductionSoldier(a,hostile,heavy,commander){var s=dpr(),row=commander?0:hostile?(heavy?3:2):1;if(!animatedUnit(a,row,heavy?58:46,heavy?82:68,!!a.moving,false)){var cell=commander?0:hostile?(heavy?3:2):1;if(!spriteCell(cell,a.x,a.y+(heavy?22:17)*s,(heavy?52:43)*s,(heavy?76:65)*s))return drawSoldier(a,hostile,heavy,commander);}if(a.flash){var aim=a.aim==null?-Math.PI/2:a.aim,color=commander?'#fff07a':hostile?'#ff6a4a':'#8edcff';ctx.save();ctx.translate(a.x,a.y);ctx.rotate(aim);ctx.shadowColor=color;ctx.shadowBlur=12*s;poly([[29*s,0],[20*s,-5*s],[20*s,5*s]],color);ctx.restore();}}
   function drawProductionHQ(h){var s=dpr(),level=Math.min(5,Math.max(1,Number(h.level)||1)),wallW=(50+(level-1)*7)*s,wallH=(37+(level-1)*5)*s;ctx.save();ctx.translate(h.x,h.y+5*s);ctx.fillStyle=level>=4?'rgba(45,83,86,.72)':'rgba(61,76,67,.64)';ctx.strokeStyle=level>=5?'#7ef8ff':level>=3?'#d4b45e':'#9a8653';ctx.lineWidth=(1+level)*s;ctx.fillRect(-wallW,-wallH,wallW*2,wallH*2);ctx.strokeRect(-wallW,-wallH,wallW*2,wallH*2);if(level>=3){[[-wallW,-wallH],[wallW,-wallH],[-wallW,wallH],[wallW,wallH]].forEach(function(point){circle(point[0],point[1],(4+level)*s,level>=5?'#2e686e':'#526b68',level>=5?'#9cecff':'#d4b45e',2*s);});}ctx.restore();if(!spriteCell(4,h.x,h.y+43*s,(128+(level-1)*4)*s,(120+(level-1)*4)*s))drawHQ(h);}
-  function drawProductionTurret(t){var s=dpr(),target=nearest(t,t.range),ang=target?Math.atan2(target.y-t.y,target.x-t.x):(t.aim||0);t.aim=ang;if(!spriteCell(5,t.x,t.y+26*s,88*s,80*s))return drawTurret(t);if(t.flash){ctx.save();ctx.translate(t.x,t.y);ctx.rotate(ang);ctx.shadowColor='#ff9d35';ctx.shadowBlur=18*s;poly([[47*s,0],[35*s,-8*s],[35*s,8*s]],'#ffd166');ctx.restore();}}
+  function drawProductionTurret(t){var s=dpr(),target=nearest(t,t.range),ang=target?Math.atan2(target.y-t.y,target.x-t.x):(t.aim==null?t.parkAim:t.aim);t.aim=ang;if(!spriteCell(5,t.x,t.y+26*s,88*s,80*s))return drawTurret(t);if(t.flash){ctx.save();ctx.translate(t.x,t.y);ctx.rotate(ang);ctx.shadowColor='#ff9d35';ctx.shadowBlur=18*s;poly([[47*s,0],[35*s,-8*s],[35*s,8*s]],'#ffd166');ctx.restore();}}
   function drawProductionBoss(e){var s=dpr();if(!animatedUnit(e,4,145,133,!!e.moving,false)&&!spriteCell(7,e.x,e.y+49*s,140*s,133*s))drawBoss(e);}
   function drawProductionPerimeter(h){var s=dpr(),level=Math.min(5,Math.max(1,Number(h.level)||1));if(!combatAtlas.complete||!combatAtlas.naturalWidth)return drawPerimeter(h);run.lanes.forEach(function(lane){if(lane.barricade.hp<=0)return;var point=lanePoint(lane,BARRICADE_WORLD_RADIUS,0),alpha=lane.barricade.flash>0?.58:1,width=(66+(level-1)*4)*s,height=(42+(level-1)*5)*s;ctx.save();ctx.translate(point.x,point.y);ctx.rotate(lane.rotation);spriteCell(6,0,12*s,width,height,alpha);if(level>=2){ctx.strokeStyle=level>=5?'#7ef8ff':level>=4?'#86a5a5':'#c3ad70';ctx.lineWidth=Math.max(1,level-1)*s;ctx.strokeRect(-width*.48,-height*.35,width*.96,height*.28);}ctx.restore();});}
   function drawEnvironment(W,H,h){var s=dpr(),lane='#2a3128';ctx.fillStyle='#111710';ctx.fillRect(0,0,W,H);var glow=ctx.createRadialGradient(h.x,h.y,30*s,h.x,h.y,Math.max(W,H)*.7);glow.addColorStop(0,'rgba(73,91,53,.78)');glow.addColorStop(.55,'rgba(37,48,31,.55)');glow.addColorStop(1,'rgba(7,10,8,.92)');ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(h.x,h.y);ctx.strokeStyle=lane;ctx.lineWidth=28*s;ctx.setLineDash([12*s,8*s]);for(var a=0;a<TAU;a+=Math.PI/2){ctx.beginPath();ctx.moveTo(Math.cos(a)*112*s,Math.sin(a)*112*s);ctx.lineTo(Math.cos(a)*Math.max(W,H),Math.sin(a)*Math.max(W,H));ctx.stroke();}ctx.restore();ctx.save();ctx.strokeStyle='rgba(219,205,140,.22)';ctx.lineWidth=8*s;ctx.setLineDash([18*s,7*s]);run.lanes.forEach(function(item,index){var p=lanePoint(item,BARRICADE_WORLD_RADIUS,0);if(index===0){ctx.beginPath();ctx.moveTo(p.x,p.y);}else ctx.lineTo(p.x,p.y);});ctx.closePath();ctx.stroke();ctx.restore();for(var i=0;i<34;i++){var px=(i*83%Math.max(1,W-20*s))+10*s,py=(i*137%Math.max(1,H-80*s))+46*s;ctx.fillStyle=i%3?'rgba(124,137,95,.14)':'rgba(73,83,62,.22)';ctx.fillRect(px,py,(i%4+2)*s,(i%3+1)*s);}drawProductionPerimeter(h);}
@@ -1074,7 +1119,7 @@
     ctx.save();ctx.translate(a.x,a.y);ctx.fillStyle='rgba(0,0,0,.45)';ctx.beginPath();ctx.ellipse(1*s,10*s,(heavy?13:10)*s,4*s,0,0,TAU);ctx.fill();ctx.rotate(aim+Math.PI/2);poly([[-7*s,8*s],[7*s,8*s],[9*s,-3*s],[5*s,-9*s],[-5*s,-9*s],[-9*s,-3*s]],armor,light,1.2*s);ctx.fillStyle=dark;ctx.fillRect(-6*s,3*s,12*s,5*s);circle(0,-12*s,(heavy?7:6)*s,dark,light,1.2*s);ctx.fillStyle=light;ctx.fillRect(-5*s,-15*s,10*s,2*s);ctx.strokeStyle=commander?'#ffe36d':'#b8d7c5';ctx.lineWidth=(commander?3:2)*s;ctx.beginPath();ctx.moveTo(4*s,-2*s);ctx.lineTo(5*s,-19*s);ctx.stroke();if(a.flash){ctx.fillStyle=light;ctx.shadowColor=light;ctx.shadowBlur=10*s;poly([[5*s,-25*s],[1*s,-18*s],[9*s,-18*s]],light);}if(commander){ctx.fillStyle='#f1cf52';ctx.fillRect(-10*s,-2*s,3*s,7*s);ctx.fillStyle='#162029';ctx.fillRect(7*s,-4*s,4*s,9*s);}ctx.restore();
   }
   function drawHQ(h) {var s=dpr();ctx.save();ctx.translate(h.x,h.y);ctx.fillStyle='rgba(0,0,0,.55)';ctx.beginPath();ctx.ellipse(2*s,32*s,52*s,15*s,0,0,TAU);ctx.fill();poly([[-42*s,-20*s],[0,-39*s],[42*s,-20*s],[0,1*s]],'#42565a','#75e8ff',1.5*s);poly([[-42*s,-20*s],[0,1*s],[0,34*s],[-42*s,13*s]],'#26383b','#17252a');poly([[0,1*s],[42*s,-20*s],[42*s,13*s],[0,34*s]],'#1b2d32','#17252a');poly([[-25*s,-37*s],[0,-48*s],[25*s,-37*s],[0,-26*s]],'#66767a','#9cecff',s);poly([[-25*s,-37*s],[0,-26*s],[0,-12*s],[-25*s,-23*s]],'#344a50');poly([[0,-26*s],[25*s,-37*s],[25*s,-23*s],[0,-12*s]],'#263b42');ctx.fillStyle='#07151b';ctx.fillRect(-9*s,9*s,18*s,22*s);ctx.fillStyle='#ffd166';ctx.fillRect(-3*s,-57*s,6*s,11*s);ctx.strokeStyle='#ffd166';ctx.beginPath();ctx.moveTo(0,-57*s);ctx.lineTo(0,-68*s);ctx.stroke();circle(0,-70*s,3*s,'#ffd166');ctx.fillStyle='#baf3ff';ctx.font='bold '+8*s+'px Rajdhani';ctx.textAlign='center';ctx.fillText('HQ',0,-16*s);ctx.restore();}
-  function drawTurret(t){var s=dpr(),target=nearest(t,t.range),ang=target?Math.atan2(target.y-t.y,target.x-t.x):(t.aim||0);t.aim=ang;ctx.save();ctx.translate(t.x,t.y);ctx.fillStyle='rgba(0,0,0,.5)';ctx.beginPath();ctx.ellipse(0,10*s,18*s,6*s,0,0,TAU);ctx.fill();poly([[-15*s,7*s],[0,14*s],[15*s,7*s],[0,0]],'#3e463d','#ff9c3f',s);ctx.rotate(ang);circle(0,0,10*s,'#596154','#ffad52',1.5*s);ctx.fillStyle='#e27a25';ctx.fillRect(2*s,-5*s,28*s,4*s);ctx.fillRect(2*s,2*s,28*s,4*s);if(t.flash){ctx.shadowColor='#ff9d35';ctx.shadowBlur=14*s;poly([[38*s,0],[29*s,-7*s],[29*s,7*s]],'#ffd166');}ctx.restore();ctx.fillStyle='#ffb14a';ctx.font='bold '+7*s+'px "Share Tech Mono"';ctx.textAlign='center';ctx.fillText('MAIN TURRET',t.x,t.y+25*s);}
+  function drawTurret(t){var s=dpr(),target=nearest(t,t.range),ang=target?Math.atan2(target.y-t.y,target.x-t.x):(t.aim==null?t.parkAim:t.aim);t.aim=ang;ctx.save();ctx.translate(t.x,t.y);ctx.fillStyle='rgba(0,0,0,.5)';ctx.beginPath();ctx.ellipse(0,10*s,18*s,6*s,0,0,TAU);ctx.fill();poly([[-15*s,7*s],[0,14*s],[15*s,7*s],[0,0]],'#3e463d','#ff9c3f',s);ctx.rotate(ang);circle(0,0,10*s,'#596154','#ffad52',1.5*s);ctx.fillStyle='#e27a25';ctx.fillRect(2*s,-5*s,28*s,4*s);ctx.fillRect(2*s,2*s,28*s,4*s);if(t.flash){ctx.shadowColor='#ff9d35';ctx.shadowBlur=14*s;poly([[38*s,0],[29*s,-7*s],[29*s,7*s]],'#ffd166');}ctx.restore();ctx.fillStyle='#ffb14a';ctx.font='bold '+7*s+'px "Share Tech Mono"';ctx.textAlign='center';ctx.fillText('MAIN TURRET',t.x,t.y+25*s);}
   function drawBoss(e){var s=dpr(),ang=Math.atan2(run.hq.y-e.y,run.hq.x-e.x);ctx.save();ctx.translate(e.x,e.y);ctx.rotate(ang+Math.PI/2);ctx.fillStyle='rgba(0,0,0,.55)';ctx.beginPath();ctx.ellipse(0,18*s,31*s,9*s,0,0,TAU);ctx.fill();poly([[-25*s,17*s],[25*s,17*s],[21*s,-12*s],[12*s,-24*s],[-12*s,-24*s],[-21*s,-12*s]],'#5f2422','#ff553f',2*s);ctx.fillStyle='#2a1417';ctx.fillRect(-19*s,-10*s,38*s,20*s);ctx.fillStyle='#ff833d';ctx.fillRect(-15*s,-15*s,8*s,6*s);ctx.fillRect(7*s,-15*s,8*s,6*s);ctx.strokeStyle='#ffb14a';ctx.lineWidth=5*s;ctx.beginPath();ctx.moveTo(-16*s,-4*s);ctx.lineTo(-25*s,-26*s);ctx.moveTo(16*s,-4*s);ctx.lineTo(25*s,-26*s);ctx.stroke();ctx.restore();ctx.fillStyle='#ffb14a';ctx.font='bold '+8*s+'px "Share Tech Mono"';ctx.textAlign='center';ctx.fillText('SIEGE BREAKER',e.x,e.y+34*s);}
   function drawCommandBastion(){var s=dpr(),h=run.hq,tier=Math.min(5,Math.max(1,Number(h.level)||1));ctx.save();ctx.translate(h.x,h.y-31*s);ctx.fillStyle=tier>=4?'rgba(24,62,66,.92)':'rgba(37,55,51,.9)';ctx.strokeStyle=tier>=5?'#7ef8ff':tier>=3?'#d4b45e':'#78877c';ctx.lineWidth=(1+tier*.45)*s;ctx.beginPath();var w=116*s,hh=54*s,r=9*s,x=-w/2,y=-hh/2;ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+hh-r);ctx.quadraticCurveTo(x+w,y+hh,x+w-r,y+hh);ctx.lineTo(x+r,y+hh);ctx.quadraticCurveTo(x,y+hh,x,y+hh-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle=tier>=5?'#7ef8ff':'#d4b45e';ctx.fillRect(-49*s,12*s,98*s,3*s);ctx.strokeStyle='rgba(116,233,255,.48)';ctx.lineWidth=2*s;ctx.beginPath();ctx.moveTo(-51*s,-19*s);ctx.lineTo(51*s,-19*s);ctx.moveTo(-51*s,-19*s);ctx.lineTo(-51*s,13*s);ctx.moveTo(51*s,-19*s);ctx.lineTo(51*s,13*s);ctx.stroke();if(tier>=3){ctx.fillStyle='rgba(22,47,49,.92)';ctx.fillRect(-8*s,-20*s,16*s,12*s);}if(tier>=4){circle(-51*s,-20*s,3*s,'#8fefff');circle(51*s,-20*s,3*s,'#8fefff');}ctx.restore();}
   function draw(){if(!run||!ctx)return oldDraw&&oldDraw(G.state);var W=canvas.width,H=canvas.height,s=dpr(),h=run.hq;drawEnvironment(W,H,h);circle(h.x,h.y,112*s,'rgba(50,220,255,.018)','rgba(86,223,255,.075)',s);circle(run.turret.x,run.turret.y,run.turret.range,null,'rgba(255,151,55,.035)',s);drawProductionHQ(h);drawCommandBastion();drawProductionTurret(run.turret);run.squad.forEach(function(a){a.age=run.elapsed;drawProductionSoldier(a,false,false,false);});circle(run.hero.x,run.hero.y,run.hero.range,null,'rgba(255,240,122,.04)',s);run.hero.age=run.elapsed;ctx.save();var heroWidth=1+(Math.max(1,run.commanderVisualTier||1)-1)*.035;ctx.translate(run.hero.x,run.hero.y);ctx.scale(heroWidth,1+(Math.max(1,run.commanderVisualTier||1)-1)*.008);ctx.translate(-run.hero.x,-run.hero.y);drawProductionSoldier(run.hero,false,true,true);ctx.restore();run.corpses.forEach(function(e){animatedUnit(e,e.kind==='boss'?4:e.kind==='armored'?3:2,e.kind==='boss'?145:e.kind==='armored'?58:46,e.kind==='boss'?133:e.kind==='armored'?82:68,false,true);});

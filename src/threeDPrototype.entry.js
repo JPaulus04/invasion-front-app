@@ -15,6 +15,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   // simulation row prevents the fixture from splitting apart visually.
   const COMMAND_BASTION_DECK_Y = 1.15;
   const COMMAND_BASTION_CENTER_Z = -1.0;
+  const BOSS_VISUAL_SCALE = 1.98;
   const COMPOUND_LANES = [
     { x: -1.55, z: -5.05, rotation: 0, side: 'north' },
     { x:  1.55, z: -5.05, rotation: 0, side: 'north' },
@@ -1335,11 +1336,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     syncBarricades(run);
 
     run.enemies.forEach(unit => {
-      const scale = unit.kind === 'boss' ? 1.98 : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
+      const scale = unit.kind === 'boss' ? BOSS_VISUAL_SCALE : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
       syncZombie(unit, run, scale, false, dt, liveUnits);
     });
     run.corpses.forEach(unit => {
-      const scale = unit.kind === 'boss' ? 1.98 : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
+      const scale = unit.kind === 'boss' ? BOSS_VISUAL_SCALE : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
       syncZombie(unit, run, scale, true, dt, liveUnits);
     });
 
