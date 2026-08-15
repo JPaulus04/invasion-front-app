@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'176\';'), 'Build 176 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'177\';'), 'Build 177 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -222,13 +222,15 @@ requireMatch(threeDSource.includes('record.hips.position.copy(record.hipsAnchor)
 requireMatch(html.includes('var OPERATION_SCHEMA = 175;') && html.includes('operationManualBest:0') && html.includes('loaded.operationManualBest=Math.max(loaded.operationManualBest,loaded.operationLevel-1)'), 'Build 175 operation migration is missing');
 requireMatch(html.includes('function operationDifficulty(level)') && html.includes('operationTargets(phase,operationLevel)') && html.includes('operationScale.bossHealth') && html.includes('targetBonus:Math.min(6'), 'Build 174 sustainable operation difficulty curve is missing');
 requireMatch(html.includes('function operationRewardCredits(level)') && html.includes('function operationRewardParts(level)') && html.includes('meta.operationLevel=Math.min(OPERATION_LEVEL_GUARD,operationLevel+1)'), 'Build 174 operation reward progression is missing');
-requireMatch(html.includes('SPECIAL OPERATIONS · DAILY LADDER') && html.includes('CONTAINMENT LEVEL ') && html.includes('NEXT LEVEL '), 'Build 176 operation ladder presentation is missing');
+requireMatch(html.includes('SPECIAL OPERATIONS · DAILY LADDER') && html.includes('CONTAINMENT LEVEL ') && html.includes('NEXT LEVEL '), 'Build 177 operation ladder presentation is missing');
 requireMatch(html.includes('operationLevel:run.operationLevel') && html.includes('operation:true,operationLevel:operationLevel') && html.includes('CONTAINMENT ALPHA · LEVEL '), 'Build 174 operation retry and HUD continuity is missing');
-requireMatch(html.includes("String(LSC_BUILD) === '176'") && html.includes('if(QA_TEST_ACCESS)return meta.energyMax;') && html.includes('if(QA_TEST_ACCESS)return true;'), 'Build 176 temporary QA energy override is missing');
+requireMatch(html.includes("String(LSC_BUILD) === '177'") && html.includes('if(QA_TEST_ACCESS)return meta.energyMax;') && html.includes('if(QA_TEST_ACCESS)return true;'), 'Build 177 temporary QA energy override is missing');
 requireMatch(html.includes('function operationRewardAvailable()') && html.includes('operationRewardEligible') && html.includes('NO ADDITIONAL RESOURCES'), 'Build 175 QA reward protection is missing');
 requireMatch(html.includes('function operationAutoClearState(level)') && html.includes('function autoClearOperation()') && html.includes('meta.operationManualBest>=manualRequired'), 'Build 175 guarded auto-clear is missing');
-requireMatch(html.includes('BUILD 176 · QA TEST ACCESS') && html.includes('REPEATABLE OPERATIONS'), 'Build 176 QA disclosure is missing');
-requireMatch(html.includes('function renderOperationsTab(panel)') && html.includes('id="l176-ops-launch"') && html.includes("renderTab('operations')"), 'Build 176 dedicated Special Operations hub is missing');
+requireMatch(html.includes('BUILD 177 · QA TEST ACCESS') && html.includes('REPEATABLE OPERATIONS'), 'Build 177 QA disclosure is missing');
+requireMatch(html.includes('function renderOperationsTab(panel)') && html.includes('id="l176-ops-launch"') && html.includes("renderTab('operations')"), 'Build 177 Special Operations launcher is missing');
+requireMatch(html.includes("classList.toggle('l177-operations-mode',operationsMode)") && html.includes('class="l177-ops-screen"') && html.includes('← COMMAND BASE'), 'Build 177 full-screen Special Operations destination is missing');
+requireMatch(html.includes('operationsReturnState={tab:activeCommandTab') && html.includes('renderTab(operationsReturnState.tab,{scrollTop:operationsReturnState.scrollTop})'), 'Build 177 Command Base return continuity is missing');
 requireMatch(html.includes('EXTRA ENERGY MULTIPLIES CREDITS ONLY') && html.includes('TECH PARTS, EQUIPMENT, AND PROGRESSION NEVER MULTIPLY'), 'Build 176 reward-boundary disclosure is missing');
 requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && !threeDSource.includes('addBossArmor') && !threeDSource.includes('Siege Breaker left shoulder plate'), 'Build 169 stable boss material grades are missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
