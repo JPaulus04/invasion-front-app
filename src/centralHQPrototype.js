@@ -1,4 +1,4 @@
-// Build 176 — compact Special Operations hub and selectable campaign energy.
+// Build 177 — full-screen Special Operations destination and return continuity.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -62,6 +62,8 @@
   var selectedInventoryUid = null;
   var selectedCampaignEnergy = 1;
   var operationNotice = null;
+  var activeCommandTab = 'campaign';
+  var operationsReturnState = {tab:'campaign',scrollTop:0};
   var RESEARCH_SCHEMA = 166;
   var EQUIPMENT_SCHEMA = 167;
   var COMMANDER_SCHEMA = 168;
@@ -73,7 +75,7 @@
   var OPERATION_SCHEMA = 175;
   // Build-scoped QA access deliberately expires as soon as LSC_BUILD changes.
   // It never mutates the stored energy reserve or duplicates daily resources.
-  var QA_TEST_ACCESS = typeof LSC_BUILD !== 'undefined' && String(LSC_BUILD) === '176';
+  var QA_TEST_ACCESS = typeof LSC_BUILD !== 'undefined' && String(LSC_BUILD) === '177';
   // This is only a damaged-save guard, not a designed progression ceiling.
   var OPERATION_LEVEL_GUARD = 9999;
   var COMMANDER_MAX_LEVEL = 20;
@@ -386,7 +388,7 @@
   }
   function isFreeCampaignRetry(phase){return meta.campaignRetryPhase===Math.max(1,Math.floor(Number(phase)||1));}
   function energyRechargeCopy(){
-    if(QA_TEST_ACCESS)return'BUILD 176 QA ACCESS';
+    if(QA_TEST_ACCESS)return'BUILD 177 QA ACCESS';
     availableEnergy();
     if(meta.energy>=meta.energyMax)return'RESERVE FULL';
     var remaining=Math.max(0,ENERGY_RECHARGE_MS-(Date.now()-meta.energyUpdatedAt));
@@ -675,6 +677,21 @@
       '.l175-qa-banner{margin-bottom:10px;padding:9px 11px;border:1px solid rgba(255,209,102,.6);border-radius:10px;background:rgba(78,55,8,.45);color:#d7e1e4;font:7px/1.45 "Share Tech Mono",monospace}.l175-qa-banner b{display:block;color:#ffd166;font-size:9px}.l175-qa-energy{box-shadow:0 0 18px rgba(255,209,102,.12)}.l175-operation-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:9px 0}.l175-operation-grid div{padding:7px 4px;border:1px solid rgba(255,255,255,.08);border-radius:8px;text-align:center}.l175-operation-grid span{display:block;color:#7e939a;font:6px "Share Tech Mono",monospace}.l175-operation-grid b{display:block;margin-top:2px;color:#eef6f7;font-size:12px}.l175-operation-notice{margin:8px 0;padding:8px;border:1px solid rgba(83,244,162,.55);border-radius:8px;background:rgba(13,80,51,.28);color:#9ff7c8;font:7px/1.4 "Share Tech Mono",monospace}.l175-operation-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.l175-operation-actions .l137-btn{margin-top:0;min-height:47px;padding:8px 5px;font-size:9px}.l175-auto-copy{margin:7px 0;color:#94a5aa;font:6px/1.4 "Share Tech Mono",monospace}.l175-no-reward{padding:8px;color:#9cecff;font:10px "Share Tech Mono",monospace;text-align:center}'+
       '.l176-ops-launch{position:absolute;left:0;bottom:25px;width:76px;min-height:58px;padding:7px 5px;border:1px solid rgba(34,212,255,.65);border-radius:13px;background:linear-gradient(145deg,rgba(7,57,72,.95),rgba(5,18,25,.98));color:#fff;box-shadow:0 0 20px rgba(34,212,255,.14);text-align:center}.l176-ops-launch span,.l176-ops-launch b,.l176-ops-launch small{display:block}.l176-ops-launch span{width:25px;height:25px;margin:0 auto 3px;display:grid;place-items:center;border:1px solid #7cecff;border-radius:50%;color:#ffd166;font:800 7px "Share Tech Mono",monospace}.l176-ops-launch b{font-size:9px;line-height:1}.l176-ops-launch small{margin-top:3px;color:#8fefff;font:6px "Share Tech Mono",monospace}.l176-energy-selector{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:9px}.l176-energy-selector button{padding:7px 2px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#0b171d;color:#82949d}.l176-energy-selector button b,.l176-energy-selector button span{display:block}.l176-energy-selector button b{font-size:14px}.l176-energy-selector button span{font:6px "Share Tech Mono",monospace}.l176-energy-selector button.active{border-color:#ffd166;background:#4b3910;color:#fff;box-shadow:0 0 12px rgba(255,209,102,.18)}.l176-energy-selector button:disabled{opacity:.28}.l176-energy-value{margin-top:8px;padding:8px;border:1px solid rgba(255,209,102,.22);border-radius:8px;text-align:center}.l176-energy-value b,.l176-energy-value span{display:block}.l176-energy-value b{color:#ffd166;font-size:11px}.l176-energy-value span{margin-top:3px;color:#91a3aa;font:6px/1.4 "Share Tech Mono",monospace}.l176-ops-back{margin-bottom:10px;padding:7px 10px}.l176-ops-summary{margin:10px 0;padding:10px;border:1px solid rgba(34,212,255,.25);border-radius:10px;background:rgba(9,41,52,.35);color:#9cecff;font:7px/1.45 "Share Tech Mono",monospace}';
     document.head.appendChild(s);
+    var operationsStyle=document.createElement('style');
+    operationsStyle.id='lsc177-operations-style';
+    operationsStyle.textContent=
+      '#lsc137-app.l177-operations-mode{background:radial-gradient(circle at 50% 8%,#164050 0,#081820 36%,#02070a 100%)}'+
+      '#lsc137-app.l177-operations-mode .l137-shell{padding:calc(env(safe-area-inset-top,0px) + 10px) 12px calc(env(safe-area-inset-bottom,0px) + 10px)}'+
+      '#lsc137-app.l177-operations-mode .l137-top,#lsc137-app.l177-operations-mode .l137-hero,#lsc137-app.l177-operations-mode .l137-nav{display:none!important}'+
+      '#lsc137-app.l177-operations-mode .l137-panel{padding:0;border:0;border-radius:0;background:transparent;overflow:auto;overscroll-behavior:contain}'+
+      '.l177-ops-screen{width:min(560px,100%);min-height:100%;margin:0 auto;padding-bottom:4px;box-sizing:border-box}'+
+      '.l177-ops-header{position:sticky;top:0;z-index:4;padding:2px 0 10px;background:linear-gradient(180deg,#0b2632 0,rgba(8,24,32,.98) 72%,rgba(8,24,32,0) 100%)}'+
+      '.l177-ops-nav{display:flex;align-items:center;justify-content:space-between;gap:10px}.l177-ops-back{margin:0;padding:8px 10px;border-color:rgba(116,233,255,.55);background:#0b2b38}.l177-ops-status{text-align:right;color:#8fefff;font:7px/1.35 "Share Tech Mono",monospace}.l177-ops-status b{display:block;color:#ffd166;font-size:9px}'+
+      '.l177-ops-heading{margin-top:10px}.l177-ops-heading .l137-h2{margin-bottom:4px;font-size:28px}.l177-ops-heading .l137-copy{max-width:480px}'+
+      '.l177-ops-resources{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.l177-ops-resource{min-width:0;padding:8px 4px;border:1px solid rgba(255,255,255,.09);border-radius:9px;background:rgba(2,10,14,.58);text-align:center}.l177-ops-resource .l166-resource{justify-content:center}.l177-ops-resource .l166-resource b{font-size:11px}'+
+      '.l177-ops-screen>.l175-qa-banner{margin:4px 0 8px}.l177-ops-screen>.l176-ops-summary{margin:8px 0}.l177-ops-screen>.l171-operation-card{margin-top:8px}.l177-ops-screen>.l171-pass-placeholder{margin-bottom:2px}'+
+      '@media (max-height:700px){.l177-ops-heading{margin-top:6px}.l177-ops-heading .l137-h2{font-size:24px}.l177-ops-resources{margin-top:7px}.l177-ops-screen>.l175-qa-banner{padding:7px 9px}.l177-ops-screen>.l171-operation-card{padding:10px}}';
+    document.head.appendChild(operationsStyle);
   }
 
   function battleHapticsEnabled(){return localStorage.getItem('lsc_haptic_off')!=='1'&&localStorage.getItem('lsc_haptics')!=='off';}
@@ -714,7 +731,7 @@
     app.innerHTML = '<div class="l137-shell"><div class="l137-top"><div><div class="l137-brand">LAST STAND COMMAND</div><div class="l137-title">COMMAND BASE</div></div><div class="l137-res" id="l137-res"></div></div><div class="l137-hero"><button class="l176-ops-launch" id="l176-ops-launch" aria-label="Open Special Operations"><span>OPS</span><b>SPECIAL OPS</b><small id="l176-ops-badge">READY</small></button><div class="l137-hq-art"><div class="l165-hq-wall"><i class="l165-hq-tower nw"></i><i class="l165-hq-tower ne"></i><i class="l165-hq-tower sw"></i><i class="l165-hq-tower se"></i></div><div class="l165-hq-core"><span>HQ</span></div><i class="l165-hq-mast"></i></div><div class="l137-hq-lv" id="l137-hq-lv"></div></div><main class="l137-panel" id="l137-panel"></main><nav class="l137-nav" id="l137-nav"><button data-tab="campaign">CAMPAIGN</button><button data-tab="commander">COMMANDER</button><button data-tab="research">RESEARCH</button><button data-tab="hq">HQ</button><button data-tab="inventory">INVENTORY</button></nav></div>';
     document.body.appendChild(app);
     id('l137-nav').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) renderTab(b.dataset.tab); });
-    id('l176-ops-launch').onclick=function(){renderTab('operations');};
+    id('l176-ops-launch').onclick=function(){var panel=id('l137-panel');operationsReturnState={tab:activeCommandTab==='operations'?'campaign':activeCommandTab,scrollTop:panel?panel.scrollTop:0};renderTab('operations');};
     var result = document.createElement('div');
     result.id = 'lsc137-result';
     result.innerHTML = '<div class="l137-result-card"><div class="l137-kicker" id="l137-result-kicker"></div><h2 id="l137-result-title"></h2><p class="l137-copy" id="l137-result-copy"></p><div class="l137-card" id="l137-result-reward"></div><div class="l137-actions"><button class="l137-btn good" id="l141-continue">CONTINUE</button><button class="l137-btn" id="l137-return">RETURN TO COMMAND BASE</button><button class="l137-btn" id="l137-retry">REPLAY PHASE</button></div></div>';
@@ -858,20 +875,23 @@
   }
   function renderOperationsTab(panel){
     var operationOpen=operationAvailable(),rewardOpen=operationRewardAvailable(),level=meta.operationLevel,credits=operationRewardCredits(level),parts=operationRewardParts(level),nextLevel=Math.min(OPERATION_LEVEL_GUARD,level+1),autoClear=operationAutoClearState(level);
-    var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 176 · QA TEST ACCESS</b>OPERATIONS REMAIN REPEATABLE FOR TESTING · ONLY THE FIRST CLEAR OF THE DAY AWARDS RESOURCES</div>':'';
+    var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 177 · QA TEST ACCESS</b>OPERATIONS REMAIN REPEATABLE FOR TESTING · ONLY THE FIRST CLEAR OF THE DAY AWARDS RESOURCES</div>':'';
     var notice=operationNotice?'<div class="l175-operation-notice">AUTO-CLEAR LEVEL '+operationNotice.level+' COMPLETE · LEVEL '+operationNotice.nextLevel+' UNLOCKED · '+(operationNotice.rewarded?formatNumber(operationNotice.credits)+' CREDITS + '+operationNotice.parts+' TECH PART'+(operationNotice.parts===1?'':'S'):'NO ADDITIONAL DAILY RESOURCES')+'</div>':'';
     var rewardState=rewardOpen?'DAILY REWARD AVAILABLE':QA_TEST_ACCESS?'DAILY REWARD CLAIMED · QA PROGRESSION OPEN':'DAILY REWARD CLAIMED';
     var autoLabel=autoClear.available?'AUTO-CLEAR LEVEL '+level:!autoClear.manualReady?'AUTO-CLEAR LOCKED · MANUAL CLEAR '+autoClear.manualRequired:!autoClear.powerReady?'AUTO-CLEAR REQUIRES '+autoClear.required+' POWER':'AUTO-CLEAR USED TODAY';
-    panel.innerHTML='<button class="l137-btn l176-ops-back" id="l176-ops-back">← CAMPAIGN</button>'+qaBanner+'<div class="l137-kicker">SPECIAL OPERATIONS · DAILY LADDER</div><div class="l137-h2">CONTAINMENT SWEEP</div><div class="l137-copy">A separate forward three-lane battle. Clear the current level to unlock a harder operation with a larger daily reward.</div><div class="l176-ops-summary">CAMPAIGN ENERGY IS NEVER CONSUMED HERE · ONE REWARDED CLEAR PER DAY · FAILED ATTEMPTS REMAIN OPEN</div><section class="l171-operation-card"><div class="l137-kicker">CURRENT OPERATION</div><h3>CONTAINMENT LEVEL '+level+'</h3><p>Hold the forward command line against three compact infected assaults and the Containment Alpha boss.</p>'+notice+'<div class="l175-operation-grid"><div><span>CURRENT POWER</span><b>'+currentPower()+'</b></div><div><span>RECOMMENDED</span><b>'+autoClear.recommended+'</b></div><div><span>BEST MANUAL</span><b>LEVEL '+meta.operationManualBest+'</b></div></div><div class="l171-operation-state"><span>'+resourcePair(credits,parts)+'</span><span>LEVEL '+level+' DAILY REWARD<br>'+rewardState+'<br>NEXT LEVEL '+nextLevel+' · '+formatNumber(operationRewardCredits(nextLevel))+' CREDITS</span></div><div class="l175-auto-copy">AUTO-CLEAR REQUIRES A MANUAL CLEAR OF THE PREVIOUS LEVEL AND '+autoClear.required+' POWER. IT ADVANCES ONE LEVEL AND USES THE SAME DAILY REWARD CLAIM.</div><div class="l175-operation-actions"><button class="l137-btn good" id="l171-operation" '+(operationOpen?'':'disabled')+'>'+(operationOpen?(QA_TEST_ACCESS?'DEPLOY LEVEL '+level+' · QA REPEAT':'DEPLOY LEVEL '+level):'LEVEL '+level+' REWARD CLAIMED')+'</button><button class="l137-btn" id="l175-auto-clear" '+(autoClear.available?'':'disabled')+'>'+autoLabel+'</button></div></section><div class="l171-pass-placeholder"><b>COMMAND PASS · COMING SOON</b>Auto-clear remains a convenience placeholder. No purchase, ad skip, or production unlimited-energy benefit is active in this build.</div>';
+    var header='<header class="l177-ops-header"><div class="l177-ops-nav"><button class="l137-btn l176-ops-back l177-ops-back" id="l176-ops-back" aria-label="Return to Command Base">← COMMAND BASE</button><div class="l177-ops-status"><b>LEVEL '+level+'</b>'+(rewardOpen?'DAILY REWARD READY':QA_TEST_ACCESS?'QA PROGRESSION OPEN':'DAILY REWARD CLAIMED')+'</div></div><div class="l177-ops-heading"><div class="l137-kicker">SPECIAL OPERATIONS · DAILY LADDER</div><div class="l137-h2">CONTAINMENT SWEEP</div><div class="l137-copy">Clear the forward three-lane battle to unlock a harder operation and a larger daily reward.</div></div><div class="l177-ops-resources"><div class="l177-ops-resource">'+resourceMarkup('power',currentPower(),'POWER')+'</div><div class="l177-ops-resource">'+resourceMarkup('credits',meta.credits,'CREDITS')+'</div><div class="l177-ops-resource">'+resourceMarkup('parts',meta.parts,'TECH PARTS')+'</div></div></header>';
+    panel.innerHTML='<div class="l177-ops-screen">'+header+qaBanner+'<section class="l171-operation-card"><div class="l137-kicker">CURRENT OPERATION</div><h3>CONTAINMENT LEVEL '+level+'</h3><p>Hold the forward command line against three compact infected assaults and the Containment Alpha boss.</p>'+notice+'<div class="l175-operation-grid"><div><span>CURRENT POWER</span><b>'+currentPower()+'</b></div><div><span>RECOMMENDED</span><b>'+autoClear.recommended+'</b></div><div><span>BEST MANUAL</span><b>LEVEL '+meta.operationManualBest+'</b></div></div><div class="l171-operation-state"><span>'+resourcePair(credits,parts)+'</span><span>LEVEL '+level+' DAILY REWARD<br>'+rewardState+'<br>NEXT LEVEL '+nextLevel+' · '+formatNumber(operationRewardCredits(nextLevel))+' CREDITS</span></div><div class="l175-operation-actions"><button class="l137-btn good" id="l171-operation" '+(operationOpen?'':'disabled')+'>'+(operationOpen?(QA_TEST_ACCESS?'DEPLOY LEVEL '+level+' · QA REPEAT':'DEPLOY LEVEL '+level):'LEVEL '+level+' REWARD CLAIMED')+'</button><button class="l137-btn" id="l175-auto-clear" '+(autoClear.available?'':'disabled')+'>'+autoLabel+'</button></div><div class="l175-auto-copy">AUTO-CLEAR REQUIRES A MANUAL CLEAR OF THE PREVIOUS LEVEL AND '+autoClear.required+' POWER. IT ADVANCES ONE LEVEL AND USES THE SAME DAILY REWARD CLAIM.</div></section><div class="l176-ops-summary">CAMPAIGN ENERGY IS NEVER CONSUMED HERE · ONE REWARDED CLEAR PER DAY · FAILED ATTEMPTS REMAIN OPEN</div><div class="l171-pass-placeholder"><b>COMMAND PASS · COMING SOON</b>Auto-clear remains a convenience placeholder. No purchase, ad skip, or production unlimited-energy benefit is active in this build.</div></div>';
   }
   function renderTab(tab,options) {
+    var app=id('lsc137-app'),operationsMode=tab==='operations';
+    if(app)app.classList.toggle('l177-operations-mode',operationsMode);
     refreshHeader();
     var navigationTab=tab==='operations'?'campaign':tab;
     Array.prototype.forEach.call(id('l137-nav').children, function (b) { b.classList.toggle('active', b.dataset.tab === navigationTab); });
     var p = id('l137-panel');
     if (tab === 'campaign') {
       var support=retryAssist(meta.phase),supportText=support>0?'<small>RETRY SUPPORT ACTIVE · ENEMY HEALTH AND DAMAGE -'+Math.round(support*100)+'%</small>':'',power=powerAssessment(meta.phase),energy=availableEnergy(),freeRetry=isFreeCampaignRetry(meta.phase),spend=freeRetry?1:campaignEnergySpend(),baseCredits=victoryRewardPreview(meta.phase),previewCredits=freeRetry?baseCredits:campaignCreditReward(baseCredits,spend);
-      var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 176 · QA TEST ACCESS</b>UNLIMITED CAMPAIGN ENERGY · REPEATABLE OPERATIONS · DAILY RESOURCES STILL AWARD ONLY ONCE</div>':'';
+      var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 177 · QA TEST ACCESS</b>UNLIMITED CAMPAIGN ENERGY · REPEATABLE OPERATIONS · DAILY RESOURCES STILL AWARD ONLY ONCE</div>':'';
       var campaignLabel=freeRetry?'RETRY PHASE '+meta.phase+' · ENERGY FREE':'CHALLENGE PHASE '+meta.phase+' · '+spend+' ENERGY · '+campaignMultiplierLabel(spend);
       p.innerHTML = qaBanner+'<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small class="l166-cost">' + resourcePair(previewCredits,3) + '</small><small>'+(freeRetry?'BASE REWARD':campaignMultiplierLabel(spend)+' · CREDIT BOOST ONLY')+'</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div>'+energyCardMarkup(freeRetry)+'<button class="l137-btn good l137-deploy" id="l137-deploy" '+(!freeRetry&&energy<spend?'disabled':'')+'>'+campaignLabel+'</button>';
     }
@@ -884,9 +904,10 @@
     Array.prototype.forEach.call(p.querySelectorAll('[data-campaign-energy]'),function(button){button.onclick=function(){var scrollTop=p.scrollTop;selectedCampaignEnergy=Math.max(1,Math.min(CAMPAIGN_MAX_ENERGY_SPEND,Number(button.dataset.campaignEnergy)||1));renderTab('campaign',{scrollTop:scrollTop});};});
     var operationButton=id('l171-operation');if(operationButton)operationButton.onclick=function(){launchPhase({phase:meta.phase,operation:true,operationLevel:meta.operationLevel});};
     var autoClearButton=id('l175-auto-clear');if(autoClearButton)autoClearButton.onclick=autoClearOperation;
-    var operationsBack=id('l176-ops-back');if(operationsBack)operationsBack.onclick=function(){renderTab('campaign');};
+    var operationsBack=id('l176-ops-back');if(operationsBack)operationsBack.onclick=function(){renderTab(operationsReturnState.tab,{scrollTop:operationsReturnState.scrollTop});};
     var buy = id('l137-buy'); if (buy) buy.onclick = function () { buyUpgrade(tab); };
     if(p)p.scrollTop=options&&Number.isFinite(options.scrollTop)?Math.max(0,options.scrollTop):0;
+    activeCommandTab=tab;
   }
   function upgradePanel(type, title, copy, level) {
     var cost = levelCost(type);
