@@ -1,4 +1,4 @@
-// Build 178 — simplified, readable permanent Research presentation.
+// Build 179 — compact three-doctrine Research command grid.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -58,6 +58,7 @@
   var soundTimes = {};
   var hapticTimes = {};
   var activeResearchBranch = 'fire-control';
+  var selectedResearchNodeId = null;
   var activeInventoryFilter = 'all';
   var selectedInventoryUid = null;
   var selectedCampaignEnergy = 1;
@@ -75,7 +76,7 @@
   var OPERATION_SCHEMA = 175;
   // Build-scoped QA access deliberately expires as soon as LSC_BUILD changes.
   // It never mutates the stored energy reserve or duplicates daily resources.
-  var QA_TEST_ACCESS = typeof LSC_BUILD !== 'undefined' && String(LSC_BUILD) === '178';
+  var QA_TEST_ACCESS = typeof LSC_BUILD !== 'undefined' && String(LSC_BUILD) === '179';
   // This is only a damaged-save guard, not a designed progression ceiling.
   var OPERATION_LEVEL_GUARD = 9999;
   var COMMANDER_MAX_LEVEL = 20;
@@ -84,7 +85,7 @@
   var COMMANDER_TIER_NAMES = ['FIELD READY','FORTIFIED','VETERAN','ELITE','LAST STAND'];
   var COMMANDER_TIER_LEVELS = [1,5,10,15,20];
   var RESEARCH_BRANCHES = [
-    {id:'fire-control',short:'FIRE',name:'FIRE CONTROL',description:'Attack power, fire rate, range, and boss damage.'},
+    {id:'fire-control',short:'ATTACK',name:'ATTACK',description:'Attack power, fire rate, range, and boss damage.'},
     {id:'fortifications',short:'DEFENSE',name:'DEFENSE',description:'HQ health, barrier health, armor, and repairs.'},
     {id:'combat-support',short:'SUPPORT',name:'SUPPORT',description:'Artillery power, cooldown, and field experience.'}
   ];
@@ -388,7 +389,7 @@
   }
   function isFreeCampaignRetry(phase){return meta.campaignRetryPhase===Math.max(1,Math.floor(Number(phase)||1));}
   function energyRechargeCopy(){
-    if(QA_TEST_ACCESS)return'BUILD 178 QA ACCESS';
+    if(QA_TEST_ACCESS)return'BUILD 179 QA ACCESS';
     availableEnergy();
     if(meta.energy>=meta.energyMax)return'RESERVE FULL';
     var remaining=Math.max(0,ENERGY_RECHARGE_MS-(Date.now()-meta.energyUpdatedAt));
@@ -552,6 +553,21 @@
     var display=RESEARCH_EFFECT_DISPLAY[key],current=Number(effects[key])||0,next=current+(purchased?0:Number(node.effects[key])||0);
     return purchased?'ACTIVE TOTAL · '+researchEffectValue(key,current):'TOTAL '+researchEffectValue(key,current)+' → '+researchEffectValue(key,next);
   }
+  function researchPrimaryEffect(node){
+    var key=Object.keys(node.effects||{}).filter(function(effectKey){return!!RESEARCH_EFFECT_DISPLAY[effectKey];})[0];
+    if(!key)return'SYSTEM';
+    return researchDeltaValue(key,node.effects[key])+' '+RESEARCH_EFFECT_DISPLAY[key].label;
+  }
+  function researchNodeState(node){
+    if(researchPurchased(node.id))return'complete';
+    return researchUnlocked(node)?'available':'locked';
+  }
+  function defaultResearchNode(){
+    var selected=selectedResearchNodeId&&researchNode(selectedResearchNodeId);
+    if(selected)return selected;
+    return RESEARCH_NODES.filter(function(node){return researchUnlocked(node)&&!researchPurchased(node.id);})[0]||
+      RESEARCH_NODES.filter(function(node){return researchPurchased(node.id);}).slice(-1)[0]||RESEARCH_NODES[0];
+  }
   function buyResearchNode(nodeId){
     var node=researchNode(nodeId);
     if(!node||researchPurchased(node.id)||!researchUnlocked(node))return;
@@ -562,6 +578,7 @@
       meta.parts-=node.cost.parts;
     }
     meta.researchNodes[node.id]={purchasedAt:Date.now()};
+    selectedResearchNodeId=node.id;
     saveMeta();
     combatSfx('upgrade');
     combatHaptic('success',180);
@@ -708,17 +725,25 @@
       '@media (max-height:700px){.l177-ops-heading{margin-top:6px}.l177-ops-heading .l137-h2{font-size:24px}.l177-ops-resources{margin-top:7px}.l177-ops-screen>.l175-qa-banner{padding:7px 9px}.l177-ops-screen>.l171-operation-card{padding:10px}}';
     document.head.appendChild(operationsStyle);
     var researchStyle=document.createElement('style');
-    researchStyle.id='lsc178-research-style';
+    researchStyle.id='lsc179-research-style';
     researchStyle.textContent=
-      '.l166-research-header .l137-copy{font-size:10px;line-height:1.45}'+
-      '.l165-research-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.l165-research-summary div{padding:10px 6px}.l165-research-summary span{font-size:7px}.l165-research-summary b{font-size:16px}'+
-      '.l165-research-tabs{position:sticky;top:0;z-index:3;gap:7px;margin-top:12px;padding:7px 0;background:linear-gradient(180deg,#071119 76%,rgba(7,17,25,0))}.l165-research-tab{min-height:48px;padding:8px 4px;font-size:11px}.l165-research-tab small{font-size:7px}'+
-      '.l165-branch-head{margin-top:8px}.l165-branch-head b{font-size:20px}.l165-branch-head span{margin-top:2px;font-size:8px;line-height:1.45}'+
-      '.l166-research-tier{margin-top:13px;padding-top:19px}.l166-research-tier:before{left:14px}.l166-tier-label{top:0;left:0;transform:none;padding:3px 8px;font-size:7px}'+
-      '.l166-tier-grid,.l166-research-tier.single .l166-tier-grid{grid-template-columns:1fr;gap:8px}'+
-      '.l165-research-node{padding:12px 13px}.l165-research-node.locked{opacity:.72}.l165-node-tier{font-size:7px}.l165-node-name{margin-top:3px;font-size:20px;line-height:1.05}'+
-      '.l178-node-stats{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}.l178-node-stats span{display:flex;flex:1 1 130px;min-width:calc(50% - 3px);box-sizing:border-box;align-items:baseline;gap:6px;padding:7px 8px;border:1px solid rgba(116,233,255,.18);border-radius:7px;background:rgba(0,0,0,.2);color:#aebdc2;font:7px "Share Tech Mono",monospace}.l178-node-stats b{color:#ffd166;font:800 15px Rajdhani,sans-serif}.l165-research-node.complete .l178-node-stats b{color:#7fffae}.l165-research-node.locked .l178-node-stats b{color:#b6c4c9}'+
-      '.l166-node-preview{min-height:0;margin:0 0 7px;padding:6px 7px;font-size:7px}.l166-node-requires{min-height:0;margin:0 0 7px;font-size:7px}.l165-node-action{min-height:48px;padding:8px;font-size:11px}.l165-node-action small{font-size:7px}.l166-research-footnote{font-size:7px}';
+      '#lsc137-app.l179-research-mode .l137-hero{display:none!important}'+
+      '#lsc137-app.l179-research-mode .l137-panel{padding-top:12px}'+
+      '.l179-research-header{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}.l179-research-header .l137-h2{margin:2px 0 3px;font-size:22px}.l179-research-header .l137-copy{font-size:8px;line-height:1.4}'+
+      '.l179-research-count{flex:0 0 auto;padding:8px 10px;border:1px solid rgba(116,233,255,.25);border-radius:10px;text-align:center}.l179-research-count b,.l179-research-count span{display:block}.l179-research-count b{font-size:17px}.l179-research-count span{font:6px "Share Tech Mono",monospace;color:#8da1a8}'+
+      '.l179-research-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px}.l179-research-summary div{min-width:0;padding:6px 3px;border:1px solid rgba(255,255,255,.08);border-radius:7px;background:rgba(0,0,0,.18);text-align:center}.l179-research-summary span,.l179-research-summary b{display:block}.l179-research-summary span{font:5.5px "Share Tech Mono",monospace;color:#7f939a}.l179-research-summary b{margin-top:2px;font-size:11px}'+
+      '.l179-doctrine-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:9px}.l179-doctrine-column{min-width:0;padding:6px 4px 8px;border:1px solid rgba(34,212,255,.25);border-radius:11px;background:linear-gradient(180deg,rgba(8,35,45,.78),rgba(5,15,20,.92))}'+
+      '.l179-doctrine-head{display:flex;align-items:center;justify-content:space-between;gap:3px;padding:0 2px 5px;border-bottom:1px solid rgba(255,255,255,.08)}.l179-doctrine-head b{color:#86edff;font-size:10px}.l179-doctrine-head small{color:#9aa9ad;font:6px "Share Tech Mono",monospace}'+
+      '.l179-tier-row{position:relative;margin-top:6px;padding-top:8px}.l179-tier-row:before{content:"";position:absolute;top:12px;bottom:-5px;left:50%;width:1px;background:rgba(126,226,247,.16)}.l179-tier-label{position:absolute;z-index:1;top:0;left:50%;transform:translateX(-50%);padding:1px 4px;border:1px solid rgba(116,233,255,.2);border-radius:7px;background:#07141a;color:#7699a3;font:5px "Share Tech Mono",monospace}'+
+      '.l179-tier-nodes{position:relative;z-index:2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}.l179-tier-nodes.single{grid-template-columns:1fr}'+
+      '.l179-node{min-width:0;min-height:43px;padding:5px 2px;border:1px solid #3a4d55;border-radius:17px;background:rgba(20,33,39,.94);color:#829299;box-sizing:border-box;overflow:hidden}.l179-node span,.l179-node b{display:block;overflow:hidden;text-overflow:ellipsis}.l179-node span{white-space:nowrap;font:800 8px Rajdhani,sans-serif}.l179-node b{margin-top:2px;white-space:normal;font:5.5px/1.2 "Share Tech Mono",monospace;font-weight:400}'+
+      '.l179-node.complete{border-color:#27dc80;background:rgba(13,78,55,.8);color:#c8ffe0}.l179-node.available{border-color:#42dfff;background:rgba(7,55,71,.9);color:#d5f9ff}.l179-node.locked{border-color:#35474e;background:rgba(17,28,33,.78);color:#64757c}.l179-node.capstone{border-color:#c69d3b;background:rgba(61,46,11,.82);color:#ffe7a3}.l179-node.selected{box-shadow:0 0 0 2px #edfaff,0 0 12px rgba(72,226,255,.48)}'+
+      '.l179-grid-legend{display:flex;justify-content:center;gap:9px;margin:7px 0 0;color:#82969d;font:5.5px "Share Tech Mono",monospace}.l179-grid-legend i{display:inline-block;width:6px;height:6px;margin-right:3px;border:1px solid;border-radius:50%;vertical-align:-1px}.l179-grid-legend .done i{border-color:#27dc80;background:#165f45}.l179-grid-legend .ready i{border-color:#42dfff;background:#0d556b}.l179-grid-legend .blocked i{border-color:#47575e;background:#202d32}'+
+      '.l179-detail-panel{margin-top:8px;padding:11px;border:1px solid rgba(34,212,255,.45);border-radius:12px;background:linear-gradient(145deg,rgba(7,38,49,.92),rgba(5,15,20,.98))}.l179-detail-panel.complete{border-color:rgba(39,220,128,.65)}.l179-detail-panel.capstone{border-color:rgba(214,173,74,.75)}'+
+      '.l179-detail-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.l179-detail-top small{display:block;color:#85ddec;font:6px "Share Tech Mono",monospace}.l179-detail-top h3{margin:2px 0 0;font-size:20px;line-height:1}.l179-detail-state{flex:0 0 auto;padding:3px 6px;border:1px solid rgba(255,255,255,.14);border-radius:9px;color:#b8c7cb;font:6px "Share Tech Mono",monospace}.l179-detail-panel p{margin:7px 0;color:#aebbc0;font:7px/1.4 "Share Tech Mono",monospace}'+
+      '.l179-detail-stats{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0}.l179-detail-stats span{display:flex;flex:1 1 120px;align-items:baseline;gap:5px;padding:6px;border:1px solid rgba(116,233,255,.15);border-radius:7px;background:rgba(0,0,0,.2);color:#aebdc2;font:6px "Share Tech Mono",monospace}.l179-detail-stats b{color:#ffd166;font:800 13px Rajdhani,sans-serif}.l179-detail-panel.complete .l179-detail-stats b{color:#7fffae}'+
+      '.l166-node-preview{min-height:0;margin:0 0 6px;padding:6px 7px;font-size:6px}.l166-node-requires{min-height:0;margin:0 0 6px;font-size:6px}.l165-node-action{min-height:43px;padding:7px;font-size:10px}.l165-node-action small{font-size:6px}.l166-research-footnote{margin-top:7px;font-size:6px}'+
+      '@media(max-width:380px){.l179-doctrine-grid{gap:3px}.l179-doctrine-column{padding-left:3px;padding-right:3px}.l179-node{min-height:41px}.l179-node span{font-size:7px}.l179-node b{font-size:5px}}';
     document.head.appendChild(researchStyle);
   }
 
@@ -829,31 +854,38 @@
     if(operationsBadge)operationsBadge.textContent='LV '+meta.operationLevel+' · '+(operationRewardAvailable()?'READY':QA_TEST_ACCESS?'QA OPEN':'CLAIMED');
   }
   function renderResearchTab(panel){
-    var branch=RESEARCH_BRANCHES.filter(function(item){return item.id===activeResearchBranch;})[0]||RESEARCH_BRANCHES[0];
-    var nodes=branchNodes(branch.id),effects=researchEffects(),legacy=Math.round((Number(meta.legacyResearchDamage)||0)*100);
-    var tabs=RESEARCH_BRANCHES.map(function(item){
-      var branchList=branchNodes(item.id),count=branchList.filter(function(node){return researchPurchased(node.id);}).length;
-      return '<button class="l165-research-tab '+(item.id===branch.id?'active':'')+'" data-research-branch="'+item.id+'"><span>'+item.short+'</span><small>'+count+'/'+branchList.length+'</small></button>';
-    }).join('');
-    var cards=[1,2,3,4,5].map(function(tier){
-      var tierNodes=nodes.filter(function(node){return node.tier===tier;});
-      if(!tierNodes.length)return'';
-      var nodeCards=tierNodes.map(function(node){
-        var purchased=researchPurchased(node.id),unlocked=researchUnlocked(node),short=meta.researchPoints<=0&&(meta.credits<node.cost.credits||meta.parts<node.cost.parts),disabled=purchased||!unlocked||short;
-        var state=purchased?'COMPLETE':!unlocked?'LOCKED':short?'NEED RESOURCES':meta.researchPoints>0?'USE LEGACY POINT':'RESEARCH';
-        var requirement=purchased?(node.capstone?'CAPSTONE ACTIVE':'RESEARCH ACTIVE'):researchRequirementText(node)||(node.capstone?'BRANCH CAPSTONE':'PATH AVAILABLE');
-        var cost='<span class="l166-cost">'+resourcePair(node.cost.credits,node.cost.parts)+'</span>';
-        if(meta.researchPoints>0&&!purchased&&unlocked)cost='<span class="l166-cost">LEGACY POINT AVAILABLE</span>'+cost;
-        return '<div class="l165-research-node '+(purchased?'complete':!unlocked?'locked':'available')+(node.capstone?' capstone':'')+'" data-node-card="'+node.id+'"><div class="l165-node-tier">'+(node.capstone?'TIER 5 · CAPSTONE':'TIER '+node.tier)+'</div><div class="l165-node-name">'+node.name+'</div><div class="l178-node-stats">'+researchStatMarkup(node)+'</div><div class="l166-node-preview">'+researchPreview(node,effects,purchased)+'</div><div class="l166-node-requires">'+requirement+'</div><button class="l165-node-action" data-research-node="'+node.id+'" '+(disabled?'disabled':'')+'>'+state+'<small>'+cost+'</small></button></div>';
+    var effects=researchEffects(),legacy=Math.round((Number(meta.legacyResearchDamage)||0)*100),selected=defaultResearchNode();
+    selectedResearchNodeId=selected.id;
+    var columns=RESEARCH_BRANCHES.map(function(branch){
+      var list=branchNodes(branch.id),count=list.filter(function(node){return researchPurchased(node.id);}).length;
+      var tiers=[1,2,3,4,5].map(function(tier){
+        var tierNodes=list.filter(function(node){return node.tier===tier;});
+        if(!tierNodes.length)return'';
+        var buttons=tierNodes.map(function(node){
+          var nodeState=researchNodeState(node);
+          return '<button class="l179-node '+nodeState+(node.capstone?' capstone':'')+(selected.id===node.id?' selected':'')+'" data-research-select="'+node.id+'" aria-label="'+node.name+', '+researchPrimaryEffect(node)+'"><span>'+node.name+'</span><b>'+researchPrimaryEffect(node)+'</b></button>';
+        }).join('');
+        return '<div class="l179-tier-row"><div class="l179-tier-label">'+(tier===5?'T5':'T'+tier)+'</div><div class="l179-tier-nodes '+(tierNodes.length===1?'single':'')+'">'+buttons+'</div></div>';
       }).join('');
-      return '<section class="l166-research-tier '+(tierNodes.length===1?'single ':'')+(tier===5?'capstone':'')+'"><div class="l166-tier-label">'+(tier===5?'TIER 5 · CAPSTONE':'TIER '+tier)+'</div><div class="l166-tier-grid">'+nodeCards+'</div></section>';
+      return '<section class="l179-doctrine-column"><div class="l179-doctrine-head"><b>'+branch.short+'</b><small>'+count+'/'+list.length+'</small></div>'+tiers+'</section>';
     }).join('');
-    panel.innerHTML='<div class="l166-research-header"><div class="l137-kicker">PERMANENT PROGRESSION</div><div class="l137-h2" id="l166-research-title">RESEARCH CENTER</div><div class="l137-copy">Choose a branch. Every completed upgrade is permanent.</div></div>'+
+    var purchased=researchPurchased(selected.id),unlocked=researchUnlocked(selected),short=meta.researchPoints<=0&&(meta.credits<selected.cost.credits||meta.parts<selected.cost.parts),disabled=purchased||!unlocked||short;
+    var nodeState=researchNodeState(selected),stateLabel=purchased?'COMPLETE':!unlocked?'LOCKED':short?'NEED RESOURCES':meta.researchPoints>0?'USE LEGACY POINT':'RESEARCH';
+    var requirement=purchased?(selected.capstone?'CAPSTONE ACTIVE':'RESEARCH ACTIVE'):researchRequirementText(selected)||(selected.capstone?'BRANCH CAPSTONE':'PATH AVAILABLE');
+    var cost='<span class="l166-cost">'+resourcePair(selected.cost.credits,selected.cost.parts)+'</span>';
+    if(meta.researchPoints>0&&!purchased&&unlocked)cost='<span class="l166-cost">LEGACY POINT AVAILABLE</span>'+cost;
+    var selectedBranch=RESEARCH_BRANCHES.filter(function(branch){return branch.id===selected.branch;})[0];
+    var detail='<section class="l179-detail-panel '+nodeState+(selected.capstone?' capstone':'')+'"><div class="l179-detail-top"><div><small>'+selectedBranch.short+' · '+(selected.capstone?'CAPSTONE':'TIER '+selected.tier)+'</small><h3>'+selected.name+'</h3></div><span class="l179-detail-state">'+(purchased?'ACTIVE':unlocked?'READY':'LOCKED')+'</span></div><p>'+selected.effectText+'</p><div class="l179-detail-stats">'+researchStatMarkup(selected)+'</div><div class="l166-node-preview">'+researchPreview(selected,effects,purchased)+'</div><div class="l166-node-requires">'+requirement+'</div><button class="l165-node-action" data-research-node="'+selected.id+'" '+(disabled?'disabled':'')+'>'+stateLabel+'<small>'+cost+'</small></button></section>';
+    panel.innerHTML='<div class="l179-research-header"><div><div class="l137-kicker">PERMANENT PROGRESSION</div><div class="l137-h2" id="l166-research-title">COMMAND DOCTRINES</div><div class="l137-copy">All three doctrine paths stay visible. Select a node for details.</div></div><div class="l179-research-count"><b>'+purchasedResearchCount()+'</b><span>OF '+RESEARCH_NODES.length+'</span></div></div>'+
       (meta.researchPoints>0?'<div class="l165-research-points"><b>'+meta.researchPoints+' LEGACY RESEARCH POINT'+(meta.researchPoints===1?'':'S')+'</b><span>Converted from the previous Research Tier system. Spend these before Credits or Tech Parts.</span></div>':'')+
-      '<div class="l165-research-summary"><div><span>RESEARCHED</span><b>'+purchasedResearchCount()+' / '+RESEARCH_NODES.length+'</b></div><div><span>ATTACK POWER</span><b>+'+Math.round(effects.turretDamage*100)+'%</b></div><div><span>HQ HEALTH</span><b>+'+effects.hqHp+'</b></div><div><span>ARTILLERY POWER</span><b>+'+effects.artilleryDamage+'</b></div></div>'+
+      '<div class="l179-research-summary"><div><span>ATTACK</span><b>+'+Math.round(effects.turretDamage*100)+'%</b></div><div><span>HQ HEALTH</span><b>+'+effects.hqHp+'</b></div><div><span>ARTILLERY</span><b>+'+effects.artilleryDamage+'</b></div></div>'+
       (legacy>0?'<div class="l165-legacy-note">LEGACY CALIBRATION RETAINED · ATTACK POWER +'+legacy+'%</div>':'')+
-      '<div class="l165-research-tabs">'+tabs+'</div><div class="l165-branch-head"><b>'+branch.name+'</b><span>'+branch.description+'</span></div><div class="l165-research-tree">'+cards+'</div><div class="l166-research-footnote">COMPLETE BOTH TIER 4 UPGRADES TO UNLOCK THE CAPSTONE</div>';
-    Array.prototype.forEach.call(panel.querySelectorAll('[data-research-branch]'),function(button){button.onclick=function(){activeResearchBranch=button.dataset.researchBranch;renderTab('research',{scrollTop:0});};});
+      '<div class="l179-doctrine-grid">'+columns+'</div><div class="l179-grid-legend"><span class="done"><i></i>DONE</span><span class="ready"><i></i>READY</span><span class="blocked"><i></i>LOCKED</span></div>'+detail+'<div class="l166-research-footnote">COMPLETE BOTH TIER 4 UPGRADES TO UNLOCK THE CAPSTONE</div>';
+    Array.prototype.forEach.call(panel.querySelectorAll('[data-research-select]'),function(button){button.onclick=function(){
+      var node=researchNode(button.dataset.researchSelect),scrollTop=panel.scrollTop;
+      if(node){selectedResearchNodeId=node.id;activeResearchBranch=node.branch;}
+      renderTab('research',{scrollTop:scrollTop});
+    };});
     Array.prototype.forEach.call(panel.querySelectorAll('[data-research-node]'),function(button){button.onclick=function(){buyResearchNode(button.dataset.researchNode);};});
   }
   function renderInventoryTab(panel){
@@ -903,7 +935,7 @@
   }
   function renderOperationsTab(panel){
     var operationOpen=operationAvailable(),rewardOpen=operationRewardAvailable(),level=meta.operationLevel,credits=operationRewardCredits(level),parts=operationRewardParts(level),nextLevel=Math.min(OPERATION_LEVEL_GUARD,level+1),autoClear=operationAutoClearState(level);
-    var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 178 · QA TEST ACCESS</b>OPERATIONS REMAIN REPEATABLE FOR TESTING · ONLY THE FIRST CLEAR OF THE DAY AWARDS RESOURCES</div>':'';
+    var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 179 · QA TEST ACCESS</b>OPERATIONS REMAIN REPEATABLE FOR TESTING · ONLY THE FIRST CLEAR OF THE DAY AWARDS RESOURCES</div>':'';
     var notice=operationNotice?'<div class="l175-operation-notice">AUTO-CLEAR LEVEL '+operationNotice.level+' COMPLETE · LEVEL '+operationNotice.nextLevel+' UNLOCKED · '+(operationNotice.rewarded?formatNumber(operationNotice.credits)+' CREDITS + '+operationNotice.parts+' TECH PART'+(operationNotice.parts===1?'':'S'):'NO ADDITIONAL DAILY RESOURCES')+'</div>':'';
     var rewardState=rewardOpen?'DAILY REWARD AVAILABLE':QA_TEST_ACCESS?'DAILY REWARD CLAIMED · QA PROGRESSION OPEN':'DAILY REWARD CLAIMED';
     var autoLabel=autoClear.available?'AUTO-CLEAR LEVEL '+level:!autoClear.manualReady?'AUTO-CLEAR LOCKED · MANUAL CLEAR '+autoClear.manualRequired:!autoClear.powerReady?'AUTO-CLEAR REQUIRES '+autoClear.required+' POWER':'AUTO-CLEAR USED TODAY';
@@ -911,15 +943,18 @@
     panel.innerHTML='<div class="l177-ops-screen">'+header+qaBanner+'<section class="l171-operation-card"><div class="l137-kicker">CURRENT OPERATION</div><h3>CONTAINMENT LEVEL '+level+'</h3><p>Hold the forward command line against three compact infected assaults and the Containment Alpha boss.</p>'+notice+'<div class="l175-operation-grid"><div><span>CURRENT POWER</span><b>'+currentPower()+'</b></div><div><span>RECOMMENDED</span><b>'+autoClear.recommended+'</b></div><div><span>BEST MANUAL</span><b>LEVEL '+meta.operationManualBest+'</b></div></div><div class="l171-operation-state"><span>'+resourcePair(credits,parts)+'</span><span>LEVEL '+level+' DAILY REWARD<br>'+rewardState+'<br>NEXT LEVEL '+nextLevel+' · '+formatNumber(operationRewardCredits(nextLevel))+' CREDITS</span></div><div class="l175-operation-actions"><button class="l137-btn good" id="l171-operation" '+(operationOpen?'':'disabled')+'>'+(operationOpen?(QA_TEST_ACCESS?'DEPLOY LEVEL '+level+' · QA REPEAT':'DEPLOY LEVEL '+level):'LEVEL '+level+' REWARD CLAIMED')+'</button><button class="l137-btn" id="l175-auto-clear" '+(autoClear.available?'':'disabled')+'>'+autoLabel+'</button></div><div class="l175-auto-copy">AUTO-CLEAR REQUIRES A MANUAL CLEAR OF THE PREVIOUS LEVEL AND '+autoClear.required+' POWER. IT ADVANCES ONE LEVEL AND USES THE SAME DAILY REWARD CLAIM.</div></section><div class="l176-ops-summary">CAMPAIGN ENERGY IS NEVER CONSUMED HERE · ONE REWARDED CLEAR PER DAY · FAILED ATTEMPTS REMAIN OPEN</div><div class="l171-pass-placeholder"><b>COMMAND PASS · COMING SOON</b>Auto-clear remains a convenience placeholder. No purchase, ad skip, or production unlimited-energy benefit is active in this build.</div></div>';
   }
   function renderTab(tab,options) {
-    var app=id('lsc137-app'),operationsMode=tab==='operations';
-    if(app)app.classList.toggle('l177-operations-mode',operationsMode);
+    var app=id('lsc137-app'),operationsMode=tab==='operations',researchMode=tab==='research';
+    if(app){
+      app.classList.toggle('l177-operations-mode',operationsMode);
+      app.classList.toggle('l179-research-mode',researchMode);
+    }
     refreshHeader();
     var navigationTab=tab==='operations'?'campaign':tab;
     Array.prototype.forEach.call(id('l137-nav').children, function (b) { b.classList.toggle('active', b.dataset.tab === navigationTab); });
     var p = id('l137-panel');
     if (tab === 'campaign') {
       var support=retryAssist(meta.phase),supportText=support>0?'<small>RETRY SUPPORT ACTIVE · ENEMY HEALTH AND DAMAGE -'+Math.round(support*100)+'%</small>':'',power=powerAssessment(meta.phase),energy=availableEnergy(),freeRetry=isFreeCampaignRetry(meta.phase),spend=freeRetry?1:campaignEnergySpend(),baseCredits=victoryRewardPreview(meta.phase),previewCredits=freeRetry?baseCredits:campaignCreditReward(baseCredits,spend);
-      var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 178 · QA TEST ACCESS</b>UNLIMITED CAMPAIGN ENERGY · REPEATABLE OPERATIONS · DAILY RESOURCES STILL AWARD ONLY ONCE</div>':'';
+      var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 179 · QA TEST ACCESS</b>UNLIMITED CAMPAIGN ENERGY · REPEATABLE OPERATIONS · DAILY RESOURCES STILL AWARD ONLY ONCE</div>':'';
       var campaignLabel=freeRetry?'RETRY PHASE '+meta.phase+' · ENERGY FREE':'CHALLENGE PHASE '+meta.phase+' · '+spend+' ENERGY · '+campaignMultiplierLabel(spend);
       p.innerHTML = qaBanner+'<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small class="l166-cost">' + resourcePair(previewCredits,3) + '</small><small>'+(freeRetry?'BASE REWARD':campaignMultiplierLabel(spend)+' · CREDIT BOOST ONLY')+'</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div>'+energyCardMarkup(freeRetry)+'<button class="l137-btn good l137-deploy" id="l137-deploy" '+(!freeRetry&&energy<spend?'disabled':'')+'>'+campaignLabel+'</button>';
     }
