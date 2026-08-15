@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'177\';'), 'Build 177 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'178\';'), 'Build 178 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -182,7 +182,7 @@ requireMatch((html.match(/branch:'fire-control'/g)||[]).length===8, 'Build 166 F
 requireMatch((html.match(/branch:'fortifications'/g)||[]).length===8, 'Build 166 Fortifications branch must contain eight nodes');
 requireMatch((html.match(/branch:'combat-support'/g)||[]).length===8, 'Build 166 Combat Support branch must contain eight nodes');
 requireMatch(html.includes("id:'fc-hunter-killer'") && html.includes("id:'fort-reconstruction'") && html.includes("id:'sup-network'"), 'Build 166 research capstones are incomplete');
-requireMatch(html.includes('function researchRequirements(node)') && html.includes('COMPLETE BOTH TIER 4 NODES'), 'Build 166 branching prerequisites are missing');
+requireMatch(html.includes('function researchRequirements(node)') && html.includes('COMPLETE BOTH TIER 4 UPGRADES'), 'Build 166 branching prerequisites are missing');
 requireMatch(html.includes('function researchPreview(node,effects,purchased)') && html.includes('l166-node-preview'), 'Build 166 current-versus-upgraded research previews are missing');
 requireMatch(html.includes('function recoverBetweenAssaults()') && html.includes('artilleryKillCooldown'), 'Build 166 capstone combat effects are missing');
 requireMatch(html.includes('l166-resource-icon credits') && html.includes('l166-resource-icon parts'), 'Build 166 resource icons are missing');
@@ -224,13 +224,16 @@ requireMatch(html.includes('function operationDifficulty(level)') && html.includ
 requireMatch(html.includes('function operationRewardCredits(level)') && html.includes('function operationRewardParts(level)') && html.includes('meta.operationLevel=Math.min(OPERATION_LEVEL_GUARD,operationLevel+1)'), 'Build 174 operation reward progression is missing');
 requireMatch(html.includes('SPECIAL OPERATIONS · DAILY LADDER') && html.includes('CONTAINMENT LEVEL ') && html.includes('NEXT LEVEL '), 'Build 177 operation ladder presentation is missing');
 requireMatch(html.includes('operationLevel:run.operationLevel') && html.includes('operation:true,operationLevel:operationLevel') && html.includes('CONTAINMENT ALPHA · LEVEL '), 'Build 174 operation retry and HUD continuity is missing');
-requireMatch(html.includes("String(LSC_BUILD) === '177'") && html.includes('if(QA_TEST_ACCESS)return meta.energyMax;') && html.includes('if(QA_TEST_ACCESS)return true;'), 'Build 177 temporary QA energy override is missing');
+requireMatch(html.includes("String(LSC_BUILD) === '178'") && html.includes('if(QA_TEST_ACCESS)return meta.energyMax;') && html.includes('if(QA_TEST_ACCESS)return true;'), 'Build 178 temporary QA energy override is missing');
 requireMatch(html.includes('function operationRewardAvailable()') && html.includes('operationRewardEligible') && html.includes('NO ADDITIONAL RESOURCES'), 'Build 175 QA reward protection is missing');
 requireMatch(html.includes('function operationAutoClearState(level)') && html.includes('function autoClearOperation()') && html.includes('meta.operationManualBest>=manualRequired'), 'Build 175 guarded auto-clear is missing');
-requireMatch(html.includes('BUILD 177 · QA TEST ACCESS') && html.includes('REPEATABLE OPERATIONS'), 'Build 177 QA disclosure is missing');
+requireMatch(html.includes('BUILD 178 · QA TEST ACCESS') && html.includes('REPEATABLE OPERATIONS'), 'Build 178 QA disclosure is missing');
 requireMatch(html.includes('function renderOperationsTab(panel)') && html.includes('id="l176-ops-launch"') && html.includes("renderTab('operations')"), 'Build 177 Special Operations launcher is missing');
 requireMatch(html.includes("classList.toggle('l177-operations-mode',operationsMode)") && html.includes('class="l177-ops-screen"') && html.includes('← COMMAND BASE'), 'Build 177 full-screen Special Operations destination is missing');
 requireMatch(html.includes('operationsReturnState={tab:activeCommandTab') && html.includes('renderTab(operationsReturnState.tab,{scrollTop:operationsReturnState.scrollTop})'), 'Build 177 Command Base return continuity is missing');
+requireMatch(html.includes('lsc178-research-style') && html.includes('l178-node-stats') && html.includes('.l166-tier-grid,.l166-research-tier.single .l166-tier-grid{grid-template-columns:1fr'), 'Build 178 readable one-column Research presentation is missing');
+requireMatch(html.includes('function researchStatMarkup(node)') && html.includes("turretDamage:{label:'ATTACK POWER'") && html.includes("barrierHp:{label:'BARRIER HEALTH'") && html.includes("artilleryDamage:{label:'ARTILLERY POWER'"), 'Build 178 simplified Research stat labels are missing');
+requireMatch(html.includes("name:'Attack Power'") && html.includes("name:'Range'") && html.includes("name:'Barrier Health'") && html.includes("name:'Cooldown'"), 'Build 178 short Research names are missing');
 requireMatch(html.includes('EXTRA ENERGY MULTIPLIES CREDITS ONLY') && html.includes('TECH PARTS, EQUIPMENT, AND PROGRESSION NEVER MULTIPLY'), 'Build 176 reward-boundary disclosure is missing');
 requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && !threeDSource.includes('addBossArmor') && !threeDSource.includes('Siege Breaker left shoulder plate'), 'Build 169 stable boss material grades are missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
