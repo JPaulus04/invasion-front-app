@@ -1,4 +1,4 @@
-// Build 177 — full-screen Special Operations destination and return continuity.
+// Build 178 — simplified, readable permanent Research presentation.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -75,7 +75,7 @@
   var OPERATION_SCHEMA = 175;
   // Build-scoped QA access deliberately expires as soon as LSC_BUILD changes.
   // It never mutates the stored energy reserve or duplicates daily resources.
-  var QA_TEST_ACCESS = typeof LSC_BUILD !== 'undefined' && String(LSC_BUILD) === '177';
+  var QA_TEST_ACCESS = typeof LSC_BUILD !== 'undefined' && String(LSC_BUILD) === '178';
   // This is only a damaged-save guard, not a designed progression ceiling.
   var OPERATION_LEVEL_GUARD = 9999;
   var COMMANDER_MAX_LEVEL = 20;
@@ -84,40 +84,40 @@
   var COMMANDER_TIER_NAMES = ['FIELD READY','FORTIFIED','VETERAN','ELITE','LAST STAND'];
   var COMMANDER_TIER_LEVELS = [1,5,10,15,20];
   var RESEARCH_BRANCHES = [
-    {id:'fire-control',short:'FIRE',name:'FIRE CONTROL',description:'Main-turret targeting, output, armor penetration, and priority-target logic.'},
-    {id:'fortifications',short:'DEFENSE',name:'FORTIFICATIONS',description:'Headquarters capacity, perimeter durability, emergency armor, and reconstruction.'},
-    {id:'combat-support',short:'SUPPORT',name:'COMBAT SUPPORT',description:'Artillery effectiveness, field intelligence, and integrated command support.'}
+    {id:'fire-control',short:'FIRE',name:'FIRE CONTROL',description:'Attack power, fire rate, range, and boss damage.'},
+    {id:'fortifications',short:'DEFENSE',name:'DEFENSE',description:'HQ health, barrier health, armor, and repairs.'},
+    {id:'combat-support',short:'SUPPORT',name:'SUPPORT',description:'Artillery power, cooldown, and field experience.'}
   ];
   var RESEARCH_NODES = [
     // FIRE CONTROL — existing Build 165 IDs retain their purchases and power.
-    {id:'fc-calibration',branch:'fire-control',tier:1,name:'Targeting Calibration',effectText:'Main-turret damage +15%.',cost:{credits:250,parts:3},power:30,effects:{turretDamage:.15}},
-    {id:'fc-servos',branch:'fire-control',tier:2,name:'Servo Motors',effectText:'Main-turret fire rate +12%.',requires:['fc-calibration'],cost:{credits:400,parts:5},power:40,effects:{turretRate:.12}},
-    {id:'fc-optics',branch:'fire-control',tier:2,name:'Extended Optics',effectText:'Main-turret range +12%.',requires:['fc-calibration'],cost:{credits:400,parts:5},power:55,effects:{turretRange:.12}},
-    {id:'fc-cooling',branch:'fire-control',tier:3,name:'Heat Exchangers',effectText:'Main-turret fire rate +10%.',requires:['fc-servos'],cost:{credits:600,parts:7},power:55,effects:{turretRate:.10}},
-    {id:'fc-tracking',branch:'fire-control',tier:3,name:'Threat Acquisition',effectText:'Main-turret damage against armored enemies +30%.',requires:['fc-optics'],cost:{credits:600,parts:7},power:55,effects:{turretArmoredDamage:.30}},
-    {id:'fc-siege',branch:'fire-control',tier:4,name:'Siege Ammunition',effectText:'Main-turret damage against bosses +35%.',requires:['fc-cooling'],cost:{credits:850,parts:10},power:75,effects:{turretBossDamage:.35}},
-    {id:'fc-penetrators',branch:'fire-control',tier:4,name:'Kinetic Penetrators',effectText:'Main-turret damage +18%.',requires:['fc-tracking'],cost:{credits:850,parts:10},power:75,effects:{turretDamage:.18}},
-    {id:'fc-hunter-killer',branch:'fire-control',tier:5,name:'Hunter-Killer Logic',effectText:'Prioritize bosses and armored threats; +20% damage against both.',requires:['fc-siege','fc-penetrators'],cost:{credits:1200,parts:14},power:100,capstone:true,effects:{turretPriority:1,turretBossDamage:.20,turretArmoredDamage:.20}},
+    {id:'fc-calibration',branch:'fire-control',tier:1,name:'Attack Power',effectText:'Attack power +15%.',cost:{credits:250,parts:3},power:30,effects:{turretDamage:.15}},
+    {id:'fc-servos',branch:'fire-control',tier:2,name:'Fire Rate',effectText:'Fire rate +12%.',requires:['fc-calibration'],cost:{credits:400,parts:5},power:40,effects:{turretRate:.12}},
+    {id:'fc-optics',branch:'fire-control',tier:2,name:'Range',effectText:'Range +12%.',requires:['fc-calibration'],cost:{credits:400,parts:5},power:55,effects:{turretRange:.12}},
+    {id:'fc-cooling',branch:'fire-control',tier:3,name:'Fire Rate II',effectText:'Fire rate +10%.',requires:['fc-servos'],cost:{credits:600,parts:7},power:55,effects:{turretRate:.10}},
+    {id:'fc-tracking',branch:'fire-control',tier:3,name:'Armor Damage',effectText:'Armor damage +30%.',requires:['fc-optics'],cost:{credits:600,parts:7},power:55,effects:{turretArmoredDamage:.30}},
+    {id:'fc-siege',branch:'fire-control',tier:4,name:'Boss Damage',effectText:'Boss damage +35%.',requires:['fc-cooling'],cost:{credits:850,parts:10},power:75,effects:{turretBossDamage:.35}},
+    {id:'fc-penetrators',branch:'fire-control',tier:4,name:'Attack Power II',effectText:'Attack power +18%.',requires:['fc-tracking'],cost:{credits:850,parts:10},power:75,effects:{turretDamage:.18}},
+    {id:'fc-hunter-killer',branch:'fire-control',tier:5,name:'Target Priority',effectText:'Priority targeting; boss and armor damage +20%.',requires:['fc-siege','fc-penetrators'],cost:{credits:1200,parts:14},power:100,capstone:true,effects:{turretPriority:1,turretBossDamage:.20,turretArmoredDamage:.20}},
 
     // FORTIFICATIONS
-    {id:'fort-perimeter',branch:'fortifications',tier:1,name:'Reinforced Perimeter',effectText:'Every barrier gains 20 maximum health.',cost:{credits:250,parts:3},power:30,effects:{barrierHp:20}},
-    {id:'fort-command',branch:'fortifications',tier:2,name:'Hardened Command',effectText:'Headquarters capacity +100.',requires:['fort-perimeter'],cost:{credits:400,parts:5},power:40,effects:{hqHp:100}},
-    {id:'fort-baffles',branch:'fortifications',tier:2,name:'Blast Baffles',effectText:'Every barrier gains 25 maximum health.',requires:['fort-perimeter'],cost:{credits:400,parts:5},power:40,effects:{barrierHp:25}},
-    {id:'fort-repair',branch:'fortifications',tier:3,name:'Repair Crews',effectText:'Between assaults: repair HQ 35 and surviving barriers 24.',requires:['fort-command'],cost:{credits:600,parts:7},power:55,effects:{assaultHqRepair:35,assaultBarrierRepair:24}},
-    {id:'fort-reactive',branch:'fortifications',tier:3,name:'Reactive Plating',effectText:'Barriers take 8% less damage.',requires:['fort-baffles'],cost:{credits:600,parts:7},power:55,effects:{barrierDamageReduction:.08}},
-    {id:'fort-grid',branch:'fortifications',tier:4,name:'Fortress Grid',effectText:'HQ and barriers take 15% less damage.',requires:['fort-repair'],cost:{credits:850,parts:10},power:75,effects:{hqDamageReduction:.15,barrierDamageReduction:.15}},
-    {id:'fort-bulkheads',branch:'fortifications',tier:4,name:'Emergency Bulkheads',effectText:'When HQ falls below 35%, incoming damage is reduced an additional 20%.',requires:['fort-reactive'],cost:{credits:850,parts:10},power:75,effects:{hqEmergencyReduction:.20}},
-    {id:'fort-reconstruction',branch:'fortifications',tier:5,name:'Emergency Reconstruction',effectText:'Between assaults: rebuild one destroyed barrier at 45% and repair HQ 20.',requires:['fort-grid','fort-bulkheads'],cost:{credits:1200,parts:14},power:100,capstone:true,effects:{rebuildBarrierFraction:.45,assaultHqRepair:20}},
+    {id:'fort-perimeter',branch:'fortifications',tier:1,name:'Barrier Health',effectText:'Barrier health +20.',cost:{credits:250,parts:3},power:30,effects:{barrierHp:20}},
+    {id:'fort-command',branch:'fortifications',tier:2,name:'HQ Health',effectText:'HQ health +100.',requires:['fort-perimeter'],cost:{credits:400,parts:5},power:40,effects:{hqHp:100}},
+    {id:'fort-baffles',branch:'fortifications',tier:2,name:'Barrier Health II',effectText:'Barrier health +25.',requires:['fort-perimeter'],cost:{credits:400,parts:5},power:40,effects:{barrierHp:25}},
+    {id:'fort-repair',branch:'fortifications',tier:3,name:'Field Repairs',effectText:'Repair HQ +35 and barriers +24 each assault.',requires:['fort-command'],cost:{credits:600,parts:7},power:55,effects:{assaultHqRepair:35,assaultBarrierRepair:24}},
+    {id:'fort-reactive',branch:'fortifications',tier:3,name:'Barrier Armor',effectText:'Barrier damage -8%.',requires:['fort-baffles'],cost:{credits:600,parts:7},power:55,effects:{barrierDamageReduction:.08}},
+    {id:'fort-grid',branch:'fortifications',tier:4,name:'Fortress Armor',effectText:'HQ and barrier damage -15%.',requires:['fort-repair'],cost:{credits:850,parts:10},power:75,effects:{hqDamageReduction:.15,barrierDamageReduction:.15}},
+    {id:'fort-bulkheads',branch:'fortifications',tier:4,name:'Emergency Armor',effectText:'Low-health damage -20%.',requires:['fort-reactive'],cost:{credits:850,parts:10},power:75,effects:{hqEmergencyReduction:.20}},
+    {id:'fort-reconstruction',branch:'fortifications',tier:5,name:'Reconstruction',effectText:'Rebuild a barrier at 45%; repair HQ +20.',requires:['fort-grid','fort-bulkheads'],cost:{credits:1200,parts:14},power:100,capstone:true,effects:{rebuildBarrierFraction:.45,assaultHqRepair:20}},
 
     // COMBAT SUPPORT
-    {id:'sup-shells',branch:'combat-support',tier:1,name:'Improved Shells',effectText:'Artillery damage +25.',cost:{credits:250,parts:3},power:30,effects:{artilleryDamage:25}},
-    {id:'sup-relay',branch:'combat-support',tier:2,name:'Fire Mission Relay',effectText:'Artillery cooldown -3 seconds.',requires:['sup-shells'],cost:{credits:400,parts:5},power:40,effects:{artilleryCooldown:3}},
-    {id:'sup-telemetry',branch:'combat-support',tier:2,name:'Battlefield Telemetry',effectText:'Field experience earned +10%.',requires:['sup-shells'],cost:{credits:400,parts:5},power:40,effects:{fieldXp:.10}},
-    {id:'sup-targeting',branch:'combat-support',tier:3,name:'Precision Coordinates',effectText:'Artillery damage +20.',requires:['sup-relay'],cost:{credits:600,parts:7},power:55,effects:{artilleryDamage:20}},
-    {id:'sup-intel',branch:'combat-support',tier:3,name:'Combat Intelligence',effectText:'Field experience earned +15%.',requires:['sup-telemetry'],cost:{credits:600,parts:7},power:55,effects:{fieldXp:.15}},
-    {id:'sup-barrage',branch:'combat-support',tier:4,name:'Saturation Barrage',effectText:'Artillery damage +35%.',requires:['sup-targeting'],cost:{credits:850,parts:10},power:75,effects:{artilleryMultiplier:.35}},
-    {id:'sup-kill-chain',branch:'combat-support',tier:4,name:'Kill-Chain Relay',effectText:'Each artillery elimination reduces its active cooldown by 0.35 seconds.',requires:['sup-intel'],cost:{credits:850,parts:10},power:75,effects:{artilleryKillCooldown:.35}},
-    {id:'sup-network',branch:'combat-support',tier:5,name:'Integrated Battle Network',effectText:'Artillery is ready every assault and Field Promotions show a fourth option.',requires:['sup-barrage','sup-kill-chain'],cost:{credits:1200,parts:14},power:100,capstone:true,effects:{assaultArtilleryReady:1,promotionChoiceBonus:1}}
+    {id:'sup-shells',branch:'combat-support',tier:1,name:'Artillery Power',effectText:'Artillery power +25.',cost:{credits:250,parts:3},power:30,effects:{artilleryDamage:25}},
+    {id:'sup-relay',branch:'combat-support',tier:2,name:'Cooldown',effectText:'Cooldown -3 seconds.',requires:['sup-shells'],cost:{credits:400,parts:5},power:40,effects:{artilleryCooldown:3}},
+    {id:'sup-telemetry',branch:'combat-support',tier:2,name:'Field XP',effectText:'Field XP +10%.',requires:['sup-shells'],cost:{credits:400,parts:5},power:40,effects:{fieldXp:.10}},
+    {id:'sup-targeting',branch:'combat-support',tier:3,name:'Artillery Power II',effectText:'Artillery power +20.',requires:['sup-relay'],cost:{credits:600,parts:7},power:55,effects:{artilleryDamage:20}},
+    {id:'sup-intel',branch:'combat-support',tier:3,name:'Field XP II',effectText:'Field XP +15%.',requires:['sup-telemetry'],cost:{credits:600,parts:7},power:55,effects:{fieldXp:.15}},
+    {id:'sup-barrage',branch:'combat-support',tier:4,name:'Artillery Boost',effectText:'Artillery power +35%.',requires:['sup-targeting'],cost:{credits:850,parts:10},power:75,effects:{artilleryMultiplier:.35}},
+    {id:'sup-kill-chain',branch:'combat-support',tier:4,name:'Kill Cooldown',effectText:'Cooldown -0.35 seconds per kill.',requires:['sup-intel'],cost:{credits:850,parts:10},power:75,effects:{artilleryKillCooldown:.35}},
+    {id:'sup-network',branch:'combat-support',tier:5,name:'Battle Network',effectText:'Artillery ready each assault; +1 promotion choice.',requires:['sup-barrage','sup-kill-chain'],cost:{credits:1200,parts:14},power:100,capstone:true,effects:{assaultArtilleryReady:1,promotionChoiceBonus:1}}
   ];
   var EQUIPMENT_SLOTS = [
     {id:'weapon',label:'PRIMARY WEAPON',short:'WEAPON',description:'Commander Holt damage, fire rate, and boss pressure.'},
@@ -388,7 +388,7 @@
   }
   function isFreeCampaignRetry(phase){return meta.campaignRetryPhase===Math.max(1,Math.floor(Number(phase)||1));}
   function energyRechargeCopy(){
-    if(QA_TEST_ACCESS)return'BUILD 177 QA ACCESS';
+    if(QA_TEST_ACCESS)return'BUILD 178 QA ACCESS';
     availableEnergy();
     if(meta.energy>=meta.energyMax)return'RESERVE FULL';
     var remaining=Math.max(0,ENERGY_RECHARGE_MS-(Date.now()-meta.energyUpdatedAt));
@@ -519,23 +519,38 @@
     return result;
   }
   var RESEARCH_EFFECT_DISPLAY={
-    turretDamage:{label:'TURRET DAMAGE',kind:'percent'},turretRate:{label:'FIRE RATE',kind:'percent'},turretRange:{label:'TURRET RANGE',kind:'percent'},turretBossDamage:{label:'BOSS DAMAGE',kind:'percent'},turretArmoredDamage:{label:'ARMORED DAMAGE',kind:'percent'},
-    barrierHp:{label:'BARRIER CAPACITY',kind:'number'},hqHp:{label:'HQ CAPACITY',kind:'number'},assaultHqRepair:{label:'HQ REPAIR / ASSAULT',kind:'number'},assaultBarrierRepair:{label:'BARRIER REPAIR / ASSAULT',kind:'number'},hqDamageReduction:{label:'HQ DAMAGE REDUCTION',kind:'percent'},hqEmergencyReduction:{label:'EMERGENCY REDUCTION',kind:'percent'},barrierDamageReduction:{label:'BARRIER REDUCTION',kind:'percent'},rebuildBarrierFraction:{label:'REBUILD HEALTH',kind:'percent'},
-    artilleryDamage:{label:'ARTILLERY DAMAGE',kind:'number'},artilleryCooldown:{label:'COOLDOWN REDUCTION',kind:'seconds'},artilleryKillCooldown:{label:'REFUND / KILL',kind:'seconds'},fieldXp:{label:'FIELD EXPERIENCE',kind:'percent'},artilleryMultiplier:{label:'ARTILLERY MULTIPLIER',kind:'percent'},promotionChoiceBonus:{label:'PROMOTION OPTIONS',kind:'choices'}
+    turretDamage:{label:'ATTACK POWER',kind:'percent'},turretRate:{label:'FIRE RATE',kind:'percent'},turretRange:{label:'RANGE',kind:'percent'},turretBossDamage:{label:'BOSS DAMAGE',kind:'percent'},turretArmoredDamage:{label:'ARMOR DAMAGE',kind:'percent'},turretPriority:{label:'TARGET PRIORITY',kind:'toggle'},
+    barrierHp:{label:'BARRIER HEALTH',kind:'number'},hqHp:{label:'HQ HEALTH',kind:'number'},assaultHqRepair:{label:'HQ REPAIR',kind:'number'},assaultBarrierRepair:{label:'BARRIER REPAIR',kind:'number'},hqDamageReduction:{label:'HQ ARMOR',kind:'percent'},hqEmergencyReduction:{label:'EMERGENCY ARMOR',kind:'percent'},barrierDamageReduction:{label:'BARRIER ARMOR',kind:'percent'},rebuildBarrierFraction:{label:'BARRIER REBUILD',kind:'percent'},
+    artilleryDamage:{label:'ARTILLERY POWER',kind:'number'},artilleryCooldown:{label:'COOLDOWN',kind:'seconds'},artilleryKillCooldown:{label:'KILL COOLDOWN',kind:'seconds'},assaultArtilleryReady:{label:'ASSAULT READY',kind:'toggle'},fieldXp:{label:'FIELD XP',kind:'percent'},artilleryMultiplier:{label:'ARTILLERY POWER',kind:'percent'},promotionChoiceBonus:{label:'PROMOTION CHOICE',kind:'choices'}
   };
   function researchEffectValue(key,value){
     var display=RESEARCH_EFFECT_DISPLAY[key],number=Number(value)||0;
     if(!display)return String(number);
     if(display.kind==='percent')return Math.round(number*100)+'%';
-    if(display.kind==='seconds')return number.toFixed(number%1?2:0)+'s';
+    if(display.kind==='seconds')return(number>0?'-':'')+number.toFixed(number%1?2:0)+'s';
     if(display.kind==='choices')return String(3+Math.round(number));
+    if(display.kind==='toggle')return number>0?'ON':'OFF';
     return formatNumber(number);
+  }
+  function researchDeltaValue(key,value){
+    var display=RESEARCH_EFFECT_DISPLAY[key],number=Number(value)||0;
+    if(!display)return String(number);
+    if(display.kind==='toggle')return'ON';
+    if(display.kind==='choices')return'+'+Math.round(number);
+    if(display.kind==='seconds')return'-'+number.toFixed(number%1?2:0)+'s';
+    if(display.kind==='percent')return'+'+Math.round(number*100)+'%';
+    return'+'+formatNumber(number);
+  }
+  function researchStatMarkup(node){
+    return Object.keys(node.effects||{}).filter(function(key){return!!RESEARCH_EFFECT_DISPLAY[key];}).map(function(key){
+      return'<span><b>'+researchDeltaValue(key,node.effects[key])+'</b>'+RESEARCH_EFFECT_DISPLAY[key].label+'</span>';
+    }).join('');
   }
   function researchPreview(node,effects,purchased){
     var keys=Object.keys(node.effects||{}).filter(function(key){return !!RESEARCH_EFFECT_DISPLAY[key];}),key=keys[0];
     if(!key)return purchased?'ACTIVE SYSTEM':'NEW COMBAT SYSTEM';
     var display=RESEARCH_EFFECT_DISPLAY[key],current=Number(effects[key])||0,next=current+(purchased?0:Number(node.effects[key])||0);
-    return purchased?'ACTIVE · '+display.label+' '+researchEffectValue(key,current):display.label+' '+researchEffectValue(key,current)+' → '+researchEffectValue(key,next);
+    return purchased?'ACTIVE TOTAL · '+researchEffectValue(key,current):'TOTAL '+researchEffectValue(key,current)+' → '+researchEffectValue(key,next);
   }
   function buyResearchNode(nodeId){
     var node=researchNode(nodeId);
@@ -692,6 +707,19 @@
       '.l177-ops-screen>.l175-qa-banner{margin:4px 0 8px}.l177-ops-screen>.l176-ops-summary{margin:8px 0}.l177-ops-screen>.l171-operation-card{margin-top:8px}.l177-ops-screen>.l171-pass-placeholder{margin-bottom:2px}'+
       '@media (max-height:700px){.l177-ops-heading{margin-top:6px}.l177-ops-heading .l137-h2{font-size:24px}.l177-ops-resources{margin-top:7px}.l177-ops-screen>.l175-qa-banner{padding:7px 9px}.l177-ops-screen>.l171-operation-card{padding:10px}}';
     document.head.appendChild(operationsStyle);
+    var researchStyle=document.createElement('style');
+    researchStyle.id='lsc178-research-style';
+    researchStyle.textContent=
+      '.l166-research-header .l137-copy{font-size:10px;line-height:1.45}'+
+      '.l165-research-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.l165-research-summary div{padding:10px 6px}.l165-research-summary span{font-size:7px}.l165-research-summary b{font-size:16px}'+
+      '.l165-research-tabs{position:sticky;top:0;z-index:3;gap:7px;margin-top:12px;padding:7px 0;background:linear-gradient(180deg,#071119 76%,rgba(7,17,25,0))}.l165-research-tab{min-height:48px;padding:8px 4px;font-size:11px}.l165-research-tab small{font-size:7px}'+
+      '.l165-branch-head{margin-top:8px}.l165-branch-head b{font-size:20px}.l165-branch-head span{margin-top:2px;font-size:8px;line-height:1.45}'+
+      '.l166-research-tier{margin-top:13px;padding-top:19px}.l166-research-tier:before{left:14px}.l166-tier-label{top:0;left:0;transform:none;padding:3px 8px;font-size:7px}'+
+      '.l166-tier-grid,.l166-research-tier.single .l166-tier-grid{grid-template-columns:1fr;gap:8px}'+
+      '.l165-research-node{padding:12px 13px}.l165-research-node.locked{opacity:.72}.l165-node-tier{font-size:7px}.l165-node-name{margin-top:3px;font-size:20px;line-height:1.05}'+
+      '.l178-node-stats{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}.l178-node-stats span{display:flex;flex:1 1 130px;min-width:calc(50% - 3px);box-sizing:border-box;align-items:baseline;gap:6px;padding:7px 8px;border:1px solid rgba(116,233,255,.18);border-radius:7px;background:rgba(0,0,0,.2);color:#aebdc2;font:7px "Share Tech Mono",monospace}.l178-node-stats b{color:#ffd166;font:800 15px Rajdhani,sans-serif}.l165-research-node.complete .l178-node-stats b{color:#7fffae}.l165-research-node.locked .l178-node-stats b{color:#b6c4c9}'+
+      '.l166-node-preview{min-height:0;margin:0 0 7px;padding:6px 7px;font-size:7px}.l166-node-requires{min-height:0;margin:0 0 7px;font-size:7px}.l165-node-action{min-height:48px;padding:8px;font-size:11px}.l165-node-action small{font-size:7px}.l166-research-footnote{font-size:7px}';
+    document.head.appendChild(researchStyle);
   }
 
   function battleHapticsEnabled(){return localStorage.getItem('lsc_haptic_off')!=='1'&&localStorage.getItem('lsc_haptics')!=='off';}
@@ -816,15 +844,15 @@
         var requirement=purchased?(node.capstone?'CAPSTONE ACTIVE':'RESEARCH ACTIVE'):researchRequirementText(node)||(node.capstone?'BRANCH CAPSTONE':'PATH AVAILABLE');
         var cost='<span class="l166-cost">'+resourcePair(node.cost.credits,node.cost.parts)+'</span>';
         if(meta.researchPoints>0&&!purchased&&unlocked)cost='<span class="l166-cost">LEGACY POINT AVAILABLE</span>'+cost;
-        return '<div class="l165-research-node '+(purchased?'complete':!unlocked?'locked':'available')+(node.capstone?' capstone':'')+'" data-node-card="'+node.id+'"><div class="l165-node-tier">'+(node.capstone?'TIER 5 · CAPSTONE':'TIER '+node.tier)+'</div><div class="l165-node-name">'+node.name+'</div><div class="l165-node-effect">'+node.effectText+'</div><div class="l166-node-preview">'+researchPreview(node,effects,purchased)+'</div><div class="l166-node-requires">'+requirement+'</div><button class="l165-node-action" data-research-node="'+node.id+'" '+(disabled?'disabled':'')+'>'+state+'<small>'+cost+'</small></button></div>';
+        return '<div class="l165-research-node '+(purchased?'complete':!unlocked?'locked':'available')+(node.capstone?' capstone':'')+'" data-node-card="'+node.id+'"><div class="l165-node-tier">'+(node.capstone?'TIER 5 · CAPSTONE':'TIER '+node.tier)+'</div><div class="l165-node-name">'+node.name+'</div><div class="l178-node-stats">'+researchStatMarkup(node)+'</div><div class="l166-node-preview">'+researchPreview(node,effects,purchased)+'</div><div class="l166-node-requires">'+requirement+'</div><button class="l165-node-action" data-research-node="'+node.id+'" '+(disabled?'disabled':'')+'>'+state+'<small>'+cost+'</small></button></div>';
       }).join('');
       return '<section class="l166-research-tier '+(tierNodes.length===1?'single ':'')+(tier===5?'capstone':'')+'"><div class="l166-tier-label">'+(tier===5?'TIER 5 · CAPSTONE':'TIER '+tier)+'</div><div class="l166-tier-grid">'+nodeCards+'</div></section>';
     }).join('');
-    panel.innerHTML='<div class="l166-research-header"><div class="l137-kicker">PERMANENT PROGRESSION</div><div class="l137-h2" id="l166-research-title">RESEARCH CENTER</div><div class="l137-copy">Develop two connected paths in each branch across five tiers. Research is immediate, permanent, and never mutually exclusive.</div></div>'+
+    panel.innerHTML='<div class="l166-research-header"><div class="l137-kicker">PERMANENT PROGRESSION</div><div class="l137-h2" id="l166-research-title">RESEARCH CENTER</div><div class="l137-copy">Choose a branch. Every completed upgrade is permanent.</div></div>'+
       (meta.researchPoints>0?'<div class="l165-research-points"><b>'+meta.researchPoints+' LEGACY RESEARCH POINT'+(meta.researchPoints===1?'':'S')+'</b><span>Converted from the previous Research Tier system. Spend these before Credits or Tech Parts.</span></div>':'')+
-      '<div class="l165-research-summary"><div><span>RESEARCHED</span><b>'+purchasedResearchCount()+' / '+RESEARCH_NODES.length+'</b></div><div><span>TURRET DAMAGE</span><b>+'+Math.round(effects.turretDamage*100)+'%</b></div><div><span>HQ CAPACITY</span><b>+'+effects.hqHp+'</b></div><div><span>ARTILLERY</span><b>+'+effects.artilleryDamage+'</b></div></div>'+
-      (legacy>0?'<div class="l165-legacy-note">LEGACY CALIBRATION RETAINED · TURRET DAMAGE +'+legacy+'%</div>':'')+
-      '<div class="l165-research-tabs">'+tabs+'</div><div class="l165-branch-head"><b>'+branch.name+'</b><span>'+branch.description+'</span></div><div class="l165-research-tree">'+cards+'</div><div class="l166-research-footnote">BOTH PATHS REMAIN AVAILABLE · COMPLETE BOTH TIER 4 NODES TO UNLOCK THE BRANCH CAPSTONE</div>';
+      '<div class="l165-research-summary"><div><span>RESEARCHED</span><b>'+purchasedResearchCount()+' / '+RESEARCH_NODES.length+'</b></div><div><span>ATTACK POWER</span><b>+'+Math.round(effects.turretDamage*100)+'%</b></div><div><span>HQ HEALTH</span><b>+'+effects.hqHp+'</b></div><div><span>ARTILLERY POWER</span><b>+'+effects.artilleryDamage+'</b></div></div>'+
+      (legacy>0?'<div class="l165-legacy-note">LEGACY CALIBRATION RETAINED · ATTACK POWER +'+legacy+'%</div>':'')+
+      '<div class="l165-research-tabs">'+tabs+'</div><div class="l165-branch-head"><b>'+branch.name+'</b><span>'+branch.description+'</span></div><div class="l165-research-tree">'+cards+'</div><div class="l166-research-footnote">COMPLETE BOTH TIER 4 UPGRADES TO UNLOCK THE CAPSTONE</div>';
     Array.prototype.forEach.call(panel.querySelectorAll('[data-research-branch]'),function(button){button.onclick=function(){activeResearchBranch=button.dataset.researchBranch;renderTab('research',{scrollTop:0});};});
     Array.prototype.forEach.call(panel.querySelectorAll('[data-research-node]'),function(button){button.onclick=function(){buyResearchNode(button.dataset.researchNode);};});
   }
@@ -875,7 +903,7 @@
   }
   function renderOperationsTab(panel){
     var operationOpen=operationAvailable(),rewardOpen=operationRewardAvailable(),level=meta.operationLevel,credits=operationRewardCredits(level),parts=operationRewardParts(level),nextLevel=Math.min(OPERATION_LEVEL_GUARD,level+1),autoClear=operationAutoClearState(level);
-    var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 177 · QA TEST ACCESS</b>OPERATIONS REMAIN REPEATABLE FOR TESTING · ONLY THE FIRST CLEAR OF THE DAY AWARDS RESOURCES</div>':'';
+    var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 178 · QA TEST ACCESS</b>OPERATIONS REMAIN REPEATABLE FOR TESTING · ONLY THE FIRST CLEAR OF THE DAY AWARDS RESOURCES</div>':'';
     var notice=operationNotice?'<div class="l175-operation-notice">AUTO-CLEAR LEVEL '+operationNotice.level+' COMPLETE · LEVEL '+operationNotice.nextLevel+' UNLOCKED · '+(operationNotice.rewarded?formatNumber(operationNotice.credits)+' CREDITS + '+operationNotice.parts+' TECH PART'+(operationNotice.parts===1?'':'S'):'NO ADDITIONAL DAILY RESOURCES')+'</div>':'';
     var rewardState=rewardOpen?'DAILY REWARD AVAILABLE':QA_TEST_ACCESS?'DAILY REWARD CLAIMED · QA PROGRESSION OPEN':'DAILY REWARD CLAIMED';
     var autoLabel=autoClear.available?'AUTO-CLEAR LEVEL '+level:!autoClear.manualReady?'AUTO-CLEAR LOCKED · MANUAL CLEAR '+autoClear.manualRequired:!autoClear.powerReady?'AUTO-CLEAR REQUIRES '+autoClear.required+' POWER':'AUTO-CLEAR USED TODAY';
@@ -891,7 +919,7 @@
     var p = id('l137-panel');
     if (tab === 'campaign') {
       var support=retryAssist(meta.phase),supportText=support>0?'<small>RETRY SUPPORT ACTIVE · ENEMY HEALTH AND DAMAGE -'+Math.round(support*100)+'%</small>':'',power=powerAssessment(meta.phase),energy=availableEnergy(),freeRetry=isFreeCampaignRetry(meta.phase),spend=freeRetry?1:campaignEnergySpend(),baseCredits=victoryRewardPreview(meta.phase),previewCredits=freeRetry?baseCredits:campaignCreditReward(baseCredits,spend);
-      var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 177 · QA TEST ACCESS</b>UNLIMITED CAMPAIGN ENERGY · REPEATABLE OPERATIONS · DAILY RESOURCES STILL AWARD ONLY ONCE</div>':'';
+      var qaBanner=QA_TEST_ACCESS?'<div class="l175-qa-banner"><b>BUILD 178 · QA TEST ACCESS</b>UNLIMITED CAMPAIGN ENERGY · REPEATABLE OPERATIONS · DAILY RESOURCES STILL AWARD ONLY ONCE</div>':'';
       var campaignLabel=freeRetry?'RETRY PHASE '+meta.phase+' · ENERGY FREE':'CHALLENGE PHASE '+meta.phase+' · '+spend+' ENERGY · '+campaignMultiplierLabel(spend);
       p.innerHTML = qaBanner+'<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small class="l166-cost">' + resourcePair(previewCredits,3) + '</small><small>'+(freeRetry?'BASE REWARD':campaignMultiplierLabel(spend)+' · CREDIT BOOST ONLY')+'</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div>'+energyCardMarkup(freeRetry)+'<button class="l137-btn good l137-deploy" id="l137-deploy" '+(!freeRetry&&energy<spend?'disabled':'')+'>'+campaignLabel+'</button>';
     }
