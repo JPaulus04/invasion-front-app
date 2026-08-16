@@ -122,7 +122,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'180\';'), 'Build 180 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'181\';'), 'Build 181 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -172,7 +172,7 @@ requireMatch(html.includes('function researchEffects()') && html.includes('funct
 requireMatch(html.includes('legacyResearchDamage') && html.includes('LEGACY RESEARCH POINT'), 'Build 165 research migration is missing');
 requireMatch(html.includes("if(rank===5){run.legendaryMisses=0") && html.includes('Math.random()<.30'), 'Build 165 legendary cadence is missing');
 requireMatch(html.includes('NEXT STACK '), 'Build 165 field-promotion stack labeling is missing');
-requireMatch(html.includes('COMMAND FORTRESS · MAXIMUM LEVEL') && html.includes('meta.hq>=5'), 'Build 165 five-tier HQ cap is missing');
+requireMatch(html.includes('MAXIMUM HQ LEVEL') && html.includes('if(meta.hq<5)'), 'Build 165 five-tier HQ cap is missing');
 requireMatch(threeDSource.includes('HQ level 3 raised fortified walls'), 'Build 165 level 3 fortress geometry is missing');
 requireMatch(threeDSource.includes('HQ level 4 armored perimeter wall'), 'Build 165 level 4 fortress geometry is missing');
 requireMatch(threeDSource.includes('HQ level 5 command fortress wall'), 'Build 165 level 5 fortress geometry is missing');
@@ -224,10 +224,11 @@ requireMatch(html.includes('function operationDifficulty(level)') && html.includ
 requireMatch(html.includes('function operationRewardCredits(level)') && html.includes('function operationRewardParts(level)') && html.includes('meta.operationLevel=Math.min(OPERATION_LEVEL_GUARD,operationLevel+1)'), 'Build 174 operation reward progression is missing');
 requireMatch(html.includes('SPECIAL OPERATIONS · DAILY LADDER') && html.includes('CONTAINMENT LEVEL ') && html.includes('NEXT LEVEL '), 'Build 177 operation ladder presentation is missing');
 requireMatch(html.includes('operationLevel:run.operationLevel') && html.includes('operation:true,operationLevel:operationLevel') && html.includes('CONTAINMENT ALPHA · LEVEL '), 'Build 174 operation retry and HUD continuity is missing');
-requireMatch(html.includes("String(LSC_BUILD) === '180'") && html.includes('if(QA_TEST_ACCESS)return meta.energyMax;') && html.includes('if(QA_TEST_ACCESS)return true;'), 'Build 180 temporary QA energy override is missing');
+requireMatch(html.includes("String(LSC_BUILD) === '181'") && html.includes('if(QA_TEST_ACCESS)return meta.energyMax;') && html.includes('if(QA_TEST_ACCESS)return true;'), 'Build 181 temporary testing access is missing');
 requireMatch(html.includes('function operationRewardAvailable()') && html.includes('operationRewardEligible') && html.includes('NO ADDITIONAL RESOURCES'), 'Build 175 QA reward protection is missing');
 requireMatch(html.includes('function operationAutoClearState(level)') && html.includes('function autoClearOperation()') && html.includes('meta.operationManualBest>=manualRequired'), 'Build 175 guarded auto-clear is missing');
-requireMatch(html.includes('BUILD 180 · QA TEST ACCESS') && html.includes('REPEATABLE OPERATIONS'), 'Build 180 QA disclosure is missing');
+requireMatch(!html.includes('BUILD 181 · QA TEST ACCESS') && !html.includes('QA OPEN') && !html.includes('QA REPEAT') && !html.includes('QA PROGRESSION') && !html.includes('ENERGY · QA'), 'Build 181 production-safe testing labels are missing');
+requireMatch(html.includes('RESERVE UNLIMITED') && html.includes('PRACTICE OPEN') && html.includes('PRACTICE CLEAR'), 'Build 181 temporary testing access copy is missing');
 requireMatch(html.includes('function renderOperationsTab(panel)') && html.includes('id="l176-ops-launch"') && html.includes("renderTab('operations')"), 'Build 177 Special Operations launcher is missing');
 requireMatch(html.includes("classList.toggle('l177-operations-mode',operationsMode)") && html.includes('class="l177-ops-screen"') && html.includes('← COMMAND BASE'), 'Build 177 full-screen Special Operations destination is missing');
 requireMatch(html.includes('operationsReturnState={tab:activeCommandTab') && html.includes('renderTab(operationsReturnState.tab,{scrollTop:operationsReturnState.scrollTop})'), 'Build 177 Command Base return continuity is missing');
@@ -235,6 +236,12 @@ requireMatch(html.includes('lsc180-research-style') && html.includes('l180-doctr
 requireMatch(html.includes('l180-research-mode') && html.includes('#lsc137-app.l180-research-mode .l137-hero'), 'Build 180 compact Research destination is missing');
 requireMatch(html.includes('function researchNodeBadge(node)') && html.includes('function researchNodeState(node)') && html.includes('function researchStatMarkup(node)'), 'Build 180 concise Research node labels are missing');
 requireMatch(html.includes("name:'Attack Power'") && html.includes("name:'Range'") && html.includes("name:'Barrier Health'") && html.includes("name:'Cooldown'"), 'Build 180 short Research names are missing');
+requireMatch(html.includes('function renderStoreTab(panel)') && html.includes('id="l181-store-launch"') && html.includes("renderTab('store')"), 'Build 181 Supply Depot launcher is missing');
+requireMatch(html.includes('PURCHASES DISABLED IN THIS BUILD') && html.includes('COMMAND PASS') && html.includes('ENERGY RESUPPLY') && html.includes('RESOURCE PACKS'), 'Build 181 Store preview structure is missing');
+requireMatch(html.includes("classList.toggle('l181-store-mode',storeMode)") && html.includes('storeReturnState={tab:activeCommandTab') && html.includes('renderTab(storeReturnState.tab,{scrollTop:storeReturnState.scrollTop})'), 'Build 181 Store destination continuity is missing');
+requireMatch(html.includes('function renderHqTab(panel)') && html.includes('MAXIMUM HQ LEVEL') && html.includes('FORTRESS FULLY DEPLOYED'), 'Build 181 maximum HQ presentation is missing');
+requireMatch(html.includes('the Commander and main turret fire') && html.includes('Commander damage') && !html.includes('Holt damage +') && !html.includes('Holt fire rate +'), 'Build 181 Commander terminology cleanup is missing');
+requireMatch(html.includes('top:calc(env(safe-area-inset-top,0px) + 18px)') && html.includes('top:calc(env(safe-area-inset-top,0px) + 17px)'), 'Build 181 combat safe-area spacing is missing');
 requireMatch(html.includes('EXTRA ENERGY MULTIPLIES CREDITS ONLY') && html.includes('TECH PARTS, EQUIPMENT, AND PROGRESSION NEVER MULTIPLY'), 'Build 176 reward-boundary disclosure is missing');
 requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && !threeDSource.includes('addBossArmor') && !threeDSource.includes('Siege Breaker left shoulder plate'), 'Build 169 stable boss material grades are missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
