@@ -79,9 +79,10 @@ function requireMatch(condition, message) {
   if (!condition) throw new Error(`Build validation failed: ${message}`);
 }
 
-// The accepted Build 183 balance is a pure shared module, so RC packaging verifies
+// Build 186 keeps the accepted economy/operation ledgers and replaces only the
+// campaign resistance curve, so packaging verifies both boundaries directly.
 // the full curves rather than relying only on source-string markers.
-requireMatch(balance.version === 183, 'Build 183 balance module is missing');
+requireMatch(balance.version === 186, 'Build 186 balance module is missing');
 requireMatch(balance.ENERGY.max === 10 && balance.ENERGY.rechargeMs === 45 * 60 * 1000, 'campaign energy reserve or recharge changed');
 requireMatch(balance.ECONOMY.startingCredits === 500 && balance.ECONOMY.startingParts === 12, 'tested starting economy changed');
 requireMatch(JSON.stringify(balance.ENERGY.creditMultipliers) === JSON.stringify([1, 1.75, 2.40, 2.95, 3.45]), 'campaign credit multiplier ladder is incorrect');
@@ -89,7 +90,7 @@ for (let spend = 2; spend <= balance.ENERGY.maxSpend; spend++) {
   requireMatch(balance.energyMultiplier(spend) > balance.energyMultiplier(spend - 1), `energy multiplier does not increase at spend ${spend}`);
   requireMatch(balance.energyMultiplier(spend) / spend < balance.energyMultiplier(spend - 1) / (spend - 1), `energy efficiency does not diminish at spend ${spend}`);
 }
-const openingTargets = [[9,12,15],[11,15,20],[13,18,24],[15,21,28],[17,24,32],[20,28,37]];
+const openingTargets = [[9,12,15],[11,15,20],[13,18,24],[15,21,28],[18,25,34],[20,29,39]];
 openingTargets.forEach((targets, index) => requireMatch(JSON.stringify(balance.phaseBalance(index + 1).targets) === JSON.stringify(targets), `accepted Phase ${index + 1} contact curve changed`));
 requireMatch(balance.campaignBaseCredits(1, 37) === 386, 'Phase 1 credit baseline is incorrect');
 requireMatch(balance.campaignParts(5, true) === 4 && balance.campaignParts(5, false) === 3, 'campaign milestone Tech Part boundary is incorrect');
@@ -108,13 +109,17 @@ for (let phase = 1; phase <= 500; phase++) {
   requireMatch(reward >= priorCampaignReward, `campaign reward regressed at Phase ${phase}`);
   if (priorCampaign) {
     requireMatch(curve.targets.every((count, index) => count >= priorCampaign.targets[index]), `contact count regressed at Phase ${phase}`);
-    requireMatch(curve.hp >= priorCampaign.hp && curve.damage >= priorCampaign.damage && curve.bossHp >= priorCampaign.bossHp && curve.bossDamage >= priorCampaign.bossDamage, `difficulty regressed at Phase ${phase}`);
+    requireMatch(curve.hp >= priorCampaign.hp && curve.damage >= priorCampaign.damage, `campaign pressure regressed at Phase ${phase}`);
+    if (phase % 5 !== 1) requireMatch(curve.bossHp >= priorCampaign.bossHp && curve.bossDamage >= priorCampaign.bossDamage, `boss pressure regressed outside a milestone reset at Phase ${phase}`);
   }
   priorCampaign = curve;
   priorRecommended = recommended;
   priorCampaignReward = reward;
 }
 requireMatch(balance.phaseBalance(180).targets.reduce((total, count) => total + count, 0) <= 320, 'late-campaign contact budget is unbounded');
+requireMatch(balance.phaseBalance(5).bossHp >= 3000 && balance.phaseBalance(10).bossHp >= 7000, 'Build 186 milestone bosses are under-tuned');
+requireMatch(balance.phaseBalance(20).damage >= 3.5 && balance.phaseBalance(20).barricadeHp === 68, 'Build 186 late resistance or fixed barrier baseline is missing');
+requireMatch(balance.recommendedPower(5) === 500 && balance.recommendedPower(20) >= 1900, 'Build 186 recommended-power curve is misleading');
 requireMatch(balance.OPERATIONS.junkyardSeconds === 70 && balance.junkyardVehicleHealth(1) === 4200, 'Junkyard opening objective changed');
 requireMatch(balance.operationCredits('containment', 1) === 220 && balance.operationCredits('junkyard', 1) === 300, 'operation opening rewards are incorrect');
 requireMatch(balance.operationParts('containment', 1) === 1 && balance.operationParts('junkyard', 9999) === 0, 'operation Tech Part boundary is incorrect');
@@ -186,7 +191,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'185\';'), 'Build 185 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'186\';'), 'Build 186 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -202,7 +207,7 @@ requireMatch(threeDSource.includes('Defensive compound north pad'), 'Build 162 c
 requireMatch(threeDSource.includes('new THREE.PerspectiveCamera(45'), 'Build 162 portrait camera framing is missing');
 requireMatch(html.includes('Barricade lane '), 'Build 162 eight-lane renderer is missing');
 requireMatch(html.includes("targetType==='barricade'"), 'Build 162 barricade damage routing is missing');
-requireMatch(html.includes('Build 185 battlefield asset fallback:'), 'Build 185 renderer marker is missing');
+requireMatch(html.includes('Build 186 battlefield asset fallback:'), 'Build 186 renderer marker is missing');
 requireMatch(html.includes('Commander Holt animated model'), 'Build 162 animated Holt model is missing');
 requireMatch(html.includes('Commander Holt two-hand rifle mount'), 'Build 162 two-hand rifle alignment is missing');
 requireMatch(html.includes('holt-rifle-fire'), 'Build 162 Holt firing animation is missing');
@@ -333,6 +338,12 @@ requireMatch(html.includes('Build 185 2D fallback mirrors the three authored cam
 requireMatch(html.includes('function spawnVehicleExplosion(e)') && html.includes('vehicleDestructionTimer=1.45') && html.includes('ARMORED TRANSPORT · DESTROYED'), 'Build 185 decisive armored transport destruction is missing');
 requireMatch(html.includes('function spawnArtilleryImpact(target,sequence)') && html.includes('FIRE MISSION · IMPACT') && threeDSource.includes("shockwave: new THREE.RingGeometry") && threeDSource.includes("fireball: new THREE.IcosahedronGeometry"), 'Build 185 heavy artillery strike presentation is missing');
 requireMatch(threeDSource.includes('function applyCameraFeedback(run)') && threeDSource.includes('junkyardVehicleFlames') && threeDSource.includes('junkyardVehicleBlastLight'), 'Build 185 impact camera or vehicle fire feedback is missing');
+requireMatch(html.includes('function applyDamage(target,amount,source)') && html.includes("bossArchetype==='juggernaut'") && html.includes('HEAVY ARMOR · BREACHED') && html.includes('commanderArmorDamage'), 'Build 186 Juggernaut armor resistance is missing');
+requireMatch(html.includes('function summonOutbreakReinforcements(boss)') && html.includes('OUTBREAK PRIME · REINFORCEMENTS'), 'Build 186 Outbreak reinforcement mechanic is missing');
+requireMatch(html.includes('function updateBarrierStress()') && html.includes('BARRIER CRITICAL') && html.includes('PERIMETER BREACH') && threeDSource.includes('Barricade damage marks'), 'Build 186 barrier stress feedback is missing');
+requireMatch(html.includes("if(firstClear&&phase===5)return'epic'") && html.includes("if(firstClear&&phase===10)") && html.includes("if(firstClear&&phase===15&&!ownsLegendary)return'legendary'"), 'Build 186 milestone equipment guarantees are missing');
+requireMatch(html.includes('equipmentBalanceSchema:186') && html.includes('BUILD 186 VETERAN CACHE') && html.includes("source:'BUILD 186 VETERAN CACHE'"), 'Build 186 veteran rarity migration is missing');
+requireMatch(html.includes('.l167-equipped-slot.filled.epic') && html.includes('.l167-equipped-slot.filled.legendary') && html.includes('l186-equipped-badge') && html.includes('MILESTONE REWARD'), 'Build 186 rarity-colored equipment presentation is missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
