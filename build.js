@@ -186,7 +186,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'184\';'), 'Build 184 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'185\';'), 'Build 185 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -202,7 +202,7 @@ requireMatch(threeDSource.includes('Defensive compound north pad'), 'Build 162 c
 requireMatch(threeDSource.includes('new THREE.PerspectiveCamera(45'), 'Build 162 portrait camera framing is missing');
 requireMatch(html.includes('Barricade lane '), 'Build 162 eight-lane renderer is missing');
 requireMatch(html.includes("targetType==='barricade'"), 'Build 162 barricade damage routing is missing');
-requireMatch(html.includes('Build 184 battlefield asset fallback:'), 'Build 184 renderer marker is missing');
+requireMatch(html.includes('Build 185 battlefield asset fallback:'), 'Build 185 renderer marker is missing');
 requireMatch(html.includes('Commander Holt animated model'), 'Build 162 animated Holt model is missing');
 requireMatch(html.includes('Commander Holt two-hand rifle mount'), 'Build 162 two-hand rifle alignment is missing');
 requireMatch(html.includes('holt-rifle-fire'), 'Build 162 Holt firing animation is missing');
@@ -299,14 +299,14 @@ requireMatch(html.includes('junkyardLevel:1') && html.includes('junkyardManualBe
 requireMatch(html.includes('if(sourceOperationSchema<175)') && html.includes('loaded.junkyardLevel=Math.max(1') && html.includes('loaded.junkyardManualBest=Math.max(0'), 'Build 182 operation migration guard is missing');
 requireMatch(html.includes('function operationAvailable(kind)') && html.includes('===activeOperationId()&&operationRewardAvailable()'), 'Build 184 active-rotation daily deployment gate is missing');
 requireMatch(html.includes('function junkyardTimeLimit(){return BALANCE.OPERATIONS.junkyardSeconds;}') && html.includes('function junkyardVehicleHealth(level)') && html.includes("kind:'vehicle'") && html.includes("variant:'armored-transport'"), 'Build 183 timed armored vehicle objective is missing');
-requireMatch(html.includes('function updateJunkyard(dt)') && html.includes('run.objectiveTime=Math.max(0,run.objectiveTime-dt)') && html.includes('if(run.vehicleDestroyed){finish(true);return;}') && html.includes('if(run.objectiveTime<=0)'), 'Build 182 Junkyard success and extraction-failure routing is missing');
+requireMatch(html.includes('function updateJunkyard(dt)') && html.includes('if(!run.vehicleDestroyed)run.objectiveTime=Math.max(0,run.objectiveTime-dt)') && html.includes('run.vehicleDestructionTimer<=0)finish(true)') && html.includes('if(run.objectiveTime<=0)'), 'Build 185 Junkyard destruction hold and extraction-failure routing are missing');
 requireMatch(html.includes("layouts=junkyard?[]") && html.includes("if(run.operationKind==='junkyard'){updateJunkyard(dt);return;}"), 'Build 182 Junkyard must bypass zombie assault simulation');
 requireMatch(html.includes('BALANCE.operationCredits(kind') && html.includes('BALANCE.operationParts(kind') && html.includes('BALANCE.junkyardVehicleHealth(') && html.includes('junkyardVehicleHealth(operationLevel)'), 'Build 183 escalating armor and operation rewards are missing');
 requireMatch(html.includes('meta.junkyardManualBest=Math.max(meta.junkyardManualBest,operationLevel)') && html.includes('Math.max(meta.junkyardLevel,operationLevel+1)') && html.includes('meta.operationLastClearDay=localDayKey()'), 'Build 182 manual progression and shared reward claim are missing');
 requireMatch(html.includes('function operationAutoClearStateFor(kind,level)') && html.includes("manualReady=kind==='junkyard'?meta.junkyardManualBest>=manualRequired") && html.includes('manualReady&&powerReady&&rewardReady'), 'Build 184 guarded per-operation auto-clear is missing');
 requireMatch(html.includes('ARMORED TRANSPORT · ') && html.includes('% DESTROYED') && html.includes('TARGET ESCAPED') && html.includes('NO ADDITIONAL RESOURCES'), 'Build 182 Junkyard HUD and no-repeat-reward result copy are missing');
 requireMatch(html.includes('function drawJunkyardEnvironment(W,H,h)') && html.includes('function drawArmoredVehicle(e,wreck)') && html.includes('JUNKYARD CONVOY ROUTE · EXTRACTION GATE ACTIVE'), 'Build 182 2D Junkyard battlefield is missing');
-requireMatch(threeDSource.includes('Build 184 release-candidate junkyard convoy battlefield') && threeDSource.includes('Procedural armored convoy transport') && threeDSource.includes('Diagonal armored convoy route'), 'Build 184 procedural 3D Junkyard battlefield is missing');
+requireMatch(threeDSource.includes('Build 185 decisive-destruction junkyard convoy battlefield') && threeDSource.includes('Procedural armored convoy transport') && threeDSource.includes('Diagonal armored convoy route'), 'Build 185 procedural 3D Junkyard battlefield is missing');
 requireMatch(threeDSource.includes('camera.position.set(11.4, 9.1, 14.9)') && threeDSource.includes('function syncArmoredVehicle(run)') && threeDSource.includes("if (unit.kind === 'vehicle') return;"), 'Build 182 Junkyard camera or armored transport renderer is missing');
 requireMatch(html.includes('function pushParticle(particle)') && html.includes('run.performance&&run.performance.particleCap') && html.includes('run.performance&&run.performance.corpseCap'), 'Build 183 combat effect budgets are missing');
 requireMatch(html.includes('function updateBattleControls(force)') && html.includes('hudNow-run.lastHudUpdate<hudInterval'), 'Build 183 HUD throttling is missing');
@@ -327,7 +327,12 @@ requireMatch(html.includes('function renderHqTab(panel)') && html.includes('MAXI
 requireMatch(html.includes('the Commander and main turret fire') && html.includes('Commander damage') && !html.includes('Holt damage +') && !html.includes('Holt fire rate +'), 'Build 181 Commander terminology cleanup is missing');
 requireMatch(html.includes('top:calc(env(safe-area-inset-top,0px) + 18px)') && html.includes('top:calc(env(safe-area-inset-top,0px) + 17px)'), 'Build 181 combat safe-area spacing is missing');
 requireMatch(html.includes('EXTRA ENERGY MULTIPLIES CREDITS ONLY') && html.includes('TECH PARTS, EQUIPMENT, AND PROGRESSION NEVER MULTIPLY'), 'Build 176 reward-boundary disclosure is missing');
-requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && !threeDSource.includes('addBossArmor') && !threeDSource.includes('Siege Breaker left shoulder plate'), 'Build 169 stable boss material grades are missing');
+requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && threeDSource.includes('function buildBossSilhouette(root, bossGrade)') && threeDSource.includes('Juggernaut shoulder armor') && threeDSource.includes('Outbreak boss dorsal spine') && !threeDSource.includes('addBossArmor'), 'Build 185 stable boss silhouette grades are missing');
+requireMatch(threeDSource.includes('Campaign tier 1 · Overrun Forward Outpost') && threeDSource.includes('Campaign tier 2 · Collapsed Industrial Sector') && threeDSource.includes('Campaign tier 3 · Ruined Urban Perimeter') && threeDSource.includes('function syncCampaignWorld(run, dt)'), 'Build 185 campaign theater progression is missing');
+requireMatch(html.includes('Build 185 2D fallback mirrors the three authored campaign theaters') && html.includes('background:rgba(0,4,8,.58)'), 'Build 185 campaign fallback or promotion visibility polish is missing');
+requireMatch(html.includes('function spawnVehicleExplosion(e)') && html.includes('vehicleDestructionTimer=1.45') && html.includes('ARMORED TRANSPORT · DESTROYED'), 'Build 185 decisive armored transport destruction is missing');
+requireMatch(html.includes('function spawnArtilleryImpact(target,sequence)') && html.includes('FIRE MISSION · IMPACT') && threeDSource.includes("shockwave: new THREE.RingGeometry") && threeDSource.includes("fireball: new THREE.IcosahedronGeometry"), 'Build 185 heavy artillery strike presentation is missing');
+requireMatch(threeDSource.includes('function applyCameraFeedback(run)') && threeDSource.includes('junkyardVehicleFlames') && threeDSource.includes('junkyardVehicleBlastLight'), 'Build 185 impact camera or vehicle fire feedback is missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
