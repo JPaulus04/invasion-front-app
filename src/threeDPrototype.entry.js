@@ -363,7 +363,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
   function buildJunkyardWorld() {
     junkyardWorldGroup = new THREE.Group();
-    junkyardWorldGroup.name = 'Build 183 balanced junkyard convoy battlefield';
+    junkyardWorldGroup.name = 'Build 184 release-candidate junkyard convoy battlefield';
     junkyardWorldGroup.visible = false;
     staticGroup.add(junkyardWorldGroup);
 
@@ -1092,21 +1092,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       try {
         await loadHoltAssets();
       } catch (holtError) {
-        console.warn('Build 183 Commander Holt fallback:', holtError);
+        console.warn('Build 184 Commander Holt fallback:', holtError);
         if (heroFallbackGroup) heroFallbackGroup.visible = true;
       }
 
       try {
         await loadHQAssets();
       } catch (hqError) {
-        console.warn('Build 183 modular HQ fallback:', hqError);
+        console.warn('Build 184 modular HQ fallback:', hqError);
         hqFallbackGroup.visible = true;
       }
 
       setBadgeText(activeWorldMode === 'junkyard' ? 'JUNKYARD RECOVERY · ARMORED CONVOY' : activeWorldMode === 'operation' ? 'DAILY OPERATION · FORWARD CONTAINMENT LINE' : 'CENTRAL HQ · HOLT ON STATION');
       return true;
     })().catch(error => {
-      console.warn('Build 183 battlefield asset fallback:', error);
+      console.warn('Build 184 battlefield asset fallback:', error);
       setBadgeText('CENTRAL HQ · 2D FALLBACK');
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -1709,7 +1709,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         if (initialRun) api.render(initialRun);
       });
     } catch (error) {
-      console.warn('Build 183 3D fallback:', error);
+      console.warn('Build 184 3D fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';

@@ -1,4 +1,4 @@
-// Build 183 — v1.0 economy, difficulty, energy, reward, and performance balance.
+// Build 184 — v1.0 release candidate cleanup, migration, and device hardening.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -62,6 +62,7 @@
   var animationAtlas = new Image();
   animationAtlas.src = 'assets/unit-animation-atlas.png';
   var META_KEY = 'lsc_command_base_137'; // Preserve Build 137 progression.
+  var META_BACKUP_KEY = META_KEY + '_backup';
   var soundTimes = {};
   var hapticTimes = {};
   var activeResearchBranch = 'fire-control';
@@ -72,7 +73,8 @@
   var operationNotice = null;
   var activeCommandTab = 'campaign';
   var operationsReturnState = {tab:'campaign',scrollTop:0};
-  var storeReturnState = {tab:'campaign',scrollTop:0};
+  var lifecyclePausedRun = false;
+  var RELEASE_SCHEMA = 184;
   var RESEARCH_SCHEMA = 166;
   var EQUIPMENT_SCHEMA = 167;
   var COMMANDER_SCHEMA = 168;
@@ -88,11 +90,10 @@
     reducedMotion:!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)
   });
   var OPERATION_SCHEMA = 182;
-  // Build-scoped QA access deliberately expires as soon as LSC_BUILD changes.
-  // It never mutates the stored energy reserve or duplicates daily resources.
-  var QA_TEST_ACCESS = typeof LSC_BUILD !== 'undefined' && String(LSC_BUILD) === '183';
   // This is only a damaged-save guard, not a designed progression ceiling.
   var OPERATION_LEVEL_GUARD = 9999;
+  var PROGRESSION_VALUE_GUARD = 999999;
+  var RESOURCE_VALUE_GUARD = Number.MAX_SAFE_INTEGER || 9007199254740991;
   var COMMANDER_MAX_LEVEL = 20;
   var INVENTORY_CAPACITY = 24;
   var HQ_TIER_NAMES = ['FIELD COMMAND POST','REINFORCED COMPOUND','FORTIFIED HEADQUARTERS','ARMORED CITADEL','COMMAND FORTRESS'];
@@ -227,14 +228,45 @@
       if(typeof haptic==='function')haptic(key);
     }catch(e){}
   }
-  function defaults() { return { credits: BALANCE.ECONOMY.startingCredits, parts: BALANCE.ECONOMY.startingParts, phase: 1, bestPhase: 0, commander: 1, commanderSchema:COMMANDER_SCHEMA, commanderNotice:null, research: 0, researchSchema:RESEARCH_SCHEMA, researchNodes:{}, researchPoints:0, legacyResearchLevels:0, legacyResearchDamage:0, hq: 1, phaseLosses: {}, equipmentSchema:EQUIPMENT_SCHEMA, equipment:[], equipped:{weapon:null,rig:null,module:null}, equipmentNextId:1, equipmentNotice:null, energySchema:ENERGY_SCHEMA, energy:ENERGY_MAX, energyMax:ENERGY_MAX, energyUpdatedAt:Date.now(), campaignRetryPhase:null, operationSchema:OPERATION_SCHEMA, operationLevel:1, operationManualBest:0, junkyardLevel:1, junkyardManualBest:0, operationLastClearDay:'' }; }
+  function defaults() { return { releaseSchema:RELEASE_SCHEMA, credits: BALANCE.ECONOMY.startingCredits, parts: BALANCE.ECONOMY.startingParts, phase: 1, bestPhase: 0, commander: 1, commanderSchema:COMMANDER_SCHEMA, commanderNotice:null, research: 0, researchSchema:RESEARCH_SCHEMA, researchNodes:{}, researchPoints:0, legacyResearchLevels:0, legacyResearchDamage:0, hq: 1, phaseLosses: {}, equipmentSchema:EQUIPMENT_SCHEMA, equipment:[], equipped:{weapon:null,rig:null,module:null}, equipmentNextId:1, equipmentNotice:null, energySchema:ENERGY_SCHEMA, energy:ENERGY_MAX, energyMax:ENERGY_MAX, energyUpdatedAt:Date.now(), campaignRetryPhase:null, operationSchema:OPERATION_SCHEMA, operationLevel:1, operationManualBest:0, junkyardLevel:1, junkyardManualBest:0, operationLastClearDay:'' }; }
+  function guardedInteger(value,fallback,minimum,maximum){
+    var numeric=Number(value);
+    if(!Number.isFinite(numeric))numeric=Number(fallback)||0;
+    return Math.max(minimum,Math.min(maximum,Math.floor(numeric)));
+  }
+  function readStoredMeta(key){
+    try{
+      var raw=localStorage.getItem(key);
+      if(!raw)return null;
+      var parsed=JSON.parse(raw);
+      return parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:null;
+    }catch(e){return null;}
+  }
   function loadMeta() {
     try {
-      var source=JSON.parse(localStorage.getItem(META_KEY) || '{}');
+      // Recover the last valid snapshot if iOS terminated the app during a
+      // storage write or an older build left malformed JSON behind.
+      var source=readStoredMeta(META_KEY)||readStoredMeta(META_BACKUP_KEY)||{};
       var loaded=Object.assign(defaults(), source);
-      if(!loaded.phaseLosses||typeof loaded.phaseLosses!=='object'||Array.isArray(loaded.phaseLosses))loaded.phaseLosses={};
-      if(!loaded.researchNodes||typeof loaded.researchNodes!=='object'||Array.isArray(loaded.researchNodes))loaded.researchNodes={};
-      loaded.commander=Math.max(1,Math.min(COMMANDER_MAX_LEVEL,Math.floor(Number(loaded.commander)||1)));
+      loaded.credits=guardedInteger(loaded.credits,BALANCE.ECONOMY.startingCredits,0,RESOURCE_VALUE_GUARD);
+      loaded.parts=guardedInteger(loaded.parts,BALANCE.ECONOMY.startingParts,0,RESOURCE_VALUE_GUARD);
+      loaded.phase=guardedInteger(loaded.phase,1,1,PROGRESSION_VALUE_GUARD);
+      loaded.bestPhase=guardedInteger(loaded.bestPhase,0,0,PROGRESSION_VALUE_GUARD);
+      loaded.hq=guardedInteger(loaded.hq,1,1,5);
+      var storedLosses=loaded.phaseLosses&&typeof loaded.phaseLosses==='object'&&!Array.isArray(loaded.phaseLosses)?loaded.phaseLosses:{};
+      loaded.phaseLosses={};
+      Object.keys(storedLosses).forEach(function(key){
+        var phase=guardedInteger(key,0,0,PROGRESSION_VALUE_GUARD),losses=guardedInteger(storedLosses[key],0,0,99);
+        if(phase&&losses)loaded.phaseLosses[String(phase)]=losses;
+      });
+      var storedResearch=loaded.researchNodes&&typeof loaded.researchNodes==='object'&&!Array.isArray(loaded.researchNodes)?loaded.researchNodes:{};
+      loaded.researchNodes={};
+      RESEARCH_NODES.forEach(function(node){
+        if(!storedResearch[node.id])return;
+        var purchase=storedResearch[node.id],purchasedAt=purchase&&typeof purchase==='object'?Number(purchase.purchasedAt):0;
+        loaded.researchNodes[node.id]={purchasedAt:Number.isFinite(purchasedAt)&&purchasedAt>0?Math.min(Date.now(),purchasedAt):Date.now()};
+      });
+      loaded.commander=guardedInteger(loaded.commander,1,1,COMMANDER_MAX_LEVEL);
       var sourceCommanderSchema=Math.max(0,Number(source.commanderSchema)||0);
       if(sourceCommanderSchema<COMMANDER_SCHEMA){
         // Build 168 expands the former open-ended upgrade into twenty authored
@@ -246,32 +278,37 @@
         if(loaded.commander>priorCommander)loaded.commanderNotice={type:'mastery',from:priorCommander,to:loaded.commander};
       }
       loaded.commanderSchema=COMMANDER_SCHEMA;
-      loaded.researchPoints=Math.max(0,Math.floor(Number(loaded.researchPoints)||0));
+      if(!loaded.commanderNotice||loaded.commanderNotice.type!=='mastery')loaded.commanderNotice=null;
+      else loaded.commanderNotice={type:'mastery',from:guardedInteger(loaded.commanderNotice.from,1,1,COMMANDER_MAX_LEVEL),to:guardedInteger(loaded.commanderNotice.to,loaded.commander,1,COMMANDER_MAX_LEVEL)};
+      loaded.researchPoints=guardedInteger(loaded.researchPoints,0,0,RESOURCE_VALUE_GUARD);
+      loaded.legacyResearchLevels=guardedInteger(loaded.legacyResearchLevels,0,0,PROGRESSION_VALUE_GUARD);
+      loaded.legacyResearchDamage=Math.max(0,Math.min(PROGRESSION_VALUE_GUARD,Number(loaded.legacyResearchDamage)||0));
       var sourceSchema=Math.max(0,Number(source.researchSchema)||0);
       if(sourceSchema<165){
         // Build 164 used one linear turret-research level. Each old level becomes
         // a free allocation point. Its existing turret bonus is also retained,
         // so installing the new tree can never make an established save weaker.
-        var legacyLevels=Math.max(0,Math.floor(Number(source.research)||0));
-        loaded.researchPoints+=legacyLevels;
+        var legacyLevels=guardedInteger(source.research,0,0,PROGRESSION_VALUE_GUARD);
+        loaded.researchPoints=guardedInteger(loaded.researchPoints+legacyLevels,0,0,RESOURCE_VALUE_GUARD);
         loaded.legacyResearchLevels=Math.max(Number(loaded.legacyResearchLevels)||0,legacyLevels);
-        loaded.legacyResearchDamage=Math.max(Number(loaded.legacyResearchDamage)||0,legacyLevels*.12);
+        loaded.legacyResearchDamage=Math.min(PROGRESSION_VALUE_GUARD,Math.max(Number(loaded.legacyResearchDamage)||0,legacyLevels*.12));
         loaded.research=0;
       }
       // Build 166 adds nodes around the existing Build 165 IDs. No purchased
       // node is renamed, removed, refunded, or silently granted.
       loaded.researchSchema=RESEARCH_SCHEMA;
-      loaded.equipmentNextId=Math.max(1,Math.floor(Number(loaded.equipmentNextId)||1));
+      loaded.equipmentNextId=guardedInteger(loaded.equipmentNextId,1,1,RESOURCE_VALUE_GUARD);
       if(!Array.isArray(loaded.equipment))loaded.equipment=[];
       var usedEquipmentIds={};
-      loaded.equipment=loaded.equipment.filter(function(instance){return !!(instance&&equipmentDefinition(instance.itemId));}).map(function(instance){
-        var uid=String(instance.uid||'');
+      loaded.equipment=loaded.equipment.slice(0,1000).filter(function(instance){return !!(instance&&equipmentDefinition(instance.itemId));}).map(function(instance){
+        var uid=String(instance.uid||'').slice(0,64);
         if(!uid||usedEquipmentIds[uid])uid='eq-'+loaded.equipmentNextId++;
         usedEquipmentIds[uid]=true;
         var numericId=Number(uid.replace(/^eq-/,''));
         if(Number.isFinite(numericId))loaded.equipmentNextId=Math.max(loaded.equipmentNextId,Math.floor(numericId)+1);
-        return {uid:uid,itemId:instance.itemId,acquiredPhase:Math.max(0,Math.floor(Number(instance.acquiredPhase)||0)),acquiredAt:Math.max(0,Number(instance.acquiredAt)||Date.now()),locked:!!instance.locked,source:String(instance.source||'RECOVERED')};
+        return {uid:uid,itemId:instance.itemId,acquiredPhase:guardedInteger(instance.acquiredPhase,0,0,PROGRESSION_VALUE_GUARD),acquiredAt:Math.max(0,Math.min(Date.now(),Number(instance.acquiredAt)||Date.now())),locked:!!instance.locked,source:String(instance.source||'RECOVERED').slice(0,64)};
       });
+      loaded.equipmentNextId=guardedInteger(loaded.equipmentNextId,1,1,RESOURCE_VALUE_GUARD);
       if(!loaded.equipped||typeof loaded.equipped!=='object'||Array.isArray(loaded.equipped))loaded.equipped={};
       EQUIPMENT_SLOTS.forEach(function(slot){
         var uid=loaded.equipped[slot.id],instance=loaded.equipment.filter(function(item){return item.uid===uid;})[0],definition=instance&&equipmentDefinition(instance.itemId);
@@ -295,14 +332,15 @@
         loaded.energyUpdatedAt=now;
       }else{
         loaded.energy=Math.max(0,Math.min(loaded.energyMax,Math.floor(Number(loaded.energy)||0)));
-        loaded.energyUpdatedAt=Math.max(0,Number(loaded.energyUpdatedAt)||now);
+        // A future device clock must not freeze recharge indefinitely.
+        loaded.energyUpdatedAt=Math.max(0,Math.min(now,Number(loaded.energyUpdatedAt)||now));
         if(loaded.energy<loaded.energyMax){
           var recovered=Math.floor(Math.max(0,now-loaded.energyUpdatedAt)/ENERGY_RECHARGE_MS);
           if(recovered>0){loaded.energy=Math.min(loaded.energyMax,loaded.energy+recovered);loaded.energyUpdatedAt+=recovered*ENERGY_RECHARGE_MS;}
         }else loaded.energyUpdatedAt=now;
       }
-      loaded.campaignRetryPhase=loaded.campaignRetryPhase==null?null:Math.max(1,Math.floor(Number(loaded.campaignRetryPhase)||1));
-      loaded.operationLastClearDay=String(loaded.operationLastClearDay||'');
+      loaded.campaignRetryPhase=loaded.campaignRetryPhase==null?null:guardedInteger(loaded.campaignRetryPhase,1,1,PROGRESSION_VALUE_GUARD);
+      loaded.operationLastClearDay=/^\d{4}-\d{2}-\d{2}$/.test(String(loaded.operationLastClearDay||''))?String(loaded.operationLastClearDay):'';
       loaded.operationLevel=Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(loaded.operationLevel)||1)));
       var sourceOperationSchema=Math.max(0,Number(source.operationSchema)||0);
       if(sourceOperationSchema<174&&loaded.operationLastClearDay){
@@ -324,13 +362,23 @@
       loaded.junkyardManualBest=Math.max(0,Math.min(loaded.junkyardLevel-1,Math.floor(Number(loaded.junkyardManualBest)||0)));
       loaded.operationSchema=OPERATION_SCHEMA;
       loaded.energySchema=ENERGY_SCHEMA;
+      loaded.releaseSchema=RELEASE_SCHEMA;
       return loaded;
     }
     catch (e) { return defaults(); }
   }
-  function saveMeta() { localStorage.setItem(META_KEY, JSON.stringify(meta)); }
+  function saveMeta() {
+    try{
+      var current=readStoredMeta(META_KEY);
+      if(current){try{localStorage.setItem(META_BACKUP_KEY,JSON.stringify(current));}catch(backupError){}}
+      localStorage.setItem(META_KEY,JSON.stringify(meta));
+      return true;
+    }catch(e){
+      if(window.console&&console.warn)console.warn('Last Stand Command could not save progress.',e);
+      return false;
+    }
+  }
   function availableEnergy(){
-    if(QA_TEST_ACCESS)return meta.energyMax;
     var now=Date.now();
     if(meta.energy<meta.energyMax){
       var recovered=Math.floor(Math.max(0,now-meta.energyUpdatedAt)/ENERGY_RECHARGE_MS);
@@ -340,15 +388,14 @@
   }
   function reserveEnergy(cost){
     cost=Math.max(0,Math.floor(Number(cost)||0));
-    if(QA_TEST_ACCESS)return true;
     if(availableEnergy()<cost)return false;
     if(meta.energy===meta.energyMax)meta.energyUpdatedAt=Date.now();
     meta.energy-=cost;saveMeta();return true;
   }
   function campaignEnergySpend(){
-    var available=QA_TEST_ACCESS?CAMPAIGN_MAX_ENERGY_SPEND:Math.min(CAMPAIGN_MAX_ENERGY_SPEND,availableEnergy());
+    var available=Math.min(CAMPAIGN_MAX_ENERGY_SPEND,availableEnergy());
     selectedCampaignEnergy=Math.max(1,Math.min(CAMPAIGN_MAX_ENERGY_SPEND,Math.floor(Number(selectedCampaignEnergy)||1)));
-    if(!QA_TEST_ACCESS&&available>0)selectedCampaignEnergy=Math.min(selectedCampaignEnergy,available);
+    if(available>0)selectedCampaignEnergy=Math.min(selectedCampaignEnergy,available);
     return selectedCampaignEnergy;
   }
   function campaignCreditMultiplier(spend){
@@ -373,7 +420,7 @@
   function operationLevelFor(kind){return kind==='junkyard'?meta.junkyardLevel:meta.operationLevel;}
   function operationManualBestFor(kind){return kind==='junkyard'?meta.junkyardManualBest:meta.operationManualBest;}
   function operationRewardAvailable(){return meta.operationLastClearDay!==localDayKey();}
-  function operationAvailable(kind){return (kind||activeOperationId())===activeOperationId()&&(QA_TEST_ACCESS||operationRewardAvailable());}
+  function operationAvailable(kind){return (kind||activeOperationId())===activeOperationId()&&operationRewardAvailable();}
   function operationDifficulty(level){
     return BALANCE.containmentDifficulty(Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(level)||1))));
   }
@@ -413,7 +460,7 @@
     level=Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(level)||1)));
     var recommended=operationRecommendedPowerFor(kind,level),required=Math.ceil(recommended*1.15/5)*5;
     var manualRequired=Math.max(1,level-1),containmentManualReady=meta.operationManualBest>=manualRequired,manualReady=kind==='junkyard'?meta.junkyardManualBest>=manualRequired:containmentManualReady,powerReady=currentPower()>=required,rewardReady=operationRewardAvailable();
-    return {kind:kind,level:level,recommended:recommended,required:required,manualRequired:manualRequired,manualReady:manualReady,powerReady:powerReady,rewardReady:rewardReady,available:manualReady&&powerReady&&(QA_TEST_ACCESS||rewardReady)};
+    return {kind:kind,level:level,recommended:recommended,required:required,manualRequired:manualRequired,manualReady:manualReady,powerReady:powerReady,rewardReady:rewardReady,available:manualReady&&powerReady&&rewardReady};
   }
   function autoClearOperation(){
     var kind=activeOperationId(),level=operationLevelFor(kind),state=operationAutoClearStateFor(kind,level);
@@ -428,7 +475,6 @@
   }
   function isFreeCampaignRetry(phase){return meta.campaignRetryPhase===Math.max(1,Math.floor(Number(phase)||1));}
   function energyRechargeCopy(){
-    if(QA_TEST_ACCESS)return'RESERVE UNLIMITED';
     availableEnergy();
     if(meta.energy>=meta.energyMax)return'RESERVE FULL';
     var remaining=Math.max(0,ENERGY_RECHARGE_MS-(Date.now()-meta.energyUpdatedAt));
@@ -440,9 +486,8 @@
     for(var index=0;index<meta.energyMax;index++)pips+='<i class="'+(index<energy?'full':'')+'"></i>';
     if(freeRetry)return '<div class="l171-energy-card"><div class="l171-energy-head"><b>ENERGY-FREE RETRY</b><strong>0</strong></div><div class="l171-energy-copy"><span>ONE COMPLETE PHASE RETRY · BASE CREDIT REWARD</span><span>RETRY READY</span></div><div class="l171-energy-pips">'+pips+'</div><div class="l171-energy-copy"><span>NO ENERGY COMMITTED</span><span>TECH PARTS AND EQUIPMENT NORMAL</span></div></div>';
     var spend=campaignEnergySpend(),options='';
-    for(var amount=1;amount<=CAMPAIGN_MAX_ENERGY_SPEND;amount++)options+='<button data-campaign-energy="'+amount+'" class="'+(amount===spend?'active':'')+'" '+(!QA_TEST_ACCESS&&energy<amount?'disabled':'')+'><b>'+amount+'</b><span>'+campaignCreditMultiplier(amount).toFixed(2)+'×</span></button>';
-    var qaClass=QA_TEST_ACCESS?' l175-qa-energy':'';
-    return '<div class="l171-energy-card'+qaClass+'"><div class="l171-energy-head"><b>COMMAND ENERGY</b><strong>'+(QA_TEST_ACCESS?'∞':energy+' / '+meta.energyMax)+'</strong></div><div class="l171-energy-copy"><span>ONE COMMITMENT COVERS THE ENTIRE THREE-ASSAULT PHASE.</span><span>'+energyRechargeCopy()+'</span></div><div class="l171-energy-pips">'+pips+'</div><div class="l176-energy-selector">'+options+'</div><div class="l176-energy-value"><b>'+spend+' ENERGY · '+campaignMultiplierLabel(spend)+'</b><span>EXTRA ENERGY MULTIPLIES CREDITS ONLY · TECH PARTS, EQUIPMENT, AND PROGRESSION NEVER MULTIPLY</span></div></div>';
+    for(var amount=1;amount<=CAMPAIGN_MAX_ENERGY_SPEND;amount++)options+='<button data-campaign-energy="'+amount+'" class="'+(amount===spend?'active':'')+'" '+(energy<amount?'disabled':'')+'><b>'+amount+'</b><span>'+campaignCreditMultiplier(amount).toFixed(2)+'×</span></button>';
+    return '<div class="l171-energy-card"><div class="l171-energy-head"><b>COMMAND ENERGY</b><strong>'+energy+' / '+meta.energyMax+'</strong></div><div class="l171-energy-copy"><span>ONE COMMITMENT COVERS THE ENTIRE THREE-ASSAULT PHASE.</span><span>'+energyRechargeCopy()+'</span></div><div class="l171-energy-pips">'+pips+'</div><div class="l176-energy-selector">'+options+'</div><div class="l176-energy-value"><b>'+spend+' ENERGY · '+campaignMultiplierLabel(spend)+'</b><span>EXTRA ENERGY MULTIPLIES CREDITS ONLY · TECH PARTS, EQUIPMENT, AND PROGRESSION NEVER MULTIPLY</span></div></div>';
   }
   function commanderTier(level){
     level=Math.max(1,Math.min(COMMANDER_MAX_LEVEL,Math.floor(Number(level)||1)));
@@ -644,7 +689,7 @@
   // Build 154: old TestFlight installs can retain tutorial/navigation flags from
   // the retired three-lane game. Initialize the underlying state once, then
   // permanently remove those obsolete entry screens without touching campaign,
-  // purchases, research, inventory, or Command Base progression.
+  // research, inventory, or Command Base progression.
   function removeLegacyNode(nodeId) {
     var node = id(nodeId);
     if (!node) return;
@@ -681,6 +726,9 @@
       if (typeof _obDismiss === 'function') _obDismiss();
       removeLegacyNode('onboarding-overlay');
       removeLegacyNode('startOverlay');
+      // v1.0 ships without purchases. Remove every retired purchase entry point
+      // after legacy initialization so no cached route can reopen the old UI.
+      ['storeBtn','homeStoreBtn','store-backdrop','store-sheet','quickbuy-barracks-btn','quickbuy-research-btn'].forEach(removeLegacyNode);
 
       var home = id('homeScreen');
       if (home) {
@@ -742,8 +790,8 @@
       '#l139-pause{position:fixed;z-index:33000;inset:0;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,4,8,.9);backdrop-filter:blur(8px)}#l139-pause.show{display:flex}.l139-pause-card{width:min(400px,100%);padding:20px;border:1px solid rgba(34,212,255,.4);border-radius:18px;background:#08141b}.l139-setting{display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:9px}.l139-setting button{min-width:58px}' +
       '#lsc161-loading{position:fixed;z-index:32950;inset:0;display:none;place-items:center;padding:24px;background:radial-gradient(circle at 50% 42%,rgba(24,74,89,.78),transparent 38%),linear-gradient(180deg,#07131a,#02070a);color:#fff;text-align:center}#lsc161-loading.show{display:grid}.l161-load-mark{width:82px;height:82px;margin:0 auto 18px;border:2px solid #74e9ff;border-radius:24px;display:grid;place-items:center;color:#ffd166;font-size:31px;font-weight:900;box-shadow:0 0 36px rgba(34,212,255,.25),inset 0 0 22px rgba(34,212,255,.08)}.l161-load-title{font-size:24px;font-weight:900;letter-spacing:1px}.l161-load-copy{margin-top:6px;color:#74e9ff;font:8px "Share Tech Mono",monospace;letter-spacing:1.7px}.l161-load-track{width:min(260px,72vw);height:5px;margin:20px auto 0;overflow:hidden;border-radius:5px;background:#142731}.l161-load-bar{width:44%;height:100%;background:linear-gradient(90deg,transparent,#74e9ff,#ffd166,transparent);animation:l161LoadSweep 1.15s ease-in-out infinite}@keyframes l161LoadSweep{0%{transform:translateX(-115%)}100%{transform:translateX(255%)}}' +
       '.l139-progress{position:absolute;z-index:39;left:12px;right:108px;top:calc(env(safe-area-inset-top,0px) + 17px);height:35px;pointer-events:none}.l139-progress-track{height:6px;margin-top:4px;border-radius:6px;background:#182a32;overflow:hidden}.l139-progress-fill{height:100%;background:linear-gradient(90deg,#22d4ff,#18f06a);box-shadow:0 0 10px #22d4ff}.l139-progress-text{font:8px "Share Tech Mono",monospace;color:#fff;display:flex;justify-content:space-between}' +
-      '.l171-energy-card{margin-top:10px;padding:11px 12px;border:1px solid rgba(255,209,102,.4);border-radius:13px;background:linear-gradient(145deg,rgba(68,51,17,.32),rgba(7,19,24,.96))}.l171-energy-head{display:flex;align-items:end;justify-content:space-between;gap:12px}.l171-energy-head b{color:#ffd166;font-size:14px}.l171-energy-head strong{font-size:20px}.l171-energy-copy{display:flex;justify-content:space-between;gap:8px;margin-top:3px;color:#97a7ad;font:6px "Share Tech Mono",monospace}.l171-energy-pips{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:9px}.l171-energy-pips i{height:6px;border-radius:6px;background:#17272d;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}.l171-energy-pips i.full{background:#ffd166;box-shadow:0 0 8px rgba(255,209,102,.34)}.l171-operation-card{margin-top:10px;padding:12px;border:1px solid rgba(34,212,255,.34);border-radius:13px;background:linear-gradient(145deg,rgba(8,43,54,.74),rgba(6,16,22,.98))}.l171-operation-card h3{margin:2px 0 4px;color:#84efff;font-size:18px}.l171-operation-card p{margin:0;color:#aab8bd;font:7px/1.45 "Share Tech Mono",monospace}.l171-operation-state{display:flex;justify-content:space-between;gap:8px;margin:9px 0;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:8px;font:6px "Share Tech Mono",monospace}.l171-operation-state span:last-child{text-align:right;color:#9cecff}.l171-pass-placeholder{margin-top:9px;padding:9px;border:1px dashed rgba(255,209,102,.35);border-radius:9px;color:#9eaaae;font:6px/1.4 "Share Tech Mono",monospace}.l171-pass-placeholder b{display:block;color:#ffd166;font-size:8px}.l171-energy-row{color:#ffd166!important}.l172-operation-mode #lsc168-command{border-color:#63efff;background:#073f50}.l172-operation-mode #lsc137-ability{border-color:#ffd166;background:#503b0b}.l172-operation-mode .l168-boss-hud .l139-progress-track{border-color:#ff9f54}.l172-operation-mode .l139-progress-fill{background:linear-gradient(90deg,#45e7ff,#68ffa9)}'+
-      '.l175-qa-banner{margin-bottom:10px;padding:9px 11px;border:1px solid rgba(255,209,102,.6);border-radius:10px;background:rgba(78,55,8,.45);color:#d7e1e4;font:7px/1.45 "Share Tech Mono",monospace}.l175-qa-banner b{display:block;color:#ffd166;font-size:9px}.l175-qa-energy{box-shadow:0 0 18px rgba(255,209,102,.12)}.l175-operation-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:9px 0}.l175-operation-grid div{padding:7px 4px;border:1px solid rgba(255,255,255,.08);border-radius:8px;text-align:center}.l175-operation-grid span{display:block;color:#7e939a;font:6px "Share Tech Mono",monospace}.l175-operation-grid b{display:block;margin-top:2px;color:#eef6f7;font-size:12px}.l175-operation-notice{margin:8px 0;padding:8px;border:1px solid rgba(83,244,162,.55);border-radius:8px;background:rgba(13,80,51,.28);color:#9ff7c8;font:7px/1.4 "Share Tech Mono",monospace}.l175-operation-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.l175-operation-actions .l137-btn{margin-top:0;min-height:47px;padding:8px 5px;font-size:9px}.l175-auto-copy{margin:7px 0;color:#94a5aa;font:6px/1.4 "Share Tech Mono",monospace}.l175-no-reward{padding:8px;color:#9cecff;font:10px "Share Tech Mono",monospace;text-align:center}'+
+      '.l171-energy-card{margin-top:10px;padding:11px 12px;border:1px solid rgba(255,209,102,.4);border-radius:13px;background:linear-gradient(145deg,rgba(68,51,17,.32),rgba(7,19,24,.96))}.l171-energy-head{display:flex;align-items:end;justify-content:space-between;gap:12px}.l171-energy-head b{color:#ffd166;font-size:14px}.l171-energy-head strong{font-size:20px}.l171-energy-copy{display:flex;justify-content:space-between;gap:8px;margin-top:3px;color:#97a7ad;font:6px "Share Tech Mono",monospace}.l171-energy-pips{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:9px}.l171-energy-pips i{height:6px;border-radius:6px;background:#17272d;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}.l171-energy-pips i.full{background:#ffd166;box-shadow:0 0 8px rgba(255,209,102,.34)}.l171-operation-card{margin-top:10px;padding:12px;border:1px solid rgba(34,212,255,.34);border-radius:13px;background:linear-gradient(145deg,rgba(8,43,54,.74),rgba(6,16,22,.98))}.l171-operation-card h3{margin:2px 0 4px;color:#84efff;font-size:18px}.l171-operation-card p{margin:0;color:#aab8bd;font:7px/1.45 "Share Tech Mono",monospace}.l171-operation-state{display:flex;justify-content:space-between;gap:8px;margin:9px 0;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:8px;font:6px "Share Tech Mono",monospace}.l171-operation-state span:last-child{text-align:right;color:#9cecff}.l171-energy-row{color:#ffd166!important}.l172-operation-mode #lsc168-command{border-color:#63efff;background:#073f50}.l172-operation-mode #lsc137-ability{border-color:#ffd166;background:#503b0b}.l172-operation-mode .l168-boss-hud .l139-progress-track{border-color:#ff9f54}.l172-operation-mode .l139-progress-fill{background:linear-gradient(90deg,#45e7ff,#68ffa9)}'+
+      '.l175-operation-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:9px 0}.l175-operation-grid div{padding:7px 4px;border:1px solid rgba(255,255,255,.08);border-radius:8px;text-align:center}.l175-operation-grid span{display:block;color:#7e939a;font:6px "Share Tech Mono",monospace}.l175-operation-grid b{display:block;margin-top:2px;color:#eef6f7;font-size:12px}.l175-operation-notice{margin:8px 0;padding:8px;border:1px solid rgba(83,244,162,.55);border-radius:8px;background:rgba(13,80,51,.28);color:#9ff7c8;font:7px/1.4 "Share Tech Mono",monospace}.l175-operation-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.l175-operation-actions .l137-btn{margin-top:0;min-height:47px;padding:8px 5px;font-size:9px}.l175-auto-copy{margin:7px 0;color:#94a5aa;font:6px/1.4 "Share Tech Mono",monospace}.l175-no-reward{padding:8px;color:#9cecff;font:10px "Share Tech Mono",monospace;text-align:center}'+
       '.l176-ops-launch{position:absolute;left:0;bottom:25px;width:76px;min-height:58px;padding:7px 5px;border:1px solid rgba(34,212,255,.65);border-radius:13px;background:linear-gradient(145deg,rgba(7,57,72,.95),rgba(5,18,25,.98));color:#fff;box-shadow:0 0 20px rgba(34,212,255,.14);text-align:center}.l176-ops-launch span,.l176-ops-launch b,.l176-ops-launch small{display:block}.l176-ops-launch span{width:25px;height:25px;margin:0 auto 3px;display:grid;place-items:center;border:1px solid #7cecff;border-radius:50%;color:#ffd166;font:800 7px "Share Tech Mono",monospace}.l176-ops-launch b{font-size:9px;line-height:1}.l176-ops-launch small{margin-top:3px;color:#8fefff;font:6px "Share Tech Mono",monospace}.l176-energy-selector{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:9px}.l176-energy-selector button{padding:7px 2px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#0b171d;color:#82949d}.l176-energy-selector button b,.l176-energy-selector button span{display:block}.l176-energy-selector button b{font-size:14px}.l176-energy-selector button span{font:6px "Share Tech Mono",monospace}.l176-energy-selector button.active{border-color:#ffd166;background:#4b3910;color:#fff;box-shadow:0 0 12px rgba(255,209,102,.18)}.l176-energy-selector button:disabled{opacity:.28}.l176-energy-value{margin-top:8px;padding:8px;border:1px solid rgba(255,209,102,.22);border-radius:8px;text-align:center}.l176-energy-value b,.l176-energy-value span{display:block}.l176-energy-value b{color:#ffd166;font-size:11px}.l176-energy-value span{margin-top:3px;color:#91a3aa;font:6px/1.4 "Share Tech Mono",monospace}.l176-ops-back{margin-bottom:10px;padding:7px 10px}.l176-ops-summary{margin:10px 0;padding:10px;border:1px solid rgba(34,212,255,.25);border-radius:10px;background:rgba(9,41,52,.35);color:#9cecff;font:7px/1.45 "Share Tech Mono",monospace}';
     document.head.appendChild(s);
     var operationsStyle=document.createElement('style');
@@ -758,8 +806,8 @@
       '.l177-ops-nav{display:flex;align-items:center;justify-content:space-between;gap:10px}.l177-ops-back{margin:0;padding:8px 10px;border-color:rgba(116,233,255,.55);background:#0b2b38}.l177-ops-status{text-align:right;color:#8fefff;font:7px/1.35 "Share Tech Mono",monospace}.l177-ops-status b{display:block;color:#ffd166;font-size:9px}'+
       '.l177-ops-heading{margin-top:10px}.l177-ops-heading .l137-h2{margin-bottom:4px;font-size:28px}.l177-ops-heading .l137-copy{max-width:480px}'+
       '.l177-ops-resources{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.l177-ops-resource{min-width:0;padding:8px 4px;border:1px solid rgba(255,255,255,.09);border-radius:9px;background:rgba(2,10,14,.58);text-align:center}.l177-ops-resource .l166-resource{justify-content:center}.l177-ops-resource .l166-resource b{font-size:11px}'+
-      '.l177-ops-screen>.l175-qa-banner{margin:4px 0 8px}.l177-ops-screen>.l176-ops-summary{margin:8px 0}.l177-ops-screen>.l171-operation-card{margin-top:8px}.l177-ops-screen>.l171-pass-placeholder{margin-bottom:2px}'+
-      '@media (max-height:700px){.l177-ops-heading{margin-top:6px}.l177-ops-heading .l137-h2{font-size:24px}.l177-ops-resources{margin-top:7px}.l177-ops-screen>.l175-qa-banner{padding:7px 9px}.l177-ops-screen>.l171-operation-card{padding:10px}}';
+      '.l177-ops-screen>.l176-ops-summary{margin:8px 0}.l177-ops-screen>.l171-operation-card{margin-top:8px}'+
+      '@media (max-height:700px){.l177-ops-heading{margin-top:6px}.l177-ops-heading .l137-h2{font-size:24px}.l177-ops-resources{margin-top:7px}.l177-ops-screen>.l171-operation-card{padding:10px}}';
     document.head.appendChild(operationsStyle);
     var researchStyle=document.createElement('style');
     researchStyle.id='lsc180-research-style';
@@ -788,9 +836,6 @@
     var releaseStyle=document.createElement('style');
     releaseStyle.id='lsc181-release-style';
     releaseStyle.textContent=
-      '.l181-store-launch{position:absolute;right:0;bottom:25px;width:76px;min-height:58px;padding:7px 5px;border:1px solid rgba(255,209,102,.68);border-radius:13px;background:linear-gradient(145deg,rgba(77,56,12,.94),rgba(8,20,25,.98));color:#fff;box-shadow:0 0 20px rgba(255,209,102,.13);text-align:center}.l181-store-launch span,.l181-store-launch b,.l181-store-launch small{display:block}.l181-store-launch span{width:25px;height:25px;margin:0 auto 3px;display:grid;place-items:center;border:1px solid #ffd166;border-radius:50%;color:#8fefff;font:800 5.5px "Share Tech Mono",monospace}.l181-store-launch b{font-size:9px;line-height:1}.l181-store-launch small{margin-top:3px;color:#ffd166;font:6px "Share Tech Mono",monospace}'+
-      '#lsc137-app.l181-store-mode{background:radial-gradient(circle at 50% 8%,#3a3015 0,#0b1b22 37%,#02070a 100%)}#lsc137-app.l181-store-mode .l137-shell{padding:calc(env(safe-area-inset-top,0px) + 10px) 12px calc(env(safe-area-inset-bottom,0px) + 10px)}#lsc137-app.l181-store-mode .l137-top,#lsc137-app.l181-store-mode .l137-hero,#lsc137-app.l181-store-mode .l137-nav{display:none!important}#lsc137-app.l181-store-mode .l137-panel{padding:0;border:0;border-radius:0;background:transparent;overflow:auto;overscroll-behavior:contain}'+
-      '.l181-store-screen{width:min(560px,100%);min-height:100%;margin:0 auto;padding-bottom:6px;box-sizing:border-box}.l181-store-header{position:sticky;top:0;z-index:4;padding:2px 0 10px;background:linear-gradient(180deg,#172a2d 0,rgba(10,26,32,.98) 72%,rgba(10,26,32,0) 100%)}.l181-store-nav{display:flex;align-items:center;justify-content:space-between;gap:10px}.l181-store-state{text-align:right;color:#ffd166;font:7px/1.35 "Share Tech Mono",monospace}.l181-store-state b{display:block;color:#8fefff;font-size:9px}.l181-store-heading{margin-top:10px}.l181-store-heading .l137-h2{font-size:28px;margin-bottom:4px}.l181-store-lock{margin:8px 0;padding:10px;border:1px solid rgba(255,209,102,.55);border-radius:10px;background:rgba(76,55,10,.35);color:#ffd166;font:8px/1.45 "Share Tech Mono",monospace}.l181-store-lock b{display:block;font-size:10px}.l181-store-grid{display:grid;gap:8px;margin-top:8px}.l181-store-card{padding:12px;border:1px solid rgba(34,212,255,.27);border-radius:13px;background:linear-gradient(145deg,rgba(8,42,51,.72),rgba(6,16,22,.98))}.l181-store-card.featured{border-color:rgba(255,209,102,.55);background:linear-gradient(145deg,rgba(75,55,13,.55),rgba(6,16,22,.98))}.l181-store-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.l181-store-card h3{margin:0;font-size:18px}.l181-store-card em{padding:3px 6px;border:1px solid rgba(255,255,255,.14);border-radius:7px;color:#8fefff;font:normal 6px "Share Tech Mono",monospace}.l181-store-card p{margin:5px 0 9px;color:#a6b6bc;font:7px/1.5 "Share Tech Mono",monospace}.l181-store-benefits{display:flex;flex-wrap:wrap;gap:5px}.l181-store-benefits span{padding:5px 7px;border:1px solid rgba(255,255,255,.09);border-radius:7px;background:rgba(0,0,0,.2);color:#d5e0e3;font:6px "Share Tech Mono",monospace}.l181-store-card button{width:100%;margin-top:10px}.l181-store-foot{margin-top:8px;padding:9px;border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#899ca4;text-align:center;font:6px/1.45 "Share Tech Mono",monospace}'+
       '.l181-hq-max{margin-top:10px;padding:14px;border:1px solid rgba(126,248,255,.55);border-radius:16px;background:radial-gradient(circle at 50% 24%,rgba(37,131,143,.3),transparent 47%),linear-gradient(145deg,rgba(10,47,57,.88),rgba(5,16,22,.98));text-align:center;box-shadow:inset 0 0 30px rgba(68,224,242,.08)}.l181-hq-emblem{width:92px;height:92px;margin:3px auto 10px;display:grid;place-items:center;border:2px solid #7ef8ff;border-radius:23px;color:#ffd166;font-size:44px;font-weight:900;box-shadow:0 0 24px rgba(70,228,245,.28),inset 0 0 22px rgba(70,228,245,.12)}.l181-hq-max h3{margin:0;color:#e9feff;font-size:22px}.l181-hq-max-copy{max-width:360px;margin:5px auto 0;color:#a9bcc2;font:7px/1.55 "Share Tech Mono",monospace}.l181-hq-max-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}.l181-hq-max-stats div{padding:8px 3px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(0,0,0,.2)}.l181-hq-max-stats b,.l181-hq-max-stats span{display:block}.l181-hq-max-stats b{color:#fff;font-size:14px}.l181-hq-max-stats span{margin-top:2px;color:#7f969e;font:5.5px "Share Tech Mono",monospace}.l181-hq-max-status{margin-top:10px;padding:9px;border:1px solid rgba(30,232,115,.45);border-radius:8px;background:rgba(16,94,56,.25);color:#7fffae;font:8px "Share Tech Mono",monospace;letter-spacing:1px}';
     document.head.appendChild(releaseStyle);
   }
@@ -841,11 +886,10 @@
   function installUI() {
     var app = document.createElement('div');
     app.id = 'lsc137-app';
-    app.innerHTML = '<div class="l137-shell"><div class="l137-top"><div><div class="l137-brand">LAST STAND COMMAND</div><div class="l137-title">COMMAND BASE</div></div><div class="l137-res" id="l137-res"></div></div><div class="l137-hero"><button class="l176-ops-launch" id="l176-ops-launch" aria-label="Open Special Operations"><span>OPS</span><b>SPECIAL OPS</b><small id="l176-ops-badge">READY</small></button><div class="l137-hq-art"><div class="l165-hq-wall"><i class="l165-hq-tower nw"></i><i class="l165-hq-tower ne"></i><i class="l165-hq-tower sw"></i><i class="l165-hq-tower se"></i></div><div class="l165-hq-core"><span>HQ</span></div><i class="l165-hq-mast"></i></div><button class="l181-store-launch" id="l181-store-launch" aria-label="Open Supply Depot"><span>SUPPLY</span><b>DEPOT</b><small>PREVIEW</small></button><div class="l137-hq-lv" id="l137-hq-lv"></div></div><main class="l137-panel" id="l137-panel"></main><nav class="l137-nav" id="l137-nav"><button data-tab="campaign">CAMPAIGN</button><button data-tab="commander">COMMANDER</button><button data-tab="research">RESEARCH</button><button data-tab="hq">HQ</button><button data-tab="inventory">INVENTORY</button></nav></div>';
+    app.innerHTML = '<div class="l137-shell"><div class="l137-top"><div><div class="l137-brand">LAST STAND COMMAND</div><div class="l137-title">COMMAND BASE</div></div><div class="l137-res" id="l137-res"></div></div><div class="l137-hero"><button class="l176-ops-launch" id="l176-ops-launch" aria-label="Open Special Operations"><span>OPS</span><b>SPECIAL OPS</b><small id="l176-ops-badge">READY</small></button><div class="l137-hq-art"><div class="l165-hq-wall"><i class="l165-hq-tower nw"></i><i class="l165-hq-tower ne"></i><i class="l165-hq-tower sw"></i><i class="l165-hq-tower se"></i></div><div class="l165-hq-core"><span>HQ</span></div><i class="l165-hq-mast"></i></div><div class="l137-hq-lv" id="l137-hq-lv"></div></div><main class="l137-panel" id="l137-panel"></main><nav class="l137-nav" id="l137-nav"><button data-tab="campaign">CAMPAIGN</button><button data-tab="commander">COMMANDER</button><button data-tab="research">RESEARCH</button><button data-tab="hq">HQ</button><button data-tab="inventory">INVENTORY</button></nav></div>';
     document.body.appendChild(app);
     id('l137-nav').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) renderTab(b.dataset.tab); });
     id('l176-ops-launch').onclick=function(){var panel=id('l137-panel');operationsReturnState={tab:activeCommandTab==='operations'?'campaign':activeCommandTab,scrollTop:panel?panel.scrollTop:0};renderTab('operations');};
-    id('l181-store-launch').onclick=function(){var panel=id('l137-panel');storeReturnState={tab:activeCommandTab==='store'?'campaign':activeCommandTab,scrollTop:panel?panel.scrollTop:0};renderTab('store');};
     var result = document.createElement('div');
     result.id = 'lsc137-result';
     result.innerHTML = '<div class="l137-result-card"><div class="l137-kicker" id="l137-result-kicker"></div><h2 id="l137-result-title"></h2><p class="l137-copy" id="l137-result-copy"></p><div class="l137-card" id="l137-result-reward"></div><div class="l137-actions"><button class="l137-btn good" id="l141-continue">CONTINUE</button><button class="l137-btn" id="l137-return">RETURN TO COMMAND BASE</button><button class="l137-btn" id="l137-retry">REPLAY PHASE</button></div></div>';
@@ -854,7 +898,7 @@
       if(!run)return;
       var operation=!!run.operation,won=!!run.won,phase=run.phase,operationLevel=run.operationLevel,operationKind=run.operationKind||'containment';
       id('lsc137-result').classList.remove('show');
-      if(operation){if(won&&QA_TEST_ACCESS)launchPhase({phase:phase,operation:true,operationKind:operationKind,operationLevel:operationLevelFor(operationKind)});else if(won)returnHome();else launchPhase({phase:phase,operation:true,operationLevel:operationLevel,operationKind:operationKind,operationRewardEligible:run.operationRewardEligible});}
+      if(operation){if(won)returnHome();else launchPhase({phase:phase,operation:true,operationLevel:operationLevel,operationKind:operationKind,operationRewardEligible:run.operationRewardEligible});}
       else launchPhase({phase:won?meta.phase:phase});
     };
     id('l137-retry').onclick = function () { var phase = run && run.phase ? run.phase : meta.phase; id('lsc137-result').classList.remove('show'); launchPhase({phase:phase}); };
@@ -883,7 +927,23 @@
 
   function setSimulationPaused(paused){if(run)run.paused=paused;if(G&&G.state)G.state.paused=paused;}
   function openPause(){if(!run||!run.active)return;setSimulationPaused(true);syncBattleSettings();if(typeof suspendAudio==='function')suspendAudio();id('l139-pause').classList.add('show');combatHaptic('light',120);}
-  function closePause(){setSimulationPaused(false);id('l139-pause').classList.remove('show');if(typeof resumeAudio==='function')resumeAudio();}
+  function closePause(){lifecyclePausedRun=false;setSimulationPaused(false);id('l139-pause').classList.remove('show');if(typeof resumeAudio==='function')resumeAudio();}
+  function pauseForLifecycle(){
+    if(!run||!run.active||run.paused)return;
+    lifecyclePausedRun=true;
+    setSimulationPaused(true);
+    syncBattleSettings();
+    if(typeof suspendAudio==='function')suspendAudio();
+    var pause=id('l139-pause');if(pause)pause.classList.add('show');
+  }
+  function restoreLifecycleState(){
+    if(!run){enforceCommandBaseStartup();return;}
+    if(!lifecyclePausedRun)return;
+    setSimulationPaused(true);
+    syncBattleSettings();
+    if(typeof suspendAudio==='function')suspendAudio();
+    var pause=id('l139-pause');if(pause)pause.classList.add('show');
+  }
   function setSpeed(value){if(!run)return;run.speed=value;_gameSpeed=value;var b=id('l140-speed-btn');if(b)b.textContent=value+'×';}
   function cycleSpeed(){if(!run||run.paused)return;setSpeed(run.speed===1?2:run.speed===2?3:1);}
 
@@ -907,13 +967,13 @@
   }
 
   function refreshHeader() {
-    var energyResource=QA_TEST_ACCESS?'<span class="l166-resource power">'+resourceIcon('power')+'<b>∞</b><span>ENERGY</span></span>':resourceMarkup('power',availableEnergy(),'/ '+meta.energyMax+' ENERGY');
+    var energyResource=resourceMarkup('power',availableEnergy(),'/ '+meta.energyMax+' ENERGY');
     id('l137-res').innerHTML = '<div class="l166-resource-row">'+resourceMarkup('power',currentPower(),'POWER')+'</div><div class="l166-resource-row">'+resourcePair(meta.credits,meta.parts)+'</div><div class="l166-resource-row l171-energy-row">'+energyResource+'</div>';
     var visibleTier=Math.min(5,Math.max(1,meta.hq));
     id('l137-hq-lv').textContent = HQ_TIER_NAMES[visibleTier-1]+' · LEVEL ' + meta.hq;
     var art=document.querySelector('.l137-hq-art');if(art)art.setAttribute('data-tier',String(Math.min(5,Math.max(1,meta.hq))));
     var operationsBadge=id('l176-ops-badge');
-    if(operationsBadge){var kind=activeOperationId();operationsBadge.textContent=operationDefinition(kind).short+' '+operationLevelFor(kind)+' · '+(operationRewardAvailable()?'READY':QA_TEST_ACCESS?'PRACTICE':'CLAIMED');}
+    if(operationsBadge){var kind=activeOperationId();operationsBadge.textContent=operationDefinition(kind).short+' '+operationLevelFor(kind)+' · '+(operationRewardAvailable()?'READY':'CLAIMED');}
   }
   function renderResearchTab(panel){
     var effects=researchEffects(),legacy=Math.round((Number(meta.legacyResearchDamage)||0)*100),selected=defaultResearchNode();
@@ -998,15 +1058,12 @@
   function renderOperationsTab(panel){
     var kind=activeOperationId(),definition=operationDefinition(kind),nextDefinition=operationDefinition(alternateOperationId(kind)),operationOpen=operationAvailable(kind),rewardOpen=operationRewardAvailable(),level=operationLevelFor(kind),credits=operationRewardCreditsFor(kind,level),parts=operationRewardPartsFor(kind,level),nextLevel=Math.min(OPERATION_LEVEL_GUARD,level+1),autoClear=operationAutoClearStateFor(kind,level),manualBest=operationManualBestFor(kind);
     var notice=operationNotice&&operationNotice.kind===kind?'<div class="l175-operation-notice">'+(operationNotice.method==='auto'?'AUTO-CLEAR ':'')+definition.levelLabel+' '+operationNotice.level+' COMPLETE · LEVEL '+operationNotice.nextLevel+' UNLOCKED · '+(operationNotice.rewarded?formatNumber(operationNotice.credits)+' CREDITS'+(operationNotice.parts?' + '+operationNotice.parts+' TECH PART'+(operationNotice.parts===1?'':'S'):''):'NO ADDITIONAL DAILY RESOURCES')+'</div>':'';
-    var rewardState=rewardOpen?'DAILY REWARD AVAILABLE':QA_TEST_ACCESS?'DAILY REWARD CLAIMED · PRACTICE OPEN':'DAILY REWARD CLAIMED';
+    var rewardState=rewardOpen?'DAILY REWARD AVAILABLE':'DAILY REWARD CLAIMED';
     var autoLabel=autoClear.available?'AUTO-CLEAR LEVEL '+level:!autoClear.manualReady?'AUTO-CLEAR LOCKED · MANUAL CLEAR '+autoClear.manualRequired:!autoClear.powerReady?'AUTO-CLEAR REQUIRES '+autoClear.required+' POWER':'AUTO-CLEAR USED TODAY';
     var rewardMarkup=parts?resourcePair(credits,parts):resourceMarkup('credits',credits,'CREDITS');
     var nextCredits=operationRewardCreditsFor(kind,nextLevel),objectiveStrip=kind==='junkyard'?'<div class="l182-objective-strip"><div><span>ARMORED VEHICLE</span><b>'+formatNumber(junkyardVehicleHealth(level))+' HP</b></div><div><span>EXTRACTION WINDOW</span><b>'+junkyardTimeLimit()+' SECONDS</b></div><div><span>OBJECTIVE</span><b>DESTROY TARGET</b></div></div>':'<div class="l182-objective-strip containment"><div><span>ASSAULTS</span><b>3</b></div><div><span>APPROACH LANES</span><b>3</b></div><div><span>FINAL TARGET</span><b>ALPHA</b></div></div>';
-    var header='<header class="l177-ops-header"><div class="l177-ops-nav"><button class="l137-btn l176-ops-back l177-ops-back" id="l176-ops-back" aria-label="Return to Command Base">← COMMAND BASE</button><div class="l177-ops-status"><b>'+definition.short+' · LEVEL '+level+'</b>'+(rewardOpen?'DAILY REWARD READY':QA_TEST_ACCESS?'PRACTICE OPEN':'DAILY REWARD CLAIMED')+'</div></div><div class="l177-ops-heading"><div class="l137-kicker">SPECIAL OPERATIONS · DAILY LADDER</div><div class="l137-h2">'+definition.name+'</div><div class="l137-copy">'+definition.objective+'</div></div><div class="l177-ops-resources"><div class="l177-ops-resource">'+resourceMarkup('power',currentPower(),'POWER')+'</div><div class="l177-ops-resource">'+resourceMarkup('credits',meta.credits,'CREDITS')+'</div><div class="l177-ops-resource">'+resourceMarkup('parts',meta.parts,'TECH PARTS')+'</div></div></header>';
-    panel.innerHTML='<div class="l177-ops-screen l182-'+kind+'-screen">'+header+'<div class="l182-rotation"><span>ACTIVE TODAY</span><b>'+definition.name+'</b><i>ROTATES NEXT: '+nextDefinition.name+'</i></div><section class="l171-operation-card l182-operation-card '+kind+'"><div class="l137-kicker">CURRENT OPERATION</div><h3>'+definition.levelLabel+' '+level+'</h3><p>'+definition.objective+'</p>'+notice+objectiveStrip+'<div class="l175-operation-grid"><div><span>CURRENT POWER</span><b>'+currentPower()+'</b></div><div><span>RECOMMENDED</span><b>'+autoClear.recommended+'</b></div><div><span>BEST MANUAL</span><b>LEVEL '+manualBest+'</b></div></div><div class="l171-operation-state"><span>'+rewardMarkup+'</span><span>LEVEL '+level+' DAILY REWARD<br>'+rewardState+'<br>NEXT LEVEL '+nextLevel+' · '+formatNumber(nextCredits)+' CREDITS</span></div><div class="l175-operation-actions"><button class="l137-btn good" id="l171-operation" '+(operationOpen?'':'disabled')+'>'+(operationOpen?(QA_TEST_ACCESS&&!rewardOpen?'DEPLOY LEVEL '+level+' · PRACTICE':'DEPLOY LEVEL '+level):'LEVEL '+level+' REWARD CLAIMED')+'</button><button class="l137-btn" id="l175-auto-clear" '+(autoClear.available?'':'disabled')+'>'+autoLabel+'</button></div><div class="l175-auto-copy">AUTO-CLEAR REQUIRES A MANUAL CLEAR OF THE PREVIOUS '+definition.short+' LEVEL AND '+autoClear.required+' POWER. IT ADVANCES ONE LEVEL AND USES THE SAME DAILY REWARD CLAIM.</div></section><div class="l176-ops-summary">OPERATIONS ROTATE AT LOCAL MIDNIGHT · CAMPAIGN ENERGY IS NEVER CONSUMED · ONE SHARED REWARDED CLEAR PER DAY · PRACTICE CLEARS GRANT NO ADDITIONAL RESOURCES</div><div class="l171-pass-placeholder"><b>COMMAND PASS · COMING SOON</b>Auto-clear remains a convenience placeholder. No purchase, ad skip, or production unlimited-energy benefit is active in this build.</div></div>';
-  }
-  function renderStoreTab(panel){
-    panel.innerHTML='<div class="l181-store-screen"><header class="l181-store-header"><div class="l181-store-nav"><button class="l137-btn l176-ops-back" id="l181-store-back" aria-label="Return to Command Base">← COMMAND BASE</button><div class="l181-store-state"><b>PREVIEW</b>PURCHASES DISABLED</div></div></header><div class="l181-store-heading"><div class="l137-kicker">SUPPLY DEPOT</div><div class="l137-h2">STORE PREVIEW</div><div class="l137-copy">A first look at future convenience and resource offers. Nothing on this screen can charge an account or grant paid benefits.</div></div><div class="l181-store-lock"><b>PURCHASES DISABLED IN THIS BUILD</b>Pricing, entitlement delivery, restore-purchase behavior, and parental safeguards must be completed before any offer becomes active.</div><div class="l181-store-grid"><article class="l181-store-card featured"><div class="l181-store-card-top"><h3>COMMAND PASS</h3><em>COMING LATER</em></div><p>A monthly convenience option planned around fewer interruptions and more flexible play—not exclusive combat power.</p><div class="l181-store-benefits"><span>AD-FREE CONVENIENCE</span><span>AUTO-CLEAR ACCESS</span><span>ENERGY BENEFITS</span></div><button class="l137-btn" disabled>NOT AVAILABLE</button></article><article class="l181-store-card"><div class="l181-store-card-top"><h3>ENERGY RESUPPLY</h3><em>INACTIVE</em></div><p>Optional campaign-session flexibility. Final quantities, limits, and pricing remain intentionally unset.</p><div class="l181-store-benefits"><span>CAMPAIGN ENERGY</span><span>NO DUNGEON ADVANTAGE</span><span>NO EXCLUSIVE POWER</span></div><button class="l137-btn" disabled>NOT AVAILABLE</button></article><article class="l181-store-card"><div class="l181-store-card-top"><h3>RESOURCE PACKS</h3><em>INACTIVE</em></div><p>Future credit and tech-part bundles must preserve the value of campaign, research, and daily-operation progression.</p><div class="l181-store-benefits"><span>CREDITS</span><span>TECH PARTS</span><span>RATE LIMITED</span></div><button class="l137-btn" disabled>NOT AVAILABLE</button></article></div><div class="l181-store-foot">NO PURCHASE FRAMEWORK, RECEIPT VALIDATION, OR PAID ENTITLEMENT IS ACTIVE IN BUILD 183.</div></div>';
+    var header='<header class="l177-ops-header"><div class="l177-ops-nav"><button class="l137-btn l176-ops-back l177-ops-back" id="l176-ops-back" aria-label="Return to Command Base">← COMMAND BASE</button><div class="l177-ops-status"><b>'+definition.short+' · LEVEL '+level+'</b>'+(rewardOpen?'DAILY REWARD READY':'DAILY REWARD CLAIMED')+'</div></div><div class="l177-ops-heading"><div class="l137-kicker">SPECIAL OPERATIONS · DAILY LADDER</div><div class="l137-h2">'+definition.name+'</div><div class="l137-copy">'+definition.objective+'</div></div><div class="l177-ops-resources"><div class="l177-ops-resource">'+resourceMarkup('power',currentPower(),'POWER')+'</div><div class="l177-ops-resource">'+resourceMarkup('credits',meta.credits,'CREDITS')+'</div><div class="l177-ops-resource">'+resourceMarkup('parts',meta.parts,'TECH PARTS')+'</div></div></header>';
+    panel.innerHTML='<div class="l177-ops-screen l182-'+kind+'-screen">'+header+'<div class="l182-rotation"><span>ACTIVE TODAY</span><b>'+definition.name+'</b><i>ROTATES NEXT: '+nextDefinition.name+'</i></div><section class="l171-operation-card l182-operation-card '+kind+'"><div class="l137-kicker">CURRENT OPERATION</div><h3>'+definition.levelLabel+' '+level+'</h3><p>'+definition.objective+'</p>'+notice+objectiveStrip+'<div class="l175-operation-grid"><div><span>CURRENT POWER</span><b>'+currentPower()+'</b></div><div><span>RECOMMENDED</span><b>'+autoClear.recommended+'</b></div><div><span>BEST MANUAL</span><b>LEVEL '+manualBest+'</b></div></div><div class="l171-operation-state"><span>'+rewardMarkup+'</span><span>LEVEL '+level+' DAILY REWARD<br>'+rewardState+'<br>NEXT LEVEL '+nextLevel+' · '+formatNumber(nextCredits)+' CREDITS</span></div><div class="l175-operation-actions"><button class="l137-btn good" id="l171-operation" '+(operationOpen?'':'disabled')+'>'+(operationOpen?'DEPLOY LEVEL '+level:'LEVEL '+level+' REWARD CLAIMED')+'</button><button class="l137-btn" id="l175-auto-clear" '+(autoClear.available?'':'disabled')+'>'+autoLabel+'</button></div><div class="l175-auto-copy">AUTO-CLEAR REQUIRES A MANUAL CLEAR OF THE PREVIOUS '+definition.short+' LEVEL AND '+autoClear.required+' POWER. IT ADVANCES ONE LEVEL AND USES THE SAME DAILY REWARD CLAIM.</div></section><div class="l176-ops-summary">OPERATIONS ROTATE AT LOCAL MIDNIGHT · CAMPAIGN ENERGY IS NEVER CONSUMED · ONE SHARED REWARDED CLEAR PER DAY</div></div>';
   }
   function renderHqTab(panel){
     if(meta.hq<5){
@@ -1016,14 +1073,13 @@
     panel.innerHTML='<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">COMMAND FORTRESS</div><div class="l137-copy">The headquarters has reached its final structural tier. Every wall, tower, and command system is fully deployed.</div><section class="l181-hq-max"><div class="l181-hq-emblem">V</div><h3>MAXIMUM HQ LEVEL</h3><div class="l181-hq-max-copy">All five fortress tiers are active. Further defensive growth comes from Research, equipment, and field promotions.</div><div class="l181-hq-max-stats"><div><b>+300</b><span>HQ CAPACITY</span></div><div><b>+40</b><span>BARRIER CAPACITY</span></div><div><b>5 / 5</b><span>FORTRESS TIERS</span></div></div><div class="l181-hq-max-status">FORTRESS FULLY DEPLOYED</div></section>';
   }
   function renderTab(tab,options) {
-    var app=id('lsc137-app'),operationsMode=tab==='operations',researchMode=tab==='research',storeMode=tab==='store';
+    var app=id('lsc137-app'),operationsMode=tab==='operations',researchMode=tab==='research';
     if(app){
       app.classList.toggle('l177-operations-mode',operationsMode);
       app.classList.toggle('l180-research-mode',researchMode);
-      app.classList.toggle('l181-store-mode',storeMode);
     }
     refreshHeader();
-    var navigationTab=tab==='operations'||tab==='store'?'campaign':tab;
+    var navigationTab=tab==='operations'?'campaign':tab;
     Array.prototype.forEach.call(id('l137-nav').children, function (b) { b.classList.toggle('active', b.dataset.tab === navigationTab); });
     var p = id('l137-panel');
     if (tab === 'campaign') {
@@ -1032,7 +1088,6 @@
       p.innerHTML = '<div class="l137-kicker">ACTIVE THEATER</div><div class="l137-h2">PHASE ' + meta.phase + ' · OUTER PERIMETER</div><div class="l137-copy">Hold the central headquarters through three assaults, then eliminate the Siege Breaker.</div><div class="l137-card"><div class="l137-card-row"><div><b>Mission Readiness</b><small>'+(meta.phase<4?'OPENING OPERATION':'STANDARD RISK')+'</small></div><div><b>Victory Rewards</b><small class="l166-cost">' + resourcePair(previewCredits,previewParts) + '</small><small>'+(freeRetry?'BASE REWARD':campaignMultiplierLabel(spend)+' · CREDIT BOOST ONLY')+'</small></div></div><div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+'</div>'+energyCardMarkup(freeRetry)+'<button class="l137-btn good l137-deploy" id="l137-deploy" '+(!freeRetry&&energy<spend?'disabled':'')+'>'+campaignLabel+'</button>';
     }
     if (tab === 'operations') renderOperationsTab(p);
-    if (tab === 'store') renderStoreTab(p);
     if (tab === 'commander') renderCommanderTab(p);
     if (tab === 'research') renderResearchTab(p);
     if (tab === 'hq') renderHqTab(p);
@@ -1042,7 +1097,6 @@
     var operationButton=id('l171-operation');if(operationButton)operationButton.onclick=function(){var kind=activeOperationId();launchPhase({phase:meta.phase,operation:true,operationKind:kind,operationLevel:operationLevelFor(kind)});};
     var autoClearButton=id('l175-auto-clear');if(autoClearButton)autoClearButton.onclick=autoClearOperation;
     var operationsBack=id('l176-ops-back');if(operationsBack)operationsBack.onclick=function(){renderTab(operationsReturnState.tab,{scrollTop:operationsReturnState.scrollTop});};
-    var storeBack=id('l181-store-back');if(storeBack)storeBack.onclick=function(){renderTab(storeReturnState.tab,{scrollTop:storeReturnState.scrollTop});};
     var buy = id('l137-buy'); if (buy) buy.onclick = function () { buyUpgrade(tab); };
     if(p)p.scrollTop=options&&Number.isFinite(options.scrollTop)?Math.max(0,options.scrollTop):0;
     activeCommandTab=tab;
@@ -1406,16 +1460,16 @@
     var nextOperationLevel=operation?operationLevelFor(operationKind):0,vehicle=operationKind==='junkyard'?run.objectiveVehicle:null,vehicleArmor=Math.max(0,Math.ceil(vehicle?vehicle.hp:0)),vehicleArmorPct=vehicle?Math.max(0,Math.ceil(vehicle.hp/Math.max(1,vehicle.maxHp)*100)):0;
     id('l137-result-kicker').textContent = operation?(operationKind==='junkyard'?(won?'JUNKYARD RECOVERY COMPLETE':'JUNKYARD RECOVERY FAILED'):(won?'DAILY OPERATION COMPLETE':'DAILY OPERATION FAILED')):(won?'MISSION ACCOMPLISHED':'MISSION FAILED');
     id('l137-result-title').textContent = operation?(operationKind==='junkyard'?(won?'ARMORED CONVOY DESTROYED':'TARGET ESCAPED'):(won?'CONTAINMENT LEVEL '+operationLevel+' SECURED':'CONTAINMENT LEVEL '+operationLevel+' LOST')):(won?'PHASE '+clearedPhase+' SECURED':'HEADQUARTERS LOST');
-    id('l137-result-copy').textContent = operation?(operationKind==='junkyard'?(won?(operationRewarded?'Recovery Level '+operationLevel+' is complete and today’s shared operation reward is claimed. Level '+nextOperationLevel+' is ready.':'Practice destruction recorded without additional resources. Recovery Level '+nextOperationLevel+' is ready for continued testing.'):'The armored transport reached extraction with '+formatNumber(vehicleArmor)+' armor remaining. Recovery Level '+operationLevel+' remains open.'):(won?(operationRewarded?'Containment Level '+operationLevel+' is secure and today’s shared operation reward is claimed. Level '+nextOperationLevel+' is ready.':'Practice clear recorded without additional resources. Containment Level '+nextOperationLevel+' is ready for continued testing.'):'The infected breached Containment Level '+operationLevel+'. This level remains open until its first successful clear.')):(won?'The Siege Breaker is destroyed. Phase '+meta.phase+' is ready for deployment.':defeatAdvice()+supportCopy);
+    id('l137-result-copy').textContent = operation?(operationKind==='junkyard'?(won?(operationRewarded?'Recovery Level '+operationLevel+' is complete and today’s shared operation reward is claimed. Level '+nextOperationLevel+' is ready.':'The target was destroyed, but today’s shared operation reward was already claimed.'):'The armored transport reached extraction with '+formatNumber(vehicleArmor)+' armor remaining. Recovery Level '+operationLevel+' remains open.'):(won?(operationRewarded?'Containment Level '+operationLevel+' is secure and today’s shared operation reward is claimed. Level '+nextOperationLevel+' is ready.':'Containment was secured, but today’s shared operation reward was already claimed.'):'The infected breached Containment Level '+operationLevel+'. This level remains open until its first successful clear.')):(won?'The Siege Breaker is destroyed. Phase '+meta.phase+' is ready for deployment.':defeatAdvice()+supportCopy);
     var integrity=Math.max(0,Math.round(run.hq.hp/Math.max(1,run.hq.maxHp)*100)),survivingBarriers=run.lanes.filter(function(lane){return lane.barricade.hp>0;}).length;
     var campaignBoost=!operation&&won&&campaignCreditMultiplier(run.energySpend||1)>1?' · '+campaignMultiplierLabel(run.energySpend||1)+' · '+(run.energySpend||1)+' ENERGY COMMITTED':'';
-    var rewardLabel=operation?(won?(operationRewarded?definition.levelLabel+' '+operationLevel+' DAILY REWARD':'PRACTICE CLEAR · DAILY REWARD ALREADY CLAIMED'):'NO DAILY REWARD · '+definition.levelLabel+' '+operationLevel+' REMAINS OPEN'):(won?'VICTORY REWARD'+campaignBoost:run.freeRetry?'NO ADDITIONAL SALVAGE · FREE RETRY SPENT':'SALVAGE REWARD · ONE ENERGY-FREE RETRY AVAILABLE');
+    var rewardLabel=operation?(won?(operationRewarded?definition.levelLabel+' '+operationLevel+' DAILY REWARD':'DAILY REWARD ALREADY CLAIMED'):'NO DAILY REWARD · '+definition.levelLabel+' '+operationLevel+' REMAINS OPEN'):(won?'VICTORY REWARD'+campaignBoost:run.freeRetry?'NO ADDITIONAL SALVAGE · FREE RETRY SPENT':'SALVAGE REWARD · ONE ENERGY-FREE RETRY AVAILABLE');
     var survivalLabel=operationKind==='junkyard'?(won?'TARGET DESTROYED · '+formatObjectiveTime(run.objectiveTime)+' REMAINING':'TARGET ESCAPED · '+vehicleArmorPct+'% ARMOR REMAINED'):operation?'FORWARD LINE '+integrity+'% · '+survivingBarriers+'/'+run.lanes.length+' LANES HELD':'HQ INTEGRITY '+integrity+'% · '+survivingBarriers+'/'+run.lanes.length+' BARRIERS SURVIVED';
     var resultMetric=operationKind==='junkyard'?(won?'ARMORED TRANSPORT DESTROYED':formatNumber(vehicleArmor)+' ARMOR REMAINING'):formatNumber(run.kills)+' ENEMIES ELIMINATED';
     var rewardResources=operation&&(!won||!operationRewarded)?'<div class="l175-no-reward">'+(won?'NO ADDITIONAL RESOURCES':'NO RESOURCES AWARDED')+'</div>':'<div class="l166-reward-resources">'+(parts?resourcePair(reward,parts):resourceMarkup('credits',reward,'CREDITS'))+'</div>';
     id('l137-result-reward').innerHTML = rewardResources+'<small>'+rewardLabel+'</small><small>'+resultMetric+'</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small class="l167-result-survival">'+survivalLabel+'</small>'+equipmentDropMarkup(equipmentAward);
     var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
-    id('l141-continue').textContent = operation?(won?(QA_TEST_ACCESS?'DEPLOY '+definition.levelLabel+' '+nextOperationLevel:'RETURN TO COMMAND BASE'):'RETRY '+definition.levelLabel+' '+operationLevel):(won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+(run.freeRetry?'':' · ENERGY FREE'));
+    id('l141-continue').textContent = operation?(won?'RETURN TO COMMAND BASE':'RETRY '+definition.levelLabel+' '+operationLevel):(won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+(run.freeRetry?'':' · ENERGY FREE'));
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
     id('l137-retry').style.display = !operation&&won ? '' : 'none';
     id('lsc137-result').classList.add('show');
@@ -1622,8 +1676,12 @@
   installStyles(); installReleaseStyles(); installJunkyardStyles(); installUI(); renderTab('campaign'); enforceCommandBaseStartup();
   // iOS can restore a cached visual snapshot on pageshow. Reassert the current
   // route after restoration; no progression data is cleared by this safeguard.
-  window.addEventListener('pageshow', function () { if (!run) enforceCommandBaseStartup(); });
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && !run) enforceCommandBaseStartup(); });
+  window.addEventListener('pagehide', pauseForLifecycle);
+  window.addEventListener('pageshow', restoreLifecycleState);
+  document.addEventListener('visibilitychange', function () {
+    if(document.hidden){pauseForLifecycle();return;}
+    restoreLifecycleState();
+  });
   _patchedUpdate=function(dt,c,onEnd,onGameOver,onWarn){if(run&&G.state&&G.state._centralHQMode){if(!run.paused)update(dt);updateBattleHUD();return;}return oldUpdate&&oldUpdate(dt,c,onEnd,onGameOver,onWarn);};
   drawVertical=function(state){if(run&&state&&state._centralHQMode)return draw();return oldDraw&&oldDraw(state);};
 })();
