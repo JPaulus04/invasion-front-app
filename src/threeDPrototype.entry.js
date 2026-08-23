@@ -372,7 +372,13 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       const right = box('Forward barricade right', [.66, .68, .52], [.35, .36, 0], 0x52706e, group, { metalness: .42, roughness: .42 });
       box('Forward barricade brace', [1.5, .13, .68], [0, .76, 0], 0x839591, group, { metalness: .58, roughness: .3 });
       box('Forward barricade energy strip', [1.22, .065, .7], [0, .79, -.02], 0x7eeeff, group, { emissive: 0x238a98, emissiveIntensity: .92 });
+      const damageMarks = new THREE.Group();
+      damageMarks.name = `Forward barricade damage marks ${index + 1}`;
+      const forwardCrackA = box('Forward barricade crack A', [.05, .5, .025], [-.24, .46, -.275], 0x160f0b, damageMarks, { roughness: 1 });
+      const forwardCrackB = box('Forward barricade crack B', [.05, .42, .025], [.27, .39, -.275], 0x160f0b, damageMarks, { roughness: 1 });
+      forwardCrackA.rotation.z = -.62;forwardCrackB.rotation.z = .72;damageMarks.visible = false;group.add(damageMarks);
       group.userData.faceMaterials = [left.material, right.material];
+      group.userData.damageMarks = damageMarks;
       operationBarricadeGroups.push(group);
     });
   }
@@ -856,9 +862,15 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       box('Armored barrier energy strip', [1.86, .07, .66], [0, 1.04, -.045], 0x75e8ff, fortress, { emissive: 0x208a9b, emissiveIntensity: 1.05 });
       fortress.visible = false;
       group.add(fortress);
+      const damageMarks = new THREE.Group();
+      damageMarks.name = `Barricade damage marks ${lane + 1}`;
+      const crackA = box('Barricade crack A', [.055, .62, .03], [-.42, .55, -.335], 0x17110c, damageMarks, { roughness: 1 });
+      const crackB = box('Barricade crack B', [.055, .55, .03], [.47, .48, -.335], 0x17110c, damageMarks, { roughness: 1 });
+      crackA.rotation.z = -.68;crackB.rotation.z = .74;damageMarks.visible = false;group.add(damageMarks);
       group.userData.faceMaterials = [left.material, right.material];
       group.userData.reinforced = reinforced;
       group.userData.fortress = fortress;
+      group.userData.damageMarks = damageMarks;
       barricadeGroups.push(group);
     }
 
@@ -1314,21 +1326,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       try {
         await loadHoltAssets();
       } catch (holtError) {
-        console.warn('Build 185 Commander Holt fallback:', holtError);
+        console.warn('Build 186 Commander Holt fallback:', holtError);
         if (heroFallbackGroup) heroFallbackGroup.visible = true;
       }
 
       try {
         await loadHQAssets();
       } catch (hqError) {
-        console.warn('Build 185 modular HQ fallback:', hqError);
+        console.warn('Build 186 modular HQ fallback:', hqError);
         hqFallbackGroup.visible = true;
       }
 
       setBadgeText(activeWorldMode === 'junkyard' ? 'JUNKYARD RECOVERY · ARMORED CONVOY' : activeWorldMode === 'operation' ? 'DAILY OPERATION · FORWARD CONTAINMENT LINE' : 'CENTRAL HQ · HOLT ON STATION');
       return true;
     })().catch(error => {
-      console.warn('Build 185 battlefield asset fallback:', error);
+      console.warn('Build 186 battlefield asset fallback:', error);
       setBadgeText('CENTRAL HQ · 2D FALLBACK');
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -1529,6 +1541,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       ? (entity.life > fadeWindow ? 1 : Math.min(1, Math.max(0, (entity.life || 0) / fadeWindow)))
       : 1;
     const hit = !dead && (entity.hit || 0) > 0;
+    const armorHit = !dead && (entity.armorHit || 0) > 0;
 
     record.materials.forEach(item => {
       if (!item) return;
@@ -1537,8 +1550,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       item.depthWrite = opacity > .42;
       if (item.emissive) {
         const baseEmissive = Number(item.userData && item.userData.baseEmissive) || 0;
-        item.emissive.setHex(hit ? 0x7a1b12 : baseEmissive);
-        item.emissiveIntensity = hit ? .85 : baseEmissive ? .72 : 0;
+        item.emissive.setHex(armorHit ? 0x4aafc8 : hit ? 0x7a1b12 : baseEmissive);
+        item.emissiveIntensity = armorHit ? 1.15 : hit ? .85 : baseEmissive ? .72 : 0;
       }
     });
   }
@@ -1748,6 +1761,12 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       group.userData.fortress.visible = level >= 4 || researchedArmor;
       group.userData.fortress.scale.y = level >= 5 ? 1.22 : 1;
     }
+    if (group.userData.damageMarks) {
+      group.userData.damageMarks.visible = ratio < .7;
+      group.userData.damageMarks.children.forEach((mark, index) => { mark.visible = ratio < (index ? .35 : .7); });
+    }
+    const stress = Math.max(0, Number(state.stress) || 0);
+    group.position.y = stress > 0 ? Math.sin(stress * 95) * .025 : 0;
   }
 
   function syncBarricades(run) {
@@ -2023,7 +2042,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         if (initialRun) api.render(initialRun);
       });
     } catch (error) {
-      console.warn('Build 185 3D fallback:', error);
+      console.warn('Build 186 3D fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';

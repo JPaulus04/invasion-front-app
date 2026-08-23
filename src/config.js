@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════
 //  config.js — legacy engine balance tunables
-//  Build 185 battlefield presentation; command-mode tuning lives in balance.js.
+//  Build 186 campaign resistance and equipment identity; operations remain stable.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '185';
+const LSC_BUILD = '186';
 
 const CFG = Object.freeze({
 

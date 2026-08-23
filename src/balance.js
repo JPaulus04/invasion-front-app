@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-//  balance.js — Build 183 v1.0 command-mode balance
+//  balance.js — Build 186 campaign resistance and milestone balance
 //  Pure functions are shared by the game and build-time validation.
 // ═══════════════════════════════════════════════════════
 (function (root, factory) {
@@ -9,7 +9,7 @@
 })(typeof globalThis !== 'undefined' ? (globalThis.window || globalThis) : this, function () {
   'use strict';
 
-  var VERSION = 183;
+  var VERSION = 186;
   var LOG_TWO = Math.LN2;
   var ENERGY = Object.freeze({
     schema: 176,
@@ -44,9 +44,9 @@
     1: Object.freeze({targets:Object.freeze([9,12,15]),hp:.72,damage:.52,bossHp:300,bossDamage:11,barricadeHp:58}),
     2: Object.freeze({targets:Object.freeze([11,15,20]),hp:.82,damage:.65,bossHp:400,bossDamage:14,barricadeHp:60}),
     3: Object.freeze({targets:Object.freeze([13,18,24]),hp:.90,damage:.72,bossHp:520,bossDamage:17,barricadeHp:62}),
-    4: Object.freeze({targets:Object.freeze([15,21,28]),hp:1.03,damage:.88,bossHp:700,bossDamage:21,barricadeHp:64}),
-    5: Object.freeze({targets:Object.freeze([17,24,32]),hp:1.15,damage:1,bossHp:850,bossDamage:24,barricadeHp:66}),
-    6: Object.freeze({targets:Object.freeze([20,28,37]),hp:1.30,damage:1.12,bossHp:1050,bossDamage:28,barricadeHp:68})
+    4: Object.freeze({targets:Object.freeze([15,21,28]),hp:1.10,damage:.96,bossHp:1050,bossDamage:24,barricadeHp:64}),
+    5: Object.freeze({targets:Object.freeze([18,25,34]),hp:1.28,damage:1.12,bossHp:3200,bossDamage:31,barricadeHp:66}),
+    6: Object.freeze({targets:Object.freeze([20,29,39]),hp:1.48,damage:1.30,bossHp:3300,bossDamage:35,barricadeHp:68})
   });
 
   function positiveInteger(value, fallback, maximum) {
@@ -73,41 +73,40 @@
     phase = positiveInteger(phase, 1);
     if (OPENING_PHASES[phase]) return clonePhase(OPENING_PHASES[phase]);
 
-    // Phases 7–30 retain the accepted opening curve's pressure while moving a
-    // little of the growth from contact count into durability. After Phase 30,
-    // every value grows logarithmically so endgame sessions remain bounded.
-    if (phase <= 30) {
-      var extra = phase - 6;
-      return {
-        targets: [
-          20 + Math.round(extra * 1.50),
-          28 + Math.round(extra * 2.25),
-          37 + Math.round(extra * 3.00)
-        ],
-        hp: 1.30 + extra * .11,
-        damage: 1.12 + extra * .09,
-        bossHp: 1050 + extra * 140,
-        bossDamage: 28 + extra * 2.4,
-        barricadeHp: 68 + extra * 6
-      };
-    }
-
-    var late = phase - 30;
-    var lateDepth = logTwo(1 + late / 10);
+    // Contact counts stay capped for mobile performance. Resistance compounds
+    // through durability, damage and boss pressure instead. Campaign barriers
+    // no longer gain free health with phase depth: defensive progression now
+    // comes from Headquarters, Research and equipped rigs.
+    var depth = phase - 6;
+    var milestone = phase % 5 === 0;
+    var veteranDepth = Math.min(14, depth);
+    var lateDepth = Math.max(0, depth - 14);
+    var hp = 1.48 * Math.pow(1.105, veteranDepth) * Math.pow(1.085, lateDepth);
+    var damage = 1.30 * Math.pow(1.078, veteranDepth) * Math.pow(1.065, lateDepth);
+    var bossHp = 3300 * Math.pow(1.13, veteranDepth) * Math.pow(1.105, lateDepth);
+    var bossDamage = 35 * Math.pow(1.085, veteranDepth) * Math.pow(1.07, lateDepth);
     return {
-      targets: [56 + Math.floor(lateDepth * 3), 82 + Math.floor(lateDepth * 4), 109 + Math.floor(lateDepth * 5)],
-      hp: 3.94 + lateDepth * .32,
-      damage: 3.28 + lateDepth * .24,
-      bossHp: Math.floor(4410 + lateDepth * 750),
-      bossDamage: 85.6 + lateDepth * 12,
-      barricadeHp: Math.floor(212 + lateDepth * 30)
+      targets: [
+        Math.min(60, 20 + Math.round(depth * 1.45)),
+        Math.min(86, 29 + Math.round(depth * 2.05)),
+        Math.min(112, 39 + Math.round(depth * 2.70))
+      ],
+      hp: hp,
+      damage: damage,
+      bossHp: Math.floor(bossHp * (milestone ? 1.35 : 1)),
+      bossDamage: bossDamage * (milestone ? 1.15 : 1),
+      barricadeHp: 68
     };
   }
 
   function recommendedPower(phase) {
     phase = positiveInteger(phase, 1);
-    if (phase <= 30) return 300 + phase * 40;
-    return Math.round((1500 + logTwo(1 + (phase - 30) / 10) * 170) / 5) * 5;
+    var opening = [0,300,340,390,450,500,570];
+    if (phase <= 6) return opening[phase];
+    var depth = phase - 6;
+    var power = 570 * Math.pow(1.09, Math.min(14, depth)) * Math.pow(1.075, Math.max(0, depth - 14));
+    if (phase % 5 === 0) power *= 1.04;
+    return Math.round(power / 5) * 5;
   }
 
   function campaignPhaseCreditBonus(phase) {
