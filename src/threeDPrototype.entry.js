@@ -35,6 +35,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     { x: -3.15, z: -2.40, rotation: Math.PI / 2, side: 'west' },
   ];
   const ATTACK_CYCLE_SECONDS = 1.05;
+  const PERFORMANCE_BUDGET = window.LSCBalance.performanceBudget({
+    cores: navigator.hardwareConcurrency,
+    memory: navigator.deviceMemory,
+    reducedMotion: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches),
+  });
   const FILES = {
     model: 'Zombie-Soldier.fbx',
     scout: 'Zombie-Scout.fbx',
@@ -124,6 +129,27 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const weaponTargetQuaternion = new THREE.Quaternion();
   let firstFrameCallback = null;
   let firstFrameTimer = 0;
+  let renderWidth = 0;
+  let renderHeight = 0;
+  let adaptivePixelRatio = Math.min(PERFORMANCE_BUDGET.maxPixelRatio, devicePixelRatio || 1);
+  const adaptiveMinPixelRatio = Math.min(adaptivePixelRatio, PERFORMANCE_BUDGET.minPixelRatio);
+  let adaptiveFrameTotal = 0;
+  let adaptiveFrameCount = 0;
+  let adaptiveRecoverySamples = 0;
+  const tracerGeometries = {
+    turret: new THREE.CylinderGeometry(.038, .038 * .72, 1, 6),
+    standard: new THREE.CylinderGeometry(.026, .026 * .72, 1, 6),
+  };
+  const effectGeometries = {
+    artillery: new THREE.RingGeometry(.52, 1, 28),
+    debris: new THREE.TetrahedronGeometry(1, 0),
+    impact: new THREE.OctahedronGeometry(1, 1),
+  };
+  const effectPool = { artillery: [], debris: [], impact: [] };
+
+  function setBadgeText(value) {
+    if (badge && badge.textContent !== value) badge.textContent = value;
+  }
 
   function material(color, options = {}) {
     return new THREE.MeshStandardMaterial({
@@ -142,7 +168,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     );
     mesh.name = name;
     mesh.position.set(position[0], position[1], position[2]);
-    mesh.castShadow = true;
+    mesh.castShadow = PERFORMANCE_BUDGET.shadows;
     mesh.receiveShadow = true;
     parent.add(mesh);
     return mesh;
@@ -153,7 +179,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     mesh.name = name;
     mesh.position.set(position[0], position[1], position[2]);
     if (rotation) mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
-    mesh.castShadow = true;
+    mesh.castShadow = PERFORMANCE_BUDGET.shadows;
     mesh.receiveShadow = true;
     parent.add(mesh);
     return mesh;
@@ -337,7 +363,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
   function buildJunkyardWorld() {
     junkyardWorldGroup = new THREE.Group();
-    junkyardWorldGroup.name = 'Build 182 junkyard convoy battlefield';
+    junkyardWorldGroup.name = 'Build 184 release-candidate junkyard convoy battlefield';
     junkyardWorldGroup.visible = false;
     staticGroup.add(junkyardWorldGroup);
 
@@ -697,8 +723,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       alpha: false,
       powerPreference: 'high-performance',
     });
-    renderer.setPixelRatio(Math.min(1.5, devicePixelRatio || 1));
-    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(adaptivePixelRatio);
+    renderer.shadowMap.enabled = PERFORMANCE_BUDGET.shadows;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -720,8 +746,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     const sun = new THREE.DirectionalLight(0xffefd1, 3.75);
     sun.position.set(-11, 21, 12);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
+    sun.castShadow = PERFORMANCE_BUDGET.shadows;
+    sun.shadow.mapSize.set(PERFORMANCE_BUDGET.shadowMapSize, PERFORMANCE_BUDGET.shadowMapSize);
     sun.shadow.camera.left = -14;
     sun.shadow.camera.right = 14;
     sun.shadow.camera.top = 14;
@@ -751,7 +777,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       scene.fog.color.setHex(0x211810);
       scene.fog.near = 19;
       scene.fog.far = 40;
-      if (badge) badge.textContent = battlefieldBadge(run);
+      setBadgeText(battlefieldBadge(run));
     } else if (operation) {
       camera.fov = 51;
       camera.position.set(0, 7.4, 13.8);
@@ -760,7 +786,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       scene.fog.color.setHex(0x111d22);
       scene.fog.near = 18;
       scene.fog.far = 38;
-      if (badge) badge.textContent = battlefieldBadge(run);
+      setBadgeText(battlefieldBadge(run));
     } else {
       camera.fov = 45;
       camera.position.set(0, 24.5, 24.2);
@@ -769,7 +795,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       scene.fog.color.setHex(0x41513f);
       scene.fog.near = 31;
       scene.fog.far = 52;
-      if (badge) badge.textContent = 'CENTRAL HQ · HOLT ON STATION';
+      setBadgeText('CENTRAL HQ · HOLT ON STATION');
     }
     camera.updateProjectionMatrix();
   }
@@ -842,7 +868,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     object.traverse(child => {
       if (!child.isMesh) return;
-      child.castShadow = true;
+      child.castShadow = PERFORMANCE_BUDGET.shadows;
       child.receiveShadow = true;
       child.frustumCulled = false;
       const sources = Array.isArray(child.material) ? child.material : [child.material];
@@ -868,7 +894,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         roughness: .78,
         metalness: .08,
       });
-      child.castShadow = true;
+      child.castShadow = PERFORMANCE_BUDGET.shadows;
       child.receiveShadow = true;
     });
 
@@ -908,7 +934,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         emissive: child.name === 'Eyewear' ? 0x0b3440 : 0x000000,
         emissiveIntensity: child.name === 'Eyewear' ? .45 : 0,
       });
-      child.castShadow = true;
+      child.castShadow = PERFORMANCE_BUDGET.shadows;
       child.receiveShadow = true;
       child.frustumCulled = false;
     });
@@ -949,7 +975,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         roughness: .4,
         metalness: .46,
       });
-      child.castShadow = true;
+      child.castShadow = PERFORMANCE_BUDGET.shadows;
       child.receiveShadow = true;
     });
     weapon.position.set(-2, -1.2, 0);
@@ -1066,22 +1092,22 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       try {
         await loadHoltAssets();
       } catch (holtError) {
-        console.warn('Build 182 Commander Holt fallback:', holtError);
+        console.warn('Build 184 Commander Holt fallback:', holtError);
         if (heroFallbackGroup) heroFallbackGroup.visible = true;
       }
 
       try {
         await loadHQAssets();
       } catch (hqError) {
-        console.warn('Build 182 modular HQ fallback:', hqError);
+        console.warn('Build 184 modular HQ fallback:', hqError);
         hqFallbackGroup.visible = true;
       }
 
-      badge.textContent = activeWorldMode === 'junkyard' ? 'JUNKYARD RECOVERY · ARMORED CONVOY' : activeWorldMode === 'operation' ? 'DAILY OPERATION · FORWARD CONTAINMENT LINE' : 'CENTRAL HQ · HOLT ON STATION';
+      setBadgeText(activeWorldMode === 'junkyard' ? 'JUNKYARD RECOVERY · ARMORED CONVOY' : activeWorldMode === 'operation' ? 'DAILY OPERATION · FORWARD CONTAINMENT LINE' : 'CENTRAL HQ · HOLT ON STATION');
       return true;
     })().catch(error => {
-      console.warn('Build 182 battlefield asset fallback:', error);
-      badge.textContent = 'CENTRAL HQ · 2D FALLBACK';
+      console.warn('Build 184 battlefield asset fallback:', error);
+      setBadgeText('CENTRAL HQ · 2D FALLBACK');
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
       return false;
@@ -1146,7 +1172,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     return hips;
   }
 
-  function makeZombie(entity, scale) {
+  function unitKey(entity) {
+    return entity && entity.id != null ? `unit-${entity.id}` : entity;
+  }
+
+  function makeZombie(entity, scale, key) {
     const variant = zombieVariant(entity);
     const template = zombieTemplates[variant] || zombieTemplates.soldier;
     const model = SkeletonUtils.clone(template);
@@ -1181,7 +1211,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       hipsAnchor: hips ? hips.position.clone() : null,
       materials,
     };
-    units.set(entity, record);
+    units.set(key, record);
     return record;
   }
 
@@ -1237,9 +1267,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   }
 
   function syncZombie(entity, run, scale, dead, dt, live) {
-    let record = units.get(entity);
-    if (!record) record = makeZombie(entity, scale);
-    live.add(entity);
+    const key = unitKey(entity);
+    let record = units.get(key);
+    if (!record) record = makeZombie(entity, scale, key);
+    record.entity = entity;
+    live.add(key);
 
     const position = world(entity, run);
     const rotation = -(entity.aim || 0) + Math.PI / 2;
@@ -1268,7 +1300,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         if (group) group.visible = false;
       });
       displayedHQLevel = 0;
-      if (badge) badge.textContent = battlefieldBadge(run);
+      setBadgeText(battlefieldBadge(run));
       return;
     }
     const level = Math.max(1, Number(run.hq && run.hq.level) || 1);
@@ -1298,7 +1330,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     if (displayedHQLevel !== level) {
       displayedHQLevel = level;
-      badge.textContent = `CENTRAL HQ L${level} · HOLT ON STATION`;
+      setBadgeText(`CENTRAL HQ L${level} · HOLT ON STATION`);
     }
   }
 
@@ -1448,8 +1480,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   }
 
   function makeTracer(bullet) {
-    const radius = bullet.source === 'turret' ? .038 : .026;
-    const geometry = new THREE.CylinderGeometry(radius, radius * .72, 1, 6);
+    const geometry = bullet.source === 'turret' ? tracerGeometries.turret : tracerGeometries.standard;
     const tracer = new THREE.Mesh(
       geometry,
       new THREE.MeshBasicMaterial({
@@ -1493,19 +1524,31 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     for (const [bullet, record] of tracers) {
       if (live.has(bullet)) continue;
       scene.remove(record.tracer);
-      record.geometry.dispose();
       record.tracer.material.dispose();
       tracers.delete(bullet);
     }
   }
 
+  function effectKind(particle) {
+    return particle.type === 'artillery' ? 'artillery' : particle.type === 'debris' ? 'debris' : 'impact';
+  }
+
   function makeEffect(particle) {
-    const isArtillery = particle.type === 'artillery';
-    const geometry = isArtillery
-      ? new THREE.RingGeometry(.52, 1, 28)
-      : particle.type === 'debris'
-        ? new THREE.TetrahedronGeometry(1, 0)
-        : new THREE.OctahedronGeometry(1, 1);
+    const key = effectKind(particle);
+    const isArtillery = key === 'artillery';
+    const pooled = effectPool[key].pop();
+    if (pooled) {
+      pooled.effect.visible = true;
+      pooled.effect.position.set(0, 0, 0);
+      pooled.effect.scale.setScalar(1);
+      pooled.effect.rotation.set(isArtillery ? -Math.PI / 2 : 0, 0, 0);
+      pooled.effect.material.color.set(particle.color || 0xffffff);
+      pooled.effect.material.opacity = .9;
+      scene.add(pooled.effect);
+      effects.set(particle, pooled);
+      return pooled;
+    }
+    const geometry = effectGeometries[key];
     const effect = new THREE.Mesh(
       geometry,
       new THREE.MeshBasicMaterial({
@@ -1520,9 +1563,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     effect.frustumCulled = false;
     if (isArtillery) effect.rotation.x = -Math.PI / 2;
     scene.add(effect);
-    const record = { effect, geometry, isArtillery };
+    const record = { effect, geometry, isArtillery, key };
     effects.set(particle, record);
     return record;
+  }
+
+  function pooledEffectCount() {
+    return effectPool.artillery.length + effectPool.debris.length + effectPool.impact.length;
+  }
+
+  function releaseEffect(particle, record) {
+    scene.remove(record.effect);
+    effects.delete(particle);
+    record.effect.visible = false;
+    if (pooledEffectCount() < PERFORMANCE_BUDGET.effectPoolCap) effectPool[record.key].push(record);
+    else record.effect.material.dispose();
   }
 
   function syncEffects(run, live) {
@@ -1548,34 +1603,25 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     for (const [particle, record] of effects) {
       if (live.has(particle)) continue;
-      scene.remove(record.effect);
-      record.geometry.dispose();
-      record.effect.material.dispose();
-      effects.delete(particle);
+      releaseEffect(particle, record);
     }
   }
 
-  function removeZombie(entity, record) {
+  function removeZombie(key, record) {
     record.mixer.stopAllAction();
     scene.remove(record.root);
     record.materials.forEach(item => item && item.dispose && item.dispose());
-    units.delete(entity);
+    units.delete(key);
   }
 
   function clearDynamic() {
-    for (const [entity, record] of units) removeZombie(entity, record);
+    for (const [key, record] of units) removeZombie(key, record);
     for (const [, record] of tracers) {
       scene.remove(record.tracer);
-      record.geometry.dispose();
       record.tracer.material.dispose();
     }
     tracers.clear();
-    for (const [, record] of effects) {
-      scene.remove(record.effect);
-      record.geometry.dispose();
-      record.effect.material.dispose();
-    }
-    effects.clear();
+    for (const [particle, record] of Array.from(effects)) releaseEffect(particle, record);
     if (heroGroup) heroGroup.visible = false;
     if (turretGroup) turretGroup.visible = false;
     if (junkyardVehicleGroup) junkyardVehicleGroup.visible = false;
@@ -1585,9 +1631,41 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     const rect = sourceCanvas.getBoundingClientRect();
     const width = Math.max(2, rect.width | 0);
     const height = Math.max(2, rect.height | 0);
+    if (width === renderWidth && height === renderHeight) return;
+    renderWidth = width;
+    renderHeight = height;
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+  }
+
+  function sampleAdaptiveQuality(dt) {
+    // Keep genuinely slow frames in the sample so sustained sub-22 FPS play
+    // still triggers a resolution step-down. Background frames are already
+    // excluded by document.hidden and the render clock clamps extreme gaps.
+    if (!renderer || document.hidden || dt <= 0) return;
+    adaptiveFrameTotal += dt;
+    adaptiveFrameCount++;
+    if (adaptiveFrameCount < PERFORMANCE_BUDGET.adaptiveSampleFrames) return;
+    const average = adaptiveFrameTotal / adaptiveFrameCount;
+    adaptiveFrameTotal = 0;
+    adaptiveFrameCount = 0;
+    let next = adaptivePixelRatio;
+    if (average > .025 && adaptivePixelRatio > adaptiveMinPixelRatio) {
+      next = Math.max(adaptiveMinPixelRatio, adaptivePixelRatio - .15);
+      adaptiveRecoverySamples = 0;
+    } else if (average < .018 && adaptivePixelRatio < Math.min(PERFORMANCE_BUDGET.maxPixelRatio, devicePixelRatio || 1)) {
+      adaptiveRecoverySamples++;
+      if (adaptiveRecoverySamples >= 3) {
+        next = Math.min(Math.min(PERFORMANCE_BUDGET.maxPixelRatio, devicePixelRatio || 1), adaptivePixelRatio + .10);
+        adaptiveRecoverySamples = 0;
+      }
+    } else adaptiveRecoverySamples = 0;
+    if (Math.abs(next - adaptivePixelRatio) < .01) return;
+    adaptivePixelRatio = next;
+    renderer.setPixelRatio(adaptivePixelRatio);
+    renderWidth = 0;
+    renderHeight = 0;
   }
 
   function completeFirstFrame(ready) {
@@ -1608,7 +1686,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       setWorldMode(initialRun || { operation: false });
       firstFrameCallback = typeof onReady === 'function' ? onReady : null;
       badge.style.display = 'block';
-      badge.textContent = battlefieldBadge(initialRun, !zombieTemplates.soldier);
+      setBadgeText(battlefieldBadge(initialRun, !zombieTemplates.soldier));
       sourceCanvas.style.visibility = 'hidden';
       view.style.display = 'none';
       if (firstFrameTimer) clearTimeout(firstFrameTimer);
@@ -1631,7 +1709,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         if (initialRun) api.render(initialRun);
       });
     } catch (error) {
-      console.warn('Build 182 3D fallback:', error);
+      console.warn('Build 184 3D fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';
@@ -1684,13 +1762,14 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       syncZombie(unit, run, scale, true, dt, liveUnits);
     });
 
-    for (const [entity, record] of units) {
-      if (!liveUnits.has(entity)) removeZombie(entity, record);
+    for (const [key, record] of units) {
+      if (!liveUnits.has(key)) removeZombie(key, record);
     }
 
     syncTracers(run, liveTracers);
     syncEffects(run, liveEffects);
     renderer.render(scene, camera);
+    sampleAdaptiveQuality(dt);
     if (firstFrameCallback) completeFirstFrame(true);
     return true;
   };

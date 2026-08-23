@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════
-//  config.js — all balance tunables
-//  Edit here. Nowhere else.
+//  config.js — legacy engine balance tunables
+//  Build 184 release candidate; command-mode tuning lives in balance.js.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '182';
+const LSC_BUILD = '184';
 
 const CFG = Object.freeze({
 

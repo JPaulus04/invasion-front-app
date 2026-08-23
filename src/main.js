@@ -94,26 +94,4 @@
   requestAnimationFrame(loop);
 })(performance.now());
 
-// V87: Initialize RevenueCat when app loads
-// Uses Capacitor bridge — no-op in browser, active in TestFlight/App Store
-document.addEventListener('DOMContentLoaded', function() {
-  // Small delay to let Capacitor bridge register the native plugin
-  setTimeout(function() { rcInitialize(); }, 500);
-});
-
-// Debug function - call debugIAP() in browser console to check purchase status
-window.debugIAP = function() {
-  console.log('=== IAP STATUS ===');
-  console.log('Commander:', localStorage.getItem('ifc_iap_commander') === '1' ? '✓' : '✗');
-  console.log('Autowav:', localStorage.getItem('ifc_autowav') === '1' ? '✓' : '✗');
-  console.log('Quick Buy:', localStorage.getItem('ifc_quickbuy') === '1' ? '✓' : '✗');
-  console.log('Supporter:', localStorage.getItem('ifc_iap_supporter') === '1' ? '✓' : '✗');
-  if (G && G.state && _speeds) {
-    console.log('×10 speed:', _speeds.find(s => s.val === 10) ? '✓' : '✗');
-    console.log('Orbital:', G.state._orbPurchaseUnlocked ? '✓' : '✗');
-  }
-};
-
-console.log('✓ IAP system ready');
-
 window.addEventListener('resize', resizeCanvasVertical);
