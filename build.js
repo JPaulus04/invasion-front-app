@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const esbuild = require('esbuild');
+const balance = require('./src/balance.js');
 
 const SRC = path.join(__dirname, 'src');
 const OUT = path.join(__dirname, 'www');
@@ -40,6 +41,7 @@ esbuild.buildSync({
 // Order matters — later files depend on earlier ones
 const ENGINE_SCRIPTS = [
   'config.js',
+  'balance.js',    // Build 183: accepted v1.0 command-mode balance curves
   'data.js',
   'worlds.js',    // Campaign world framework must load before engine/renderer/UI
   'nativeRuntime.bundle.js', // Build 162: Capacitor-native iPhone haptics
@@ -48,7 +50,6 @@ const ENGINE_SCRIPTS = [
 ];
 
 const CONTROLLER_SCRIPTS = [
-  'iap.js',       // V87: RevenueCat integration — must load before ui.js store functions
   'renderer.js',
   'enemyVisuals.js',      // Build 127+: stronger procedural enemy/contact visuals
   'ui.js',
@@ -77,6 +78,69 @@ let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 function requireMatch(condition, message) {
   if (!condition) throw new Error(`Build validation failed: ${message}`);
 }
+
+// The accepted Build 183 balance is a pure shared module, so RC packaging verifies
+// the full curves rather than relying only on source-string markers.
+requireMatch(balance.version === 183, 'Build 183 balance module is missing');
+requireMatch(balance.ENERGY.max === 10 && balance.ENERGY.rechargeMs === 45 * 60 * 1000, 'campaign energy reserve or recharge changed');
+requireMatch(balance.ECONOMY.startingCredits === 500 && balance.ECONOMY.startingParts === 12, 'tested starting economy changed');
+requireMatch(JSON.stringify(balance.ENERGY.creditMultipliers) === JSON.stringify([1, 1.75, 2.40, 2.95, 3.45]), 'campaign credit multiplier ladder is incorrect');
+for (let spend = 2; spend <= balance.ENERGY.maxSpend; spend++) {
+  requireMatch(balance.energyMultiplier(spend) > balance.energyMultiplier(spend - 1), `energy multiplier does not increase at spend ${spend}`);
+  requireMatch(balance.energyMultiplier(spend) / spend < balance.energyMultiplier(spend - 1) / (spend - 1), `energy efficiency does not diminish at spend ${spend}`);
+}
+const openingTargets = [[9,12,15],[11,15,20],[13,18,24],[15,21,28],[17,24,32],[20,28,37]];
+openingTargets.forEach((targets, index) => requireMatch(JSON.stringify(balance.phaseBalance(index + 1).targets) === JSON.stringify(targets), `accepted Phase ${index + 1} contact curve changed`));
+requireMatch(balance.campaignBaseCredits(1, 37) === 386, 'Phase 1 credit baseline is incorrect');
+requireMatch(balance.campaignParts(5, true) === 4 && balance.campaignParts(5, false) === 3, 'campaign milestone Tech Part boundary is incorrect');
+let priorCampaign = null;
+let priorRecommended = 0;
+let priorCampaignReward = 0;
+for (let phase = 1; phase <= 500; phase++) {
+  const curve = balance.phaseBalance(phase);
+  const kills = curve.targets.reduce((total, count) => total + count, 0) + 1;
+  const reward = balance.campaignBaseCredits(phase, kills);
+  const recommended = balance.recommendedPower(phase);
+  requireMatch(curve.targets.length === 3 && curve.targets.every(Number.isInteger), `Phase ${phase} targets are invalid`);
+  requireMatch(curve.targets[0] <= curve.targets[1] && curve.targets[1] <= curve.targets[2], `Phase ${phase} assault order regressed`);
+  requireMatch(curve.hp > 0 && curve.damage > 0 && curve.bossHp > 0 && curve.bossDamage > 0 && curve.barricadeHp > 0, `Phase ${phase} has a non-positive combat value`);
+  requireMatch(recommended >= priorRecommended, `recommended power regressed at Phase ${phase}`);
+  requireMatch(reward >= priorCampaignReward, `campaign reward regressed at Phase ${phase}`);
+  if (priorCampaign) {
+    requireMatch(curve.targets.every((count, index) => count >= priorCampaign.targets[index]), `contact count regressed at Phase ${phase}`);
+    requireMatch(curve.hp >= priorCampaign.hp && curve.damage >= priorCampaign.damage && curve.bossHp >= priorCampaign.bossHp && curve.bossDamage >= priorCampaign.bossDamage, `difficulty regressed at Phase ${phase}`);
+  }
+  priorCampaign = curve;
+  priorRecommended = recommended;
+  priorCampaignReward = reward;
+}
+requireMatch(balance.phaseBalance(180).targets.reduce((total, count) => total + count, 0) <= 320, 'late-campaign contact budget is unbounded');
+requireMatch(balance.OPERATIONS.junkyardSeconds === 70 && balance.junkyardVehicleHealth(1) === 4200, 'Junkyard opening objective changed');
+requireMatch(balance.operationCredits('containment', 1) === 220 && balance.operationCredits('junkyard', 1) === 300, 'operation opening rewards are incorrect');
+requireMatch(balance.operationParts('containment', 1) === 1 && balance.operationParts('junkyard', 9999) === 0, 'operation Tech Part boundary is incorrect');
+let priorVehicleHealth = 0;
+let priorContainmentCredits = 0;
+let priorJunkyardCredits = 0;
+let priorContainmentPower = 0;
+let priorJunkyardPower = 0;
+for (let level = 1; level <= 9999; level++) {
+  const armor = balance.junkyardVehicleHealth(level);
+  const containmentCredits = balance.operationCredits('containment', level);
+  const junkyardCredits = balance.operationCredits('junkyard', level);
+  const containmentPower = balance.operationRecommendedPower('containment', level);
+  const junkyardPower = balance.operationRecommendedPower('junkyard', level);
+  const containment = balance.containmentBalance(level);
+  requireMatch(armor > priorVehicleHealth, `Junkyard armor does not increase at Level ${level}`);
+  requireMatch(containmentCredits > priorContainmentCredits && junkyardCredits > priorJunkyardCredits, `operation credits do not increase at Level ${level}`);
+  requireMatch(containmentPower >= priorContainmentPower && junkyardPower >= priorJunkyardPower, `operation recommended power regressed at Level ${level}`);
+  requireMatch(containment.targets.reduce((total, count) => total + count, 0) <= 90, `Containment density exceeds its device budget at Level ${level}`);
+  priorVehicleHealth = armor;
+  priorContainmentCredits = containmentCredits;
+  priorJunkyardCredits = junkyardCredits;
+  priorContainmentPower = containmentPower;
+  priorJunkyardPower = junkyardPower;
+}
+requireMatch(balance.performanceBudget({cores:2}).tier === 'low' && balance.performanceBudget({cores:8,memory:8}).tier === 'high', 'adaptive performance tiers are invalid');
 
 // Refuse to bundle a damaged source shell. This specifically catches the
 // Build 149 failure where index.html ended inside an embedded base64 image.
@@ -122,7 +186,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'182\';'), 'Build 182 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'184\';'), 'Build 184 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -138,7 +202,7 @@ requireMatch(threeDSource.includes('Defensive compound north pad'), 'Build 162 c
 requireMatch(threeDSource.includes('new THREE.PerspectiveCamera(45'), 'Build 162 portrait camera framing is missing');
 requireMatch(html.includes('Barricade lane '), 'Build 162 eight-lane renderer is missing');
 requireMatch(html.includes("targetType==='barricade'"), 'Build 162 barricade damage routing is missing');
-requireMatch(html.includes('Build 182 battlefield asset fallback:'), 'Build 182 renderer marker is missing');
+requireMatch(html.includes('Build 184 battlefield asset fallback:'), 'Build 184 renderer marker is missing');
 requireMatch(html.includes('Commander Holt animated model'), 'Build 162 animated Holt model is missing');
 requireMatch(html.includes('Commander Holt two-hand rifle mount'), 'Build 162 two-hand rifle alignment is missing');
 requireMatch(html.includes('holt-rifle-fire'), 'Build 162 Holt firing animation is missing');
@@ -159,7 +223,7 @@ requireMatch(html.includes('LSCNativeHaptics'), 'Build 162 native haptics bridge
 requireMatch(html.includes("combatSfx('barrierBreak')"), 'Build 162 combat sound routing is missing');
 requireMatch(html.includes("combatHaptic(source==='turret'?'medium':'light'"), 'Build 163 weapon-fire haptics are missing');
 requireMatch(html.includes("if(isBoss){") && html.includes("if(!run||run.complete||run.bossDefeated)return;"), 'Build 163 boss promotion guard is missing');
-requireMatch(html.includes('1:{targets:[9,12,15]') && html.includes('6:{targets:[20,28,37]'), 'Build 164 extended assault counts are missing');
+requireMatch(html.includes('function phaseBalance(phase)') && html.includes('return BALANCE.phaseBalance(phase);'), 'Build 183 shared campaign balance routing is missing');
 requireMatch(html.includes('function assaultPacing(assault)') && html.includes('function chooseEnemyKind(assault)'), 'Build 164 staged spawn pacing is missing');
 requireMatch(html.includes('var FIELD_RARITY=') && html.includes("legendary:{label:'LEGENDARY'"), 'Build 164 promotion rarity system is missing');
 requireMatch(html.includes('function chooseFieldUpgrades(rank)') && html.includes('function rarityPlan(rank)'), 'Build 164 promotion choice routing is missing');
@@ -206,10 +270,12 @@ requireMatch(threeDSource.includes('COMMAND_BASTION_DECK_Y') && html.includes("x
 requireMatch(html.includes('function firingLineClearsHolt(source,target)') && html.includes("a.source==='turret')a.aim=a.parkAim"), 'Build 170 turret firing clearance is missing');
 requireMatch(html.includes('var HQ_ATTACK_WORLD_RADIUS = 6.75;') && html.includes('var BOSS_HQ_STOP_WORLD_RADIUS = 8.55;') && html.includes('run.operation?OPERATION_BOSS_HQ_STOP_WORLD_RADIUS:BOSS_HQ_STOP_WORLD_RADIUS'), 'Build 170 campaign enemy and boss stand-off geometry is missing');
 requireMatch(threeDSource.includes('roughly fourteen percent broader') && threeDSource.includes('const BOSS_VISUAL_SCALE = 1.98;'), 'Build 170 Holt and boss scale tuning is missing');
-requireMatch(html.includes('var ENERGY_SCHEMA = 176;') && html.includes('var ENERGY_MAX = 10;') && html.includes('var ENERGY_RECHARGE_MS = 45 * 60 * 1000;') && html.includes('function reserveEnergy(cost)'), 'Build 176 campaign energy ledger is missing');
-requireMatch(html.includes('var CAMPAIGN_MAX_ENERGY_SPEND = 5;') && html.includes('var CAMPAIGN_CREDIT_MULTIPLIERS = [1,1.85,2.60,3.30,3.95];') && html.includes('data-campaign-energy="') && html.includes('campaignCreditReward(baseCampaignReward,run.energySpend||1)'), 'Build 176 selectable campaign credit boost is missing');
+requireMatch(html.includes('var ENERGY_SCHEMA = BALANCE.ENERGY.schema;') && html.includes('var ENERGY_MAX = BALANCE.ENERGY.max;') && html.includes('var ENERGY_RECHARGE_MS = BALANCE.ENERGY.rechargeMs;') && html.includes('function reserveEnergy(cost)'), 'Build 183 campaign energy ledger routing is missing');
+requireMatch(html.includes('var CAMPAIGN_MAX_ENERGY_SPEND = BALANCE.ENERGY.maxSpend;') && html.includes('var CAMPAIGN_CREDIT_MULTIPLIERS = BALANCE.ENERGY.creditMultipliers;') && html.includes('data-campaign-energy="') && html.includes('campaignCreditReward(baseCampaignReward,run.energySpend||1)'), 'Build 183 selectable campaign credit balance is missing');
 requireMatch(html.includes('reserveEnergy(settings.energySpend)') && !html.includes('energyCommitted<run.assault+1') && !html.includes('reserveEnergy(1)'), 'Build 176 whole-phase energy commitment is missing');
 requireMatch(html.includes('campaignRetryPhase') && html.includes('ENERGY-FREE RETRY'), 'Build 176 free retry protection is missing');
+requireMatch(html.includes('BALANCE.campaignBaseCredits(clearedPhase,run.kills)') && html.includes('BALANCE.campaignSalvageCredits(clearedPhase,run.kills)') && html.includes('BALANCE.campaignParts(clearedPhase,firstClear)'), 'Build 183 campaign reward routing is incomplete');
+requireMatch(html.includes('function victoryPartPreview(phase)') && html.includes('resourcePair(previewCredits,previewParts)'), 'Build 183 campaign reward preview is incomplete');
 requireMatch(html.includes('operationLastClearDay') && html.includes('meta.operationLastClearDay=localDayKey()'), 'Build 171 daily reward protection is missing');
 requireMatch(html.includes('var OPERATION_LANES = [') && (html.match(/side:'forward'/g)||[]).length===3, 'Build 172 three-lane operation simulation is missing');
 requireMatch(html.includes("if(target&&target.kind==='boss')return true") && html.includes("e.kind==='boss'?4"), 'Build 172 reliable boss targeting is missing');
@@ -220,30 +286,32 @@ requireMatch(html.includes('var COMMANDER_COMPOUND_RANGE_WORLD = 7.65;') && html
 requireMatch(html.includes('var OPERATION_BOSS_PADDING_WORLD = .2;') && html.includes('var OPERATION_BOSS_HQ_STOP_WORLD_RADIUS = 7.65;') && html.includes('run.operation?OPERATION_BOSS_HQ_STOP_WORLD_RADIUS:BOSS_HQ_STOP_WORLD_RADIUS'), 'Build 173 operation boss approach geometry is missing');
 requireMatch(threeDSource.includes('record.hips.position.copy(record.hipsAnchor)'), 'Build 173 grounded zombie animation guard is missing');
 requireMatch(html.includes('var OPERATION_SCHEMA = 182;') && html.includes('operationManualBest:0') && html.includes('junkyardManualBest:0') && html.includes('loaded.operationManualBest=Math.max(loaded.operationManualBest,loaded.operationLevel-1)'), 'Build 182 operation migration is missing');
-requireMatch(html.includes('function operationDifficulty(level)') && html.includes('operationTargets(phase,operationLevel)') && html.includes('operationScale.bossHealth') && html.includes('targetBonus:Math.min(6'), 'Build 174 sustainable operation difficulty curve is missing');
+requireMatch(html.includes('function operationDifficulty(level)') && html.includes('function operationTargets(level)') && html.includes('operationTargets(operationLevel)') && html.includes('operationScale.bossHealth') && !html.includes('operationTargets(phase,operationLevel)'), 'Build 183 Containment ladder is not independent from Campaign phase');
 requireMatch(html.includes('function operationRewardCredits(level)') && html.includes('function operationRewardParts(level)') && html.includes('function operationRewardCreditsFor(kind,level)') && html.includes('Math.max(meta.operationLevel,operationLevel+1)'), 'Build 182 operation reward progression is missing');
 requireMatch(html.includes('SPECIAL OPERATIONS · DAILY LADDER') && html.includes('CONTAINMENT LEVEL ') && html.includes('NEXT LEVEL '), 'Build 177 operation ladder presentation is missing');
 requireMatch(html.includes('operationLevel:run.operationLevel') && html.includes('operationKind:operationKind') && html.includes('CONTAINMENT ALPHA · LEVEL '), 'Build 182 operation retry and HUD continuity is missing');
-requireMatch(html.includes("String(LSC_BUILD) === '182'") && html.includes('if(QA_TEST_ACCESS)return meta.energyMax;') && html.includes('if(QA_TEST_ACCESS)return true;'), 'Build 182 temporary testing access is missing');
-requireMatch(html.includes('function operationRewardAvailable()') && html.includes('operationRewardEligible') && html.includes('NO ADDITIONAL RESOURCES'), 'Build 175 QA reward protection is missing');
+requireMatch(html.includes('function operationRewardAvailable()') && html.includes('operationRewardEligible') && html.includes('NO ADDITIONAL RESOURCES'), 'Build 184 daily reward protection is missing');
 requireMatch(html.includes('function operationAutoClearState(level)') && html.includes('function autoClearOperation()') && html.includes('meta.operationManualBest>=manualRequired'), 'Build 175 guarded auto-clear is missing');
-requireMatch(!html.includes('BUILD 182 · QA TEST ACCESS') && !html.includes('QA OPEN') && !html.includes('QA REPEAT') && !html.includes('QA PROGRESSION') && !html.includes('ENERGY · QA'), 'Build 182 production-safe testing labels are missing');
-requireMatch(html.includes('RESERVE UNLIMITED') && html.includes('PRACTICE OPEN') && html.includes('PRACTICE CLEAR'), 'Build 182 temporary testing access copy is missing');
+requireMatch(!commandBaseCode.includes('QA_TEST_ACCESS') && !commandBaseCode.includes('PRACTICE') && !commandBaseCode.includes('RESERVE UNLIMITED') && !commandBaseCode.includes('∞'), 'Build 184 QA access or copy is still present');
 requireMatch(html.includes('function operationDayNumber(date)') && html.includes("function activeOperationId(date){return operationDayNumber(date)%2===1?'junkyard':'containment';}") && html.includes('function alternateOperationId(kind)'), 'Build 182 local-day operation rotation is missing');
 requireMatch(html.includes("name:'JUNKYARD RECOVERY'") && html.includes("name:'CONTAINMENT SWEEP'") && html.includes('OPERATIONS ROTATE AT LOCAL MIDNIGHT'), 'Build 182 alternating operation identity is missing');
 requireMatch(html.includes('junkyardLevel:1') && html.includes('junkyardManualBest:0') && html.includes("function operationLevelFor(kind){return kind==='junkyard'?meta.junkyardLevel:meta.operationLevel;}") && html.includes('operationLastClearDay'), 'Build 182 independent ladders or shared daily claim are missing');
 requireMatch(html.includes('if(sourceOperationSchema<175)') && html.includes('loaded.junkyardLevel=Math.max(1') && html.includes('loaded.junkyardManualBest=Math.max(0'), 'Build 182 operation migration guard is missing');
-requireMatch(html.includes('function operationAvailable(kind)') && html.includes('===activeOperationId()&&(QA_TEST_ACCESS||operationRewardAvailable())'), 'Build 182 active-rotation deployment gate is missing');
-requireMatch(html.includes('function junkyardTimeLimit(){return 70;}') && html.includes('function junkyardVehicleHealth(level)') && html.includes("kind:'vehicle'") && html.includes("variant:'armored-transport'"), 'Build 182 timed armored vehicle objective is missing');
+requireMatch(html.includes('function operationAvailable(kind)') && html.includes('===activeOperationId()&&operationRewardAvailable()'), 'Build 184 active-rotation daily deployment gate is missing');
+requireMatch(html.includes('function junkyardTimeLimit(){return BALANCE.OPERATIONS.junkyardSeconds;}') && html.includes('function junkyardVehicleHealth(level)') && html.includes("kind:'vehicle'") && html.includes("variant:'armored-transport'"), 'Build 183 timed armored vehicle objective is missing');
 requireMatch(html.includes('function updateJunkyard(dt)') && html.includes('run.objectiveTime=Math.max(0,run.objectiveTime-dt)') && html.includes('if(run.vehicleDestroyed){finish(true);return;}') && html.includes('if(run.objectiveTime<=0)'), 'Build 182 Junkyard success and extraction-failure routing is missing');
 requireMatch(html.includes("layouts=junkyard?[]") && html.includes("if(run.operationKind==='junkyard'){updateJunkyard(dt);return;}"), 'Build 182 Junkyard must bypass zombie assault simulation');
-requireMatch(html.includes("if(kind==='junkyard')return 300+(level-1)*2") && html.includes("if(kind==='junkyard')return 0;") && html.includes('junkyardVehicleHealth(operationLevel)'), 'Build 182 escalating armor and credit rewards are missing');
+requireMatch(html.includes('BALANCE.operationCredits(kind') && html.includes('BALANCE.operationParts(kind') && html.includes('BALANCE.junkyardVehicleHealth(') && html.includes('junkyardVehicleHealth(operationLevel)'), 'Build 183 escalating armor and operation rewards are missing');
 requireMatch(html.includes('meta.junkyardManualBest=Math.max(meta.junkyardManualBest,operationLevel)') && html.includes('Math.max(meta.junkyardLevel,operationLevel+1)') && html.includes('meta.operationLastClearDay=localDayKey()'), 'Build 182 manual progression and shared reward claim are missing');
-requireMatch(html.includes('function operationAutoClearStateFor(kind,level)') && html.includes("manualReady=kind==='junkyard'?meta.junkyardManualBest>=manualRequired") && html.includes('manualReady&&powerReady&&(QA_TEST_ACCESS||rewardReady)'), 'Build 182 guarded per-operation auto-clear is missing');
+requireMatch(html.includes('function operationAutoClearStateFor(kind,level)') && html.includes("manualReady=kind==='junkyard'?meta.junkyardManualBest>=manualRequired") && html.includes('manualReady&&powerReady&&rewardReady'), 'Build 184 guarded per-operation auto-clear is missing');
 requireMatch(html.includes('ARMORED TRANSPORT · ') && html.includes('% DESTROYED') && html.includes('TARGET ESCAPED') && html.includes('NO ADDITIONAL RESOURCES'), 'Build 182 Junkyard HUD and no-repeat-reward result copy are missing');
 requireMatch(html.includes('function drawJunkyardEnvironment(W,H,h)') && html.includes('function drawArmoredVehicle(e,wreck)') && html.includes('JUNKYARD CONVOY ROUTE · EXTRACTION GATE ACTIVE'), 'Build 182 2D Junkyard battlefield is missing');
-requireMatch(threeDSource.includes('Build 182 junkyard convoy battlefield') && threeDSource.includes('Procedural armored convoy transport') && threeDSource.includes('Diagonal armored convoy route'), 'Build 182 procedural 3D Junkyard battlefield is missing');
+requireMatch(threeDSource.includes('Build 184 release-candidate junkyard convoy battlefield') && threeDSource.includes('Procedural armored convoy transport') && threeDSource.includes('Diagonal armored convoy route'), 'Build 184 procedural 3D Junkyard battlefield is missing');
 requireMatch(threeDSource.includes('camera.position.set(11.4, 9.1, 14.9)') && threeDSource.includes('function syncArmoredVehicle(run)') && threeDSource.includes("if (unit.kind === 'vehicle') return;"), 'Build 182 Junkyard camera or armored transport renderer is missing');
+requireMatch(html.includes('function pushParticle(particle)') && html.includes('run.performance&&run.performance.particleCap') && html.includes('run.performance&&run.performance.corpseCap'), 'Build 183 combat effect budgets are missing');
+requireMatch(html.includes('function updateBattleControls(force)') && html.includes('hudNow-run.lastHudUpdate<hudInterval'), 'Build 183 HUD throttling is missing');
+requireMatch(threeDSource.includes('const PERFORMANCE_BUDGET = window.LSCBalance.performanceBudget') && threeDSource.includes('function sampleAdaptiveQuality(dt)') && threeDSource.includes('if (width === renderWidth && height === renderHeight) return;'), 'Build 183 adaptive renderer budget is missing');
+requireMatch(threeDSource.includes('function unitKey(entity)') && threeDSource.includes('const effectPool =') && threeDSource.includes('const effectGeometries ='), 'Build 183 3D reuse paths are missing');
 requireMatch(html.includes('function renderOperationsTab(panel)') && html.includes('id="l176-ops-launch"') && html.includes("renderTab('operations')"), 'Build 177 Special Operations launcher is missing');
 requireMatch(html.includes("classList.toggle('l177-operations-mode',operationsMode)") && html.includes('l177-ops-screen') && html.includes('← COMMAND BASE'), 'Build 177 full-screen Special Operations destination is missing');
 requireMatch(html.includes('operationsReturnState={tab:activeCommandTab') && html.includes('renderTab(operationsReturnState.tab,{scrollTop:operationsReturnState.scrollTop})'), 'Build 177 Command Base return continuity is missing');
@@ -251,9 +319,10 @@ requireMatch(html.includes('lsc180-research-style') && html.includes('l180-doctr
 requireMatch(html.includes('l180-research-mode') && html.includes('#lsc137-app.l180-research-mode .l137-hero'), 'Build 180 compact Research destination is missing');
 requireMatch(html.includes('function researchNodeBadge(node)') && html.includes('function researchNodeState(node)') && html.includes('function researchStatMarkup(node)'), 'Build 180 concise Research node labels are missing');
 requireMatch(html.includes("name:'Attack Power'") && html.includes("name:'Range'") && html.includes("name:'Barrier Health'") && html.includes("name:'Cooldown'"), 'Build 180 short Research names are missing');
-requireMatch(html.includes('function renderStoreTab(panel)') && html.includes('id="l181-store-launch"') && html.includes("renderTab('store')"), 'Build 181 Supply Depot launcher is missing');
-requireMatch(html.includes('PURCHASES DISABLED IN THIS BUILD') && html.includes('COMMAND PASS') && html.includes('ENERGY RESUPPLY') && html.includes('RESOURCE PACKS'), 'Build 181 Store preview structure is missing');
-requireMatch(html.includes("classList.toggle('l181-store-mode',storeMode)") && html.includes('storeReturnState={tab:activeCommandTab') && html.includes('renderTab(storeReturnState.tab,{scrollTop:storeReturnState.scrollTop})'), 'Build 181 Store destination continuity is missing');
+requireMatch(!commandBaseCode.includes('function renderStoreTab(panel)') && !commandBaseCode.includes('id="l181-store-launch"') && !commandBaseCode.includes("renderTab('store')"), 'Build 184 still exposes the incomplete Supply Depot preview');
+requireMatch(!CONTROLLER_SCRIPTS.includes('iap.js') && !read('main.js').includes('rcInitialize') && !read('main.js').includes('debugIAP') && commandBaseCode.includes("['storeBtn','homeStoreBtn','store-backdrop','store-sheet','quickbuy-barracks-btn','quickbuy-research-btn'].forEach(removeLegacyNode)"), 'Build 184 still initializes or exposes the inactive purchase framework');
+requireMatch(commandBaseCode.includes('var META_BACKUP_KEY = META_KEY + \'_backup\';') && commandBaseCode.includes('readStoredMeta(META_KEY)||readStoredMeta(META_BACKUP_KEY)') && commandBaseCode.includes('Math.min(now,Number(loaded.energyUpdatedAt)||now)'), 'Build 184 save recovery migration is missing');
+requireMatch(commandBaseCode.includes("window.addEventListener('pagehide', pauseForLifecycle)") && commandBaseCode.includes('if(document.hidden){pauseForLifecycle();return;}'), 'Build 184 device lifecycle pause guard is missing');
 requireMatch(html.includes('function renderHqTab(panel)') && html.includes('MAXIMUM HQ LEVEL') && html.includes('FORTRESS FULLY DEPLOYED'), 'Build 181 maximum HQ presentation is missing');
 requireMatch(html.includes('the Commander and main turret fire') && html.includes('Commander damage') && !html.includes('Holt damage +') && !html.includes('Holt fire rate +'), 'Build 181 Commander terminology cleanup is missing');
 requireMatch(html.includes('top:calc(env(safe-area-inset-top,0px) + 18px)') && html.includes('top:calc(env(safe-area-inset-top,0px) + 17px)'), 'Build 181 combat safe-area spacing is missing');
