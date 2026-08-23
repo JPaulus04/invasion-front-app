@@ -35,10 +35,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     { x: -3.15, z: -2.40, rotation: Math.PI / 2, side: 'west' },
   ];
   const ATTACK_CYCLE_SECONDS = 1.05;
+  const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const PERFORMANCE_BUDGET = window.LSCBalance.performanceBudget({
     cores: navigator.hardwareConcurrency,
     memory: navigator.deviceMemory,
-    reducedMotion: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches),
+    reducedMotion: REDUCED_MOTION,
   });
   const FILES = {
     model: 'Zombie-Soldier.fbx',
@@ -116,7 +117,15 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let junkyardVehicleBody = [];
   let junkyardVehicleBeacon = null;
   let junkyardVehicleHeadlights = [];
+  let junkyardVehicleFlames = [];
+  let junkyardVehicleBlastLight = null;
   let campaignWorldObjects = [];
+  const campaignTierGroups = [];
+  const campaignDamageGroups = [];
+  const campaignAtmosphere = [];
+  let campaignGroundMaterial = null;
+  const campaignRoadMaterials = [];
+  let displayedCampaignTier = 0;
   let activeWorldMode = '';
 
   const units = new Map();
@@ -127,6 +136,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   const weaponForwardAxis = new THREE.Vector3(1, 0, 0);
   const weaponHandTarget = new THREE.Vector3();
   const weaponTargetQuaternion = new THREE.Quaternion();
+  const cameraHomePosition = new THREE.Vector3(0, 24.5, 24.2);
+  const cameraHomeTarget = new THREE.Vector3(0, 0, -1.1);
+  const cameraShakeTarget = new THREE.Vector3();
   let firstFrameCallback = null;
   let firstFrameTimer = 0;
   let renderWidth = 0;
@@ -141,11 +153,15 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     standard: new THREE.CylinderGeometry(.026, .026 * .72, 1, 6),
   };
   const effectGeometries = {
-    artillery: new THREE.RingGeometry(.52, 1, 28),
+    artillery: new THREE.CylinderGeometry(.16, .48, 3.8, 10, 1, true),
+    shockwave: new THREE.RingGeometry(.48, 1, 28),
+    fireball: new THREE.IcosahedronGeometry(1, 1),
+    smoke: new THREE.DodecahedronGeometry(1, 0),
+    'vehicle-explosion': new THREE.IcosahedronGeometry(1, 2),
     debris: new THREE.TetrahedronGeometry(1, 0),
     impact: new THREE.OctahedronGeometry(1, 1),
   };
-  const effectPool = { artillery: [], debris: [], impact: [] };
+  const effectPool = { artillery: [], shockwave: [], fireball: [], smoke: [], 'vehicle-explosion': [], debris: [], impact: [] };
 
   function setBadgeText(value) {
     if (badge && badge.textContent !== value) badge.textContent = value;
@@ -363,7 +379,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
   function buildJunkyardWorld() {
     junkyardWorldGroup = new THREE.Group();
-    junkyardWorldGroup.name = 'Build 184 release-candidate junkyard convoy battlefield';
+    junkyardWorldGroup.name = 'Build 185 decisive-destruction junkyard convoy battlefield';
     junkyardWorldGroup.visible = false;
     staticGroup.add(junkyardWorldGroup);
 
@@ -504,6 +520,145 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     junkyardVehicleBeacon = new THREE.PointLight(0xff5b23, 2.8, 4.6, 2);
     junkyardVehicleBeacon.position.copy(beaconMesh.position);
     junkyardVehicleGroup.add(junkyardVehicleBeacon);
+    [[-.62,1.34,-.55,.66],[.52,1.12,.38,.52],[0,1.72,-1.12,.72]].forEach((flame, index) => {
+      const mesh = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(flame[3], 1),
+        new THREE.MeshBasicMaterial({ color: index === 1 ? 0xffd45c : 0xff5b21, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      mesh.name = `Armored transport destruction flame ${index + 1}`;
+      mesh.position.set(flame[0], flame[1], flame[2]);
+      mesh.visible = false;
+      junkyardVehicleGroup.add(mesh);
+      junkyardVehicleFlames.push(mesh);
+    });
+    junkyardVehicleBlastLight = new THREE.PointLight(0xff5a21, 0, 10, 2);
+    junkyardVehicleBlastLight.position.set(0, 1.5, 0);
+    junkyardVehicleGroup.add(junkyardVehicleBlastLight);
+  }
+
+  function buildCampaignWorldTiers() {
+    const makeSmoke = (name, position, color, parent, tier, damageTier) => {
+      const mesh = new THREE.Mesh(
+        new THREE.DodecahedronGeometry(.62, 0),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .28, depthWrite: false })
+      );
+      mesh.name = name;
+      mesh.position.set(position[0], position[1], position[2]);
+      mesh.scale.set(1, 1.45, 1);
+      parent.add(mesh);
+      campaignAtmosphere.push({ mesh, tier, damageTier, baseY: position[1], drift: .12 + campaignAtmosphere.length * .015 });
+      return mesh;
+    };
+    const makeFence = (name, x, z, rotation, parent) => {
+      const group = new THREE.Group();
+      group.name = name;
+      group.position.set(x, 0, z);
+      group.rotation.y = rotation;
+      parent.add(group);
+      box(`${name} lower rail`, [4.2, .07, .07], [0, .42, 0], 0x596260, group, { metalness: .72, roughness: .42 });
+      box(`${name} upper rail`, [4.2, .07, .07], [0, 1.12, 0], 0x596260, group, { metalness: .72, roughness: .42 });
+      for (let post = -2; post <= 2; post++) box(`${name} post ${post + 3}`, [.07, 1.42, .07], [post, .71, 0], 0x707876, group, { metalness: .72, roughness: .42 });
+    };
+    const makeRoadCracks = (parent, prefix, color) => {
+      [[-1.8,-7,.44],[1.6,-10,-.38],[-8,1.2,1.08],[8,-1.5,-1.04],[-1.4,8,.22]].forEach((crack, index) => {
+        const mesh = box(`${prefix} road crack ${index + 1}`, [1.7 + (index % 2) * .7, .018, .065], [crack[0], .035, crack[1]], color, parent, { roughness: 1 });
+        mesh.rotation.y = crack[2];
+      });
+    };
+
+    const outpost = new THREE.Group();
+    outpost.name = 'Campaign tier 1 · Overrun Forward Outpost';
+    staticGroup.add(outpost);
+    campaignTierGroups.push(outpost);
+    makeRoadCracks(outpost, 'Outpost', 0x202820);
+    [[-7.7,-7.1],[7.8,-6.7],[-7.4,6.6],[7.5,7.1]].forEach((position, index) => {
+      const station = new THREE.Group();
+      station.name = `Abandoned outpost position ${index + 1}`;
+      station.position.set(position[0], 0, position[1]);
+      station.rotation.y = index * .46;
+      outpost.add(station);
+      box('Outpost sandbag course', [3.2, .5, .72], [0, .27, 0], 0x766a47, station, { roughness: .98 });
+      for (let bag = -1; bag <= 1; bag++) shapedMesh(`Outpost sandbag ${bag + 2}`, new THREE.CapsuleGeometry(.22, .64, 3, 6), [bag * .82, .58, 0], 0x8a7b54, station, { roughness: .98 }, [0, 0, Math.PI / 2]);
+      box('Outpost supply crate', [.86, .72, .86], [1.5, .38, .75], index % 2 ? 0x3f564d : 0x5d5438, station, { metalness: .22, roughness: .72 });
+    });
+    makeFence('Broken west perimeter fence', -10.4, -1.2, Math.PI / 2, outpost);
+    makeFence('Broken east perimeter fence', 10.4, 2.1, Math.PI / 2, outpost);
+    const outpostLight = new THREE.PointLight(0xffc067, 1.8, 11, 2);
+    outpostLight.position.set(-7.3, 4.8, -5.6);
+    outpost.add(outpostLight);
+    box('Outpost floodlight mast', [.16, 4.8, .16], [-7.3, 2.4, -5.6], 0x58635f, outpost, { metalness: .68 });
+
+    const industrial = new THREE.Group();
+    industrial.name = 'Campaign tier 2 · Collapsed Industrial Sector';
+    industrial.visible = false;
+    staticGroup.add(industrial);
+    campaignTierGroups.push(industrial);
+    makeRoadCracks(industrial, 'Industrial', 0x1d201e);
+    [[-9.1,-8.2,0x59452f],[8.8,-7.5,0x3c5a59],[-8.6,7.7,0x6b3d2d]].forEach((data, index) => {
+      const container = new THREE.Group();
+      container.name = `Collapsed freight stack ${index + 1}`;
+      container.position.set(data[0], .62, data[1]);
+      container.rotation.y = (index - 1) * .32;
+      industrial.add(container);
+      box('Industrial freight container', [4.2, 1.25, 1.72], [0, 0, 0], data[2], container, { metalness: .48, roughness: .56 });
+      for (let rib = -1.7; rib <= 1.7; rib += .57) box('Container rib', [.055, 1.12, 1.76], [rib, 0, 0], 0x302f2b, container, { metalness: .56 });
+    });
+    [-10.2, 10.1].forEach((x, index) => {
+      shapedMesh(`Industrial storage silo ${index + 1}`, new THREE.CylinderGeometry(1.35, 1.48, 5.8, 14), [x, 2.9, 1.5 - index * 4], 0x4e5551, industrial, { metalness: .5, roughness: .58 });
+      shapedMesh(`Industrial silo cap ${index + 1}`, new THREE.ConeGeometry(1.48, .8, 14), [x, 6.2, 1.5 - index * 4], 0x424845, industrial, { metalness: .52, roughness: .54 });
+    });
+    box('Collapsed warehouse west wall', [6.4, 3.8, .42], [-8.1, 1.9, 11.2], 0x4a504d, industrial, { metalness: .3, roughness: .78 });
+    box('Collapsed warehouse east return', [.42, 2.7, 5.4], [-11.1, 1.35, 8.7], 0x404643, industrial, { metalness: .3, roughness: .8 });
+    makeSmoke('Industrial stack haze', [-10.2, 7.3, 1.5], 0x414541, industrial, 2, 0);
+    makeSmoke('Industrial yard haze', [9.5, 3.4, 7.8], 0x343a38, industrial, 2, 0);
+
+    const urban = new THREE.Group();
+    urban.name = 'Campaign tier 3 · Ruined Urban Perimeter';
+    urban.visible = false;
+    staticGroup.add(urban);
+    campaignTierGroups.push(urban);
+    makeRoadCracks(urban, 'Urban', 0x17191a);
+    [[-10.6,-9.6,5.8,7.5],[9.8,-9.7,6.2,9.4],[-10.4,9.7,7.2,8.3],[10.2,9.6,5.4,7.1]].forEach((data, index) => {
+      const ruin = new THREE.Group();
+      ruin.name = `Urban building shell ${index + 1}`;
+      ruin.position.set(data[0], 0, data[1]);
+      urban.add(ruin);
+      box('Ruined building rear wall', [data[2], data[3], .52], [0, data[3] / 2, 0], index % 2 ? 0x494b49 : 0x52504a, ruin, { roughness: .9 });
+      box('Ruined building side wall', [.52, data[3] * .72, 4.4], [-data[2] / 2 + .24, data[3] * .36, 2.0], 0x414340, ruin, { roughness: .92 });
+      for (let floor = 1; floor <= 2; floor++) box('Exposed ruined floor', [data[2] - .6, .18, 3.8], [0, floor * 2.15, 1.7], 0x343634, ruin, { roughness: .92 });
+      for (let window = -1; window <= 1; window++) box('Burned window opening', [.78, 1.1, .08], [window * 1.55, 2.2 + (index % 2) * 1.8, -.3], 0x111514, ruin, { emissive: 0x090b0a, emissiveIntensity: .25 });
+    });
+    const wreck = new THREE.Group();
+    wreck.name = 'Burned evacuation vehicle';
+    wreck.position.set(7.0, .38, 3.3);
+    wreck.rotation.y = -.62;
+    urban.add(wreck);
+    box('Evacuation wreck chassis', [1.8, .42, 3.4], [0, 0, 0], 0x282b29, wreck, { metalness: .58, roughness: .7 });
+    box('Evacuation wreck cabin', [1.55, .88, 1.4], [0, .58, .78], 0x32322e, wreck, { metalness: .48, roughness: .74 });
+    makeSmoke('Urban ruin haze west', [-8.9, 6.2, -8.7], 0x353637, urban, 3, 0);
+    makeSmoke('Urban ruin haze east', [9.0, 7.2, -7.8], 0x303133, urban, 3, 0);
+
+    const assaultDamage = new THREE.Group();
+    assaultDamage.name = 'Campaign assault 2 battlefield damage';
+    assaultDamage.visible = false;
+    staticGroup.add(assaultDamage);
+    campaignDamageGroups.push(assaultDamage);
+    [[-4.9,-7.2],[7.2,4.8],[-7.4,4.1]].forEach((position, index) => {
+      shapedMesh(`Fresh impact crater ${index + 1}`, new THREE.CylinderGeometry(.42, 1.12, .14, 15), [position[0], .055, position[1]], 0x20241f, assaultDamage, { roughness: 1 });
+      makeSmoke(`Fresh crater smoke ${index + 1}`, [position[0], .78, position[1]], 0x393b37, assaultDamage, 0, 2);
+    });
+    const siegeDamage = new THREE.Group();
+    siegeDamage.name = 'Campaign assault 3 siege damage';
+    siegeDamage.visible = false;
+    staticGroup.add(siegeDamage);
+    campaignDamageGroups.push(siegeDamage);
+    [[-6.2,-2.2],[6.4,-3.1]].forEach((position, index) => {
+      shapedMesh(`Siege fire ${index + 1}`, new THREE.ConeGeometry(.34, 1.25, 9), [position[0], .68, position[1]], 0xff6a21, siegeDamage, { emissive: 0xff2a00, emissiveIntensity: 2.2 });
+      const fireLight = new THREE.PointLight(0xff5722, 2.4, 6.5, 2);
+      fireLight.position.set(position[0], 1.3, position[1]);
+      siegeDamage.add(fireLight);
+      makeSmoke(`Siege column ${index + 1}`, [position[0], 1.55, position[1]], 0x2b2d2c, siegeDamage, 0, 3);
+    });
   }
 
   function buildWorld() {
@@ -516,6 +671,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     ground.name = 'Battlefield';
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
+    campaignGroundMaterial = ground.material;
     staticGroup.add(ground);
 
     const northSouth = new THREE.Mesh(
@@ -525,11 +681,14 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     northSouth.rotation.x = -Math.PI / 2;
     northSouth.position.y = .012;
     northSouth.receiveShadow = true;
+    campaignRoadMaterials.push(northSouth.material);
     staticGroup.add(northSouth);
 
     const eastWest = northSouth.clone();
     eastWest.rotation.z = Math.PI / 2;
     staticGroup.add(eastWest);
+
+    buildCampaignWorldTiers();
 
     box('HQ foundation', [3.7, .28, 3.2], [0, .14, 0], 0x26342e);
     commandBastionGroup = new THREE.Group();
@@ -758,6 +917,63 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     buildWorld();
   }
 
+  function campaignTierForPhase(phase) {
+    return Math.max(1, Math.min(3, 1 + Math.floor((Math.max(1, Number(phase) || 1) - 1) / 5)));
+  }
+
+  function campaignTierLabel(tier) {
+    return tier === 3 ? 'RUINED URBAN PERIMETER' : tier === 2 ? 'COLLAPSED INDUSTRIAL SECTOR' : 'OVERRUN FORWARD OUTPOST';
+  }
+
+  function syncCampaignWorld(run, dt) {
+    if (!run || run.operation) return;
+    const tier = campaignTierForPhase(run.phase);
+    const assault = Math.max(1, Math.min(3, Number(run.assault) || 1));
+    campaignTierGroups.forEach((group, index) => { group.visible = index === tier - 1; });
+    campaignDamageGroups.forEach((group, index) => { group.visible = assault >= index + 2; });
+    const palette = tier === 3
+      ? { ground: 0x343638, road: 0x272a2c, sky: 0x303438, near: 25, far: 45 }
+      : tier === 2
+        ? { ground: 0x3d4238, road: 0x2d312e, sky: 0x363c35, near: 28, far: 48 }
+        : { ground: 0x46573d, road: 0x343e31, sky: 0x41513f, near: 31, far: 52 };
+    if (campaignGroundMaterial) campaignGroundMaterial.color.setHex(palette.ground);
+    campaignRoadMaterials.forEach(roadMaterial => roadMaterial.color.setHex(palette.road));
+    scene.background.setHex(palette.sky);
+    scene.fog.color.setHex(palette.sky);
+    scene.fog.near = palette.near - (assault - 1) * 1.5;
+    scene.fog.far = palette.far - (assault - 1) * 2;
+    campaignAtmosphere.forEach((record, index) => {
+      const time = (run.elapsed || 0) * record.drift + index;
+      record.mesh.position.y = record.baseY + Math.sin(time * 1.7) * .24 + ((run.elapsed || 0) * record.drift) % 1.1;
+      record.mesh.rotation.y += dt * (.08 + index * .006);
+      if (record.mesh.material) record.mesh.material.opacity = .18 + Math.sin(time) * .045 + (assault - 1) * .025;
+    });
+    if (displayedCampaignTier !== tier || badge) {
+      const alert = run.bossSpawned && !run.bossDefeated ? ' · SIEGE BREAKER' : assault === 3 ? ' · FINAL ASSAULT' : '';
+      setBadgeText(`PHASE ${run.phase} · ${campaignTierLabel(tier)}${alert}`);
+      displayedCampaignTier = tier;
+    }
+  }
+
+  function applyCameraFeedback(run) {
+    camera.position.copy(cameraHomePosition);
+    cameraShakeTarget.copy(cameraHomeTarget);
+    if (REDUCED_MOTION || !run) {
+      camera.lookAt(cameraShakeTarget);
+      return;
+    }
+    const pulse = Math.max(Number(run.artilleryPulse) || 0, Number(run.destructionPulse) || 0);
+    if (pulse > 0) {
+      const time = (run.elapsed || 0) * 46;
+      const strength = Math.min(.14, pulse * .13);
+      camera.position.x += Math.sin(time * 1.7) * strength;
+      camera.position.y += Math.cos(time * 2.3) * strength * .45;
+      camera.position.z += Math.sin(time * 2.9) * strength * .6;
+      cameraShakeTarget.x += Math.cos(time * 1.3) * strength * .32;
+    }
+    camera.lookAt(cameraShakeTarget);
+  }
+
   function setWorldMode(run) {
     const nextMode = run && run.operationKind === 'junkyard' ? 'junkyard' : run && run.operation ? 'operation' : 'campaign';
     if (activeWorldMode === nextMode) return;
@@ -771,6 +987,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     if (junkyardVehicleGroup && !junkyard) junkyardVehicleGroup.visible = false;
     if (junkyard) {
       camera.fov = 49;
+      cameraHomePosition.set(11.4, 9.1, 14.9);
+      cameraHomeTarget.set(-.45, .58, -.8);
       camera.position.set(11.4, 9.1, 14.9);
       camera.lookAt(-.45, .58, -.8);
       scene.background.setHex(0x211810);
@@ -780,6 +998,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       setBadgeText(battlefieldBadge(run));
     } else if (operation) {
       camera.fov = 51;
+      cameraHomePosition.set(0, 7.4, 13.8);
+      cameraHomeTarget.set(0, .65, -3.9);
       camera.position.set(0, 7.4, 13.8);
       camera.lookAt(0, .65, -3.9);
       scene.background.setHex(0x111d22);
@@ -789,6 +1009,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       setBadgeText(battlefieldBadge(run));
     } else {
       camera.fov = 45;
+      cameraHomePosition.set(0, 24.5, 24.2);
+      cameraHomeTarget.set(0, 0, -1.1);
       camera.position.set(0, 24.5, 24.2);
       camera.lookAt(0, 0, -1.1);
       scene.background.setHex(0x41513f);
@@ -1092,21 +1314,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       try {
         await loadHoltAssets();
       } catch (holtError) {
-        console.warn('Build 184 Commander Holt fallback:', holtError);
+        console.warn('Build 185 Commander Holt fallback:', holtError);
         if (heroFallbackGroup) heroFallbackGroup.visible = true;
       }
 
       try {
         await loadHQAssets();
       } catch (hqError) {
-        console.warn('Build 184 modular HQ fallback:', hqError);
+        console.warn('Build 185 modular HQ fallback:', hqError);
         hqFallbackGroup.visible = true;
       }
 
       setBadgeText(activeWorldMode === 'junkyard' ? 'JUNKYARD RECOVERY · ARMORED CONVOY' : activeWorldMode === 'operation' ? 'DAILY OPERATION · FORWARD CONTAINMENT LINE' : 'CENTRAL HQ · HOLT ON STATION');
       return true;
     })().catch(error => {
-      console.warn('Build 184 battlefield asset fallback:', error);
+      console.warn('Build 185 battlefield asset fallback:', error);
       setBadgeText('CENTRAL HQ · 2D FALLBACK');
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -1162,6 +1384,60 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     return materials;
   }
 
+  function buildBossSilhouette(root, bossGrade) {
+    const grade = Math.max(1, Math.min(3, Number(bossGrade) || 1));
+    if (grade === 1) return [];
+    const materials = [];
+    const addPart = (mesh, baseEmissive) => {
+      mesh.castShadow = PERFORMANCE_BUDGET.shadows;
+      mesh.receiveShadow = true;
+      mesh.material.userData.baseEmissive = baseEmissive || 0;
+      materials.push(mesh.material);
+      root.add(mesh);
+      return mesh;
+    };
+    if (grade === 2) {
+      [-.46, .46].forEach((x, index) => {
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(.52, .27, .5), material(0x4d5148, { metalness: .62, roughness: .43 }));
+        plate.name = `Juggernaut shoulder armor ${index + 1}`;
+        plate.position.set(x, 1.35, .02);
+        plate.rotation.z = x < 0 ? -.18 : .18;
+        addPart(plate);
+      });
+      [-.31, .31].forEach((x, index) => {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(.10, 1.05, .12), material(0x3b403c, { metalness: .68, roughness: .38 }));
+        rail.name = `Juggernaut back-frame rail ${index + 1}`;
+        rail.position.set(x, .93, .25);
+        addPart(rail);
+      });
+      const crossbar = new THREE.Mesh(new THREE.BoxGeometry(.78, .12, .14), material(0x66563f, { metalness: .64, roughness: .42 }));
+      crossbar.name = 'Juggernaut armor crossbar';
+      crossbar.position.set(0, 1.34, .26);
+      addPart(crossbar);
+    } else {
+      [[0,.72,.31,.02],[-.23,1.0,.28,-.24],[.24,1.22,.26,.24],[0,1.48,.22,0]].forEach((spine, index) => {
+        const mesh = new THREE.Mesh(
+          new THREE.ConeGeometry(.14 + index * .012, .52 + index * .04, 7),
+          material(0x6a372f, { roughness: .9, emissive: 0x4a0c08, emissiveIntensity: .7 })
+        );
+        mesh.name = `Outbreak boss dorsal spine ${index + 1}`;
+        mesh.position.set(spine[0], spine[1], spine[2]);
+        mesh.rotation.set(Math.PI / 2 + spine[3], 0, spine[3]);
+        addPart(mesh, 0x4a0c08);
+      });
+      [[-.42,1.28,.02],[.42,1.28,.02],[-.27,.76,.18],[.27,.76,.18]].forEach((position, index) => {
+        const node = new THREE.Mesh(
+          new THREE.IcosahedronGeometry(.17 + (index % 2) * .035, 1),
+          material(index < 2 ? 0x8b3b31 : 0x734039, { roughness: .84, emissive: 0x6b130b, emissiveIntensity: .85 })
+        );
+        node.name = `Outbreak boss growth ${index + 1}`;
+        node.position.set(position[0], position[1], position[2]);
+        addPart(node, 0x6b130b);
+      });
+    }
+    return materials;
+  }
+
   function findHips(root) {
     let hips = null;
     root.traverse(node => {
@@ -1186,10 +1462,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     root.scale.setScalar(scale || 1);
     scene.add(root);
 
-    // Boss distinction is deliberately material-only. The imported animation
-    // has no stable attachment sockets, so procedural armor would drift away
-    // from the body as the skeleton moves.
+    // Later bosses use a root-level silhouette frame. It follows the whole
+    // animated unit without depending on unstable imported bone sockets.
     const materials = tintZombie(model, entity.kind, variant, entity.bossGrade);
+    if (entity.kind === 'boss') materials.push(...buildBossSilhouette(root, entity.bossGrade));
     const mixer = new THREE.AnimationMixer(root);
     const actions = {
       run: mixer.clipAction(clips.run),
@@ -1260,8 +1536,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       item.opacity = opacity;
       item.depthWrite = opacity > .42;
       if (item.emissive) {
-        item.emissive.setHex(hit ? 0x7a1b12 : 0x000000);
-        item.emissiveIntensity = hit ? .85 : 0;
+        const baseEmissive = Number(item.userData && item.userData.baseEmissive) || 0;
+        item.emissive.setHex(hit ? 0x7a1b12 : baseEmissive);
+        item.emissiveIntensity = hit ? .85 : baseEmissive ? .72 : 0;
       }
     });
   }
@@ -1424,9 +1701,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     const p = world(entity, run);
     const destroyed = !!(run.vehicleDestroyed || entity.destroyed);
     const hit = !destroyed && (entity.hit || 0) > 0;
+    const destructionRatio = destroyed ? Math.max(0, Math.min(1, (Number(run.vehicleDestructionTimer) || 0) / 1.45)) : 0;
     junkyardVehicleGroup.visible = true;
     junkyardVehicleGroup.position.set(p[0], .04, p[1]);
-    junkyardVehicleGroup.rotation.set(0, -(entity.aim || 0) + Math.PI / 2, destroyed ? .055 : 0);
+    junkyardVehicleGroup.rotation.set(destroyed ? -.035 : 0, -(entity.aim || 0) + Math.PI / 2, destroyed ? .14 : 0);
     junkyardVehicleBody.forEach(item => {
       const baseColor = item.userData.baseColor == null ? item.color.getHex() : item.userData.baseColor;
       item.color.setHex(baseColor);
@@ -1438,6 +1716,16 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       if (mesh.material) mesh.material.emissiveIntensity = destroyed ? .04 : 1.35;
     });
     if (junkyardVehicleBeacon) junkyardVehicleBeacon.intensity = destroyed ? 0 : 2.2 + Math.sin((run.elapsed || 0) * 8) * .8;
+    junkyardVehicleFlames.forEach((mesh, index) => {
+      mesh.visible = destroyed && destructionRatio > 0;
+      if (!mesh.visible) return;
+      const flicker = .76 + Math.sin((run.elapsed || 0) * (17 + index * 4) + index) * .18 + Math.random() * .16;
+      const openingBurst = Math.min(1.55, .45 + (1 - destructionRatio) * 5.5);
+      mesh.scale.setScalar(flicker * Math.min(openingBurst, .55 + destructionRatio * 1.15));
+      mesh.rotation.y += .12 + index * .035;
+      mesh.material.opacity = Math.min(.96, .35 + destructionRatio * .7);
+    });
+    if (junkyardVehicleBlastLight) junkyardVehicleBlastLight.intensity = destroyed ? 2.2 + destructionRatio * 7.5 + Math.sin((run.elapsed || 0) * 22) * .8 : 0;
   }
 
   function syncBarricadeGroup(group, state, level, researchedPerimeter, researchedArmor) {
@@ -1530,20 +1818,23 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   }
 
   function effectKind(particle) {
-    return particle.type === 'artillery' ? 'artillery' : particle.type === 'debris' ? 'debris' : 'impact';
+    const type = String(particle && particle.type || '');
+    return Object.prototype.hasOwnProperty.call(effectPool, type) ? type : 'impact';
   }
 
   function makeEffect(particle) {
     const key = effectKind(particle);
-    const isArtillery = key === 'artillery';
+    const isFlat = key === 'shockwave';
+    const isSmoke = key === 'smoke';
     const pooled = effectPool[key].pop();
     if (pooled) {
       pooled.effect.visible = true;
       pooled.effect.position.set(0, 0, 0);
       pooled.effect.scale.setScalar(1);
-      pooled.effect.rotation.set(isArtillery ? -Math.PI / 2 : 0, 0, 0);
+      pooled.effect.rotation.set(isFlat ? -Math.PI / 2 : 0, 0, 0);
       pooled.effect.material.color.set(particle.color || 0xffffff);
-      pooled.effect.material.opacity = .9;
+      pooled.effect.material.opacity = isSmoke ? .32 : .9;
+      pooled.effect.material.blending = isSmoke ? THREE.NormalBlending : THREE.AdditiveBlending;
       scene.add(pooled.effect);
       effects.set(particle, pooled);
       return pooled;
@@ -1554,22 +1845,22 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       new THREE.MeshBasicMaterial({
         color: particle.color || 0xffffff,
         transparent: true,
-        opacity: .9,
-        blending: THREE.AdditiveBlending,
+        opacity: isSmoke ? .32 : .9,
+        blending: isSmoke ? THREE.NormalBlending : THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
       })
     );
     effect.frustumCulled = false;
-    if (isArtillery) effect.rotation.x = -Math.PI / 2;
+    if (isFlat) effect.rotation.x = -Math.PI / 2;
     scene.add(effect);
-    const record = { effect, geometry, isArtillery, key };
+    const record = { effect, geometry, isFlat, isSmoke, key };
     effects.set(particle, record);
     return record;
   }
 
   function pooledEffectCount() {
-    return effectPool.artillery.length + effectPool.debris.length + effectPool.impact.length;
+    return Object.keys(effectPool).reduce((total, key) => total + effectPool[key].length, 0);
   }
 
   function releaseEffect(particle, record) {
@@ -1584,18 +1875,41 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     const denominator = Math.min(sourceCanvas.width, sourceCanvas.height) * .54 + 45 * (devicePixelRatio || 1);
     const radiusScale = 8.2 / Math.max(1, denominator);
     run.particles.forEach(particle => {
+      if ((particle.delay || 0) > 0) return;
       let record = effects.get(particle);
       if (!record) record = makeEffect(particle);
       live.add(particle);
       const position = world(particle, run);
       const ratio = Math.max(0, Math.min(1, particle.life / Math.max(.01, particle.max || 1)));
+      const phase = 1 - ratio;
       const base = Math.max(.045, (particle.r || 8) * radiusScale);
-      const growth = record.isArtillery ? 1.2 + (1 - ratio) * .9 : .75 + (1 - ratio) * .55;
-      const height = record.isArtillery ? .055 : particle.type === 'barrier' ? .45 : .78;
-      record.effect.position.set(position[0], height, position[1]);
-      record.effect.scale.setScalar(base * growth);
-      record.effect.material.opacity = record.isArtillery ? ratio * .78 : ratio * .92;
-      if (particle.type === 'debris') {
+      if (record.key === 'artillery') {
+        record.effect.position.set(position[0], 2.15 + phase * .35, position[1]);
+        record.effect.scale.set(base * (.28 + phase * .16), .88 + ratio * .34, base * (.28 + phase * .16));
+        record.effect.material.opacity = Math.min(1, ratio * 1.35);
+      } else if (record.key === 'shockwave') {
+        record.effect.position.set(position[0], .07, position[1]);
+        record.effect.scale.setScalar(base * (.4 + phase * 1.35));
+        record.effect.material.opacity = ratio * .82;
+      } else if (record.key === 'fireball' || record.key === 'vehicle-explosion') {
+        const vehicleBlast = record.key === 'vehicle-explosion';
+        record.effect.position.set(position[0], (vehicleBlast ? 1.15 : .86) + phase * .46, position[1]);
+        record.effect.scale.setScalar(base * ((vehicleBlast ? .34 : .28) + phase * (vehicleBlast ? 1.25 : .95)));
+        record.effect.rotation.y += .19;
+        record.effect.rotation.z += .11;
+        record.effect.material.opacity = Math.min(1, ratio * 1.55);
+      } else if (record.key === 'smoke') {
+        record.effect.position.set(position[0] + Math.sin(phase * 7) * .18, .62 + phase * 2.4, position[1]);
+        record.effect.scale.set(base * (.5 + phase * .8), base * (.68 + phase * 1.2), base * (.5 + phase * .8));
+        record.effect.rotation.y += .035;
+        record.effect.material.opacity = ratio * .34;
+      } else {
+        const height = particle.type === 'barrier' ? .45 : .78 + Math.sin(phase * Math.PI) * .5;
+        record.effect.position.set(position[0], height, position[1]);
+        record.effect.scale.setScalar(base * (.72 + phase * .58));
+        record.effect.material.opacity = ratio * .92;
+      }
+      if (record.key === 'debris') {
         record.effect.rotation.x += .18;
         record.effect.rotation.y += .23;
       }
@@ -1709,7 +2023,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         if (initialRun) api.render(initialRun);
       });
     } catch (error) {
-      console.warn('Build 184 3D fallback:', error);
+      console.warn('Build 185 3D fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';
@@ -1746,6 +2060,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     const liveTracers = new Set();
     const liveEffects = new Set();
 
+    syncCampaignWorld(run, dt);
     syncHQ(run);
     syncHero(run, dt);
     syncTurret(run);
@@ -1768,6 +2083,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     syncTracers(run, liveTracers);
     syncEffects(run, liveEffects);
+    applyCameraFeedback(run);
     renderer.render(scene, camera);
     sampleAdaptiveQuality(dt);
     if (firstFrameCallback) completeFirstFrame(true);
