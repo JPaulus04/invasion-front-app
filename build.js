@@ -79,10 +79,9 @@ function requireMatch(condition, message) {
   if (!condition) throw new Error(`Build validation failed: ${message}`);
 }
 
-// Build 186 keeps the accepted economy/operation ledgers and replaces only the
-// campaign resistance curve, so packaging verifies both boundaries directly.
-// the full curves rather than relying only on source-string markers.
-requireMatch(balance.version === 186, 'Build 186 balance module is missing');
+// Build 187 keeps the accepted Build 186 economy and difficulty ledger while
+// adding campaign navigation and visual identity around that tested balance.
+requireMatch(balance.version === 186, 'Build 186 balance module required by Build 187 is missing');
 requireMatch(balance.ENERGY.max === 10 && balance.ENERGY.rechargeMs === 45 * 60 * 1000, 'campaign energy reserve or recharge changed');
 requireMatch(balance.ECONOMY.startingCredits === 500 && balance.ECONOMY.startingParts === 12, 'tested starting economy changed');
 requireMatch(JSON.stringify(balance.ENERGY.creditMultipliers) === JSON.stringify([1, 1.75, 2.40, 2.95, 3.45]), 'campaign credit multiplier ladder is incorrect');
@@ -191,7 +190,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'186\';'), 'Build 186 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'187\';'), 'Build 187 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -207,7 +206,7 @@ requireMatch(threeDSource.includes('Defensive compound north pad'), 'Build 162 c
 requireMatch(threeDSource.includes('new THREE.PerspectiveCamera(45'), 'Build 162 portrait camera framing is missing');
 requireMatch(html.includes('Barricade lane '), 'Build 162 eight-lane renderer is missing');
 requireMatch(html.includes("targetType==='barricade'"), 'Build 162 barricade damage routing is missing');
-requireMatch(html.includes('Build 186 battlefield asset fallback:'), 'Build 186 renderer marker is missing');
+requireMatch(html.includes('Build 187 battlefield asset fallback:'), 'Build 187 renderer marker is missing');
 requireMatch(html.includes('Commander Holt animated model'), 'Build 162 animated Holt model is missing');
 requireMatch(html.includes('Commander Holt two-hand rifle mount'), 'Build 162 two-hand rifle alignment is missing');
 requireMatch(html.includes('holt-rifle-fire'), 'Build 162 Holt firing animation is missing');
@@ -274,7 +273,7 @@ requireMatch(threeDSource.includes('Command Bastion rooftop emplacement'), 'Buil
 requireMatch(threeDSource.includes('COMMAND_BASTION_DECK_Y') && html.includes("x:cx-(operation?34:28)*s") && html.includes("x:cx+(operation?34:25)*s"), 'Build 172 campaign and forward-operation Holt/turret stations are missing');
 requireMatch(html.includes('function firingLineClearsHolt(source,target)') && html.includes("a.source==='turret')a.aim=a.parkAim"), 'Build 170 turret firing clearance is missing');
 requireMatch(html.includes('var HQ_ATTACK_WORLD_RADIUS = 6.75;') && html.includes('var BOSS_HQ_STOP_WORLD_RADIUS = 8.55;') && html.includes('run.operation?OPERATION_BOSS_HQ_STOP_WORLD_RADIUS:BOSS_HQ_STOP_WORLD_RADIUS'), 'Build 170 campaign enemy and boss stand-off geometry is missing');
-requireMatch(threeDSource.includes('roughly fourteen percent broader') && threeDSource.includes('const BOSS_VISUAL_SCALE = 1.98;'), 'Build 170 Holt and boss scale tuning is missing');
+requireMatch(threeDSource.includes('roughly fourteen percent broader') && threeDSource.includes('const BOSS_VISUAL_SCALE = 1.76;'), 'Build 187 boss scale tuning is missing');
 requireMatch(html.includes('var ENERGY_SCHEMA = BALANCE.ENERGY.schema;') && html.includes('var ENERGY_MAX = BALANCE.ENERGY.max;') && html.includes('var ENERGY_RECHARGE_MS = BALANCE.ENERGY.rechargeMs;') && html.includes('function reserveEnergy(cost)'), 'Build 183 campaign energy ledger routing is missing');
 requireMatch(html.includes('var CAMPAIGN_MAX_ENERGY_SPEND = BALANCE.ENERGY.maxSpend;') && html.includes('var CAMPAIGN_CREDIT_MULTIPLIERS = BALANCE.ENERGY.creditMultipliers;') && html.includes('data-campaign-energy="') && html.includes('campaignCreditReward(baseCampaignReward,run.energySpend||1)'), 'Build 183 selectable campaign credit balance is missing');
 requireMatch(html.includes('reserveEnergy(settings.energySpend)') && !html.includes('energyCommitted<run.assault+1') && !html.includes('reserveEnergy(1)'), 'Build 176 whole-phase energy commitment is missing');
@@ -332,7 +331,7 @@ requireMatch(html.includes('function renderHqTab(panel)') && html.includes('MAXI
 requireMatch(html.includes('the Commander and main turret fire') && html.includes('Commander damage') && !html.includes('Holt damage +') && !html.includes('Holt fire rate +'), 'Build 181 Commander terminology cleanup is missing');
 requireMatch(html.includes('top:calc(env(safe-area-inset-top,0px) + 18px)') && html.includes('top:calc(env(safe-area-inset-top,0px) + 17px)'), 'Build 181 combat safe-area spacing is missing');
 requireMatch(html.includes('EXTRA ENERGY MULTIPLIES CREDITS ONLY') && html.includes('TECH PARTS, EQUIPMENT, AND PROGRESSION NEVER MULTIPLY'), 'Build 176 reward-boundary disclosure is missing');
-requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade)') && threeDSource.includes('function buildBossSilhouette(root, bossGrade)') && threeDSource.includes('Juggernaut shoulder armor') && threeDSource.includes('Outbreak boss dorsal spine') && !threeDSource.includes('addBossArmor'), 'Build 185 stable boss silhouette grades are missing');
+requireMatch(threeDSource.includes('function zombieTint(kind, variant, bossGrade, bossArchetype)') && threeDSource.includes('function buildBossSkin(root, bossArchetype)') && threeDSource.includes('Juggernaut fitted chest plate') && threeDSource.includes('Outbreak fitted dorsal spine') && !threeDSource.includes('buildBossSilhouette'), 'Build 187 cohesive boss skins are missing');
 requireMatch(threeDSource.includes('Campaign tier 1 · Overrun Forward Outpost') && threeDSource.includes('Campaign tier 2 · Collapsed Industrial Sector') && threeDSource.includes('Campaign tier 3 · Ruined Urban Perimeter') && threeDSource.includes('function syncCampaignWorld(run, dt)'), 'Build 185 campaign theater progression is missing');
 requireMatch(html.includes('Build 185 2D fallback mirrors the three authored campaign theaters') && html.includes('background:rgba(0,4,8,.58)'), 'Build 185 campaign fallback or promotion visibility polish is missing');
 requireMatch(html.includes('function spawnVehicleExplosion(e)') && html.includes('vehicleDestructionTimer=1.45') && html.includes('ARMORED TRANSPORT · DESTROYED'), 'Build 185 decisive armored transport destruction is missing');
@@ -344,6 +343,9 @@ requireMatch(html.includes('function updateBarrierStress()') && html.includes('B
 requireMatch(html.includes("if(firstClear&&phase===5)return'epic'") && html.includes("if(firstClear&&phase===10)") && html.includes("if(firstClear&&phase===15&&!ownsLegendary)return'legendary'"), 'Build 186 milestone equipment guarantees are missing');
 requireMatch(html.includes('equipmentBalanceSchema:186') && html.includes('BUILD 186 VETERAN CACHE') && html.includes("source:'BUILD 186 VETERAN CACHE'"), 'Build 186 veteran rarity migration is missing');
 requireMatch(html.includes('.l167-equipped-slot.filled.epic') && html.includes('.l167-equipped-slot.filled.legendary') && html.includes('l186-equipped-badge') && html.includes('MILESTONE REWARD'), 'Build 186 rarity-colored equipment presentation is missing');
+requireMatch(html.includes('function campaignMapMarkup(phase)') && html.includes('l187-sector-map') && html.includes('l187-campaign-dock') && html.includes("classList.toggle('l187-campaign-mode',campaignMode)"), 'Build 187 campaign map or pinned deployment control is missing');
+requireMatch(html.includes('function campaignTransitionMarkup(clearedPhase)') && html.includes('SECTOR SECURED') && html.includes('COMMAND ADVANCING TO'), 'Build 187 sector transition presentation is missing');
+requireMatch(html.includes('function campaignBossProfile(phase)') && threeDSource.includes('function campaignBossLabel(phase)') && threeDSource.includes('function bossVisualScale(unit, run)'), 'Build 187 boss identity routing is missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
