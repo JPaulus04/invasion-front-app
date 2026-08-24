@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════
 //  config.js — legacy engine balance tunables
-//  Build 186 campaign resistance and equipment identity; operations remain stable.
+//  Build 187 campaign sector map and boss identities; Build 186 balance remains stable.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '186';
+const LSC_BUILD = '187';
 
 const CFG = Object.freeze({
 

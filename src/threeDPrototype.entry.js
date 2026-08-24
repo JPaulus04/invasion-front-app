@@ -15,7 +15,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   // simulation row prevents the fixture from splitting apart visually.
   const COMMAND_BASTION_DECK_Y = 1.15;
   const COMMAND_BASTION_CENTER_Z = -1.0;
-  const BOSS_VISUAL_SCALE = 1.98;
+  const BOSS_VISUAL_SCALE = 1.76;
   const OPERATION_BOSS_VISUAL_SCALE = 2.14;
   const OPERATION_DECK_Y = .24;
   const JUNKYARD_DECK_Y = .28;
@@ -930,11 +930,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   }
 
   function campaignTierForPhase(phase) {
-    return Math.max(1, Math.min(3, 1 + Math.floor((Math.max(1, Number(phase) || 1) - 1) / 5)));
+    return 1 + (Math.floor((Math.max(1, Number(phase) || 1) - 1) / 5) % 3);
   }
 
   function campaignTierLabel(tier) {
     return tier === 3 ? 'RUINED URBAN PERIMETER' : tier === 2 ? 'COLLAPSED INDUSTRIAL SECTOR' : 'OVERRUN FORWARD OUTPOST';
+  }
+
+  function campaignSectorLabel(phase) {
+    const index = Math.floor((Math.max(1, Number(phase) || 1) - 1) / 5);
+    return ['REDHAVEN OUTSKIRTS', 'BLACKRIDGE INDUSTRIAL', 'WESTBRIDGE QUARANTINE', 'EVACUATION CORRIDOR', 'RUINED CITY CENTER', 'GROUND ZERO'][Math.min(index, 5)] || 'GROUND ZERO';
+  }
+
+  function campaignBossLabel(phase) {
+    const cycle = Math.floor((Math.max(1, Number(phase) || 1) - 1) / 5) % 3;
+    return cycle === 1 ? 'JUGGERNAUT' : cycle === 2 ? 'OUTBREAK PRIME' : 'SIEGE BREAKER';
   }
 
   function syncCampaignWorld(run, dt) {
@@ -961,8 +971,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       if (record.mesh.material) record.mesh.material.opacity = .18 + Math.sin(time) * .045 + (assault - 1) * .025;
     });
     if (displayedCampaignTier !== tier || badge) {
-      const alert = run.bossSpawned && !run.bossDefeated ? ' · SIEGE BREAKER' : assault === 3 ? ' · FINAL ASSAULT' : '';
-      setBadgeText(`PHASE ${run.phase} · ${campaignTierLabel(tier)}${alert}`);
+      const alert = run.bossSpawned && !run.bossDefeated ? ` · ${campaignBossLabel(run.phase)}` : assault === 3 ? ' · FINAL ASSAULT' : '';
+      setBadgeText(`PHASE ${run.phase} · ${campaignSectorLabel(run.phase)}${alert}`);
       displayedCampaignTier = tier;
     }
   }
@@ -1326,21 +1336,21 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       try {
         await loadHoltAssets();
       } catch (holtError) {
-        console.warn('Build 186 Commander Holt fallback:', holtError);
+        console.warn('Build 187 Commander Holt fallback:', holtError);
         if (heroFallbackGroup) heroFallbackGroup.visible = true;
       }
 
       try {
         await loadHQAssets();
       } catch (hqError) {
-        console.warn('Build 186 modular HQ fallback:', hqError);
+        console.warn('Build 187 modular HQ fallback:', hqError);
         hqFallbackGroup.visible = true;
       }
 
       setBadgeText(activeWorldMode === 'junkyard' ? 'JUNKYARD RECOVERY · ARMORED CONVOY' : activeWorldMode === 'operation' ? 'DAILY OPERATION · FORWARD CONTAINMENT LINE' : 'CENTRAL HQ · HOLT ON STATION');
       return true;
     })().catch(error => {
-      console.warn('Build 186 battlefield asset fallback:', error);
+      console.warn('Build 187 battlefield asset fallback:', error);
       setBadgeText('CENTRAL HQ · 2D FALLBACK');
       if (view) view.style.display = 'none';
       if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
@@ -1357,10 +1367,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     return 'soldier';
   }
 
-  function zombieTint(kind, variant, bossGrade) {
+  function zombieTint(kind, variant, bossGrade, bossArchetype) {
     if (kind === 'boss') {
-      const grade = Math.max(1, Math.min(3, Number(bossGrade) || 1));
-      return grade === 3 ? 0x63332f : grade === 2 ? 0x7d3e36 : 0x9b4038;
+      return bossArchetype === 'outbreak' ? 0x563848 : bossArchetype === 'juggernaut' ? 0x52615a : 0x7b402e;
     }
     if (kind === 'armored') return 0x786b4d;
     if (kind === 'runner') return 0x829ba6;
@@ -1368,8 +1377,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     return 0x789078;
   }
 
-  function tintZombie(root, kind, variant, bossGrade) {
-    const tintColor = new THREE.Color(zombieTint(kind, variant, bossGrade));
+  function tintZombie(root, kind, variant, bossGrade, bossArchetype) {
+    const tintColor = new THREE.Color(zombieTint(kind, variant, bossGrade, bossArchetype));
     const grade = kind === 'boss' ? Math.max(1, Math.min(3, Number(bossGrade) || 1)) : 0;
     const materials = [];
 
@@ -1379,7 +1388,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       const tinted = sources.map(source => {
         if (!source) return source;
         const copy = source.clone();
-        if (copy.color) copy.color.multiply(tintColor).lerp(new THREE.Color(0xffffff), kind === 'boss' ? .18 : .32);
+        if (copy.color) {
+          if (kind === 'boss') copy.color.lerp(tintColor, .72);
+          else copy.color.multiply(tintColor).lerp(new THREE.Color(0xffffff), .32);
+        }
         if (kind === 'boss') {
           copy.roughness = grade >= 3 ? .9 : grade === 2 ? .82 : .74;
           copy.metalness = Math.min(.16, Number(copy.metalness) || 0);
@@ -1396,58 +1408,53 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     return materials;
   }
 
-  function buildBossSilhouette(root, bossGrade) {
-    const grade = Math.max(1, Math.min(3, Number(bossGrade) || 1));
-    if (grade === 1) return [];
-    const materials = [];
+  function buildBossSkin(root, bossArchetype) {
+    const type = bossArchetype || 'siege';
+    const skin = { materials: [], armorParts: [] };
     const addPart = (mesh, baseEmissive) => {
       mesh.castShadow = PERFORMANCE_BUDGET.shadows;
       mesh.receiveShadow = true;
       mesh.material.userData.baseEmissive = baseEmissive || 0;
-      materials.push(mesh.material);
+      skin.materials.push(mesh.material);
       root.add(mesh);
       return mesh;
     };
-    if (grade === 2) {
-      [-.46, .46].forEach((x, index) => {
-        const plate = new THREE.Mesh(new THREE.BoxGeometry(.52, .27, .5), material(0x4d5148, { metalness: .62, roughness: .43 }));
-        plate.name = `Juggernaut shoulder armor ${index + 1}`;
-        plate.position.set(x, 1.35, .02);
-        plate.rotation.z = x < 0 ? -.18 : .18;
-        addPart(plate);
+    if (type === 'juggernaut') {
+      const chest = new THREE.Mesh(new THREE.SphereGeometry(.34, 12, 8), material(0x4e5c59, { metalness: .56, roughness: .5 }));
+      chest.name = 'Juggernaut fitted chest plate';
+      chest.scale.set(1.04, .82, .42);chest.position.set(0, 1.02, -.14);skin.armorParts.push(addPart(chest));
+      [-.34, .34].forEach((x, index) => {
+        const plate = new THREE.Mesh(new THREE.SphereGeometry(.2, 10, 7), material(0x697772, { metalness: .52, roughness: .48 }));
+        plate.name = `Juggernaut fitted shoulder plate ${index + 1}`;
+        plate.scale.set(1.18, .7, .72);plate.position.set(x, 1.29, -.02);plate.rotation.z = x < 0 ? -.18 : .18;skin.armorParts.push(addPart(plate));
       });
-      [-.31, .31].forEach((x, index) => {
-        const rail = new THREE.Mesh(new THREE.BoxGeometry(.10, 1.05, .12), material(0x3b403c, { metalness: .68, roughness: .38 }));
-        rail.name = `Juggernaut back-frame rail ${index + 1}`;
-        rail.position.set(x, .93, .25);
-        addPart(rail);
-      });
-      const crossbar = new THREE.Mesh(new THREE.BoxGeometry(.78, .12, .14), material(0x66563f, { metalness: .64, roughness: .42 }));
-      crossbar.name = 'Juggernaut armor crossbar';
-      crossbar.position.set(0, 1.34, .26);
-      addPart(crossbar);
-    } else {
-      [[0,.72,.31,.02],[-.23,1.0,.28,-.24],[.24,1.22,.26,.24],[0,1.48,.22,0]].forEach((spine, index) => {
+      const guard = new THREE.Mesh(new THREE.TorusGeometry(.21, .045, 7, 12, Math.PI), material(0x3e4b4a, { metalness: .64, roughness: .4 }));
+      guard.name = 'Juggernaut fitted neck guard';guard.position.set(0, 1.48, -.04);guard.rotation.x = Math.PI / 2;skin.armorParts.push(addPart(guard));
+    } else if (type === 'outbreak') {
+      [[0,.76,.25,.02],[-.2,1.03,.23,-.18],[.2,1.27,.21,.18],[0,1.49,.18,0]].forEach((spine, index) => {
         const mesh = new THREE.Mesh(
-          new THREE.ConeGeometry(.14 + index * .012, .52 + index * .04, 7),
-          material(0x6a372f, { roughness: .9, emissive: 0x4a0c08, emissiveIntensity: .7 })
+          new THREE.ConeGeometry(.11 + index * .01, .4 + index * .035, 7),
+          material(0x743654, { roughness: .9, emissive: 0x5d103c, emissiveIntensity: .7 })
         );
-        mesh.name = `Outbreak boss dorsal spine ${index + 1}`;
+        mesh.name = `Outbreak fitted dorsal spine ${index + 1}`;
         mesh.position.set(spine[0], spine[1], spine[2]);
         mesh.rotation.set(Math.PI / 2 + spine[3], 0, spine[3]);
-        addPart(mesh, 0x4a0c08);
+        addPart(mesh, 0x5d103c);
       });
-      [[-.42,1.28,.02],[.42,1.28,.02],[-.27,.76,.18],[.27,.76,.18]].forEach((position, index) => {
+      [[-.35,1.25,.01],[.35,1.25,.01],[-.23,.79,.15],[.23,.79,.15]].forEach((position, index) => {
         const node = new THREE.Mesh(
-          new THREE.IcosahedronGeometry(.17 + (index % 2) * .035, 1),
-          material(index < 2 ? 0x8b3b31 : 0x734039, { roughness: .84, emissive: 0x6b130b, emissiveIntensity: .85 })
+          new THREE.IcosahedronGeometry(.135 + (index % 2) * .025, 1),
+          material(index < 2 ? 0xa34278 : 0x783a61, { roughness: .84, emissive: 0x6b1249, emissiveIntensity: .85 })
         );
-        node.name = `Outbreak boss growth ${index + 1}`;
+        node.name = `Outbreak fitted growth ${index + 1}`;
         node.position.set(position[0], position[1], position[2]);
-        addPart(node, 0x6b130b);
+        addPart(node, 0x6b1249);
       });
+    } else {
+      const harness = new THREE.Mesh(new THREE.TorusGeometry(.3, .035, 7, 16), material(0x9a6337, { metalness: .35, roughness: .58 }));
+      harness.name = 'Siege Breaker command harness';harness.position.set(0, 1.05, -.12);harness.rotation.x = Math.PI / 2;addPart(harness);
     }
-    return materials;
+    return skin;
   }
 
   function findHips(root) {
@@ -1474,10 +1481,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     root.scale.setScalar(scale || 1);
     scene.add(root);
 
-    // Later bosses use a root-level silhouette frame. It follows the whole
-    // animated unit without depending on unstable imported bone sockets.
-    const materials = tintZombie(model, entity.kind, variant, entity.bossGrade);
-    if (entity.kind === 'boss') materials.push(...buildBossSilhouette(root, entity.bossGrade));
+    // Boss identity pieces stay close to the animated body so each target is
+    // recognizable without the oversized floating boxes used by older builds.
+    const materials = tintZombie(model, entity.kind, variant, entity.bossGrade, entity.bossArchetype);
+    const bossSkin = entity.kind === 'boss' ? buildBossSkin(root, entity.bossArchetype) : { materials: [], armorParts: [] };
+    materials.push(...bossSkin.materials);
     const mixer = new THREE.AnimationMixer(root);
     const actions = {
       run: mixer.clipAction(clips.run),
@@ -1498,6 +1506,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       hips,
       hipsAnchor: hips ? hips.position.clone() : null,
       materials,
+      bossArmorParts: bossSkin.armorParts,
     };
     units.set(key, record);
     return record;
@@ -1581,7 +1590,18 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     }
     record.root.position.set(position[0], 0, position[1]);
     record.root.rotation.y = rotation;
+    if (record.bossArmorParts && record.bossArmorParts.length) {
+      const armorVisible = !dead && Number(entity.armor) > 0;
+      record.bossArmorParts.forEach(part => { part.visible = armorVisible; });
+    }
     updateZombieMaterials(record, entity, dead);
+  }
+
+  function bossVisualScale(unit, run) {
+    if (run.operation) return OPERATION_BOSS_VISUAL_SCALE;
+    if (unit.bossArchetype === 'juggernaut') return 1.82;
+    if (unit.bossArchetype === 'outbreak') return 1.74;
+    return BOSS_VISUAL_SCALE;
   }
 
   function syncHQ(run) {
@@ -2042,7 +2062,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         if (initialRun) api.render(initialRun);
       });
     } catch (error) {
-      console.warn('Build 186 3D fallback:', error);
+      console.warn('Build 187 3D fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';
@@ -2088,11 +2108,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     run.enemies.forEach(unit => {
       if (unit.kind === 'vehicle') return;
-      const scale = unit.kind === 'boss' ? (run.operation ? OPERATION_BOSS_VISUAL_SCALE : BOSS_VISUAL_SCALE) : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
+      const scale = unit.kind === 'boss' ? bossVisualScale(unit, run) : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
       syncZombie(unit, run, scale, false, dt, liveUnits);
     });
     run.corpses.forEach(unit => {
-      const scale = unit.kind === 'boss' ? (run.operation ? OPERATION_BOSS_VISUAL_SCALE : BOSS_VISUAL_SCALE) : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
+      const scale = unit.kind === 'boss' ? bossVisualScale(unit, run) : unit.kind === 'armored' ? 1.24 : unit.kind === 'runner' ? .94 : 1.06;
       syncZombie(unit, run, scale, true, dt, liveUnits);
     });
 
