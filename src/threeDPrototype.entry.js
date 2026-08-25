@@ -106,6 +106,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let hqTier3WallGroup = null;
   let hqTier4WallGroup = null;
   let hqTier5WallGroup = null;
+  let hqTier6Group = null;
+  let hqTier7Group = null;
+  let hqTier8Group = null;
+  let hqTier9Group = null;
+  let hqTier10Group = null;
   let hqLaserGroup = null;
   let hqShield = null;
   let displayedHQLevel = 0;
@@ -118,6 +123,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let junkyardVehicleBeacon = null;
   let junkyardVehicleHeadlights = [];
   let junkyardVehicleFlames = [];
+  let junkyardVehicleSmoke = [];
+  let junkyardVehicleRoofArmor = null;
+  let junkyardVehicleHatch = null;
   let junkyardVehicleBlastLight = null;
   let campaignWorldObjects = [];
   const campaignTierGroups = [];
@@ -511,14 +519,16 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     vehiclePart('Armored transport cab', [1.96, 1.18, 1.42], [0, 1.17, 1.34], 0x655b47, { metalness: .6, roughness: .4 });
     vehiclePart('Armored transport hood', [1.82, .58, .64], [0, .88, 2.18], 0x4b4c40, { metalness: .65, roughness: .36 });
     vehiclePart('Armored transport front plate', [2.08, .74, .18], [0, .91, 2.5], 0x303631, { metalness: .72, roughness: .3 });
-    vehiclePart('Armored transport roof armor', [2.18, .22, 2.75], [0, 2.02, -.48], 0x41443b, { metalness: .68, roughness: .34 });
+    junkyardVehicleRoofArmor = vehiclePart('Armored transport roof armor', [2.18, .22, 2.75], [0, 2.02, -.48], 0x41443b, { metalness: .68, roughness: .34 });
+    junkyardVehicleRoofArmor.userData.homePosition = junkyardVehicleRoofArmor.position.clone();
     [-1.08, 1.08].forEach((x, sideIndex) => {
       [-1.42, 1.5].forEach((z, axleIndex) => {
         shapedMesh(`Armored transport wheel ${sideIndex + 1}-${axleIndex + 1}`, new THREE.CylinderGeometry(.48, .48, .36, 14), [x, .53, z], 0x131514, junkyardVehicleGroup, { metalness: .24, roughness: .88 }, [0, 0, Math.PI / 2]);
         shapedMesh(`Armored transport hub ${sideIndex + 1}-${axleIndex + 1}`, new THREE.CylinderGeometry(.2, .2, .38, 12), [x, .53, z], 0x8c7044, junkyardVehicleGroup, { metalness: .72, roughness: .32 }, [0, 0, Math.PI / 2]);
       });
     });
-    shapedMesh('Armored transport roof hatch', new THREE.CylinderGeometry(.48, .56, .24, 12), [0, 2.22, -.45], 0x333833, junkyardVehicleGroup, { metalness: .7, roughness: .32 });
+    junkyardVehicleHatch = shapedMesh('Armored transport roof hatch', new THREE.CylinderGeometry(.48, .56, .24, 12), [0, 2.22, -.45], 0x333833, junkyardVehicleGroup, { metalness: .7, roughness: .32 });
+    junkyardVehicleHatch.userData.homePosition = junkyardVehicleHatch.position.clone();
     box('Armored transport windshield', [1.5, .44, .08], [0, 1.43, 2.07], 0x172b2e, junkyardVehicleGroup, { metalness: .38, roughness: .24, emissive: 0x07191c, emissiveIntensity: .32 });
     junkyardVehicleHeadlights = [-.62, .62].map((x, index) => shapedMesh(`Armored transport headlight ${index + 1}`, new THREE.SphereGeometry(.13, 9, 6), [x, .78, 2.61], 0xffd66b, junkyardVehicleGroup, { emissive: 0xffa51e, emissiveIntensity: 1.35 }));
     shapedMesh('Armored transport beacon housing', new THREE.CylinderGeometry(.13, .16, .18, 10), [0, 2.31, .5], 0x35281f, junkyardVehicleGroup, { metalness: .6 });
@@ -536,6 +546,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       mesh.visible = false;
       junkyardVehicleGroup.add(mesh);
       junkyardVehicleFlames.push(mesh);
+    });
+    [[-.52,2.05,-.9,.72],[.45,1.86,.42,.58]].forEach((smoke,index) => {
+      const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(smoke[3],0),new THREE.MeshBasicMaterial({color:index?0x353a36:0x252a27,transparent:true,opacity:.3,depthWrite:false}));
+      mesh.name=`Armored transport progressive smoke ${index+1}`;
+      mesh.position.set(smoke[0],smoke[1],smoke[2]);mesh.visible=false;junkyardVehicleGroup.add(mesh);junkyardVehicleSmoke.push(mesh);
     });
     junkyardVehicleBlastLight = new THREE.PointLight(0xff5a21, 0, 10, 2);
     junkyardVehicleBlastLight.position.set(0, 1.5, 0);
@@ -803,6 +818,17 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     box('Level 5 east energy rail', [.08, .08, 4.8], [2.72, 1.52, 0], 0x8ef6ff, hqTier5WallGroup, { emissive: 0x26aabd, emissiveIntensity: 1.2 });
     hqTier5WallGroup.visible = false;
     staticGroup.add(hqTier5WallGroup);
+
+    hqTier6Group = new THREE.Group();
+    hqTier6Group.name = 'HQ level 6 heavy bulwark';
+    [[-2.82,-2.42],[2.82,-2.42],[-2.82,2.42],[2.82,2.42]].forEach((position,index)=>shapedMesh(`Level 6 siege buttress ${index+1}`,new THREE.CylinderGeometry(.52,.7,2.35,8),[position[0],1.18,position[1]],0x334f51,hqTier6Group,{metalness:.72,roughness:.3}));
+    hqTier6Group.visible=false;staticGroup.add(hqTier6Group);
+
+    const makeAuxiliaryBattery=(name,x,parent)=>{box(`${name} bunker`,[1.35,.76,1.15],[x,.42,-.3],0x29474a,parent,{metalness:.65,roughness:.34});shapedMesh(`${name} hardpoint`,new THREE.CylinderGeometry(.36,.46,.42,10),[x,.98,-.3],0x4f7375,parent,{metalness:.74,roughness:.25});box(`${name} barrel`,[.12,.12,1.05],[x,1.03,-.92],0x86dbe2,parent,{metalness:.82,emissive:0x164e58,emissiveIntensity:.55});};
+    hqTier7Group=new THREE.Group();hqTier7Group.name='HQ level 7 west auxiliary battery';makeAuxiliaryBattery('West auxiliary battery',-3.35,hqTier7Group);hqTier7Group.visible=false;staticGroup.add(hqTier7Group);
+    hqTier8Group=new THREE.Group();hqTier8Group.name='HQ level 8 field repair complex';box('Field repair bay',[2.25,.68,1.25],[0,.36,3.05],0x485f58,hqTier8Group,{metalness:.46,roughness:.48});box('Repair bay door',[1.38,.5,.08],[0,.34,3.69],0xd3aa54,hqTier8Group,{emissive:0x4a2b00,emissiveIntensity:.28});[-.72,.72].forEach(x=>shapedMesh('Repair warning lamp',new THREE.SphereGeometry(.09,8,6),[x,.8,3.68],0xffd166,hqTier8Group,{emissive:0xff9d22,emissiveIntensity:1.2}));hqTier8Group.visible=false;staticGroup.add(hqTier8Group);
+    hqTier9Group=new THREE.Group();hqTier9Group.name='HQ level 9 east auxiliary battery';makeAuxiliaryBattery('East auxiliary battery',3.35,hqTier9Group);hqTier9Group.visible=false;staticGroup.add(hqTier9Group);
+    hqTier10Group=new THREE.Group();hqTier10Group.name='HQ level 10 Last Stand command grid';[-2.85,2.85].forEach(x=>box('Last Stand energy pylon',[.12,2.65,.12],[x,1.35,0],0xffd166,hqTier10Group,{emissive:0xe48616,emissiveIntensity:1.25}));box('Last Stand crown',[6.1,.09,.09],[0,2.55,-2.55],0x8ef6ff,hqTier10Group,{emissive:0x26aabd,emissiveIntensity:1.3});hqTier10Group.visible=false;staticGroup.add(hqTier10Group);
 
     hqCommsGroup = new THREE.Group();
     hqCommsGroup.name = 'HQ level 2 communications';
@@ -1606,7 +1632,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
   function syncHQ(run) {
     if (run.operation) {
-      [hqAssetGroup, hqFallbackGroup, hqCommsGroup, hqReinforcementGroup, hqTier3WallGroup, hqTier4WallGroup, hqTier5WallGroup, hqLaserGroup, hqShield, commandBastionGroup, commandBastionTier2Group, commandBastionTier3Group, commandBastionTier4Group, commandBastionTier5Group].forEach(group => {
+      [hqAssetGroup, hqFallbackGroup, hqCommsGroup, hqReinforcementGroup, hqTier3WallGroup, hqTier4WallGroup, hqTier5WallGroup, hqTier6Group, hqTier7Group, hqTier8Group, hqTier9Group, hqTier10Group, hqLaserGroup, hqShield, commandBastionGroup, commandBastionTier2Group, commandBastionTier3Group, commandBastionTier4Group, commandBastionTier5Group].forEach(group => {
         if (group) group.visible = false;
       });
       displayedHQLevel = 0;
@@ -1631,6 +1657,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     if (hqTier3WallGroup) hqTier3WallGroup.visible = level >= 3;
     if (hqTier4WallGroup) hqTier4WallGroup.visible = level >= 4;
     if (hqTier5WallGroup) hqTier5WallGroup.visible = level >= 5;
+    if (hqTier6Group) hqTier6Group.visible = level >= 6;
+    if (hqTier7Group) hqTier7Group.visible = level >= 7;
+    if (hqTier8Group) hqTier8Group.visible = level >= 8;
+    if (hqTier9Group) hqTier9Group.visible = level >= 9;
+    if (hqTier10Group) hqTier10Group.visible = level >= 10;
     if (hqLaserGroup) hqLaserGroup.visible = level >= 4;
     if (hqShield) hqShield.visible = level >= 5;
     if (commandBastionTier2Group) commandBastionTier2Group.visible = level >= 2;
@@ -1733,31 +1764,43 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     }
     const p = world(entity, run);
     const destroyed = !!(run.vehicleDestroyed || entity.destroyed);
-    const hit = !destroyed && (entity.hit || 0) > 0;
-    const destructionRatio = destroyed ? Math.max(0, Math.min(1, (Number(run.vehicleDestructionTimer) || 0) / 1.45)) : 0;
+    const damageRatio = Math.max(0, Math.min(1, 1 - Number(entity.hp || 0) / Math.max(1, Number(entity.maxHp) || 1)));
+    const artilleryHit = !destroyed && (entity.artilleryHit || 0) > 0;
+    const destructionRatio = destroyed ? Math.max(0, Math.min(1, (Number(run.vehicleDestructionTimer) || 0) / 2.15)) : 0;
     junkyardVehicleGroup.visible = true;
     junkyardVehicleGroup.position.set(p[0], .04, p[1]);
     junkyardVehicleGroup.rotation.set(destroyed ? -.035 : 0, -(entity.aim || 0) + Math.PI / 2, destroyed ? .14 : 0);
     junkyardVehicleBody.forEach(item => {
       const baseColor = item.userData.baseColor == null ? item.color.getHex() : item.userData.baseColor;
       item.color.setHex(baseColor);
-      if (destroyed) item.color.multiplyScalar(.48);
-      item.emissive.setHex(hit ? 0xa82b0c : destroyed ? 0x170704 : 0x000000);
-      item.emissiveIntensity = hit ? 1.15 : destroyed ? .28 : 0;
+      item.color.multiplyScalar(destroyed ? .38 : 1 - damageRatio * .34);
+      item.emissive.setHex(destroyed ? 0x170704 : artilleryHit ? 0x4a2108 : 0x000000);
+      item.emissiveIntensity = destroyed ? .22 : artilleryHit ? .42 : 0;
     });
     junkyardVehicleHeadlights.forEach(mesh => {
       if (mesh.material) mesh.material.emissiveIntensity = destroyed ? .04 : 1.35;
     });
     if (junkyardVehicleBeacon) junkyardVehicleBeacon.intensity = destroyed ? 0 : 2.2 + Math.sin((run.elapsed || 0) * 8) * .8;
+    junkyardVehicleSmoke.forEach((mesh,index) => {
+      mesh.visible = !destroyed && damageRatio > (index ? .58 : .32);
+      if(!mesh.visible)return;
+      const pulse=.8+Math.sin((run.elapsed||0)*(2.8+index))*.16;
+      mesh.position.y=1.9+Math.sin((run.elapsed||0)*1.7+index)*.12;
+      mesh.scale.set(.65+damageRatio*.7,pulse*(.85+damageRatio*1.1),.65+damageRatio*.7);
+      mesh.material.opacity=.12+damageRatio*.34;
+      mesh.rotation.y+=.018;
+    });
     junkyardVehicleFlames.forEach((mesh, index) => {
-      mesh.visible = destroyed && destructionRatio > 0;
+      mesh.visible = (destroyed && destructionRatio > 0) || (!destroyed && damageRatio > .72 && index < 2);
       if (!mesh.visible) return;
       const flicker = .76 + Math.sin((run.elapsed || 0) * (17 + index * 4) + index) * .18 + Math.random() * .16;
-      const openingBurst = Math.min(1.55, .45 + (1 - destructionRatio) * 5.5);
-      mesh.scale.setScalar(flicker * Math.min(openingBurst, .55 + destructionRatio * 1.15));
+      const openingBurst = destroyed ? Math.min(1.55, .45 + (1 - destructionRatio) * 5.5) : .55 + damageRatio*.35;
+      mesh.scale.setScalar(flicker * Math.min(openingBurst, destroyed ? .55 + destructionRatio * 1.15 : .8));
       mesh.rotation.y += .12 + index * .035;
-      mesh.material.opacity = Math.min(.96, .35 + destructionRatio * .7);
+      mesh.material.opacity = Math.min(.96, destroyed ? .35 + destructionRatio * .7 : .22 + damageRatio*.5);
     });
+    if(junkyardVehicleRoofArmor){const home=junkyardVehicleRoofArmor.userData.homePosition;junkyardVehicleRoofArmor.position.copy(home);junkyardVehicleRoofArmor.rotation.set(0,0,0);if(destroyed){junkyardVehicleRoofArmor.position.y+=.52;junkyardVehicleRoofArmor.position.x-=.36;junkyardVehicleRoofArmor.rotation.z=.38;}}
+    if(junkyardVehicleHatch){const home=junkyardVehicleHatch.userData.homePosition;junkyardVehicleHatch.position.copy(home);junkyardVehicleHatch.rotation.set(0,0,0);if(destroyed){junkyardVehicleHatch.position.set(home.x+.95,home.y+.72,home.z-.48);junkyardVehicleHatch.rotation.set(.64,.28,1.12);}}
     if (junkyardVehicleBlastLight) junkyardVehicleBlastLight.intensity = destroyed ? 2.2 + destructionRatio * 7.5 + Math.sin((run.elapsed || 0) * 22) * .8 : 0;
   }
 
@@ -2062,7 +2105,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         if (initialRun) api.render(initialRun);
       });
     } catch (error) {
-      console.warn('Build 187 3D fallback:', error);
+      console.warn('Build 188 battlefield asset fallback:', error);
       active = false;
       if (view) view.style.display = 'none';
       sourceCanvas.style.visibility = 'visible';

@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════
 //  config.js — legacy engine balance tunables
-//  Build 187 campaign sector map and boss identities; Build 186 balance remains stable.
+//  Build 189 controlled campaign replays and boss-versus-HQ combat clarity.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '187';
+const LSC_BUILD = '189';
 
 const CFG = Object.freeze({
 
