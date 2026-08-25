@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { LSCGameCenter } from '../plugins/lsc-game-center/dist/esm/index.js';
 
 (function () {
   'use strict';
@@ -35,4 +36,5 @@ import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
     isNative: Capacitor.isNativePlatform(),
     trigger,
   });
+  window.LSCGameCenterNative = LSCGameCenter;
 })();

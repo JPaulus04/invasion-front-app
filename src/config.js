@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════
 //  config.js — legacy engine balance tunables
-//  Build 190 explicit boss armor and independently rendered HQ combat HUD.
+//  Build 191 Game Center competition and verified boss/HQ combat HUD states.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '190';
+const LSC_BUILD = '191';
 
 const CFG = Object.freeze({
 
