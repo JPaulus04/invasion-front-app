@@ -1,0 +1,21 @@
+{
+  "name": "lsc-game-center",
+  "version": "1.0.0",
+  "description": "First-party Game Center bridge for Last Stand Command",
+  "main": "dist/plugin.cjs.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "files": [
+    "dist/",
+    "ios/",
+    "LSCGameCenter.podspec"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=6.0.0 <7.0.0"
+  }
+}
