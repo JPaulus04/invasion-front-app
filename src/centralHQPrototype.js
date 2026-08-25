@@ -1,4 +1,4 @@
-// Build 189 — controlled campaign replays and boss-versus-HQ combat clarity.
+// Build 190 — explicit boss armor and independently rendered HQ combat HUD.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -908,6 +908,26 @@
     document.head.appendChild(style);
   }
 
+  function installCombatHudStyles(){
+    if(id('lsc190-combat-hud-style'))return;
+    var style=document.createElement('style');
+    style.id='lsc190-combat-hud-style';
+    style.textContent=
+      '#l139-progress.l190-armor-phase .l139-progress-track{border:1px solid #ffd166;background:#352707;box-shadow:0 0 14px rgba(255,209,102,.32)}'+
+      '#l139-progress.l190-armor-phase .l139-progress-fill{background:linear-gradient(90deg,#b9770e,#ffd166)!important;box-shadow:0 0 12px rgba(255,209,102,.72)!important}'+
+      '#l139-progress.l190-armor-phase .l139-progress-text{color:#ffe7a0}'+
+      '#l139-progress.l190-health-phase .l139-progress-track{border:1px solid #ff6a55;background:#310c0a;box-shadow:0 0 14px rgba(255,70,48,.28)}'+
+      '#l139-progress.l190-health-phase .l139-progress-fill{background:linear-gradient(90deg,#a91414,#ff4b36)!important;box-shadow:0 0 12px rgba(255,64,45,.66)!important}'+
+      '#l139-progress.l190-health-phase .l139-progress-text{color:#ffb3a6}'+
+      '#l190-hq-hud{position:absolute;z-index:41;top:calc(env(safe-area-inset-top,0px) + 48px);right:108px;left:12px;display:none;padding:5px 7px;border:1px solid rgba(83,245,143,.72);border-radius:7px;background:rgba(3,18,13,.92);box-sizing:border-box;pointer-events:none;box-shadow:0 0 13px rgba(36,230,113,.16)}'+
+      '#l190-hq-hud.show{display:block}.l190-hq-row{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#a7ffc8;font:700 7px "Share Tech Mono",monospace}.l190-hq-row span:last-child{text-align:right;white-space:nowrap}'+
+      '.l190-hq-track{height:7px;margin-top:3px;border-radius:7px;background:#142a20;overflow:hidden}.l190-hq-fill{height:100%;background:linear-gradient(90deg,#13c962,#76ff9e);box-shadow:0 0 9px rgba(50,255,127,.55);transition:width .12s linear}'+
+      '#l190-hq-hud.warning{border-color:#ffd166;background:rgba(42,31,6,.94)}#l190-hq-hud.warning .l190-hq-row{color:#ffe08a}#l190-hq-hud.warning .l190-hq-fill{background:linear-gradient(90deg,#c47a0c,#ffd166)}'+
+      '#l190-hq-hud.critical,#l190-hq-hud.direct{border-color:#ff5a43;background:rgba(49,8,6,.95);box-shadow:0 0 18px rgba(255,55,37,.34)}#l190-hq-hud.critical .l190-hq-row,#l190-hq-hud.direct .l190-hq-row{color:#ffb2a6}#l190-hq-hud.critical .l190-hq-fill,#l190-hq-hud.direct .l190-hq-fill{background:linear-gradient(90deg,#9d1010,#ff4b36)}'+
+      '#l190-hq-hud.direct{animation:l190DirectAssault .42s ease-in-out infinite alternate}@keyframes l190DirectAssault{to{filter:brightness(1.45);transform:scale(1.006)}}';
+    document.head.appendChild(style);
+  }
+
   function battleHapticsEnabled(){return localStorage.getItem('lsc_haptic_off')!=='1'&&localStorage.getItem('lsc_haptics')!=='off';}
   function syncBattleSettings(){
     var audio=typeof getAudioSettings==='function'?getAudioSettings():{musicEnabled:true,sfxEnabled:true};
@@ -968,7 +988,8 @@
     var wrap = id('battlefield-wrap'); if (wrap) {
       wrap.appendChild(ability);
       wrap.appendChild(command);
-      var progress=document.createElement('div');progress.className='l139-progress';progress.innerHTML='<div class="l139-progress-text"><span id="l139-progress-label">ASSAULT 1/3</span><span id="l139-progress-count">0 THREATS</span></div><div class="l139-progress-track"><div class="l139-progress-fill" id="l139-progress-fill"></div></div><div class="l189-hq-status" id="l189-hq-status"><div class="l189-hq-text"><span id="l189-hq-label">HQ INTEGRITY</span><span id="l189-hq-count">100%</span></div><div class="l189-hq-track"><div class="l189-hq-fill" id="l189-hq-fill"></div></div></div>';wrap.appendChild(progress);
+      var progress=document.createElement('div');progress.className='l139-progress';progress.innerHTML='<div class="l139-progress-text"><span id="l139-progress-label">ASSAULT 1/3</span><span id="l139-progress-count">0 THREATS</span></div><div class="l139-progress-track"><div class="l139-progress-fill" id="l139-progress-fill"></div></div>';wrap.appendChild(progress);
+      var hqHud=document.createElement('div');hqHud.id='l190-hq-hud';hqHud.setAttribute('role','status');hqHud.setAttribute('aria-live','assertive');hqHud.innerHTML='<div class="l190-hq-row"><span id="l190-hq-label">HQ INTEGRITY</span><span id="l190-hq-count">100% · 0 / 0 HP</span></div><div class="l190-hq-track"><div class="l190-hq-fill" id="l190-hq-fill"></div></div>';wrap.appendChild(hqHud);
       var controls=document.createElement('div');controls.id='l140-controls';controls.innerHTML='<button id="l140-speed-btn" aria-label="Battle speed">1×</button><button id="l139-menu-btn" aria-label="Battle menu">☰</button>';wrap.appendChild(controls);
       id('l139-menu-btn').onclick=openPause;id('l140-speed-btn').onclick=cycleSpeed;
     }
@@ -1652,7 +1673,8 @@
     run.lastHudUpdate=hudNow;
     if(run.operationKind==='junkyard'){
       var vehicle=run.objectiveVehicle,maxArmor=Math.max(1,vehicle?vehicle.maxHp:1),armor=Math.max(0,vehicle?vehicle.hp:0),destroyedPct=Math.min(100,Math.max(0,Math.round((1-armor/maxArmor)*100))),fill=id('l139-progress-fill'),label=id('l139-progress-label'),count=id('l139-progress-count'),progress=id('l139-progress');
-      if(progress){progress.classList.add('l168-boss-hud');progress.classList.add('l189-objective-only');}
+      if(progress){progress.classList.add('l168-boss-hud');progress.classList.add('l189-objective-only');progress.classList.remove('l190-armor-phase','l190-health-phase');}
+      var objectiveHqHud=id('l190-hq-hud');if(objectiveHqHud)objectiveHqHud.classList.remove('show','warning','critical','direct');
       if(fill)fill.style.width=destroyedPct+'%';
       if(label)label.textContent='ARMORED TRANSPORT · '+destroyedPct+'% DESTROYED';
       if(count)count.textContent=formatObjectiveTime(run.objectiveTime)+' REMAINING · '+formatNumber(Math.ceil(armor))+' / '+formatNumber(Math.ceil(maxArmor))+' ARMOR';
@@ -1661,23 +1683,25 @@
     var completed=0,total=1;for(var i=0;i<run.assaultTargets.length;i++){total+=run.assaultTargets[i];if(i<run.assault-1)completed+=run.assaultTargets[i];}completed+=run.assaultKills;if(run.bossDefeated)completed++;
     var pct=Math.min(100,Math.floor((completed/total)*100));
     var fill=id('l139-progress-fill'),label=id('l139-progress-label'),count=id('l139-progress-count'),progress=id('l139-progress'),boss=run.enemies.filter(function(e){return e.hp>0&&((run.bossEntityId!=null&&e.id===run.bossEntityId)||e.kind==='boss');})[0];
-    if(progress){progress.classList.remove('l189-objective-only');progress.classList.toggle('l168-boss-hud',!!boss);progress.classList.toggle('l186-armor-hud',!!(boss&&boss.armor>0));}
+    if(progress){progress.classList.remove('l189-objective-only');progress.classList.toggle('l168-boss-hud',!!boss);progress.classList.remove('l186-armor-hud');progress.classList.toggle('l190-armor-phase',!!(boss&&boss.armor>0));progress.classList.toggle('l190-health-phase',!!(boss&&boss.armor<=0));}
     if(boss){
       var armored=boss.armor>0,bossPct=Math.max(0,Math.ceil((armored?boss.armor:boss.hp)/Math.max(1,armored?boss.maxArmor:boss.maxHp)*100));
       if(fill)fill.style.width=bossPct+'%';
-      if(label)label.textContent=(run.operation?'CONTAINMENT ALPHA · LEVEL '+run.operationLevel:(armored?'HEAVY ARMOR · ':'')+campaignBossProfile(run.phase).name)+' · '+bossPct+'%';
+      if(label)label.textContent=(armored?'BOSS ARMOR · ':'BOSS HEALTH · ')+(run.operation?'CONTAINMENT ALPHA':campaignBossProfile(run.phase).name)+' · '+bossPct+'%';
       if(count)count.textContent=Math.ceil(armored?boss.armor:boss.hp)+' / '+Math.ceil(armored?boss.maxArmor:boss.maxHp)+' '+(armored?'ARMOR':'HP');
-      var hqPct=Math.max(0,Math.ceil(run.hq.hp/Math.max(1,run.hq.maxHp)*100)),hqStatus=id('l189-hq-status'),hqFill=id('l189-hq-fill'),hqLabel=id('l189-hq-label'),hqCount=id('l189-hq-count'),direct=!!(boss.engaged&&boss.targetType==='hq');
+      var hqPct=Math.max(0,Math.ceil(run.hq.hp/Math.max(1,run.hq.maxHp)*100)),hqStatus=id('l190-hq-hud'),hqFill=id('l190-hq-fill'),hqLabel=id('l190-hq-label'),hqCount=id('l190-hq-count'),direct=!!(boss.engaged&&boss.targetType==='hq'),battleBadge=id('lsc-3d-badge');
       if(hqFill)hqFill.style.width=hqPct+'%';
-      if(hqLabel)hqLabel.textContent=direct?'DIRECT ASSAULT · HQ INTEGRITY':'HQ INTEGRITY';
+      if(hqLabel)hqLabel.textContent=direct?'DIRECT ASSAULT · HQ UNDER ATTACK':hqPct<=25?'CRITICAL · HQ INTEGRITY':hqPct<=50?'WARNING · HQ INTEGRITY':'HQ INTEGRITY';
       if(hqCount)hqCount.textContent=hqPct+'% · '+Math.max(0,Math.ceil(run.hq.hp))+' / '+Math.ceil(run.hq.maxHp)+' HP';
-      if(hqStatus){hqStatus.classList.toggle('warning',hqPct<=50&&hqPct>25);hqStatus.classList.toggle('critical',hqPct<=25);hqStatus.classList.toggle('direct',direct);}
+      if(hqStatus){hqStatus.classList.add('show');hqStatus.classList.toggle('warning',hqPct<=50&&hqPct>25);hqStatus.classList.toggle('critical',hqPct<=25);hqStatus.classList.toggle('direct',direct);}
+      if(battleBadge)battleBadge.style.top='calc(env(safe-area-inset-top,0px) + 84px)';
+      if(direct&&!run.hqDirectWarning){run.hqDirectWarning=true;combatSfx('hqHit',0);combatHaptic('heavy',240);}else if(!direct)run.hqDirectWarning=false;
       var warningLevel=hqPct<=25?2:hqPct<=50?1:0;if(warningLevel>(run.hqWarningLevel||0)){run.hqWarningLevel=warningLevel;combatSfx('hqHit',0);combatHaptic(warningLevel===2?'heavy':'medium',240);}
     }else{
       if(fill)fill.style.width=pct+'%';
       if(label)label.textContent=(run.bossSpawned&&!run.bossDefeated?(run.operation?'FINAL PUSH · CONTAINMENT LEVEL '+run.operationLevel:'FINAL ASSAULT · '+campaignBossProfile(run.phase).name):(run.operation?'CONTAINMENT LEVEL '+run.operationLevel:'PHASE '+run.phase)+' · ASSAULT '+run.assault+'/3')+' · '+pct+'%'+(run.assist>0?' · SUPPORT '+Math.round(run.assist*100)+'%':'');
       if(count){var barriers=run.lanes.filter(function(lane){return lane.barricade.hp>0;}).length;count.textContent=run.enemies.filter(function(e){return e.hp>0;}).length+' THREATS · '+barriers+'/'+run.lanes.length+(run.operation?' LANES':' BARRIERS');}
-      var hqStatus=id('l189-hq-status');if(hqStatus){hqStatus.classList.remove('warning','critical','direct');}
+      var hqStatus=id('l190-hq-hud');if(hqStatus)hqStatus.classList.remove('show','warning','critical','direct');var battleBadge=id('lsc-3d-badge');if(battleBadge)battleBadge.style.top='calc(env(safe-area-inset-top,0px) + 48px)';run.hqDirectWarning=false;
     }
   }
 
@@ -1922,7 +1946,7 @@
     return draw2D();
   };
 
-  installStyles(); installReleaseStyles(); installJunkyardStyles(); installCampaignStyles(); installUI(); renderTab('campaign'); enforceCommandBaseStartup();
+  installStyles(); installReleaseStyles(); installJunkyardStyles(); installCampaignStyles(); installCombatHudStyles(); installUI(); renderTab('campaign'); enforceCommandBaseStartup();
   // iOS can restore a cached visual snapshot on pageshow. Reassert the current
   // route after restoration; no progression data is cleared by this safeguard.
   window.addEventListener('pagehide', pauseForLifecycle);

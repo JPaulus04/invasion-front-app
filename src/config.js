@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════
 //  config.js — legacy engine balance tunables
-//  Build 189 controlled campaign replays and boss-versus-HQ combat clarity.
+//  Build 190 explicit boss armor and independently rendered HQ combat HUD.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '189';
+const LSC_BUILD = '190';
 
 const CFG = Object.freeze({
 
