@@ -45,6 +45,7 @@ const ENGINE_SCRIPTS = [
   'data.js',
   'worlds.js',    // Campaign world framework must load before engine/renderer/UI
   'nativeRuntime.bundle.js', // Build 162: Capacitor-native iPhone haptics
+  'gameCenter.js', // Build 191: offline-safe Game Center reporting and dashboard
   'audio.js',
   'engine.js',
 ];
@@ -190,7 +191,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'190\';'), 'Build 190 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'191\';'), 'Build 191 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -293,7 +294,7 @@ requireMatch(html.includes('var OPERATION_SCHEMA = 182;') && html.includes('oper
 requireMatch(html.includes('function operationDifficulty(level)') && html.includes('function operationTargets(level)') && html.includes('operationTargets(operationLevel)') && html.includes('operationScale.bossHealth') && !html.includes('operationTargets(phase,operationLevel)'), 'Build 183 Containment ladder is not independent from Campaign phase');
 requireMatch(html.includes('function operationRewardCredits(level)') && html.includes('function operationRewardParts(level)') && html.includes('function operationRewardCreditsFor(kind,level)') && html.includes('Math.max(meta.operationLevel,operationLevel+1)'), 'Build 182 operation reward progression is missing');
 requireMatch(html.includes('SPECIAL OPERATIONS · DAILY LADDER') && html.includes('CONTAINMENT LEVEL ') && html.includes('NEXT LEVEL '), 'Build 177 operation ladder presentation is missing');
-requireMatch(html.includes('operationLevel:run.operationLevel') && html.includes('operationKind:operationKind') && html.includes("run.operation?'CONTAINMENT ALPHA'"), 'Build 182 operation retry and HUD continuity is missing');
+requireMatch(html.includes('operationLevel:run.operationLevel') && html.includes('operationKind:operationKind') && html.includes("name:'CONTAINMENT ALPHA'"), 'Build 182 operation retry and HUD continuity is missing');
 requireMatch(html.includes('function operationRewardAvailable()') && html.includes('operationRewardEligible') && html.includes('NO ADDITIONAL RESOURCES'), 'Build 184 daily reward protection is missing');
 requireMatch(html.includes('function operationAutoClearState(level)') && html.includes('function autoClearOperation()') && html.includes('meta.operationManualBest>=manualRequired'), 'Build 175 guarded auto-clear is missing');
 requireMatch(!commandBaseCode.includes('QA_TEST_ACCESS') && !commandBaseCode.includes('PRACTICE') && !commandBaseCode.includes('RESERVE UNLIMITED') && !commandBaseCode.includes('∞'), 'Build 184 QA access or copy is still present');
@@ -353,6 +354,9 @@ requireMatch(html.includes('CAMPAIGN_REPLAY_CREDIT_RATE = .40') && html.includes
 requireMatch(html.includes('TRAINING REPLAY · 40% CREDITS') && html.includes('replay?0:BALANCE.campaignParts') && html.includes('!operation&&!replay&&won?awardEquipmentDrop'), 'Build 189 replay reward boundary is missing');
 requireMatch(html.includes('id=\'l190-hq-hud\'') && html.includes('BOSS ARMOR · ') && html.includes('DIRECT ASSAULT · HQ UNDER ATTACK') && html.includes("hqPct<=25?2:hqPct<=50?1:0"), 'Build 190 explicit armor and independent HQ HUD is missing');
 requireMatch(html.includes('l190-armor-phase') && html.includes('#ffd166') && html.includes("battleBadge.style.top='calc(env(safe-area-inset-top,0px) + 84px)'"), 'Build 190 gold armor phase or HUD spacing is missing');
+requireMatch(html.includes("progress.id='l139-progress'") && html.includes('SWARM COMMANDER') && html.includes('HIGH IMPACT'), 'Build 191 boss HUD state binding or trait labels are missing');
+requireMatch(html.includes('window.LSCGameCenter') && html.includes('reportCompetitiveClear') && html.includes('com.paulus.laststandcommand.leaderboard.campaign'), 'Build 191 Game Center reporting is missing');
+requireMatch(html.includes("if(!details.firstClear||!details.eligible)return") && html.includes("if(!details.rewarded)return"), 'Build 191 replay or unrewarded-operation competitive exclusion is missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
