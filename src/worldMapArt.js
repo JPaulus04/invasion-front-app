@@ -13,11 +13,7 @@
   function draw(ctx,meta,view,camera,api,selected){
     var scale=camera.scale,hits=[],visible=[],known=new Set(),supply=api.supply(meta);
     function point(t){return {x:(t.x-camera.x)*scale+view.w/2,y:(t.y-camera.y)*scale+view.h/2};}
-    ctx.fillStyle='#0a181e';ctx.fillRect(0,0,view.w,view.h);
-    // Ocean-like cartographic background gives the frontier a world boundary.
-    ctx.strokeStyle='#14272d';ctx.lineWidth=.5;
-    for(var gy=0;gy<view.h;gy+=40){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(view.w,gy);ctx.stroke();}
-    for(var gx=0;gx<view.w;gx+=40){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,view.h);ctx.stroke();}
+    ctx.fillStyle='#000000';ctx.fillRect(0,0,view.w,view.h);
     for(var n=1;n<=api.phase(meta);n++){
       var z=api.zone(n),center=point(z);
       if(center.x+4*scale<0||center.x-4*scale>view.w||center.y+4*scale<0||center.y-4*scale>view.h)continue;
@@ -25,8 +21,7 @@
         var p=point(t);if(p.x+scale<0||p.x-scale>view.w||p.y+scale<0||p.y-scale>view.h)return;
         var state=api.state(meta,t);hits.push({t:t,x:p.x,y:p.y});
         if(state==='fog'){
-          ctx.fillStyle=noise(t.x,t.y)>.5?'#142329':'#16262b';ctx.fillRect(p.x-scale/2,p.y-scale/2,scale+1,scale+1);
-          if(scale>42){ctx.fillStyle='#3a5054';ctx.font='10px system-ui';ctx.textAlign='center';ctx.fillText('·',p.x,p.y+3);}return;
+          ctx.fillStyle='#000000';ctx.fillRect(p.x-scale/2,p.y-scale/2,scale+1,scale+1);return;
         }
         known.add(t.id);visible.push({t:t,p:p,state:state,z:z});
         ctx.save();ctx.translate(p.x,p.y);ctx.scale(scale/64,scale/64);
@@ -89,6 +84,9 @@
         [[-12,-6],[3,1],[-7,9]].forEach(function(c){ctx.fillStyle='#293b30';ctx.fillRect(c[0]+2,c[1]+3,12,9);ctx.fillStyle='#b29965';ctx.fillRect(c[0],c[1],12,9);ctx.strokeStyle='#665b3d';ctx.lineWidth=1;ctx.strokeRect(c[0],c[1],12,9);ctx.beginPath();ctx.moveTo(c[0]+6,c[1]);ctx.lineTo(c[0]+6,c[1]+9);ctx.stroke();});
       }
       ctx.restore();
+      // Desaturate every visible but unfinished tile, including its structures and roads.
+      // Gold selection / route outlines are UI markers, drawn afterward.
+      if(!restored){ctx.save();ctx.globalCompositeOperation='saturation';ctx.fillStyle='#808080';ctx.fillRect(p.x-scale/2,p.y-scale/2,scale,scale);ctx.restore();}
       if(t.required&&t.zone===api.phase(meta)){ctx.strokeStyle=restored?'#9ab878':'#d9b967';ctx.lineWidth=1.5;ctx.strokeRect(p.x-scale*.47,p.y-scale*.47,scale*.94,scale*.94);}
       if(scale>42&&(restored||t.required||selected.id===t.id)){
         var label=isTown?(t.zone<=Number(meta.bestPhase)?'HELD '+t.zone:'TOWN '+t.zone):restored?'✓':api.progress(meta,t)+'/'+t.actions;

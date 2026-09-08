@@ -105,9 +105,21 @@
     if(status!=='available'&&status!=='restoring')return {ok:false,reason:'Clear a connected, visible tile first.'};
     if(!Number.isFinite(meta.credits)||meta.credits<t.cost)return {ok:false,reason:'Not enough Credits. Collect supply income or play Special Ops.'};
     var next=progress(meta,t)+1,done=next===t.actions;
-    var result=transaction(meta,persist,function(d){d.progress[id]=next;meta.credits-=t.cost;if(done){meta.credits+=t.credits;meta.parts=(Number(meta.parts)||0)+t.parts;}});
-    result.tile=t;result.done=result.ok&&done;return result;
+    var city=done?townReward(meta,t):0;
+    var result=transaction(meta,persist,function(d){d.progress[id]=next;meta.credits-=t.cost;if(done){meta.credits+=t.credits+city;meta.parts=(Number(meta.parts)||0)+t.parts;}});
+    result.tile=t;result.done=result.ok&&done;
+    result.rewards=[];
+    if(result.done){
+      if(t.credits+city)result.rewards.push('+'+(t.credits+city)+' CREDITS');
+      if(t.parts)result.rewards.push('+'+t.parts+' TECH PART'+(t.parts===1?'':'S'));
+      if(t.zone===phase(meta)){
+        var label={armory:'+10% WEAPON DAMAGE',medical:'+10% COMMAND-POST HEALTH',artillery:'+15% ARTILLERY DAMAGE'}[t.site];
+        if(label)result.rewards.push(label+' · TOWN '+t.zone);
+      }
+    }
+    return result;
   }
+  function townReward(meta,t){return t.id===zone(t.zone).town&&t.zone===phase(meta)&&!complete(meta,t)?50+10*t.zone:0;}
   function buildTower(meta,id,persist){
     var t=find(meta,id),cost=75;
     if(!t||t.site!=='hill'||!complete(meta,t)||data(meta).towers&&data(meta).towers[id])return {ok:false,reason:'Restore an unbuilt hill first.'};
@@ -143,10 +155,10 @@
 
   function mount(panel,meta,persist,refresh,back,deploy){
     var start=initialize(meta,persist),n=phase(meta),z=zone(n),selected=z.byId[z.entry],dead=false,timer=null,repeat=null;
-    var camera={x:selected.x,y:selected.y,scale:64},pointers=new Map(),gesture=null,pinching=false,view={w:1,h:1},rendered=[];
+    var camera={x:selected.x,y:selected.y,scale:64},pointers=new Map(),gesture=null,pinching=false,view={w:1,h:1},rendered=[],popups=[];
     var names={grove:'WOODLAND',cache:'SUPPLY CACHE',depot:'SALVAGE DEPOT',road:'APPROACH ROAD',armory:'FIELD ARMORY',medical:'MEDICAL STATION',artillery:'ARTILLERY CACHE',hill:'SCOUTING HILL'};
     var shell=document.createElement('section');shell.id='rc-world';shell.setAttribute('aria-label','Reclamation world');
-    shell.innerHTML='<header class="rw-top"><div><small>LAST STAND COMMAND · WORLD</small><h2>TOWN '+n+' APPROACH</h2><span id="rw-wallet"></span></div><button id="rw-back">BASE</button></header><div class="rw-map"><canvas id="rw-canvas" aria-label="World map. Drag to explore, pinch to zoom, hold a visible connected tile to reclaim." tabindex="0"></canvas><div class="rw-tools"><button id="rw-minus" aria-label="Zoom out">−</button><button id="rw-plus" aria-label="Zoom in">+</button><button id="rw-center">NEXT ROUTE TILE</button></div><div id="rw-hint">Drag to explore · pinch to zoom · hold a tile to restore</div></div><footer class="rw-dock"><div class="rw-row"><b id="rw-title"></b><span id="rw-progress"></span></div><div id="rw-detail"></div><div class="rw-row"><button id="rw-action"></button><button id="rw-collect"></button></div><div id="rw-status" role="status" aria-live="polite"></div><div id="rw-route"></div><div id="rw-bonuses"></div><button id="rw-fight">PREPARE TOWN DEFENSE</button></footer>';
+    shell.innerHTML='<header class="rw-top"><div><small>LAST STAND COMMAND · WORLD</small><h2>TOWN '+n+' APPROACH</h2><span id="rw-wallet"></span></div><button id="rw-back">BASE</button></header><div class="rw-map"><canvas id="rw-canvas" aria-label="World map. Drag to explore, pinch to zoom, hold a visible connected tile to reclaim." tabindex="0"></canvas><div class="rw-tools"><button id="rw-minus" aria-label="Zoom out">−</button><button id="rw-plus" aria-label="Zoom in">+</button><button id="rw-center">NEXT ROUTE TILE</button></div><div id="rw-hint">BLACK · UNSEEN / GRAY · SCOUTED / COLOR · RESTORED</div></div><footer class="rw-dock"><div class="rw-row"><b id="rw-title"></b><span id="rw-progress"></span></div><div id="rw-detail"></div><div class="rw-row"><button id="rw-action"></button><button id="rw-collect"></button></div><div id="rw-status" role="status" aria-live="polite"></div><div id="rw-route"></div><div id="rw-bonuses"></div><button id="rw-fight">PREPARE TOWN DEFENSE</button></footer>';
     if(!document.getElementById('rw-style')){
       // Body-level sibling: above Command Base (30000), below battle dialogs (31000+).
       // Build 194 used 10020, which rendered the world behind the opaque base.
@@ -158,6 +170,14 @@
     panel.innerHTML='';document.body.appendChild(shell);
     var briefing=document.createElement('button');briefing.id='rw-briefing';briefing.textContent='CAMPAIGN';shell.querySelector('.rw-tools').appendChild(briefing);
     var canvas=shell.querySelector('canvas'),ctx=canvas.getContext('2d'),status=shell.querySelector('#rw-status'),action=shell.querySelector('#rw-action');
+    var popupStyle=document.createElement('style');popupStyle.textContent='.rw-reward{position:absolute;z-index:4;pointer-events:none;white-space:pre-line;text-align:center;width:240px;max-width:85%;padding:5px 8px;border-radius:8px;background:#071610e8;color:#e9d383;font:700 12px/1.5 system-ui;box-shadow:0 2px 9px #0008;animation:rw-reward-rise 2.6s ease-out forwards}@keyframes rw-reward-rise{0%{opacity:0;transform:translate(-50%,0)}12%{opacity:1}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-28px)}}';shell.appendChild(popupStyle);
+    function positionPopups(){popups.forEach(function(p){p.el.style.left=Math.max(110,Math.min(view.w-110,(p.t.x-camera.x)*camera.scale+view.w/2))+'px';p.el.style.top=Math.max(55,Math.min(view.h-65,(p.t.y-camera.y)*camera.scale+view.h/2-camera.scale*.65-30))+'px';});}
+    function showReward(t,labels){
+      if(!labels.length)return;
+      if(popups.length>=4){var first=popups.shift();clearTimeout(first.timer);first.el.remove();}
+      var el=document.createElement('div');el.className='rw-reward';el.textContent=labels.join('\n');el.setAttribute('role','status');shell.querySelector('.rw-map').appendChild(el);
+      var item={el:el,t:t};popups.push(item);positionPopups();item.timer=setTimeout(function(){el.remove();popups=popups.filter(function(p){return p!==item;});},2700);
+    }
     function stop(){clearTimeout(timer);clearTimeout(repeat);timer=repeat=null;}
     function message(text){status.textContent=text;}
     function textAt(id,value){var el=shell.querySelector(id);if(el.textContent!==value)el.textContent=value;}
@@ -172,7 +192,9 @@
       shell.querySelector('#rw-title').textContent=s==='fog'?'UNEXPLORED':selected.id===zone(selected.zone).town?'TOWN '+selected.zone+' STAGING SITE':selected.kind==='grove'&&!selected.site?terrainName:names[selected.site||selected.kind];
       shell.querySelector('#rw-progress').textContent=s==='fog'?'?':p+'/'+selected.actions;
       var extra=selected.site==='armory'?'+10% commander / turret damage':selected.site==='medical'?'+10% command-post health':selected.site==='artillery'?'+15% artillery damage':selected.site==='hill'?'Build a tower for 75 Credits: reveal an 8-tile radius.':selected.parts?'Discover '+selected.parts+' Tech Part.':selected.credits?'Discover '+selected.credits+' Credits.':'Expand visibility and access to adjacent tiles.';
-      shell.querySelector('#rw-detail').textContent=s==='fog'?'Explore the frontier or build a hill tower to reveal this tile.':(selected.required?'Required route. ':'Optional discovery. ')+(s==='reclaimed'?extra:((selected.actions-p)*selected.cost)+' Credits remaining · '+extra)+(selected.site&&selected.site!=='hill'?' Bonus applies only to this town’s first-clear attempts.':'');
+      if(selected.site&&selected.site!=='hill'&&selected.zone<n)extra='Town '+selected.zone+' site. No bonus to your current Town '+n+' defense.';
+      var cityPreview=townReward(meta,selected);if(cityPreview)extra='On restoration: +'+cityPreview+' Credits. Defense victory is still required to secure the town.';
+      shell.querySelector('#rw-detail').textContent=s==='fog'?'Explore the frontier or build a hill tower to reveal this tile.':(selected.required?'Required route. ':'Optional discovery. ')+(s==='reclaimed'?extra:((selected.actions-p)*selected.cost)+' Credits remaining · '+extra)+(selected.site&&selected.site!=='hill'&&selected.zone===n?' Applies to Town '+n+' first-clear attempts.':'');
       action.disabled=s==='fog'||s==='locked'||(s==='reclaimed'&&!(selected.site==='hill'&&!tower))||meta.credits<(s==='reclaimed'?75:selected.cost);
       action.textContent=s==='reclaimed'?(selected.site==='hill'?(tower?'TOWER ACTIVE':'BUILD TOWER · 75'):'RESTORED'):s==='locked'?'CONNECT A NEIGHBOR':s==='fog'?'HIDDEN':'RESTORE · '+selected.cost+' / STEP';
 
@@ -186,13 +208,15 @@
     function draw(){
       if(dead)return;
       rendered=root.LSCWorldArt.draw(ctx,meta,view,camera,root.LSCReclamation,selected);
+      positionPopups();
     }
     function redraw(){detail();draw();}
     function resize(){var box=canvas.getBoundingClientRect(),ratio=Math.min(2,root.devicePixelRatio||1);view={w:box.width,h:box.height};canvas.width=Math.round(box.width*ratio);canvas.height=Math.round(box.height*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);draw();}
     function perform(t){
       if(dead||document.hidden)return false;
       selected=t;var result=act(meta,t.id,persist);refresh();redraw();
-      message(!result.ok?result.reason:result.done?'Restored. '+(t.site?'Discovery secured.':'The frontier is opening.'):'Restoration saved. Release to stop.');
+      if(result.done)showReward(t,result.rewards);
+      message(!result.ok?result.reason:result.done?(result.rewards.length?result.rewards.join(' · '):t.site&&t.site!=='hill'&&t.zone<n?'Restored for Town '+t.zone+'. No current defense bonus.':'Tile restored.'):'Restoration saved. Release to stop.');
       return result.ok&&!result.done;
     }
     function hit(e){var rect=canvas.getBoundingClientRect(),px=e.clientX-rect.left,py=e.clientY-rect.top;return rendered.find(function(p){return Math.abs(p.x-px)<camera.scale/2&&Math.abs(p.y-py)<camera.scale/2;});}
@@ -212,7 +236,7 @@
     canvas.onpointerup=end;canvas.onpointercancel=end;canvas.onlostpointercapture=end;
     canvas.oncontextmenu=function(e){e.preventDefault();};
     canvas.onkeydown=function(e){var delta={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(delta){e.preventDefault();var t=find(meta,(selected.x+delta[0])+','+(selected.y+delta[1]));if(t){selected=t;camera.x=t.x;camera.y=t.y;redraw();}}if(e.key==='Enter'||e.key===' '){e.preventDefault();action.click();}};
-    action.onclick=function(){stop();if(selected.site==='hill'&&complete(meta,selected)){var result=buildTower(meta,selected.id,persist);message(result.ok?'Tower online. Fog revealed up to 8 tiles away.':result.reason);refresh();redraw();}else perform(selected);};
+    action.onclick=function(){stop();if(selected.site==='hill'&&complete(meta,selected)){var result=buildTower(meta,selected.id,persist);message(result.ok?'Tower online. Fog revealed up to 8 tiles away.':result.reason);refresh();redraw();if(result.ok)showReward(selected,['SCOUTING · 8-TILE RADIUS']);}else perform(selected);};
     shell.querySelector('#rw-collect').onclick=function(){stop();var result=collect(meta,persist);message(result.ok?'Supply Credits collected.':result.reason);refresh();redraw();};
     shell.querySelector('#rw-fight').onclick=function(){stop();if(ready(meta,n))back();};
     shell.querySelector('#rw-back').onclick=function(){stop();if(deploy)deploy('hq');else back();};
@@ -225,7 +249,7 @@
     var observer=typeof ResizeObserver!=='undefined'?new ResizeObserver(resize):null;if(observer)observer.observe(canvas.parentElement);
     var clock=setInterval(function(){if(!dead&&!document.hidden)wallet();},1000);
     resize();redraw();message(start.ok?(Number(meta.bestPhase)>0?'Your '+meta.bestPhase+' previous Campaign victories are retained as secured towns.':'Explore from HQ. Towers can only be built on restored hills.'):start.reason);
-    return function(){dead=true;stop();if(observer)observer.disconnect();clearInterval(clock);root.removeEventListener('resize',resize);root.removeEventListener('blur',suspend);root.removeEventListener('pagehide',suspend);document.removeEventListener('visibilitychange',suspend);shell.remove();};
+    return function(){dead=true;stop();popups.forEach(function(p){clearTimeout(p.timer);p.el.remove();});popups=[];if(observer)observer.disconnect();clearInterval(clock);root.removeEventListener('resize',resize);root.removeEventListener('blur',suspend);root.removeEventListener('pagehide',suspend);document.removeEventListener('visibilitychange',suspend);shell.remove();};
   }
-  root.LSCReclamation=Object.freeze({tiles:legacy,zone:zone,phase:phase,supply:supply,find:find,progress:progress,state:state,visible:visible,act:act,initialize:initialize,buildTower:buildTower,ready:ready,bonuses:bonuses,applyBonuses:applyBonuses,income:income,collect:collect,beforeVictory:beforeVictory,mount:mount});
+  root.LSCReclamation=Object.freeze({tiles:legacy,zone:zone,phase:phase,supply:supply,find:find,progress:progress,state:state,visible:visible,act:act,initialize:initialize,buildTower:buildTower,townReward:townReward,ready:ready,bonuses:bonuses,applyBonuses:applyBonuses,income:income,collect:collect,beforeVictory:beforeVictory,mount:mount});
 })(typeof window!=='undefined'?window:globalThis);
