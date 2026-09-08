@@ -51,6 +51,7 @@ const ENGINE_SCRIPTS = [
 ];
 
 const CONTROLLER_SCRIPTS = [
+  'worldMapArt.js', // Build 196: continuous terrain and settlement cartography
   'reclamation.js', // Build 194: exploration before town defense
   'renderer.js',
   'enemyVisuals.js',      // Build 127+: stronger procedural enemy/contact visuals
@@ -192,7 +193,9 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'195\';'), 'Build 195 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'196\';'), 'Build 196 config is not present');
+requireMatch(html.includes('root.LSCWorldArt=Object.freeze') && html.indexOf('root.LSCWorldArt=Object.freeze') < html.indexOf('root.LSCReclamation=Object.freeze'), 'World art must be bundled before reclamation');
+requireMatch(html.includes('BALANCE.campaignPressure(run.phase)') && html.includes('campaignPressure: campaignPressure'), 'Campaign pressure integration missing');
 // WORLD and Command Base are fixed body-level siblings; prevent the Build 194 regression.
 const worldLayer = Number((html.match(/#rc-world\{[^}]*z-index:(\d+)/) || [])[1]);
 const baseLayer = Number((html.match(/#lsc137-app\{[^}]*z-index:(\d+)/) || [])[1]);
