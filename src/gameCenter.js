@@ -3,7 +3,7 @@
 
   var QUEUE_KEY = 'lsc_game_center_queue_v1';
   var LOCAL_KEY = 'lsc_game_center_records_v1';
-  var state = { available: false, authenticated: false, playerName: '', syncing: false };
+  var state = { available: false, authenticated: false, playerName: '', syncing: false, flushRequested: false, flushPromise: null };
   var LEADERBOARDS = Object.freeze({
     campaign: 'com.paulus.laststandcommand.leaderboard.campaign',
     containment: 'com.paulus.laststandcommand.leaderboard.containment',
@@ -31,6 +31,12 @@
   function saveRecords(value) { write(LOCAL_KEY, value); }
   function queue() { return read(QUEUE_KEY, []); }
   function saveQueue(value) { write(QUEUE_KEY, value); }
+  function sameQueueItem(left, right) {
+    return !!(left && right && left.type === right.type && left.id === right.id && Number(left.value || 0) === Number(right.value || 0));
+  }
+  function removeQueuedItem(item) {
+    saveQueue(queue().filter(function (entry) { return !sameQueueItem(entry, item); }));
+  }
 
   function enqueue(item) {
     var pending = queue(), local = records();
@@ -50,19 +56,33 @@
 
   function flush() {
     var plugin = nativePlugin(), pending = queue();
-    if (!plugin || !state.authenticated || state.syncing || !pending.length) return Promise.resolve();
-    state.syncing = true; emit();
-    var remaining = [];
-    return pending.reduce(function (chain, item) {
+    if (!plugin || !state.authenticated || !pending.length) return Promise.resolve();
+    if (state.syncing) {
+      state.flushRequested = true;
+      return state.flushPromise || Promise.resolve();
+    }
+    state.syncing = true;
+    state.flushRequested = false;
+    emit();
+    state.flushPromise = pending.reduce(function (chain, item) {
       return chain.then(function () {
         var request = item.type === 'score'
           ? plugin.reportScore({ leaderboardId: item.id, score: item.value })
           : plugin.reportAchievement({ achievementId: item.id, percentComplete: 100 });
-        return Promise.resolve(request).catch(function () { remaining.push(item); });
+        return Promise.resolve(request).then(function () { removeQueuedItem(item); }).catch(function () {});
       });
     }, Promise.resolve()).then(function () {
-      saveQueue(remaining); state.syncing = false; emit();
-    }).catch(function () { state.syncing = false; emit(); });
+      var rerun = state.flushRequested;
+      state.syncing = false;
+      state.flushPromise = null;
+      emit();
+      if (rerun) return flush();
+    }).catch(function () {
+      state.syncing = false;
+      state.flushPromise = null;
+      emit();
+    });
+    return state.flushPromise;
   }
 
   function initialize() {

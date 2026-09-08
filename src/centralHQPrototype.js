@@ -1,4 +1,4 @@
-// Build 190 — explicit boss armor and independently rendered HQ combat HUD.
+// Build 192 — reliable Game Center reporting and veteran progress synchronization.
 (function () {
   'use strict';
   if (window.__LSC_COMMAND_BASE_145__) return;
@@ -1617,14 +1617,39 @@
     }
     if(!details.firstClear||!details.eligible)return;
     gameCenter.reportCampaignPhase(details.phase,true);
-    if(details.phase===1)gameCenter.unlock('firstDeployment',true);
-    if(details.phase%5===0)gameCenter.unlock('sectorSecured',true);
+    if(details.phase>=1)gameCenter.unlock('firstDeployment',true);
+    if(details.phase>=5)gameCenter.unlock('sectorSecured',true);
     if(details.boss==='siege')gameCenter.unlock('siegeBreaker',true);
     if(details.boss==='juggernaut')gameCenter.unlock('juggernautBreached',true);
     if(details.boss==='outbreak')gameCenter.unlock('outbreakPrime',true);
     if(details.integrity<=25)gameCenter.unlock('hqSurvivor',true);
     if(details.phase>=25)gameCenter.unlock('phase25',true);
     if(details.phase>=50)gameCenter.unlock('phase50',true);
+  }
+  function syncEligibleGameCenterProgress(){
+    var gameCenter=window.LSCGameCenter;
+    if(!gameCenter)return Promise.resolve(false);
+    var reports=[],bestPhase=Math.max(0,Math.floor(Number(meta.bestPhase)||0));
+    var containmentBest=Math.max(0,Math.floor(Number(meta.operationManualBest)||0));
+    var junkyardBest=Math.max(0,Math.floor(Number(meta.junkyardManualBest)||0));
+    if(bestPhase>=1){
+      reports.push(gameCenter.reportCampaignPhase(bestPhase,true));
+      reports.push(gameCenter.unlock('firstDeployment',true));
+    }
+    if(bestPhase>=5){
+      reports.push(gameCenter.unlock('sectorSecured',true));
+      reports.push(gameCenter.unlock('siegeBreaker',true));
+    }
+    if(bestPhase>=10)reports.push(gameCenter.unlock('juggernautBreached',true));
+    if(bestPhase>=15)reports.push(gameCenter.unlock('outbreakPrime',true));
+    if(bestPhase>=25)reports.push(gameCenter.unlock('phase25',true));
+    if(bestPhase>=50)reports.push(gameCenter.unlock('phase50',true));
+    if(containmentBest>=1)reports.push(gameCenter.reportOperationLevel('containment',containmentBest,true));
+    if(containmentBest>=5)reports.push(gameCenter.unlock('containmentSpecialist',true));
+    if(junkyardBest>=1)reports.push(gameCenter.reportOperationLevel('junkyard',junkyardBest,true));
+    if(junkyardBest>=5)reports.push(gameCenter.unlock('convoyCrusher',true));
+    if(!reports.length)return gameCenter.flush().then(function(){return true;});
+    return Promise.all(reports).then(function(){return gameCenter.flush();}).then(function(){return true;}).catch(function(){return false;});
   }
   function finish(won) {
     if (!run || run.complete) return;
@@ -1972,7 +1997,7 @@
   };
 
   installStyles(); installReleaseStyles(); installJunkyardStyles(); installCampaignStyles(); installCombatHudStyles(); installUI(); renderTab('campaign'); enforceCommandBaseStartup();
-  if(window.LSCGameCenter)window.LSCGameCenter.initialize();
+  if(window.LSCGameCenter)window.LSCGameCenter.initialize().then(syncEligibleGameCenterProgress);
   // iOS can restore a cached visual snapshot on pageshow. Reassert the current
   // route after restoration; no progression data is cleared by this safeguard.
   window.addEventListener('pagehide', pauseForLifecycle);

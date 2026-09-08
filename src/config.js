@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════
 //  config.js — legacy engine balance tunables
-//  Build 191 Game Center competition and verified boss/HQ combat HUD states.
+//  Build 192 reliable Game Center reporting and veteran progress synchronization.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '191';
+const LSC_BUILD = '192';
 
 const CFG = Object.freeze({
 
