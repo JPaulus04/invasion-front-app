@@ -73,6 +73,7 @@
   var selectedCampaignPhase = null;
   var operationNotice = null;
   var activeCommandTab = 'campaign';
+  var reclamationCleanup = null;
   var operationsReturnState = {tab:'campaign',scrollTop:0};
   var lifecyclePausedRun = false;
   var RELEASE_SCHEMA = 188;
@@ -1192,6 +1193,7 @@
     panel.innerHTML='<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">LAST STAND COMMAND</div><div class="l137-copy">The current fortress program is complete. Future Fortifications research can authorize another physical expansion without resetting this structure.</div><section class="l181-hq-max"><div class="l181-hq-emblem">X</div><h3>MAXIMUM HQ LEVEL</h3><div class="l181-hq-max-copy">Both auxiliary batteries, the field repair complex, heavy bulwark, and Last Stand protocol are active.</div><div class="l181-hq-max-stats"><div><b>+775</b><span>HQ CAPACITY</span></div><div><b>+105</b><span>BARRIER CAPACITY</span></div><div><b>10 / 10</b><span>FORTRESS TIERS</span></div></div><div class="l181-hq-max-status">FORTRESS FULLY DEPLOYED</div></section>';
   }
   function renderTab(tab,options) {
+    if(reclamationCleanup){reclamationCleanup();reclamationCleanup=null;}
     var app=id('lsc137-app'),operationsMode=tab==='operations',researchMode=tab==='research',campaignMode=tab==='campaign';
     if(app){
       app.classList.toggle('l177-operations-mode',operationsMode);
@@ -1210,6 +1212,11 @@
       p.innerHTML = campaignMapMarkup(selected)+'<div class="l187-mission-summary"><div><small>PHASE '+selected+' TARGET</small><b>'+boss.name+'</b></div><div class="rewards"><small>'+(replay?'REPLAY REWARD':'VICTORY REWARDS')+'</small><b>'+rewardView+'</b></div></div>'+replayNotice+'<div class="l161-power-grid"><div class="l161-power-metric"><span>CURRENT POWER</span><strong>'+power.current+'</strong></div><div class="l161-power-metric"><span>RECOMMENDED</span><strong>'+power.recommended+'</strong></div></div><div class="l161-power-state '+power.className+'">'+power.label+'</div>'+supportText+energyCardMarkup();
       if(campaignDock)campaignDock.innerHTML='<div class="l187-dock-copy"><small>'+sector.name+' · '+boss.name+'</small><b>'+(replay?'TRAINING REPLAY · 40% CREDITS':campaignMultiplierLabel(spend))+'</b></div><button class="l137-btn good l137-deploy" id="l137-deploy" '+(energy<spend?'disabled':'')+'>'+campaignLabel+'</button>';
     }
+    if(tab==='campaign'){
+      p.insertAdjacentHTML('afterbegin','<button class="l137-btn" id="l193-region" style="width:100%;margin-bottom:12px">RECLAMATION · HQ PERIMETER</button>');
+      id('l193-region').onclick=function(){renderTab('reclamation');};
+    }
+    if(tab==='reclamation')reclamationCleanup=window.LSCReclamation.mount(p,meta,saveMeta,refreshHeader,function(){renderTab('campaign');});
     if (tab === 'operations') renderOperationsTab(p);
     if (tab === 'commander') renderCommanderTab(p);
     if (tab === 'research') renderResearchTab(p);
