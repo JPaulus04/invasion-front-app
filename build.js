@@ -51,6 +51,7 @@ const ENGINE_SCRIPTS = [
 ];
 
 const CONTROLLER_SCRIPTS = [
+  'reclamation.js', // Build 193: persistent HQ perimeter restoration
   'renderer.js',
   'enemyVisuals.js',      // Build 127+: stronger procedural enemy/contact visuals
   'ui.js',
@@ -191,7 +192,8 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'192\';'), 'Build 192 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'193\';'), 'Build 193 config is not present');
+requireMatch(html.includes('window.LSCReclamation.mount(p,meta,saveMeta') && html.includes('root.LSCReclamation=Object.freeze'), 'Build 193 reclamation integration missing');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
