@@ -965,6 +965,7 @@
     app.id = 'lsc137-app';
     app.innerHTML = '<div class="l137-shell"><div class="l137-top"><div><div class="l137-brand">LAST STAND COMMAND</div><div class="l137-title">COMMAND BASE</div></div><div class="l137-res" id="l137-res"></div></div><div class="l137-hero"><button class="l176-ops-launch" id="l176-ops-launch" aria-label="Open Special Operations"><span>OPS</span><b>SPECIAL OPS</b><small id="l176-ops-badge">READY</small></button><div class="l137-hq-art"><div class="l165-hq-wall"><i class="l165-hq-tower nw"></i><i class="l165-hq-tower ne"></i><i class="l165-hq-tower sw"></i><i class="l165-hq-tower se"></i></div><div class="l165-hq-core"><span>HQ</span></div><i class="l165-hq-mast"></i><i class="l188-hq-hardpoint west"></i><i class="l188-hq-hardpoint east"></i><i class="l188-hq-repair"></i></div><button class="l191-gc-launch" id="l191-gc-launch" aria-label="Open Game Center"><span>GC</span><b>RANKINGS</b><small id="l191-gc-status">CONNECT</small></button><div class="l137-hq-lv" id="l137-hq-lv"></div></div><main class="l137-panel" id="l137-panel"></main><div class="l187-campaign-dock" id="l187-campaign-dock"></div><nav class="l137-nav" id="l137-nav"><button data-tab="campaign">CAMPAIGN</button><button data-tab="commander">COMMANDER</button><button data-tab="research">RESEARCH</button><button data-tab="hq">HQ</button><button data-tab="inventory">INVENTORY</button></nav></div>';
     document.body.appendChild(app);
+    var worldNav=app.querySelector('[data-tab="campaign"]');worldNav.dataset.tab='reclamation';worldNav.textContent='WORLD';
     id('l137-nav').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) renderTab(b.dataset.tab); });
     id('l176-ops-launch').onclick=function(){var panel=id('l137-panel');operationsReturnState={tab:activeCommandTab==='operations'?'campaign':activeCommandTab,scrollTop:panel?panel.scrollTop:0};renderTab('operations');};
     function syncGameCenterLaunch(event){var status=event&&event.detail?event.detail:(window.LSCGameCenter?window.LSCGameCenter.status():{}),button=id('l191-gc-launch'),label=id('l191-gc-status');if(!button||!label)return;button.classList.toggle('connected',!!status.authenticated);label.textContent=status.syncing?'SYNCING':status.authenticated?'CONNECTED':status.available?'SIGN IN':'OFFLINE';}
@@ -979,7 +980,7 @@
       var operation=!!run.operation,won=!!run.won,phase=run.phase,operationLevel=run.operationLevel,operationKind=run.operationKind||'containment';
       id('lsc137-result').classList.remove('show');
       if(operation){if(won)returnHome();else launchPhase({phase:phase,operation:true,operationLevel:operationLevel,operationKind:operationKind,operationRewardEligible:run.operationRewardEligible});}
-      else if(run.replay)returnHome();else launchPhase({phase:won?meta.phase:phase});
+      else if(run.replay||won)returnHome();else launchPhase({phase:phase});
     };
     id('l137-retry').onclick = function () { var phase = run && run.phase ? run.phase : meta.phase; id('lsc137-result').classList.remove('show'); launchPhase({phase:phase,replay:phase<=meta.bestPhase}); };
     id('l137-return').onclick = returnHome;
@@ -1201,7 +1202,7 @@
       app.classList.toggle('l187-campaign-mode',campaignMode);
     }
     refreshHeader();
-    var navigationTab=tab==='operations'?'campaign':tab;
+    var navigationTab=tab==='operations'||tab==='campaign'?'reclamation':tab;
     Array.prototype.forEach.call(id('l137-nav').children, function (b) { b.classList.toggle('active', b.dataset.tab === navigationTab); });
     var p = id('l137-panel'),campaignDock=id('l187-campaign-dock');
     if(campaignDock)campaignDock.innerHTML='';
@@ -1213,10 +1214,12 @@
       if(campaignDock)campaignDock.innerHTML='<div class="l187-dock-copy"><small>'+sector.name+' · '+boss.name+'</small><b>'+(replay?'TRAINING REPLAY · 40% CREDITS':campaignMultiplierLabel(spend))+'</b></div><button class="l137-btn good l137-deploy" id="l137-deploy" '+(energy<spend?'disabled':'')+'>'+campaignLabel+'</button>';
     }
     if(tab==='campaign'){
-      p.insertAdjacentHTML('afterbegin','<button class="l137-btn" id="l193-region" style="width:100%;margin-bottom:12px">RECLAMATION · HQ PERIMETER</button>');
+      var approachReady=window.LSCReclamation.ready(meta,selectedCampaignPhase),prep=window.LSCReclamation.bonuses(meta,selectedCampaignPhase);
+      p.insertAdjacentHTML('afterbegin','<button class="l137-btn" id="l193-region" style="width:100%;margin-bottom:12px">WORLD · '+(approachReady?'EXPLORE OPTIONAL SUPPLIES':'CLEAR THE TOWN APPROACH')+'</button><p class="l137-copy">'+(selectedCampaignPhase<=meta.bestPhase?'Training replay: no new territory or exploration bonuses.':approachReady?'Approach secured. Exploration preparation: weapon damage +'+Math.round(prep.damage*100)+'%, command-post health +'+Math.round(prep.hq*100)+'%, artillery +'+Math.round(prep.artillery*100)+'%.':'Reclaim the marked route in World before this defense. No energy is spent until deployment.')+'</p>');
+      if(!approachReady&&id('l137-deploy')){id('l137-deploy').disabled=false;id('l137-deploy').textContent='CLEAR APPROACH IN WORLD';}
       id('l193-region').onclick=function(){renderTab('reclamation');};
     }
-    if(tab==='reclamation')reclamationCleanup=window.LSCReclamation.mount(p,meta,saveMeta,refreshHeader,function(){renderTab('campaign');});
+    if(tab==='reclamation')reclamationCleanup=window.LSCReclamation.mount(p,meta,saveMeta,refreshHeader,function(){selectedCampaignPhase=meta.phase;renderTab('campaign');},function(destination){renderTab(destination);});
     if (tab === 'operations') renderOperationsTab(p);
     if (tab === 'commander') renderCommanderTab(p);
     if (tab === 'research') renderResearchTab(p);
@@ -1251,6 +1254,10 @@
     settings.operation=!!settings.operation;
     settings.replay=!settings.operation&&(!!settings.replay||settings.phase<=meta.bestPhase);
     if(!settings.operation&&settings.phase>meta.phase)settings.phase=meta.phase;
+    // Gate BEFORE reserving energy; neither direct deployment nor retry can bypass preparation.
+    if(!settings.operation&&!settings.replay&&!window.LSCReclamation.ready(meta,settings.phase)){
+      if(run)returnHome();else renderTab('reclamation');return;
+    }
     settings.operationKind=settings.operation&&(settings.operationKind==='junkyard'||settings.operationKind==='containment')?settings.operationKind:settings.operation?activeOperationId():null;
     settings.operationLevel=settings.operation?Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(settings.operationLevel)||operationLevelFor(settings.operationKind)))):0;
     if(settings.operation&&typeof settings.operationRewardEligible!=='boolean')settings.operationRewardEligible=operationRewardAvailable();
@@ -1266,6 +1273,7 @@
     }
     if(typeof ensureAudio==='function')ensureAudio();
     combatSfx('deploy');combatHaptic('medium',180);
+    if(reclamationCleanup){reclamationCleanup();reclamationCleanup=null;}
     var home = id('homeScreen'); if (home) { home.style.display = 'none'; home.classList.remove('hs-visible'); }
     if (G && G.state && !G.state.started) { if (!G.state.selectedDoctrine) G.state.selectedDoctrine = 'fortress'; G.state.started = true; }
     id('lsc137-app').classList.add('hidden');
@@ -1323,6 +1331,7 @@
       var vehicle={id:0,variant:'armored-transport',x:cx+JUNKYARD_VEHICLE_PATH.start.x*worldScale,y:cy+JUNKYARD_VEHICLE_PATH.start.y*worldScale,r:36*s,hp:vehicleHp,maxHp:vehicleHp,kind:'vehicle',bossGrade:0,speed:0,damage:0,attackCycle:0,cd:0,age:0,moving:true,waiting:false,engaged:false,targetType:'extraction',lane:null,hit:0,flash:0,aim:vehicleAim};
       created.objectiveVehicle=vehicle;created.enemies.push(vehicle);created.spawned=1;created.assaultSpawned=1;created.bossSpawned=true;created.bossEntityId=vehicle.id;
     }
+    window.LSCReclamation.applyBonuses(meta,created);
     return created;
   }
   function canvasRadius(worldRadius){return worldRadius*run.worldScale;}
@@ -1689,6 +1698,7 @@
         operationNotice={kind:operationKind,method:'manual',level:operationLevel,nextLevel:operationLevelFor(operationKind),rewarded:operationRewarded,credits:reward,parts:parts};
       }
     }else if (won&&!replay) {
+      if(firstClear)window.LSCReclamation.beforeVictory(meta,Date.now());
       meta.bestPhase = Math.max(meta.bestPhase, clearedPhase);
       if (clearedPhase >= meta.phase) meta.phase = clearedPhase + 1;
       delete meta.phaseLosses[String(clearedPhase)];
@@ -1712,12 +1722,13 @@
     id('l137-result-reward').innerHTML = rewardResources+'<small>'+rewardLabel+'</small><small>'+resultMetric+'</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small class="l167-result-survival">'+survivalLabel+'</small>'+equipmentDropMarkup(equipmentAward)+(!operation&&!replay&&won?campaignTransitionMarkup(clearedPhase):'');
     var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
     id('l141-continue').textContent = operation?(won?'RETURN TO COMMAND BASE':'RETRY '+definition.levelLabel+' '+operationLevel):(replay?'RETURN TO CAMPAIGN':won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+' · NEW ENERGY');
+    if(firstClear){id('l141-continue').textContent='EXPLORE THE NEXT TOWN';id('l137-result-copy').textContent+=' Town liberated: supply income increased. Reclaim the next approach before deployment.';}
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
     id('l137-retry').style.display = !operation&&won ? '' : 'none';
     id('lsc137-result').classList.add('show');
   }
   function returnHome(){
-    var destination=run&&run.operation?'operations':'campaign';
+    var destination=run&&run.operation?'operations':'reclamation';
     if(run&&!run.operation&&!run.replay)selectedCampaignPhase=meta.phase;
     closePause();hideBattleLoading();_gameSpeed=1;id('lsc137-result').classList.remove('show');id('lsc137-app').classList.remove('hidden');document.body.classList.remove('lsc137-mode');document.body.classList.remove('l172-operation-mode');document.body.classList.remove('l182-junkyard-mode');var progress=id('l139-progress');if(progress)progress.classList.remove('l168-boss-hud');if(window.LSC3DPrototype)window.LSC3DPrototype.stop();if(run){run.enemies=[];run.corpses=[];run.bullets=[];run.lanes.forEach(function(lane){lane.queue=[];});run.active=false;}run=null;G.state._centralHQMode=false;G.state.waveInProgress=false;renderTab(destination);
   }
@@ -2003,7 +2014,7 @@
     return draw2D();
   };
 
-  installStyles(); installReleaseStyles(); installJunkyardStyles(); installCampaignStyles(); installCombatHudStyles(); installUI(); renderTab('campaign'); enforceCommandBaseStartup();
+  installStyles(); installReleaseStyles(); installJunkyardStyles(); installCampaignStyles(); installCombatHudStyles(); installUI(); renderTab('reclamation'); enforceCommandBaseStartup();
   if(window.LSCGameCenter)window.LSCGameCenter.initialize().then(syncEligibleGameCenterProgress);
   // iOS can restore a cached visual snapshot on pageshow. Reassert the current
   // route after restoration; no progression data is cleared by this safeguard.
