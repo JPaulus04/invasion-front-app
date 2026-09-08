@@ -2,7 +2,7 @@
 //  config.js — legacy engine balance tunables
 //  Build 192 reliable Game Center reporting and veteran progress synchronization.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '195';
+const LSC_BUILD = '196';
 
 const CFG = Object.freeze({
 

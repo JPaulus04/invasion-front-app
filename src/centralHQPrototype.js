@@ -1774,9 +1774,10 @@
   }
 
   function assaultPacing(assault){
-    if(assault===1)return{interval:1.18,group:2};
-    if(assault===2)return{interval:1.02,group:2};
-    return{interval:.90,group:3};
+    var pressure=run&&!run.operation?BALANCE.campaignPressure(run.phase):1;
+    if(assault===1)return{interval:1.18*pressure,group:2};
+    if(assault===2)return{interval:1.02*pressure,group:2};
+    return{interval:.90*pressure,group:3};
   }
   function chooseEnemyKind(assault){
     var roll=Math.random();

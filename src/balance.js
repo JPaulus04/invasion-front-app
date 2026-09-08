@@ -99,6 +99,11 @@
     };
   }
 
+  function campaignPressure(phase) {
+    // Gradual, capped arrival pressure; boss health and mobile contact caps unchanged.
+    return 1-Math.min(.12,Math.max(0,positiveInteger(phase,1)-6)*.0075);
+  }
+
   function recommendedPower(phase) {
     phase = positiveInteger(phase, 1);
     var opening = [0,300,340,390,450,500,570];
@@ -221,6 +226,7 @@
     ECONOMY: ECONOMY,
     OPERATIONS: OPERATIONS,
     phaseBalance: phaseBalance,
+    campaignPressure: campaignPressure,
     recommendedPower: recommendedPower,
     campaignBaseCredits: campaignBaseCredits,
     campaignVictoryCredits: campaignVictoryCredits,
