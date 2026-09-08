@@ -7,7 +7,7 @@ let m=fresh();assert.equal(r.initialize(m,save,1000).ok,true);assert.equal(r.rea
 assert.equal(r.state(m,r.find(m,'1,0')),'available');assert.equal(r.act(m,'7,0',save).ok,false);
 const before=JSON.stringify(m);assert.equal(r.act(m,'1,0',()=>false).ok,false);assert.equal(JSON.stringify(m),before);
 assert.equal(r.act(m,'1,0',()=>{throw Error('quota');}).ok,false);assert.equal(JSON.stringify(m),before);
-clear(m,'1,0');clear(m,'2,0');assert.equal(m.credits,212,'affordable fresh approach');assert.equal(r.ready(m,1),true);
+clear(m,'1,0');clear(m,'2,0');assert.equal(m.credits,272,'affordable approach and 60-Credit first town bounty');assert.equal(r.ready(m,1),true);
 const done=JSON.stringify(m);assert.equal(r.act(m,'2,0',save).ok,false);assert.equal(JSON.stringify(m),done);
 m=JSON.parse(done);assert.equal(r.ready(m,1),true);
 const loss=JSON.stringify(m.reclamation);m.phaseLosses={'1':1};assert.equal(JSON.stringify(m.reclamation),loss);

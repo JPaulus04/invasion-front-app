@@ -5,11 +5,11 @@ function delay(fn,ms){const id=next++;timers.set(id,{fn,at:now+ms});return id;}
 function tick(ms){const end=now+ms;for(;;){const due=[...timers].filter(([,v])=>v.at<=end).sort((a,b)=>a[1].at-b[1].at)[0];if(!due)break;now=due[1].at;timers.delete(due[0]);due[1].fn();}now=end;}
 const ctx=new Proxy({},{get:()=>()=>{},set:()=>true});
 class Element{
- constructor(tag){this.tag=tag;this.children=[];this.disabled=false;}
+ constructor(tag){this.tag=tag;this.children=[];this.disabled=false;this.style={};}
  set id(value){this._id=value;nodes.set(value,this);}get id(){return this._id;}
- set innerHTML(value){this.html=value;for(const match of value.matchAll(/<(\w+)[^>]*id="([^"]+)"/g)){const e=new Element(match[1]);e.id=match[2];this.children.push(e);}if(value.includes('rw-tools')){const e=new Element('div');e.id='tools';}}
+ set innerHTML(value){this.html=value;for(const match of value.matchAll(/<(\w+)[^>]*id="([^"]+)"/g)){const e=new Element(match[1]);e.id=match[2];this.children.push(e);}if(value.includes('rw-map')){const e=new Element('div');e.id='map';}if(value.includes('rw-tools')){const e=new Element('div');e.id='tools';}}
  setAttribute(){}appendChild(el){this.children.push(el);}remove(){this.removed=true;nodes.delete(this.id);}
- querySelector(key){return nodes.get(key==='canvas'?'rw-canvas':key==='.rw-tools'?'tools':key.slice(1));}
+ querySelector(key){return nodes.get(key==='canvas'?'rw-canvas':key==='.rw-tools'?'tools':key==='.rw-map'?'map':key.slice(1));}
  getContext(){return ctx;}getBoundingClientRect(){return {left:0,top:0,width:390,height:480};}setPointerCapture(){}click(){if(!this.disabled&&this.onclick)this.onclick();}
 }
 const document={hidden:false,head:new Element('head'),body:new Element('body'),createElement:t=>new Element(t),getElementById:id=>nodes.get(id),addEventListener:(type,fn)=>listeners.set('doc'+type,fn),removeEventListener:type=>listeners.delete('doc'+type)};
