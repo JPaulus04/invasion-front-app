@@ -1,6 +1,6 @@
 // Deterministic event/timer harness. It does NOT replace physical Safari testing.
 const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
-let now=0,next=1,timers=new Map(),nodes=new Map(),listeners=new Map();
+let now=0,next=1,timers=new Map(),nodes=new Map(),listeners=new Map(),intervals=[];
 function delay(fn,ms){const id=next++;timers.set(id,{fn,at:now+ms});return id;}
 function tick(ms){const end=now+ms;for(;;){const due=[...timers].filter(([,v])=>v.at<=end).sort((a,b)=>a[1].at-b[1].at)[0];if(!due)break;now=due[1].at;timers.delete(due[0]);due[1].fn();}now=end;}
 const ctx=new Proxy({},{get:()=>()=>{},set:()=>true});
@@ -13,12 +13,13 @@ class Element{
  getContext(){return ctx;}getBoundingClientRect(){return {left:0,top:0,width:390,height:480};}setPointerCapture(){}click(){if(!this.disabled&&this.onclick)this.onclick();}
 }
 const document={hidden:false,head:new Element('head'),body:new Element('body'),createElement:t=>new Element(t),getElementById:id=>nodes.get(id),addEventListener:(type,fn)=>listeners.set('doc'+type,fn),removeEventListener:type=>listeners.delete('doc'+type)};
-const context={document,devicePixelRatio:1,setTimeout:delay,clearTimeout:id=>timers.delete(id),setInterval:()=>9999,clearInterval:()=>{},addEventListener:(t,fn)=>listeners.set(t,fn),removeEventListener:t=>listeners.delete(t)};
-vm.createContext(context);vm.runInContext(fs.readFileSync('src/reclamation.js','utf8'),context);
+const context={document,devicePixelRatio:1,setTimeout:delay,clearTimeout:id=>timers.delete(id),setInterval:fn=>{intervals.push(fn);return 9999;},clearInterval:()=>{},addEventListener:(t,fn)=>listeners.set(t,fn),removeEventListener:t=>listeners.delete(t)};
+vm.createContext(context);vm.runInContext(fs.readFileSync('src/worldMapArt.js','utf8'),context);vm.runInContext(fs.readFileSync('src/reclamation.js','utf8'),context);
 const r=context.LSCReclamation;
 function mount(){let m={bestPhase:0,phase:1,credits:500,parts:12},saved=0,back=0;const cleanup=r.mount(new Element('main'),m,()=>{saved++;return true;},()=>{},()=>{back++;},()=>{back++;});return {m,cleanup,canvas:nodes.get('rw-canvas'),saved:()=>saved,back:()=>back};}
 function event(x=195,y=240,id=1){return {clientX:x,clientY:y,pointerId:id,button:0,preventDefault(){}};}
 let app=mount();
+const fight=nodes.get('rw-fight');assert.equal(fight.disabled,true);fight.textContent='PREPARE TOWN DEFENSE';const stable=fight.textContent;for(let i=0;i<5;i++)intervals[0]();assert.equal(fight.textContent,stable,'income refresh leaves defense label untouched');
 // Tapping selects without charging; the dock is always available for discrete steps.
 app.canvas.onpointerdown(event());tick(100);app.canvas.onpointerup(event());assert.equal(app.m.credits,500);
 nodes.get('rw-action').click();assert.equal(app.m.credits,488);assert.equal(app.m.reclamation.progress['1,0'],1);
