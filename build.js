@@ -45,7 +45,7 @@ const ENGINE_SCRIPTS = [
   'data.js',
   'worlds.js',    // Campaign world framework must load before engine/renderer/UI
   'nativeRuntime.bundle.js', // Build 162: Capacitor-native iPhone haptics
-  'gameCenter.js', // Build 191: offline-safe Game Center reporting and dashboard
+  'gameCenter.js', // Build 192: reliable Game Center reporting and veteran synchronization
   'audio.js',
   'engine.js',
 ];
@@ -191,7 +191,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'191\';'), 'Build 191 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'192\';'), 'Build 192 config is not present');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
 requireMatch(html.includes('Zombie-Punch.fbx'), 'Build 162 clean melee animation is missing');
@@ -355,8 +355,10 @@ requireMatch(html.includes('TRAINING REPLAY · 40% CREDITS') && html.includes('r
 requireMatch(html.includes('id=\'l190-hq-hud\'') && html.includes('BOSS ARMOR · ') && html.includes('DIRECT ASSAULT · HQ UNDER ATTACK') && html.includes("hqPct<=25?2:hqPct<=50?1:0"), 'Build 190 explicit armor and independent HQ HUD is missing');
 requireMatch(html.includes('l190-armor-phase') && html.includes('#ffd166') && html.includes("battleBadge.style.top='calc(env(safe-area-inset-top,0px) + 84px)'"), 'Build 190 gold armor phase or HUD spacing is missing');
 requireMatch(html.includes("progress.id='l139-progress'") && html.includes('SWARM COMMANDER') && html.includes('HIGH IMPACT'), 'Build 191 boss HUD state binding or trait labels are missing');
-requireMatch(html.includes('window.LSCGameCenter') && html.includes('reportCompetitiveClear') && html.includes('com.paulus.laststandcommand.leaderboard.campaign'), 'Build 191 Game Center reporting is missing');
-requireMatch(html.includes("if(!details.firstClear||!details.eligible)return") && html.includes("if(!details.rewarded)return"), 'Build 191 replay or unrewarded-operation competitive exclusion is missing');
+requireMatch(html.includes('window.LSCGameCenter') && html.includes('reportCompetitiveClear') && html.includes('com.paulus.laststandcommand.leaderboard.campaign'), 'Build 192 Game Center reporting is missing');
+requireMatch(html.includes("if(!details.firstClear||!details.eligible)return") && html.includes("if(!details.rewarded)return"), 'Build 192 replay or unrewarded-operation competitive exclusion is missing');
+requireMatch(html.includes('function syncEligibleGameCenterProgress()') && html.includes("bestPhase>=10") && html.includes("operationManualBest"), 'Build 192 veteran Game Center synchronization is missing');
+requireMatch(html.includes('removeQueuedItem(item)') && html.includes('state.flushRequested = true'), 'Build 192 Game Center queue sequencing safeguard is missing');
 requireMatch(html.includes('l168-compare') && html.includes('function equipmentComparisonEffects(definition,peerDefinition)') && html.includes('peerDefinition.name.toUpperCase()'), 'Build 168 equipment comparison is missing');
 requireMatch(html.includes('lsc161-loading'), 'Build 162 battle loading screen is missing');
 requireMatch(html.includes('html:not(.lsc-command-ready)::before'), 'Build 162 startup shield is missing');
