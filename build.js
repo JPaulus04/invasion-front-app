@@ -192,7 +192,12 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'194\';'), 'Build 194 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'195\';'), 'Build 195 config is not present');
+// WORLD and Command Base are fixed body-level siblings; prevent the Build 194 regression.
+const worldLayer = Number((html.match(/#rc-world\{[^}]*z-index:(\d+)/) || [])[1]);
+const baseLayer = Number((html.match(/#lsc137-app\{[^}]*z-index:(\d+)/) || [])[1]);
+const dialogLayer = Number((html.match(/#hq-upgrade-overlay\{[^}]*z-index:(\d+)/) || [])[1]);
+requireMatch(worldLayer > baseLayer && worldLayer < dialogLayer, 'World screen must render above Command Base and below combat dialogs');
 requireMatch(html.includes('window.LSCReclamation.mount(p,meta,saveMeta') && html.includes('root.LSCReclamation=Object.freeze'), 'Build 194 reclamation integration missing');
 requireMatch(html.includes('window.LSCReclamation.ready(meta,settings.phase)') && html.includes('window.LSCReclamation.applyBonuses(meta,created)'), 'Build 194 combat preparation hooks missing');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
