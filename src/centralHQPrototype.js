@@ -256,6 +256,7 @@
   }
   function readStoredMeta(key){
     try{
+      if(key===META_KEY&&window.LSCCampaignSaves){var slotMeta=window.LSCCampaignSaves.readActive(localStorage,CAMPAIGN_ARCHIVE_KEY);if(slotMeta)return slotMeta;}
       var raw=localStorage.getItem(key);
       if(!raw)return null;
       var parsed=JSON.parse(raw);
@@ -399,52 +400,15 @@
     catch (e) { return defaults(); }
   }
   function renderCampaignControls(panel){
-    var section=document.createElement('section');section.style.cssText='margin:24px 0;padding:16px;border:1px solid #527266;border-radius:12px';
-    section.innerHTML='<h3>CAMPAIGN SAVES</h3><p class="l137-copy">Start fresh without deleting the app. Backups stay on this device; uninstalling can remove them. Game Center records are not reset.</p><button class="l137-btn" data-new>NEW CAMPAIGN</button><div data-confirm></div><h4>RESTORE A CAMPAIGN</h4><div data-saves></div><p data-notice role="status" class="l137-copy"></p>';
-    panel.appendChild(section);
-    var notice=section.querySelector('[data-notice]'),confirmation=section.querySelector('[data-confirm]'),saves=section.querySelector('[data-saves]');
-    function confirmSwitch(next,description){
-      confirmation.innerHTML='';
-      var text=document.createElement('p');text.className='l137-copy';text.textContent=description+' Your current campaign will first be saved as a separate backup. Nothing changes until you confirm.';confirmation.appendChild(text);
-      var accept=document.createElement('button');accept.className='l137-btn good';accept.textContent='BACK UP AND CONFIRM';
-      var cancel=document.createElement('button');cancel.className='l137-btn';cancel.textContent='CANCEL';
-      confirmation.appendChild(accept);confirmation.appendChild(cancel);
-      cancel.onclick=function(){confirmation.innerHTML='';notice.textContent='Cancelled. Current campaign unchanged.';};
-      accept.onclick=function(){
-        accept.disabled=true;
-        var target=JSON.parse(JSON.stringify(next));
-        // Never allow restart / snapshot restore to grant a second daily operation claim.
-        if(String(meta.operationLastClearDay||'')>String(target.operationLastClearDay||''))target.operationLastClearDay=meta.operationLastClearDay;
-        var result=window.LSCCampaignSaves.activate(localStorage,META_KEY,CAMPAIGN_ARCHIVE_KEY,meta,target);
-        if(!result.ok){notice.textContent=result.reason;accept.disabled=false;return;}
-        meta=loadMeta();selectedCampaignPhase=meta.phase;selectedResearchNodeId=null;
-        refreshHeader();renderTab('hq');
-      };
-      confirmation.scrollIntoView({block:'nearest'});
-    }
-    section.querySelector('[data-new]').onclick=function(){
-      confirmSwitch(defaults(),'Start at Phase 1 with starting resources, a Level 1 commander and HQ, no research, equipment or reclaimed territory. Special Operations progression also restarts; today’s reward claim is retained.');
-    };
-    try{
-      var archived=window.LSCCampaignSaves.list(localStorage,CAMPAIGN_ARCHIVE_KEY);
-      if(!archived.length)saves.textContent='No campaign backups yet.';
-      archived.slice().reverse().forEach(function(snapshot){
-        var button=document.createElement('button');button.className='l137-btn';button.style.cssText='display:block;width:100%;margin:8px 0';button.textContent='RESTORE · PHASE '+snapshot.meta.phase+' · '+new Date(snapshot.createdAt).toLocaleString();
-        button.onclick=function(){confirmSwitch(snapshot.meta,'Restore the campaign saved '+new Date(snapshot.createdAt).toLocaleString()+'. Resources and progress return to that snapshot; campaigns are not merged.');};saves.appendChild(button);
-      });
-    }catch(error){notice.textContent=error.message;section.querySelector('[data-new]').disabled=true;}
+    var api=window.LSCCampaignSaves,section=document.createElement('section');section.style.cssText='margin:24px 0;padding:16px;border:1px solid #527266;border-radius:12px';
+    section.innerHTML='<h3>CAMPAIGNS</h3><p class="l137-copy">Progress saves automatically to your current campaign. New Campaign starts a separate world. Saves are on this device.</p><input data-name maxlength="40" placeholder="Campaign name" aria-label="Campaign name" style="width:100%;box-sizing:border-box;padding:12px;margin:8px 0"><button class="l137-btn" data-new>NEW CAMPAIGN</button><div data-confirm></div><div data-saves style="max-height:330px;overflow:auto"></div><p data-notice role="status" class="l137-copy"></p>';panel.appendChild(section);
+    var notice=section.querySelector('[data-notice]'),confirmation=section.querySelector('[data-confirm]'),saves=section.querySelector('[data-saves]'),name=section.querySelector('[data-name]');
+    function finish(result){if(!result.ok){notice.textContent=result.reason;return;}meta=loadMeta();selectedCampaignPhase=meta.phase;selectedResearchNodeId=null;refreshHeader();renderTab('hq');}
+    function confirm(text,fn){confirmation.innerHTML='';var copy=document.createElement('p');copy.textContent=text;confirmation.appendChild(copy);var yes=document.createElement('button'),no=document.createElement('button');yes.className=no.className='l137-btn';yes.textContent='CONFIRM';no.textContent='CANCEL';yes.onclick=function(){yes.disabled=true;var result=fn();if(!result.ok)yes.disabled=false;finish(result);};no.onclick=function(){confirmation.innerHTML='';notice.textContent='Cancelled. Current campaign unchanged.';};confirmation.appendChild(yes);confirmation.appendChild(no);confirmation.scrollIntoView({block:'nearest'});}
+    section.querySelector('[data-new]').onclick=function(){var label=name.value;confirm('Start a fresh campaign? Your current campaign stays in its existing slot.',function(){return api.create(localStorage,META_KEY,CAMPAIGN_ARCHIVE_KEY,meta,defaults(),label);});};
+    try{var data=api.listSlots(localStorage,CAMPAIGN_ARCHIVE_KEY,meta);data.slots.forEach(function(slot){var row=document.createElement('div');row.style.cssText='padding:12px 0;border-bottom:1px solid #527266';var title=document.createElement('p'),current=slot.id===data.activeId;title.textContent=slot.name+(current?' · CURRENT':'')+' · '+(slot.meta.starTowns?Object.keys(slot.meta.starTowns.secured).length+' towns':'Phase '+slot.meta.phase)+' · '+Math.floor(slot.meta.credits)+' Credits';row.appendChild(title);var open=document.createElement('button');open.className='l137-btn';open.textContent=current?'SAVED AUTOMATICALLY':'CONTINUE';open.disabled=current;open.onclick=function(){finish(api.switchTo(localStorage,META_KEY,CAMPAIGN_ARCHIVE_KEY,meta,slot.id));};row.appendChild(open);var rename=document.createElement('button');rename.className='l137-btn';rename.textContent='RENAME';rename.onclick=function(){if(!name.value.trim()){notice.textContent='Enter a name in the field above, then tap Rename.';name.focus();return;}finish(api.rename(localStorage,META_KEY,CAMPAIGN_ARCHIVE_KEY,meta,slot.id,name.value));};row.appendChild(rename);var del=document.createElement('button');del.className='l137-btn';del.textContent='DELETE';del.disabled=current;del.onclick=function(){confirm('Delete '+slot.name+'? This removes it from your campaign list. This cannot be undone here.',function(){return api.remove(localStorage,META_KEY,CAMPAIGN_ARCHIVE_KEY,meta,slot.id);});};row.appendChild(del);if(current){var hint=document.createElement('small');hint.textContent='Open another campaign before deleting this one.';hint.style.display='block';row.appendChild(hint);}saves.appendChild(row);});}catch(e){notice.textContent=e.message;section.querySelector('[data-new]').disabled=true;}
   }
-  function saveMeta() {
-    try{
-      var current=readStoredMeta(META_KEY);
-      if(current){try{localStorage.setItem(META_BACKUP_KEY,JSON.stringify(current));}catch(backupError){}}
-      localStorage.setItem(META_KEY,JSON.stringify(meta));
-      return true;
-    }catch(e){
-      if(window.console&&console.warn)console.warn('Last Stand Command could not save progress.',e);
-      return false;
-    }
-  }
+  function saveMeta(){return window.LSCCampaignSaves.commit(localStorage,META_KEY,CAMPAIGN_ARCHIVE_KEY,meta).ok;}
   function availableEnergy(){
     var now=Date.now();
     if(meta.energy<meta.energyMax){

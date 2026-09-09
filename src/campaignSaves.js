@@ -1,20 +1,17 @@
 (function(root){
-  'use strict';
-  function valid(meta){return meta&&typeof meta==='object'&&!Array.isArray(meta)&&Number.isFinite(meta.phase)&&meta.phase>=1&&Number.isFinite(meta.credits)&&meta.credits>=0;}
-  function list(storage,key){var raw=storage.getItem(key);if(!raw)return [];var value=JSON.parse(raw);if(!Array.isArray(value)||!value.every(function(s){return s&&valid(s.meta)&&typeof s.id==='string';}))throw Error('Backup data is unreadable. No save was changed.');return value;}
-  function activate(storage,activeKey,backupKey,current,next){
-    try{
-      if(!valid(current)||!valid(next))throw Error('Invalid campaign. No save was changed.');
-      var snapshots=list(storage,backupKey);
-      if(snapshots.length>=20)throw Error('20 campaign backups already exist. Restart cancelled to preserve them.');
-      var previous=JSON.stringify(current),target=JSON.stringify(next),stamp=Date.now();
-      snapshots.push({id:String(stamp)+'-'+snapshots.length,createdAt:stamp,meta:JSON.parse(previous)});
-      var archive=JSON.stringify(snapshots);
-      storage.setItem(backupKey,archive);
-      if(storage.getItem(backupKey)!==archive)throw Error('Backup verification failed. Restart cancelled.');
-      storage.setItem(activeKey,target);
-      return {ok:true};
-    }catch(e){return {ok:false,reason:e.message||'Unable to save. Your active campaign was not switched.'};}
-  }
-  root.LSCCampaignSaves=Object.freeze({list:list,activate:activate});
+ 'use strict';
+ function clone(v){return JSON.parse(JSON.stringify(v));}
+ function valid(m){return m&&typeof m==='object'&&!Array.isArray(m)&&Number.isFinite(m.phase)&&m.phase>=1&&Number.isFinite(m.credits)&&m.credits>=0;}
+ function key(archive){return archive+'_slots203';}
+ function read(storage,archive){var raw=storage.getItem(key(archive));if(!raw)return null;var d=JSON.parse(raw);if(!d||d.version!==203||!Array.isArray(d.slots)||!d.slots.length||!d.slots.every(function(s){return s&&typeof s.id==='string'&&typeof s.name==='string'&&valid(s.meta);})||!d.slots.some(function(s){return s.id===d.activeId;})||new Set(d.slots.map(function(s){return s.id;})).size!==d.slots.length)throw Error('Campaign slots are unreadable. No save was changed.');return d;}
+ function prepare(storage,archive,current){var d=read(storage,archive);if(d)return d;if(!valid(current))throw Error('Invalid active campaign.');var now=Date.now();d={version:203,activeId:'campaign-1',nextId:2,claim:current.operationLastClearDay||'',slots:[{id:'campaign-1',name:'Campaign 1',updatedAt:now,meta:clone(current)}]};var raw=storage.getItem(archive),legacy=raw?JSON.parse(raw):[];if(!Array.isArray(legacy)||!legacy.every(function(s){return s&&typeof s.id==='string'&&valid(s.meta);}))throw Error('Previous backups are unreadable. No save was changed.');var seen=new Set([JSON.stringify(current)]);legacy.forEach(function(s,i){var content=JSON.stringify(s.meta);if(seen.has(content))return;seen.add(content);d.slots.push({id:'import-'+i,name:'Imported campaign '+(i+1),updatedAt:s.createdAt||now,meta:clone(s.meta)});if(String(s.meta.operationLastClearDay||'')>d.claim)d.claim=s.meta.operationLastClearDay;});return d;}
+ function active(d){return d.slots.find(function(s){return s.id===d.activeId;});}
+ function persist(storage,activeKey,archive,d){storage.setItem(key(archive),JSON.stringify(d));/* One authoritative atomic write. Older-build mirror is best effort. */try{storage.setItem(activeKey,JSON.stringify(active(d).meta));}catch(e){}return {ok:true};}
+ function transact(storage,activeKey,archive,current,fn){try{var d=prepare(storage,archive,current);if(!valid(current))throw Error('Invalid campaign.');active(d).meta=clone(current);active(d).updatedAt=Date.now();if(String(current.operationLastClearDay||'')>String(d.claim||''))d.claim=current.operationLastClearDay;fn(d);active(d).meta.operationLastClearDay=d.claim||'';return persist(storage,activeKey,archive,d);}catch(e){return {ok:false,reason:e.message||'Campaign could not be saved.'};}}
+ function commit(s,a,k,m){return transact(s,a,k,m,function(){});}
+ function create(s,a,k,m,next,name){return transact(s,a,k,m,function(d){if(!valid(next))throw Error('Invalid new campaign.');if(d.slots.length>=32)throw Error('32 campaigns exist. Delete an unused campaign first.');var id='campaign-'+d.nextId++;d.slots.push({id:id,name:String(name||'Campaign '+(d.nextId-1)).trim().slice(0,40)||'New campaign',updatedAt:Date.now(),meta:clone(next)});d.activeId=id;});}
+ function switchTo(s,a,k,m,id){return transact(s,a,k,m,function(d){if(!d.slots.some(function(x){return x.id===id;}))throw Error('Campaign no longer exists.');d.activeId=id;});}
+ function remove(s,a,k,m,id){return transact(s,a,k,m,function(d){if(id===d.activeId)throw Error('Open another campaign before deleting this one.');var n=d.slots.length;d.slots=d.slots.filter(function(x){return x.id!==id;});if(d.slots.length===n)throw Error('Campaign no longer exists.');});}
+ function rename(s,a,k,m,id,name){return transact(s,a,k,m,function(d){var slot=d.slots.find(function(x){return x.id===id;}),label=String(name||'').trim().slice(0,40);if(!slot||!label)throw Error('Enter a campaign name.');slot.name=label;});}
+ root.LSCCampaignSaves=Object.freeze({readActive:function(s,k){var d=read(s,k);return d?clone(active(d).meta):null;},listSlots:function(s,k,m){return prepare(s,k,m);},commit:commit,create:create,switchTo:switchTo,remove:remove,rename:rename});
 })(typeof window!=='undefined'?window:globalThis);
