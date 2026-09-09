@@ -1722,7 +1722,7 @@
     id('l137-result-reward').innerHTML = rewardResources+'<small>'+rewardLabel+'</small><small>'+resultMetric+'</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small class="l167-result-survival">'+survivalLabel+'</small>'+equipmentDropMarkup(equipmentAward)+(!operation&&!replay&&won?campaignTransitionMarkup(clearedPhase):'');
     var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
     id('l141-continue').textContent = operation?(won?'RETURN TO COMMAND BASE':'RETRY '+definition.levelLabel+' '+operationLevel):(replay?'RETURN TO CAMPAIGN':won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+' · NEW ENERGY');
-    if(firstClear){id('l141-continue').textContent='EXPLORE THE NEXT TOWN';id('l137-result-copy').textContent+=' Town liberated: supply income increased. Reclaim the next approach before deployment.';}
+    if(firstClear){id('l141-continue').textContent='EXPLORE THE NEXT TOWN';id('l137-result-copy').textContent+=' Town '+clearedPhase+' liberated. Supply income: +'+window.LSCReclamation.income(meta).rate+' Credits/min. Next: scout for preparation sites, clear the approach, then defend Town '+(clearedPhase+1)+'.';}
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
     id('l137-retry').style.display = !operation&&won ? '' : 'none';
     id('lsc137-result').classList.add('show');

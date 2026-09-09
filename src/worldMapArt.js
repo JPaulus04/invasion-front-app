@@ -91,10 +91,13 @@
         ctx.fillStyle=t.site==='medical'?'#d3e3c1':'#dbbc73';
         if(t.site==='medical'){ctx.fillRect(-2,-7,4,13);ctx.fillRect(-6,-3,12,4);}else if(t.site==='artillery'){
           ctx.fillStyle='#374a42';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d8d0a2';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(15,-15);ctx.stroke();
-        }else{ctx.fillRect(-5,-3,10,4);}
+        }else if(t.site==='armory'){ctx.fillStyle='#34433c';ctx.fillRect(-15,-5,30,7);ctx.fillStyle='#e7c77e';ctx.fillRect(-12,-4,24,2);ctx.fillRect(5,2,4,9);ctx.fillRect(-10,-11,5,7);}else{ctx.fillRect(-5,-3,10,4);}
+        if(t.kind==='depot'&&!t.site){ctx.fillStyle='#bd9b60';ctx.fillRect(-23,8,9,8);ctx.fillRect(14,5,10,10);ctx.strokeStyle='#665334';ctx.strokeRect(14,5,10,10);}
+
       }else if(t.kind==='cache'){
         [[-12,-6],[3,1],[-7,9]].forEach(function(c){ctx.fillStyle='#293b30';ctx.fillRect(c[0]+2,c[1]+3,12,9);ctx.fillStyle='#b29965';ctx.fillRect(c[0],c[1],12,9);ctx.strokeStyle='#665b3d';ctx.lineWidth=1;ctx.strokeRect(c[0],c[1],12,9);ctx.beginPath();ctx.moveTo(c[0]+6,c[1]);ctx.lineTo(c[0]+6,c[1]+9);ctx.stroke();});
       }
+      if(t.site&&scale>55){ctx.fillStyle='#10251edf';ctx.fillRect(-23,-30,46,9);ctx.fillStyle='#e8dec0';ctx.font='bold 7px system-ui';ctx.textAlign='center';ctx.fillText({armory:'ARMORY',medical:'MEDICAL',artillery:'ARTILLERY',hill:'SCOUT'}[t.site],0,-23);}
       ctx.restore();
       // Desaturate every visible but unfinished tile, including its structures and roads.
       // Gold selection / route outlines are UI markers, drawn afterward.
