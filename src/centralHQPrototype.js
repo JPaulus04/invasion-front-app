@@ -1727,6 +1727,7 @@
     var baseCampaignReward=won?BALANCE.campaignBaseCredits(clearedPhase,run.kills):BALANCE.campaignSalvageCredits(clearedPhase,run.kills);
     var reward = operation?(operationRewarded?operationRewardCreditsFor(operationKind,operationLevel):0):(won?(replay?Math.max(1,Math.floor(campaignCreditReward(baseCampaignReward,run.energySpend||1)*CAMPAIGN_REPLAY_CREDIT_RATE)):campaignCreditReward(baseCampaignReward,run.energySpend||1)):replay?0:baseCampaignReward);
     var parts = won?(operation?(operationRewarded?operationRewardPartsFor(operationKind,operationLevel):0):replay?0:BALANCE.campaignParts(clearedPhase,firstClear)):0;
+    var expeditionBonus=run.starTown&&won?window.LSCStarTowns.victoryBonus(meta,run.starTown):0;reward+=expeditionBonus;
     meta.credits += reward;
     meta.parts += parts;
     var equipmentAward=!operation&&!replay&&won?awardEquipmentDrop(clearedPhase,firstClear):null;
@@ -1765,6 +1766,7 @@
     var rewardLabel=operation?(won?(operationRewarded?definition.levelLabel+' '+operationLevel+' DAILY REWARD':'DAILY REWARD ALREADY CLAIMED'):'NO DAILY REWARD · '+definition.levelLabel+' '+operationLevel+' REMAINS OPEN'):(replay?(won?'TRAINING REPLAY · 40% CREDITS · NO COMPETITIVE CREDIT':'TRAINING REPLAY · NO REWARD'):won?'VICTORY REWARD'+campaignBoost:'SALVAGE REWARD · DEPLOYMENT ENERGY SPENT');
     var survivalLabel=operationKind==='junkyard'?(won?'TARGET DESTROYED · '+formatObjectiveTime(run.objectiveTime)+' REMAINING':'TARGET ESCAPED · '+vehicleArmorPct+'% ARMOR REMAINED'):operation?'FORWARD LINE '+integrity+'% · '+survivingBarriers+'/'+run.lanes.length+' LANES HELD':'HQ INTEGRITY '+integrity+'% · '+survivingBarriers+'/'+run.lanes.length+' BARRIERS SURVIVED';
     var resultMetric=operationKind==='junkyard'?(won?'ARMORED TRANSPORT DESTROYED':formatNumber(vehicleArmor)+' ARMOR REMAINING'):formatNumber(run.kills)+' ENEMIES ELIMINATED';
+    if(expeditionBonus)rewardLabel+=' · INCLUDES 600 EXPEDITION CREDITS';
     var rewardResources=(operation&&(!won||!operationRewarded))||(replay&&!won)?'<div class="l175-no-reward">'+(won?'NO ADDITIONAL RESOURCES':'NO RESOURCES AWARDED')+'</div>':'<div class="l166-reward-resources">'+(parts?resourcePair(reward,parts):resourceMarkup('credits',reward,'CREDITS'))+'</div>';
     id('l137-result-reward').innerHTML = rewardResources+'<small>'+rewardLabel+'</small><small>'+resultMetric+'</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small class="l167-result-survival">'+survivalLabel+'</small>'+(run.starSavePending?'':equipmentDropMarkup(equipmentAward))+(!run.starTown&&!operation&&!replay&&won?campaignTransitionMarkup(clearedPhase):'');
     var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
