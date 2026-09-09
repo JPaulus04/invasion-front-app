@@ -54,6 +54,7 @@ const CONTROLLER_SCRIPTS = [
   'campaignSaves.js', // Optional restart with verified, retained local snapshots
   'worldMapArt.js', // Build 196: continuous terrain and settlement cartography
   'reclamation.js', // Build 194: exploration before town defense
+  'worldBuilding.js', // Build 203: roads, terrain-constrained production and trade
   'starTowns.js', // Connected, independently defended star towns
   'renderer.js',
   'enemyVisuals.js',      // Build 127+: stronger procedural enemy/contact visuals
@@ -195,7 +196,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'202\';'), 'Build 202 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'203\';'), 'Build 203 config is not present');
 requireMatch(html.includes('root.LSCWorldArt=Object.freeze') && html.indexOf('root.LSCWorldArt=Object.freeze') < html.indexOf('root.LSCReclamation=Object.freeze'), 'World art must be bundled before reclamation');
 requireMatch(html.includes('BALANCE.campaignPressure(run.phase)') && html.includes('campaignPressure: campaignPressure'), 'Campaign pressure integration missing');
 // WORLD and Command Base are fixed body-level siblings; prevent the Build 194 regression.
