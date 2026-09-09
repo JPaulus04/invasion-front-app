@@ -33,5 +33,5 @@ nodes.get('rw-center').click();app.canvas.onpointerdown(event());tick(100);app.c
 app.canvas.onpointerdown(event());tick(100);listeners.get('docvisibilitychange')();tick(800);assert.equal(app.m.credits,452);
 app.canvas.onpointerdown(event());tick(100);app.canvas.onpointercancel(event());tick(800);assert.equal(app.m.credits,452);
 app.canvas.onpointerdown(event());tick(100);app.cleanup();tick(800);assert.equal(app.m.credits,452);assert.equal(nodes.has('rc-world'),false);assert.equal(listeners.size,0);
-app=mount();nodes.get('rw-briefing').click();assert.equal(app.back(),1);app.cleanup();
-console.log('PASS: tap selection, fixed-dock spend, hold repeat, no neighbor overspend, drag/pinch cancellation, pointer cancellation, visibility cancellation, cleanup and briefing navigation. DOM harness only; Safari layout remains a device check.');
+app=mount();nodes.get('rw-briefing').click();assert.equal(app.back(),0);assert.equal(nodes.get('rw-inspect').open,true);app.cleanup();
+console.log('PASS: tap selection, fixed-dock spend, hold repeat, no neighbor overspend, drag/pinch cancellation, pointer cancellation, visibility cancellation, cleanup and support navigation. DOM harness only; Safari layout remains a device check.');
