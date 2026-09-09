@@ -7,5 +7,5 @@ assert.throws(()=>check(world.replace('z-index:30500;','z-index:10020;')),/World
 check(world);
 assert.match(world,/document\.body\.appendChild\(shell\)/,'Sibling stacking context expected');
 assert.match(base,/if\(reclamationCleanup\)\{reclamationCleanup\(\);reclamationCleanup=null;\}/);
-const built=fs.readFileSync('www/index.html','utf8');check(built);assert.ok(built.includes("const LSC_BUILD = '201';"));
+const built=fs.readFileSync('www/index.html','utf8');check(built);assert.ok(built.includes("const LSC_BUILD = '202';"));
 console.log('PASS: released layering defect reproduced; source and bundle place World above Base and below combat dialogs. CSS regression check, not an actual browser rendering test.');

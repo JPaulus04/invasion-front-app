@@ -8,9 +8,9 @@ const document={body:new E(),createElement:()=>new E(),addEventListener:(k,f)=>l
 const c={document,setTimeout:later,clearTimeout:id=>timers.delete(id),setInterval:()=>99,clearInterval:()=>{},addEventListener:(k,f)=>listeners.set(k,f),removeEventListener:k=>listeners.delete(k)};vm.createContext(c);for(const f of ['reclamation','worldMapArt','starTowns'])vm.runInContext(fs.readFileSync('src/'+f+'.js','utf8'),c);
 const m={bestPhase:0,credits:500,parts:12},cleanup=c.LSCStarTowns.mount(new E(),m,()=>true,()=>{},()=>{},()=>{},()=>300),canvas=active.querySelector('canvas');
 function ev(x=251,y=240,id=1){return{clientX:x,clientY:y,pointerId:id,button:0,preventDefault(){}};}
-canvas.onpointerdown(ev());tick(100);canvas.onpointerup(ev());assert.equal(m.credits,500,'tap selects without purchase');
-canvas.onpointerdown(ev());tick(2000);canvas.onpointerup(ev());assert.equal(m.credits,452);assert.equal(m.starTowns.progress['1,0'],4);assert.equal(m.starTowns.progress['2,0'],undefined,'hold stops at tile completion');
-canvas.onpointerdown(ev(307));tick(100);canvas.onpointermove(ev(350));tick(1000);canvas.onpointerup(ev(350));assert.equal(m.credits,452,'drag cancels spend');
-active.querySelector('[data-home]').click();canvas.onpointerdown(ev(307));canvas.onpointerdown(ev(200,240,2));tick(1000);canvas.onpointermove(ev(180,240,2));canvas.onpointerup(ev(180,240,2));tick(1000);canvas.onpointerup(ev(307));assert.equal(m.credits,452,'pinch cancels spend');
+canvas.onpointerdown(ev());tick(100);canvas.onpointerup(ev());assert.equal(m.credits,2500,'tap selects without purchase');
+canvas.onpointerdown(ev());tick(2000);canvas.onpointerup(ev());assert.equal(m.credits,2452);assert.equal(m.starTowns.progress['1,0'],4);assert.equal(m.starTowns.progress['2,0'],undefined,'hold stops at tile completion');
+canvas.onpointerdown(ev(307));tick(100);canvas.onpointermove(ev(350));tick(1000);canvas.onpointerup(ev(350));assert.equal(m.credits,2452,'drag cancels spend');
+active.querySelector('[data-home]').click();canvas.onpointerdown(ev(307));canvas.onpointerdown(ev(200,240,2));tick(1000);canvas.onpointermove(ev(180,240,2));canvas.onpointerup(ev(180,240,2));tick(1000);canvas.onpointerup(ev(307));assert.equal(m.credits,2452,'pinch cancels spend');
 cleanup();assert.equal(timers.size,0);assert.equal(listeners.size,0);assert.equal(active.removed,true);
 console.log('PASS: production star UI tap/hold, no neighbor overspend, drag/pinch cancellation and cleanup. DOM harness only.');
