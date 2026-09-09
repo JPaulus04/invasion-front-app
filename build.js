@@ -54,6 +54,7 @@ const CONTROLLER_SCRIPTS = [
   'campaignSaves.js', // Optional restart with verified, retained local snapshots
   'worldMapArt.js', // Build 196: continuous terrain and settlement cartography
   'reclamation.js', // Build 194: exploration before town defense
+  'starTowns.js', // Connected, independently defended star towns
   'renderer.js',
   'enemyVisuals.js',      // Build 127+: stronger procedural enemy/contact visuals
   'ui.js',
@@ -194,7 +195,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'200\';'), 'Build 200 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'201\';'), 'Build 201 config is not present');
 requireMatch(html.includes('root.LSCWorldArt=Object.freeze') && html.indexOf('root.LSCWorldArt=Object.freeze') < html.indexOf('root.LSCReclamation=Object.freeze'), 'World art must be bundled before reclamation');
 requireMatch(html.includes('BALANCE.campaignPressure(run.phase)') && html.includes('campaignPressure: campaignPressure'), 'Campaign pressure integration missing');
 // WORLD and Command Base are fixed body-level siblings; prevent the Build 194 regression.
@@ -202,7 +203,7 @@ const worldLayer = Number((html.match(/#rc-world\{[^}]*z-index:(\d+)/) || [])[1]
 const baseLayer = Number((html.match(/#lsc137-app\{[^}]*z-index:(\d+)/) || [])[1]);
 const dialogLayer = Number((html.match(/#hq-upgrade-overlay\{[^}]*z-index:(\d+)/) || [])[1]);
 requireMatch(worldLayer > baseLayer && worldLayer < dialogLayer, 'World screen must render above Command Base and below combat dialogs');
-requireMatch(html.includes('window.LSCReclamation.mount(p,meta,saveMeta') && html.includes('root.LSCReclamation=Object.freeze'), 'Build 194 reclamation integration missing');
+requireMatch(html.includes('window.LSCStarTowns.mount(p,meta,saveMeta') && html.includes('root.LSCStarTowns=') && html.includes("el.id='star-world'") && html.includes('inset:0;z-index:30500'), 'Star town world integration or layer missing');
 requireMatch(html.includes('window.LSCReclamation.ready(meta,settings.phase)') && html.includes('window.LSCReclamation.applyBonuses(meta,created)'), 'Build 194 combat preparation hooks missing');
 requireMatch(html.includes('Zombie-Soldier.fbx'), 'Build 162 primary zombie renderer is missing');
 requireMatch(html.includes('Zombie-Scout.fbx'), 'Build 162 second zombie renderer is missing');
