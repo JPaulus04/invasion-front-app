@@ -63,6 +63,7 @@
   animationAtlas.src = 'assets/unit-animation-atlas.png';
   var META_KEY = 'lsc_command_base_137'; // Preserve Build 137 progression.
   var META_BACKUP_KEY = META_KEY + '_backup';
+  var CAMPAIGN_ARCHIVE_KEY = META_KEY + '_campaign_archive_200';
   var soundTimes = {};
   var hapticTimes = {};
   var activeResearchBranch = 'fire-control';
@@ -396,6 +397,42 @@
       return loaded;
     }
     catch (e) { return defaults(); }
+  }
+  function renderCampaignControls(panel){
+    var section=document.createElement('section');section.style.cssText='margin:24px 0;padding:16px;border:1px solid #527266;border-radius:12px';
+    section.innerHTML='<h3>CAMPAIGN SAVES</h3><p class="l137-copy">Start fresh without deleting the app. Backups stay on this device; uninstalling can remove them. Game Center records are not reset.</p><button class="l137-btn" data-new>NEW CAMPAIGN</button><div data-confirm></div><h4>RESTORE A CAMPAIGN</h4><div data-saves></div><p data-notice role="status" class="l137-copy"></p>';
+    panel.appendChild(section);
+    var notice=section.querySelector('[data-notice]'),confirmation=section.querySelector('[data-confirm]'),saves=section.querySelector('[data-saves]');
+    function confirmSwitch(next,description){
+      confirmation.innerHTML='';
+      var text=document.createElement('p');text.className='l137-copy';text.textContent=description+' Your current campaign will first be saved as a separate backup. Nothing changes until you confirm.';confirmation.appendChild(text);
+      var accept=document.createElement('button');accept.className='l137-btn good';accept.textContent='BACK UP AND CONFIRM';
+      var cancel=document.createElement('button');cancel.className='l137-btn';cancel.textContent='CANCEL';
+      confirmation.appendChild(accept);confirmation.appendChild(cancel);
+      cancel.onclick=function(){confirmation.innerHTML='';notice.textContent='Cancelled. Current campaign unchanged.';};
+      accept.onclick=function(){
+        accept.disabled=true;
+        var target=JSON.parse(JSON.stringify(next));
+        // Never allow restart / snapshot restore to grant a second daily operation claim.
+        if(String(meta.operationLastClearDay||'')>String(target.operationLastClearDay||''))target.operationLastClearDay=meta.operationLastClearDay;
+        var result=window.LSCCampaignSaves.activate(localStorage,META_KEY,CAMPAIGN_ARCHIVE_KEY,meta,target);
+        if(!result.ok){notice.textContent=result.reason;accept.disabled=false;return;}
+        meta=loadMeta();selectedCampaignPhase=meta.phase;selectedResearchNodeId=null;
+        refreshHeader();renderTab('hq');
+      };
+      confirmation.scrollIntoView({block:'nearest'});
+    }
+    section.querySelector('[data-new]').onclick=function(){
+      confirmSwitch(defaults(),'Start at Phase 1 with starting resources, a Level 1 commander and HQ, no research, equipment or reclaimed territory. Special Operations progression also restarts; today’s reward claim is retained.');
+    };
+    try{
+      var archived=window.LSCCampaignSaves.list(localStorage,CAMPAIGN_ARCHIVE_KEY);
+      if(!archived.length)saves.textContent='No campaign backups yet.';
+      archived.slice().reverse().forEach(function(snapshot){
+        var button=document.createElement('button');button.className='l137-btn';button.style.cssText='display:block;width:100%;margin:8px 0';button.textContent='RESTORE · PHASE '+snapshot.meta.phase+' · '+new Date(snapshot.createdAt).toLocaleString();
+        button.onclick=function(){confirmSwitch(snapshot.meta,'Restore the campaign saved '+new Date(snapshot.createdAt).toLocaleString()+'. Resources and progress return to that snapshot; campaigns are not merged.');};saves.appendChild(button);
+      });
+    }catch(error){notice.textContent=error.message;section.querySelector('[data-new]').disabled=true;}
   }
   function saveMeta() {
     try{
@@ -1223,7 +1260,7 @@
     if (tab === 'operations') renderOperationsTab(p);
     if (tab === 'commander') renderCommanderTab(p);
     if (tab === 'research') renderResearchTab(p);
-    if (tab === 'hq') renderHqTab(p);
+    if (tab === 'hq') {renderHqTab(p);renderCampaignControls(p);}
     if (tab === 'inventory') renderInventoryTab(p);
     var dep = id('l137-deploy'); if (dep) dep.onclick = function(){var phase=Math.max(1,Math.min(meta.phase,Math.floor(Number(selectedCampaignPhase)||meta.phase)));launchPhase({phase:phase,replay:phase<=meta.bestPhase,energySpend:campaignEnergySpend()});};
     Array.prototype.forEach.call(p.querySelectorAll('[data-campaign-phase]'),function(button){button.onclick=function(){selectedCampaignPhase=Math.max(1,Math.min(meta.phase,Math.floor(Number(button.dataset.campaignPhase)||meta.phase)));renderTab('campaign');};});
