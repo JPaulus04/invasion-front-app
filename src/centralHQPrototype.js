@@ -1014,12 +1014,13 @@
     document.body.appendChild(result);
     id('l141-continue').onclick = function () {
       if(!run)return;
+      if(run.starTown){returnHome();return;}
       var operation=!!run.operation,won=!!run.won,phase=run.phase,operationLevel=run.operationLevel,operationKind=run.operationKind||'containment';
       id('lsc137-result').classList.remove('show');
       if(operation){if(won)returnHome();else launchPhase({phase:phase,operation:true,operationLevel:operationLevel,operationKind:operationKind,operationRewardEligible:run.operationRewardEligible});}
       else if(run.replay||won)returnHome();else launchPhase({phase:phase});
     };
-    id('l137-retry').onclick = function () { var phase = run && run.phase ? run.phase : meta.phase; id('lsc137-result').classList.remove('show'); launchPhase({phase:phase,replay:phase<=meta.bestPhase}); };
+    id('l137-retry').onclick = function () { if(run&&run.starTown){returnHome();return;}var phase = run && run.phase ? run.phase : meta.phase; id('lsc137-result').classList.remove('show'); launchPhase({phase:phase,replay:phase<=meta.bestPhase}); };
     id('l137-return').onclick = returnHome;
     var up = document.createElement('div');
     up.id = 'hq-upgrade-overlay';
@@ -1037,7 +1038,7 @@
     }
     var pause=document.createElement('div');pause.id='l139-pause';pause.innerHTML='<div class="l139-pause-card"><div class="l137-kicker">BATTLE PAUSED</div><div class="l137-h2">COMMAND MENU</div><div class="l137-actions"><button class="l137-btn good" id="l139-resume">RESUME BATTLE</button><button class="l137-btn" id="l139-restart">RESTART PHASE</button><button class="l137-btn" id="l139-return">RETURN TO COMMAND BASE</button></div><div class="l137-kicker" style="margin-top:16px">SETTINGS</div><div class="l139-setting"><span>Music</span><button class="l137-btn" data-setting="music">ON</button></div><div class="l139-setting"><span>Sound Effects</span><button class="l137-btn" data-setting="sound">ON</button></div><div class="l139-setting"><span>Haptics</span><button class="l137-btn" data-setting="haptics">ON</button></div></div>';document.body.appendChild(pause);
     id('l139-resume').onclick=closePause;
-    id('l139-restart').onclick=function(){if(confirm('Restart this deployment? Campaign restarts commit new energy and current battle progress will be lost.')){var settings=run?{phase:run.phase,replay:!!run.replay,operation:!!run.operation,operationKind:run.operationKind,operationLevel:run.operationLevel,operationRewardEligible:run.operationRewardEligible,restart:true,energySpend:run.energySpend||1}:null;closePause();launchPhase(settings);}};
+    id('l139-restart').onclick=function(){if(confirm('Restart this deployment? Campaign restarts commit new energy and current battle progress will be lost.')){var settings=run?{starTown:run.starTown,phase:run.phase,replay:!!run.replay,operation:!!run.operation,operationKind:run.operationKind,operationLevel:run.operationLevel,operationRewardEligible:run.operationRewardEligible,restart:true,energySpend:run.energySpend||1}:null;closePause();launchPhase(settings);}};
     id('l139-return').onclick=function(){if(confirm('Return to Command Base? Current battle progress will be lost.')){closePause();returnHome();}};
     pause.addEventListener('click',function(e){var b=e.target.closest('[data-setting]');if(!b)return;toggleBattleSetting(b.dataset.setting);});
     syncBattleSettings();
@@ -1224,13 +1225,15 @@
   }
   function renderHqTab(panel){
     if(meta.hq<HQ_LEVEL_CAP){
-      var next=hqDefinition(meta.hq+1),locked=meta.bestPhase<next.phase;
-      panel.innerHTML=upgradePanel('hq','HEADQUARTERS','Expand the physical fortress as enemy strength rises. Higher tiers add heavy walls, autonomous hardpoints, repair infrastructure, and an emergency Last Stand protocol.','UPGRADE TO LEVEL '+next.level+' · '+next.name,locked?'SECURE PHASE '+next.phase+' TO UNLOCK':next.feature);
+      var next=hqDefinition(meta.hq+1),locked=territoryProgress()<next.phase;
+      panel.innerHTML=upgradePanel('hq','HEADQUARTERS','Expand the physical fortress as enemy strength rises. Higher tiers add heavy walls, autonomous hardpoints, repair infrastructure, and an emergency Last Stand protocol.','UPGRADE TO LEVEL '+next.level+' · '+next.name,locked?'SECURE '+next.phase+' TOWNS TO UNLOCK':next.feature);
       return;
     }
     panel.innerHTML='<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">LAST STAND COMMAND</div><div class="l137-copy">The current fortress program is complete. Future Fortifications research can authorize another physical expansion without resetting this structure.</div><section class="l181-hq-max"><div class="l181-hq-emblem">X</div><h3>MAXIMUM HQ LEVEL</h3><div class="l181-hq-max-copy">Both auxiliary batteries, the field repair complex, heavy bulwark, and Last Stand protocol are active.</div><div class="l181-hq-max-stats"><div><b>+775</b><span>HQ CAPACITY</span></div><div><b>+105</b><span>BARRIER CAPACITY</span></div><div><b>10 / 10</b><span>FORTRESS TIERS</span></div></div><div class="l181-hq-max-status">FORTRESS FULLY DEPLOYED</div></section>';
   }
+  function territoryProgress(){return Math.max(meta.bestPhase||0,window.LSCStarTowns?window.LSCStarTowns.held(meta):0);}
   function renderTab(tab,options) {
+    if(tab==='campaign'&&meta.starTowns)tab='reclamation';
     if(reclamationCleanup){reclamationCleanup();reclamationCleanup=null;}
     var app=id('lsc137-app'),operationsMode=tab==='operations',researchMode=tab==='research',campaignMode=tab==='campaign';
     if(app){
@@ -1256,7 +1259,7 @@
       if(!approachReady&&id('l137-deploy')){id('l137-deploy').disabled=false;id('l137-deploy').textContent='CLEAR APPROACH IN WORLD';}
       id('l193-region').onclick=function(){renderTab('reclamation');};
     }
-    if(tab==='reclamation')reclamationCleanup=window.LSCReclamation.mount(p,meta,saveMeta,refreshHeader,function(){selectedCampaignPhase=meta.phase;renderTab('campaign');},function(destination){renderTab(destination);});
+    if(tab==='reclamation')reclamationCleanup=window.LSCStarTowns.mount(p,meta,saveMeta,refreshHeader,function(){renderTab('hq');},function(town,phase){if(availableEnergy()<1)return 'Not enough energy. Recharge or return later.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Power '+currentPower()+' / recommended '+powerAssessment(phase).recommended;});
     if (tab === 'operations') renderOperationsTab(p);
     if (tab === 'commander') renderCommanderTab(p);
     if (tab === 'research') renderResearchTab(p);
@@ -1276,11 +1279,11 @@
   function upgradePanel(type, title, copy, level, status) {
     var cost = levelCost(type);
     var price = cost.parts?resourcePair(cost.credits,cost.parts):resourceMarkup('credits',cost.credits,'CREDITS');
-    var hqLocked=type==='hq'&&meta.bestPhase<hqDefinition(meta.hq+1).phase,maximum=(type==='hq'&&meta.hq>=HQ_LEVEL_CAP)||(type==='commander'&&meta.commander>=COMMANDER_MAX_LEVEL),short = meta.credits < cost.credits || meta.parts < cost.parts;
+    var hqLocked=type==='hq'&&territoryProgress()<hqDefinition(meta.hq+1).phase,maximum=(type==='hq'&&meta.hq>=HQ_LEVEL_CAP)||(type==='commander'&&meta.commander>=COMMANDER_MAX_LEVEL),short = meta.credits < cost.credits || meta.parts < cost.parts;
     return '<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">' + title + '</div><div class="l137-copy">' + copy + '</div><div class="l137-card"><div class="l137-card-row"><div><b>' + level + '</b><small>' + (status||'NEXT UPGRADE COST') + '</small>'+(maximum?'':'<div class="l166-cost" style="justify-content:flex-start;margin-top:4px">'+price+'</div>')+'</div><button class="l137-btn good" id="l137-buy" ' + (maximum||short||hqLocked ? 'disabled' : '') + '>' + (maximum?'MAX LEVEL':hqLocked?'PHASE LOCKED':short ? 'NEED RESOURCES' : 'UPGRADE') + '</button></div></div>';
   }
   function buyUpgrade(type) {
-    if(type==='research'||(type==='hq'&&(meta.hq>=HQ_LEVEL_CAP||meta.bestPhase<hqDefinition(meta.hq+1).phase))||(type==='commander'&&meta.commander>=COMMANDER_MAX_LEVEL))return;
+    if(type==='research'||(type==='hq'&&(meta.hq>=HQ_LEVEL_CAP||territoryProgress()<hqDefinition(meta.hq+1).phase))||(type==='commander'&&meta.commander>=COMMANDER_MAX_LEVEL))return;
     var cost = levelCost(type); if (meta.credits < cost.credits || meta.parts < cost.parts) return;
     meta.credits -= cost.credits; meta.parts -= cost.parts; meta[type]++; saveMeta(); combatSfx('upgrade'); combatHaptic('success',180); renderTab(type);
   }
@@ -1289,10 +1292,11 @@
     var settings=phaseOverride&&typeof phaseOverride==='object'&&!phaseOverride.target?Object.assign({},phaseOverride):{phase:phaseOverride};
     settings.phase=Math.max(1,Number(settings.phase)||meta.phase);
     settings.operation=!!settings.operation;
-    settings.replay=!settings.operation&&(!!settings.replay||settings.phase<=meta.bestPhase);
-    if(!settings.operation&&settings.phase>meta.phase)settings.phase=meta.phase;
+    if(settings.starTown){if(!meta.starTowns||!window.LSCStarTowns.ready(meta,settings.starTown)){if(run)returnHome();else renderTab('reclamation');return;}settings.phase=window.LSCStarTowns.combat(settings.starTown);settings.operation=false;settings.replay=false;settings.energySpend=1;}
+    settings.replay=!settings.starTown&&!settings.operation&&(!!settings.replay||settings.phase<=meta.bestPhase);
+    if(!settings.starTown&&!settings.operation&&settings.phase>meta.phase)settings.phase=meta.phase;
     // Gate BEFORE reserving energy; neither direct deployment nor retry can bypass preparation.
-    if(!settings.operation&&!settings.replay&&!window.LSCReclamation.ready(meta,settings.phase)){
+    if(!settings.starTown&&!settings.operation&&!settings.replay&&!window.LSCReclamation.ready(meta,settings.phase)){
       if(run)returnHome();else renderTab('reclamation');return;
     }
     settings.operationKind=settings.operation&&(settings.operationKind==='junkyard'||settings.operationKind==='containment')?settings.operationKind:settings.operation?activeOperationId():null;
@@ -1321,6 +1325,7 @@
     if(loadMark)loadMark.textContent=settings.operationKind==='junkyard'?'JYD':settings.operation?'OPS':'HQ';
     if(loadTitle)loadTitle.textContent=settings.operationKind==='junkyard'?'DEPLOYING JUNKYARD RECOVERY LEVEL '+settings.operationLevel:settings.operation?'DEPLOYING CONTAINMENT LEVEL '+settings.operationLevel:'DEPLOYING TO '+campaignSectorForPhase(settings.phase).name;
     if(loadCopy)loadCopy.textContent=settings.operationKind==='junkyard'?'LOCATING ARMORED CONVOY TARGET':settings.operation?'ESTABLISHING LEVEL '+settings.operationLevel+' FORWARD LANES':'INITIALIZING COMMAND SYSTEMS';
+    if(settings.starTown&&loadTitle)loadTitle.textContent='DEFEND TOWN '+settings.starTown+' · '+'★'.repeat(window.LSCStarTowns.stars(settings.starTown));
     showBattleLoading();
     run = createRun(settings);setSpeed(1);
     if(window.LSC3DPrototype) window.LSC3DPrototype.start(canvas, run, hideBattleLoading);else hideBattleLoading();
@@ -1333,7 +1338,7 @@
   function createRun(settings) {
     var W = canvas.width || 390, H = canvas.height || 600, s = dpr(), cx = W / 2, cy = H * .52;
     settings=settings||{};
-    var operation=!!settings.operation,operationKind=operation&&settings.operationKind==='junkyard'?'junkyard':operation?'containment':null,junkyard=operationKind==='junkyard',operationLevel=operation?Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(settings.operationLevel)||operationLevelFor(operationKind)))):0,phase=Math.max(1,Number(settings.phase)||meta.phase),baseBalance=phaseBalance(phase),operationScale=operation&&!junkyard?operationDifficulty(operationLevel):null,balance=junkyard?{targets:[1],hp:1,damage:0,bossHp:junkyardVehicleHealth(operationLevel),bossDamage:0,barricadeHp:0}:operation?{targets:operationTargets(operationLevel),hp:operationScale.health,damage:operationScale.damage,bossHp:operationScale.bossHealth,bossDamage:operationScale.bossDamage,barricadeHp:operationScale.barricadeHp}:baseBalance,assist=operation?0:retryAssist(phase),targets=balance.targets.slice(),tech=researchEffects(),gear=equipmentEffects();
+    var operation=!!settings.operation,operationKind=operation&&settings.operationKind==='junkyard'?'junkyard':operation?'containment':null,junkyard=operationKind==='junkyard',operationLevel=operation?Math.max(1,Math.min(OPERATION_LEVEL_GUARD,Math.floor(Number(settings.operationLevel)||operationLevelFor(operationKind)))):0,phase=Math.max(1,Number(settings.phase)||meta.phase),baseBalance=phaseBalance(phase),operationScale=operation&&!junkyard?operationDifficulty(operationLevel):null,balance=junkyard?{targets:[1],hp:1,damage:0,bossHp:junkyardVehicleHealth(operationLevel),bossDamage:0,barricadeHp:0}:operation?{targets:operationTargets(operationLevel),hp:operationScale.health,damage:operationScale.damage,bossHp:operationScale.bossHealth,bossDamage:operationScale.bossDamage,barricadeHp:operationScale.barricadeHp}:baseBalance,assist=operation||settings.starTown?0:retryAssist(phase),targets=balance.targets.slice(),tech=researchEffects(),gear=equipmentEffects();
     var worldScale=(Math.min(W,H)*.54+45*s)/8.2,fortress=hqProfile(meta.hq);
     var barricadeHp=balance.barricadeHp+(meta.hq-1)*10+tech.barrierHp+gear.barrierHp+(!operation?fortress.bonusBarrier:0);
     var lanes=[],layouts=junkyard?[]:operation?OPERATION_LANES:COMPOUND_LANES;
@@ -1368,7 +1373,9 @@
       var vehicle={id:0,variant:'armored-transport',x:cx+JUNKYARD_VEHICLE_PATH.start.x*worldScale,y:cy+JUNKYARD_VEHICLE_PATH.start.y*worldScale,r:36*s,hp:vehicleHp,maxHp:vehicleHp,kind:'vehicle',bossGrade:0,speed:0,damage:0,attackCycle:0,cd:0,age:0,moving:true,waiting:false,engaged:false,targetType:'extraction',lane:null,hit:0,flash:0,aim:vehicleAim};
       created.objectiveVehicle=vehicle;created.enemies.push(vehicle);created.spawned=1;created.assaultSpawned=1;created.bossSpawned=true;created.bossEntityId=vehicle.id;
     }
-    window.LSCReclamation.applyBonuses(meta,created);
+    created.starTown=settings.starTown||null;
+    if(created.starTown){created.competitiveEligible=false;var prep=window.LSCStarTowns.bonuses(meta,created.starTown);created.explorationBonuses=prep;created.hero.damage*=1+prep.damage;created.turret.damage*=1+prep.damage;created.hq.maxHp=Math.round(created.hq.maxHp*(1+prep.hq));created.hq.hp=created.hq.maxHp;created.abilityDamage*=1+prep.artillery;}
+    else window.LSCReclamation.applyBonuses(meta,created);
     return created;
   }
   function canvasRadius(worldRadius){return worldRadius*run.worldScale;}
@@ -1714,8 +1721,9 @@
     combatHaptic(won?'success':'error',300);
     id('hq-upgrade-overlay').classList.remove('show');
     G.state.waveInProgress = false;
+    var starBefore=run.starTown?JSON.stringify(meta):null;
     var clearedPhase = run.phase,operation=!!run.operation,operationKind=operation?(run.operationKind||'containment'):null,operationLevel=operation?run.operationLevel:0,operationRewarded=operation&&won&&!!run.operationRewardEligible&&operationRewardAvailable(),definition=operation?operationDefinition(operationKind):null;
-    var replay=!operation&&!!run.replay,firstClear=!operation&&!replay&&won&&clearedPhase>meta.bestPhase;
+    var replay=!operation&&!!run.replay,firstClear=!operation&&!replay&&won&&(run.starTown?window.LSCStarTowns.ready(meta,run.starTown):clearedPhase>meta.bestPhase);
     var baseCampaignReward=won?BALANCE.campaignBaseCredits(clearedPhase,run.kills):BALANCE.campaignSalvageCredits(clearedPhase,run.kills);
     var reward = operation?(operationRewarded?operationRewardCreditsFor(operationKind,operationLevel):0):(won?(replay?Math.max(1,Math.floor(campaignCreditReward(baseCampaignReward,run.energySpend||1)*CAMPAIGN_REPLAY_CREDIT_RATE)):campaignCreditReward(baseCampaignReward,run.energySpend||1)):replay?0:baseCampaignReward);
     var parts = won?(operation?(operationRewarded?operationRewardPartsFor(operationKind,operationLevel):0):replay?0:BALANCE.campaignParts(clearedPhase,firstClear)):0;
@@ -1734,6 +1742,8 @@
         }
         operationNotice={kind:operationKind,method:'manual',level:operationLevel,nextLevel:operationLevelFor(operationKind),rewarded:operationRewarded,credits:reward,parts:parts};
       }
+    }else if(run.starTown){
+      if(won)window.LSCStarTowns.win(meta,run.starTown);
     }else if (won&&!replay) {
       if(firstClear)window.LSCReclamation.beforeVictory(meta,Date.now());
       meta.bestPhase = Math.max(meta.bestPhase, clearedPhase);
@@ -1742,7 +1752,7 @@
     } else if(!replay) {
       meta.phaseLosses[String(clearedPhase)]=phaseLossCount(clearedPhase)+1;
     }
-    saveMeta();
+    var resultSaved=saveMeta();if(run.starTown&&!resultSaved){run.starSavePending=JSON.stringify(meta);meta=JSON.parse(starBefore);}
     var nextSupport=operation||won?0:retryAssist(clearedPhase),supportCopy=nextSupport>0?' Field support is active for the next paid attempt: enemy health and damage -'+Math.round(nextSupport*100)+'%.':'';
     var nextOperationLevel=operation?operationLevelFor(operationKind):0,vehicle=operationKind==='junkyard'?run.objectiveVehicle:null,vehicleArmor=Math.max(0,Math.ceil(vehicle?vehicle.hp:0)),vehicleArmorPct=vehicle?Math.max(0,Math.ceil(vehicle.hp/Math.max(1,vehicle.maxHp)*100)):0;
     var sectorCleared=!operation&&won&&clearedPhase%5===0,clearedSector=campaignSectorForPhase(clearedPhase),clearedBoss=campaignBossProfile(clearedPhase);
@@ -1756,15 +1766,18 @@
     var survivalLabel=operationKind==='junkyard'?(won?'TARGET DESTROYED · '+formatObjectiveTime(run.objectiveTime)+' REMAINING':'TARGET ESCAPED · '+vehicleArmorPct+'% ARMOR REMAINED'):operation?'FORWARD LINE '+integrity+'% · '+survivingBarriers+'/'+run.lanes.length+' LANES HELD':'HQ INTEGRITY '+integrity+'% · '+survivingBarriers+'/'+run.lanes.length+' BARRIERS SURVIVED';
     var resultMetric=operationKind==='junkyard'?(won?'ARMORED TRANSPORT DESTROYED':formatNumber(vehicleArmor)+' ARMOR REMAINING'):formatNumber(run.kills)+' ENEMIES ELIMINATED';
     var rewardResources=(operation&&(!won||!operationRewarded))||(replay&&!won)?'<div class="l175-no-reward">'+(won?'NO ADDITIONAL RESOURCES':'NO RESOURCES AWARDED')+'</div>':'<div class="l166-reward-resources">'+(parts?resourcePair(reward,parts):resourceMarkup('credits',reward,'CREDITS'))+'</div>';
-    id('l137-result-reward').innerHTML = rewardResources+'<small>'+rewardLabel+'</small><small>'+resultMetric+'</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small class="l167-result-survival">'+survivalLabel+'</small>'+equipmentDropMarkup(equipmentAward)+(!operation&&!replay&&won?campaignTransitionMarkup(clearedPhase):'');
+    id('l137-result-reward').innerHTML = rewardResources+'<small>'+rewardLabel+'</small><small>'+resultMetric+'</small><small>HOLT '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small class="l167-result-survival">'+survivalLabel+'</small>'+(run.starSavePending?'':equipmentDropMarkup(equipmentAward))+(!run.starTown&&!operation&&!replay&&won?campaignTransitionMarkup(clearedPhase):'');
     var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
     id('l141-continue').textContent = operation?(won?'RETURN TO COMMAND BASE':'RETRY '+definition.levelLabel+' '+operationLevel):(replay?'RETURN TO CAMPAIGN':won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+' · NEW ENERGY');
     if(firstClear){id('l141-continue').textContent='EXPLORE THE NEXT TOWN';id('l137-result-copy').textContent+=' Town '+clearedPhase+' liberated. Supply income: +'+window.LSCReclamation.income(meta).rate+' Credits/min. Next: scout for preparation sites, clear the approach, then defend Town '+(clearedPhase+1)+'.';}
+    if(run.starTown){id('l137-result-title').textContent='TOWN '+run.starTown+(won?' SECURED':' DEFENSE FAILED');id('l137-result-copy').textContent=won?'Town connected and secured. Supply network earns '+window.LSCStarTowns.rate(meta)+' Credits/min. Explore outward to choose another town.':'Your connected territory is preserved. Find support or strengthen your HQ before trying again.';id('l141-continue').textContent='RETURN TO FRONTIER';}
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
     id('l137-retry').style.display = !operation&&won ? '' : 'none';
+    if(run.starSavePending){id('l137-result-copy').textContent='Save failed. Keep the app open and tap Retry Save to preserve this result.';id('l141-continue').textContent='RETRY SAVE';}
     id('lsc137-result').classList.add('show');
   }
   function returnHome(){
+    if(run&&run.starSavePending){var oldMeta=meta;meta=JSON.parse(run.starSavePending);if(!saveMeta()){meta=oldMeta;return;}run.starSavePending=null;}
     var destination=run&&run.operation?'operations':'reclamation';
     if(run&&!run.operation&&!run.replay)selectedCampaignPhase=meta.phase;
     closePause();hideBattleLoading();_gameSpeed=1;id('lsc137-result').classList.remove('show');id('lsc137-app').classList.remove('hidden');document.body.classList.remove('lsc137-mode');document.body.classList.remove('l172-operation-mode');document.body.classList.remove('l182-junkyard-mode');var progress=id('l139-progress');if(progress)progress.classList.remove('l168-boss-hud');if(window.LSC3DPrototype)window.LSC3DPrototype.stop();if(run){run.enemies=[];run.corpses=[];run.bullets=[];run.lanes.forEach(function(lane){lane.queue=[];});run.active=false;}run=null;G.state._centralHQMode=false;G.state.waveInProgress=false;renderTab(destination);
@@ -1805,6 +1818,7 @@
     }else{
       if(fill)fill.style.width=pct+'%';
       if(label)label.textContent=(run.bossSpawned&&!run.bossDefeated?(run.operation?'FINAL PUSH · CONTAINMENT LEVEL '+run.operationLevel:'FINAL ASSAULT · '+campaignBossProfile(run.phase).name):(run.operation?'CONTAINMENT LEVEL '+run.operationLevel:'PHASE '+run.phase)+' · ASSAULT '+run.assault+'/3')+' · '+pct+'%'+(run.assist>0?' · SUPPORT '+Math.round(run.assist*100)+'%':'');
+      if(label&&run.starTown)label.textContent='TOWN '+run.starTown+' · '+'★'.repeat(window.LSCStarTowns.stars(run.starTown))+' · '+label.textContent;
       if(count){var barriers=run.lanes.filter(function(lane){return lane.barricade.hp>0;}).length;count.textContent=run.enemies.filter(function(e){return e.hp>0;}).length+' THREATS · '+barriers+'/'+run.lanes.length+(run.operation?' LANES':' BARRIERS');}
       var hqStatus=id('l190-hq-hud');if(hqStatus)hqStatus.classList.remove('show','warning','critical','direct');var battleBadge=id('lsc-3d-badge');if(battleBadge)battleBadge.style.top='calc(env(safe-area-inset-top,0px) + 48px)';run.hqDirectWarning=false;
     }

@@ -76,9 +76,9 @@
       ctx.save();ctx.translate(p.x,p.y);ctx.scale(scale/64,scale/64);
       if(isTown){
         ctx.fillStyle='#797962';ctx.beginPath();ctx.moveTo(-27,-15);ctx.lineTo(-17,-27);ctx.lineTo(18,-24);ctx.lineTo(27,-10);ctx.lineTo(23,21);ctx.lineTo(5,27);ctx.lineTo(-25,18);ctx.closePath();ctx.fill();
-        [[-17,-17,11,13],[1,-18,15,11],[-19,4,12,14],[2,1,16,18]].forEach(function(b){house(ctx,b[0]+noise(t.x,b[1],t.zone)*4-2,b[1]+noise(t.y,b[0],t.zone)*4-2,b[2],b[3],t.zone<=Number(meta.bestPhase)?'#b39263':'#807d68');});
+        [[-17,-17,11,13],[1,-18,15,11],[-19,4,12,14],[2,1,16,18]].forEach(function(b){house(ctx,b[0]+noise(t.x,b[1],t.zone)*4-2,b[1]+noise(t.y,b[0],t.zone)*4-2,b[2],b[3],(api.isSecured?api.isSecured(meta,t.zone):t.zone<=Number(meta.bestPhase))?'#b39263':'#807d68');});
         ctx.fillStyle='#d4c99c';ctx.fillRect(-4,-24,4,48);ctx.fillRect(-25,-2,50,3);
-        ctx.strokeStyle='#d8d1ac';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(19,18);ctx.lineTo(19,-3);ctx.stroke();ctx.fillStyle=t.zone<=Number(meta.bestPhase)?'#79b989':'#e2b967';ctx.fillRect(20,-3,10,6);
+        ctx.strokeStyle='#d8d1ac';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(19,18);ctx.lineTo(19,-3);ctx.stroke();ctx.fillStyle=(api.isSecured?api.isSecured(meta,t.zone):t.zone<=Number(meta.bestPhase))?'#79b989':'#e2b967';ctx.fillRect(20,-3,10,6);
       }else if(t.site==='hill'){
         rocks(ctx,t);ctx.strokeStyle='#aab19a';ctx.lineWidth=.7;ctx.beginPath();ctx.ellipse(0,7,24,13,0,0,Math.PI*2);ctx.stroke();
         if(meta.reclamation&&meta.reclamation.towers&&meta.reclamation.towers[t.id]){
@@ -102,9 +102,10 @@
       // Desaturate every visible but unfinished tile, including its structures and roads.
       // Gold selection / route outlines are UI markers, drawn afterward.
       if(!restored){ctx.save();ctx.globalCompositeOperation='saturation';ctx.fillStyle='#808080';ctx.fillRect(p.x-scale/2,p.y-scale/2,scale,scale);ctx.restore();}
-      if(t.required&&t.zone===api.phase(meta)){ctx.strokeStyle=restored?'#9ab878':'#d9b967';ctx.lineWidth=1.5;ctx.strokeRect(p.x-scale*.47,p.y-scale*.47,scale*.94,scale*.94);}
-      if(scale>42&&(restored||t.required||selected.id===t.id)){
-        var label=isTown?(t.zone<=Number(meta.bestPhase)?'HELD '+t.zone:'TOWN '+t.zone):restored?'✓':api.progress(meta,t)+'/'+t.actions;
+      if(!api.stars&&t.required&&t.zone===api.phase(meta)){ctx.strokeStyle=restored?'#9ab878':'#d9b967';ctx.lineWidth=1.5;ctx.strokeRect(p.x-scale*.47,p.y-scale*.47,scale*.94,scale*.94);}
+      if(scale>42&&(isTown||restored||t.required||selected.id===t.id)){
+        var label=isTown?((api.isSecured?api.isSecured(meta,t.zone):t.zone<=Number(meta.bestPhase))?'HELD '+t.zone:'TOWN '+t.zone):restored?'✓':api.progress(meta,t)+'/'+t.actions;
+        if(isTown&&api.stars){ctx.font='bold 9px system-ui';ctx.textAlign='center';ctx.fillStyle='#142523';ctx.fillRect(p.x-24,p.y-scale*.45,48,13);ctx.fillStyle='#eed681';ctx.fillText('★'.repeat(api.stars(t.zone)),p.x,p.y-scale*.45+10);}
         ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillStyle='#11271dd9';ctx.fillRect(p.x-23,p.y+scale*.28,46,13);ctx.fillStyle='#f1e6bb';ctx.fillText(label,p.x,p.y+scale*.28+10);
       }
       if(selected.id===t.id){ctx.strokeStyle='#ffe7a6';ctx.lineWidth=3;ctx.strokeRect(p.x-scale*.46,p.y-scale*.46,scale*.92,scale*.92);}
