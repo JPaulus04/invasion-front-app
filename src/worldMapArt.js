@@ -27,15 +27,27 @@
         ctx.save();ctx.translate(p.x,p.y);ctx.scale(scale/64,scale/64);
         var type=terrain(t),restored=state==='reclaimed',palette={forest:['#3e613c','#577344'],meadow:['#69764c','#839158'],highland:['#6a7062','#828774'],water:['#285362','#316577'],bank:['#7b7854','#939068']};
         ctx.fillStyle=palette[type][restored?1:0];ctx.fillRect(-32,-32,65,65);
-        // Stable granular ground detail, not a flat colored button.
+        // Soft, globally aligned vegetation patches break up uniform square surfaces.
+        ctx.save();ctx.beginPath();ctx.rect(-32,-32,64,64);ctx.clip();
+        for(var patch=0;patch<5;patch++){
+          var px=noise(t.x,t.y,patch+120)*80-40,py=noise(t.y,t.x,patch+140)*80-40;
+          ctx.fillStyle=patch%2?'rgba(197,205,139,.04)':'rgba(18,44,28,.05)';
+          ctx.beginPath();ctx.ellipse(px,py,18+noise(t.x,t.y,patch)*16,8+noise(t.y,t.x,patch)*12,noise(t.x,t.y,patch+5)*3,0,Math.PI*2);ctx.fill();
+        }
+        ctx.restore();
+        // Stable granular ground detail.
         for(var k=0;k<12;k++){
           ctx.fillStyle=k%2?'rgba(210,216,164,.12)':'rgba(18,38,25,.16)';
           ctx.fillRect(noise(t.x,t.y,k)*62-31,noise(t.y,t.x,k+30)*62-31,type==='water'?8:2,type==='water'?1:2);
         }
+        // A continuous winding channel crosses tile edges; tile ownership stays unchanged.
+        ctx.save();ctx.beginPath();ctx.rect(-32,-32,64,64);ctx.clip();
+        ctx.beginPath();for(var step=0;step<=8;step++){var gy=t.y-.6+step*.15,gx=4+Math.sin(gy*.23)*3+Math.sin(gy*.071)*4;var rx=(gx-t.x)*64,ry=(gy-t.y)*64;if(step===0)ctx.moveTo(rx,ry);else ctx.lineTo(rx,ry);}
+        ctx.strokeStyle='#898563';ctx.lineWidth=56;ctx.stroke();ctx.strokeStyle=restored?'#316577':'#285362';ctx.lineWidth=35;ctx.stroke();ctx.restore();
         if(type==='water'){
           ctx.strokeStyle='#508393';ctx.lineWidth=.6;for(var wave=0;wave<4;wave++){var wy=wave*15-22;ctx.beginPath();ctx.moveTo(-24,wy);ctx.quadraticCurveTo(-8,wy-3,10,wy);ctx.stroke();}
         }else if(!t.site&&t.kind==='grove'&&!t.required){
-          if(type==='forest')for(var tree=0;tree<6;tree++){
+          if(type==='forest')for(var tree=0;tree<4+Math.floor(noise(t.x,t.y,88)*5);tree++){
             var a=noise(t.x,t.y,tree+70)*44-22,b=noise(t.y,t.x,tree+90)*44-20;
             ctx.fillStyle='#263d2c';ctx.beginPath();ctx.ellipse(a+3,b+6,8,4,0,0,Math.PI*2);ctx.fill();
             ctx.fillStyle='#675b3b';ctx.fillRect(a-1,b,2,10);
@@ -43,7 +55,7 @@
             ctx.fillStyle=restored?'#659153':'#5d7950';ctx.beginPath();ctx.moveTo(a,b-14);ctx.lineTo(a,b+4);ctx.lineTo(a-7,b+4);ctx.fill();
           }
           if(type==='highland')rocks(ctx,t);
-          if(type==='meadow'){ctx.strokeStyle='#a09b61';ctx.lineWidth=.8;for(var furrow=0;furrow<5;furrow++){ctx.beginPath();ctx.moveTo(-27,furrow*9-22);ctx.lineTo(25,furrow*9-18);ctx.stroke();}}
+          if(type==='meadow'){ctx.strokeStyle='#a09b61';ctx.lineWidth=.7;for(var tuft=0;tuft<10;tuft++){var tx=noise(t.x,t.y,tuft+170)*54-27,ty=noise(t.y,t.x,tuft+190)*54-27;ctx.beginPath();ctx.moveTo(tx-2,ty-3);ctx.lineTo(tx,ty);ctx.lineTo(tx+2,ty-4);ctx.stroke();}}
         }
         if(!restored){ctx.fillStyle='rgba(25,34,30,.18)';ctx.fillRect(-32,-32,65,65);}
         ctx.restore();
@@ -63,8 +75,8 @@
       var t=v.t,p=v.p,state=v.state,isTown=t.id===v.z.town,restored=state==='reclaimed';
       ctx.save();ctx.translate(p.x,p.y);ctx.scale(scale/64,scale/64);
       if(isTown){
-        ctx.fillStyle='#797962';ctx.fillRect(-25,-24,50,48);
-        [[-17,-17,11,13],[1,-18,15,11],[-19,4,12,14],[2,1,16,18]].forEach(function(b){house(ctx,b[0],b[1],b[2],b[3],t.zone<=Number(meta.bestPhase)?'#b39263':'#807d68');});
+        ctx.fillStyle='#797962';ctx.beginPath();ctx.moveTo(-27,-15);ctx.lineTo(-17,-27);ctx.lineTo(18,-24);ctx.lineTo(27,-10);ctx.lineTo(23,21);ctx.lineTo(5,27);ctx.lineTo(-25,18);ctx.closePath();ctx.fill();
+        [[-17,-17,11,13],[1,-18,15,11],[-19,4,12,14],[2,1,16,18]].forEach(function(b){house(ctx,b[0]+noise(t.x,b[1],t.zone)*4-2,b[1]+noise(t.y,b[0],t.zone)*4-2,b[2],b[3],t.zone<=Number(meta.bestPhase)?'#b39263':'#807d68');});
         ctx.fillStyle='#d4c99c';ctx.fillRect(-4,-24,4,48);ctx.fillRect(-25,-2,50,3);
         ctx.strokeStyle='#d8d1ac';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(19,18);ctx.lineTo(19,-3);ctx.stroke();ctx.fillStyle=t.zone<=Number(meta.bestPhase)?'#79b989':'#e2b967';ctx.fillRect(20,-3,10,6);
       }else if(t.site==='hill'){
