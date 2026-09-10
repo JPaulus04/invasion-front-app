@@ -57,6 +57,8 @@ const CONTROLLER_SCRIPTS = [
   'worldBuilding.js', // Build 204: roads, terrain-constrained production and trade
   'settlement204.js',
   'settlementView204.js',
+  'settlement205.js', // In-place crew and production migration
+  'settlementView205.js', // Crew routes and settlement interface
   'starTowns.js', // Connected, independently defended star towns
   'renderer.js',
   'enemyVisuals.js',      // Build 127+: stronger procedural enemy/contact visuals
@@ -198,7 +200,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'204\';'), 'Build 204 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'205\';'), 'Build 205 config is not present');
 requireMatch(html.includes('root.LSCWorldArt=Object.freeze') && html.indexOf('root.LSCWorldArt=Object.freeze') < html.indexOf('root.LSCReclamation=Object.freeze'), 'World art must be bundled before reclamation');
 requireMatch(html.includes('BALANCE.campaignPressure(run.phase)') && html.includes('campaignPressure: campaignPressure'), 'Campaign pressure integration missing');
 // WORLD and Command Base are fixed body-level siblings; prevent the Build 194 regression.
