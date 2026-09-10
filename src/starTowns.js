@@ -2,8 +2,8 @@
  'use strict';
  var total=81,tiles={},zones=[],memo=null,memoState=null;
  function setup(){if(zones.length)return;for(var n=1;n<=total;n++){var z=root.LSCReclamation.zone(n);zones.push(z);z.tiles=z.tiles.map(function(t){t=Object.assign({},t);if(n<=3){t.cost=Math.min(12,t.cost);if(t.kind==='cache'&&!t.site&&!t.required)t.credits=t.cost*t.actions+60;}tiles[t.id]=t;return t;});}}
- function stars(n){setup();var z=zones[n-1],ring=Math.max(Math.abs(z.x),Math.abs(z.y))/7;return n<=3?1:Math.min(5,Math.max(1,Math.floor(ring)+(n%3===0?1:0)));}
- function combat(n){return n<=3?n:1+(stars(n)-1)*5;}
+ function stars(n,m){if(m&&m.settlementMode===204)return root.LSCSettlement.stars(n);setup();var z=zones[n-1],ring=Math.max(Math.abs(z.x),Math.abs(z.y))/7;return n<=3?1:Math.min(5,Math.max(1,Math.floor(ring)+(n%3===0?1:0)));}
+ function combat(n,m){if(m&&m.settlementMode===204)return root.LSCSettlement.combat(n);return n<=3?n:1+(stars(n)-1)*5;}
  function state(m){return m.starTowns;}
  function complete(m,t){return t&&Number(state(m).progress[t.id])>=t.actions;}
  function network(m){setup();if(memoState===state(m))return memo;var connected=new Set(['0,0']),queue=['0,0'],visible=new Set();
@@ -15,7 +15,7 @@
  }
  function adjacent(m,t){return [[1,0],[-1,0],[0,1],[0,-1]].some(function(d){return network(m).connected.has((t.x+d[0])+','+(t.y+d[1]));});}
  function status(m,t){if(!t||!network(m).visible.has(t.id))return 'fog';return complete(m,t)?'reclaimed':adjacent(m,t)?'available':'locked';}
- function rate(m){return 2+zones.reduce(function(sum,z){return sum+(state(m).secured[z.number]&&network(m).connected.has(z.town)?stars(z.number)*2:0);},0);}
+ function rate(m){if(m.settlementMode===204)return root.LSCSettlement.income(m);return 2+zones.reduce(function(sum,z){return sum+(state(m).secured[z.number]&&network(m).connected.has(z.town)?stars(z.number)*2:0);},0);}
  function earned(m,now){return Math.min(480,Math.max(0,Math.floor(((now||Date.now())-state(m).incomeAt)/60000)))*rate(m);}
  function transact(m,save,fn){var old=state(m),credits=m.credits,parts=m.parts;m.starTowns=JSON.parse(JSON.stringify(old));try{fn(m.starTowns);m.starTowns=JSON.parse(JSON.stringify(m.starTowns));if(save()!==true)throw Error('Save failed');return {ok:true};}catch(e){m.starTowns=old;m.credits=credits;m.parts=parts;return {ok:false,message:e.message};}}
  function initialize(m,save){setup();if(state(m))return opening(m,save);if((m.bestPhase||0)>total)return {ok:false,message:'This first star world supports 81 towns. Your existing campaign remains saved; use New Campaign to try it.'};var old=m.starTowns,oldCredits=m.credits;var s={version:201,progress:Object.assign({},m.reclamation&&m.reclamation.progress),secured:{},towers:Object.assign({},m.reclamation&&m.reclamation.towers),incomeAt:Date.now()};
@@ -26,7 +26,7 @@
   m.credits+=root.LSCReclamation.income(m).credits;m.starTowns=s;try{if(save()!==true)throw Error('Save failed');return opening(m,save);}catch(e){m.credits=oldCredits;if(old===undefined)delete m.starTowns;else m.starTowns=old;return {ok:false,message:'Migration could not be saved. Existing campaign is unchanged.'};}
  }
  function opening(m,save){if(state(m).opening202)return {ok:true};return transact(m,save,function(s){s.opening202=true;if(held(m)<3&&(m.bestPhase||0)<3)m.credits+=2000;});}
- function victoryBonus(m,n){return ready(m,n)&&held(m)<3?600:0;}
+ function victoryBonus(m,n){if(m.settlementMode===204)return 0;return ready(m,n)&&held(m)<3?600:0;}
  function objective(m){
   var buildGoal=root.LSCWorldBuilding&&root.LSCWorldBuilding.guide(m,root.LSCStarTowns);if(buildGoal){if(!buildGoal.tile)return buildGoal;if(status(m,buildGoal.tile)==='reclaimed'||status(m,buildGoal.tile)==='available')return buildGoal;var frontier=[buildGoal.tile],visited=new Set([buildGoal.tile.id]);for(var fi=0;fi<frontier.length;fi++){var ft=frontier[fi];if(status(m,ft)==='available')return {tile:ft,text:buildGoal.text+' Tap here for the next connecting tile.'};[[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){var nt=tiles[(ft.x+d[0])+','+(ft.y+d[1])];if(nt&&!visited.has(nt.id)&&status(m,nt)!=='fog'){visited.add(nt.id);frontier.push(nt);}});}return buildGoal;}
   var candidates=zones.filter(function(z){return !state(m).secured[z.number]&&(z.number<=3||network(m).visible.has(z.town));});
@@ -36,13 +36,13 @@
   var queue=[target.id],seen=new Set(queue),parent={};for(var i=0;i<queue.length;i++){var t=tiles[queue[i]];if(status(m,t)==='available')return {text:'Connect Town '+z.number+' · tap here to locate the next route tile.',tile:t};if(network(m).connected.has(t.id)){var next=parent[t.id];return {text:'Connect Town '+z.number+' · tap here to locate the next route tile.',tile:tiles[next]||target};}[[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){var id=(t.x+d[0])+','+(t.y+d[1]);if(tiles[id]&&!seen.has(id)){seen.add(id);parent[id]=t.id;queue.push(id);}});}
   return {text:'Explore toward Town '+z.number+'.',tile:target};
  }
- function ready(m,n){setup();var z=zones[n-1];return !!z&&!state(m).secured[n]&&network(m).connected.has(z.town);}
+ function ready(m,n){if(m.settlementMode===204)return root.LSCSettlement.ready(m,n);setup();var z=zones[n-1];return !!z&&!state(m).secured[n]&&network(m).connected.has(z.town);}
  function restore(m,id,save){var t=tiles[id];if(status(m,t)!=='available')return {ok:false,message:'Restore a connected neighbor first.'};if(m.credits<t.cost)return {ok:false,message:'Not enough Credits.'};var final=(state(m).progress[id]||0)+1>=t.actions;return transact(m,save,function(s){if(final&&t.required&&root.LSCWorldBuilding)root.LSCWorldBuilding.collect(m,root.LSCStarTowns);m.credits-=t.cost;s.progress[id]=(s.progress[id]||0)+1;if(final&&id!==zones[t.zone-1].town){m.credits+=t.credits;m.parts+=t.parts;}});}
  function scouting(m,t){var count=0;Object.keys(tiles).forEach(function(id){var other=tiles[id];if(Math.max(Math.abs(t.x-other.x),Math.abs(t.y-other.y))<=8&&!network(m).visible.has(id))count++;});return count;}
  function tower(m,id,save){var t=tiles[id];if(!t||t.site!=='hill'||!network(m).connected.has(id)||state(m).towers[id]||!scouting(m,t))return {ok:false,message:'Tower has no new terrain to reveal, or this hill is not connected.'};if(m.credits<75)return {ok:false,message:'Tower requires 75 Credits.'};return transact(m,save,function(s){m.credits-=75;s.towers[id]=true;});}
- function bonuses(m,n){var b={damage:0,hq:0,artillery:0};zones[n-1].tiles.forEach(function(t){if(network(m).connected.has(t.id)){if(t.site==='armory')b.damage=.1;if(t.site==='medical')b.hq=.1;if(t.site==='artillery')b.artillery=.15;}});return b;}
- function win(m,n){if(!ready(m,n))return false;var s=JSON.parse(JSON.stringify(state(m)));m.credits+=earned(m);s.incomeAt=Date.now();s.secured[n]=true;m.starTowns=s;return true;}
- function held(m){return state(m)?Object.keys(state(m).secured).length:0;}
+ function bonuses(m,n){if(m.settlementMode===204)return {damage:0,hq:0,artillery:0};var b={damage:0,hq:0,artillery:0};zones[n-1].tiles.forEach(function(t){if(network(m).connected.has(t.id)){if(t.site==='armory')b.damage=.1;if(t.site==='medical')b.hq=.1;if(t.site==='artillery')b.artillery=.15;}});return b;}
+ function win(m,n){if(m.settlementMode===204)return root.LSCSettlement.win(m,n);if(!ready(m,n))return false;var s=JSON.parse(JSON.stringify(state(m)));m.credits+=earned(m);s.incomeAt=Date.now();s.secured[n]=true;m.starTowns=s;return true;}
+ function held(m){if(m.settlementMode===204)return m.settlement204?Object.keys(m.settlement204.welcomed).length:0;return state(m)?Object.keys(state(m).secured).length:0;}
  function mount(panel,m,save,refresh,back,deploy,power){var init=initialize(m,save);if(!init.ok){panel.textContent=init.message;return function(){};}var selected=tiles['1,0'],camera={x:0,y:0,scale:56},dead=false,hold=null,repeater=null,pointer=null;
   var el=document.createElement('section');el.id='star-world';el.style.cssText='position:fixed;inset:0;z-index:30500;background:#07191d;color:#edf2df;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);font:13px system-ui';
   el.innerHTML='<header style="padding:10px 14px"><b>WORLD · FRONTIER</b><button data-base>BASE</button><div data-wallet></div><button data-objective style="width:100%;text-align:left"></button></header><div style="position:relative;flex:1;min-height:100px;overflow:hidden"><canvas style="width:100%;height:100%;touch-action:none"></canvas><div style="position:absolute;top:8px;right:8px"><button data-minus>−</button><button data-plus>+</button><button data-home>HQ</button><button data-towns>TOWNS</button><button data-build>BUILD</button></div></div><footer style="padding:10px 14px max(10px,env(safe-area-inset-bottom));background:#102a2d;max-height:48vh;overflow:auto"><b data-title></b><p data-copy></p><div data-brief></div><div data-construction style="display:none"></div><button data-range>SCOUTING RANGE</button><button data-action>RESTORE</button><button data-collect>COLLECT</button><p data-message role="status">Explore, restore and build. Roads connect production; defended towns add income.</p></footer>';
