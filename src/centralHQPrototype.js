@@ -1199,6 +1199,7 @@
   function territoryProgress(){return Math.max(meta.bestPhase||0,window.LSCStarTowns?window.LSCStarTowns.held(meta):0);}
   function renderTab(tab,options) {
     if(tab==='campaign'&&meta.starTowns)tab='reclamation';
+    if(tab==='research'&&meta.settlementMode===204)tab='reclamation';
     if(reclamationCleanup){reclamationCleanup();reclamationCleanup=null;}
     var app=id('lsc137-app'),operationsMode=tab==='operations',researchMode=tab==='research',campaignMode=tab==='campaign';
     if(app){
@@ -1211,6 +1212,8 @@
     Array.prototype.forEach.call(id('l137-nav').children, function (b) { b.classList.toggle('active', b.dataset.tab === navigationTab); });
     var p = id('l137-panel'),campaignDock=id('l187-campaign-dock');
     if(campaignDock)campaignDock.innerHTML='';
+    p.classList.toggle('l205-panel',meta.settlementMode===204&&['hq','commander','inventory','operations'].indexOf(tab)>=0);
+    if(!id('l205-panel-style')){var sheetStyle=document.createElement('style');sheetStyle.id='l205-panel-style';sheetStyle.textContent='#l137-panel.l205-panel{position:fixed!important;inset:0!important;z-index:30500!important;width:100%!important;height:100%!important;max-height:none!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 20px)!important;overflow:auto!important;background:#0d262a!important;border:0!important;border-radius:0!important;font-size:15px!important}#l137-panel.l205-panel .l137-copy,#l137-panel.l205-panel small{font-size:13px!important;line-height:1.5!important}#l137-panel.l205-panel .l137-btn{min-height:44px!important;font-size:14px!important}#l137-panel.l205-panel .l205-back{position:sticky;top:0;z-index:5;background:#173d3b;padding:10px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;color:#f2edcf;font:700 15px system-ui}';document.head.appendChild(sheetStyle);}
     if (tab === 'campaign') {
       var selected=Math.max(1,Math.min(meta.phase,Math.floor(Number(selectedCampaignPhase)||meta.phase)));selectedCampaignPhase=selected;
       var replay=selected<=meta.bestPhase,support=!replay?retryAssist(selected):0,supportText=support>0?'<small>RETRY SUPPORT ACTIVE · ENEMY HEALTH AND DAMAGE -'+Math.round(support*100)+'%</small>':'',power=powerAssessment(selected),energy=availableEnergy(),spend=campaignEnergySpend(),baseCredits=victoryRewardPreview(selected),fullCredits=campaignCreditReward(baseCredits,spend),previewCredits=replay?Math.max(1,Math.floor(fullCredits*CAMPAIGN_REPLAY_CREDIT_RATE)):fullCredits,previewParts=replay?0:victoryPartPreview(selected),sector=campaignSectorForPhase(selected),boss=campaignBossProfile(selected);
@@ -1226,12 +1229,13 @@
     }
     if(tab==='reclamation'&&meta.settlementMode===204)reclamationCleanup=window.LSCSettlementView.mount(p,meta,saveMeta,refreshHeader,function(target){renderTab(target);},function(town,phase){if(availableEnergy()<1)return 'Not enough energy.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Recommended power '+powerAssessment(phase).recommended;});
     if(tab==='reclamation'&&meta.settlementMode!==204)reclamationCleanup=window.LSCStarTowns.mount(p,meta,saveMeta,refreshHeader,function(){renderTab('hq');},function(town,phase){if(availableEnergy()<1)return 'Not enough energy. Recharge or return later.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Power '+currentPower()+' / recommended '+powerAssessment(phase).recommended;});
-    if(tab==='reclamation'&&meta.settlementMode!==204){var world=document.getElementById('star-world');if(world){var upgrade=document.createElement('div');upgrade.style.cssText='position:absolute;inset:20% 6% auto;z-index:2;padding:24px;background:#092b30;border:2px solid #d8bd74;border-radius:16px';upgrade.innerHTML='<h3>BUILD 204 · WORKER SETTLEMENTS</h3><p>Your existing world is preserved. Start a separate settlement campaign from Campaigns / HQ to try the new worker economy.</p><button data-start>CAMPAIGNS / HQ</button><button data-classic>CONTINUE THIS WORLD</button>';world.appendChild(upgrade);upgrade.querySelector('[data-start]').onclick=function(){renderTab("hq");};upgrade.querySelector('[data-classic]').onclick=function(){upgrade.remove();};}}
+    if(tab==='reclamation'&&meta.settlementMode!==204){var world=document.getElementById('star-world');if(world){var upgrade=document.createElement('div');upgrade.style.cssText='position:absolute;inset:20% 6% auto;z-index:2;padding:24px;background:#092b30;border:2px solid #d8bd74;border-radius:16px';upgrade.innerHTML='<h3>BUILD 205 · WORKER SETTLEMENTS</h3><p>Your existing world is preserved. Start a separate settlement campaign from Campaigns / HQ to try the new worker economy.</p><button data-start>CAMPAIGNS / HQ</button><button data-classic>CONTINUE THIS WORLD</button>';world.appendChild(upgrade);upgrade.querySelector('[data-start]').onclick=function(){renderTab("hq");};upgrade.querySelector('[data-classic]').onclick=function(){upgrade.remove();};}}
     if (tab === 'operations') renderOperationsTab(p);
     if (tab === 'commander') renderCommanderTab(p);
     if (tab === 'research') renderResearchTab(p);
     if (tab === 'hq') {renderHqTab(p);renderCampaignControls(p);}
     if (tab === 'inventory') renderInventoryTab(p);
+    if(p.classList.contains('l205-panel')){var back=document.createElement('div');back.className='l205-back';var backButton=document.createElement('button');backButton.className='l137-btn';backButton.textContent='← WORLD';backButton.onclick=function(){renderTab('reclamation');};back.appendChild(backButton);var title=document.createElement('span');title.textContent=tab==='inventory'?'EQUIPMENT':tab==='commander'?'COMBAT COMMANDER':tab==='hq'?'SETTLEMENT HQ':'SPECIAL OPERATIONS';back.appendChild(title);p.insertBefore(back,p.firstChild);}
     var dep = id('l137-deploy'); if (dep) dep.onclick = function(){var phase=Math.max(1,Math.min(meta.phase,Math.floor(Number(selectedCampaignPhase)||meta.phase)));launchPhase({phase:phase,replay:phase<=meta.bestPhase,energySpend:campaignEnergySpend()});};
     Array.prototype.forEach.call(p.querySelectorAll('[data-campaign-phase]'),function(button){button.onclick=function(){selectedCampaignPhase=Math.max(1,Math.min(meta.phase,Math.floor(Number(button.dataset.campaignPhase)||meta.phase)));renderTab('campaign');};});
     Array.prototype.forEach.call(p.querySelectorAll('[data-sector-nav]'),function(button){button.onclick=function(){var current=campaignSectorForPhase(selectedCampaignPhase||meta.phase),target=button.dataset.sectorNav==='previous'?Math.max(1,current.start-1):Math.min(meta.phase,current.end+1);selectedCampaignPhase=target;renderTab('campaign');};});
@@ -1741,13 +1745,14 @@
     if(firstClear){id('l141-continue').textContent='EXPLORE THE NEXT TOWN';id('l137-result-copy').textContent+=' Town '+clearedPhase+' liberated. Supply income: +'+window.LSCReclamation.income(meta).rate+' Credits/min. Next: scout for preparation sites, clear the approach, then defend Town '+(clearedPhase+1)+'.';}
     if(run.starTown){id('l137-result-title').textContent='TOWN '+run.starTown+(won?' SECURED':' DEFENSE FAILED');id('l137-result-copy').textContent=won&&meta.settlementMode===204?'Town defended. Connect its road, provide housing and 20 Food, then welcome survivors.':won?'Town connected and secured. Supply network earns '+window.LSCStarTowns.rate(meta)+' Credits/min. Explore outward to choose another town.':'Your connected territory is preserved. Find support or strengthen your HQ before trying again.';id('l141-continue').textContent='RETURN TO FRONTIER';}
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
-    id('l137-retry').style.display = !operation&&won ? '' : 'none';
+    id('l137-retry').style.display = !operation&&won&&!run.starTown ? '' : 'none';
     if(run.starSavePending){id('l137-result-copy').textContent='Save failed. Keep the app open and tap Retry Save to preserve this result.';id('l141-continue').textContent='RETRY SAVE';}
     id('lsc137-result').classList.add('show');
   }
   function returnHome(){
     if(run&&run.starSavePending){var oldMeta=meta;meta=JSON.parse(run.starSavePending);if(!saveMeta()){meta=oldMeta;return;}run.starSavePending=null;}
     var destination=run&&run.operation?'operations':'reclamation';
+    if(run&&run.starTown&&meta.settlementMode===204&&meta.settlement204){var village=window.LSCSettlement.town(run.starTown);if(village)meta.settlement204.focus=village.x+','+village.y;}
     if(run&&!run.operation&&!run.replay)selectedCampaignPhase=meta.phase;
     closePause();hideBattleLoading();_gameSpeed=1;id('lsc137-result').classList.remove('show');id('lsc137-app').classList.remove('hidden');document.body.classList.remove('lsc137-mode');document.body.classList.remove('l172-operation-mode');document.body.classList.remove('l182-junkyard-mode');var progress=id('l139-progress');if(progress)progress.classList.remove('l168-boss-hud');if(window.LSC3DPrototype)window.LSC3DPrototype.stop();if(run){run.enemies=[];run.corpses=[];run.bullets=[];run.lanes.forEach(function(lane){lane.queue=[];});run.active=false;}run=null;G.state._centralHQMode=false;G.state.waveInProgress=false;renderTab(destination);
   }
