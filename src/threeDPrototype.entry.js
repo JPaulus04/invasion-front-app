@@ -129,6 +129,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let junkyardVehicleBlastLight = null;
   let campaignWorldObjects = [];
   const campaignTierGroups = [];
+  const townWorlds = {};
+  const townPalettes = {woodland:[0x547448,0x726343,0x607966],farmland:[0x92944d,0x89744f,0x839078],industrial:[0x666b66,0x454c4e,0x656e73],highland:[0x818a77,0x626964,0x819292],river:[0x658064,0x969581,0x758c91],harbor:[0x77775d,0x948666,0x5e8993]};
   const campaignDamageGroups = [];
   const campaignAtmosphere = [];
   let campaignGroundMaterial = null;
@@ -682,6 +684,43 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     });
   }
 
+  // Reusable decorative sets, built once. Low props occupy corner pockets away
+  // from the eight fixed approach paths; no scenery changes collision geometry.
+  function buildTownWorlds() {
+    Object.keys(townPalettes).forEach(theme => {
+      const group = new THREE.Group(); group.name = `Town environment · ${theme}`;
+      group.visible = false; staticGroup.add(group); townWorlds[theme] = group;
+      [[-10,-13],[10,-13],[-10,13],[10,13]].forEach(([x,z], index) => {
+        if (theme === 'woodland') {
+          box('Village cottage', [2.5,1.15,2], [x,.58,z], 0xc1b28a, group);
+          box('Cottage roof', [2.8,.28,2.3], [x,1.3,z], index%2?0x945d42:0x537575, group);
+          shapedMesh('Fir crown', new THREE.ConeGeometry(.85,1.8,6), [x+(x>0?2:-2),1.3,z], 0x35663f, group);
+          box('Garden fence', [3,.5,.16], [x,.25,z+(z>0?-1.5:1.5)], 0xa08a61, group);
+        } else if (theme === 'farmland') {
+          box('Cultivated field', [4,.06,3], [x,.04,z], 0x6e5835, group);
+          for(let row=0;row<5;row++) box('Golden crop row', [3.6,.22,.16], [x,.18,z-1+row*.5], 0xc5b552, group);
+          box('Farm fence', [4,.4,.12], [x,.2,z+(z>0?-1.6:1.6)], 0xb0a181, group);
+          if(index===0){box('Farm store', [1.5,1.2,1.5], [x-2.5,.6,z], 0xaa7048, group);}
+        } else if (theme === 'industrial') {
+          box('Freight container', [3.5,1.1,1.5], [x,.55,z], index%2?0xa36342:0x538084, group);
+          box('Scrap stack', [1.5,.6,1.1], [x+1,.3,z+1.4], 0x63696c, group);
+          shapedMesh('Fuel drum', new THREE.CylinderGeometry(.4,.4,.9,8), [x-1,.45,z+1.4], 0xa58a49, group);
+        } else if (theme === 'highland') {
+          for(let i=0;i<3;i++) shapedMesh('Rock outcrop', new THREE.DodecahedronGeometry(.75+i*.1,0), [x+(i-1)*1.2,.45,z+(i%2)*.9], i%2?0x989b86:0x6c7c72, group);
+          box('Hill watch wall', [3,.55,.6], [x,.28,z-1.4], 0xb2ad8d, group);
+        } else {
+          box(theme==='harbor'?'Harbor water':'River bend', [5,.035,4], [x,.03,z], 0x337f96, group);
+          box(theme==='harbor'?'Timber dock':'Stone crossing', [3.7,.18,1], [x,.14,z], theme==='harbor'?0xb09869:0xa7ad98, group);
+          if(theme==='harbor'){
+            box('Cargo crate', [.8,.65,.8], [x-1,.55,z], 0xb7914b, group);
+            box('Cargo stack', [.7,.9,.7], [x+1,.65,z], 0x708c84, group);
+            box('Mooring post', [.16,1,.16], [x+1.7,.5,z+.4], 0x786348, group);
+          } else box('Riverside stone wall', [3,.55,.4], [x,.28,z+2.4], 0xa0a78d, group);
+        }
+      });
+    });
+  }
+
   function buildWorld() {
     scene.add(staticGroup);
 
@@ -710,6 +749,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     staticGroup.add(eastWest);
 
     buildCampaignWorldTiers();
+    buildTownWorlds();
 
     box('HQ foundation', [3.7, .28, 3.2], [0, .14, 0], 0x26342e);
     commandBastionGroup = new THREE.Group();
@@ -974,12 +1014,15 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   }
 
   function syncCampaignWorld(run, dt) {
+    Object.keys(townWorlds).forEach(theme => { townWorlds[theme].visible = !!(run && !run.operation && run.townProfile && run.townProfile.theme === theme); });
     if (!run || run.operation) return;
+    const town = run.townProfile;
     const tier = campaignTierForPhase(run.phase);
     const assault = Math.max(1, Math.min(3, Number(run.assault) || 1));
-    campaignTierGroups.forEach((group, index) => { group.visible = index === tier - 1; });
+    campaignTierGroups.forEach((group, index) => { group.visible = !town && index === tier - 1; });
     campaignDamageGroups.forEach((group, index) => { group.visible = assault >= index + 2; });
-    const palette = tier === 3
+    const colors = town && townPalettes[town.theme];
+    const palette = colors ? {ground:colors[0],road:colors[1],sky:colors[2],near:31,far:52} : tier === 3
       ? { ground: 0x343638, road: 0x272a2c, sky: 0x303438, near: 25, far: 45 }
       : tier === 2
         ? { ground: 0x3d4238, road: 0x2d312e, sky: 0x363c35, near: 28, far: 48 }
@@ -998,7 +1041,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     });
     if (displayedCampaignTier !== tier || badge) {
       const alert = run.bossSpawned && !run.bossDefeated ? ` · ${campaignBossLabel(run.phase)}` : assault === 3 ? ' · FINAL ASSAULT' : '';
-      setBadgeText(`PHASE ${run.phase} · ${campaignSectorLabel(run.phase)}${alert}`);
+      setBadgeText(town ? `${town.name.toUpperCase()} · ${'★'.repeat(town.stars)}${alert}` : `PHASE ${run.phase} · ${campaignSectorLabel(run.phase)}${alert}`);
       displayedCampaignTier = tier;
     }
   }

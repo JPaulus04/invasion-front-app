@@ -1302,7 +1302,7 @@
     if(loadMark)loadMark.textContent=settings.operationKind==='junkyard'?'JYD':settings.operation?'OPS':'HQ';
     if(loadTitle)loadTitle.textContent=settings.operationKind==='junkyard'?'DEPLOYING JUNKYARD RECOVERY LEVEL '+settings.operationLevel:settings.operation?'DEPLOYING CONTAINMENT LEVEL '+settings.operationLevel:'DEPLOYING TO '+campaignSectorForPhase(settings.phase).name;
     if(loadCopy)loadCopy.textContent=settings.operationKind==='junkyard'?'LOCATING ARMORED CONVOY TARGET':settings.operation?'ESTABLISHING LEVEL '+settings.operationLevel+' FORWARD LANES':'INITIALIZING COMMAND SYSTEMS';
-    if(settings.starTown&&loadTitle)loadTitle.textContent='DEFEND TOWN '+settings.starTown+' · '+'★'.repeat(window.LSCStarTowns.stars(settings.starTown,meta));
+    if(settings.starTown&&loadTitle)loadTitle.textContent='DEFEND '+(meta.settlementMode===204?window.LSCSettlement.town(settings.starTown).name:'TOWN '+settings.starTown)+' · '+'★'.repeat(window.LSCStarTowns.stars(settings.starTown,meta));
     showBattleLoading();
     run = createRun(settings);setSpeed(1);
     if(window.LSC3DPrototype) window.LSC3DPrototype.start(canvas, run, hideBattleLoading);else hideBattleLoading();
@@ -1351,6 +1351,7 @@
       created.objectiveVehicle=vehicle;created.enemies.push(vehicle);created.spawned=1;created.assaultSpawned=1;created.bossSpawned=true;created.bossEntityId=vehicle.id;
     }
     created.starTown=settings.starTown||null;
+    created.townProfile=created.starTown&&meta.settlementMode===204?window.LSCSettlement.townProfile(created.starTown):null;
     if(created.starTown){created.competitiveEligible=false;var prep=window.LSCStarTowns.bonuses(meta,created.starTown);created.explorationBonuses=prep;created.hero.damage*=1+prep.damage;created.turret.damage*=1+prep.damage;created.hq.maxHp=Math.round(created.hq.maxHp*(1+prep.hq));created.hq.hp=created.hq.maxHp;created.abilityDamage*=1+prep.artillery;}
     else window.LSCReclamation.applyBonuses(meta,created);
     return created;
@@ -1749,7 +1750,7 @@
     var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
     id('l141-continue').textContent = operation?(won?'RETURN TO COMMAND BASE':'RETRY '+definition.levelLabel+' '+operationLevel):(replay?'RETURN TO CAMPAIGN':won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+' · NEW ENERGY');
     if(firstClear){id('l141-continue').textContent='EXPLORE THE NEXT TOWN';id('l137-result-copy').textContent+=' Town '+clearedPhase+' liberated. Supply income: +'+window.LSCReclamation.income(meta).rate+' Credits/min. Next: scout for preparation sites, clear the approach, then defend Town '+(clearedPhase+1)+'.';}
-    if(run.starTown){id('l137-result-title').textContent='TOWN '+run.starTown+(won?' SECURED':' DEFENSE FAILED');id('l137-result-copy').textContent=won&&meta.settlementMode===204?'Town defended. Connect its road, provide housing and 20 Food, then welcome survivors.':won?'Town connected and secured. Supply network earns '+window.LSCStarTowns.rate(meta)+' Credits/min. Explore outward to choose another town.':'Your connected territory is preserved. Find support or strengthen your HQ before trying again.';id('l141-continue').textContent='RETURN TO FRONTIER';}
+    if(run.starTown){id('l137-result-title').textContent=(run.townProfile?run.townProfile.name.toUpperCase():'TOWN '+run.starTown)+(won?' SECURED':' DEFENSE FAILED');id('l137-result-copy').textContent=won&&meta.settlementMode===204?'Town defended. Connect its road, provide housing and 20 Food, then welcome survivors.':won?'Town connected and secured. Supply network earns '+window.LSCStarTowns.rate(meta)+' Credits/min. Explore outward to choose another town.':(run.townProfile?run.townProfile.name+' · '+run.townProfile.stars+' stars. '+run.townProfile.threat+'. Your settlement is preserved. Equip stronger gear from the settlement menu, or research Defense Drills and Field Fortifications before retrying.':'Your connected territory is preserved. Find support or strengthen your HQ before trying again.');id('l141-continue').textContent='RETURN TO FRONTIER';}
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
     id('l137-retry').style.display = !operation&&won&&!run.starTown ? '' : 'none';
     if(run.starSavePending){id('l137-result-copy').textContent='Save failed. Keep the app open and tap Retry Save to preserve this result.';id('l141-continue').textContent='RETRY SAVE';}
@@ -1798,7 +1799,7 @@
     }else{
       if(fill)fill.style.width=pct+'%';
       if(label)label.textContent=(run.bossSpawned&&!run.bossDefeated?(run.operation?'FINAL PUSH · CONTAINMENT LEVEL '+run.operationLevel:'FINAL ASSAULT · '+campaignBossProfile(run.phase).name):(run.operation?'CONTAINMENT LEVEL '+run.operationLevel:'PHASE '+run.phase)+' · ASSAULT '+run.assault+'/3')+' · '+pct+'%'+(run.assist>0?' · SUPPORT '+Math.round(run.assist*100)+'%':'');
-      if(label&&run.starTown)label.textContent='TOWN '+run.starTown+' · '+'★'.repeat(window.LSCStarTowns.stars(run.starTown,meta))+' · '+label.textContent;
+      if(label&&run.starTown)label.textContent=(run.townProfile?run.townProfile.name.toUpperCase():'TOWN '+run.starTown)+' · '+'★'.repeat(window.LSCStarTowns.stars(run.starTown,meta))+' · '+label.textContent;
       if(count){var barriers=run.lanes.filter(function(lane){return lane.barricade.hp>0;}).length;count.textContent=run.enemies.filter(function(e){return e.hp>0;}).length+' THREATS · '+barriers+'/'+run.lanes.length+(run.operation?' LANES':' BARRIERS');}
       var hqStatus=id('l190-hq-hud');if(hqStatus)hqStatus.classList.remove('show','warning','critical','direct');var battleBadge=id('lsc-3d-badge');if(battleBadge)battleBadge.style.top='calc(env(safe-area-inset-top,0px) + 48px)';run.hqDirectWarning=false;
     }
@@ -1812,6 +1813,11 @@
   }
   function chooseEnemyKind(assault){
     var roll=Math.random();
+    if(run.townProfile){var theme=run.townProfile.theme;
+      if(theme==='farmland'||theme==='harbor')return roll<(assault===1?.28:.35)?'runner':assault>1&&roll>.88?'armored':'grunt';
+      if(theme==='industrial')return roll<(assault===1?.12:assault===2?.25:.33)?'armored':roll>.87?'runner':'grunt';
+      if(theme==='highland')return roll<(assault===1?.1:.25)?'armored':roll>.73?'runner':'grunt';
+    }
     if(assault===1)return roll>.82?'runner':'grunt';
     if(assault===2)return roll<.18?'armored':roll>.78?'runner':'grunt';
     return roll<.27?'armored':roll>.78?'runner':'grunt';
