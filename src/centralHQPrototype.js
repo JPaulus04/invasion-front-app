@@ -798,7 +798,7 @@
   function levelCost(type) {
     if (type === 'commander') return { credits: 170 + 90 * meta.commander, parts: meta.commander>=10?2:meta.commander>=5?1:0 };
     if (type === 'research') return { credits: 300, parts: 5 };
-    return hqDefinition(Math.min(HQ_LEVEL_CAP,meta.hq+1)).cost;
+    return hqUpgradeCost(Math.min(HQ_LEVEL_CAP,meta.hq+1));
   }
 
   function installStyles() {
@@ -1188,13 +1188,30 @@
     var header='<header class="l177-ops-header"><div class="l177-ops-nav"><button class="l137-btn l176-ops-back l177-ops-back" id="l176-ops-back" aria-label="Return to Command Base">← COMMAND BASE</button><div class="l177-ops-status"><b>'+definition.short+' · LEVEL '+level+'</b>'+(rewardOpen?'DAILY REWARD READY':'DAILY REWARD CLAIMED')+'</div></div><div class="l177-ops-heading"><div class="l137-kicker">SPECIAL OPERATIONS · DAILY LADDER</div><div class="l137-h2">'+definition.name+'</div><div class="l137-copy">'+definition.objective+'</div></div><div class="l177-ops-resources"><div class="l177-ops-resource">'+resourceMarkup('power',currentPower(),'POWER')+'</div><div class="l177-ops-resource">'+resourceMarkup('credits',meta.credits,'CREDITS')+'</div><div class="l177-ops-resource">'+resourceMarkup('parts',meta.parts,'TECH PARTS')+'</div></div></header>';
     panel.innerHTML='<div class="l177-ops-screen l182-'+kind+'-screen">'+header+'<div class="l182-rotation"><span>ACTIVE TODAY</span><b>'+definition.name+'</b><i>ROTATES NEXT: '+nextDefinition.name+'</i></div><section class="l171-operation-card l182-operation-card '+kind+'"><div class="l137-kicker">CURRENT OPERATION</div><h3>'+definition.levelLabel+' '+level+'</h3><p>'+definition.objective+'</p>'+notice+objectiveStrip+'<div class="l175-operation-grid"><div><span>CURRENT POWER</span><b>'+currentPower()+'</b></div><div><span>RECOMMENDED</span><b>'+autoClear.recommended+'</b></div><div><span>BEST MANUAL</span><b>LEVEL '+manualBest+'</b></div></div><div class="l171-operation-state"><span>'+rewardMarkup+'</span><span>LEVEL '+level+' DAILY REWARD<br>'+rewardState+'<br>NEXT LEVEL '+nextLevel+' · '+formatNumber(nextCredits)+' CREDITS</span></div><div class="l175-operation-actions"><button class="l137-btn good" id="l171-operation" '+(operationOpen?'':'disabled')+'>'+(operationOpen?'DEPLOY LEVEL '+level:'LEVEL '+level+' REWARD CLAIMED')+'</button><button class="l137-btn" id="l175-auto-clear" '+(autoClear.available?'':'disabled')+'>'+autoLabel+'</button></div><div class="l175-auto-copy">AUTO-CLEAR REQUIRES A MANUAL CLEAR OF THE PREVIOUS '+definition.short+' LEVEL AND '+autoClear.required+' POWER. IT ADVANCES ONE LEVEL AND USES THE SAME DAILY REWARD CLAIM.</div></section><div class="l176-ops-summary">OPERATIONS ROTATE AT LOCAL MIDNIGHT · CAMPAIGN ENERGY IS NEVER CONSUMED · ONE SHARED REWARDED CLEAR PER DAY</div></div>';
   }
+  // Settlement unlocks count permanent integration milestones, not legacy phases.
+  function hqGate(level){
+    var next=hqDefinition(level),settlement=meta.settlementMode===204;
+    var required=settlement?([0,0,0,0,0,4,6,8,10,12][next.level-1]):next.phase;
+    var current=settlement?(meta.settlement204?Object.keys(meta.settlement204.welcomed||{}).filter(function(n){return !!meta.settlement204.welcomed[n]&&!!window.LSCSettlement.town(n);}).length:0):territoryProgress();
+    return {ok:current>=required,current:current,required:required,remaining:Math.max(0,required-current),label:settlement?'integrated towns':'campaign progress'};
+  }
+  function hqUpgradeCost(level){
+    var cost=hqDefinition(level).cost;
+    if(meta.settlementMode!==204)return cost;
+    return {credits:cost.credits,parts:0,materials:[0,0,0,0,0,120,160,220,300,400][level-1]};
+  }
+  function upgradeAffordable(cost){return meta.credits>=cost.credits&&(meta.parts||0)>=(cost.parts||0)&&(!cost.materials||!!meta.settlement204&&meta.settlement204.materials>=cost.materials);}
   function renderHqTab(panel){
+    var settlement=meta.settlementMode===204;
     if(meta.hq<HQ_LEVEL_CAP){
-      var next=hqDefinition(meta.hq+1),locked=territoryProgress()<next.phase;
-      panel.innerHTML=upgradePanel('hq','HEADQUARTERS','Expand the physical fortress as enemy strength rises. Higher tiers add heavy walls, autonomous hardpoints, repair infrastructure, and an emergency Last Stand protocol.','UPGRADE TO LEVEL '+next.level+' · '+next.name,locked?'SECURE '+next.phase+' TOWNS TO UNLOCK':next.feature);
-      return;
+      var next=hqDefinition(meta.hq+1),gate=hqGate(next.level);
+      panel.innerHTML=upgradePanel('hq','HEADQUARTERS','Permanent upgrades strengthen the command post used in town defenses. Your purchased levels remain active.','UPGRADE TO LEVEL '+next.level+' · '+next.name,next.feature);
+      panel.insertAdjacentHTML('beforeend','<p class="l137-copy"><b>UNLOCK PROGRESS: '+gate.current+' / '+gate.required+' '+gate.label+'</b><br>'+(gate.ok?'Milestone complete. Pay the displayed cost to upgrade.':settlement?'Defend a town, connect it to your supply network, then provide housing and 20 Food to welcome its survivors. Discovery or defense alone does not count.':'Continue your campaign to reach this milestone.')+'</p>');
+    }else panel.innerHTML='<div class="l137-h2">MAXIMUM HQ LEVEL · 10 / 10</div><p class="l137-copy">All fortress tiers purchased. Both auxiliary batteries, field repairs and the Last Stand protocol remain active.</p><p class="l137-copy">FORTRESS FULLY DEPLOYED</p>';
+    if(settlement){
+      panel.insertAdjacentHTML('beforeend','<p class="l137-copy">AVAILABLE: '+Math.floor(meta.credits)+' Credits · '+Math.floor(meta.settlement204?meta.settlement204.materials:0)+' Materials. Connected workshops supply Materials. Connected, integrated towns supply Credit income. Tech Parts are still used for commander training.</p><h3>FORTRESS PROGRESSION</h3>');
+      HQ_LEVELS.filter(function(n){return n.level>=6;}).forEach(function(n){var gate=hqGate(n.level),cost=hqUpgradeCost(n.level);panel.insertAdjacentHTML('beforeend','<section class="l137-card"><b>LEVEL '+n.level+' · '+n.name+'</b><p class="l137-copy">'+n.feature+'<br>'+(meta.hq>=n.level?'✓ PURCHASED — ACTIVE':gate.current+' / '+gate.required+' integrated towns · '+cost.credits+' Credits + '+cost.materials+' Materials'+(meta.hq+1<n.level?' · purchase earlier tiers first':''))+'</p></section>');});
     }
-    panel.innerHTML='<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">LAST STAND COMMAND</div><div class="l137-copy">The current fortress program is complete. Future Fortifications research can authorize another physical expansion without resetting this structure.</div><section class="l181-hq-max"><div class="l181-hq-emblem">X</div><h3>MAXIMUM HQ LEVEL</h3><div class="l181-hq-max-copy">Both auxiliary batteries, the field repair complex, heavy bulwark, and Last Stand protocol are active.</div><div class="l181-hq-max-stats"><div><b>+775</b><span>HQ CAPACITY</span></div><div><b>+105</b><span>BARRIER CAPACITY</span></div><div><b>10 / 10</b><span>FORTRESS TIERS</span></div></div><div class="l181-hq-max-status">FORTRESS FULLY DEPLOYED</div></section>';
   }
   function territoryProgress(){return Math.max(meta.bestPhase||0,window.LSCStarTowns?window.LSCStarTowns.held(meta):0);}
   function renderTab(tab,options) {
@@ -1232,13 +1249,13 @@
       if(!approachReady&&id('l137-deploy')){id('l137-deploy').disabled=false;id('l137-deploy').textContent='CLEAR APPROACH IN WORLD';}
       id('l193-region').onclick=function(){renderTab('reclamation');};
     }
-    if(tab==='reclamation'&&meta.settlementMode===204)reclamationCleanup=window.LSCSettlementView.mount(p,meta,saveMeta,refreshHeader,function(target){renderTab(target);},function(town,phase){if(availableEnergy()<1)return 'Not enough energy.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Recommended power '+powerAssessment(phase).recommended;});
+    if(tab==='reclamation'&&meta.settlementMode===204)reclamationCleanup=window.LSCSettlementView.mount(p,meta,saveMeta,refreshHeader,function(target){renderTab(target);},function(town,phase){if(availableEnergy()<1)return 'Not enough energy.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Your power '+currentPower()+' / recommended '+powerAssessment(phase).recommended;});
     if(tab==='reclamation'&&meta.settlementMode!==204)reclamationCleanup=window.LSCStarTowns.mount(p,meta,saveMeta,refreshHeader,function(){renderTab('hq');},function(town,phase){if(availableEnergy()<1)return 'Not enough energy. Recharge or return later.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Power '+currentPower()+' / recommended '+powerAssessment(phase).recommended;});
     if(tab==='reclamation'&&meta.settlementMode!==204){var world=document.getElementById('star-world');if(world){var upgrade=document.createElement('div');upgrade.style.cssText='position:absolute;inset:20% 6% auto;z-index:2;padding:24px;background:#092b30;border:2px solid #d8bd74;border-radius:16px';upgrade.innerHTML='<h3>BUILD 206 · WORKER SETTLEMENTS</h3><p>Your existing world is preserved. Start a separate settlement campaign from Campaigns / HQ to try the new worker economy.</p><button data-start>CAMPAIGNS / HQ</button><button data-classic>CONTINUE THIS WORLD</button>';world.appendChild(upgrade);upgrade.querySelector('[data-start]').onclick=function(){renderTab("hq");};upgrade.querySelector('[data-classic]').onclick=function(){upgrade.remove();};}}
     if (tab === 'operations') renderOperationsTab(p);
     if (tab === 'commander') renderCommanderTab(p);
     if (tab === 'research') renderResearchTab(p);
-    if (tab === 'hq') {renderHqTab(p);renderCampaignControls(p);}
+    if (tab === 'hq') {renderHqTab(p);if(meta.settlementMode!==204)renderCampaignControls(p);}
     if (tab === 'campaigns') {p.innerHTML='';renderCampaignControls(p);}
     if (tab === 'inventory') renderInventoryTab(p);
     if(p.classList.contains('l205-panel')){var back=document.createElement('div');back.className='l205-back';var backButton=document.createElement('button');backButton.className='l137-btn';backButton.textContent='← WORLD';backButton.onclick=function(){renderTab('reclamation');};back.appendChild(backButton);var title=document.createElement('span');title.textContent=tab==='campaigns'?'SAVED CAMPAIGNS':tab==='inventory'?'EQUIPMENT':tab==='commander'?'COMBAT COMMANDER':tab==='hq'?'SETTLEMENT HQ':'SPECIAL OPERATIONS';back.appendChild(title);p.insertBefore(back,p.firstChild);}
@@ -1256,13 +1273,20 @@
   function upgradePanel(type, title, copy, level, status) {
     var cost = levelCost(type);
     var price = cost.parts?resourcePair(cost.credits,cost.parts):resourceMarkup('credits',cost.credits,'CREDITS');
-    var hqLocked=type==='hq'&&territoryProgress()<hqDefinition(meta.hq+1).phase,maximum=(type==='hq'&&meta.hq>=HQ_LEVEL_CAP)||(type==='commander'&&meta.commander>=COMMANDER_MAX_LEVEL),short = meta.credits < cost.credits || meta.parts < cost.parts;
-    return '<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">' + title + '</div><div class="l137-copy">' + copy + '</div><div class="l137-card"><div class="l137-card-row"><div><b>' + level + '</b><small>' + (status||'NEXT UPGRADE COST') + '</small>'+(maximum?'':'<div class="l166-cost" style="justify-content:flex-start;margin-top:4px">'+price+'</div>')+'</div><button class="l137-btn good" id="l137-buy" ' + (maximum||short||hqLocked ? 'disabled' : '') + '>' + (maximum?'MAX LEVEL':hqLocked?'PHASE LOCKED':short ? 'NEED RESOURCES' : 'UPGRADE') + '</button></div></div>';
+    if(cost.materials)price+=' <span>+ '+cost.materials+' MATERIALS</span>';
+    var hqLocked=type==='hq'&&!hqGate(meta.hq+1).ok,maximum=(type==='hq'&&meta.hq>=HQ_LEVEL_CAP)||(type==='commander'&&meta.commander>=COMMANDER_MAX_LEVEL),short = !upgradeAffordable(cost);
+    return '<div class="l137-kicker">PERMANENT UPGRADE</div><div class="l137-h2">' + title + '</div><div class="l137-copy">' + copy + '</div><div class="l137-card"><div class="l137-card-row"><div><b>' + level + '</b><small>' + (status||'NEXT UPGRADE COST') + '</small>'+(maximum?'':'<div class="l166-cost" style="justify-content:flex-start;margin-top:4px">'+price+'</div>')+'</div><button class="l137-btn good" id="l137-buy" ' + (maximum||short||hqLocked ? 'disabled' : '') + '>' + (maximum?'MAX LEVEL':hqLocked?(meta.settlementMode===204?'INTEGRATE '+hqGate(meta.hq+1).remaining+' MORE':'PROGRESSION LOCKED'):short ? 'NEED RESOURCES' : 'UPGRADE') + '</button></div></div>';
   }
   function buyUpgrade(type) {
-    if(type==='research'||(type==='hq'&&(meta.hq>=HQ_LEVEL_CAP||territoryProgress()<hqDefinition(meta.hq+1).phase))||(type==='commander'&&meta.commander>=COMMANDER_MAX_LEVEL))return;
-    var cost = levelCost(type); if (meta.credits < cost.credits || meta.parts < cost.parts) return;
-    meta.credits -= cost.credits; meta.parts -= cost.parts; meta[type]++; saveMeta(); combatSfx('upgrade'); combatHaptic('success',180); renderTab(type);
+    if(['hq','commander'].indexOf(type)<0)return;
+    if(type==='hq'&&(meta.hq>=HQ_LEVEL_CAP||!hqGate(meta.hq+1).ok)||type==='commander'&&meta.commander>=COMMANDER_MAX_LEVEL)return;
+    var cost=levelCost(type);if(!upgradeAffordable(cost))return;
+    var before={credits:meta.credits,parts:meta.parts,level:meta[type],materials:meta.settlement204&&meta.settlement204.materials};
+    meta.credits-=cost.credits;meta.parts-=cost.parts||0;if(cost.materials)meta.settlement204.materials-=cost.materials;meta[type]++;
+    var saved=false;try{saved=saveMeta()===true;}catch(e){saved=false;}
+    if(!saved){meta.credits=before.credits;meta.parts=before.parts;meta[type]=before.level;if(meta.settlement204)meta.settlement204.materials=before.materials;renderTab(type);var message=document.createElement('p');message.className='l137-copy';message.setAttribute('role','alert');message.textContent='Upgrade could not save. Resources and level are unchanged. Please try again.';id('l137-panel').insertBefore(message,id('l137-panel').firstChild);return;}
+    if(cost.materials)window.LSCSettlement.rebalance(meta);
+    combatSfx('upgrade');combatHaptic('success',180);renderTab(type);
   }
 
   function launchPhase(phaseOverride) {
