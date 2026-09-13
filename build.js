@@ -200,7 +200,7 @@ html = html.replace('<script src="src/centralHQPrototype.js"></script>', '');
 
 requireMatch(!html.includes('<script src="src/main.js"></script>'), 'game scripts were not bundled');
 requireMatch(!html.includes('<script src="src/centralHQPrototype.js"></script>'), 'prototype script was not bundled');
-requireMatch(html.includes('const LSC_BUILD = \'218\';'), 'Build 218 config is not present');
+requireMatch(html.includes('const LSC_BUILD = \'219\';'), 'Build 219 config is not present');
 requireMatch(html.includes('root.LSCWorldArt=Object.freeze') && html.indexOf('root.LSCWorldArt=Object.freeze') < html.indexOf('root.LSCReclamation=Object.freeze'), 'World art must be bundled before reclamation');
 requireMatch(html.includes('BALANCE.campaignPressure(run.phase)') && html.includes('campaignPressure: campaignPressure'), 'Campaign pressure integration missing');
 // WORLD and Command Base are fixed body-level siblings; prevent the Build 194 regression.
