@@ -1438,7 +1438,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
   function zombieTint(kind, variant, bossGrade, bossArchetype) {
     if (kind === 'boss') {
-      return bossArchetype === 'outbreak' ? 0x563848 : bossArchetype === 'juggernaut' ? 0x52615a : 0x7b402e;
+      return bossArchetype === 'outbreak' ? 0x59634c : bossArchetype === 'juggernaut' ? 0x52615a : 0x7b402e;
     }
     if (kind === 'armored') return 0x786b4d;
     if (kind === 'runner') return 0x829ba6;
@@ -1502,22 +1502,23 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     } else if (type === 'outbreak') {
       [[0,.76,.25,.02],[-.2,1.03,.23,-.18],[.2,1.27,.21,.18],[0,1.49,.18,0]].forEach((spine, index) => {
         const mesh = new THREE.Mesh(
-          new THREE.ConeGeometry(.11 + index * .01, .4 + index * .035, 7),
-          material(0x743654, { roughness: .9, emissive: 0x5d103c, emissiveIntensity: .7 })
+          new THREE.ConeGeometry(.055 + index * .004, .20 + index * .015, 7),
+          material(0x827c59, { roughness: .96 })
         );
         mesh.name = `Outbreak fitted dorsal spine ${index + 1}`;
         mesh.position.set(spine[0], spine[1], spine[2]);
         mesh.rotation.set(Math.PI / 2 + spine[3], 0, spine[3]);
-        addPart(mesh, 0x5d103c);
+        addPart(mesh);
       });
       [[-.35,1.25,.01],[.35,1.25,.01],[-.23,.79,.15],[.23,.79,.15]].forEach((position, index) => {
         const node = new THREE.Mesh(
-          new THREE.IcosahedronGeometry(.135 + (index % 2) * .025, 1),
-          material(index < 2 ? 0xa34278 : 0x783a61, { roughness: .84, emissive: 0x6b1249, emissiveIntensity: .85 })
+          new THREE.IcosahedronGeometry(.075 + (index % 2) * .01, 0),
+          material(index < 2 ? 0x807b42 : 0x596043, { roughness: .96 })
         );
         node.name = `Outbreak fitted growth ${index + 1}`;
-        node.position.set(position[0], position[1], position[2]);
-        addPart(node, 0x6b1249);
+        node.scale.set(1, .65, .55);
+        node.position.set(position[0]*.85, position[1], position[2]);
+        addPart(node);
       });
     } else {
       const harness = new THREE.Mesh(new THREE.TorusGeometry(.3, .035, 7, 16), material(0x9a6337, { metalness: .35, roughness: .58 }));
@@ -1629,7 +1630,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       if (item.emissive) {
         const baseEmissive = Number(item.userData && item.userData.baseEmissive) || 0;
         item.emissive.setHex(armorHit ? 0x4aafc8 : hit ? 0x7a1b12 : baseEmissive);
-        item.emissiveIntensity = armorHit ? 1.15 : hit ? .85 : baseEmissive ? .72 : 0;
+        item.emissiveIntensity = armorHit ? .65 : hit ? (entity.bossArchetype === 'outbreak' ? .22 : .45) : baseEmissive ? .35 : 0;
       }
     });
   }
