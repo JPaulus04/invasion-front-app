@@ -1,0 +1,30 @@
+{
+  "source": "User supplied 2D_Iso_Worldmap_Pack_Sprites.zip",
+  "sha256": "2dfc95264ff8ef320c99d019f449fb5bc22c252828d751188a70c2379c78f642",
+  "processing": "Cropped and resized sprites; separate grayscale atlas for surveyed terrain. Road pieces retain a common alignment frame.",
+  "sprites": {
+    "grass": "groundTiles/Layer 0-0-0.png",
+    "sand": "groundTiles/Layer 0-1024-0.png",
+    "water": "groundTiles/01757.png",
+    "rock": "groundTiles/Layer 0-1536-0.png",
+    "tree": "props/foliage/foliage (3).png",
+    "mountain": "props/mountains/mountain (2).png",
+    "house": "props/manmade/farmhouse.png",
+    "farm": "props/manmade/farm.png",
+    "tower": "props/manmade/Layer 0-3584-1536.png",
+    "mine": "props/manmade/mine.png",
+    "town1": "props/manmade/village (1).png",
+    "town2": "props/manmade/village (5).png",
+    "road3": "props/manmade/road/road (11).png",
+    "road12": "props/manmade/road/road (10).png",
+    "road9": "props/manmade/road/road (1).png",
+    "road6": "props/manmade/road/road (15).png",
+    "road5": "props/manmade/road/road (14).png",
+    "road10": "props/manmade/road/road (16).png",
+    "road13": "props/manmade/road/road (6).png",
+    "road7": "props/manmade/road/road (7).png",
+    "road11": "props/manmade/road/road (8).png",
+    "road14": "props/manmade/road/road (9).png",
+    "road15": "props/manmade/road/road (13).png"
+  }
+}
