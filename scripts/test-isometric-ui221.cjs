@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');let active;
+const pen=new Proxy({measureText:t=>({width:String(t).length*7})},{get:(o,k)=>o[k]||(()=>{}),set:(o,k,v)=>(o[k]=v,true)});
+class E{constructor(tag='div'){this.tag=tag;this.style={setProperty(){}};this.children=[];this.nodes={};this.dataset={};this.attrs={};this.classList={add(){},remove(){},toggle(){},contains(){return false;}};}set innerHTML(v){this.children=[];this.nodes={};for(const m of v.matchAll(/data-([a-z-]+)/g)){let k='[data-'+m[1]+']';this.nodes[k]=new E(k);}for(const k of ['canvas','main','nav','header','.map-controls'])if(v.includes(k.replace('.','')))this.nodes[k]=new E(k);}appendChild(e){this.children.push(e);e.parentElement=this;if(e.id==='settlement-world')active=e;return e;}querySelector(k){return this.nodes[k]||null;}querySelectorAll(){return [];}setAttribute(k,v){this.attrs[k]=v;}getContext(){return pen;}getBoundingClientRect(){const top=this.tag==='.map-controls'?160:this.tag==='nav'?780:this.tag==='[data-sheet]'?this.children.length?600:780:0,height=this.tag==='.map-controls'?44:this.tag==='nav'?64:this.tag==='[data-sheet]'?180:844;return{left:0,top,right:390,bottom:top+height,width:390,height};}setPointerCapture(){}releasePointerCapture(){}remove(){this.removed=true;}click(){if(!this.disabled&&this.onclick)this.onclick();}}
+const listeners=new Map(),document={body:new E(),createElement:t=>new E(t)};
+const c={console,document,Date,setInterval:()=>1,clearInterval(){},addEventListener:(k,f)=>listeners.set(k,f),removeEventListener:k=>listeners.delete(k)};vm.createContext(c);
+for(const f of ['settlement204','settlementView204','settlement205','isometricMap221','settlementView205'])vm.runInContext(fs.readFileSync('src/'+f+'.js','utf8'),c);
+let camera;const paint=c.LSCIso221.paint;c.LSCIso221.paint=(g,m,v,cam,...rest)=>{camera={...cam};return paint(g,m,v,cam,...rest)};
+const m={credits:500},api=c.LSCSettlement;api.initialize(m,()=>true,Date.now());let navigated;
+const cleanup=c.LSCSettlementView.mount(new E(),m,()=>true,()=>{},to=>navigated=to,()=>{},()=> '300');
+const canvas=active.querySelector('canvas'),sheet=active.querySelector('[data-sheet]');
+function texts(e){return (e.textContent||'')+' '+e.children.map(texts).join(' ')}
+function click(text){function find(e){if(e.textContent===text)return e;for(const ch of e.children){const r=find(ch);if(r)return r;}}const b=find(sheet);assert.ok(b,'button '+text);b.click();}
+function tap(id){const p=c.LSCIso221.project(api.tile(id),camera,{w:390,h:844}),e={clientX:p.x,clientY:p.y,pointerId:1,button:0,buttons:1,isPrimary:true,preventDefault(){}};canvas.onpointerdown(e);canvas.onpointerup(e);}
+active.querySelector('[data-menu]').click();for(const [label,key] of [['Saved campaigns','campaigns'],['Equipment','inventory'],['HQ upgrades','hq']]){click(label);assert.equal(navigated,key);}
+active.querySelector('[data-world]').click();tap('1,0');assert.ok(texts(sheet).includes('Farm'),'isometric tile hit shows farm');
+const start={...camera},ev={clientX:180,clientY:410,pointerId:1,button:0,buttons:1,isPrimary:true,preventDefault(){}};
+canvas.onpointerdown(ev);canvas.onpointermove({...ev,clientX:210,clientY:430});canvas.onpointerup({...ev,clientX:210,clientY:430});assert.equal(camera.scale,start.scale,'pan does not zoom');
+canvas.onpointerdown(ev);canvas.onpointerdown({...ev,pointerId:2,isPrimary:false,clientX:260});canvas.onpointermove({...ev,pointerId:2,isPrimary:false,clientX:290});canvas.onpointercancel({...ev,pointerId:2,isPrimary:false});canvas.onpointercancel(ev);let scale=camera.scale;canvas.onpointerdown(ev);canvas.onpointermove({...ev,clientX:190,clientY:450});canvas.onpointerup({...ev,clientX:190,clientY:450});assert.equal(camera.scale,scale,'cancelled pinch cannot leak into next drag');
+active.querySelector('[data-fit]').click();assert.ok(Number.isFinite(camera.x)&&camera.scale>=4);
+const id=Object.keys(m.settlement204.visible).find(id=>api.placement(m,'road',id,[]).ok);assert.ok(api.action(m,()=>true,'quickRoad',{id,type:'road',crew:1}).ok);active.querySelector('[data-home]').click();tap(id);assert.ok(texts(sheet).includes('IN PROGRESS'),'active job selected instead of offering duplicate build');assert.ok(texts(sheet).includes('ADJUST CREW'));
+cleanup();assert.equal(m.settlement204.camera.projection,221);assert.equal(listeners.size,0);
+console.log('PASS UI 221: existing menus, diamond selection, pan, pinch cancellation, fit, active job panel and saved camera.');
