@@ -1,0 +1,144 @@
+{
+  "credits": 2250,
+  "settlement204": {
+    "version": 205,
+    "population": 12,
+    "food": 360,
+    "materials": 260,
+    "buildings": {
+      "1,0": {
+        "kind": "farm",
+        "workers": 2
+      },
+      "0,1": {
+        "kind": "workshop",
+        "workers": 4
+      }
+    },
+    "roads": {
+      "0,0": true,
+      "1,0": true,
+      "0,1": true
+    },
+    "cleared": {
+      "-1,-1": true,
+      "0,-1": true,
+      "1,-1": true,
+      "-1,0": true,
+      "0,0": true,
+      "1,0": true,
+      "-1,1": true,
+      "0,1": true,
+      "1,1": true
+    },
+    "visible": {
+      "-2,-2": true,
+      "-1,-2": true,
+      "0,-2": true,
+      "1,-2": true,
+      "2,-2": true,
+      "-2,-1": true,
+      "-1,-1": true,
+      "0,-1": true,
+      "1,-1": true,
+      "2,-1": true,
+      "-2,0": true,
+      "-1,0": true,
+      "0,0": true,
+      "1,0": true,
+      "2,0": true,
+      "-2,1": true,
+      "-1,1": true,
+      "0,1": true,
+      "1,1": true,
+      "2,1": true,
+      "-2,2": true,
+      "-1,2": true,
+      "0,2": true,
+      "1,2": true,
+      "2,2": true
+    },
+    "defended": {},
+    "welcomed": {},
+    "scout": null,
+    "job": {
+      "kind": "house",
+      "path": [
+        "-1,0"
+      ],
+      "origin": "0,0",
+      "target": "-1,0",
+      "reclaimWork": 0,
+      "work": [
+        37.321319661472295
+      ],
+      "credits": 100,
+      "materials": 30,
+      "food": 0,
+      "crew": 6,
+      "done": 0,
+      "progress": 0,
+      "batch": null,
+      "projectId": 1
+    },
+    "at": 100000,
+    "notice": "Project queued until its route and workers are available. Costs reserved.",
+    "targets": {
+      "farm": 2,
+      "workshop": 4
+    },
+    "priority": "balanced",
+    "protectFood": true,
+    "defaultCrew": 6,
+    "fishing": {},
+    "projects": [],
+    "queue": [
+      {
+        "id": 1,
+        "kind": "workshop",
+        "payload": {
+          "type": "workshop",
+          "id": "1,1",
+          "crew": 6
+        },
+        "crew": 6,
+        "project": {
+          "kind": "workshop",
+          "path": [
+            "1,1"
+          ],
+          "origin": "0,0",
+          "target": "1,1",
+          "reclaimWork": 0,
+          "work": [
+            46.65164957684037
+          ],
+          "credits": 150,
+          "materials": 30,
+          "food": 0,
+          "crew": 6,
+          "done": 0,
+          "progress": 0,
+          "batch": null
+        },
+        "credits": 150,
+        "materials": 30,
+        "food": 0
+      }
+    ],
+    "coast216": true,
+    "renderRevision": 4,
+    "spareBoats": 0,
+    "interaction217": true,
+    "projectSerial": 1,
+    "queueSerial": 1,
+    "queueNotice": "Only 4 workers available after Food protection and other crews."
+  },
+  "starTowns": {
+    "progress": {},
+    "secured": {},
+    "towers": {},
+    "incomeAt": 100000,
+    "opening202": true
+  }
+}
