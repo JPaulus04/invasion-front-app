@@ -690,7 +690,12 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     Object.keys(townPalettes).forEach(theme => {
       const group = new THREE.Group(); group.name = `Town environment · ${theme}`;
       group.visible = false; staticGroup.add(group); townWorlds[theme] = group;
+      const accent = {woodland:0x82b86b,farmland:0xe6c65a,industrial:0xe17b50,highland:0xaec4c1,river:0x75c7df,harbor:0x65d2c3}[theme];
       [[-10,-13],[10,-13],[-10,13],[10,13]].forEach(([x,z], index) => {
+        const bannerX=x+(x>0?-1.55:1.55),bannerZ=z+(z>0?-1.15:1.15);
+        box('Town identity mast', [.11,2.5,.11], [bannerX,1.25,bannerZ], 0x403b31, group, {metalness:.18,roughness:.82});
+        const pennant=box('Town identity pennant', [.85,.62,.08], [bannerX+(x>0?-.43:.43),2.05,bannerZ], accent, group, {roughness:.72,emissive:accent,emissiveIntensity:.08});
+        pennant.rotation.y=x>0?Math.PI:0;
         if (theme === 'woodland') {
           box('Village cottage', [2.5,1.15,2], [x,.58,z], 0xc1b28a, group);
           box('Cottage roof', [2.8,.28,2.3], [x,1.3,z], index%2?0x945d42:0x537575, group);
