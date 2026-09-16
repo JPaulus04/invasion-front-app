@@ -26,7 +26,7 @@
    });
    ordered.forEach(function(t){var p=at(t.id);if(p.x+s<0||p.x-s>v.w||p.y+s<0||p.y-s*2>v.h)return;var b=d.buildings[t.id],colored=!!d.cleared[t.id]||t.terrain==='water',name=null,width=s*.68;
     if(t.id==='0,0'){name='town1';width=s*.88;}
-    else if(b){name={farm:'farm',workshop:'house',quarry:'mine',house:'house',tower:'tower',harbor:'house'}[b.kind]||'house';width=b.kind==='tower'?s*.43:s*.72;}
+    else if(b){name={farm:'farm',workshop:'house',quarry:'mine',ironMine:'mine',house:'house',tower:'tower',harbor:'house'}[b.kind]||'house';width=b.kind==='tower'?s*.43:s*.72;}
     else if(t.town){name=t.town%2?'town1':'town2';width=s*.85;}
     else if(t.landmark){name='house';width=s*.64;}
     else if(!d.roads[t.id]){if(t.terrain==='hill'){name='mountain';width=s*.74;}else if(t.terrain==='plain'&&Math.abs(t.x*7+t.y*11)%4){name='tree';width=s*.48;}}
@@ -56,7 +56,9 @@
   if(d.scout){var j=d.scout,total=j.work[0]||1,progress=Math.min(total,(j.progress||0)+Math.max(0,(now-d.at)/1000)*api.speed(m,j)),out=Math.max(1,j.path.length-1)*20,returning=progress>=j.revealAt,f=returning?1-(progress-j.revealAt)/Math.max(1,total-j.revealAt):Math.min(1,progress/out);f=Math.max(0,Math.min(1,f));var n=f*(j.path.length-1),a=at(j.path[Math.floor(n)]),b=at(j.path[Math.min(j.path.length-1,Math.floor(n)+1)]);if(a&&b)crew({x:a.x+(b.x-a.x)*(n%1),y:a.y+(b.y-a.y)*(n%1)},j.crew,'#8de7ed');badge(j.target,returning?'Scouts returning':progress>=out?'Surveying':'Scouts traveling','#9ce4ed');}
   (cache.routes||[]).forEach(function(r){if(!r.path||!r.path.length)return;g.beginPath();r.path.forEach(function(id,i){var p=at(id);if(p)g[i?'lineTo':'moveTo'](p.x,p.y);});g.strokeStyle='#9bcfdf66';g.lineWidth=1;g.setLineDash([3,5]);g.stroke();g.setLineDash([]);});
   Object.keys(d.fishing||{}).forEach(function(id){var f=d.fishing[id];if(!f.workers||!f.path||!f.path.length)return;var remaining=Math.max(0,f.travelRemaining-Math.max(0,(now-d.at)/1000)),ratio=f.travelTotal?Math.min(1,1-remaining/f.travelTotal):1,n=ratio*(f.path.length-1),a=at(f.path[Math.floor(n)]),b=at(f.path[Math.min(f.path.length-1,Math.floor(n)+1)]);if(a&&b)boat({x:a.x+(b.x-a.x)*(n%1),y:a.y+(b.y-a.y)*(n%1)},Math.max(4,s*.12));});
-  if(selected&&d.buildings[selected]){var b=d.buildings[selected];if(b.kind==='farm'||b.kind==='workshop'||b.kind==='quarry')badge(selected,api.connected(m,selected)?b.workers+' workers':'Needs supply road','#d6ead4');}
+  if(selected&&d.buildings[selected]){var b=d.buildings[selected];if(b.kind==='farm'||b.kind==='workshop'||b.kind==='quarry'||b.kind==='ironMine')badge(selected,api.connected(m,selected)?b.workers+' workers':'Needs supply road','#d6ead4');}
+  else if(selected&&d.visible[selected]&&api.ironDeposit(selected))badge(selected,'IRON DEPOSIT','#c9b2a2');
+  else if(selected&&d.visible[selected]&&api.stoneDeposit(selected))badge(selected,'STONE DEPOSIT','#d7d0bc');
  }
  root.LSCIso221={project:project,unproject:unproject,diamond:diamond,fit:fit,clamp:clamp,paint:paint};
 })(typeof window!=='undefined'?window:globalThis);
