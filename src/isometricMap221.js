@@ -1,11 +1,19 @@
 /* Build 221: presentation only. Tile IDs and settlement simulation stay unchanged. */
 (function(root){
  'use strict';
- var revision=0,atlases={},buildingArt={},buildingLayout={
+ var revision=0,atlases={},buildingArt={},roadArt={},buildingLayout={
   workshop:{scale:.74,anchorX:.42,groundY:.18}
+ },roadLayout={
+  straight:{file:'dirt-straight.png',crop:[68,280,887,497]},
+  corner:{file:'dirt-corner.jpg',crop:[67,281,894,496]},
+  tee:{file:'dirt-t-junction.jpg',crop:[68,281,887,496]},
+  cross:{file:'dirt-crossroads.jpg',crop:[47,262,924,511]},
+  bridge:{file:'dirt-bridge.jpg',crop:[51,246,920,544]},
+  end:{file:'dirt-ending.jpg',crop:[63,274,898,502]}
  };
  if(typeof Image!=='undefined')['color','surveyed'].forEach(function(k){var im=new Image();im.onload=function(){revision++;};im.src='assets/isometric221/'+k+'.png';atlases[k]=im;});
  if(typeof Image!=='undefined'){var lumber=new Image();lumber.onload=function(){revision++;};lumber.src='assets/buildings/lumber-camp.png';buildingArt.workshop=lumber;}
+ if(typeof Image!=='undefined')Object.keys(roadLayout).forEach(function(name){var im=new Image();im.onload=function(){revision++;};im.src='assets/roads/'+roadLayout[name].file;roadArt[name]=im;});
  function project(t,c,v){return {x:v.w/2+(t.x-c.x-t.y+c.y)*c.scale/2,y:v.h/2+(t.x-c.x+t.y-c.y)*c.scale/4};}
  function unproject(x,y,c,v){x-=v.w/2;y-=v.h/2;return {x:c.x+x/c.scale+2*y/c.scale,y:c.y-x/c.scale+2*y/c.scale};}
  function diamond(g,p,s){g.beginPath();g.moveTo(p.x,p.y-s/4);g.lineTo(p.x+s/2,p.y);g.lineTo(p.x,p.y+s/4);g.lineTo(p.x-s/2,p.y);g.closePath();}
@@ -15,18 +23,21 @@
   function limit(n,a,b,half){return a+half>b-half?(a+b)/2:Math.max(a+half,Math.min(b-half,n));}
   u=limit(u,e.u0-pad,e.u1+pad,halfU);w=limit(w+offset,e.v0-pad,e.v1+pad,halfV)-offset;c.x=(u+w)/2;c.y=(w-u)/2;
  }
+ function roadPlan(mask,water){var land={0:['straight',0],1:['end',2],2:['end',0],3:['straight',0],4:['end',3],5:['corner',2],6:['corner',3],7:['tee',2],8:['end',1],9:['corner',1],10:['corner',0],11:['tee',0],12:['straight',1],13:['tee',1],14:['tee',3],15:['cross',0]};return water?(mask===3||!mask?['bridge',0]:mask===12?['bridge',1]:null):(land[mask]||land[0]);}
  function paint(g,m,v,c,selected,path,now,cache){
   var api=root.LSCSettlement,d=m.settlement204,s=c.scale,tiles=api.tiles,point=selected&&tiles[selected],selection=point&&project(point,c,v);
   var stamp=[revision,d.at,d.renderRevision||0,c.x,c.y,s,v.w,v.h,selected,(path||[]).join('|')].join(':');
   function at(id){return tiles[id]&&project(tiles[id],c,v);}
   function sprite(p,name,w,colored,ground){var a=atlases[colored?'color':'surveyed'],r=(root.LSCIsoAssets221||{})[name];if(!a||!a.complete||!a.naturalWidth||!r)return false;var h=ground?w/2:w*r[3]/r[2];g.drawImage(a,r[0],r[1],r[2],r[3],p.x-w/2,ground?p.y-h/2:p.y+s*.14-h,w,h);return true;}
   function standalone(p,name){var im=buildingArt[name],layout=buildingLayout[name]||{scale:.7,anchorX:.5,groundY:.14};if(!im||!im.complete||!im.naturalWidth)return false;var w=s*layout.scale,h=w*im.naturalHeight/im.naturalWidth;g.drawImage(im,p.x-w*layout.anchorX,p.y+s*layout.groundY-h,w,h);return true;}
+  function roadPiece(p,mask,water){var plan=roadPlan(mask,water);if(!plan)return false;var im=roadArt[plan[0]],layout=roadLayout[plan[0]];if(!im||!im.complete||!im.naturalWidth||!layout)return false;var a=[[1,0,0,1],[0,.5,-2,0],[-1,0,0,-1],[0,-.5,2,0]][plan[1]||0],r=layout.crop;g.save();diamond(g,p,s+.8);g.clip();g.translate(p.x,p.y);g.transform(a[0],a[1],a[2],a[3],0,0);g.drawImage(im,r[0],r[1],r[2],r[3],-s/2,-s/4,s,s/2);g.restore();return true;}
+  function improvedRoad(p,t,mask,tier){if(tier<2||t.terrain==='water')return;var connections=[[1,0,1],[-1,0,2],[0,1,4],[0,-1,8]].filter(function(a){return mask&a[2];});if(!connections.length)connections=[[1,0,1],[-1,0,2]];g.save();g.lineCap='round';g.lineJoin='round';connections.forEach(function(a){var q=project({x:t.x+a[0]*.5,y:t.y+a[1]*.5},c,v);g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.strokeStyle=tier>=3?'#66645b99':'#d8b87c77';g.lineWidth=tier>=3?s*.13:s*.075;g.stroke();if(tier>=3){g.strokeStyle='#c9c4adbb';g.lineWidth=s*.075;g.stroke();}});g.fillStyle=tier>=3?'#c9c4adbb':'#d8b87c77';g.beginPath();g.arc(p.x,p.y,tier>=3?s*.038:s*.024,0,Math.PI*2);g.fill();g.restore();}
   function badge(id,text,color){var p=at(id);if(!p)return;g.font='bold 11px system-ui';g.textAlign='center';var w=Math.min(260,g.measureText(text).width+12);g.fillStyle='#092125ed';g.fillRect(p.x-w/2,p.y+s*.21,w,18);g.fillStyle=color||'#f9e2a2';g.fillText(text,p.x,p.y+s*.21+13,w-8);}
   function base(){
    g.fillStyle='#030808';g.fillRect(0,0,v.w,v.h);
    var ordered=Object.keys(d.visible).filter(function(id){return d.visible[id]&&tiles[id];}).map(function(id){return tiles[id];}).sort(function(a,b){return a.x+a.y-b.x-b.y||a.x-b.x;});
    ordered.forEach(function(t){var p=at(t.id);if(p.x+s<0||p.x-s>v.w||p.y+s<0||p.y-s*2>v.h)return;var colored=!!d.cleared[t.id]||t.terrain==='water';diamond(g,p,s+.6);g.fillStyle=colored?(t.terrain==='water'?'#438fd0':t.terrain==='bank'?'#cbb873':t.terrain==='hill'?'#817759':'#83a841'):'#64696a';g.fill();g.save();diamond(g,p,s+.6);g.clip();sprite(p,t.terrain==='water'?'water':t.terrain==='bank'?'sand':t.terrain==='hill'?'rock':'grass',s+1,colored,true);g.restore();diamond(g,p,s);g.lineWidth=.6;g.strokeStyle=colored?'#25381d33':'#bac1c12a';g.stroke();
-    if(d.roads[t.id]){var mask=0;[[1,0,1],[-1,0,2],[0,1,4],[0,-1,8]].forEach(function(a){if(d.roads[(t.x+a[0])+','+(t.y+a[1])])mask|=a[2];});if(!mask)mask=3;var full={1:3,2:3,4:12,8:12}[mask]||mask;g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);if(t.terrain==='water'){g.strokeStyle='#e5c98e';g.lineWidth=Math.max(1,s*.018);[[1,0,1],[-1,0,2],[0,1,4],[0,-1,8]].forEach(function(a){if(!(mask&a[2]))return;var q=project({x:t.x+a[0]*.5,y:t.y+a[1]*.5},c,v);for(var f=.1;f<1;f+=.18){var x=p.x+(q.x-p.x)*f,y=p.y+(q.y-p.y)*f;g.beginPath();g.moveTo(x-s*.045,y-s*.045);g.lineTo(x+s*.045,y+s*.045);g.stroke();}});}g.restore();}
+    if(d.roads[t.id]){var mask=0;[[1,0,1],[-1,0,2],[0,1,4],[0,-1,8]].forEach(function(a){if(d.roads[(t.x+a[0])+','+(t.y+a[1])])mask|=a[2];});if(!mask)mask=3;var full={1:3,2:3,4:12,8:12}[mask]||mask,tier=api.villageLevel?api.villageLevel(m):1;if(!roadPiece(p,mask,t.terrain==='water')){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}improvedRoad(p,t,mask,tier);}
    });
    ordered.forEach(function(t){var p=at(t.id);if(p.x+s<0||p.x-s>v.w||p.y+s<0||p.y-s*2>v.h)return;var b=d.buildings[t.id],colored=!!d.cleared[t.id]||t.terrain==='water',name=null,width=s*.68;
     if(t.id==='0,0'){name='town1';width=s*.88;}
@@ -65,5 +76,5 @@
   else if(selected&&d.visible[selected]&&api.ironDeposit(selected))badge(selected,'IRON DEPOSIT','#c9b2a2');
   else if(selected&&d.visible[selected]&&api.stoneDeposit(selected))badge(selected,'STONE DEPOSIT','#d7d0bc');
  }
- root.LSCIso221={project:project,unproject:unproject,diamond:diamond,fit:fit,clamp:clamp,paint:paint};
+ root.LSCIso221={project:project,unproject:unproject,diamond:diamond,fit:fit,clamp:clamp,paint:paint,roadPlan:roadPlan};
 })(typeof window!=='undefined'?window:globalThis);
