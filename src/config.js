@@ -1,16 +1,16 @@
 // ═══════════════════════════════════════════════════════
 //  config.js — legacy engine balance tunables
-//  Build 192 reliable Game Center reporting and veteran progress synchronization.
+//  Build 230 Priority A world-art integration.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '229';
+const LSC_BUILD = '230';
 
 const CFG = Object.freeze({
 
   // ── Economy ──────────────────────────────────────────
-  BASE_CREDITS:            200,   // V84: raised from 100 — players need more to field a formation at wave 16
-  TROOP_COST_SCALE:        1.13,   // each extra copy of same unit costs more
-  TROOP_COST_MIN:          0.45,   // floor as fraction of base cost
-  WAVE_REWARD_BASE:        45,     // tightened economy — fewer freebie credits
+  BASE_CREDITS:            200,
+  TROOP_COST_SCALE:        1.13,
+  TROOP_COST_MIN:          0.45,
+  WAVE_REWARD_BASE:        45,
   WAVE_REWARD_SCALE:       12,
   KILL_REWARDS: Object.freeze({
     conscript:8, breacher:10, juggernaut:22, overwatch:16,
@@ -22,63 +22,61 @@ const CFG = Object.freeze({
   TROOP_SLOTS:             5,
 
   // ── Spawning ─────────────────────────────────────────
-  SPAWN_BASE:              3,      // V78: drastically reduced (was 4)
-  SPAWN_PER_WAVE:          0.9,    // V78: much slower growth (was 1.4)
-  SPAWN_INTERVAL_BASE:     0.78,   // V8: slightly slower early spawns
+  SPAWN_BASE:              3,
+  SPAWN_PER_WAVE:          0.9,
+  SPAWN_INTERVAL_BASE:     0.78,
   SPAWN_INTERVAL_MIN:      0.15,
   SPAWN_INTERVAL_SCALE:    0.017,
   BOSS_WAVE_EVERY:         5,
-  BOSS_SPAWN_COUNT:        3,      // V8: +1 boss spawn (2 felt thin vs regular waves)
+  BOSS_SPAWN_COUNT:        3,
 
   // ── Combat ───────────────────────────────────────────
-  BARRICADE_BLOCK:         3.0,    // V8: 2.8→3.0, slightly more value per level
+  BARRICADE_BLOCK:         3.0,
   BARRICADE_UNLOCK_BONUS:  0.5,
-  MEDBAY_HEAL:             2.0,    // V8: 1.9→2.0
-  MEDBAY_CD:               1.0,    // V8: 1.1→1.0, slightly more responsive
-  LANE_GUN_BASE_DMG:       10,     // V8: 9→10
+  MEDBAY_HEAL:             2.0,
+  MEDBAY_CD:               1.0,
+  LANE_GUN_BASE_DMG:       10,
   LANE_GUN_PER_LVL:        5,
   LANE_GUN_BASE_CD:        0.75,
   LANE_GUN_CD_MIN:         0.28,
 
   // ── Orbital ──────────────────────────────────────────
   ORBITAL_BASE_CD:         22,
-  ORBITAL_BASE_DMG:        75,     // V8: 72→75
+  ORBITAL_BASE_DMG:        75,
   ORBITAL_WAVE_DMG:        5,
   ORBITAL_PRESTIGE_DMG:    18,
   ORBITAL_UNLOCK_DMG:      22,
 
   // ── Progression ──────────────────────────────────────
-  PRESTIGE_WAVE_REQ:       25,    // V84: raised from 20 — prevents accidental prestige on early deaths
-  PRESTIGE_GAIN_DIV:       10,  // ranks gained = floor(wave / 10)
+  PRESTIGE_WAVE_REQ:       25,
+  PRESTIGE_GAIN_DIV:       10,
   PRESTIGE_INCOME_BONUS:   0.14,
   PRESTIGE_DMG_BONUS:      0.10,
-  PRESTIGE_HP_BONUS:       0.04,  // +4% troop max HP per Command Rank
-  PRESTIGE_HP_CAP:         0.40,  // cap prestige troop HP bonus at +40%
+  PRESTIGE_HP_BONUS:       0.04,
+  PRESTIGE_HP_CAP:         0.40,
   UNLOCK_INCOME_BONUS:     0.10,
 
   // ── Phase Lord ───────────────────────────────────────
-  PHASE_LORD_TELEPORT_CD:  13,     // V8: 12→13, a touch more breathing room
+  PHASE_LORD_TELEPORT_CD:  13,
   PHASE_LORD_WARN_TIME:    2.2,
 
   // ── Stalker ──────────────────────────────────────────
-  STALKER_CLOAK_DMG_FRAC:  0.28,   // fraction of damage that lands while cloaked
+  STALKER_CLOAK_DMG_FRAC:  0.28,
 
   // ── Warlord disruption ───────────────────────────────
-  WARLORD_DISRUPT_CD:      6.5,    // V8: 5→6.5s (less oppressive in double-boss waves)
-  WARLORD_DISRUPT_AMT:     1.5,    // V8: 1.8→1.5s cooldown added to disrupted troop
+  WARLORD_DISRUPT_CD:      6.5,
+  WARLORD_DISRUPT_AMT:     1.5,
 
   // ── Swarm cap ────────────────────────────────────────
-  SWARM_EXTRA_CAP:         6,      // V8: swarm adds max 6 enemies (was uncapped +8)
+  SWARM_EXTRA_CAP:         6,
 
-  // ── Operations XP (V48) ──────────────────────────────
-  OPS_XP_KILL:             2,    // XP per enemy kill
-  OPS_XP_BOSS:            15,    // XP per boss kill
-  OPS_XP_WAVE:            25,    // XP per wave clear
+  // ── Operations XP ────────────────────────────────────
+  OPS_XP_KILL:             2,
+  OPS_XP_BOSS:            15,
+  OPS_XP_WAVE:            25,
 
-  // ── Research Tree (V44) ──────────────────────────────
-  // Real-clock timers for first-unlock only. Post-prestige = instant at full cost.
+  // ── Research Tree ────────────────────────────────────
   RESEARCH_TIMERS:    Object.freeze([0, 15*60, 60*60, 3*60*60, 8*60*60, 24*60*60]),
-  // ^ index = level being unlocked (Lv1=15min, Lv2=1hr, Lv3=3hr, Lv4=8hr, Lv5=24hr)
   MAX_RESEARCH_QUEUE: 3,
 
   // ── Meta ─────────────────────────────────────────────
@@ -89,26 +87,24 @@ const CFG = Object.freeze({
 
 // ═══════════════════════════════════════════════════════
 //  unlocks.js — single source of truth for unlock effects
-//  All unlock resolution flows through here.
 // ═══════════════════════════════════════════════════════
-
 
 const UNLOCKS = Object.freeze({
   active:          p => new Set(PERMANENT_UNLOCKS.filter(u => p >= u.rank).map(u => u.id)),
   has:             (p, id) => p >= (PERMANENT_UNLOCKS.find(u => u.id === id)?.rank ?? 99),
-  troopSlots:      p => CFG.TROOP_SLOTS,   // V73: capped at 5, 6-slot unlock disabled
-  startCr: p => CFG.BASE_CREDITS + (UNLOCKS.has(p, 'u_startcr') ? 80 : 0) + (UNLOCKS.has(p, 'u_startcr2') ? 60 : 0) + p * 12,  // V84: +12 cr per prestige rank
+  troopSlots:      p => CFG.TROOP_SLOTS,
+  startCr: p => CFG.BASE_CREDITS + (UNLOCKS.has(p, 'u_startcr') ? 80 : 0) + (UNLOCKS.has(p, 'u_startcr2') ? 60 : 0) + p * 12,
   orbitalDmgBonus: p => UNLOCKS.has(p, 'u_orbital') ? CFG.ORBITAL_UNLOCK_DMG : 0,
   incomeBonus:     p => UNLOCKS.has(p, 'u_income') ? CFG.UNLOCK_INCOME_BONUS : 0,
-  killBonus:       p => UNLOCKS.has(p, 'u_surge') ? 0.08 : 0,          // V81: +8% kill rewards at R12
-  barricadeBonus:  p => (UNLOCKS.has(p, 'u_barricade') ? CFG.BARRICADE_UNLOCK_BONUS : 0) + (UNLOCKS.has(p, 'u_hardened') ? 0.5 : 0), // V81: +0.5 more at R24
+  killBonus:       p => UNLOCKS.has(p, 'u_surge') ? 0.08 : 0,
+  barricadeBonus:  p => (UNLOCKS.has(p, 'u_barricade') ? CFG.BARRICADE_UNLOCK_BONUS : 0) + (UNLOCKS.has(p, 'u_hardened') ? 0.5 : 0),
   deepStrike:      (p, wave) => UNLOCKS.has(p, 'u_wave15') && wave > 15 ? 30 : 0,
   docBoost:        p => {
     let boost = 1;
-    if (UNLOCKS.has(p, 'u_doctrine')) boost *= 1.05;  // R8: +5%
-    if (UNLOCKS.has(p, 'u_mastery'))  boost *= 1.08;  // R20: +8% stacks
+    if (UNLOCKS.has(p, 'u_doctrine')) boost *= 1.05;
+    if (UNLOCKS.has(p, 'u_mastery'))  boost *= 1.08;
     return boost;
   },
-  baseHpBonus:     p => (UNLOCKS.has(p, 'u_iron') ? 25 : 0) + (UNLOCKS.has(p, 'u_hardened') ? 40 : 0), // V81: R10+R24
-  troopHpBonus:    p => Math.min(CFG.PRESTIGE_HP_CAP, Math.max(0, p) * CFG.PRESTIGE_HP_BONUS), // B125: +4% troop HP/rank, capped at +40%
+  baseHpBonus:     p => (UNLOCKS.has(p, 'u_iron') ? 25 : 0) + (UNLOCKS.has(p, 'u_hardened') ? 40 : 0),
+  troopHpBonus:    p => Math.min(CFG.PRESTIGE_HP_CAP, Math.max(0, p) * CFG.PRESTIGE_HP_BONUS),
 });
