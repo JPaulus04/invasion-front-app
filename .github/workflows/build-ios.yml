@@ -13,15 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
+      - name: Setup Node 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Show installed Xcodes
-        run: |
-          ls -1 /Applications | grep Xcode || true
-          xcodebuild -version || true
 
       - name: Select stable Xcode 26
         run: |
@@ -50,11 +45,16 @@ jobs:
       - name: Build game bundle
         run: |
           npm run build
-          if [ ! -f www/index.html ]; then
-            echo "ERROR: www/index.html not found — build failed or src/iap.js missing from repo"
-            exit 1
-          fi
-          echo "✅ www/index.html built ($(wc -c < www/index.html) bytes)"
+          test -f www/index.html
+          echo "www/index.html built ($(wc -c < www/index.html) bytes)"
+
+      - name: Prepare CocoaPods CDN
+        run: |
+          set -e
+          mkdir -p "$HOME/.cocoapods/repos"
+          rm -rf "$HOME/.cocoapods/repos/trunk"
+          pod repo add-cdn trunk https://cdn.cocoapods.org/
+          pod repo list
 
       - name: Add iOS platform
         run: npx cap add ios
@@ -103,8 +103,9 @@ jobs:
           )
           with open(path, "w") as f:
               f.write(content)
-          print("Project patched — version 1.0 build 191, iOS 15.0 minimum")
+          print("Project patched — version 1.0 build 230, iOS 15.0 minimum")
           EOF
+
       - name: Patch Podfile
         run: |
           python3 - << 'EOF'
@@ -113,8 +114,6 @@ jobs:
           signing_code = """
             installer.pods_project.targets.each do |target|
               target.build_configurations.each do |config|
-                # Use Manual signing on pods to match the main app target
-                # Automatic here would conflict and cause archive signing errors
                 config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
                 config.build_settings.delete('PROVISIONING_PROFILE')
                 config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
@@ -159,7 +158,7 @@ jobs:
       - name: Install CocoaPods
         run: |
           cd ios/App
-          pod install --repo-update
+          pod install
 
       - name: Build archive
         run: |
