@@ -1,7 +1,7 @@
 {
   "name": "last-stand-command",
   "version": "1.0.0",
-  "description": "Last Stand Command — tactical lane-defense game",
+  "description": "Last Stand Command \u2014 tactical lane-defense game",
   "private": true,
   "scripts": {
     "build": "node scripts/prepare-build-231.js && node scripts/prepare-build-232.js && node scripts/road-system.js && node scripts/set-build-version.js && node build.js",
