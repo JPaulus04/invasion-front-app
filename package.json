@@ -4,7 +4,7 @@
   "description": "Last Stand Command — tactical lane-defense game",
   "private": true,
   "scripts": {
-    "build": "node scripts/prepare-build-231.js && node build.js",
+    "build": "node scripts/prepare-build-231.js && node scripts/prepare-build-232.js && node build.js",
     "dev": "echo 'Open index.html in browser for dev mode'"
   },
   "dependencies": {
