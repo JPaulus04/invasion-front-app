@@ -4,26 +4,24 @@ const P='src/isometricMap221.js';
 let r=fs.readFileSync(P,'utf8');
 
 const loader="if(typeof Image!=='undefined')Object.keys(roadLayout).forEach(function(name){var im=new Image();im.onload=function(){roadMasks[name]=prepareRoad(name,im);revision++;};im.src='assets/roads/'+roadLayout[name].file;roadArt[name]=im;});";
-if(!r.includes(loader))throw Error('Build 239 road loader baseline missing');
+if(!r.includes(loader))throw Error('Build 240 road loader baseline missing');
+
 const addLoader=loader+`
- var roadPack239={};
+ var roadPack240={};
  if(typeof Image!=='undefined'){
-  var files239={
-   straight_nw_se:'straight_nw_se.png',straight_ne_sw:'straight_ne_sw.png',cross:'cross.png',
-   corner_se_sw:'corner_se_sw.png',corner_nw_sw:'corner_nw_sw.png',corner_nw_ne:'corner_nw_ne.png',corner_ne_se:'corner_ne_se.png',
-   tee_nw_se_sw:'tee_nw_se_sw.png',tee_nw_ne_se:'tee_nw_ne_se.png',tee_nw_ne_sw:'tee_nw_ne_sw.png',tee_ne_se_sw:'tee_ne_se_sw.png'
-  };
-  Object.keys(files239).forEach(function(k){var im=new Image();im.onload=function(){revision++;};im.src='assets/roads/pack239/'+files239[k];roadPack239[k]=im;});
+  [3,5,6,7,9,10,11,12,13,14,15].forEach(function(mask){
+   var im=new Image();im.onload=function(){revision++;};im.src='assets/roads/sbs-dry/mask-'+mask+'.png';roadPack240[mask]=im;
+  });
  }`;
 r=r.replace(loader,addLoader);
 
 const a=r.indexOf("  function improvedRoad("),b=r.indexOf("  function badge(",a);
-if(a<0||b<0)throw Error('Build 239 road function baseline missing');
+if(a<0||b<0)throw Error('Build 240 road function baseline missing');
+
 const funcs=`  function roadLevel(id){var levels=d.roadLevels||(d.roadLevels={});return Math.max(1,Math.min(3,levels[id]||1));}
-  function packRoad239(p,mask){
-   var names={3:'straight_nw_se',12:'straight_ne_sw',15:'cross',5:'corner_se_sw',6:'corner_nw_sw',10:'corner_nw_ne',9:'corner_ne_se',7:'tee_nw_se_sw',11:'tee_nw_ne_se',14:'tee_nw_ne_sw',13:'tee_ne_se_sw'};
-   var im=roadPack239[names[mask]];if(!im||!im.complete||!im.naturalWidth)return false;
-   g.save();diamond(g,p,s+.8);g.clip();g.drawImage(im,p.x-s/2,p.y-s*.289,s,s*.578);g.restore();return true;
+  function packRoad240(p,mask){
+   var im=roadPack240[mask];if(!im||!im.complete||!im.naturalWidth)return false;
+   g.save();diamond(g,p,s+.8);g.clip();g.drawImage(im,p.x-s/2,p.y-s/4,s,s/2);g.restore();return true;
   }
   function improvedRoad(p,t,mask,tier){return;}
   function settlementEntrance(t,p){
@@ -48,16 +46,19 @@ const funcs=`  function roadLevel(id){var levels=d.roadLevels||(d.roadLevels={})
 `;
 r=r.slice(0,a)+funcs+r.slice(b);
 
-const original="if(!roadPiece(p,mask,t.terrain==='water')){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}improvedRoad(p,t,mask,tier);";
-const b238="if(t.terrain==='water'){if(!bridge238(p,t,mask)&&!roadPiece(p,mask,true)){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}}else if(!roadPiece(p,mask,false)){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}";
-const b239="if(t.terrain==='water'){if(!bridge238(p,t,mask)&&!roadPiece(p,mask,true)){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}}else if(!packRoad239(p,mask)&&!roadPiece(p,mask,false)){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}";
-if(r.includes(original))r=r.replace(original,b239);
-else if(r.includes(b238))r=r.replace(b238,b239);
-else if(!r.includes("packRoad239(p,mask)"))throw Error('Build 239 road paint baseline missing');
+const variants=[
+"if(!roadPiece(p,mask,t.terrain==='water')){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}improvedRoad(p,t,mask,tier);",
+"if(t.terrain==='water'){if(!bridge238(p,t,mask)&&!roadPiece(p,mask,true)){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}}else if(!packRoad239(p,mask)&&!roadPiece(p,mask,false)){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}",
+"if(t.terrain==='water'){if(!bridge238(p,t,mask)&&!roadPiece(p,mask,true)){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}}else if(!roadPiece(p,mask,false)){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}"
+];
+const paint="if(t.terrain==='water'){if(!bridge238(p,t,mask)&&!roadPiece(p,mask,true)){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}}else if(!packRoad240(p,mask)&&!roadPiece(p,mask,false)){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}";
+let changed=false;
+variants.forEach(function(x){if(r.includes(x)){r=r.replace(x,paint);changed=true;}});
+if(!changed&&!r.includes("packRoad240(p,mask)"))throw Error('Build 240 road paint baseline missing');
 
 const oldTown="ordered.forEach(function(t){if(t.id!=='0,0'&&!t.town)return;var p=at(t.id);[[1,0],[-1,0],[0,1],[0,-1]].forEach(function(a){var id=(t.x+a[0])+','+(t.y+a[1]);if(!d.roads[id])return;var q=at(id);if(!q)return;g.save();diamond(g,p,s);g.clip();g.lineCap='round';g.strokeStyle='#8d673e';g.lineWidth=s*.16;g.beginPath();g.moveTo(p.x,p.y);g.lineTo(p.x+(q.x-p.x)*.55,p.y+(q.y-p.y)*.55);g.stroke();g.strokeStyle='#d2a667';g.lineWidth=s*.11;g.stroke();g.restore();});});";
 if(r.includes(oldTown))r=r.replace(oldTown,"ordered.forEach(function(t){if(t.id!=='0,0'&&!t.town)return;settlementEntrance(t,at(t.id));});");
 r=r.replace("g.fillStyle='#030808';g.fillRect(0,0,v.w,v.h);","g.fillStyle='#414846';g.fillRect(0,0,v.w,v.h);");
 
 fs.writeFileSync(P,r,'utf8');
-console.log('Road system 239: supplied isometric road tiles integrated.');
+console.log('Road system 240: SBS Dry authored road sprites integrated.');
