@@ -114,7 +114,7 @@ r=r.replace(paint232,paint242);
 
 const settle232="ordered.forEach(function(t){if(t.id!=='0,0'&&!t.town)return;settlementEntrance(t,at(t.id));});";
 if(!r.includes(settle232)) throw Error('Build 242 baseline missing: Build 232 settlement pass');
-r=r.replace(settle232,"buildBridgeSpans242(ordered);\\nordered.forEach(function(t){if(t.id!=='0,0'&&!t.town)return;settlementEntrance(t,at(t.id));});\\nrenderBridgeSpans242();");
+r=r.replace(settle232,"buildBridgeSpans242(ordered);\nordered.forEach(function(t){if(t.id!=='0,0'&&!t.town)return;settlementEntrance(t,at(t.id));});\nrenderBridgeSpans242();");
 
 r=r.replace("g.fillStyle='#030808';g.fillRect(0,0,v.w,v.h);","g.fillStyle='#414846';g.fillRect(0,0,v.w,v.h);");
 fs.writeFileSync(P,r,'utf8');
