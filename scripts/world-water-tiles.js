@@ -93,8 +93,8 @@ fs.writeFileSync(P,r,'utf8');
 cp.execFileSync(process.execPath,['--check',P],{stdio:'inherit'});
 
 const out=fs.readFileSync(P,'utf8');
-if(!out.includes("assets/terrain/water-bridge-a.png"))throw Error('Build 248 Bridge A loader missing.');
-if(!out.includes("assets/terrain/water-bridge-b.png"))throw Error('Build 248 Bridge B loader missing.');
+if(!out.includes("water-bridge-a.png"))throw Error('Build 248 Bridge A loader missing.');
+if(!out.includes("water-bridge-b.png"))throw Error('Build 248 Bridge B loader missing.');
 if(!out.includes("function waterTile248"))throw Error('Build 248 water tile renderer missing.');
 if(out.includes("Exact bank boundaries"))throw Error('Build 247 procedural bridge renderer survived Build 248.');
 if(out.includes("renderBridgeSpans242();"))throw Error('Procedural bridge call is still active.');

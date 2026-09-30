@@ -8,6 +8,6 @@ fs.writeFileSync('src/config.js',c,'utf8');
 let b=fs.readFileSync('build.js','utf8');
 b=b.replace(/Build 2\d\d/g,'Build 248')
    .replace(/LSC_BUILD = '2\d\d'/g,"LSC_BUILD = '248'")
-   .replace(/Last Stand Command 2\d\d/g,'Last Stand Command 247');
+   .replace(/Last Stand Command 2\d\d/g,'Last Stand Command 248');
 fs.writeFileSync('build.js',b,'utf8');
 console.log('LSC build marker: 248');
