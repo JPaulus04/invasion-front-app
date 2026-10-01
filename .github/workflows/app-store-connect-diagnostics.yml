@@ -1,0 +1,106 @@
+name: App Store Connect Diagnostics
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check credentials and look up LSC (read only)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY: ${{ secrets.ASC_API_KEY }}
+        shell: bash
+        run: |
+          node <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const bundleId = 'com.paulus.laststandcommand';
+          function report(message) {
+            console.log(message);
+            if (process.env.GITHUB_STEP_SUMMARY) {
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, message + '\n\n');
+            }
+          }
+          function fail(message) {
+            report('FAIL: ' + message);
+            process.exitCode = 1;
+          }
+          async function main() {
+            report('Read-only App Store Connect diagnostic. No build or upload is performed.');
+            for (const name of ['ASC_KEY_ID', 'ASC_ISSUER_ID', 'ASC_API_KEY']) {
+              if (!process.env[name]) return fail(name + ' is missing or empty.');
+            }
+            const keyId = process.env.ASC_KEY_ID;
+            const issuer = process.env.ASC_ISSUER_ID;
+            // Do not silently fix identifiers: the upload uses these exact values.
+            if (!/^[A-Z0-9]{10}$/.test(keyId)) {
+              return fail('ASC_KEY_ID has unexpected formatting (check spaces/newlines). Value withheld.');
+            }
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(issuer)) {
+              return fail('ASC_ISSUER_ID is not a UUID without surrounding whitespace. Value withheld.');
+            }
+            report('Key ID matches the GitHub Build key shown in Apple: ' + (keyId === '9BJ57XP3Y5' ? 'YES' : 'NO - investigate which key GitHub uses.'));
+            const encoded = process.env.ASC_API_KEY.replace(/\s/g, '');
+            if (!encoded || encoded.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) {
+              return fail('ASC_API_KEY is not valid standard base64. Private key withheld.');
+            }
+            let privateKey;
+            try {
+              privateKey = crypto.createPrivateKey(Buffer.from(encoded, 'base64'));
+              if (privateKey.asymmetricKeyType !== 'ec' || privateKey.asymmetricKeyDetails?.namedCurve !== 'prime256v1') {
+                return fail('Decoded key is not the expected P-256 EC private key.');
+              }
+            } catch {
+              return fail('ASC_API_KEY could not be decoded/parsed as a private key. Details withheld to protect secrets.');
+            }
+            report('Secret formatting and P-256 private-key parsing passed. This alone does not prove Apple authentication.');
+            const now = Math.floor(Date.now() / 1000);
+            const b64 = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+            const unsigned = b64({ alg: 'ES256', kid: keyId, typ: 'JWT' }) + '.' +
+              b64({ iss: issuer, iat: now, exp: now + 300, aud: 'appstoreconnect-v1' });
+            const signature = crypto.sign('sha256', Buffer.from(unsigned), {
+              key: privateKey, dsaEncoding: 'ieee-p1363'
+            }).toString('base64url');
+            const token = unsigned + '.' + signature;
+            // Never print the token/private key or upload either as an artifact.
+            const url = new URL('https://api.appstoreconnect.apple.com/v1/apps');
+            url.searchParams.set('filter[bundleId]', bundleId);
+            url.searchParams.set('fields[apps]', 'name,bundleId');
+            url.searchParams.set('limit', '10');
+            let response;
+            try {
+              response = await fetch(url, {
+                method: 'GET', redirect: 'error',
+                headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' },
+                signal: AbortSignal.timeout(30000)
+              });
+            } catch {
+              return fail('Apple request failed at the network/TLS/timeout/redirect stage. No authentication conclusion.');
+            }
+            report('Apple app lookup HTTP status: ' + response.status);
+            if (response.status === 401) return fail('Apple rejected authentication. Check key/issuer/private-key pairing, revocation, and token generation.');
+            if (response.status === 403) return fail('Apple denied access. Investigate key/account permissions or restrictions.');
+            if (response.status === 429 || response.status >= 500) return fail('Apple rate limit or server failure. This does not prove a bad key.');
+            if (response.status !== 200) return fail('Unexpected Apple response. Response body withheld; investigate endpoint/account state.');
+            let payload;
+            try { payload = await response.json(); }
+            catch { return fail('Apple returned HTTP 200 but not valid JSON.'); }
+            if (!Array.isArray(payload.data)) return fail('Unexpected Apple response structure.');
+            const matches = payload.data.filter(app => app.attributes?.bundleId === bundleId);
+            if (!matches.length) return fail('Authentication succeeded, but no accessible app matched ' + bundleId + '. Check account/team and bundle ID.');
+            report('PASS: Existing GitHub credentials can retrieve the LSC app record for ' + bundleId + '.');
+            report('This verifies app lookup only, not upload success. Next investigate altool and exported IPA metadata.');
+          }
+          main().catch(() => fail('Unexpected local diagnostic error. Sensitive exception details withheld.'));
+          NODE
