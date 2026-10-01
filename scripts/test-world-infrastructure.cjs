@@ -85,6 +85,7 @@ world.settlement204.renderRevision=1;paint({...camera,scale:110},3220);
 assert.equal(cache.isoRebuilds,3,'world changes invalidate raster');
 paint({...camera,x:50},3240);assert.equal(cache.isoRebuilds,4,'cache edge triggers rebuild');
 assert.ok(cache.isoCanvas.width<=2048&&cache.isoCanvas.height<=2048);
-assert.match(fs.readFileSync('www/index.html','utf8'),/const LSC_BUILD = '249';/);
+const expectedBuild=fs.readFileSync('scripts/set-build-version.js','utf8').match(/LSC build marker: (\d+)/)[1];
+assert.ok(fs.readFileSync('www/index.html','utf8').includes("const LSC_BUILD = '"+expectedBuild+"';"));
 for(const match of fs.readFileSync('www/index.html','utf8').matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))new vm.Script(match[1]);
 console.log('PASS: stone roads, mountain/building restrictions, saved campaign and rollback, all 16 bridge masks, camera raster reuse/invalidation, final bundled JavaScript.');

@@ -30,6 +30,12 @@ required243.forEach(function(file){
 ['forest-cluster-01.png','forest-cluster-02.png','forest-cluster-03.png','forest-details-01.png'].forEach(function(file){
   if(!fs.existsSync(path.join('assets','terrain',file))) throw new Error('Build 243 asset missing: assets/terrain/'+file);
 });
+// Authored ground textures, deliberately separate from the forest/world model.
+['grass-tile.png','stone-tile.png','sand-tile.png'].forEach(function(file){
+  const png=fs.readFileSync(path.join('assets','terrain',file));
+  if(png.toString('hex',0,8)!=='89504e470d0a1a0a'||png.readUInt32BE(16)!==1774||png.readUInt32BE(20)!==887)
+    throw new Error('Ground tile crop requires a 1774x887 PNG: '+file);
+});
 
 const MAP = 'src/isometricMap221.js';
 let r = fs.readFileSync(MAP, 'utf8');
@@ -123,6 +129,40 @@ r = r.replace(/'dock'\+Math\.max\(1,Math\.min\(3,api\.villageLevel\?api\.village
 const oldDecoration = "else if(!d.roads[t.id]){if(t.terrain==='hill'){name='mountain';width=s*.74;}else if(t.terrain==='plain'&&Math.abs(t.x*7+t.y*11)%4){name='tree';width=s*.48;}}";
 const newDecoration = "else if(!d.roads[t.id]){if(t.terrain==='hill'){name='mountain';width=s*.74;}else if(t.terrain==='plain'&&Math.abs(t.x*7+t.y*11)%4){name=null;forest243(p,t);}}";
 replaceOnce(oldDecoration, newDecoration, 'forest decoration route');
+
+// Build 250: prepare two small canvases per ground type ONCE at image load.
+// The inset samples inside the authored diamond, excluding transparent margins
+// and edge fringes. Exact 2:1 clipping is shared with the game's tile geometry.
+// No filters, pixel reads, or large-image resizing occur in the paint loop.
+const groundLoader250 = `
+ var groundArt250={};
+ function loadGround250(name,file){
+  var im=new Image();
+  im.onload=function(){
+   if(typeof document==='undefined')return;
+   try{
+    var color=document.createElement('canvas');color.width=256;color.height=128;
+    var pen=color.getContext('2d',{willReadFrequently:true});
+    pen.imageSmoothingEnabled=true;pen.imageSmoothingQuality='high';
+    diamond(pen,{x:128,y:64},256);pen.clip();
+    pen.drawImage(im,im.naturalWidth*.06,im.naturalHeight*.06,im.naturalWidth*.88,im.naturalHeight*.88,0,0,256,128);
+    var gray=document.createElement('canvas');gray.width=256;gray.height=128;
+    var gp=gray.getContext('2d'),pixels=pen.getImageData(0,0,256,128),data=pixels.data;
+    for(var i=0;i<data.length;i+=4){var value=Math.round(data[i]*.299+data[i+1]*.587+data[i+2]*.114);data[i]=data[i+1]=data[i+2]=value;}
+    gp.putImageData(pixels,0,0);
+    groundArt250[name]={color:color,surveyed:gray};revision++;
+   }catch(error){if(typeof console!=='undefined')console.warn('Ground texture unavailable; retaining atlas fallback: '+file);}
+  };
+  im.src='assets/terrain/'+file;
+ }
+ if(typeof Image!=='undefined'){
+  loadGround250('grass','grass-tile.png');loadGround250('rock','stone-tile.png');loadGround250('sand','sand-tile.png');
+ }
+`;
+replaceOnce(' function project(t,c,v){',groundLoader250+' function project(t,c,v){','ground texture loader');
+replaceOnce('function sprite(p,name,w,colored,ground){',
+  "function sprite(p,name,w,colored,ground){var tile250=ground&&groundArt250[name];if(tile250){g.drawImage(tile250[colored?'color':'surveyed'],p.x-w/2,p.y-w/4,w,w/2);return true;}",
+  'ground texture draw route');
 
 fs.writeFileSync(MAP, r, 'utf8');
 // Validate the generated source itself. This catches generator-created syntax errors before bundling.
