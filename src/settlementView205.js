@@ -165,12 +165,14 @@
    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});beginGesture(false);
    try{canvas.setPointerCapture(e.pointerId);}catch(error){/* Window end listeners still release the gesture. */}
   };
+  var cameraFrame=0;
+  function cameraDraw(){if(!root.requestAnimationFrame){draw();return;}if(!cameraFrame)cameraFrame=root.requestAnimationFrame(function(){cameraFrame=0;if(!dead)draw();});}
   canvas.onpointermove=function(e){if(!pointers.has(e.pointerId))return;e.preventDefault();
    if(e.pointerType==='mouse'&&e.buttons===0){endTouch(e,false);return;}
    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-   if(pointers.size===2&&pinch){var points=Array.from(pointers.values()),a=points[0],b=points[1],box=canvas.getBoundingClientRect();camera.scale=Math.max(zoomFloor(),Math.min(150,pinch.scale*Math.hypot(a.x-b.x,a.y-b.y)/pinch.distance));var mx=((a.x+b.x)/2-box.left-view.w/2)/camera.scale,my=((a.y+b.y)/2-box.top-view.h/2)/camera.scale;camera.x=pinch.worldX-mx-2*my;camera.y=pinch.worldY+mx-2*my;draw();return;}
+   if(pointers.size===2&&pinch){var points=Array.from(pointers.values()),a=points[0],b=points[1],box=canvas.getBoundingClientRect();camera.scale=Math.max(zoomFloor(),Math.min(150,pinch.scale*Math.hypot(a.x-b.x,a.y-b.y)/pinch.distance));var mx=((a.x+b.x)/2-box.left-view.w/2)/camera.scale,my=((a.y+b.y)/2-box.top-view.h/2)/camera.scale;camera.x=pinch.worldX-mx-2*my;camera.y=pinch.worldY+mx-2*my;cameraDraw();return;}
    if(!gesture)return;var dx=e.clientX-gesture.x,dy=e.clientY-gesture.y;if(Math.hypot(dx,dy)>8)gesture.moved=true;
-   if(gesture.moved){camera.x=gesture.cx-dx/camera.scale-2*dy/camera.scale;camera.y=gesture.cy+dx/camera.scale-2*dy/camera.scale;draw();}
+   if(gesture.moved){camera.x=gesture.cx-dx/camera.scale-2*dy/camera.scale;camera.y=gesture.cy+dx/camera.scale-2*dy/camera.scale;cameraDraw();}
   };
   function endTouch(e,allowTap){if(!pointers.has(e.pointerId))return;
    var tap=allowTap&&pointers.size===1&&gesture&&!gesture.moved&&Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)<=8;
