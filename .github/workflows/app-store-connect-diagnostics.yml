@@ -2,6 +2,10 @@ name: App Store Connect Diagnostics
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/app-store-connect-diagnostics.yml'
 
 permissions: {}
 
@@ -89,6 +93,34 @@ jobs:
               return fail('Apple request failed at the network/TLS/timeout/redirect stage. No authentication conclusion.');
             }
             report('Apple app lookup HTTP status: ' + response.status);
+            if (response.status !== 200) {
+              // Only selected Apple error fields; never log response headers or raw bodies.
+              let body;
+              try { body = await response.json(); } catch {}
+              const redact = value => {
+                let text = String(value);
+                const sensitive = [token, process.env.ASC_API_KEY, encoded,
+                  Buffer.from(encoded, 'base64').toString('utf8'), keyId, issuer];
+                for (const secret of sensitive) {
+                  if (secret) text = text.split(secret).join('[REDACTED]');
+                }
+                return text.replace(/-----BEGIN[\s\S]*?-----END[^-]*-----/g, '[REDACTED KEY]')
+                  .replace(/[A-Za-z0-9_+\/-]{40,}={0,2}/g, '[REDACTED LONG VALUE]')
+                  .replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g, '[REDACTED EMAIL]')
+                  .replace(/[\x00-\x1f\x7f]/g, ' ').slice(0, 900);
+              };
+              if (Array.isArray(body?.errors)) {
+                for (const error of body.errors.slice(0, 3)) {
+                  for (const field of ['code', 'title', 'detail']) {
+                    if (typeof error[field] === 'string') {
+                      report('Apple error ' + field + ': ' + redact(error[field]));
+                    }
+                  }
+                }
+              } else {
+                report('Apple did not return a structured API error. Raw response withheld.');
+              }
+            }
             if (response.status === 401) return fail('Apple rejected authentication. Check key/issuer/private-key pairing, revocation, and token generation.');
             if (response.status === 403) return fail('Apple denied access. Investigate key/account permissions or restrictions.');
             if (response.status === 429 || response.status >= 500) return fail('Apple rate limit or server failure. This does not prove a bad key.');
