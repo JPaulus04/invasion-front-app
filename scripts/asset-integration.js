@@ -66,7 +66,16 @@ const loader243 = `function chroma243(im){
   return cv;
  }
  function loadBuilding243(name,file){var im=new Image();im.onload=function(){buildingArt[name]=chroma243(im);revision++;};im.src='assets/buildings/'+file;}
- function loadTerrain243(name,file){var im=new Image();im.onload=function(){terrainArt[name]=chroma243(im);revision++;};im.src='assets/terrain/'+file;}
+ function loadTerrain243(name,file){var im=new Image();im.onload=function(){
+  var keyed=chroma243(im);
+  // Keep the same cluster geometry; avoid resampling 1024px software canvases every draw.
+  if(typeof document!=='undefined'&&keyed.width>256){
+   var small=document.createElement('canvas');small.width=256;small.height=Math.max(1,Math.round(keyed.height*256/keyed.width));
+   var pen=small.getContext('2d');pen.imageSmoothingEnabled=true;pen.imageSmoothingQuality='high';
+   pen.drawImage(keyed,0,0,small.width,small.height);keyed=small;
+  }
+  terrainArt[name]=keyed;revision++;
+ };im.src='assets/terrain/'+file;}
  if(typeof Image!=='undefined'){
   var priorityArt={workshop:'lumber-camp.png',quarry:'quarry.png',mine:'mine.png',forge:'forge.png',goldMine:'gold-mine.png',fishingBoat:'fishing-boat.png',scout1:'scout-tower-l1.png',scout2:'scout-tower-l2.png',scout3:'scout-tower-l3.png',dock1:'dock-l1.png',dock2:'dock-l2.png',dock3:'dock-l3.png',town1:'town-l1.png',town2:'town-l2.png',town3:'town-l3.png',woodlandVillage:'woodland-village.png',farmlandVillage:'farmland-village.png',industrialVillage:'industrial-village.png',highlandVillage:'highland-village.png',waterVillage:'water-village.png',harborTown:'harbor-town.png',farm1:'farm-l1.png',farm2:'farm-l2.png',farm3:'farm-l3.png',sawmill1:'sawmill-l1.png',sawmill2:'sawmill-l2.png',sawmill3:'sawmill-l3.png',homestead1:'homestead-l1.png',homestead2:'homestead-l2.png',homestead3:'homestead-l3.png',stoneQuarry1:'stone-quarry-l1.png',stoneQuarry2:'stone-quarry-l2.png',stoneQuarry3:'stone-quarry-l3.png',ironMine1:'iron-mine-l1.png',ironMine2:'iron-mine-l2.png',ironMine3:'iron-mine-l3.png',townHall1:'town-hall-l1.png',townHall2:'town-hall-l2.png',townHall3:'town-hall-l3.png'};
   Object.keys(priorityArt).forEach(function(name){loadBuilding243(name,priorityArt[name]);});

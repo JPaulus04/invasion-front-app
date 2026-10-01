@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Last Stand Command — water / bridge tile system
- * Build 248 target.
+ * Build 249: preserve both road axes at water turns/junctions.
  *
  * Replaces runtime bridge construction with complete authored terrain tiles:
  *   water-tile.png
@@ -41,29 +41,34 @@ r=r.replace(projectAnchor,tileLoader+projectAnchor);
 const badgeAnchor="  function badge(";
 need(badgeAnchor,'badge anchor');
 const tileRenderer=`  function waterTile248(p,t){
-   var name='water';
+   var mask=0;
    if(d.roads[t.id]){
-    var mask=0;
     [[1,0,1],[-1,0,2],[0,1,4],[0,-1,8]].forEach(function(a){
      var id=(t.x+a[0])+','+(t.y+a[1]),next=tiles[id];
      if(d.roads[id]||next&&(id==='0,0'||next.town))mask|=a[2];
     });
-    var xAxis=mask&3,yAxis=mask&12;
-    // Map x-axis projects upper-left <-> lower-right: mirrored authored tile (B).
-    // Map y-axis projects lower-left <-> upper-right: approved authored tile (A).
-    if(yAxis&&!xAxis)name='bridgeA';
-    else if(xAxis&&!yAxis)name='bridgeB';
-    else if(yAxis&&xAxis){
-     // Water junctions are not intended; prefer the axis that actually continues
-     // through another water-road tile rather than inventing T/cross bridge art.
-     var yContinue=[[0,1],[0,-1]].some(function(a){var q=tiles[(t.x+a[0])+','+(t.y+a[1])];return q&&q.terrain==='water'&&d.roads[q.id];});
-     name=yContinue?'bridgeA':'bridgeB';
-    }else name='bridgeB';
+    if(!mask)mask=3;
    }
-   var im=terrainTiles248[name];
-   if(!im||!im.complete||!im.naturalWidth)return false;
+   function ready(name){var im=terrainTiles248[name];return im&&im.complete&&im.naturalWidth;}
+   function draw(name){g.drawImage(terrainTiles248[name],p.x-s/2,p.y-s/4,s,s/2);}
+   var name=!mask?'water':!(mask&12)?'bridgeB':!(mask&3)?'bridgeA':null;
+   if(name&&!ready(name))return false;
+   if(!name&&(!ready('water')||!ready('bridgeA')||!ready('bridgeB')))return false;
    g.save();diamond(g,p,s+.8);g.clip();
-   g.drawImage(im,p.x-s/2,p.y-s/4,s,s/2);
+   if(name)draw(name);
+   else{
+    // Each connected edge owns one triangular quarter of the complete tile.
+    // This keeps a straight crossing intact when a branch is added and connects
+    // corners/T/X layouts without rotated or stretched bridge objects.
+    draw('water');
+    [[1,'bridgeB',.5,0,0,.25],[2,'bridgeB',-.5,0,0,-.25],
+     [4,'bridgeA',0,.25,-.5,0],[8,'bridgeA',0,-.25,.5,0]].forEach(function(a){
+      if(!(mask&a[0]))return;
+      g.save();g.beginPath();g.moveTo(p.x,p.y);
+      g.lineTo(p.x+a[2]*s,p.y+a[3]*s);g.lineTo(p.x+a[4]*s,p.y+a[5]*s);
+      g.closePath();g.clip();draw(a[1]);g.restore();
+    });
+   }
    g.restore();return true;
   }
 
@@ -99,4 +104,4 @@ if(!out.includes("function waterTile248"))throw Error('Build 248 water tile rend
 if(out.includes("Exact bank boundaries"))throw Error('Build 247 procedural bridge renderer survived Build 248.');
 if(out.includes("renderBridgeSpans242();"))throw Error('Procedural bridge call is still active.');
 
-console.log('Build 248 ready: complete water tiles + authored Bridge A/B; procedural bridge renderer removed.');
+console.log('Water tiles ready: authored Bridge A/B with connected turns and junctions; procedural bridge renderer disabled.');

@@ -32,13 +32,9 @@ function swap(oldValue,newValue,label){
 // A one-connection tile is a full-width straight dirt strip across the tile.
 // No taper, arrowhead, circle, bulb, or rounded cap.
 const roadEnd247=`  function roadEnd242(p,t,mask){
-   var dirs={1:[1,0],2:[-1,0],4:[0,1],8:[0,-1]},a=dirs[mask];if(!a)return false;
-   var qa=project({x:t.x+a[0]*.56,y:t.y+a[1]*.56},c,v);
-   var qb=project({x:t.x-a[0]*.56,y:t.y-a[1]*.56},c,v);
-   g.save();diamond(g,p,s+.8);g.clip();g.lineCap='butt';g.lineJoin='miter';
-   g.strokeStyle='#6f482c';g.lineWidth=s*.165;g.beginPath();g.moveTo(qa.x,qa.y);g.lineTo(qb.x,qb.y);g.stroke();
-   g.strokeStyle='#8a5a34';g.lineWidth=s*.122;g.stroke();
-   g.restore();return true;
+   // Use the SAME authored SBS straight tile as the connecting road.
+   // Preserve full-tile square ends without the untextured brown rectangle.
+   packRoad242(p,(mask===4||mask===8)?12:3);return true;
   }
 
 `;
