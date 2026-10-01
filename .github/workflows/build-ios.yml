@@ -45,6 +45,8 @@ jobs:
       - name: Build game bundle
         run: |
           npm run build
+          node scripts/test-world-infrastructure.cjs
+          node scripts/test-ground-textures.cjs
           test -f www/index.html
           echo "www/index.html built ($(wc -c < www/index.html) bytes)"
 
