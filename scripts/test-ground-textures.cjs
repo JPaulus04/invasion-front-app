@@ -13,7 +13,7 @@ class Image{constructor(){this.width=this.naturalWidth=1774;this.height=this.nat
 const c={Image,console,document:{createElement:()=>({id:++canvases,width:0,height:0,getContext:pen})}};
 vm.createContext(c);
 // Test-only introspection, never included in the bundle.
-vm.runInContext(source.replace('root.LSCIso221={','root.__buildings=buildingArt;root.__ground=groundArt250;root.__shores=shores253;root.LSCIso221={'),c);
+vm.runInContext(source.replace('root.LSCIso221={','root.__connected=connected254;root.__canonical=canonical254;root.__buildings=buildingArt;root.__ground=groundArt250;root.__shores=shores253;root.LSCIso221={'),c);
 const ground=pending.filter(im=>/\/(grass|stone|sand)-tile.png$/.test(im.src));
 assert.equal(ground.length,3);
 assert.equal(Object.keys(c.__ground).length,0,'atlas fallback until images load');
@@ -27,30 +27,33 @@ for(const name of ['grass','rock','sand']){
  assert.equal(c.__ground[name].colorEdges.length,4);
  assert.equal(c.__ground[name].surveyedEdges.length,4);
 }
-assert.equal(reads,3,'one pixel read per ground asset');
+assert.equal(reads,9,'three ground reads plus six one-time composite inputs');
+assert.equal(Object.keys(c.__connected.banks).length,47,'47 canonical shoreline configurations');
+assert.equal(c.__connected.rubble.length,4);
 for(const [terrain,name] of [['plain','grass'],['hill','rock'],['bank','sand']])for(const colored of [true,false]){
  const tile={id:'2,2',x:2,y:2,terrain},d={visible:{'2,2':true},cleared:colored?{'2,2':true}:{},roads:{},buildings:{},at:1000};
  c.LSCSettlement={tiles:{'2,2':tile},villageLevel:()=>1,currentRegionObjective:()=>null,jobs:()=>[]};
  draws.length=0;
  c.LSCIso221.paint(pen(),{settlement204:d},{w:390,h:844},{x:2,y:2,scale:100},null,[],1000,{});
- assert.ok(draws.some(d=>d.im===c.__ground[name][colored?'color':'surveyed']),terrain+' '+colored);
+ const expected=terrain==='bank'?c.__connected.banks[0][colored?0:1]:terrain==='hill'?c.__connected.rubble[0][colored?0:1]:c.__ground[name][colored?'color':'surveyed'];
+ assert.ok(draws.some(d=>d.im===expected),terrain+' '+colored);
 }
-assert.equal(reads,3,'painting must not process texture pixels');
+assert.equal(reads,9,'painting must not process texture pixels');
 // Every land edge direction must choose the neighbor texture, never water or
-// an unrevealed/differently reclaimed tile. Capture the actual draw calls.
+// an unrevealed tile; visible reclamation boundaries must blend too.
 for(const [dx,dy,edge] of [[1,0,0],[-1,0,1],[0,1,2],[0,-1,3]]){
  for(const state of ['clear','surveyed','hidden','mixed','water']){
   const id=(2+dx)+','+(2+dy),tiles={'2,2':{id:'2,2',x:2,y:2,terrain:'plain'}};
   tiles[id]={id,x:2+dx,y:2+dy,terrain:state==='water'?'water':'hill'};
   const cleared=state==='surveyed'?{}:{'2,2':true};if(state!=='mixed'&&state!=='surveyed')cleared[id]=true;
   const d={visible:{'2,2':true,[id]:state!=='hidden'},cleared,roads:{},buildings:{},at:1000};
-  c.LSCSettlement={tiles,villageLevel:()=>1,currentRegionObjective:()=>null,jobs:()=>[]};draws.length=0;
+  c.LSCSettlement={tiles,mountain:()=>true,villageLevel:()=>1,currentRegionObjective:()=>null,jobs:()=>[]};draws.length=0;
   c.LSCIso221.paint(pen(),{settlement204:d},{w:390,h:844},{x:2,y:2,scale:100},null,[],1000,{});
-  const expected=c.__ground.rock[state==='surveyed'?'surveyedEdges':'colorEdges'][edge];
-  assert.equal(draws.some(d=>d.im===expected),state==='clear'||state==='surveyed',state+' edge '+edge);
+  const expected=c.__ground.rock[state==='surveyed'||state==='mixed'?'surveyedEdges':'colorEdges'][edge];
+  assert.equal(draws.some(d=>d.im===expected),state==='clear'||state==='surveyed'||state==='mixed',state+' edge '+edge);
  }
 }
-assert.equal(reads,3,'transitions must not read pixels during painting');
+assert.equal(reads,9,'transitions must not read pixels during painting');
 for(const file of ['grass-tile.png','stone-tile.png','sand-tile.png']){
  const bytes=fs.readFileSync('assets/terrain/'+file);
  assert.equal(bytes.toString('hex',0,8),'89504e470d0a1a0a');
@@ -70,7 +73,7 @@ for(const [dx,dy,edge] of [[1,0,0],[-1,0,1],[0,1,2],[0,-1,3]])for(const visible 
  c.LSCSettlement={tiles,villageLevel:()=>1,currentRegionObjective:()=>null,jobs:()=>[]};draws.length=0;
  const before=JSON.stringify(d);
  c.LSCIso221.paint(pen(),{settlement204:d},{w:390,h:844},{x:2,y:2,scale:100},null,[],1000,{});
- assert.equal(draws.some(d=>d.im===c.__shores[edge]),visible,'shore direction '+edge);
+ assert.ok(draws.some(d=>d.im===c.__connected.banks[visible?1<<edge:0][0]),'connected shore direction '+edge);
  const dock=draws.find(d=>/dock-l1.png$/.test(d.im.src||''));assert.ok(dock);
  // Moving the dock by .32 tile projects to +/-16 horizontally and +/-8 vertically.
  const expectedX=355-35+(visible?(dx-dy)*16:0);
@@ -79,5 +82,16 @@ for(const [dx,dy,edge] of [[1,0,0],[-1,0,1],[0,1,2],[0,-1,3]])for(const visible 
  assert.equal(!!boat,visible,'no boat placed using hidden water');
  assert.equal(JSON.stringify(d),before,'presentation must preserve save data');
 }
-assert.equal(reads,3,'shore and harbor painting never reads pixels');
+assert.equal(reads,9,'shore and harbor painting never reads pixels');
 console.log('PASS: surveyed hue, four shoreline directions, hidden water, dock anchors, offshore boats, unchanged saves.');
+for(let mask=0;mask<256;mask++){
+ const tiles={'2,2':{id:'2,2',x:2,y:2,terrain:'bank'}},d={visible:{'2,2':true},cleared:{'2,2':true},roads:{},buildings:{},at:1000};
+ [[1,0,1],[-1,0,2],[0,1,4],[0,-1,8],[1,1,16],[1,-1,32],[-1,1,64],[-1,-1,128]].forEach(([dx,dy,bit])=>{
+  const id=(2+dx)+','+(2+dy);tiles[id]={id,x:2+dx,y:2+dy,terrain:'water'};d.visible[id]=!!(mask&bit);
+ });
+ c.LSCSettlement={tiles,villageLevel:()=>1,currentRegionObjective:()=>null,jobs:()=>[]};draws.length=0;
+ c.LSCIso221.paint(pen(),{settlement204:d},{w:390,h:844},{x:2,y:2,scale:100},null,[],1000,{});
+ assert.ok(draws.some(x=>x.im===c.__connected.banks[c.__canonical(mask)][0]),'shore mask '+mask);
+}
+assert.equal(reads,9,'all shoreline configurations avoid runtime pixel reads');
+console.log('PASS: all 256 neighbor combinations select the correct cached shoreline.');

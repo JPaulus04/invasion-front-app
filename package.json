@@ -4,7 +4,7 @@
   "description": "Last Stand Command \u2014 tactical lane-defense game",
   "private": true,
   "scripts": {
-    "build": "node scripts/prepare-build-231.js && node scripts/prepare-build-232.js && node scripts/road-system.js && node scripts/asset-integration.js && node scripts/world-polish-244.js && node scripts/world-polish-246.js && node scripts/world-infrastructure-polish.js && node scripts/world-water-tiles.js && node scripts/world-shoreline-253.js && node scripts/set-build-version.js && node build.js",
+    "build": "node scripts/prepare-build-231.js && node scripts/prepare-build-232.js && node scripts/road-system.js && node scripts/asset-integration.js && node scripts/world-polish-244.js && node scripts/world-polish-246.js && node scripts/world-infrastructure-polish.js && node scripts/world-water-tiles.js && node scripts/world-shoreline-253.js && node scripts/world-connected-254.js && node scripts/set-build-version.js && node build.js",
     "dev": "echo 'Open index.html in browser for dev mode'"
   },
   "dependencies": {

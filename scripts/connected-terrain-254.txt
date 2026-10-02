@@ -1,0 +1,45 @@
+ var connected254={ready:false,banks:{},rubble:[],water:null};
+ function canonical254(m){[[1,4,16],[1,8,32],[2,4,64],[2,8,128]].forEach(function(q){if(m&(q[0]|q[1]))m&=~q[2];});return m;}
+ function distance254(a,b,m){
+  var d=10,xp=(1-a)/2,xn=(1+a)/2,yp=(1-b)/2,yn=(1+b)/2;
+  if(m&1)d=Math.min(d,xp);if(m&2)d=Math.min(d,xn);if(m&4)d=Math.min(d,yp);if(m&8)d=Math.min(d,yn);
+  [[1,4,xp,yp],[1,8,xp,yn],[2,4,xn,yp],[2,8,xn,yn]].forEach(function(q){if((m&q[0])&&(m&q[1])){var h=Math.max(0,.24-Math.abs(q[2]-q[3]))/.24;d=Math.min(d,Math.min(q[2],q[3])-h*h*.06);}});
+  [[16,xp,yp],[32,xp,yn],[64,xn,yp],[128,xn,yn]].forEach(function(q){if(m&q[0])d=Math.min(d,Math.hypot(q[1],q[2]));});return d;
+ }
+ function prepare254(){
+  if(connected254.ready||!groundArt250.grass||!groundArt250.sand||!groundArt250.rock)return;
+  var samples={};['grass','sand','rock'].forEach(function(n){samples[n]=['color','surveyed'].map(function(k){return groundArt250[n][k].getContext('2d').getImageData(0,0,256,128).data;});});
+  function make(mask,variant,state){
+   var cv=document.createElement('canvas');cv.width=128;cv.height=64;var cx=cv.getContext('2d'),pixels=cx.createImageData(128,64),data=pixels.data;
+   for(var y=0;y<64;y++)for(var x=0;x<128;x++){
+    var u=(x+.5-64)/64,v=(y+.5-32)/32,a=u+v,b=v-u,i=(y*128+x)*4;
+    // Extend valid ground pixels beyond the diamond; paint clips exact tile geometry.
+    var f=Math.min(1,.97/(Math.abs(u)+Math.abs(v)||1)),sx=Math.max(0,Math.min(255,Math.floor(128+u*f*128))),sy=Math.max(0,Math.min(127,Math.floor(64+v*f*64))),j=(sy*256+sx)*4;
+    var d=mask===null?10:distance254(a,b,mask),blend,other;
+    if(mask===null){var r=Math.hypot(a+.12*Math.sin(variant*2),b+.12*Math.cos(variant*3));blend=Math.max(0,Math.min(.95,(.59+.09*Math.sin(a*19+variant)*Math.sin(b*15-variant)-r)/.15));other='rock';}
+    else{blend=Math.max(0,Math.min(1,(.25-d)/.09));other='sand';}
+    for(var k=0;k<3;k++)data[i+k]=Math.round(samples.grass[state][j+k]*(1-blend)+samples[other][state][j+k]*blend);
+    // Opaque coast pixels prevent the water underlay bleeding through tile seams.
+    var land=mask===null?1:Math.max(0,Math.min(1,(d-.02)/.025));
+    for(var k=0;k<3;k++)data[i+k]=Math.round(data[i+k]*land+[49,137,178][k]*(1-land));
+    data[i+3]=255;
+   }cx.putImageData(pixels,0,0);return cv;
+  }
+  var masks={};for(var m=0;m<256;m++)masks[canonical254(m)]=true;
+  Object.keys(masks).forEach(function(m){connected254.banks[m]=[make(Number(m),0,0),make(Number(m),0,1)];});
+  for(var v=0;v<4;v++)connected254.rubble.push([make(null,v,0),make(null,v,1)]);
+  connected254.ready=true;revision++;
+ }
+ if(typeof document!=='undefined'){
+  var wc254=document.createElement('canvas');wc254.width=256;wc254.height=256;var cx254=wc254.getContext('2d'),px254=cx254.createImageData(256,256);
+  for(var y254=0;y254<256;y254++)for(var x254=0;x254<256;x254++){
+   var a254=x254*Math.PI/128,b254=y254*Math.PI/128,w254=Math.sin(a254*4+.8*Math.sin(b254*3))*2.8+Math.sin(b254*9+a254*2)*1.8,i254=(y254*256+x254)*4;
+   px254.data[i254]=49+w254;px254.data[i254+1]=137+w254;px254.data[i254+2]=178+w254;px254.data[i254+3]=255;
+  }cx254.putImageData(px254,0,0);connected254.water=wc254;
+ }
+ function deck254(im){
+  if(typeof document==='undefined')return im;
+  var cv=document.createElement('canvas');cv.width=512;cv.height=256;var cx=cv.getContext('2d');cx.drawImage(im,0,0,512,256);
+  var p=cx.getImageData(0,0,512,256),a=p.data;for(var i=0;i<a.length;i+=4)if(a[i+2]>a[i]+12&&a[i+1]>a[i]+8)a[i+3]=0;
+  cx.putImageData(p,0,0);cv.src=im.src;return cv;
+ }
