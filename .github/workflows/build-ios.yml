@@ -47,6 +47,7 @@ jobs:
           npm run build
           node scripts/test-world-infrastructure.cjs
           node scripts/test-ground-textures.cjs
+          node scripts/test-road-polish.cjs
           test -f www/index.html
           echo "www/index.html built ($(wc -c < www/index.html) bytes)"
 
@@ -91,7 +92,7 @@ jobs:
           path = "ios/App/App.xcodeproj/project.pbxproj"
           with open(path) as f:
               content = f.read()
-          content = re.sub(r'CURRENT_PROJECT_VERSION = \d+;', 'CURRENT_PROJECT_VERSION = 254;', content)
+          content = re.sub(r'CURRENT_PROJECT_VERSION = \d+;', 'CURRENT_PROJECT_VERSION = 255;', content)
           content = re.sub(r'MARKETING_VERSION = [^;]+;', 'MARKETING_VERSION = 1.0;', content)
           content = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = [^;]+;', 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;', content)
           content = re.sub(
@@ -105,7 +106,7 @@ jobs:
           )
           with open(path, "w") as f:
               f.write(content)
-          print("Project patched — version 1.0 build 254, iOS 15.0 minimum")
+          print("Project patched — version 1.0 build 255, iOS 15.0 minimum")
           EOF
 
       - name: Patch Podfile
