@@ -136,6 +136,24 @@ replaceOnce(oldDecoration, newDecoration, 'forest decoration route');
 // No filters, pixel reads, or large-image resizing occur in the paint loop.
 const groundLoader250 = `
  var groundArt250={};
+ // Build 251: immutable edge sprites, generated only when a texture loads.
+ // At a shared edge each tile blends 50% of its neighbor, tapering inward.
+ function groundEdges251(pixels){
+  return [[1,1],[-1,-1],[-1,1],[1,-1]].map(function(axis){
+   var cv=document.createElement('canvas');cv.width=256;cv.height=128;
+   var cx=cv.getContext('2d'),out=cx.createImageData(256,128),data=out.data;
+   for(var y=0;y<128;y++)for(var x=0;x<256;x++){
+    var i=(y*256+x)*4,u=(x+.5-128)/128,v=(y+.5-64)/64;
+    var distance=1-axis[0]*u-axis[1]*v;
+    var along=axis[0]*u-axis[1]*v;
+    var width=.22+.035*Math.sin(along*31)+.018*Math.sin(along*73);
+    var alpha=Math.max(0,1-distance/width)*.5;
+    data[i]=pixels.data[i];data[i+1]=pixels.data[i+1];data[i+2]=pixels.data[i+2];
+    data[i+3]=Math.round(pixels.data[i+3]*Math.min(.5,alpha));
+   }
+   cx.putImageData(out,0,0);return cv;
+  });
+ }
  function loadGround250(name,file){
   var im=new Image();
   im.onload=function(){
@@ -148,9 +166,10 @@ const groundLoader250 = `
     pen.drawImage(im,im.naturalWidth*.06,im.naturalHeight*.06,im.naturalWidth*.88,im.naturalHeight*.88,0,0,256,128);
     var gray=document.createElement('canvas');gray.width=256;gray.height=128;
     var gp=gray.getContext('2d'),pixels=pen.getImageData(0,0,256,128),data=pixels.data;
+    var colorEdges=groundEdges251(pixels);
     for(var i=0;i<data.length;i+=4){var value=Math.round(data[i]*.299+data[i+1]*.587+data[i+2]*.114);data[i]=data[i+1]=data[i+2]=value;}
     gp.putImageData(pixels,0,0);
-    groundArt250[name]={color:color,surveyed:gray};revision++;
+    groundArt250[name]={color:color,surveyed:gray,colorEdges:colorEdges,surveyedEdges:groundEdges251(pixels)};revision++;
    }catch(error){if(typeof console!=='undefined')console.warn('Ground texture unavailable; retaining atlas fallback: '+file);}
   };
   im.src='assets/terrain/'+file;
@@ -163,6 +182,25 @@ replaceOnce(' function project(t,c,v){',groundLoader250+' function project(t,c,v
 replaceOnce('function sprite(p,name,w,colored,ground){',
   "function sprite(p,name,w,colored,ground){var tile250=ground&&groundArt250[name];if(tile250){g.drawImage(tile250[colored?'color':'surveyed'],p.x-w/2,p.y-w/4,w,w/2);return true;}",
   'ground texture draw route');
+
+// Blend within the current land tile before roads draw. No changes to terrain
+// identity, road connectivity, resource geography, fog, or the camera cache.
+const transition251 = `  function groundTransition251(p,t,colored){
+   function name(q){return q.terrain==='plain'?'grass':q.terrain==='hill'?'rock':q.terrain==='bank'?'sand':null;}
+   var own=name(t);if(!own||!groundArt250[own])return;
+   [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(a,edge){
+    var id=(t.x+a[0])+','+(t.y+a[1]),next=tiles[id];
+    if(!next||!d.visible[id]||!!d.cleared[id]!==colored)return;
+    var other=name(next),art=other&&groundArt250[other];
+    if(!art||other===own)return;
+    g.drawImage(art[colored?'colorEdges':'surveyedEdges'][edge],p.x-s/2,p.y-s/4,s,s/2);
+   });
+  }
+`;
+replaceOnce('  function standalone(',transition251+'  function standalone(','land transition renderer');
+replaceOnce("g.strokeStyle=colored?'#25381d33':'#bac1c12a';g.stroke();",
+  "g.strokeStyle=colored?'#25381d33':'#bac1c12a';if(!colored)g.stroke();groundTransition251(p,t,colored);",
+  'land transition draw order');
 
 fs.writeFileSync(MAP, r, 'utf8');
 // Validate the generated source itself. This catches generator-created syntax errors before bundling.

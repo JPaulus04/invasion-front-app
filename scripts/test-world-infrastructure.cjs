@@ -49,7 +49,8 @@ assert.ok(!source.includes('yContinue'),'axis-dropping junction heuristic remove
 const pending=[],draws=[];
 function pen(){return new Proxy({measureText:t=>({width:String(t).length*7}),
  drawImage:(im,...args)=>draws.push({src:im.src||'canvas',args}),
- getImageData:()=>({data:new Uint8ClampedArray(0)})},
+ createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),
+ getImageData:()=>({data:new Uint8ClampedArray(256*128*4)})},
  {get:(o,k)=>k in o?o[k]:(()=>{}),set:(o,k,v)=>(o[k]=v,true)});}
 class Image{constructor(){this.width=this.naturalWidth=1024;this.height=this.naturalHeight=512;this.complete=true;pending.push(this);}}
 const context={Image,console,document:{createElement:()=>({width:0,height:0,getContext:()=>pen()})},devicePixelRatio:2};
