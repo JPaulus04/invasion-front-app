@@ -167,7 +167,7 @@ const groundLoader250 = `
     var gray=document.createElement('canvas');gray.width=256;gray.height=128;
     var gp=gray.getContext('2d'),pixels=pen.getImageData(0,0,256,128),data=pixels.data;
     var colorEdges=groundEdges251(pixels);
-    for(var i=0;i<data.length;i+=4){var value=Math.round(data[i]*.299+data[i+1]*.587+data[i+2]*.114);data[i]=data[i+1]=data[i+2]=value;}
+    for(var i=0;i<data.length;i+=4){var value=Math.round(data[i]*.299+data[i+1]*.587+data[i+2]*.114);for(var channel=0;channel<3;channel++)data[i+channel]=Math.round((data[i+channel]*.82+value*.18)*.86);}
     gp.putImageData(pixels,0,0);
     groundArt250[name]={color:color,surveyed:gray,colorEdges:colorEdges,surveyedEdges:groundEdges251(pixels)};revision++;
    }catch(error){if(typeof console!=='undefined')console.warn('Ground texture unavailable; retaining atlas fallback: '+file);}
