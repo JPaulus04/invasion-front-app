@@ -76,6 +76,7 @@
   var activeCommandTab = 'campaign';
   var reclamationCleanup = null;
   var commanderCleanup = null;
+  var battleReturnTown = null;
   var operationsReturnState = {tab:'campaign',scrollTop:0};
   var lifecyclePausedRun = false;
   var RELEASE_SCHEMA = 188;
@@ -1171,6 +1172,10 @@
     Array.prototype.forEach.call(panel.querySelectorAll('[data-equipment-select]'),function(card){card.onclick=function(event){if(event.target.closest('[data-equipment-action]'))return;var oldScroll=panel.scrollTop;selectedInventoryUid=selectedInventoryUid===card.dataset.equipmentSelect?null:card.dataset.equipmentSelect;renderTab('inventory',{scrollTop:oldScroll});};});
     Array.prototype.forEach.call(panel.querySelectorAll('[data-equipment-action]'),function(button){button.onclick=function(event){event.stopPropagation();var action=button.dataset.equipmentAction,uid=button.dataset.equipmentUid;if(action==='equip')equipEquipment(uid);if(action==='lock')toggleEquipmentLock(uid);if(action==='salvage')salvageEquipment(uid);};});
   }
+  function battlePreparation264(){
+    var profile=window.LSCCommanders.profile(meta),d=profile.definition;
+    return {commander:{id:d.id,name:d.name,level:profile.level,role:d.role,strength:d.strength},energy:availableEnergy(),equipment:EQUIPMENT_SLOTS.map(function(slot){var instance=equippedInstance(slot.id),item=instance&&equipmentDefinition(instance.itemId);return {slot:slot.label,name:item?item.name:'Not equipped'};})};
+  }
   function renderCommanderTab(panel){
     commanderCleanup=window.LSCCommanderView.render(panel,meta,saveMeta,{gear:equipmentEffects(),equipment:function(){renderTab('inventory');},changed:refreshHeader});
   }
@@ -1213,6 +1218,8 @@
   function renderTab(tab,options) {
     if(tab==='campaign'&&meta.starTowns)tab='reclamation';
     if(tab==='research'&&meta.settlementMode===204){tab='reclamation';options=Object.assign({},options,{settlementMode:'research'});}
+    if(options&&options.battleTown)battleReturnTown=options.battleTown;
+    else if(tab!=='commander'&&tab!=='inventory')battleReturnTown=null;
     if(commanderCleanup){commanderCleanup();commanderCleanup=null;}
     var oldDock=id('l259-external-dock');if(oldDock)oldDock.remove();
     if(reclamationCleanup){var disposeWorld=reclamationCleanup;reclamationCleanup=null;disposeWorld();}
@@ -1247,7 +1254,7 @@
       if(!approachReady&&id('l137-deploy')){id('l137-deploy').disabled=false;id('l137-deploy').textContent='CLEAR APPROACH IN WORLD';}
       id('l193-region').onclick=function(){renderTab('reclamation');};
     }
-    if(tab==='reclamation'&&meta.settlementMode===204)reclamationCleanup=window.LSCSettlementView.mount(p,meta,saveMeta,refreshHeader,function(target){renderTab(target);},function(town,phase){if(availableEnergy()<1)return 'Not enough energy.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Your power '+currentPower()+' / recommended '+powerAssessment(phase).recommended;},options&&options.settlementMode);
+    if(tab==='reclamation'&&meta.settlementMode===204)reclamationCleanup=window.LSCSettlementView.mount(p,meta,saveMeta,refreshHeader,function(target,context){renderTab(target,context);},function(town,phase){if(availableEnergy()<1)return 'Not enough energy.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Your power '+currentPower()+' / recommended '+powerAssessment(phase).recommended;},options&&options.settlementMode,battlePreparation264);
     if(tab==='reclamation'&&meta.settlementMode!==204)reclamationCleanup=window.LSCStarTowns.mount(p,meta,saveMeta,refreshHeader,function(){renderTab('hq');},function(town,phase){if(availableEnergy()<1)return 'Not enough energy. Recharge or return later.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Power '+currentPower()+' / recommended '+powerAssessment(phase).recommended;});
     if(tab==='reclamation'&&meta.settlementMode!==204){var world=document.getElementById('star-world');if(world){var upgrade=document.createElement('div');upgrade.style.cssText='position:absolute;inset:20% 6% auto;z-index:2;padding:24px;background:#092b30;border:2px solid #d8bd74;border-radius:16px';upgrade.innerHTML='<h3>BUILD 206 · WORKER SETTLEMENTS</h3><p>Your existing world is preserved. Start a separate settlement campaign from Campaigns / HQ to try the new worker economy.</p><button data-start>CAMPAIGNS / HQ</button><button data-classic>CONTINUE THIS WORLD</button>';world.appendChild(upgrade);upgrade.querySelector('[data-start]').onclick=function(){renderTab("hq");};upgrade.querySelector('[data-classic]').onclick=function(){upgrade.remove();};}}
     if (tab === 'operations') renderOperationsTab(p);
@@ -1256,7 +1263,7 @@
     if (tab === 'hq') {renderHqTab(p);if(meta.settlementMode!==204)renderCampaignControls(p);}
     if (tab === 'campaigns') {p.innerHTML='';renderCampaignControls(p);}
     if (tab === 'inventory') renderInventoryTab(p);
-    if(p.classList.contains('l205-panel')){var back=document.createElement('div');back.className='l205-back';var backButton=document.createElement('button');backButton.className='l137-btn';backButton.textContent='← WORLD';backButton.onclick=function(){renderTab('reclamation');};back.appendChild(backButton);var title=document.createElement('span');title.textContent=tab==='campaigns'?'SAVED CAMPAIGNS':tab==='inventory'?'EQUIPMENT':tab==='commander'?'COMMANDERS':tab==='hq'?'HQ · DEFENSE UPGRADES':'SPECIAL OPERATIONS';back.appendChild(title);p.insertBefore(back,p.firstChild);}
+    if(p.classList.contains('l205-panel')){var back=document.createElement('div');back.className='l205-back';var backButton=document.createElement('button');backButton.className='l137-btn';backButton.textContent=battleReturnTown?'← BATTLE':'← WORLD';backButton.onclick=function(){var town=battleReturnTown;renderTab('reclamation',town?{settlementMode:{briefTown:town}}:undefined);};back.appendChild(backButton);var title=document.createElement('span');title.textContent=tab==='campaigns'?'SAVED CAMPAIGNS':tab==='inventory'?'EQUIPMENT':tab==='commander'?'COMMANDERS':tab==='hq'?'HQ · DEFENSE UPGRADES':'SPECIAL OPERATIONS';back.appendChild(title);p.insertBefore(back,p.firstChild);}
     if(p.classList.contains('l205-panel')&&window.LSCHQNavigation){
       var hqNav=window.LSCHQNavigation,dock=document.createElement('div');dock.id='l259-external-dock';dock.innerHTML=hqNav.markup();
       var dockStyle=document.createElement('style');dockStyle.textContent=hqNav.style+'#l137-panel.l205-panel{padding-bottom:20px!important}#l259-external-dock:before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#0d262a;z-index:30600;pointer-events:none}';dock.appendChild(dockStyle);app.appendChild(dock);

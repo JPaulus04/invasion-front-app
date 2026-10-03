@@ -1,0 +1,29 @@
+// Production bundle in WebKit, with injected native safe-area dimensions.
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http');
+const {webkit}=require(process.env.LSC_PLAYWRIGHT_MODULE||'playwright');
+const base=path.resolve('www'),out='/tmp/lsc264-preview';fs.mkdirSync(out,{recursive:true});
+const server=http.createServer((req,res)=>{const file=path.resolve(base,'.'+decodeURIComponent(req.url.split('?')[0]));if(!file.startsWith(base+path.sep)&&file!==base){res.writeHead(403);res.end();return;}try{let data=fs.readFileSync(file===base?path.join(base,'index.html'):file);if(file===base||file.endsWith('index.html'))data=data.toString().replace(/env\(safe-area-inset-top(?:,[^)]*)?\)/g,'59px').replace(/env\(safe-area-inset-bottom(?:,[^)]*)?\)/g,'34px');res.end(data);}catch(e){res.writeHead(404);res.end();}});
+(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;try{browser=await webkit.launch({headless:true});
+for(const width of [320,393]){
+ const page=await browser.newPage({viewport:{width,height:852},isMobile:true,hasTouch:true}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{if(!localStorage.getItem('lsc_command_base_137'))localStorage.setItem('lsc_command_base_137',JSON.stringify({phase:1,settlementMode:204,commander:20,commanderSchema:168,credits:100000,commanderCollection:{active:'holt',units:{holt:{level:20,cards:0},voss:{level:2,cards:5}}}}));});
+ const url='http://127.0.0.1:'+server.address().port+'/';await page.goto(url,{waitUntil:'load'});
+ const fixture=await page.evaluate(()=>{const m=JSON.parse(localStorage.getItem('lsc_command_base_137')),a=LSCSettlement,t=a.towns[0],d=m.settlement204,k=t.x+','+t.y;d.focus=k;d.visible[k]=true;d.welcomePending=null;const zone=a.regionProgress(m,t.id);zone.tiles.forEach(k=>{d.visible[k]=true;d.cleared[k]=true;});localStorage.setItem('lsc_command_base_137',JSON.stringify(m));return {town:t.name,meta:m};});
+ fixture.meta.energy=width===320?0:10;fixture.meta.energyUpdatedAt=Date.now();const town=fixture.town,startingEnergy=fixture.meta.energy;await page.addInitScript(m=>{if(!sessionStorage.getItem("fixture264")){localStorage.setItem("lsc_command_base_137",JSON.stringify(m));Object.keys(localStorage).filter(k=>k.endsWith("_slots203")).forEach(k=>{const d=JSON.parse(localStorage.getItem(k));d.slots.find(s=>s.id===d.activeId).meta=m;localStorage.setItem(k,JSON.stringify(d));});sessionStorage.setItem("fixture264","1");}},fixture.meta);
+ await page.reload();await page.getByRole('button',{name:'⌃ DETAILS',exact:true}).click();
+ 
+ await page.getByRole('button',{name:'DEFENSE BRIEFING',exact:true}).click();
+ assert.equal(await page.getByRole('button',{name:/DEPLOY TO/}).isDisabled(),startingEnergy===0);assert.match(await page.locator('.battle-team').innerText(),/Colonel Holt/);assert.match(await page.locator('.battle-team').innerText(),/SHARED EQUIPMENT/);
+ await page.locator('[data-battle-commander]').click();assert.equal(await page.getByRole('button',{name:'← BATTLE',exact:true}).count(),1);
+ await page.locator('[data-select=voss]').click();await page.locator('[data-assign]').click();await page.getByRole('button',{name:'← BATTLE',exact:true}).click();
+ assert.match(await page.locator('[data-sheet]').innerText(),new RegExp('Defend '+town));assert.match(await page.locator('.battle-team').innerText(),/Mara Voss/);
+ await page.screenshot({path:path.join(out,'battle-'+width+'.png')});
+ await page.locator('[data-battle-equipment]').click();assert.match(await page.locator('#l137-panel').innerText(),/FIELD EQUIPMENT/);await page.getByRole('button',{name:'← BATTLE',exact:true}).click();assert.match(await page.locator('[data-sheet]').innerText(),new RegExp('Defend '+town));
+ await page.locator('[data-battle-commander]').click();await page.evaluate(()=>Math.random=()=>0);await page.locator('[data-chest]').click();assert.match(await page.locator('.c260-reward').innerText(),/CARDS SAVED/);assert.match(await page.locator('.c264-reward').first().innerText(),/25 cards owned/);assert.equal(await page.locator('[data-chest]').isDisabled(),true);await page.waitForTimeout(600);await page.screenshot({path:path.join(out,'chest-'+width+'.png')});
+ await page.locator('[data-reward-select=voss]').click();assert.match(await page.locator('.c262-actions strong').innerText(),/Voss/);await page.locator('[data-upgrade]').click();assert.match(await page.locator('.c262-actions strong').innerText(),/Level 3/);
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('lsc_command_base_137')).energy),startingEnergy,'preparation does not spend energy');
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('lsc_command_base_137')).commanderCollection);await page.reload();const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('lsc_command_base_137')).commanderCollection);assert.deepEqual(after,saved);
+ if(startingEnergy>0){await page.getByRole('button',{name:'⌃ DETAILS',exact:true}).click();await page.getByRole('button',{name:'DEFENSE BRIEFING',exact:true}).click();await page.getByRole('button',{name:/DEPLOY TO/}).click();await page.waitForTimeout(200);assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('lsc_command_base_137')).energy),startingEnergy-1,'only deployment spends one energy');assert.equal(await page.locator('.c262-actions').count(),0);}
+ assert.deepEqual(errors,[]);await page.close();console.log('PASS battle return, assignment, equipment navigation, chest reward actions and reload at '+width);
+}
+}finally{if(browser)await browser.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
