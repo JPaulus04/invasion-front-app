@@ -19,8 +19,12 @@ function text(e){return (e.textContent||'')+' '+e.children.map(text).join(' ');}
 function click(label){function find(e){if(e.textContent===label)return e;return e.children.map(find).find(Boolean);}const b=find(sheet);assert.ok(b,'button exists: '+label);assert.ok(!b.disabled,'button enabled: '+label);b.click();}
 mounted.querySelector('[data-people]').click();assert.ok(text(sheet).includes('VILLAGE WORKERS · 0'));
 click('MANAGE VILLAGES');click('DEVELOP '+api.town(1).name.toUpperCase());
+assert.ok(text(sheet).includes('Unlock: +500 permanent shared storage'));
 assert.equal(sheet.className,'expanded-panel');assert.ok(text(sheet).includes('Automatic: 1/min'));
 click('+ WORKER');assert.equal(api.villageDevelopment(m,1).workers,1);assert.ok(text(sheet).includes('1.75 Timber/min'));
 click('DEVELOP TO LEVEL 2');assert.equal(api.villageDevelopment(m,1).level,2);assert.ok(text(sheet).includes('Automatic: 2/min'));assert.ok(text(sheet).includes('Upgrade HQ to level 2'));
+assert.ok(text(sheet).includes('Specialty active · no workers required'));
 click('MANAGE WORKERS');assert.ok(text(sheet).includes('VILLAGE WORKERS · 1'));
+d.materials=api.storage(m);click('MANAGE VILLAGES');assert.ok(text(sheet).includes('Storage full · resource production paused'));
+click('DEVELOP '+api.town(1).name.toUpperCase());assert.ok(text(sheet).includes('Storage full · resource production paused'));
 cleanup();console.log('PASS: mounted mobile panel, People → villages → development navigation, live staffing, upgrade, HQ gate and worker totals.');
