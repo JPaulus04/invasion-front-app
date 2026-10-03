@@ -22,10 +22,15 @@ const dirs=[[1,0,1],[-1,0,2],[0,1,4],[0,-1,8]];
 function alpha(mask,u,v){const x=Math.floor(128+(u-v)*128),y=Math.floor(64+(u+v)*64);return c.__roads[mask].pixels[(y*256+x)*4+3];}
 for(let mask=1;mask<16;mask++){
  const pixels=c.__roads[mask].pixels;
- assert.equal(pixels[(70*256+140)*4+3],0,'magenta matte removed');
+ for(let i=0;i<pixels.length;i+=4)if(pixels[i+3])assert.ok(pixels[i]>pixels[i+2]&&pixels[i+1]>pixels[i+2],'clean dirt replaces matte without pink or transparent holes');
  for(const [u,v,bit] of dirs)assert.equal(alpha(mask,u*.4,v*.4)>200,!!(mask&bit),'arm '+bit+' in '+mask);
  assert.equal(alpha(mask,.35,.35),0,'off-road terrain remains transparent');
- if(mask&(mask-1))assert.ok(alpha(mask,0,0)>240,'junction center has no seam');
+ if([3,7,11,12,13,14,15].includes(mask))assert.ok(alpha(mask,0,0)>240,'junction center has no seam');
+ if([5,6,9,10].includes(mask)){
+  const u=mask&1?.1375:-.1375,v=mask&4?.1375:-.1375;
+  assert.ok(alpha(mask,u,v)>240,'rounded bend remains continuous');
+  assert.equal(alpha(mask,0,0),0,'inside bend is rounded, not a protruding square');
+ }
 }
 function setup(mask,town,hidden=false){
  const tile={id:'2,2',x:2,y:2,terrain:'plain',town:town?1:undefined},tiles={'2,2':tile};

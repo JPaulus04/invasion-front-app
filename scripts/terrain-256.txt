@@ -1,0 +1,57 @@
+ // Transparent shoreline overlays share the underlying grass with inland tiles.
+ var coast256={land:{},water:{},stones:[]};
+ function distance256(a,b,m){
+  var d=distance254(a,b,m),sides=[(1-a)/2,(1+a)/2,(1-b)/2,(1+b)/2];
+  [[1,4,0,2],[1,8,0,3],[2,4,1,2],[2,8,1,3]].forEach(function(q){
+   if((m&q[0])&&(m&q[1])){var x=sides[q[2]],y=sides[q[3]],radius=.4;if(x<radius&&y<radius)d=Math.min(d,radius-Math.hypot(radius-x,radius-y));}
+  });return d;
+ }
+ function makeCoast256(mask,water){
+  var cv=document.createElement('canvas');cv.width=128;cv.height=64;
+  var ctx=cv.getContext('2d'),px=ctx.createImageData(128,64),a=px.data;
+  for(var y=0;y<64;y++)for(var x=0;x<128;x++){
+   var u=(x+.5-64)/64,v=(y+.5-32)/32,dist=distance256(u+v,v-u,mask),i=(y*128+x)*4;
+   var noise=Math.sin(x*2.71+y*1.37)*Math.sin(x*.61-y*2.13);
+   if(water){
+    var beach=Math.max(0,Math.min(1,-dist/.035));
+    a[i]=176+noise*5;a[i+1]=163+noise*5;a[i+2]=119+noise*4;a[i+3]=Math.round(255*beach);
+   }else{
+    var edge=.105+.008*Math.sin(dist*90),opacity=Math.max(0,Math.min(1,(edge+.075-dist)/.075));
+    var wet=Math.max(0,1-dist/.04);
+    a[i]=176-wet*34+noise*5;a[i+1]=163-wet*23+noise*5;a[i+2]=119-wet*7+noise*4;
+    var sea=Math.max(0,Math.min(1,-dist/.018));
+    a[i+3]=Math.round(opacity*(1-sea)*255);
+   }
+  }ctx.putImageData(px,0,0);return cv;
+ }
+ if(typeof document!=='undefined'){
+  var masks256={};for(var m256=0;m256<256;m256++)masks256[canonical254(m256)]=true;
+  Object.keys(masks256).forEach(function(m){coast256.land[m]=makeCoast256(+m,false);});
+  // Seamless, world-anchored water: broad color variation plus directional ripples.
+  var w256=document.createElement('canvas');w256.width=512;w256.height=512;
+  var c256=w256.getContext('2d'),p256=c256.createImageData(512,512);
+  for(var y256=0;y256<512;y256++)for(var x256=0;x256<512;x256++){
+   var ax=x256*Math.PI/256,ay=y256*Math.PI/256;
+   var broad=Math.sin(ax*2+Math.sin(ay*2))*.6+Math.cos(ay*3-ax)*.4;
+   var wave=Math.sin(ay*23+ax*4+1.8*Math.sin(ax*3+ay*2));
+   var crest=Math.pow(Math.max(0,wave),16)*(5+5*Math.sin(ax*7-ay*2));
+   var fine=Math.sin(ax*39+ay*57)*1.2,idx=(y256*512+x256)*4;
+   p256.data[idx]=28+broad*6+crest*.7+fine;
+   p256.data[idx+1]=111+broad*10+crest+fine;
+   p256.data[idx+2]=148+broad*11+crest+fine;p256.data[idx+3]=255;
+  }c256.putImageData(p256,0,0);connected254.water=w256;
+  // Low rock outcrops with shaded facets, scattered chips and ground shadows.
+  for(var variant256=0;variant256<4;variant256++){
+   var rock256=document.createElement('canvas');rock256.width=256;rock256.height=128;var rc256=rock256.getContext('2d');
+   var seed256=variant256+71;
+   function random256(){seed256=(seed256*1664525+1013904223)>>>0;return seed256/4294967296;}
+   for(var n256=0;n256<22;n256++){
+    var ang256=random256()*Math.PI*2,rad256=Math.sqrt(random256()),rx256=128+Math.cos(ang256)*rad256*48,ry256=68+Math.sin(ang256)*rad256*20;
+    var size256=(1-rad256)*9+2+random256()*3,height256=size256*(.6+random256()*.45);
+    rc256.fillStyle='rgba(35,40,29,.24)';rc256.beginPath();rc256.ellipse(rx256+2,ry256+3,size256*1.4,size256*.45,0,0,Math.PI*2);rc256.fill();
+    rc256.fillStyle='#73786e';rc256.beginPath();rc256.moveTo(rx256-size256,ry256);rc256.lineTo(rx256-size256*.6,ry256-height256);rc256.lineTo(rx256+size256*.35,ry256-height256*1.2);rc256.lineTo(rx256+size256,ry256-size256*.2);rc256.lineTo(rx256+size256*.5,ry256+size256*.3);rc256.closePath();rc256.fill();
+    rc256.fillStyle='#a5a69a';rc256.beginPath();rc256.moveTo(rx256-size256,ry256);rc256.lineTo(rx256-size256*.6,ry256-height256);rc256.lineTo(rx256+size256*.35,ry256-height256*1.2);rc256.lineTo(rx256,ry256-size256*.1);rc256.closePath();rc256.fill();
+    rc256.fillStyle='#515a53';rc256.beginPath();rc256.moveTo(rx256,ry256-size256*.1);rc256.lineTo(rx256+size256*.35,ry256-height256*1.2);rc256.lineTo(rx256+size256,ry256-size256*.2);rc256.lineTo(rx256+size256*.5,ry256+size256*.3);rc256.closePath();rc256.fill();
+   }coast256.stones.push(rock256);
+  }
+ }

@@ -2,12 +2,12 @@
 const fs=require('fs');
 let c=fs.readFileSync('src/config.js','utf8');
 if(!/const LSC_BUILD = '\d+';/.test(c))throw Error('LSC build marker missing');
-c=c.replace(/const LSC_BUILD = '\d+';/,"const LSC_BUILD = '255';").replace(/Build 2\d\d/g,'Build 255');
+c=c.replace(/const LSC_BUILD = '\d+';/,"const LSC_BUILD = '256';").replace(/Build 2\d\d/g,'Build 256');
 fs.writeFileSync('src/config.js',c,'utf8');
 
 let b=fs.readFileSync('build.js','utf8');
-b=b.replace(/Build 2\d\d/g,'Build 255')
-   .replace(/LSC_BUILD = '2\d\d'/g,"LSC_BUILD = '255'")
-   .replace(/Last Stand Command 2\d\d/g,'Last Stand Command 255');
+b=b.replace(/Build 2\d\d/g,'Build 256')
+   .replace(/LSC_BUILD = '2\d\d'/g,"LSC_BUILD = '256'")
+   .replace(/Last Stand Command 2\d\d/g,'Last Stand Command 256');
 fs.writeFileSync('build.js',b,'utf8');
-console.log('LSC build marker: 255');
+console.log('LSC build marker: 256');
