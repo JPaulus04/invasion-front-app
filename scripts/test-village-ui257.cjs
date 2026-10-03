@@ -13,7 +13,7 @@ vm.createContext(c);for(const f of ['settlement204','settlementView204','settlem
 const api=c.LSCSettlement,m={credits:5000};api.initialize(m,()=>true,Date.now());const d=m.settlement204;
 d.population=12;d.housingBase=20;d.food=300;d.materials=300;d.stone=200;d.priority='manual';d.targets={farm:2,workshop:0,quarry:0,ironMine:0};
 for(let x=0;x<=5;x++){d.visible[x+',0']=true;d.roads[x+',0']=true;}d.defended[1]=d.welcomed[1]=true;api.rebalance(m);
-const cleanup=c.LSCSettlementView.mount(new Element(),m,()=>true,()=>{},()=>{},()=>{},()=> '300');
+const destinations=[];const cleanup=c.LSCSettlementView.mount(new Element(),m,()=>true,()=>{},target=>destinations.push(target),()=>{},()=> '300');
 const sheet=mounted.querySelector('[data-sheet]');
 function text(e){return (e.textContent||'')+' '+e.children.map(text).join(' ');}
 function click(label){function find(e){if(e.textContent===label)return e;return e.children.map(find).find(Boolean);}const b=find(sheet);assert.ok(b,'button exists: '+label);assert.ok(!b.disabled,'button enabled: '+label);b.click();}
@@ -27,4 +27,14 @@ assert.ok(text(sheet).includes('Specialty active · no workers required'));
 click('MANAGE WORKERS');assert.ok(text(sheet).includes('VILLAGE WORKERS · 1'));
 d.materials=api.storage(m);click('MANAGE VILLAGES');assert.ok(text(sheet).includes('Storage full · resource production paused'));
 click('DEVELOP '+api.town(1).name.toUpperCase());assert.ok(text(sheet).includes('Storage full · resource production paused'));
-cleanup();console.log('PASS: mounted mobile panel, People → villages → development navigation, live staffing, upgrade, HQ gate and worker totals.');
+mounted.querySelector('[data-hqhub]').click();assert.ok(text(sheet).includes('Headquarters'));
+assert.equal(mounted.querySelector('[data-hq-sections]').hidden,false);
+click('DEFENSE UPGRADES');assert.equal(destinations.pop(),'hq');
+mounted.querySelector('[data-section-commander]').click();assert.equal(destinations.pop(),'commander');
+mounted.querySelector('[data-section-inventory]').click();assert.equal(destinations.pop(),'inventory');
+mounted.querySelector('[data-section-settlement]').click();assert.ok(text(sheet).includes('Settlement Development · Level'));
+mounted.querySelector('[data-world]').click();assert.equal(mounted.querySelector('[data-hq-sections]').hidden,true);
+mounted.querySelector('[data-home]').click();assert.ok(text(sheet).includes('Headquarters'),'map HQ shortcut opens the same hub');
+cleanup();
+for(const mode of ['hqhub','village','build','people','research']){const end=c.LSCSettlementView.mount(new Element(),m,()=>true,()=>{},()=>{},()=>{},()=> '300',mode);assert.equal(mounted.querySelector('[data-hq-sections]').hidden,!['hqhub','village'].includes(mode));end();}
+console.log('PASS: village controls, HQ hub and map shortcut, all upgrade destinations, submenu visibility and return routes.');
