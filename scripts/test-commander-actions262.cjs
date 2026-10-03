@@ -1,7 +1,7 @@
 // Production bundle in WebKit, with injected native safe-area dimensions.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const {webkit}=require(process.env.LSC_PLAYWRIGHT_MODULE||'playwright');
-const base=path.resolve('www'),out='/tmp/lsc262-preview';fs.mkdirSync(out,{recursive:true});
+const base=path.resolve('www'),out='/tmp/lsc263-preview';fs.mkdirSync(out,{recursive:true});
 const server=http.createServer((req,res)=>{const file=path.resolve(base,'.'+decodeURIComponent(req.url.split('?')[0]));if(!file.startsWith(base+path.sep)&&file!==base){res.writeHead(403);res.end();return;}try{let data=fs.readFileSync(file===base?path.join(base,'index.html'):file);if(file===base||file.endsWith('index.html'))data=data.toString().replace(/env\(safe-area-inset-top(?:,[^)]*)?\)/g,'59px').replace(/env\(safe-area-inset-bottom(?:,[^)]*)?\)/g,'34px');res.end(data);}catch(e){res.writeHead(404);res.end();}});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;try{browser=await webkit.launch({headless:true});
 for(const size of [{width:393,height:852},{width:320,height:568}]){
@@ -10,7 +10,9 @@ for(const size of [{width:393,height:852},{width:320,height:568}]){
  await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
  await page.locator('#settlement-world [data-hqhub]').click();await page.locator('#settlement-world [data-section-commander]').click();
  const panel=page.locator('#l137-panel');
- async function controls(){await page.waitForTimeout(100);const bar=await page.locator('.c262-actions').boundingBox(),nav=await page.locator('nav.l259-dock:visible').boundingBox(),p=await panel.boundingBox();assert.ok(Math.abs(bar.y+bar.height-nav.y)<1,'actions touch navigation with no gap');assert.ok(Math.abs(p.y+p.height-bar.y)<1,'scroll viewport stops above actions');assert.ok(p.y>=59);for(const selector of ['[data-assign]','[data-upgrade]']){assert.equal(await page.locator(selector).count(),1);const b=await page.locator(selector).boundingBox();assert.ok(b.height>=44&&b.x>=0&&b.x+b.width<=size.width&&b.y>=bar.y&&b.y+b.height<=nav.y);}}
+ // Reproduce native compositor clipping that geometry-only checks missed.
+ await panel.evaluate(el=>{el.style.setProperty('transform','translateZ(0)');el.style.setProperty('contain','paint');});
+ async function controls(){await page.waitForTimeout(100);const bar=await page.locator('.c262-actions').boundingBox(),nav=await page.locator('nav.l259-dock:visible').boundingBox(),p=await panel.boundingBox();assert.ok(Math.abs(bar.y+bar.height-nav.y)<1,'actions touch navigation with no gap');assert.ok(Math.abs(p.y+p.height-bar.y)<1,'scroll viewport stops above actions');assert.ok(p.y>=59);for(const selector of ['[data-assign]','[data-upgrade]']){assert.equal(await page.locator(selector).count(),1);assert.equal(await page.locator(selector).evaluate(el=>{const b=el.getBoundingClientRect();return el.contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2));}),true,'control is painted and receives touch');const b=await page.locator(selector).boundingBox();assert.ok(b.height>=44&&b.x>=0&&b.x+b.width<=size.width&&b.y>=bar.y&&b.y+b.height<=nav.y);}}
  await controls();assert.match(await page.locator('[data-comparison]').innerText(),/Currently assigned/);
  await page.locator('[data-select=voss]').click();await controls();assert.match(await page.locator('[data-comparison]').innerText(),/Colonel Holt/);assert.match(await page.locator('[data-comparison]').innerText(),/Captain Mara Voss/);assert.equal(await page.locator('[data-metric=dps] .loss').count(),1);assert.equal(await page.locator('[data-metric=boss] .gain').count(),1);
  await page.screenshot({path:path.join(out,'comparison-'+size.width+'.png')});

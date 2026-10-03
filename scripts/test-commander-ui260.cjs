@@ -6,7 +6,7 @@ const server=http.createServer((req,res)=>{const file=path.resolve(base,'.'+deco
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;try{browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  for(const width of [320,390,430]){const page=await browser.newPage({viewport:{width,height:844}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(()=>{if(!localStorage.getItem('lsc_command_base_137'))localStorage.setItem('lsc_command_base_137',JSON.stringify({phase:1,settlementMode:204,commander:20,commanderSchema:168,credits:100000}));});await page.goto('http://127.0.0.1:'+server.address().port+'/',{waitUntil:'load'});
 
- async function open(){await page.locator('#settlement-world [data-hqhub]').click();await page.locator('#settlement-world [data-section-commander]').click();await page.locator('.c260').waitFor();}
+ async function open(){await page.locator('#settlement-world [data-hqhub]').click();await page.locator('#settlement-world [data-section-commander]').click();await page.locator('section.c260').waitFor();}
  await open();assert.match(await page.locator('.c260-name').innerText(),/Level 20 \/ 20/);
  assert.equal(await page.locator('.c260-roster img').evaluateAll(images=>images.every(im=>im.complete&&im.naturalWidth>0)),true);
  await page.locator('[data-flip]').evaluate(el=>el.scrollIntoView({block:'start'}));await page.screenshot({path:path.join(output,'holt-front-'+width+'.png')});
