@@ -33,6 +33,12 @@
  function assign(meta,id,save){var c=ensure(meta);if(!c.units[id]||!c.units[id].level)return{ok:false,message:'Recruit this commander first.'};return transaction(meta,save,function(state){state.active=id;return{ok:true,message:definition(id).name+' assigned to your next defense.'};});}
  function profile(meta,id){var c=ensure(meta),d=definition(id||c.active),level=c.units[d.id].level,l=Math.max(1,Math.min(20,level)),extra=Math.max(0,level-20);return{definition:d,level:level,tier:l>=20?5:l>=15?4:l>=10?3:l>=5?2:1,damageBonus:Math.min(4,l-1)*.15+Math.max(0,l-5)*.055+extra*.02,rateBonus:Math.min(4,l-1)*.06+Math.max(0,l-5)*.02+extra*.005,bossBonus:(l>=20?.2:l>=15?.1:0)+d.boss,commandUnlocked:level>=5,commandRate:l>=20?1.5:l>=10?1.4:1.35,commandDuration:l>=15?7:6,commandCooldown:l>=10?20:24};}
  function applyCombat(meta,run){var p=profile(meta),d=p.definition;run.commanderId=d.id;run.commanderName=d.name;run.commanderSplash=d.splash;run.hero.damage*=d.damage;run.hero.rate*=d.rate;run.hqDamageReduction=Math.min(.8,(run.hqDamageReduction||0)+d.protection);run.barrierDamageReduction=Math.min(.8,(run.barrierDamageReduction||0)+d.protection);return run;}
- root.LSCCommanders={roster:roster,definition:definition,ensure:ensure,day:day,pool:pool,chestReady:chestReady,cost:cost,canUpgrade:canUpgrade,openChest:openChest,upgrade:upgrade,assign:assign,profile:profile,applyCombat:applyCombat};
+ function comparisonStats(meta,id,gear){
+  var p=profile(meta,id),d=p.definition;gear=gear||{};
+  var damage=16*(1+p.damageBonus)*(1+(gear.commanderDamage||0))*d.damage;
+  var rate=2.7*(1+p.rateBonus)*(1+(gear.commanderRate||0))*d.rate;
+  return{name:d.name,level:p.level,preview:!p.level,damage:damage,rate:rate,dps:damage*rate,boss:p.bossBonus+(gear.commanderBossDamage||0),protection:d.protection,splash:d.splash,burst:p.commandUnlocked,burstRate:p.commandRate,burstDuration:p.commandDuration,burstCooldown:p.commandCooldown};
+ }
+ root.LSCCommanders={roster:roster,definition:definition,ensure:ensure,day:day,pool:pool,chestReady:chestReady,cost:cost,canUpgrade:canUpgrade,openChest:openChest,upgrade:upgrade,assign:assign,profile:profile,applyCombat:applyCombat,comparisonStats:comparisonStats};
  if(typeof module!=='undefined'&&module.exports)module.exports=root.LSCCommanders;
 })(typeof window!=='undefined'?window:globalThis);

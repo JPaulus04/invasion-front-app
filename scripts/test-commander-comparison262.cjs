@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),api=require('../src/commanders260');
+const meta={commander:20,credits:10000};api.ensure(meta);meta.commanderCollection.units.voss={level:2,cards:5};
+const before=JSON.stringify(meta),gear={commanderDamage:.16,commanderRate:.08,commanderBossDamage:.1};
+const holt=api.comparisonStats(meta,'holt',gear),voss=api.comparisonStats(meta,'voss',gear),vale=api.comparisonStats(meta,'vale',gear),calder=api.comparisonStats(meta,'calder',gear);
+assert.equal(JSON.stringify(meta),before,'comparison neither assigns nor spends resources');
+assert.ok(holt.damage>voss.damage&&holt.rate>voss.rate&&holt.dps>voss.dps,'trained Basic outperforms untrained Rare on direct fire');
+assert.ok(voss.boss>holt.boss,'the specialist retains its boss advantage');
+assert.equal(holt.burst,true);assert.equal(voss.burst,false);assert.equal(vale.preview,true);assert.equal(vale.protection,.15);assert.equal(calder.splash,.55);
+assert.ok(Math.abs(holt.damage-45.008)<1e-9);assert.ok(Math.abs(holt.dps-holt.damage*holt.rate)<1e-9);
+api.assign(meta,'voss',()=>true);assert.equal(api.ensure(meta).active,'voss');assert.equal(api.comparisonStats(meta,'holt',gear).level,20);
+api.upgrade(meta,'voss',()=>true);assert.ok(api.comparisonStats(meta,'voss',gear).dps>voss.dps);
+console.log('PASS trained commander comparisons, shared gear, specialist trade-offs, locked previews and action updates.');

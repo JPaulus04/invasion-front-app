@@ -75,6 +75,7 @@
   var operationNotice = null;
   var activeCommandTab = 'campaign';
   var reclamationCleanup = null;
+  var commanderCleanup = null;
   var operationsReturnState = {tab:'campaign',scrollTop:0};
   var lifecyclePausedRun = false;
   var RELEASE_SCHEMA = 188;
@@ -1171,7 +1172,7 @@
     Array.prototype.forEach.call(panel.querySelectorAll('[data-equipment-action]'),function(button){button.onclick=function(event){event.stopPropagation();var action=button.dataset.equipmentAction,uid=button.dataset.equipmentUid;if(action==='equip')equipEquipment(uid);if(action==='lock')toggleEquipmentLock(uid);if(action==='salvage')salvageEquipment(uid);};});
   }
   function renderCommanderTab(panel){
-    window.LSCCommanderView.render(panel,meta,saveMeta,{gear:equipmentEffects(),equipment:function(){renderTab('inventory');},changed:refreshHeader});
+    commanderCleanup=window.LSCCommanderView.render(panel,meta,saveMeta,{gear:equipmentEffects(),equipment:function(){renderTab('inventory');},changed:refreshHeader});
   }
   function renderOperationsTab(panel){
     var kind=activeOperationId(),definition=operationDefinition(kind),nextDefinition=operationDefinition(alternateOperationId(kind)),operationOpen=operationAvailable(kind),rewardOpen=operationRewardAvailable(),level=operationLevelFor(kind),credits=operationRewardCreditsFor(kind,level),parts=operationRewardPartsFor(kind,level),nextLevel=Math.min(OPERATION_LEVEL_GUARD,level+1),autoClear=operationAutoClearStateFor(kind,level),manualBest=operationManualBestFor(kind);
@@ -1212,6 +1213,7 @@
   function renderTab(tab,options) {
     if(tab==='campaign'&&meta.starTowns)tab='reclamation';
     if(tab==='research'&&meta.settlementMode===204){tab='reclamation';options=Object.assign({},options,{settlementMode:'research'});}
+    if(commanderCleanup){commanderCleanup();commanderCleanup=null;}
     var oldDock=id('l259-external-dock');if(oldDock)oldDock.remove();
     if(reclamationCleanup){var disposeWorld=reclamationCleanup;reclamationCleanup=null;disposeWorld();}
     var app=id('lsc137-app'),operationsMode=tab==='operations',researchMode=tab==='research',campaignMode=tab==='campaign';
@@ -1318,6 +1320,7 @@
     }
     if(typeof ensureAudio==='function')ensureAudio();
     combatSfx('deploy');combatHaptic('medium',180);
+    if(commanderCleanup){commanderCleanup();commanderCleanup=null;}
     if(reclamationCleanup){reclamationCleanup();reclamationCleanup=null;}
     var home = id('homeScreen'); if (home) { home.style.display = 'none'; home.classList.remove('hs-visible'); }
     if (G && G.state && !G.state.started) { if (!G.state.selectedDoctrine) G.state.selectedDoctrine = 'fortress'; G.state.started = true; }
