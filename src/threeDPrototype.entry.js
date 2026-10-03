@@ -226,7 +226,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       return `JUNKYARD RECOVERY L${level} · ${Math.max(0, Math.ceil(Number(run.objectiveTime) || 0))}s TO EXTRACTION`;
     }
     if (run && run.operation) return `CONTAINMENT LEVEL ${Math.max(1, Number(run.operationLevel) || 1)} · FORWARD LINE`;
-    return 'CENTRAL HQ · HOLT ON STATION';
+    return 'CENTRAL HQ · COMMANDER ON STATION';
   }
 
   function buildHero() {
@@ -1113,7 +1113,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       scene.fog.color.setHex(0x41513f);
       scene.fog.near = 31;
       scene.fog.far = 52;
-      setBadgeText('CENTRAL HQ · HOLT ON STATION');
+      setBadgeText('CENTRAL HQ · COMMANDER ON STATION');
     }
     camera.updateProjectionMatrix();
   }
@@ -1421,7 +1421,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
         hqFallbackGroup.visible = true;
       }
 
-      setBadgeText(activeWorldMode === 'junkyard' ? 'JUNKYARD RECOVERY · ARMORED CONVOY' : activeWorldMode === 'operation' ? 'DAILY OPERATION · FORWARD CONTAINMENT LINE' : 'CENTRAL HQ · HOLT ON STATION');
+      setBadgeText(activeWorldMode === 'junkyard' ? 'JUNKYARD RECOVERY · ARMORED CONVOY' : activeWorldMode === 'operation' ? 'DAILY OPERATION · FORWARD CONTAINMENT LINE' : 'CENTRAL HQ · COMMANDER ON STATION');
       return true;
     })().catch(error => {
       console.warn('Build 187 battlefield asset fallback:', error);
@@ -1720,7 +1720,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     if (displayedHQLevel !== level) {
       displayedHQLevel = level;
-      setBadgeText(`CENTRAL HQ L${level} · HOLT ON STATION`);
+      setBadgeText(`CENTRAL HQ L${level} · ${(run.commanderName || 'Commander').toUpperCase()}`);
     }
   }
 

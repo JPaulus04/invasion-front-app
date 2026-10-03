@@ -4,7 +4,7 @@ class Element{
  constructor(tag='div'){this.tag=tag;this.style={setProperty(){}};this.children=[];this.nodes={};this.dataset={};this.classList={add(){},remove(){},toggle(){},contains:()=>false};}
  set innerHTML(value){this.children=[];this.nodes={};for(const m of value.matchAll(/data-([a-z-]+)/g))this.nodes['[data-'+m[1]+']']=new Element();for(const k of ['canvas','main','nav','header','.map-controls'])this.nodes[k]=new Element(k);}
  appendChild(e){this.children.push(e);e.parentElement=this;if(e.id==='settlement-world')mounted=e;return e;}
- querySelector(k){return this.nodes[k]||null;}querySelectorAll(){return [];}setAttribute(){}getContext(){return pen;}
+ querySelector(k){return this.nodes[k]||null;}querySelectorAll(){return [];}setAttribute(k,v){this[k]=v;}getContext(){return pen;}
  getBoundingClientRect(){return {left:0,top:0,right:390,bottom:844,width:390,height:844};}
  setPointerCapture(){}releasePointerCapture(){}remove(){}click(){if(!this.disabled&&this.onclick)this.onclick();}
 }
@@ -16,7 +16,7 @@ for(let x=0;x<=5;x++){d.visible[x+',0']=true;d.roads[x+',0']=true;}d.defended[1]
 const destinations=[];const cleanup=c.LSCSettlementView.mount(new Element(),m,()=>true,()=>{},target=>destinations.push(target),()=>{},()=> '300');
 const sheet=mounted.querySelector('[data-sheet]');
 function text(e){return (e.textContent||'')+' '+e.children.map(text).join(' ');}
-function click(label){function find(e){if(e.textContent===label)return e;return e.children.map(find).find(Boolean);}const b=find(sheet);assert.ok(b,'button exists: '+label);assert.ok(!b.disabled,'button enabled: '+label);b.click();}
+function click(label){function find(e){if(e['aria-label']===label||e.textContent===label)return e;return e.children.map(find).find(Boolean);}const b=find(sheet);assert.ok(b,'button exists: '+label);assert.ok(!b.disabled,'button enabled: '+label);b.click();}
 mounted.querySelector('[data-people]').click();assert.ok(text(sheet).includes('VILLAGE WORKERS · 0'));
 click('MANAGE VILLAGES');click('DEVELOP '+api.town(1).name.toUpperCase());
 assert.ok(text(sheet).includes('Unlock: +500 permanent shared storage'));

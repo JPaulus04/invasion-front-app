@@ -153,8 +153,8 @@ try { _restoreIAPPurchases(); } catch(e) { _showErr('restoreIAP', e); }
     // Check if first time
     if (_isFirstTime()) {
       console.log('👋 First time player - showing tutorial');
-      // Show tutorial modal over home screen
-      showToast('Welcome! Tap the question mark for the tutorial.');
+      // The settlement provides contextual guidance; the retired question-mark
+      // tutorial toast would cover its map and the new commander cards.
       _markFirstTimeDone();
     }
     
