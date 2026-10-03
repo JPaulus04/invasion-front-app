@@ -2181,12 +2181,32 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     if (sourceCanvas) sourceCanvas.style.visibility = 'visible';
   };
 
+  // Use the same camera and world conversion for touch input and the rendered scene.
+  api.tacticalReady = () => !!(active && view && view.style.display === 'block' && renderer && zombieTemplates.soldier);
+  api.projectTactical = function(entity, run, height = 0) {
+    if (!api.tacticalReady()) return null;
+    const p = world(entity, run), v = new THREE.Vector3(p[0], height, p[1]).project(camera);
+    if (v.z < -1 || v.z > 1) return null;
+    const box = view.getBoundingClientRect();
+    return {x: box.left + (v.x + 1) * box.width / 2, y: box.top + (1 - v.y) * box.height / 2};
+  };
+  api.groundTactical = function(x, y, run) {
+    if (!api.tacticalReady()) return null;
+    const box = view.getBoundingClientRect(), ray = new THREE.Raycaster();
+    ray.setFromCamera(new THREE.Vector2((x-box.left)/box.width*2-1, 1-(y-box.top)/box.height*2), camera);
+    const hit = ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),0),new THREE.Vector3());
+    if (!hit || Math.abs(hit.x)>35 || Math.abs(hit.z)>35) return null;
+    const k = 8.2 / Math.max(1, Math.min(sourceCanvas.width,sourceCanvas.height)*.54+45*(devicePixelRatio||1));
+    return {x:run.hq.x+hit.x/k,y:run.hq.y+hit.z/k};
+  };
+
   api.render = function (run) {
     if (!active || !renderer || !zombieTemplates.soldier) return false;
 
     setWorldMode(run);
     resize();
-    const dt = Math.min(.05, clock.getDelta());
+    const frameDelta = clock.getDelta();
+    const dt = run.paused || run.aiming || run.upgradeOpen ? 0 : Math.min(.05, frameDelta);
     const liveUnits = new Set();
     const liveTracers = new Set();
     const liveEffects = new Set();
@@ -2214,7 +2234,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
     syncTracers(run, liveTracers);
     syncEffects(run, liveEffects);
-    applyCameraFeedback(run);
+    if (!run.paused && !run.aiming && !run.upgradeOpen) applyCameraFeedback(run);
     renderer.render(scene, camera);
     sampleAdaptiveQuality(dt);
     if (firstFrameCallback) completeFirstFrame(true);

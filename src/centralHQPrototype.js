@@ -999,6 +999,7 @@
     var wrap = id('battlefield-wrap'); if (wrap) {
       wrap.appendChild(ability);
       wrap.appendChild(command);
+      installTacticalControls266(wrap);
       var progress=document.createElement('div');progress.id='l139-progress';progress.className='l139-progress';progress.innerHTML='<div class="l139-progress-text"><span id="l139-progress-label">ASSAULT 1/3</span><span id="l139-progress-count">0 THREATS</span></div><div class="l139-progress-track"><div class="l139-progress-fill" id="l139-progress-fill"></div></div>';wrap.appendChild(progress);
       var hqHud=document.createElement('div');hqHud.id='l190-hq-hud';hqHud.setAttribute('role','status');hqHud.setAttribute('aria-live','assertive');hqHud.innerHTML='<div class="l190-hq-row"><span id="l190-hq-label">HQ INTEGRITY</span><span id="l190-hq-count">100% · 0 / 0 HP</span></div><div class="l190-hq-track"><div class="l190-hq-fill" id="l190-hq-fill"></div></div>';wrap.appendChild(hqHud);
       var controls=document.createElement('div');controls.id='l140-controls';controls.innerHTML='<button id="l140-speed-btn" aria-label="Battle speed">1×</button><button id="l139-menu-btn" aria-label="Battle menu">☰</button>';wrap.appendChild(controls);
@@ -1368,7 +1369,7 @@
       // Holt and the turret remain independent combat sources but occupy one
       // authored Command Bastion fixture in both the 2D and 3D renderers.
       squad:[],
-      enemies:[],corpses:[],bullets:[],particles:[],performance:PERFORMANCE_BUDGET,lastHudUpdate:0,lastControlUpdate:0,damage:{commander:0,turret:0,squad:0,artillery:0},feedback:null,artilleryPulse:0,destructionPulse:0,vehicleDestructionTimer:0 };
+      focusId:null,aiming:false,aimPoint:null,tactics:{missions:0,hits:0,kills:0,focusOrders:0},enemies:[],corpses:[],bullets:[],particles:[],performance:PERFORMANCE_BUDGET,lastHudUpdate:0,lastControlUpdate:0,damage:{commander:0,turret:0,squad:0,artillery:0},feedback:null,artilleryPulse:0,destructionPulse:0,vehicleDestructionTimer:0 };
     window.LSCCommanders.applyCombat(meta,created);
     created.replay=!operation&&!!settings.replay;
     created.competitiveEligible=!operation&&!created.replay;
@@ -1431,7 +1432,7 @@
     var t=null,b=range,bestPriority=-1,priorityTarget=o&&o.source==='turret'&&run&&run.turretPriority>0;
     run.enemies.forEach(function(e){
       var objective=e.kind==='boss'||e.kind==='vehicle',x=dist(o,e),effectiveRange=objective?Math.max(range,canvasRadius(SPAWN_WORLD_RADIUS+1.5)):range;if(x>=effectiveRange||!commanderTargetInPerimeter(o,e)||(!objective&&!firingLineClearsHolt(o,e)))return;
-      var priority=e.kind==='vehicle'?5:e.kind==='boss'?4:priorityTarget?(e.kind==='armored'?2:1):0;
+      var priority=o.source==='commander'&&e.id===run.focusId?10:e.kind==='vehicle'?5:e.kind==='boss'?4:priorityTarget?(e.kind==='armored'?2:1):0;
       if(priority>bestPriority||(priority===bestPriority&&x<b)){bestPriority=priority;b=x;t=e;}
     });
     return t;
@@ -1550,7 +1551,8 @@
       run.assaultKills++;
       run.xp+=(e.kind==='armored'?10:6)*(run.fieldXpMultiplier||1);
       combatSfx('enemyDown',175);
-      if(run.xp>=run.xpNext&&!run.upgradeOpen)openUpgrade();
+      if(run.operation){if(run.xp>=run.xpNext&&!run.upgradeOpen)openUpgrade();}
+      else advanceFieldTraining266();
     }
   }
   var FIELD_RARITY={common:{label:'COMMON',className:'common'},epic:{label:'EPIC',className:'epic'},legendary:{label:'LEGENDARY',className:'legendary'}};
@@ -1613,6 +1615,15 @@
     run.lastUpgradeChoices=choices.map(function(choice){return choice.id;});
     return choices;
   }
+  function chooseAssaultUpgrades266(){
+    var choices=[
+      {id:'tactical-firepower',name:'Concentrated Fire',description:'Commander and turret damage +20% for this battle.',rarity:'common',maxStacks:2,source:'commander',apply:function(){run.hero.damage*=1.2;run.turret.damage*=1.2;}},
+      {id:'tactical-fortify',name:'Hold the Line',description:'HQ capacity +20%; repair 30% HQ health and 35% of every barrier, including destroyed positions.',rarity:'common',maxStacks:2,source:'hq',apply:function(){run.hq.maxHp=Math.ceil(run.hq.maxHp*1.2);run.hq.hp=Math.min(run.hq.maxHp,run.hq.hp+run.hq.maxHp*.3);run.lanes.forEach(function(lane){var b=lane.barricade;b.hp=Math.min(b.maxHp,b.hp+b.maxHp*.35);});}},
+      {id:'tactical-barrage',name:'Wide Barrage',description:'Artillery blast radius +25% and damage +20% for this battle.',rarity:'common',maxStacks:2,source:'artillery',apply:function(){run.artilleryRadiusScale=(run.artilleryRadiusScale||1)*1.25;run.abilityDamage*=1.2;}}
+    ];
+    if(run.promotionChoiceBonus>0)choices.push({id:'tactical-logistics',name:'Rapid Support',description:'Artillery cooldown -3 seconds (minimum 6); next strike ready immediately.',rarity:'common',maxStacks:2,source:'artillery',apply:function(){run.abilityMaxCd=Math.max(6,run.abilityMaxCd-3);run.abilityCd=0;}});
+    return choices;
+  }
   function applyFieldUpgrade(upgrade){
     if(!run||!run.upgradeOpen)return;
     upgrade.apply();
@@ -1622,47 +1633,134 @@
     combatHaptic(upgrade.rarity==='legendary'?'heavy':'success',160);
     run.upgradeOpen=false;
     id('hq-upgrade-overlay').classList.remove('show');
-    if(run.xp>=run.xpNext&&!run.bossDefeated)setTimeout(function(){if(run&&run.active&&!run.upgradeOpen)openUpgrade();},180);
+    if(run.operation&&run.xp>=run.xpNext&&!run.bossDefeated)setTimeout(function(){if(run&&run.active&&!run.upgradeOpen)openUpgrade();},180);
   }
-  function openUpgrade(){
-    if(!run||run.complete||run.bossDefeated)return;
+  function openUpgrade(betweenAssaults){
+    if(!run||!run.active||run.complete||run.bossDefeated||run.upgradeOpen)return;
+    if(!run.operation&&!betweenAssaults)return;
     run.upgradeOpen=true;
-    run.xp-=run.xpNext;
-    run.level++;
-    run.xpNext=Math.floor(run.xpNext*1.32);
+    if(!betweenAssaults){run.xp-=run.xpNext;run.level++;run.xpNext=Math.floor(run.xpNext*1.32);}
     combatSfx('rankUp');
     combatHaptic('success',220);
     var subtitle=id('hq-upgrade-sub');
-    if(subtitle)subtitle.textContent='FIELD RANK '+run.level+' · SELECT ONE UPGRADE';
+    if(subtitle)subtitle.textContent=betweenAssaults?'ASSAULT '+(run.assault-1)+' COMPLETE · CHOOSE FOR THE NEXT ASSAULT':'FIELD RANK '+run.level+' · SELECT ONE UPGRADE';
     var grid=id('hq-upgrade-grid');
     grid.innerHTML='';
-    chooseFieldUpgrades(run.level).forEach(function(upgrade){
+    (betweenAssaults?chooseAssaultUpgrades266():chooseFieldUpgrades(run.level)).forEach(function(upgrade){
       var rarity=FIELD_RARITY[upgrade.rarity],nextStack=(run.upgradeStacks[upgrade.id]||0)+1;
       var button=document.createElement('button');
       button.className='hq-upgrade-choice '+rarity.className;
-      button.innerHTML='<small>'+rarity.label+' · '+upgradeSourceLabel(upgrade.source)+'</small><b>'+upgrade.name+'</b><span>'+upgrade.description+(upgrade.maxStacks>1?' · NEXT STACK '+nextStack+'/'+upgrade.maxStacks:'')+'</span>';
+      button.innerHTML='<small>'+(betweenAssaults?'THIS BATTLE':rarity.label)+' · '+upgradeSourceLabel(upgrade.source)+'</small><b>'+upgrade.name+'</b><span>'+upgrade.description+(upgrade.maxStacks>1?' · NEXT STACK '+nextStack+'/'+upgrade.maxStacks:'')+'</span>';
       button.onclick=function(){applyFieldUpgrade(upgrade);};
       grid.appendChild(button);
     });
     id('hq-upgrade-overlay').classList.add('show');
   }
+  function advanceFieldTraining266(){
+    while(run.xp>=run.xpNext){
+      run.xp-=run.xpNext;run.level++;run.xpNext=Math.floor(run.xpNext*1.32);
+      run.hero.damage*=1.08;run.turret.damage*=1.08;
+      run.feedback={text:'FIELD RANK '+run.level+' · RIFLE & TURRET DAMAGE +8%',source:'command',life:2,max:2};
+    }
+  }
+  function artilleryRadius266(){return canvasRadius(3.2)*(run.artilleryRadiusScale||1);}
+  function artilleryTargets266(point){return run.enemies.filter(function(e){return e.hp>0&&dist(e,point)<=artilleryRadius266();});}
+  function tacticalProjection266(point,height){
+    var api=window.LSC3DPrototype;
+    if(api&&api.tacticalReady&&api.tacticalReady())return api.projectTactical(point,run,height||0);
+    var box=canvas.getBoundingClientRect();
+    return {x:box.left+point.x/canvas.width*box.width,y:box.top+point.y/canvas.height*box.height};
+  }
+  function tacticalGround266(x,y){
+    var api=window.LSC3DPrototype;
+    if(api&&api.tacticalReady&&api.tacticalReady())return api.groundTactical(x,y,run);
+    var box=canvas.getBoundingClientRect();
+    return {x:(x-box.left)/box.width*canvas.width,y:(y-box.top)/box.height*canvas.height};
+  }
+  function tacticalTap266(event){
+    if(!run||!run.active||run.paused||run.upgradeOpen||event.target.closest('button'))return;
+    if(run.aiming){run.aimPoint=tacticalGround266(event.clientX,event.clientY);return;}
+    var closest=null,best=32;
+    run.enemies.forEach(function(e){
+      var a=tacticalProjection266(e,0),b=tacticalProjection266(e,e.kind==='boss'?2:1);
+      if(!a||!b)return;
+      var dx=b.x-a.x,dy=b.y-a.y,length=dx*dx+dy*dy;
+      var t=length?clamp(((event.clientX-a.x)*dx+(event.clientY-a.y)*dy)/length,0,1):0;
+      var distance=Math.hypot(event.clientX-a.x-t*dx,event.clientY-a.y-t*dy);
+      if(distance<best){best=distance;closest=e;}
+    });
+    if(closest){run.focusId=closest.id;run.tactics.focusOrders++;}
+  }
+  function installTacticalControls266(wrap){
+    var style=document.createElement('style');style.textContent=
+      '#hq-upgrade-overlay .hq-upgrade-modal{max-height:calc(100dvh - 70px);overflow-y:auto}.hq-upgrade-sub{font:600 12px/1.4 system-ui;margin:8px 0 14px}.hq-upgrade-choice b{font-size:17px}.hq-upgrade-choice span{font:14px/1.4 system-ui}.hq-upgrade-choice small{font:600 11px/1.35 system-ui;letter-spacing:.5px}#lsc137-ability,#lsc168-command{font-size:11px}'+
+      '#l266-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:30;pointer-events:none}'+
+      '#l266-tactics{position:absolute;left:12px;right:12px;bottom:128px;z-index:36;text-align:center;pointer-events:none;color:#fff4d6;font:600 13px/1.35 system-ui,sans-serif}'+
+      '#l266-status{display:inline-block;max-width:100%;padding:7px 10px;border-radius:8px;background:rgba(5,23,26,.9)}'+
+      '#l266-actions{display:flex;justify-content:center;gap:8px;margin-top:6px;pointer-events:auto}'+
+      '#l266-actions button{min-height:44px;padding:8px 14px;border:1px solid #edca70;border-radius:9px;background:#173d3b;color:#fff4d6;font:700 13px system-ui}'+
+      '#l266-actions button:disabled{opacity:.5}#l266-actions[hidden],#l266-tactics[hidden]{display:none}';
+    document.head.appendChild(style);
+    var overlay=document.createElement('canvas');overlay.id='l266-overlay';wrap.appendChild(overlay);
+    var panel=document.createElement('div');panel.id='l266-tactics';panel.innerHTML='<span id="l266-status" role="status" aria-live="polite"></span><div id="l266-actions" hidden><button id="l266-fire">FIRE HERE</button><button id="l266-cancel">CANCEL</button><button id="l266-auto">AUTO TARGET</button></div>';wrap.appendChild(panel);
+    id('l266-fire').onclick=fireArtillery266;
+    id('l266-cancel').onclick=function(){if(run){run.aiming=false;run.aimPoint=null;updateBattleControls(true);}};
+    id('l266-auto').onclick=function(){if(run)run.focusId=null;};
+    wrap.addEventListener('click',tacticalTap266);
+  }
+  function drawTactics266(){
+    var overlay=id('l266-overlay'),panel=id('l266-tactics');if(!overlay||!panel)return;
+    var box=overlay.getBoundingClientRect(),ratio=dpr();
+    var w=Math.round(box.width*ratio),h=Math.round(box.height*ratio);
+    if(overlay.width!==w||overlay.height!==h){overlay.width=w;overlay.height=h;}
+    var context=overlay.getContext('2d');context.clearRect(0,0,w,h);
+    panel.hidden=!run||!run.active||run.paused||run.upgradeOpen;if(panel.hidden)return;
+    var focused=run.enemies.find(function(e){return e.id===run.focusId;});if(!focused)run.focusId=null;
+    var message='Tap an enemy to focus fire · Artillery: choose a blast area';
+
+    if(focused){message=nearest(run.hero,run.hero.range)===focused?'PRIORITY TARGET · Commander engaging':'PRIORITY TARGET · Waiting for a clear shot';
+      var p=tacticalProjection266(focused,0);if(p){context.strokeStyle='#ffe17d';context.lineWidth=3*ratio;context.beginPath();context.arc((p.x-box.left)*ratio,(p.y-box.top)*ratio,18*ratio,0,TAU);context.stroke();}}
+    if(run.feedback)message=run.feedback.text;
+    if(run.aiming){
+      var count=run.aimPoint?artilleryTargets266(run.aimPoint).length:0;
+      message='AIMING · BATTLE PAUSED · '+(run.aimPoint?count+' targets in blast':'Tap the ground to aim');
+      id('l266-fire').disabled=!count;
+      if(run.aimPoint){context.beginPath();var valid=true;for(var i=0;i<=48;i++){
+        var angle=i/48*TAU,p=tacticalProjection266({x:run.aimPoint.x+Math.cos(angle)*artilleryRadius266(),y:run.aimPoint.y+Math.sin(angle)*artilleryRadius266()},0);
+        if(!p){valid=false;break;}if(i===0)context.moveTo((p.x-box.left)*ratio,(p.y-box.top)*ratio);else context.lineTo((p.x-box.left)*ratio,(p.y-box.top)*ratio);
+      }if(valid){context.closePath();context.fillStyle='rgba(255,192,55,.2)';context.strokeStyle='#ffd166';context.lineWidth=2*ratio;context.fill();context.stroke();}}
+    }
+    var label=id('l266-status');if(label.textContent!==message)label.textContent=message;
+    id('l266-actions').hidden=!run.aiming&&!focused;
+    id('l266-fire').hidden=!run.aiming;id('l266-cancel').hidden=!run.aiming;id('l266-auto').hidden=run.aiming||!focused;
+  }
   function useAbility(){
-    if(!run||!run.active||run.abilityCd>0)return;
+    if(!run||!run.active||run.paused||run.upgradeOpen||run.abilityCd>0)return;
+    run.aiming=!run.aiming;run.aimPoint=null;updateBattleControls(true);
+  }
+  function fireArtillery266(){
+    if(!run||!run.active||run.paused||run.upgradeOpen||!run.aiming||!run.aimPoint||run.abilityCd>0)return;
+    var center=run.aimPoint,targets=artilleryTargets266(center);
+    if(!targets.length)return;
+    run.aiming=false;run.aimPoint=null;run.tactics.missions++;run.tactics.hits+=targets.length;
     run.abilityCd=run.abilityMaxCd;
     run.artilleryPulse=.72;
     run.feedback={text:'FIRE MISSION · IMPACT',source:'artillery',life:1.15,max:1.15};
     combatSfx('orbital');
     combatHaptic('heavy',300);
-    var visualTargets=run.enemies.slice(0,6);
-    run.enemies.forEach(function(e){run.damage.artillery+=applyDamage(e,run.abilityDamage,'artillery');});
+    var visualTargets=targets.slice(0,6);
+    targets.forEach(function(e){run.damage.artillery+=applyDamage(e,run.abilityDamage,'artillery');});
     visualTargets.forEach(function(e,index){spawnArtilleryImpact(e,index);});
     var impactRun=run;setTimeout(function(){if(run===impactRun&&run.active){combatSfx('impact');combatHaptic('heavy',120);}},95);
     var artilleryEliminations=0;
     for(var i=run.enemies.length-1;i>=0;i--)if(run.enemies[i].hp<=0){artilleryEliminations++;kill(i,run.enemies[i]);}
+    run.tactics.kills+=artilleryEliminations;
+    run.feedback={text:'ARTILLERY · '+targets.length+' HIT · '+artilleryEliminations+' ELIMINATED',source:'artillery',life:2.5,max:2.5};
+    updateBattleControls(true);
     if(artilleryEliminations&&run.artilleryKillCooldown>0)run.abilityCd=Math.max(0,run.abilityCd-artilleryEliminations*run.artilleryKillCooldown);
   }
   function useCommandAbility(){
-    if(!run||!run.active||!run.commandUnlocked||run.commandCd>0)return;
+    if(!run||!run.active||run.paused||run.upgradeOpen||run.aiming||!run.commandUnlocked||run.commandCd>0)return;
     run.commandCd=run.commandMaxCd;
     run.commandActive=run.commandDuration;
     run.feedback={text:(run.commanderName||'Commander').toUpperCase()+' · COMMAND BURST',source:'commander',life:1.7,max:1.7};
@@ -1730,7 +1828,7 @@
   function finish(won) {
     if (!run || run.complete) return;
     run.complete = true;
-    run.active = false;
+    run.active = false;run.aiming=false;
     run.won = !!won;
     run.upgradeOpen = false;
     combatSfx(won?'victory':'defeat');
@@ -1784,7 +1882,7 @@
     var resultMetric=operationKind==='junkyard'?(won?'ARMORED TRANSPORT DESTROYED':formatNumber(vehicleArmor)+' ARMOR REMAINING'):formatNumber(run.kills)+' ENEMIES ELIMINATED';
     if(expeditionBonus)rewardLabel+=' · INCLUDES 600 EXPEDITION CREDITS';
     var rewardResources=(operation&&(!won||!operationRewarded))||(replay&&!won)?'<div class="l175-no-reward">'+(won?'NO ADDITIONAL RESOURCES':'NO RESOURCES AWARDED')+'</div>':'<div class="l166-reward-resources">'+(parts?resourcePair(reward,parts):resourceMarkup('credits',reward,'CREDITS'))+'</div>';
-    id('l137-result-reward').innerHTML = rewardResources+'<small>'+rewardLabel+'</small><small>'+resultMetric+'</small><small>'+(run.commanderName||'Commander').toUpperCase()+' '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small class="l167-result-survival">'+survivalLabel+'</small>'+(run.starSavePending?'':equipmentDropMarkup(equipmentAward))+(!run.starTown&&!operation&&!replay&&won?campaignTransitionMarkup(clearedPhase):'');
+    id('l137-result-reward').innerHTML = rewardResources+'<small>'+rewardLabel+'</small><small>'+resultMetric+'</small><small>'+(run.commanderName||'Commander').toUpperCase()+' '+formatNumber(run.damage.commander)+' · TURRET '+formatNumber(run.damage.turret)+' · ARTILLERY '+formatNumber(run.damage.artillery)+'</small><small>YOUR ARTILLERY · '+run.tactics.missions+' strikes · '+run.tactics.hits+' targets hit · '+run.tactics.kills+' eliminated</small><small class="l167-result-survival">'+survivalLabel+'</small>'+(run.starSavePending?'':equipmentDropMarkup(equipmentAward))+(!run.starTown&&!operation&&!replay&&won?campaignTransitionMarkup(clearedPhase):'');
     var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
     id('l141-continue').textContent = operation?(won?'RETURN TO COMMAND BASE':'RETRY '+definition.levelLabel+' '+operationLevel):(replay?'RETURN TO CAMPAIGN':won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+' · NEW ENERGY');
     if(firstClear){id('l141-continue').textContent='EXPLORE THE NEXT TOWN';id('l137-result-copy').textContent+=' Town '+clearedPhase+' liberated. Supply income: +'+window.LSCReclamation.income(meta).rate+' Credits/min. Next: scout for preparation sites, clear the approach, then defend Town '+(clearedPhase+1)+'.';}
@@ -1919,13 +2017,13 @@
     var controlNow=performance.now(),controlInterval=Math.max(50,Number(run.performance&&run.performance.hudIntervalMs)||84);
     if(!force&&run.lastControlUpdate&&controlNow-run.lastControlUpdate<controlInterval)return;
     run.lastControlUpdate=controlNow;
-    var ab=id('lsc137-ability'),abilityText=run.abilityCd>0?Math.ceil(run.abilityCd)+'s':'ARTILLERY';
+    var ab=id('lsc137-ability'),abilityText=run.aiming?'CANCEL AIM':run.abilityCd>0?Math.ceil(run.abilityCd)+'s':'ARTILLERY';
     if(ab){if(ab.disabled!==(run.abilityCd>0))ab.disabled=run.abilityCd>0;if(ab.textContent!==abilityText)ab.textContent=abilityText;}
     var command=id('lsc168-command'),commandText=!run.commandUnlocked?'LOCKED':run.commandActive>0?'RALLY':run.commandCd>0?Math.ceil(run.commandCd)+'s':run.operation?'RALLY':'COMMAND';
-    if(command){var commandDisabled=!run.commandUnlocked||run.commandCd>0;if(command.disabled!==commandDisabled)command.disabled=commandDisabled;if(command.textContent!==commandText)command.textContent=commandText;}
+    if(command){var commandDisabled=run.aiming||!run.commandUnlocked||run.commandCd>0;if(command.disabled!==commandDisabled)command.disabled=commandDisabled;if(command.textContent!==commandText)command.textContent=commandText;}
   }
   function update(dt){
-    if(!run||!run.active||run.paused||run.upgradeOpen)return;
+    if(!run||!run.active||run.paused||run.upgradeOpen||run.aiming)return;
     run.elapsed+=dt;
     run.assaultElapsed+=dt;
     run.spawn-=dt;
@@ -1967,6 +2065,7 @@
           recoverBetweenAssaults();
           run.assault++;run.assaultElapsed=0;run.assaultSpawned=0;run.assaultKills=0;run.spawn=.6;run.transition=0;
           combatSfx('phase');combatHaptic('light',180);
+          if(!run.operation)openUpgrade(true);
         }
       }
     }else run.transition=0;
@@ -2092,8 +2191,8 @@
 
   var draw2D = draw;
   draw = function(){
-    if(run && window.LSC3DPrototype && window.LSC3DPrototype.render(run)) return;
-    return draw2D();
+    if(!(run && window.LSC3DPrototype && window.LSC3DPrototype.render(run)))draw2D();
+    drawTactics266();
   };
 
   installStyles(); installReleaseStyles(); installJunkyardStyles(); installCampaignStyles(); installCombatHudStyles(); installUI(); renderTab('reclamation'); enforceCommandBaseStartup();
