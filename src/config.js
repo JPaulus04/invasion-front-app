@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════
 //  config.js — legacy engine balance tunables
-//  Build 230 Priority A world-art integration.
+//  Build 269 defense preparation and battle feedback.
 // ═══════════════════════════════════════════════════════
-const LSC_BUILD = '230';
+const LSC_BUILD = '269';
 
 const CFG = Object.freeze({
 

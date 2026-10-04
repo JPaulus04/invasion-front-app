@@ -280,6 +280,12 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     turretYaw = new THREE.Group();
     turretYaw.position.y = .45;
     turretGroup.add(turretYaw);
+    // City purchases add separate gold reinforcement modules; HQ art stays intact.
+    turretYaw.userData.cityModules269 = Array.from({length:3}, (_, i) => {
+      const module = box('City turret reinforcement ' + (i + 1), [1.25, .12, .72], [0, .58 + i * .15, .08], 0xe7c377, turretYaw, {metalness:.55, roughness:.4});
+      module.visible = false;
+      return module;
+    });
     shapedMesh('Turret gun housing', new THREE.CylinderGeometry(.48, .58, .48, 10), [0, .22, 0], 0x566a66, turretYaw, { metalness: .42, roughness: .4 });
     box('Turret front armor', [.82, .42, .48], [0, .24, .25], 0x425653, turretYaw, { metalness: .46, roughness: .36 });
     box('Turret barrel cradle', [.48, .22, .42], [0, .27, .52], 0x263535, turretYaw, { metalness: .58, roughness: .28 });
@@ -771,6 +777,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     box('Command Bastion access step', [.68, .18, .42], [0, .91, COMMAND_BASTION_CENTER_Z + 1.0], 0x667770, commandBastionGroup, { metalness: .38, roughness: .48 });
     box('Command Bastion command stripe', [3.18, .025, .18], [0, COMMAND_BASTION_DECK_Y + .015, COMMAND_BASTION_CENTER_Z + .42], 0xd4b45e, commandBastionGroup, { metalness: .42, emissive: 0x473000, emissiveIntensity: .18 });
     staticGroup.add(commandBastionGroup);
+    commandBastionGroup.userData.cityModules269 = Array.from({length:3}, (_, i) => {
+      const module = box('City HQ reinforcement ' + (i + 1), [3.5, .13, .22], [0, COMMAND_BASTION_DECK_Y + .18 + i * .18, COMMAND_BASTION_CENTER_Z + .9], 0xe7c377, commandBastionGroup, {metalness:.45, roughness:.5});
+      module.visible = false;
+      return module;
+    });
 
     commandBastionTier2Group = new THREE.Group();
     commandBastionTier2Group.name = 'Command Bastion level 2 armored rails';
@@ -945,6 +956,11 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       group.userData.fortress = fortress;
       group.userData.damageMarks = damageMarks;
       barricadeGroups.push(group);
+      group.userData.cityModules269 = Array.from({length:3}, (_, i) => {
+        const module = box('City barrier reinforcement ' + (i + 1), [2.45, .16, .18], [0, .32 + i * .25, -.48], 0xe7c377, group, {metalness:.5, roughness:.45});
+        module.visible = false;
+        return module;
+      });
     }
 
     campaignWorldObjects = staticGroup.children.slice();
@@ -1694,7 +1710,10 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       return;
     }
     const level = Math.max(1, Number(run.hq && run.hq.level) || 1);
-    if (commandBastionGroup) commandBastionGroup.visible = true;
+    if (commandBastionGroup) {
+      commandBastionGroup.visible = true;
+      commandBastionGroup.userData.cityModules269.forEach((module, i) => { module.visible = i < (run.cityDefenseVisual269?.hq || 0); });
+    }
     if (hqAssetGroup) {
       hqAssetGroup.visible = true;
       hqAssetGroup.scale.setScalar(1 + Math.min(4, level - 1) * .035);
@@ -1799,6 +1818,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     turretGroup.position.set(p[0], run.operationKind === 'junkyard' ? JUNKYARD_DECK_Y : run.operation ? OPERATION_DECK_Y : COMMAND_BASTION_DECK_Y, p[1]);
     turretYaw.rotation.y = -(run.turret.aim || 0) + Math.PI / 2;
     turretGroup.visible = true;
+    turretYaw.userData.cityModules269.forEach((module, i) => { module.visible = i < (run.cityDefenseVisual269?.turret || 0); });
     const level = Math.max(1, Number(run.hq && run.hq.level) || 1);
     if (turretLevel2Group) turretLevel2Group.visible = level >= 2;
     if (turretLevel4Group) turretLevel4Group.visible = level >= 4;
@@ -1909,6 +1929,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     activeGroups.forEach((group, index) => {
       const state = run.lanes && run.lanes[index] && run.lanes[index].barricade;
       syncBarricadeGroup(group, state, level, researchedPerimeter, researchedArmor);
+      if (group.userData.cityModules269) group.userData.cityModules269.forEach((module, i) => { module.visible = i < (run.cityDefenseVisual269?.barriers[index] || 0); });
     });
   }
 
