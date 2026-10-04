@@ -982,7 +982,7 @@
     document.body.appendChild(result);
     id('l141-continue').onclick = function () {
       if(!run)return;
-      if(run.starTown){returnHome();return;}
+      if(run.starTown){var retryTown=!run.won&&run.prepBase268&&!run.starSavePending?run.starTown:null;returnHome();if(retryTown&&!run)launchPhase({starTown:retryTown});return;}
       var operation=!!run.operation,won=!!run.won,phase=run.phase,operationLevel=run.operationLevel,operationKind=run.operationKind||'containment';
       id('lsc137-result').classList.remove('show');
       if(operation){if(won)returnHome();else launchPhase({phase:phase,operation:true,operationLevel:operationLevel,operationKind:operationKind,operationRewardEligible:run.operationRewardEligible});}
@@ -1309,9 +1309,10 @@
     if(!id('l268-style')){var css=document.createElement('style');css.id='l268-style';css.textContent='#l268-preparation{position:absolute;z-index:38;left:0;right:0;bottom:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:#10332f;color:#f4efd6;border-top:1px solid #86aaa0;font:14px/1.35 system-ui;box-sizing:border-box}#l268-preparation *{box-sizing:border-box}#l268-preparation [hidden]{display:none!important}#l268-preparation button,#l268-preparation select{min-height:44px;border:1px solid #779d8c;border-radius:9px;background:#20473e;color:#f4efd6;padding:8px;font:700 13px system-ui}#l268-preparation button:disabled{opacity:.55}#l268-preparation select{width:100%;margin:5px 0}#l268-preparation p{margin:5px 0}#l268-preparation .prep-row{display:flex;gap:8px}#l268-preparation .prep-row>*{flex:1;min-width:0}#l268-preparation .prep-details{padding-bottom:5px}#l268-preparation .prep-scroll{max-height:20dvh;overflow:auto;overscroll-behavior:contain;padding-bottom:6px}#l268-preparation [data-start]{background:#e7c377;color:#17332b}#l268-preparation [data-notice]{font-size:12px;color:#ffe0a3}body.l268-preparing #l139-progress,body.l268-preparing #l140-speed-btn,body.l268-preparing #lsc137-ability,body.l268-preparing #lsc168-command{display:none!important}';document.head.appendChild(css);}
     var api=window.LSCDefensePreparation,town=window.LSCSettlement.town(run.starTown),key=run.prepSelection268||'turret',q=api.quote(meta,run.starTown,key),s=api.state(meta,run.starTown),d=meta.settlement204;
     run.cityDefenseVisual269=s;
-    panel.innerHTML='<strong>'+town.name+' · Prepare defenses</strong><p style="font-size:12px">Tap a marker to upgrade · Tap ground to inspect the perimeter</p><div class="prep-row"><select aria-label="Defense position"></select><button data-close-details style="flex:0 0 60px">DONE</button></div><div class="prep-details"><div class="prep-scroll"><p data-preview></p><div class="prep-row" data-roles></div><p data-wallet style="font-size:13px"></p><p data-after-wallet style="font-size:13px"></p></div><button data-buy style="width:100%"></button><p data-notice role="status"></p></div><div class="prep-row"><button data-back>CITY</button><button data-team>LOADOUT</button><button data-start>START ASSAULT</button></div>';
+    panel.innerHTML='<strong>'+town.name+' · Prepare defenses</strong><p data-readiness style="font-size:12px"></p><p style="font-size:12px">Tap a marker to upgrade · Tap ground to inspect the perimeter</p><div class="prep-row"><select aria-label="Defense position"></select><button data-close-details style="flex:0 0 60px">DONE</button></div><div class="prep-details"><div class="prep-scroll"><p data-preview></p><div class="prep-row" data-roles></div><p data-wallet style="font-size:13px"></p><p data-after-wallet style="font-size:13px"></p></div><button data-buy style="width:100%"></button><p data-notice role="status"></p></div><div class="prep-row"><button data-back>CITY</button><button data-team>LOADOUT</button><button data-start>START ASSAULT</button></div>';
+    var rating=defenseReadiness270(run);panel.querySelector('[data-readiness]').textContent='Estimated difficulty: '+rating.label+' · '+run.townProfile.stars+' stars · '+(run.commandUnlocked?'Command Burst ready':'Command Burst unlocks at Level 5');
     var details=panel.querySelector('.prep-details');details.hidden=!run.prepSelection268;var close=panel.querySelector('[data-close-details]');close.hidden=!run.prepSelection268;close.onclick=function(){run.prepSelection268=null;showPreparation268();};var select=panel.querySelector('select');var placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Choose a defense to upgrade';select.appendChild(placeholder);preparationPoints268().forEach(function(p){var option=document.createElement('option');option.value=p.key;option.textContent=p.name+' · Level '+api.quote(meta,run.starTown,p.key).level;select.appendChild(option);});select.value=run.prepSelection268||'';select.onchange=function(){run.prepSelection268=select.value;showPreparation268();};
-    var before=key==='turret'?run.turret.damage*run.turret.rate:key==='hq'?run.hq.maxHp:run.lanes[q.index].barricade.maxHp,after=key==='turret'?before*(1+q.next*.25)/(1+q.level*.25):Math.round((key==='hq'?run.prepBase268.hq:run.prepBase268.barriers[q.index])*(1+q.next*(key==='hq'?.25:.4)));
+    var before=key==='turret'?run.turret.damage*run.turret.rate:key==='hq'?run.hq.maxHp:run.lanes[q.index].barricade.maxHp,after=key==='turret'?before*api.multiplier(key,q.next)/api.multiplier(key,q.level):Math.round((key==='hq'?run.prepBase268.hq:run.prepBase268.barriers[q.index])*api.multiplier(key,q.next));
     var statLabel=key==='turret'?'Turret damage/sec':key==='hq'?'HQ health':'Barrier health';
     panel.querySelector('[data-preview]').innerHTML='<strong>'+statLabel+': '+before.toFixed(1)+(q.level<q.cap?' → '+after.toFixed(1):'')+'</strong>'+(q.level<q.cap?'<br><span style="color:#ffe09b">Level '+q.next+' · +'+Math.round((after/before-1)*100)+'% from current</span>':' · Current cap '+q.cap);
     var roles=panel.querySelector('[data-roles]');if(key==='turret'){[['rapid','Rapid · crowds'],['heavy','Heavy · armor']].forEach(function(row){var b=document.createElement('button');b.textContent=(s.role===row[0]?'✓ ':'')+row[1];b.setAttribute('aria-pressed',String(s.role===row[0]));b.onclick=function(){var ok=api.role(meta,run.starTown,row[0],saveMeta);if(ok)api.apply(meta,run);showPreparation268(ok?'Role saved · Free to change.':'Could not save role. Try again.');};roles.appendChild(b);});var explanation=document.createElement('p');explanation.style.fontSize='12px';explanation.textContent=s.role==='rapid'?'Fast fire: +40% rate, −20% damage/shot.':'Heavy fire: +50% damage/shot, −25% rate; +25 percentage points vs bosses and armor.';roles.after(explanation);}
@@ -1322,7 +1323,7 @@
     panel.querySelector('[data-notice]').textContent=message||'Permanent for this city · Fully restored on retries · No entry cost';
     panel.querySelector('[data-back]').onclick=returnHome;
     panel.querySelector('[data-team]').onclick=function(){var town=run.starTown;returnHome();if(!run)renderTab('commander',{battleTown:town});};
-    panel.querySelector('[data-start]').onclick=function(){if(!run||!run.preparing268)return;run.preparing268=false;run.hero.x=run.heroHome268.x;run.hero.y=run.heroHome268.y;panel.remove();document.body.classList.remove('l268-preparing');updateBattleControls(true);updateBattleHUD(true);};
+    panel.querySelector('[data-start]').onclick=function(){if(!run||!run.preparing268)return;run.readiness270=defenseReadiness270(run);run.preparing268=false;run.hero.x=run.heroHome268.x;run.hero.y=run.heroHome268.y;panel.remove();document.body.classList.remove('l268-preparing');updateBattleControls(true);updateBattleHUD(true);};
     updateBattleControls(true);updateBattleHUD(true);
   }
   function preparationTap268(event){
@@ -1938,7 +1939,7 @@
     var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
     id('l141-continue').textContent = operation?(won?'RETURN TO COMMAND BASE':'RETRY '+definition.levelLabel+' '+operationLevel):(replay?'RETURN TO CAMPAIGN':won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+' · NEW ENERGY');
     if(firstClear){id('l141-continue').textContent='EXPLORE THE NEXT TOWN';id('l137-result-copy').textContent+=' Town '+clearedPhase+' liberated. Supply income: +'+window.LSCReclamation.income(meta).rate+' Credits/min. Next: scout for preparation sites, clear the approach, then defend Town '+(clearedPhase+1)+'.';}
-    if(run.starTown){id('l137-result-title').textContent=(run.townProfile?run.townProfile.name.toUpperCase():'TOWN '+run.starTown)+(won?' SECURED':' DEFENSE FAILED');id('l137-result-copy').textContent=won&&meta.settlementMode===204?'Town defended. Connect its road, provide housing and 20 Food, then welcome survivors.':won?'Town connected and secured. Supply network earns '+window.LSCStarTowns.rate(meta)+' Credits/min. Explore outward to choose another town.':(run.townProfile?run.townProfile.name+' · '+run.townProfile.stars+' stars. '+run.townProfile.threat+'. Your settlement and purchased city defenses are preserved. Prepare defenses to reinforce weak positions, then retry free.':'Your connected territory is preserved. Find support or strengthen your HQ before trying again.');id('l141-continue').textContent='RETURN TO FRONTIER';}
+    if(run.starTown){id('l137-result-title').textContent=(run.townProfile?run.townProfile.name.toUpperCase():'TOWN '+run.starTown)+(won?' SECURED':' DEFENSE FAILED');id('l137-result-copy').textContent=won&&meta.settlementMode===204?'Town defended. Connect its road, provide housing and 20 Food, then welcome survivors.':won?'Town connected and secured. Supply network earns '+window.LSCStarTowns.rate(meta)+' Credits/min. Explore outward to choose another town.':(run.townProfile?run.townProfile.name+' · '+run.townProfile.stars+' stars. '+run.townProfile.threat+'. Your settlement and purchased city defenses are preserved. ' + defenseAdvice270():'Your connected territory is preserved. Find support or strengthen your HQ before trying again.');id('l141-continue').textContent=!won&&run.prepBase268?'PREPARE DEFENSES · FREE RETRY':'RETURN TO FRONTIER';}id('l137-return').textContent=run.starTown?'RETURN TO CITY':'RETURN TO COMMAND BASE';
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
     id('l137-retry').style.display = !operation&&won&&!run.starTown ? '' : 'none';
     if(run.starSavePending){id('l137-result-copy').textContent='Save failed. Keep the app open and tap Retry Save to preserve this result.';id('l141-continue').textContent='RETRY SAVE';}
@@ -1946,10 +1947,27 @@
     id('lsc137-result').classList.add('show');
     id('lsc137-result').querySelector('.l269-result-scroll').scrollTop=0;
   }
+  // Relative estimate from actual combat stats. It is deliberately not a win probability.
+  function defenseReadiness270(r){
+    var pressure=Math.sqrt(Math.max(1,r.balance.hp)*Math.max(1,r.balance.damage));
+    var fire=r.hero.damage*r.hero.rate+r.turret.damage*r.turret.rate+(r.squad||[]).reduce(function(n,a){return n+a.damage*a.rate;},0);
+    var health=r.hq.maxHp/Math.max(.2,1-(r.hqDamageReduction||0))+r.lanes.reduce(function(n,l){return n+l.barricade.maxHp*.5/Math.max(.2,1-(r.barrierDamageReduction||0));},0);
+    var score=Math.pow(fire/(55*pressure),.65)*Math.pow(health/(600*pressure),.35);
+    return {score:score,label:score<.8?'EXTREME':score<1.3?'HARD':score<1.85?'CHALLENGING':'FAVORABLE'};
+  }
+  function defenseAdvice270(){
+    var s=window.LSCDefensePreparation.state(meta,run.starTown),c=window.LSCDefensePreparation.cap(meta),maxed=s.turret>=c&&s.hq>=c&&s.barriers.every(function(n){return n>=c;}),advice=[];
+    if(maxed)advice.push('City defenses are at your current cap.');
+    else advice.push('Review unbuilt positions and upgrade previews before spending more.');
+    if(!run.commandUnlocked)advice.push('Your commander’s Command Burst is locked until Level 5. Compare a trained commander before retrying.');
+    else advice.push('Time Command Burst and artillery for enemy groups pressing the perimeter.');
+    if(maxed)advice.push(c<3?'Upgrade global HQ to unlock the next city defense tier.':'Review commander training, shared equipment and defense research; further city upgrades are not available.');
+    return advice.join(' ');
+  }
   function defenseResult269(integrity,surviving){
     if(!run.prepBase268)return '';
     var s=window.LSCDefensePreparation.state(meta,run.starTown),upgrades=s.turret+s.hq+s.barriers.reduce(function(a,b){return a+b;},0);
-    return '<div class="l269-survival" data-defense-result><div>YOUR DEFENSE '+(run.won?'HELD':'WAS OVERRUN')+'</div><div class="metrics"><div><b>'+integrity+'%</b><span>HQ HEALTH LEFT</span></div><div><b>'+surviving+'/'+run.lanes.length+'</b><span>BARRIERS STANDING</span></div></div><p>'+upgrades+' permanent upgrades · Turret L'+s.turret+' · HQ L'+s.hq+'</p><p>'+(run.won?'City secured. Your permanent defenses remain saved.':'Purchased defenses are kept and fully restored on your free retry.')+'</p></div>';
+    return '<div class="l269-survival" data-defense-result>'+(run.readiness270?'<p>Starting difficulty estimate: '+run.readiness270.label+'</p>':'')+'<div>YOUR DEFENSE '+(run.won?'HELD':'WAS OVERRUN')+'</div><div class="metrics"><div><b>'+integrity+'%</b><span>HQ HEALTH LEFT</span></div><div><b>'+surviving+'/'+run.lanes.length+'</b><span>BARRIERS STANDING</span></div></div><p>'+upgrades+' permanent upgrades · Turret L'+s.turret+' · HQ L'+s.hq+'</p><p>'+(run.won?'City secured. Your permanent defenses remain saved.':'Purchased defenses are kept and fully restored on your free retry.')+'</p></div>';
   }
   function returnHome(){
     if(run&&run.starSavePending){var oldMeta=meta;meta=JSON.parse(run.starSavePending);if(!saveMeta()){meta=oldMeta;return;}run.starSavePending=null;}
@@ -1990,7 +2008,7 @@
       if(health>.35||!active)return;
       context.strokeStyle=broken?'#ff725e':'#ffd166';context.lineWidth=(broken?4:2)*ratio;context.beginPath();context.ellipse(x,y+9*ratio,24*ratio,12*ratio,0,0,TAU);context.stroke();
       context.font='bold '+13*ratio+'px system-ui';context.textAlign='center';context.textBaseline='alphabetic';
-      context.fillStyle='rgba(18,8,6,.94)';context.fillRect(x-32*ratio,y-31*ratio,64*ratio,20*ratio);context.fillStyle=broken?'#ffac9b':'#ffe09c';context.fillText(broken?'BREACH':'LOW',x,y-16*ratio);
+      // Directional breach announcements use the single tactical status; keep the battlefield clear.
     });
     if(run.lastHit&&performance.now()-run.lastHit<450){
       var h=tacticalProjection266(run.hq,.25);if(h){context.strokeStyle='rgba(255,102,76,.8)';context.lineWidth=4*ratio;context.beginPath();context.ellipse((h.x-box.left)*ratio,(h.y-box.top)*ratio,48*ratio,22*ratio,0,0,TAU);context.stroke();}
@@ -2009,7 +2027,7 @@
   function installResultActions267(){
     var panel=id('l267-result-actions');panel.innerHTML='';panel.hidden=!!run.won||!!run.starSavePending||!!run.operation;
     if(panel.hidden)return;
-    if(run.prepBase268){var retry=document.createElement('button');retry.className='l137-btn good';retry.textContent='PREPARE DEFENSES · FREE RETRY';retry.onclick=function(){var town=run.starTown;returnHome();if(!run)launchPhase({starTown:town});};panel.appendChild(retry);}
+
     [['commander','CHANGE COMMANDER'],['hq','IMPROVE DEFENSES'],['inventory','CHANGE EQUIPMENT']].forEach(function(item){
       var button=document.createElement('button');button.className='l137-btn';button.textContent=item[1];button.onclick=function(){
         if(!run||run.starSavePending)return;var town=run.starTown;returnHome();if(run)return;renderTab(item[0],town?{battleTown:town}:undefined);
