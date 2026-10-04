@@ -79,6 +79,8 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
   let heroMixer = null;
   let heroIdleAction = null;
   let heroFireAction = null;
+  let preparationGait268 = 0;
+  const preparationLegs268 = [];
   let heroWeaponMount = null;
   let heroWeapon = null;
   let heroRightHand = null;
@@ -1329,6 +1331,9 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     heroMuzzleLight.position.copy(heroMuzzle.position);
     weapon.add(heroMuzzleLight);
 
+    model.traverse(node => {
+      if (node.isBone && /^mixamorig(Left|Right)(UpLeg|Leg)$/.test(node.name)) preparationLegs268.push({bone:node, offset:0, side:node.name.includes('Left')?1:-1, knee:!node.name.includes('UpLeg')});
+    });
     heroMixer = new THREE.AnimationMixer(model);
     heroIdleAction = heroMixer.clipAction(idleClip);
     heroIdleAction.setLoop(THREE.LoopRepeat, Infinity);
@@ -1739,6 +1744,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
   function syncHero(run, dt) {
     if (!heroGroup) return;
+    preparationLegs268.forEach(leg => {leg.bone.rotation.x -= leg.offset;leg.offset=0;});
     const flashing = (run.hero.flash || 0) > 0;
     if (heroMixer && heroIdleAction && heroFireAction) {
       if (flashing && !heroWasFlashing) {
@@ -1760,8 +1766,16 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       }
       heroMixer.update(dt);
     }
+    if (run.preparing268 && run.prepWalkMoving268) {
+      preparationGait268 += dt * 8;
+      preparationLegs268.forEach(leg => {
+        const swing = Math.sin(preparationGait268) * leg.side;
+        leg.offset = leg.knee ? Math.max(0, -swing) * .35 : swing * .32;
+        leg.bone.rotation.x += leg.offset;
+      });
+    }
     const p = world(run.hero, run);
-    const deckY = run.operationKind === 'junkyard' ? JUNKYARD_DECK_Y : run.operation ? OPERATION_DECK_Y : COMMAND_BASTION_DECK_Y;
+    const deckY = run.preparing268 ? 0 : run.operationKind === 'junkyard' ? JUNKYARD_DECK_Y : run.operation ? OPERATION_DECK_Y : COMMAND_BASTION_DECK_Y;
     heroGroup.position.set(p[0], deckY + Math.sin(run.elapsed * 2.8) * .018, p[1]);
     const visualTier = Math.max(1, Math.min(5, Number(run.commanderVisualTier) || 1));
     // Mastery adds armor mass and presence, not giant height. The final tier is
@@ -1924,7 +1938,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
       live.add(bullet);
       const previous = world({ x: bullet.px, y: bullet.py }, run);
       const current = world(bullet, run);
-      const deckY = run.operationKind === 'junkyard' ? JUNKYARD_DECK_Y : run.operation ? OPERATION_DECK_Y : COMMAND_BASTION_DECK_Y;
+      const deckY = run.preparing268 ? 0 : run.operationKind === 'junkyard' ? JUNKYARD_DECK_Y : run.operation ? OPERATION_DECK_Y : COMMAND_BASTION_DECK_Y;
       const tracerHeight = bullet.source === 'commander'
         ? deckY + 1.08
         : bullet.source === 'turret'
@@ -2235,6 +2249,27 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
     syncTracers(run, liveTracers);
     syncEffects(run, liveEffects);
     if (!run.paused && !run.aiming && !run.upgradeOpen) applyCameraFeedback(run);
+    // Fit preparation into the space above its inspector; tactical hit testing uses this same camera.
+    if (run.preparing268) {
+      const inspector = document.getElementById('l268-preparation');
+      const health = document.getElementById('l190-hq-hud');
+      const box = renderer.domElement.getBoundingClientRect();
+      if (inspector && box.height > 0) {
+        const top = Math.max(0, (health ? health.getBoundingClientRect().bottom : box.top + 90) - box.top) + 12;
+        const bottom = inspector.getBoundingClientRect().top - box.top - 18;
+        camera.clearViewOffset();
+        camera.zoom = Math.max(.42, Math.min(1, (bottom - top) / (box.height * .47)));
+        camera.updateProjectionMatrix();
+        camera.updateMatrixWorld();
+        const center = new THREE.Vector3(0, 0, 0).project(camera);
+        const offset = (1 - center.y) * box.height / 2 - (top + bottom) / 2;
+        camera.setViewOffset(box.width, box.height, 0, offset, box.width, box.height);
+      }
+    } else if (camera.zoom !== 1 || (camera.view && camera.view.enabled)) {
+      camera.zoom = 1;
+      camera.clearViewOffset();
+      camera.updateProjectionMatrix();
+    }
     renderer.render(scene, camera);
     sampleAdaptiveQuality(dt);
     if (firstFrameCallback) completeFirstFrame(true);

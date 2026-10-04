@@ -1255,7 +1255,7 @@
       if(!approachReady&&id('l137-deploy')){id('l137-deploy').disabled=false;id('l137-deploy').textContent='CLEAR APPROACH IN WORLD';}
       id('l193-region').onclick=function(){renderTab('reclamation');};
     }
-    if(tab==='reclamation'&&meta.settlementMode===204)reclamationCleanup=window.LSCSettlementView.mount(p,meta,saveMeta,refreshHeader,function(target,context){renderTab(target,context);},function(town,phase){if(availableEnergy()<1)return 'Not enough energy.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Your power '+currentPower()+' / recommended '+powerAssessment(phase).recommended;},options&&options.settlementMode,battlePreparation264);
+    if(tab==='reclamation'&&meta.settlementMode===204)reclamationCleanup=window.LSCSettlementView.mount(p,meta,saveMeta,refreshHeader,function(target,context){renderTab(target,context);},function(town,phase){launchPhase({starTown:town,phase:phase});},function(phase){return campaignBossProfile(phase).name+' · Your power '+currentPower()+' / recommended '+powerAssessment(phase).recommended;},options&&options.settlementMode,battlePreparation264);
     if(tab==='reclamation'&&meta.settlementMode!==204)reclamationCleanup=window.LSCStarTowns.mount(p,meta,saveMeta,refreshHeader,function(){renderTab('hq');},function(town,phase){if(availableEnergy()<1)return 'Not enough energy. Recharge or return later.';launchPhase({starTown:town,phase:phase,energySpend:1});},function(phase){return campaignBossProfile(phase).name+' · Power '+currentPower()+' / recommended '+powerAssessment(phase).recommended;});
     if(tab==='reclamation'&&meta.settlementMode!==204){var world=document.getElementById('star-world');if(world){var upgrade=document.createElement('div');upgrade.style.cssText='position:absolute;inset:20% 6% auto;z-index:2;padding:24px;background:#092b30;border:2px solid #d8bd74;border-radius:16px';upgrade.innerHTML='<h3>BUILD 206 · WORKER SETTLEMENTS</h3><p>Your existing world is preserved. Start a separate settlement campaign from Campaigns / HQ to try the new worker economy.</p><button data-start>CAMPAIGNS / HQ</button><button data-classic>CONTINUE THIS WORLD</button>';world.appendChild(upgrade);upgrade.querySelector('[data-start]').onclick=function(){renderTab("hq");};upgrade.querySelector('[data-classic]').onclick=function(){upgrade.remove();};}}
     if (tab === 'operations') renderOperationsTab(p);
@@ -1302,11 +1302,46 @@
     combatSfx('upgrade');combatHaptic('success',180);renderTab(type);
   }
 
+  function preparationPoints268(){return [{key:'turret',name:'Main turret',point:run.turret},{key:'hq',name:'HQ reinforcement',point:run.hq}].concat(run.lanes.map(function(l,i){return {key:'barrier'+i,name:'Barrier '+(i+1)+' · '+barrierDirection267(l),point:lanePoint(l,BARRICADE_WORLD_RADIUS,0)};}));}
+  function showPreparation268(message){
+    document.body.classList.add('l268-preparing');
+    var panel=id('l268-preparation');if(!panel){panel=document.createElement('section');panel.id='l268-preparation';id('l266-overlay').parentNode.appendChild(panel);}
+    if(!id('l268-style')){var css=document.createElement('style');css.id='l268-style';css.textContent='#l268-preparation{position:absolute;z-index:38;left:0;right:0;bottom:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:#10332f;color:#f4efd6;border-top:1px solid #86aaa0;font:14px/1.35 system-ui;box-sizing:border-box}#l268-preparation *{box-sizing:border-box}#l268-preparation [hidden]{display:none!important}#l268-preparation button,#l268-preparation select{min-height:44px;border:1px solid #779d8c;border-radius:9px;background:#20473e;color:#f4efd6;padding:8px;font:700 13px system-ui}#l268-preparation button:disabled{opacity:.55}#l268-preparation select{width:100%;margin:5px 0}#l268-preparation p{margin:5px 0}#l268-preparation .prep-row{display:flex;gap:8px}#l268-preparation .prep-row>*{flex:1;min-width:0}#l268-preparation .prep-details{max-height:24dvh;overflow:auto;padding-bottom:5px}#l268-preparation [data-start]{background:#e7c377;color:#17332b}#l268-preparation [data-notice]{font-size:12px;color:#ffe0a3}body.l268-preparing #l139-progress,body.l268-preparing #l140-speed-btn,body.l268-preparing #lsc137-ability,body.l268-preparing #lsc168-command{display:none!important}';document.head.appendChild(css);}
+    var api=window.LSCDefensePreparation,town=window.LSCSettlement.town(run.starTown),key=run.prepSelection268||'turret',q=api.quote(meta,run.starTown,key),s=api.state(meta,run.starTown),d=meta.settlement204;
+    panel.innerHTML='<strong>'+town.name+' · Prepare defenses</strong><p style="font-size:12px">Tap a marker to upgrade · Tap ground to inspect the perimeter</p><div class="prep-row"><select aria-label="Defense position"></select><button data-close-details style="flex:0 0 60px">DONE</button></div><div class="prep-details"><p data-preview></p><div class="prep-row" data-roles></div><p data-wallet style="font-size:12px"></p><button data-buy style="width:100%"></button><p data-notice role="status"></p></div><div class="prep-row"><button data-back>CITY</button><button data-team>LOADOUT</button><button data-start>START ASSAULT</button></div>';
+    var details=panel.querySelector('.prep-details');details.hidden=!run.prepSelection268;var close=panel.querySelector('[data-close-details]');close.hidden=!run.prepSelection268;close.onclick=function(){run.prepSelection268=null;showPreparation268();};var select=panel.querySelector('select');var placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Choose a defense to upgrade';select.appendChild(placeholder);preparationPoints268().forEach(function(p){var option=document.createElement('option');option.value=p.key;option.textContent=p.name+' · Level '+api.quote(meta,run.starTown,p.key).level;select.appendChild(option);});select.value=run.prepSelection268||'';select.onchange=function(){run.prepSelection268=select.value;showPreparation268();};
+    var before=key==='turret'?run.turret.damage*run.turret.rate:key==='hq'?run.hq.maxHp:run.lanes[q.index].barricade.maxHp,after=before*(1+(q.level+1)*(key.indexOf('barrier')===0?.4:.25))/(1+q.level*(key.indexOf('barrier')===0?.4:.25));
+    panel.querySelector('[data-preview]').textContent=(key==='turret'?'Turret damage/sec':key==='hq'?'HQ health':'Barrier health')+': '+before.toFixed(1)+(q.level<q.cap?' → '+after.toFixed(1):' · Current cap '+q.cap);
+    var roles=panel.querySelector('[data-roles]');if(key==='turret'){[['rapid','Rapid · crowds'],['heavy','Heavy · armor']].forEach(function(row){var b=document.createElement('button');b.textContent=(s.role===row[0]?'✓ ':'')+row[1];b.setAttribute('aria-pressed',String(s.role===row[0]));b.onclick=function(){var ok=api.role(meta,run.starTown,row[0],saveMeta);if(ok)api.apply(meta,run);showPreparation268(ok?'Role saved · Free to change.':'Could not save role. Try again.');};roles.appendChild(b);});var explanation=document.createElement('p');explanation.style.fontSize='12px';explanation.textContent=s.role==='rapid'?'Fast fire: +40% rate, −20% damage/shot.':'Heavy fire: +50% damage/shot, −25% rate; +25 percentage points vs bosses and armor.';roles.after(explanation);}
+    panel.querySelector('[data-wallet]').textContent='Available: '+Math.floor(meta.credits)+' Credits · '+Math.floor(d.materials)+' Timber · '+Math.floor(d.stone)+' Stone';
+    var buy=panel.querySelector('[data-buy]'),limited=q.level>=q.cap,poor=meta.credits<q.credits||d.materials<q.materials||d.stone<q.stone;
+    buy.textContent=limited?(q.cap===3?'MAX LEVEL':'REQUIRES HQ LEVEL '+(q.cap*2+1)):(poor?'NEED ':'UPGRADE · ')+q.credits+' Cr · '+q.materials+' Timber'+(q.stone?' · '+q.stone+' Stone':'');buy.disabled=limited||poor;buy.onclick=function(){buy.disabled=true;var result=api.buy(meta,run.starTown,key,saveMeta);if(result.ok)api.apply(meta,run);showPreparation268(result.message);};
+    panel.querySelector('[data-notice]').textContent=message||'Permanent for this city · Fully restored on retries · No entry cost';
+    panel.querySelector('[data-back]').onclick=returnHome;
+    panel.querySelector('[data-team]').onclick=function(){var town=run.starTown;returnHome();if(!run)renderTab('commander',{battleTown:town});};
+    panel.querySelector('[data-start]').onclick=function(){if(!run||!run.preparing268)return;run.preparing268=false;run.hero.x=run.heroHome268.x;run.hero.y=run.heroHome268.y;panel.remove();document.body.classList.remove('l268-preparing');updateBattleControls(true);updateBattleHUD(true);};
+    updateBattleControls(true);updateBattleHUD(true);
+  }
+  function preparationTap268(event){
+    if(event.target.closest('#l268-preparation'))return;
+    var chosen=null,distance=29;preparationPoints268().forEach(function(p){if(run.prepSelection268&&run.prepSelection268!==p.key)return;var screen=tacticalProjection266(p.point,p.key==='turret'?1.8:p.key==='hq'?.8:.5);if(screen){var dist=Math.hypot(screen.x-event.clientX,screen.y-event.clientY);if(dist<distance){distance=dist;chosen=p.key;}}});
+    if(chosen){run.prepSelection268=chosen;showPreparation268();return;}
+    var p=tacticalGround266(event.clientX,event.clientY);if(!p)return;var x=(p.x-run.hq.x)/(run.worldScale*1.075),y=(p.y-run.hq.y)/(run.worldScale*1.575);
+    // Inspection follows an outside square walkway: no walking through the HQ or barriers.
+    if(Math.abs(y)>=Math.abs(x))run.walkTarget268=y>=0?clamp(x,-4,4)+4:20-clamp(x,-4,4);else run.walkTarget268=x>=0?12-clamp(y,-4,4):28+clamp(y,-4,4);
+  }
+  function updatePreparation268(dt){var delta=((run.walkTarget268-run.walk268+48)%32)-16,step=Math.min(Math.abs(delta),dt*2.5);run.prepWalkMoving268=step>0;run.walk268=(run.walk268+Math.sign(delta)*step+32)%32;var t=run.walk268,x=t<8?t-4:t<16?4:t<24?20-t:-4,y=t<8?4:t<16?12-t:t<24?-4:t-28;var nx=run.hq.x+x*run.worldScale*1.075,ny=run.hq.y+y*run.worldScale*1.575;if(step>0)run.hero.aim=Math.atan2(ny-run.hero.y,nx-run.hero.x);run.hero.x=nx;run.hero.y=ny;}
+  function drawPreparation268(context,box,ratio){
+    if(run.paused)return;
+    preparationPoints268().forEach(function(p,i){if(run.prepSelection268&&run.prepSelection268!==p.key)return;var screen=tacticalProjection266(p.point,p.key==='turret'?1.8:p.key==='hq'?.8:.5);if(!screen)return;var x=(screen.x-box.left)*ratio,y=(screen.y-box.top)*ratio,active=run.prepSelection268===p.key;context.beginPath();context.arc(x,y,17*ratio,0,TAU);context.fillStyle=active?'#e7c377':'#133b39';context.fill();context.strokeStyle='#ebd290';context.lineWidth=2*ratio;context.stroke();context.fillStyle=active?'#14332c':'#f7efd6';context.font='bold '+12*ratio+'px system-ui';context.textAlign='center';context.textBaseline='middle';context.fillText(i===0?'T':i===1?'HQ':String(i-1),x,y);});
+    if(run.prepSelection268==='turret'){context.beginPath();for(var j=0;j<=48;j++){var a=j/48*TAU,p=tacticalProjection266({x:run.turret.x+Math.cos(a)*run.turret.range,y:run.turret.y+Math.sin(a)*run.turret.range},0);if(!p)return;var x=(p.x-box.left)*ratio,y=(p.y-box.top)*ratio;if(j===0)context.moveTo(x,y);else context.lineTo(x,y);}context.strokeStyle='rgba(255,218,111,.65)';context.lineWidth=2*ratio;context.stroke();}
+  }
+
   function launchPhase(phaseOverride) {
     var settings=phaseOverride&&typeof phaseOverride==='object'&&!phaseOverride.target?Object.assign({},phaseOverride):{phase:phaseOverride};
     settings.phase=Math.max(1,Number(settings.phase)||meta.phase);
     settings.operation=!!settings.operation;
-    if(settings.starTown){if(!meta.starTowns||!window.LSCStarTowns.ready(meta,settings.starTown)){if(run)returnHome();else renderTab('reclamation');return;}settings.phase=window.LSCStarTowns.combat(settings.starTown,meta);settings.operation=false;settings.replay=false;settings.energySpend=1;}
+    if(settings.starTown){if(!meta.starTowns||!window.LSCStarTowns.ready(meta,settings.starTown)){if(run)returnHome();else renderTab('reclamation');return;}settings.phase=window.LSCStarTowns.combat(settings.starTown,meta);settings.operation=false;settings.replay=false;settings.energySpend=meta.settlementMode===204?0:1;}
     settings.replay=!settings.starTown&&!settings.operation&&(!!settings.replay||settings.phase<=meta.bestPhase);
     if(!settings.starTown&&!settings.operation&&settings.phase>meta.phase)settings.phase=meta.phase;
     // Gate BEFORE reserving energy; neither direct deployment nor retry can bypass preparation.
@@ -1318,10 +1353,10 @@
     if(settings.operation&&typeof settings.operationRewardEligible!=='boolean')settings.operationRewardEligible=operationRewardAvailable();
     settings.restart=!!settings.restart;
     settings.energyCommitted=0;
-    settings.energySpend=settings.operation?0:Math.max(1,Math.min(CAMPAIGN_MAX_ENERGY_SPEND,Math.floor(Number(settings.energySpend)||campaignEnergySpend())));
+    settings.energySpend=settings.operation||(settings.starTown&&meta.settlementMode===204)?0:Math.max(1,Math.min(CAMPAIGN_MAX_ENERGY_SPEND,Math.floor(Number(settings.energySpend)||campaignEnergySpend())));
     settings.creditMultiplier=settings.operation?1:campaignCreditMultiplier(settings.energySpend);
     if(settings.operation&&!operationAvailable(settings.operationKind)){if(run&&run.complete)returnHome();else renderTab('operations');return;}
-    if(!settings.operation){
+    if(!settings.operation&&settings.energySpend>0){
       if(availableEnergy()<settings.energySpend){if(run&&run.complete)returnHome();else renderTab('campaign');return;}
       if(!reserveEnergy(settings.energySpend)){if(run&&run.complete)returnHome();else renderTab('campaign');return;}
       settings.energyCommitted=settings.energySpend;
@@ -1343,6 +1378,7 @@
     if(settings.starTown&&loadTitle)loadTitle.textContent='DEFEND '+(meta.settlementMode===204?window.LSCSettlement.town(settings.starTown).name:'TOWN '+settings.starTown)+' · '+'★'.repeat(window.LSCStarTowns.stars(settings.starTown,meta));
     showBattleLoading();
     run = createRun(settings);setSpeed(1);
+    if(run.preparing268)showPreparation268();
     if(window.LSC3DPrototype) window.LSC3DPrototype.start(canvas, run, hideBattleLoading);else hideBattleLoading();
     G.state._centralHQMode = true; G.state.waveInProgress = true; G.state.gameOver = false; G.state.paused = false;
     id('lsc137-ability').disabled = false; id('lsc137-ability').textContent = 'ARTILLERY';
@@ -1393,6 +1429,7 @@
     created.townProfile=created.starTown&&meta.settlementMode===204?window.LSCSettlement.townProfile(created.starTown):null;
     if(created.starTown){created.competitiveEligible=false;var prep=window.LSCStarTowns.bonuses(meta,created.starTown);created.explorationBonuses=prep;created.hero.damage*=1+prep.damage;created.turret.damage*=1+prep.damage;created.hq.maxHp=Math.round(created.hq.maxHp*(1+prep.hq));created.hq.hp=created.hq.maxHp;created.abilityDamage*=1+prep.artillery;}
     else window.LSCReclamation.applyBonuses(meta,created);
+    if(created.starTown&&meta.settlementMode===204){created.preparing268=true;created.energySpend=0;created.heroHome268={x:created.hero.x,y:created.hero.y};created.walk268=4;created.walkTarget268=4;created.hero.x=created.hq.x;created.hero.y=created.hq.y+created.worldScale*6.3;window.LSCDefensePreparation.apply(meta,created);}
     return created;
   }
   function canvasRadius(worldRadius){return worldRadius*run.worldScale;}
@@ -1679,6 +1716,7 @@
   }
   function tacticalTap266(event){
     if(!run||!run.active||run.paused||run.upgradeOpen||event.target.closest('button'))return;
+    if(run.preparing268){preparationTap268(event);return;}
     if(run.aiming){run.aimPoint=tacticalGround266(event.clientX,event.clientY);return;}
     var closest=null,best=32;
     run.enemies.forEach(function(e){
@@ -1718,7 +1756,7 @@
     var w=Math.round(box.width*ratio),h=Math.round(box.height*ratio);
     if(overlay.width!==w||overlay.height!==h){overlay.width=w;overlay.height=h;}
     var context=overlay.getContext('2d');context.clearRect(0,0,w,h);
-    panel.hidden=!run||!run.active||run.paused||run.upgradeOpen;if(panel.hidden)return;
+    panel.hidden=!run||!run.active||run.paused||run.upgradeOpen||run.preparing268;if(run&&run.preparing268)drawPreparation268(context,box,ratio);if(panel.hidden)return;
     var focused=run.enemies.find(function(e){return e.id===run.focusId;});if(!focused)run.focusId=null;
     var message=run.elapsed<10&&!run.tactics.focusOrders&&!run.tactics.missions?'Tap an enemy to focus fire · Artillery: choose a blast area':'';
     drawBreachMarkers267(context,box,ratio);
@@ -1847,6 +1885,7 @@
     var reward = operation?(operationRewarded?operationRewardCreditsFor(operationKind,operationLevel):0):(won?(replay?Math.max(1,Math.floor(campaignCreditReward(baseCampaignReward,run.energySpend||1)*CAMPAIGN_REPLAY_CREDIT_RATE)):campaignCreditReward(baseCampaignReward,run.energySpend||1)):replay?0:baseCampaignReward);
     var parts = won?(operation?(operationRewarded?operationRewardPartsFor(operationKind,operationLevel):0):replay?0:BALANCE.campaignParts(clearedPhase,firstClear)):0;
     var expeditionBonus=run.starTown&&won?window.LSCStarTowns.victoryBonus(meta,run.starTown):0;reward+=expeditionBonus;
+    if(run.starTown&&meta.settlementMode===204&&!won)reward=0;
     meta.credits += reward;
     meta.parts += parts;
     var equipmentAward=!operation&&!replay&&won?awardEquipmentDrop(clearedPhase,firstClear):null;
@@ -1882,7 +1921,7 @@
     var integrity=Math.max(0,Math.round(run.hq.hp/Math.max(1,run.hq.maxHp)*100)),survivingBarriers=run.lanes.filter(function(lane){return lane.barricade.hp>0;}).length;
     reportCompetitiveClear({won:won,operation:operation,rewarded:operationRewarded,kind:operationKind,level:operationLevel,firstClear:firstClear,eligible:!!run.competitiveEligible,phase:clearedPhase,boss:clearedBoss.id,integrity:integrity});
     var campaignBoost=!operation&&won&&campaignCreditMultiplier(run.energySpend||1)>1?' · '+campaignMultiplierLabel(run.energySpend||1)+' · '+(run.energySpend||1)+' ENERGY COMMITTED':'';
-    var rewardLabel=operation?(won?(operationRewarded?definition.levelLabel+' '+operationLevel+' DAILY REWARD':'DAILY REWARD ALREADY CLAIMED'):'NO DAILY REWARD · '+definition.levelLabel+' '+operationLevel+' REMAINS OPEN'):(replay?(won?'TRAINING REPLAY · 40% CREDITS · NO COMPETITIVE CREDIT':'TRAINING REPLAY · NO REWARD'):won?'VICTORY REWARD'+campaignBoost:'SALVAGE REWARD · DEPLOYMENT ENERGY SPENT');
+    var rewardLabel=operation?(won?(operationRewarded?definition.levelLabel+' '+operationLevel+' DAILY REWARD':'DAILY REWARD ALREADY CLAIMED'):'NO DAILY REWARD · '+definition.levelLabel+' '+operationLevel+' REMAINS OPEN'):(replay?(won?'TRAINING REPLAY · 40% CREDITS · NO COMPETITIVE CREDIT':'TRAINING REPLAY · NO REWARD'):won?'VICTORY REWARD'+campaignBoost:run.starTown&&meta.settlementMode===204?'FREE RETRY · CITY DEFENSES PRESERVED':'SALVAGE REWARD · DEPLOYMENT ENERGY SPENT');
     var survivalLabel=operationKind==='junkyard'?(won?'TARGET DESTROYED · '+formatObjectiveTime(run.objectiveTime)+' REMAINING':'TARGET ESCAPED · '+vehicleArmorPct+'% ARMOR REMAINED'):operation?'FORWARD LINE '+integrity+'% · '+survivingBarriers+'/'+run.lanes.length+' LANES HELD':'HQ INTEGRITY '+integrity+'% · '+survivingBarriers+'/'+run.lanes.length+' BARRIERS SURVIVED';
     var resultMetric=operationKind==='junkyard'?(won?'ARMORED TRANSPORT DESTROYED':formatNumber(vehicleArmor)+' ARMOR REMAINING'):formatNumber(run.kills)+' ENEMIES ELIMINATED';
     if(expeditionBonus)rewardLabel+=' · INCLUDES 600 EXPEDITION CREDITS';
@@ -1891,7 +1930,7 @@
     var equipDrop=id('l167-equip-drop');if(equipDrop)equipDrop.onclick=function(){if(equipEquipment(equipDrop.dataset.equipmentUid,true)){equipDrop.disabled=true;equipDrop.textContent='EQUIPPED · ACTIVE NEXT DEPLOYMENT';}};
     id('l141-continue').textContent = operation?(won?'RETURN TO COMMAND BASE':'RETRY '+definition.levelLabel+' '+operationLevel):(replay?'RETURN TO CAMPAIGN':won?'CONTINUE TO PHASE '+meta.phase:'RETRY PHASE '+clearedPhase+' · NEW ENERGY');
     if(firstClear){id('l141-continue').textContent='EXPLORE THE NEXT TOWN';id('l137-result-copy').textContent+=' Town '+clearedPhase+' liberated. Supply income: +'+window.LSCReclamation.income(meta).rate+' Credits/min. Next: scout for preparation sites, clear the approach, then defend Town '+(clearedPhase+1)+'.';}
-    if(run.starTown){id('l137-result-title').textContent=(run.townProfile?run.townProfile.name.toUpperCase():'TOWN '+run.starTown)+(won?' SECURED':' DEFENSE FAILED');id('l137-result-copy').textContent=won&&meta.settlementMode===204?'Town defended. Connect its road, provide housing and 20 Food, then welcome survivors.':won?'Town connected and secured. Supply network earns '+window.LSCStarTowns.rate(meta)+' Credits/min. Explore outward to choose another town.':(run.townProfile?run.townProfile.name+' · '+run.townProfile.stars+' stars. '+run.townProfile.threat+'. Your settlement is preserved. Open HQ → Equipment to equip stronger gear, or research Defense Drills and Field Fortifications before retrying.':'Your connected territory is preserved. Find support or strengthen your HQ before trying again.');id('l141-continue').textContent='RETURN TO FRONTIER';}
+    if(run.starTown){id('l137-result-title').textContent=(run.townProfile?run.townProfile.name.toUpperCase():'TOWN '+run.starTown)+(won?' SECURED':' DEFENSE FAILED');id('l137-result-copy').textContent=won&&meta.settlementMode===204?'Town defended. Connect its road, provide housing and 20 Food, then welcome survivors.':won?'Town connected and secured. Supply network earns '+window.LSCStarTowns.rate(meta)+' Credits/min. Explore outward to choose another town.':(run.townProfile?run.townProfile.name+' · '+run.townProfile.stars+' stars. '+run.townProfile.threat+'. Your settlement and purchased city defenses are preserved. Prepare defenses to reinforce weak positions, then retry free.':'Your connected territory is preserved. Find support or strengthen your HQ before trying again.');id('l141-continue').textContent='RETURN TO FRONTIER';}
     id('l137-retry').textContent = 'REPLAY PHASE ' + clearedPhase;
     id('l137-retry').style.display = !operation&&won&&!run.starTown ? '' : 'none';
     if(run.starSavePending){id('l137-result-copy').textContent='Save failed. Keep the app open and tap Retry Save to preserve this result.';id('l141-continue').textContent='RETRY SAVE';}
@@ -1900,6 +1939,7 @@
   }
   function returnHome(){
     if(run&&run.starSavePending){var oldMeta=meta;meta=JSON.parse(run.starSavePending);if(!saveMeta()){meta=oldMeta;return;}run.starSavePending=null;}
+    var preparationPanel=id('l268-preparation');if(preparationPanel)preparationPanel.remove();document.body.classList.remove('l268-preparing');
     var destination=run&&run.operation?'operations':'reclamation';
     if(run&&run.starTown&&meta.settlementMode===204&&meta.settlement204){var village=window.LSCSettlement.town(run.starTown);if(village)meta.settlement204.focus=village.x+','+village.y;}
     if(run&&!run.operation&&!run.replay)selectedCampaignPhase=meta.phase;
@@ -1947,6 +1987,7 @@
   function installResultActions267(){
     var panel=id('l267-result-actions');panel.innerHTML='';panel.hidden=!!run.won||!!run.starSavePending||!!run.operation;
     if(panel.hidden)return;
+    if(run.prepBase268){var retry=document.createElement('button');retry.className='l137-btn good';retry.textContent='PREPARE DEFENSES · FREE RETRY';retry.onclick=function(){var town=run.starTown;returnHome();if(!run)launchPhase({starTown:town});};panel.appendChild(retry);}
     [['commander','CHANGE COMMANDER'],['hq','IMPROVE DEFENSES'],['inventory','CHANGE EQUIPMENT']].forEach(function(item){
       var button=document.createElement('button');button.className='l137-btn';button.textContent=item[1];button.onclick=function(){
         if(!run||run.starSavePending)return;var town=run.starTown;returnHome();if(run)return;renderTab(item[0],town?{battleTown:town}:undefined);
@@ -2064,12 +2105,13 @@
     if(!force&&run.lastControlUpdate&&controlNow-run.lastControlUpdate<controlInterval)return;
     run.lastControlUpdate=controlNow;
     var ab=id('lsc137-ability'),abilityText=run.aiming?'CANCEL AIM':run.abilityCd>0?Math.ceil(run.abilityCd)+'s':'ARTILLERY';
-    if(ab){ab.hidden=!!run.aiming;if(ab.disabled!==(run.abilityCd>0))ab.disabled=run.abilityCd>0;if(ab.textContent!==abilityText)ab.textContent=abilityText;}
+    if(ab){ab.hidden=!!run.aiming||!!run.preparing268;if(ab.disabled!==(run.abilityCd>0))ab.disabled=run.abilityCd>0;if(ab.textContent!==abilityText)ab.textContent=abilityText;}
     var command=id('lsc168-command'),commandText=!run.commandUnlocked?'COMMAND\nLEVEL 5':run.commandActive>0?'RALLY':run.commandCd>0?Math.ceil(run.commandCd)+'s':run.operation?'RALLY':'COMMAND';
-    if(command){command.hidden=!!run.aiming;command.setAttribute('aria-label',run.commandUnlocked?'Command Burst':'Command Burst unlocks at commander level 5');var commandDisabled=run.aiming||!run.commandUnlocked||run.commandCd>0;if(command.disabled!==commandDisabled)command.disabled=commandDisabled;if(command.textContent!==commandText)command.textContent=commandText;}
+    if(command){command.hidden=!!run.aiming||!!run.preparing268;command.setAttribute('aria-label',run.commandUnlocked?'Command Burst':'Command Burst unlocks at commander level 5');var commandDisabled=run.aiming||!run.commandUnlocked||run.commandCd>0;if(command.disabled!==commandDisabled)command.disabled=commandDisabled;if(command.textContent!==commandText)command.textContent=commandText;}
   }
   function update(dt){
     if(!run||!run.active||run.paused||run.upgradeOpen||run.aiming)return;
+    if(run.preparing268){updatePreparation268(dt);return;}
     run.elapsed+=dt;
     run.assaultElapsed+=dt;
     run.spawn-=dt;
