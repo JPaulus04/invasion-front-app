@@ -98,10 +98,17 @@ jobs:
         run: |
           python3 - << 'EOF'
           import re
+          from pathlib import Path
+          build_match = re.search(r"const LSC_BUILD = '(\d+)';", Path("www/index.html").read_text())
+          if not build_match:
+              raise SystemExit("Built game is missing its build number")
+          build_number = build_match.group(1)
           path = "ios/App/App.xcodeproj/project.pbxproj"
           with open(path) as f:
               content = f.read()
-          content = re.sub(r'CURRENT_PROJECT_VERSION = \d+;', 'CURRENT_PROJECT_VERSION = 268;', content)
+          content, count = re.subn(r'CURRENT_PROJECT_VERSION = [^;]+;', f'CURRENT_PROJECT_VERSION = {build_number};', content)
+          if not count:
+              raise SystemExit("Xcode project has no build-number settings to update")
           content = re.sub(r'MARKETING_VERSION = [^;]+;', 'MARKETING_VERSION = 1.0;', content)
           content = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = [^;]+;', 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;', content)
           content = re.sub(
@@ -115,7 +122,7 @@ jobs:
           )
           with open(path, "w") as f:
               f.write(content)
-          print("Project patched — version 1.0 build 268, iOS 15.0 minimum")
+          print(f"Project patched — version 1.0 build {build_number}, iOS 15.0 minimum")
           EOF
 
       - name: Patch Podfile
@@ -205,6 +212,20 @@ jobs:
           sed -i '' "s/TEAM_ID_PLACEHOLDER/${{ secrets.APPLE_TEAM_ID }}/" ExportOptions.plist
           sed -i '' "s/PROFILE_UUID_PLACEHOLDER/$PROFILE_UUID/" ExportOptions.plist
           xcodebuild -exportArchive -archivePath build/App.xcarchive -exportOptionsPlist ExportOptions.plist -exportPath build/ipa
+
+      - name: Verify IPA build number
+        run: |
+          python3 - << 'EOF'
+          import plistlib, re, zipfile
+          from pathlib import Path
+          expected = re.search(r"const LSC_BUILD = '(\d+)';", Path("www/index.html").read_text()).group(1)
+          with zipfile.ZipFile("build/ipa/App.ipa") as ipa:
+              info = plistlib.loads(ipa.read("Payload/App.app/Info.plist"))
+          actual = str(info.get("CFBundleVersion", ""))
+          if actual != expected:
+              raise SystemExit(f"IPA build {actual} does not match game build {expected}")
+          print(f"Verified IPA and game both use build {actual}")
+          EOF
 
       - name: Upload to App Store Connect
         env:
