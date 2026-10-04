@@ -57,6 +57,7 @@ jobs:
           node scripts/test-tactics266.cjs
           node scripts/test-battle-feedback267.cjs
           node scripts/test-defense-preparation268.cjs
+          node scripts/test-battle-preparation271.cjs
           test -f www/index.html
           echo "www/index.html built ($(wc -c < www/index.html) bytes)"
 

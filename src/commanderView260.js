@@ -19,7 +19,7 @@
  function render(panel,meta,save,options){
   var parent=panel;panel=document.createElement('div');parent.innerHTML='';parent.appendChild(panel);
   var actions=null,revealed=false;
-  var api=root.LSCCommanders,selected=api.ensure(meta).active,message='',flipped=false;options=options||{};
+  var api=root.LSCCommanders,selected=api.ensure(meta).active,message='',flipped=false;options=options||{};if(options.selected&&api.roster.some(function(d){return d.id===options.selected;}))selected=options.selected;
   function draw(){
    if(actions){actions.remove();actions=null;}
    var c=api.ensure(meta),d=api.definition(selected),u=c.units[selected],price=api.cost(meta,selected),p=api.profile(meta,selected),ready=api.chestReady(meta),gear=options.gear||{},maximum=u.level>=d.cap;
@@ -51,7 +51,7 @@
   }
   // draw replaces the action bar, so measure after every state change.
   var originalDraw=draw;draw=function(){originalDraw();cancelAnimationFrame(frame);frame=requestAnimationFrame(layout);};
-  parent.classList.add('c262-commanders');draw();root.addEventListener('resize',layout);
+  parent.classList.add('c262-commanders');draw();if(options.selected)requestAnimationFrame(function(){if(!dead){var comparison=panel.querySelector('[data-comparison]');if(comparison)comparison.scrollIntoView({block:'start'});}});root.addEventListener('resize',layout);
   return function(){dead=true;if(actions){actions.remove();actions=null;}cancelAnimationFrame(frame);if(geometryObserver)geometryObserver.disconnect();root.removeEventListener('resize',layout);parent.classList.remove('c262-commanders');parent.style.removeProperty('--l262-actions-height');parent.style.removeProperty('--l262-nav-height');};
  }
  root.LSCCommanderView={render:render};
