@@ -19,10 +19,10 @@ assert.equal(v.workers,2);assert.equal(v.rate,2.5);assert.equal(api.workers(m).v
 assert.equal(api.rates(m).materials,2.5,'village output appears in economy totals');
 const beforeUpgrade={credits:m.credits,timber:d.materials,stone:d.stone};
 assert.ok(act(m,'developVillage',{town:1}).ok);v=api.villageDevelopment(m,1);
-assert.equal(v.level,2);assert.equal(v.rate,5);assert.equal(m.credits,beforeUpgrade.credits-200);assert.equal(d.materials,beforeUpgrade.timber-40);assert.equal(d.stone,beforeUpgrade.stone-20);
+assert.equal(v.level,1,'benefits wait until completion');assert.equal(act(m,'developVillage',{town:1}).ok,false,'duplicate upgrade blocked');d=m.settlement204;assert.equal(m.credits,beforeUpgrade.credits-200);assert.equal(d.materials,beforeUpgrade.timber-40);assert.equal(d.stone,beforeUpgrade.stone-20);api.advance(m,d.at+(api.eta(m,api.developmentJob(m,1))+1)*1000);v=api.villageDevelopment(m,1);assert.equal(v.level,2);assert.equal(v.rate,5);
 assert.equal(act(m,'developVillage',{town:1}).ok,false,'level 3 requires HQ level 2');
 d=m.settlement204;d.villageLevel=2;m.credits=5000;d.materials=300;d.stone=200;
-assert.ok(act(m,'developVillage',{town:1}).ok);assert.equal(api.villageDevelopment(m,1).level,3);
+assert.ok(act(m,'developVillage',{town:1}).ok);api.advance(m,m.settlement204.at+(api.eta(m,api.developmentJob(m,1))+1)*1000);assert.equal(api.villageDevelopment(m,1).level,3);
 assert.equal(act(m,'developVillage',{town:1}).ok,false,'maximum level enforced');
 for(const count of [-1,1.5,5,NaN,Infinity])assert.equal(act(m,'villageStaff',{town:1,count}).ok,false,'invalid staff '+count);
 d=m.settlement204;const target=d.villageDevelopment[1].target;delete d.roads['3,0'];api.rebalance(m);
@@ -45,7 +45,7 @@ assert.equal(act(m,'villageStaff',{town:1,count:2}).ok,false);assert.ok(api.work
 // Exercise the actual panel function against a minimal DOM adapter.
 m=world();d=m.settlement204;d.defended[1]=d.welcomed[1]=true;api.rebalance(m);
 const view=fs.readFileSync('src/settlementView205.js','utf8');const start=view.indexOf('  function developmentPanel(){'),end=view.indexOf('  function inspect(){',start);assert.ok(start>=0&&end>start);
-const lines=[],buttons=[],ctx={api,m,selected:'5,0',line:t=>lines.push(t),button:(label,fn,disabled)=>buttons.push({label,fn,disabled}),execute:(kind,payload)=>act(m,kind,payload),update:()=>{}};
+const lines=[],buttons=[],ctx={developmentControl275:(id,label,cost,enabled)=>buttons.push({label,disabled:!enabled}),api,m,selected:'5,0',line:t=>lines.push(t),button:(label,fn,disabled)=>buttons.push({label,fn,disabled}),execute:(kind,payload)=>act(m,kind,payload),update:()=>{}};
 vm.createContext(ctx);vm.runInContext(view.slice(start,end)+'developmentPanel();',ctx);
 assert.ok(lines.some(s=>s.includes('Automatic: 1/min')));assert.ok(buttons.find(b=>b.label==='DEVELOP TO LEVEL 2'&&!b.disabled));
 buttons.find(b=>b.label==='+ WORKER').fn();assert.equal(api.villageDevelopment(m,1).workers,1,'panel assigns to selected village');

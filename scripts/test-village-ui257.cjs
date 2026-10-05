@@ -8,7 +8,7 @@ class Element{
  getBoundingClientRect(){return {left:0,top:0,right:390,bottom:844,width:390,height:844};}
  setPointerCapture(){}releasePointerCapture(){}remove(){}click(){if(!this.disabled&&this.onclick)this.onclick();}
 }
-const c={console,document:{body:new Element(),createElement:t=>new Element(t)},Date,setInterval:()=>1,clearInterval(){},addEventListener(){},removeEventListener(){}};
+const c={console,requestAnimationFrame:()=>1,cancelAnimationFrame(){},document:{body:new Element(),createElement:t=>new Element(t)},Date,setInterval:()=>1,clearInterval(){},addEventListener(){},removeEventListener(){}};
 vm.createContext(c);for(const f of ['settlement204','settlementView204','settlement205','isometricMap221','settlementView205'])vm.runInContext(fs.readFileSync('src/'+f+'.js','utf8'),c);
 const api=c.LSCSettlement,m={credits:5000};api.initialize(m,()=>true,Date.now());const d=m.settlement204;
 d.population=12;d.housingBase=20;d.food=300;d.materials=300;d.stone=200;d.priority='manual';d.targets={farm:2,workshop:0,quarry:0,ironMine:0};
@@ -16,13 +16,13 @@ for(let x=0;x<=5;x++){d.visible[x+',0']=true;d.roads[x+',0']=true;}d.defended[1]
 const destinations=[];const cleanup=c.LSCSettlementView.mount(new Element(),m,()=>true,()=>{},target=>destinations.push(target),()=>{},()=> '300');
 const sheet=mounted.querySelector('[data-sheet]');
 function text(e){return (e.textContent||'')+' '+e.children.map(text).join(' ');}
-function click(label){function find(e){if(e['aria-label']===label||e.textContent===label)return e;return e.children.map(find).find(Boolean);}const b=find(sheet);assert.ok(b,'button exists: '+label);assert.ok(!b.disabled,'button enabled: '+label);b.click();}
+function click(label){function find(e){if(e['aria-label']===label||e.textContent===label)return e;return e.children.map(find).find(Boolean);}const b=find(sheet)||find(mounted.children.filter(e=>e.dataset.projectActions).slice(-1)[0]||sheet);assert.ok(b,'button exists: '+label);assert.ok(!b.disabled,'button enabled: '+label);b.click();}
 mounted.querySelector('[data-people]').click();assert.ok(text(sheet).includes('VILLAGE WORKERS · 0'));
 click('MANAGE VILLAGES');click('DEVELOP '+api.town(1).name.toUpperCase());
 assert.ok(text(sheet).includes('Unlock: +500 permanent shared storage'));
 assert.equal(sheet.className,'expanded-panel');assert.ok(text(sheet).includes('Automatic: 1/min'));
 click('+ WORKER');assert.equal(api.villageDevelopment(m,1).workers,1);assert.ok(text(sheet).includes('1.75 Timber/min'));
-click('DEVELOP TO LEVEL 2');assert.equal(api.villageDevelopment(m,1).level,2);assert.ok(text(sheet).includes('Automatic: 2/min'));assert.ok(text(sheet).includes('Upgrade HQ to level 2'));
+click('DEVELOP TO LEVEL 2');assert.equal(api.villageDevelopment(m,1).level,1);api.advance(m,m.settlement204.at+(api.eta(m,api.developmentJob(m,1))+1)*1000);mounted.querySelector('[data-people]').click();click('MANAGE VILLAGES');click('DEVELOP '+api.town(1).name.toUpperCase());assert.equal(api.villageDevelopment(m,1).level,2);assert.ok(text(sheet).includes('Automatic: 2/min'));assert.ok(text(sheet).includes('Upgrade HQ to level 2'));
 assert.ok(text(sheet).includes('Specialty active · no workers required'));
 click('MANAGE WORKERS');assert.ok(text(sheet).includes('VILLAGE WORKERS · 1'));
 d.materials=api.storage(m);click('MANAGE VILLAGES');assert.ok(text(sheet).includes('Storage full · resource production paused'));
