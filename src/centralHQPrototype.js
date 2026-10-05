@@ -994,7 +994,10 @@
     up.id = 'hq-upgrade-overlay';
     up.innerHTML = '<div class="hq-upgrade-modal"><div class="hq-upgrade-title">FIELD PROMOTION</div><div class="hq-upgrade-sub" id="hq-upgrade-sub">SELECT ONE COMBAT UPGRADE</div><div class="hq-upgrade-grid" id="hq-upgrade-grid"></div></div>';
     document.body.appendChild(up);
-    var ability = document.createElement('button'); ability.id = 'lsc137-ability'; ability.textContent = 'ARTILLERY'; ability.onclick = useAbility;
+    var ability = document.createElement('button'); ability.id = 'lsc137-ability'; ability.textContent = 'ARTILLERY';
+    var abilityTouch277=0;
+    ability.addEventListener('pointerdown',function(e){if(e.pointerType==='touch'){e.preventDefault();abilityTouch277=Date.now();useAbility();}});
+    ability.onclick=function(){if(Date.now()-abilityTouch277<700)return;useAbility();};
     var command = document.createElement('button'); command.id = 'lsc168-command'; command.textContent = 'COMMAND'; command.onclick = useCommandAbility;
     var wrap = id('battlefield-wrap'); if (wrap) {
       wrap.appendChild(ability);
@@ -1497,6 +1500,11 @@
   }
   function commanderTargetInPerimeter(source,target){
     if(!run||run.operation||!source||source.source!=='commander'||target.kind==='boss'||target.engaged)return true;
+    if(run.directCommander277){
+      // Direct control changes firing angles: the central fortified compound blocks shots through it.
+      var dx=target.x-source.x,dy=target.y-source.y,len2=dx*dx+dy*dy;
+      if(len2>0){var hx=run.hq.x-source.x,hy=run.hq.y-source.y,t=clamp((hx*dx+hy*dy)/len2,0,1),cx=source.x+dx*t,cy=source.y+dy*t;if(Math.hypot(run.hq.x-cx,run.hq.y-cy)<canvasRadius(4.7))return false;}
+    }
     var lane=run.lanes[target.lane];
     if(!lane)return true;
     var stop=lanePoint(lane,BARRICADE_STOP_WORLD_RADIUS,0);
@@ -1753,10 +1761,35 @@
     var box=canvas.getBoundingClientRect();
     return {x:(x-box.left)/box.width*canvas.width,y:(y-box.top)/box.height*canvas.height};
   }
+  function directCommanderPoint277(point){
+    if(!run||!run.hero||!run.hq||!point)return null;
+    var dx=point.x-run.hq.x,dy=point.y-run.hq.y,d=Math.hypot(dx,dy)||1;
+    // Keep the commander on the patrol ring outside the fortifications.
+    var minR=canvasRadius(5.25),maxR=canvasRadius(9.25),r=clamp(d,minR,maxR);
+    return {x:run.hq.x+dx/d*r,y:run.hq.y+dy/d*r};
+  }
+  function setCommanderMove277(clientX,clientY){
+    if(!run||!run.directCommander277||run.aiming||run.paused||run.upgradeOpen||run.preparing268)return;
+    var p=directCommanderPoint277(tacticalGround266(clientX,clientY));if(p)run.commanderMove277=p;
+  }
+  function updateCommanderMove277(dt){
+    if(!run||!run.directCommander277||!run.commanderMove277||!run.hero)return;
+    var dx=run.commanderMove277.x-run.hero.x,dy=run.commanderMove277.y-run.hero.y,d=Math.hypot(dx,dy);
+    if(d<canvasRadius(.08)){run.commanderMove277=null;return;}
+    var step=Math.min(d,canvasRadius(4.6)*dt);
+    run.hero.x+=dx/d*step;run.hero.y+=dy/d*step;run.hero.aim=Math.atan2(dy,dx);
+  }
+  function toggleCommanderControl277(){
+    if(!run||!run.active||run.preparing268)return;
+    run.directCommander277=!run.directCommander277;run.commanderMove277=null;
+    var b=id('l277-control');if(b)b.textContent=run.directCommander277?'AUTO DEFENSE':'TAKE CONTROL';
+    run.feedback={text:run.directCommander277?'DIRECT COMMAND · TAP OR DRAG OUTSIDE THE WALLS':'AUTOMATIC DEFENSE RESTORED',source:'commander',life:1.8,max:1.8};
+  }
   function tacticalTap266(event){
     if(!run||!run.active||run.paused||run.upgradeOpen||event.target.closest('button'))return;
     if(run.preparing268){preparationTap268(event);return;}
     if(run.aiming){run.aimPoint=tacticalGround266(event.clientX,event.clientY);return;}
+    if(run.directCommander277){setCommanderMove277(event.clientX,event.clientY);return;}
     var closest=null,best=32;
     run.enemies.forEach(function(e){
       var a=tacticalProjection266(e,0),b=tacticalProjection266(e,e.kind==='boss'?2:1);
@@ -1780,7 +1813,8 @@
       '#l266-status{display:inline-block;max-width:100%;padding:7px 10px;border-radius:8px;background:rgba(5,23,26,.9)}'+
       '#l266-actions{display:flex;justify-content:center;gap:8px;margin-top:6px;pointer-events:auto}'+
       '#l266-actions button{min-height:44px;padding:8px 14px;border:1px solid #edca70;border-radius:9px;background:#173d3b;color:#fff4d6;font:700 13px system-ui}'+
-      '#l266-actions button:disabled{opacity:.5}#l266-actions[hidden],#l266-tactics[hidden]{display:none}';
+      '#l266-actions button:disabled{opacity:.5}#l266-actions[hidden],#l266-tactics[hidden]{display:none}'+
+      '#l277-control{position:absolute;z-index:37;left:12px;bottom:58px;min-height:46px;padding:9px 13px;border:1px solid #72e5ff;border-radius:10px;background:rgba(7,49,59,.94);color:#effcff;font:800 12px Rajdhani,sans-serif;letter-spacing:.4px;touch-action:manipulation}';
     style.textContent+='#lsc137-result .l137-result-card{display:flex;flex-direction:column;overflow:hidden}.l269-result-scroll{overflow-y:auto;min-height:0;overscroll-behavior:contain}#lsc137-result .l137-actions{flex-shrink:0;padding-top:10px;margin-top:8px;border-top:1px solid #315047}.l190-hq-row,.l139-progress-text{font-size:14px}#l190-hq-hud.direct{border-width:2px;background:#451a12}.l269-survival{padding:14px 10px;margin:12px 0;border:1px solid #d3b46c;border-radius:10px;background:#183c34;color:#fff0c6;font:700 15px/1.45 system-ui}.l269-survival .metrics{display:flex;justify-content:space-around;gap:12px;margin:8px 0}.l269-survival b{display:block;font:800 27px system-ui}.l269-survival span{font:13px system-ui}.l269-survival p{font:13px/1.4 system-ui;margin:8px 0 0}#l268-preparation [data-preview]{font-size:15px}';
     document.head.appendChild(style);
     var overlay=document.createElement('canvas');overlay.id='l266-overlay';wrap.appendChild(overlay);
@@ -1789,6 +1823,12 @@
     id('l271-group').onclick=function(){if(run&&run.aiming&&!run.paused&&!run.upgradeOpen)run.aimPoint=bestArtilleryPoint271();};
     id('l266-cancel').onclick=function(){if(run){run.aiming=false;run.aimPoint=null;updateBattleControls(true);}};
     id('l266-auto').onclick=function(){if(run)run.focusId=null;};
+    var control=document.createElement('button');control.id='l277-control';control.type='button';control.textContent='TAKE CONTROL';control.onclick=toggleCommanderControl277;wrap.appendChild(control);
+    var movingPointer277=null;
+    wrap.addEventListener('pointerdown',function(e){if(!run||!run.directCommander277||run.aiming||e.target.closest('button'))return;movingPointer277=e.pointerId;setCommanderMove277(e.clientX,e.clientY);});
+    wrap.addEventListener('pointermove',function(e){if(e.pointerId===movingPointer277)setCommanderMove277(e.clientX,e.clientY);});
+    function release277(e){if(e.pointerId===movingPointer277)movingPointer277=null;}
+    wrap.addEventListener('pointerup',release277);wrap.addEventListener('pointercancel',release277);
     wrap.addEventListener('click',tacticalTap266);
   }
   function drawTactics266(){
@@ -2187,6 +2227,7 @@
     var controlNow=performance.now(),controlInterval=Math.max(50,Number(run.performance&&run.performance.hudIntervalMs)||84);
     if(!force&&run.lastControlUpdate&&controlNow-run.lastControlUpdate<controlInterval)return;
     run.lastControlUpdate=controlNow;
+    var direct=id('l277-control');if(direct){direct.hidden=!!run.preparing268;var directText=run.directCommander277?'AUTO DEFENSE':'TAKE CONTROL';if(direct.textContent!==directText)direct.textContent=directText;}
     var ab=id('lsc137-ability'),abilityText=run.aiming?'CANCEL AIM':run.abilityCd>0?'ARTILLERY\n'+Math.ceil(run.abilityCd)+'s':'ARTILLERY\nREADY';
     if(ab){ab.hidden=!!run.aiming||!!run.preparing268;if(ab.disabled!==(run.abilityCd>0))ab.disabled=run.abilityCd>0;if(ab.textContent!==abilityText)ab.textContent=abilityText;}
     var command=id('lsc168-command'),commandText=!run.commandUnlocked?'COMMAND\nLEVEL 5':run.commandActive>0?'COMMAND\nACTIVE':run.commandCd>0?'COMMAND\n'+Math.ceil(run.commandCd)+'s':run.operation?'RALLY\nREADY':'COMMAND\nREADY';
@@ -2195,6 +2236,7 @@
   function update(dt){
     if(!run||!run.active||run.paused||run.upgradeOpen||run.aiming)return;
     if(run.preparing268){updatePreparation268(dt);return;}
+    updateCommanderMove277(dt);
     run.elapsed+=dt;
     run.assaultElapsed+=dt;
     run.spawn-=dt;
