@@ -13,3 +13,13 @@ r=fixture();r.hq={hp:40,maxHp:100};r.lanes=[{barricade:{hp:0,maxHp:100}}];let ch
 console.log('PASS: priority eligibility, independent turret targeting, aim/cancel/confirm, blast boundary, damage/kill counters, cooldown, pause gates, automatic XP and intermission gate.');
 
 r=fixture();r.enemies.push({id:4,x:1,y:1,hp:40,armor:0,kind:'grunt'});const best=ctx.bestArtilleryPoint271(),preview=ctx.artilleryPreview271(best);assert.equal(preview.targets.length,3);assert.equal(preview.kills,2);assert.equal(preview.damage,180);const untouched=JSON.stringify(r.enemies);ctx.artilleryPreview271(best);assert.equal(JSON.stringify(r.enemies),untouched,'preview never mutates enemies');r.enemies=[{id:5,x:0,y:0,hp:100,armor:92,kind:'boss'}];assert.equal(ctx.artilleryPreview271({x:0,y:0}).kills,0);assert.equal(ctx.artilleryPreview271({x:0,y:0}).damage,92);r.enemies=[];assert.equal(ctx.bestArtilleryPoint271(),null);
+
+// The optimal blast center can fall in empty ground between enemies.
+r=fixture();r.enemies=[{id:1,x:-3,y:0,hp:60},{id:2,x:3,y:0,hp:60}];
+let point=ctx.bestArtilleryPoint271();assert.equal(ctx.artilleryPreview271(point).targets.length,2,'group search finds a shared blast between separated targets');
+assert.equal(ctx.artilleryPreview271(r.enemies[0]).targets.length,1,'enemy-centered search misses the second target');
+r=fixture();r.enemies=[{id:1,x:-3,y:0,hp:60},{id:2,x:3,y:0,hp:60},{id:3,x:0,y:4,hp:60}];
+assert.equal(ctx.artilleryPreview271(ctx.bestArtilleryPoint271()).targets.length,3,'off-midpoint center covers three targets');
+console.log('PASS V276 between-target and off-midpoint artillery group selection.');
+
+r=fixture();r.turretRole276='rapid';assert.equal(ctx.nearest({source:'turret',x:0,y:0},20).id,1,'rapid mode prioritizes runners over a distant boss');r.enemies[1].engaged=true;assert.equal(ctx.nearest({source:'turret',x:0,y:0},20).id,2,'rapid mode protects defenses from engaged enemies first');r.turretRole276='heavy';assert.equal(ctx.nearest({source:'turret',x:0,y:0},20).id,3,'heavy retains boss priority');
