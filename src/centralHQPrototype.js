@@ -1826,7 +1826,7 @@
   }
   function toggleCommanderControl277(){
     if(!run||!run.active||run.preparing268)return;
-    run.directCommander277=!run.directCommander277;run.commanderMove277=null;if(run.directCommander277)run.fpsYaw279=run.hero.aim||0;
+    run.directCommander277=!run.directCommander277;run.commanderMove277=null;if(run.directCommander277)run.fpsYaw279=run.hero.aim||0;else if(typeof clearFPSInput280==='function')clearFPSInput280();
     var b=id('l277-control');if(b)b.textContent=run.directCommander277?'AUTO DEFENSE':'TAKE CONTROL';
     run.feedback={text:run.directCommander277?'FIRST PERSON · MOVE LEFT · LOOK & FIRE RIGHT':'AUTOMATIC DEFENSE RESTORED',source:'commander',life:1.8,max:1.8};
   }
@@ -1860,7 +1860,7 @@
       '#l266-actions button{min-height:44px;padding:8px 14px;border:1px solid #edca70;border-radius:9px;background:#173d3b;color:#fff4d6;font:700 13px system-ui}'+
       '#l266-actions button:disabled{opacity:.5}#l266-actions[hidden],#l266-tactics[hidden]{display:none}'+
       '#l277-control{position:absolute;z-index:37;left:12px;bottom:58px;min-height:46px;padding:9px 13px;border:1px solid #72e5ff;border-radius:10px;background:rgba(7,49,59,.94);color:#effcff;font:800 12px Rajdhani,sans-serif;letter-spacing:.4px;touch-action:manipulation}'+
-      '#l278-fire-hint{display:none!important}#l279-fps{position:absolute;inset:0;width:100%;height:100%;z-index:31;pointer-events:none;background:#222}#l279-fps[hidden]{display:none}body.l279-fps #l266-overlay{display:none}body.l279-fps #l266-tactics{display:none}';
+      '#l278-fire-hint{display:none!important}#l279-fps{position:absolute;inset:0;width:100%;height:100%;z-index:31;pointer-events:none;background:#222}#l279-fps[hidden]{display:none}body.l279-fps #l266-overlay{display:none}body.l279-fps #l266-tactics{display:none}#l280-stick{position:absolute;z-index:38;left:20px;bottom:118px;width:112px;height:112px;border:2px solid rgba(255,255,255,.65);border-radius:50%;background:rgba(0,0,0,.25);touch-action:none}#l280-knob{position:absolute;left:34px;top:34px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.78);pointer-events:none}#l280-fire{position:absolute;z-index:39;right:20px;bottom:112px;width:92px;height:92px;border:2px solid #ffd38a;border-radius:50%;background:rgba(126,35,23,.9);color:white;font:900 17px Rajdhani,sans-serif;touch-action:none}#l280-stick[hidden],#l280-fire[hidden]{display:none}';
     style.textContent+='#lsc137-result .l137-result-card{display:flex;flex-direction:column;overflow:hidden}.l269-result-scroll{overflow-y:auto;min-height:0;overscroll-behavior:contain}#lsc137-result .l137-actions{flex-shrink:0;padding-top:10px;margin-top:8px;border-top:1px solid #315047}.l190-hq-row,.l139-progress-text{font-size:14px}#l190-hq-hud.direct{border-width:2px;background:#451a12}.l269-survival{padding:14px 10px;margin:12px 0;border:1px solid #d3b46c;border-radius:10px;background:#183c34;color:#fff0c6;font:700 15px/1.45 system-ui}.l269-survival .metrics{display:flex;justify-content:space-around;gap:12px;margin:8px 0}.l269-survival b{display:block;font:800 27px system-ui}.l269-survival span{font:13px system-ui}.l269-survival p{font:13px/1.4 system-ui;margin:8px 0 0}#l268-preparation [data-preview]{font-size:15px}';
     document.head.appendChild(style);
     var overlay=document.createElement('canvas');overlay.id='l266-overlay';wrap.appendChild(overlay);var fps=document.createElement('canvas');fps.id='l279-fps';fps.hidden=true;wrap.appendChild(fps);
@@ -1870,16 +1870,24 @@
     id('l266-cancel').onclick=function(){if(run){run.aiming=false;run.aimPoint=null;updateBattleControls(true);}};
     id('l266-auto').onclick=function(){if(run)run.focusId=null;};
     var control=document.createElement('button');control.id='l277-control';control.type='button';control.textContent='TAKE CONTROL';control.onclick=toggleCommanderControl277;wrap.appendChild(control);
-    var fireHint=document.createElement('div');fireHint.id='l278-fire-hint';fireHint.hidden=true;fireHint.textContent='AIM + FIRE';wrap.appendChild(fireHint);
-    var movingPointer277=null,firingPointer278=null,firingPoint278=null,fireTimer278=null,moveOrigin279=null,moveVector279={x:0,y:0},lookLast279=null;
-    function stopFire278(){firingPointer278=null;firingPoint278=null;lookLast279=null;if(fireTimer278){clearInterval(fireTimer278);fireTimer278=null;}}
-    function fireNow278(){if(firingPoint278)manualCommanderFire278(firingPoint278.x,firingPoint278.y);}
-    wrap.addEventListener('pointerdown',function(e){if(!run||!run.directCommander277||run.aiming||e.target.closest('button'))return;var box=wrap.getBoundingClientRect();if(e.clientX>box.left+box.width*.5){firingPointer278=e.pointerId;firingPoint278={x:e.clientX,y:e.clientY};lookLast279={x:e.clientX,y:e.clientY};fireNow278();if(!fireTimer278)fireTimer278=setInterval(fireNow278,55);}else{movingPointer277=e.pointerId;moveOrigin279={x:e.clientX,y:e.clientY};moveVector279={x:0,y:0};}});
-    wrap.addEventListener('pointermove',function(e){if(e.pointerId===movingPointer277&&moveOrigin279){moveVector279={x:clamp((e.clientX-moveOrigin279.x)/55,-1,1),y:clamp((e.clientY-moveOrigin279.y)/55,-1,1)};}if(e.pointerId===firingPointer278&&lookLast279){var dx=e.clientX-lookLast279.x;run.fpsYaw279=(run.fpsYaw279||0)+dx*.008;run.hero.aim=run.fpsYaw279;lookLast279={x:e.clientX,y:e.clientY};firingPoint278={x:e.clientX,y:e.clientY};}});
-    function release277(e){if(e.pointerId===movingPointer277){movingPointer277=null;moveOrigin279=null;moveVector279={x:0,y:0};}if(e.pointerId===firingPointer278)stopFire278();}
-    function applyFPSMove279(dt){if(run&&run.directCommander277&&(moveVector279.x||moveVector279.y))fpsMove279(-moveVector279.y,moveVector279.x,dt);}
-    wrap.addEventListener('pointerup',release277);wrap.addEventListener('pointercancel',release277);
-    window.addEventListener('blur',function(){movingPointer277=null;stopFire278();});document.addEventListener('visibilitychange',function(){if(document.hidden){movingPointer277=null;stopFire278();}});
+    var fireHint=document.createElement('div');fireHint.id='l278-fire-hint';fireHint.hidden=true;fireHint.textContent='AIM + FIRE';wrap.appendChild(fireHint);var stick=document.createElement('div');stick.id='l280-stick';stick.hidden=true;stick.innerHTML='<div id="l280-knob"></div>';wrap.appendChild(stick);var fireButton=document.createElement('button');fireButton.id='l280-fire';fireButton.type='button';fireButton.hidden=true;fireButton.textContent='FIRE';wrap.appendChild(fireButton);
+    var movingPointer277=null,lookPointer280=null,lookLast279=null,moveVector279={x:0,y:0},fireHeld280=false;
+    function clearFPSInput280(){movingPointer277=null;lookPointer280=null;lookLast279=null;moveVector279={x:0,y:0};fireHeld280=false;var knob=id('l280-knob');if(knob){knob.style.transform='translate(0px,0px)';}}
+    function updateStick280(e){
+      var rect=stick.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=34,len=Math.hypot(dx,dy)||1;if(len>max){dx=dx/len*max;dy=dy/len*max;}
+      moveVector279={x:dx/max,y:dy/max};var knob=id('l280-knob');if(knob)knob.style.transform='translate('+dx+'px,'+dy+'px)';
+    }
+    stick.addEventListener('pointerdown',function(e){if(!run||!run.directCommander277)return;e.preventDefault();movingPointer277=e.pointerId;try{stick.setPointerCapture(e.pointerId);}catch(_e){}updateStick280(e);});
+    stick.addEventListener('pointermove',function(e){if(e.pointerId===movingPointer277)updateStick280(e);});
+    function releaseMove280(e){if(e.pointerId===movingPointer277){movingPointer277=null;moveVector279={x:0,y:0};var knob=id('l280-knob');if(knob)knob.style.transform='translate(0px,0px)';}}
+    stick.addEventListener('pointerup',releaseMove280);stick.addEventListener('pointercancel',releaseMove280);
+    fireButton.addEventListener('pointerdown',function(e){if(!run||!run.directCommander277)return;e.preventDefault();fireHeld280=true;manualCommanderFire278(e.clientX,e.clientY);try{fireButton.setPointerCapture(e.pointerId);}catch(_e){}});
+    function releaseFire280(e){fireHeld280=false;}fireButton.addEventListener('pointerup',releaseFire280);fireButton.addEventListener('pointercancel',releaseFire280);
+    wrap.addEventListener('pointerdown',function(e){if(!run||!run.directCommander277||run.aiming||e.target.closest('button')||e.target.closest('#l280-stick'))return;var box=wrap.getBoundingClientRect();if(e.clientX>box.left+box.width*.43){lookPointer280=e.pointerId;lookLast279={x:e.clientX,y:e.clientY};try{wrap.setPointerCapture(e.pointerId);}catch(_e){}}});
+    wrap.addEventListener('pointermove',function(e){if(e.pointerId===lookPointer280&&lookLast279){var dx=e.clientX-lookLast279.x;run.fpsYaw279=(run.fpsYaw279||0)+dx*.0065;run.hero.aim=run.fpsYaw279;lookLast279={x:e.clientX,y:e.clientY};}});
+    function releaseLook280(e){if(e.pointerId===lookPointer280){lookPointer280=null;lookLast279=null;}}wrap.addEventListener('pointerup',releaseLook280);wrap.addEventListener('pointercancel',releaseLook280);
+    function applyFPSMove279(dt){if(run&&run.directCommander277){if(moveVector279.x||moveVector279.y)fpsMove279(-moveVector279.y,moveVector279.x,dt);if(fireHeld280)manualCommanderFire278(0,0);}}
+    window.addEventListener('blur',clearFPSInput280);document.addEventListener('visibilitychange',function(){if(document.hidden)clearFPSInput280();});
     wrap.addEventListener('click',tacticalTap266);
   }
   function drawTactics266(){
@@ -2278,7 +2286,7 @@
     var controlNow=performance.now(),controlInterval=Math.max(50,Number(run.performance&&run.performance.hudIntervalMs)||84);
     if(!force&&run.lastControlUpdate&&controlNow-run.lastControlUpdate<controlInterval)return;
     run.lastControlUpdate=controlNow;
-    var direct=id('l277-control');if(direct){direct.hidden=!!run.preparing268;var directText=run.directCommander277?'RETURN TO COMMAND':'TAKE CONTROL';if(direct.textContent!==directText)direct.textContent=directText;}var fireHint=id('l278-fire-hint');if(fireHint)fireHint.hidden=true;document.body.classList.toggle('l279-fps',!!run.directCommander277);
+    var direct=id('l277-control');if(direct){direct.hidden=!!run.preparing268;var directText=run.directCommander277?'RETURN TO COMMAND':'TAKE CONTROL';if(direct.textContent!==directText)direct.textContent=directText;}var fireHint=id('l278-fire-hint');if(fireHint)fireHint.hidden=true;var stick=id('l280-stick'),fireButton=id('l280-fire');if(stick)stick.hidden=!run.directCommander277;if(fireButton)fireButton.hidden=!run.directCommander277;document.body.classList.toggle('l279-fps',!!run.directCommander277);
     var ab=id('lsc137-ability'),abilityText=run.aiming?'CANCEL AIM':run.abilityCd>0?'ARTILLERY\n'+Math.ceil(run.abilityCd)+'s':'ARTILLERY\nREADY';
     if(ab){ab.hidden=!!run.aiming||!!run.preparing268;if(ab.disabled!==(run.abilityCd>0))ab.disabled=run.abilityCd>0;if(ab.textContent!==abilityText)ab.textContent=abilityText;}
     var command=id('lsc168-command'),commandText=!run.commandUnlocked?'COMMAND\nLEVEL 5':run.commandActive>0?'COMMAND\nACTIVE':run.commandCd>0?'COMMAND\n'+Math.ceil(run.commandCd)+'s':run.operation?'RALLY\nREADY':'COMMAND\nREADY';
