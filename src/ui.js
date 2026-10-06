@@ -2466,6 +2466,15 @@ if (_origPauseSettingsBtn) {
   _origPauseSettingsBtn.addEventListener('click', _initSettingsToggles);
 }
 
+// Build 286: restore audio controls if an older/settings shell no longer renders them.
+(function restoreAudioSettings286(){
+  const panel=$id('settingsPanel'); if(!panel||$id('musicToggleBtn'))return;
+  const close=$id('settingsCloseBtn'),wrap=document.createElement('div');
+  wrap.id='audioSettings286';wrap.style.cssText='margin:14px 18px;padding:14px;border:1px solid #35556b;border-radius:12px;background:#0b1d29;color:#eef6ff';
+  wrap.innerHTML='<div style="font-weight:800;margin-bottom:10px">AUDIO</div><div style="display:flex;align-items:center;gap:10px;margin:8px 0"><button id="musicToggleBtn" type="button">🎵</button><span style="min-width:54px">Music</span><input id="musicVolumeSlider" type="range" min="0" max="100" value="60" style="flex:1"><span id="musicVolumeLabel">60%</span></div><div style="display:flex;align-items:center;gap:10px;margin:8px 0"><button id="sfxToggleBtn" type="button">🔊</button><span style="min-width:54px">Effects</span><input id="sfxVolumeSlider" type="range" min="0" max="100" value="85" style="flex:1"><span id="sfxVolumeLabel">85%</span></div>';
+  if(close&&close.parentNode)close.parentNode.insertBefore(wrap,close);else panel.appendChild(wrap);
+})();
+
 // Build 162: independent, persistent music and combat-effects controls.
 let _audioUI = typeof getAudioSettings === 'function' ? getAudioSettings() : {
   musicEnabled: true,
