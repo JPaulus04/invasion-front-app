@@ -29,12 +29,24 @@ let _sfxVolume = _storedVolume('lsc_sfx_volume', Math.min(_legacyVolume, .85));
 let _soundEnabled = _musicEnabled || _sfxEnabled;
 let _masterVolume = 1;
 
-const MELODIES = [
-  [261.63, 293.66, 329.63, 392, 329.63, 440, 392, 293.66],
-  [196, 220, 261.63, 329.63, 293.66, 261.63, 220, 196],
-  [349.23, 392, 440, 523.25, 440, 392, 349.23, 329.63],
-  [523.25, 493.88, 440, 392, 349.23, 392, 440, 493.88],
+const MUSIC_PATTERNS = [
+  {root:110, bass:[0,0,7,5,0,0,10,7], lead:[12,14,15,19,17,15,14,10,12,14,17,19,22,19,17,14]},
+  {root:123.47, bass:[0,7,5,10,0,7,12,10], lead:[12,15,17,19,22,19,17,15,12,14,17,22,19,17,14,10]},
+  {root:98, bass:[0,5,7,10,0,12,10,7], lead:[12,14,17,19,17,22,19,17,14,12,10,14,17,19,22,24]},
 ];
+function _semi(root,n){return root*Math.pow(2,n/12);}
+function _musicHit(freq,dur,type,vol,when){
+  if(!_ctx||!_musicEnabled)return;
+  const dest=audioDestination('music'),o=_ctx.createOscillator(),g=_ctx.createGain(),f=_ctx.createBiquadFilter(),st=_ctx.currentTime+(when||0);
+  o.type=type;o.frequency.setValueAtTime(freq,st);f.type='lowpass';f.frequency.setValueAtTime(type==='sawtooth'?1500:2600,st);
+  g.gain.setValueAtTime(.0001,st);g.gain.exponentialRampToValueAtTime(Math.max(.0001,vol),st+.012);g.gain.exponentialRampToValueAtTime(.0001,st+dur);
+  o.connect(f);f.connect(g);g.connect(dest);o.start(st);o.stop(st+dur+.03);
+}
+function _musicKick(when,vol){
+  if(!_ctx||!_musicEnabled)return;
+  const dest=audioDestination('music'),o=_ctx.createOscillator(),g=_ctx.createGain(),st=_ctx.currentTime+(when||0);
+  o.type='sine';o.frequency.setValueAtTime(115,st);o.frequency.exponentialRampToValueAtTime(48,st+.11);g.gain.setValueAtTime(vol,st);g.gain.exponentialRampToValueAtTime(.0001,st+.14);o.connect(g);g.connect(dest);o.start(st);o.stop(st+.16);
+}
 
 function _setGain(gainNode, value) {
   if (!gainNode || !_ctx) return;
@@ -206,14 +218,13 @@ function tickMusic(dt, isActive) {
   if (!_ctx || !isActive || !_musicEnabled) return;
   _musicTimer -= dt;
   if (_musicTimer <= 0) {
-    const step = Math.floor(performance.now() / 556);
-    if (step % 32 === 0) _melodyIdx = (_melodyIdx + 1) % MELODIES.length;
-    const melody = MELODIES[_melodyIdx];
-    const index = step % melody.length;
-    const hot = isActive === 'hot';
-    tone(melody[index], .22, 'triangle', hot ? .011 : .008, 0, 'music');
-    tone(melody[(index + 3) % melody.length] / 2, .2, 'sine', hot ? .007 : .005, .03, 'music');
-    if (hot) tone(melody[index] / 2, .1, 'square', .003, .01, 'music');
-    _musicTimer = .42;
+    const hot=isActive==='hot', step=Math.floor(performance.now()/(hot?250:300)), bar=Math.floor(step/16);
+    _melodyIdx=bar%MUSIC_PATTERNS.length;
+    const p=MUSIC_PATTERNS[_melodyIdx], i=step%16, beat=i%4;
+    if(beat===0||beat===2)_musicKick(0,hot?.018:.012);
+    if(i%2===0)_musicHit(_semi(p.root,p.bass[Math.floor(i/2)%p.bass.length]),hot?.24:.32,'sawtooth',hot?.009:.006,0);
+    if([1,4,6,9,12,14].indexOf(i)>=0)_musicHit(_semi(p.root,p.lead[i]),hot?.16:.22,'triangle',hot?.010:.007,.015);
+    if(hot&&i%4===3)_musicHit(_semi(p.root,24),.055,'square',.003,0);
+    _musicTimer=hot?.25:.30;
   }
 }
