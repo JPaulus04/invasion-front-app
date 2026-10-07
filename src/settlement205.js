@@ -156,7 +156,7 @@
  }
  function settlementTier285(level){return ['Village','Town','City'][Math.max(0,Math.min(2,(level||1)-1))];}
  function cityPopulation282(m,n){
-  var d=s(m),t=town(n);if(!t)return 0;if(!d.welcomed[n])return 0;
+  var d=s(m),t=town(n);if(!t)return 0;
   d.cityPopulation282=d.cityPopulation282||{};
   if(!d.cityPopulation282[n])d.cityPopulation282[n]=25;
   return d.cityPopulation282[n];
