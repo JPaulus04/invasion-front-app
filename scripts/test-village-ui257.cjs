@@ -34,6 +34,11 @@ mounted.querySelector('[data-section-commander]').click();assert.equal(destinati
 mounted.querySelector('[data-section-inventory]').click();assert.equal(destinations.pop(),'inventory');
 mounted.querySelector('[data-section-settlement]').click();assert.ok(text(sheet).includes('Settlement Development · Level'));
 mounted.querySelector('[data-world]').click();assert.equal(mounted.querySelector('[data-hq-sections]').hidden,true);
+mounted.querySelector('[data-menu]').click();
+assert.ok(text(sheet).includes('AUDIO & SETTINGS'),'world menu exposes audio settings');
+assert.ok(text(sheet).includes('EXPANSION'),'world menu exposes expansion');
+assert.ok(text(sheet).includes('SPECIAL OPERATIONS'),'world menu exposes operations');
+assert.equal(sheet.children.some(e=>e.className==='hq260-grid'),true,'world menu uses organized two-column grid');
 mounted.querySelector('[data-home]').click();assert.ok(text(sheet).includes('Headquarters'),'map HQ shortcut opens the same hub');
 cleanup();
 for(const mode of ['hqhub','village','build','people','research']){const end=c.LSCSettlementView.mount(new Element(),m,()=>true,()=>{},()=>{},()=>{},()=> '300',mode);assert.equal(mounted.querySelector('[data-hq-sections]').hidden,!['hqhub','village'].includes(mode));end();}
