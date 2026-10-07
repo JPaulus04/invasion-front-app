@@ -218,13 +218,20 @@ function tickMusic(dt, isActive) {
   if (!_ctx || !isActive || !_musicEnabled) return;
   _musicTimer -= dt;
   if (_musicTimer <= 0) {
-    const hot=isActive==='hot', step=Math.floor(performance.now()/(hot?250:300)), bar=Math.floor(step/16);
-    _melodyIdx=bar%MUSIC_PATTERNS.length;
-    const p=MUSIC_PATTERNS[_melodyIdx], i=step%16, beat=i%4;
-    if(beat===0||beat===2)_musicKick(0,hot?.018:.012);
-    if(i%2===0)_musicHit(_semi(p.root,p.bass[Math.floor(i/2)%p.bass.length]),hot?.24:.32,'sawtooth',hot?.009:.006,0);
-    if([1,4,6,9,12,14].indexOf(i)>=0)_musicHit(_semi(p.root,p.lead[i]),hot?.16:.22,'triangle',hot?.010:.007,.015);
-    if(hot&&i%4===3)_musicHit(_semi(p.root,24),.055,'square',.003,0);
-    _musicTimer=hot?.25:.30;
+    const hot=isActive==='hot';
+    if(hot){
+      const step=Math.floor(performance.now()/220),p=MUSIC_PATTERNS[Math.floor(step/16)%MUSIC_PATTERNS.length],i=step%16;
+      if(i%4===0)_musicKick(0,.026);
+      if(i%2===0)_musicHit(_semi(p.root,p.bass[Math.floor(i/2)%p.bass.length]),.18,'sawtooth',.013,0);
+      _musicHit(_semi(p.root,p.lead[i]),.11,i%4===3?'square':'triangle',.011,.01);
+      if(i%4===2)_musicKick(.11,.012);
+      _musicTimer=.22;
+    }else{
+      const step=Math.floor(performance.now()/900),p=MUSIC_PATTERNS[Math.floor(step/8)%MUSIC_PATTERNS.length],i=step%8,root=p.root;
+      const chord=[0,7,12],shift=p.bass[i];
+      chord.forEach((n,k)=>_musicHit(_semi(root,shift+n),1.25,k===0?'sine':'triangle',k===0?.010:.005,k*.06));
+      if(i%2===1)_musicHit(_semi(root,p.lead[(i*2)%p.lead.length]),.55,'sine',.007,.18);
+      _musicTimer=.90;
+    }
   }
 }
