@@ -20,6 +20,9 @@ function click(label){function find(e){if(e['aria-label']===label||e.textContent
 mounted.querySelector('[data-world]').click();
 mounted.querySelector('[data-menu]').click();
 assert.ok(text(sheet).includes('AUDIO & SETTINGS'),'active world menu exposes audio controls');
+assert.ok(require('fs').readFileSync('src/settlementView205.js','utf8').includes("tickMusic(Math.min(.25"),'active world loop schedules music');
+assert.ok(require('fs').readFileSync('src/settlementView205.js','utf8').includes("pointerdown',unlockWorldAudio"),'world audio unlocks on first gesture');
+assert.ok(require('fs').readFileSync('src/audio.js','utf8').includes('_worldPhrase();'),'distinct exploration arrangement is wired');
 mounted.querySelector('[data-world]').click();
 mounted.querySelector('[data-people]').click();assert.ok(text(sheet).includes('VILLAGE WORKERS · 0'));
 click('MANAGE VILLAGES');click('DEVELOP '+api.town(1).name.toUpperCase());
