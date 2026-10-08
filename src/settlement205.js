@@ -158,12 +158,18 @@
  function cityPopulation282(m,n){
   var d=s(m),t=town(n);if(!t)return 0;
   d.cityPopulation282=d.cityPopulation282||{};
-  if(!d.cityPopulation282[n])d.cityPopulation282[n]=25;
-  return d.cityPopulation282[n];
+  var level=(villageDevelopment(m,n)||{}).level||1;
+  var minimum=[25,250,2500][Math.min(2,level-1)];
+  var current=Math.max(25,Math.round(Number(d.cityPopulation282[n])||25));
+  // Migration: a developed town must never display the starting village population.
+  // Population remains persistent and can continue growing after promotion.
+  if(d.welcomed[n]&&current<minimum)current=minimum;
+  d.cityPopulation282[n]=current;
+  return current;
  }
  function cityPopulationInfo285(m,n){
-  var v=villageDevelopment(m,n),pop=cityPopulation282(m,n),level=v?v.level:1,caps=[250,2500,25000],cap=caps[level-1]||25000;
-  return {population:pop,tier:settlementTier285(level),level:level,capacity:cap,remaining:Math.max(0,cap-pop),growth:pop>=cap?'STALLED':pop>=cap*.9?'SLOWING':'GROWING',canTierUp:level<villageLevel(m)&&level<3,hqLevel:villageLevel(m)};
+  var v=villageDevelopment(m,n),pop=cityPopulation282(m,n),level=v?v.level:1,caps=[249,2499,24999],cap=caps[level-1]||24999;
+  return {population:pop,tier:settlementTier285(level),level:level,capacity:cap,remaining:Math.max(0,cap-pop),growth:!s(m).welcomed[n]?'AWAITING INTEGRATION':pop>=cap?'STALLED':pop>=cap*.9?'SLOWING':'GROWING',canTierUp:level<villageLevel(m)&&level<3,hqLevel:villageLevel(m)};
  }
  function totalPopulation282(m){var total=Math.max(1,Math.round(s(m).population||1));towns.forEach(function(t){total+=cityPopulation282(m,t.id);});return total;}
 
