@@ -17,6 +17,10 @@ const destinations=[];const cleanup=c.LSCSettlementView.mount(new Element(),m,()
 const sheet=mounted.querySelector('[data-sheet]');
 function text(e){return (e.textContent||'')+' '+e.children.map(text).join(' ');}
 function click(label){function find(e){if(e['aria-label']===label||e.textContent===label)return e;return e.children.map(find).find(Boolean);}const b=find(sheet)||find(mounted.children.filter(e=>e.dataset.projectActions).slice(-1)[0]||sheet);assert.ok(b,'button exists: '+label);assert.ok(!b.disabled,'button enabled: '+label);b.click();}
+mounted.querySelector('[data-world]').click();
+mounted.querySelector('[data-menu]').click();
+assert.ok(text(sheet).includes('AUDIO & SETTINGS'),'active world menu exposes audio controls');
+mounted.querySelector('[data-world]').click();
 mounted.querySelector('[data-people]').click();assert.ok(text(sheet).includes('VILLAGE WORKERS · 0'));
 click('MANAGE VILLAGES');click('DEVELOP '+api.town(1).name.toUpperCase());
 assert.ok(text(sheet).includes('Unlock: +500 permanent shared storage'));
