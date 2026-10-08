@@ -214,6 +214,16 @@ function playSfx(kind) {
   (SFX[kind] ?? (() => {}))();
 }
 
+// World exploration: warm major-key chords, gentle syncopated bass and a rotating melody.
+let _worldMusicStep = 0;
+const WORLD_CHORDS = [[0,4,7,11],[5,9,12,16],[7,11,14,17],[9,12,16,19],[2,5,9,12],[7,11,14,19],[0,4,9,12],[5,9,12,16]];
+function _worldPhrase(){
+ const step=_worldMusicStep++,bar=Math.floor(step/8),beat=step%8,chord=WORLD_CHORDS[bar%WORLD_CHORDS.length],root=130.81;
+ if(beat===0){chord.forEach((n,k)=>_musicHit(_semi(root,n),2.2,k===0?'sine':'triangle',k===0?.011:.004,k*.045));}
+ if(beat%2===0)_musicHit(_semi(root,chord[0]-12),.31,'sine',.016,.02);
+ if([1,3,6].includes(beat)){const notes=[chord[1]+12,chord[2]+12,chord[3]+12];_musicHit(_semi(root,notes[(bar+beat)%3]),.28,'triangle',.007,.05);}
+ if(beat===4)_musicKick(0,.008);
+}
 function tickMusic(dt, isActive) {
   if (!_ctx || !isActive || !_musicEnabled) return;
   _musicTimer -= dt;
@@ -227,11 +237,8 @@ function tickMusic(dt, isActive) {
       if(i%4===2)_musicKick(.11,.012);
       _musicTimer=.22;
     }else{
-      const step=Math.floor(performance.now()/900),p=MUSIC_PATTERNS[Math.floor(step/8)%MUSIC_PATTERNS.length],i=step%8,root=p.root;
-      const chord=[0,7,12],shift=p.bass[i];
-      chord.forEach((n,k)=>_musicHit(_semi(root,shift+n),1.25,k===0?'sine':'triangle',k===0?.010:.005,k*.06));
-      if(i%2===1)_musicHit(_semi(root,p.lead[(i*2)%p.lead.length]),.55,'sine',.007,.18);
-      _musicTimer=.90;
+      _worldPhrase();
+      _musicTimer=.42;
     }
   }
 }
