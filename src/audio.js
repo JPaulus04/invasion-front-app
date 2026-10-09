@@ -8,6 +8,8 @@ let _musicGain = null;
 let _sfxGain = null;
 let _musicTimer = 0;
 let _melodyIdx = 0;
+let _musicMode292 = null;
+let _musicLastCall292 = 0;
 
 const _legacySoundOn = localStorage.getItem('ifc_sound_enabled') !== '0';
 const _legacyVolume = Math.max(0, Math.min(100, parseInt(localStorage.getItem('ifc_volume') || '100', 10))) / 100;
@@ -226,7 +228,18 @@ function _worldPhrase(){
 }
 function tickMusic(dt, isActive) {
   if (!_ctx || !isActive || !_musicEnabled) return;
-  _musicTimer -= dt;
+  const now292 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const nextMode292 = isActive === 'hot' ? 'hot' : 'world';
+  // Ignore stale background loops and reset sequencing on scene transitions.
+  if (_musicMode292 !== nextMode292) {
+    if (_musicMode292 === 'hot' && nextMode292 === 'world' && now292 - _musicLastCall292 < 1000) return;
+    _musicMode292 = nextMode292;
+    _musicTimer = 0;
+    _worldMusicStep = 0;
+  }
+  if (now292 - _musicLastCall292 < 80) return;
+  _musicLastCall292 = now292;
+  _musicTimer -= Math.max(0,Math.min(Number(dt)||0,.1));
   if (_musicTimer <= 0) {
     const hot=isActive==='hot';
     if(hot){
@@ -237,8 +250,9 @@ function tickMusic(dt, isActive) {
       if(i%4===2)_musicKick(.11,.012);
       _musicTimer=.22;
     }else{
-      _worldPhrase();
-      _musicTimer=.42;
+      // No layered melody or percussion: one restrained ambient chord at a time.
+      if(_worldMusicStep++ % 4 === 0) _musicHit(130.81,1.4,'sine',.006,0);
+      _musicTimer=.65;
     }
   }
 }
