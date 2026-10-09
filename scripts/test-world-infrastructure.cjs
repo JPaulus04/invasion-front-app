@@ -45,6 +45,7 @@ savedTerrain.forEach(([tile,terrain])=>tile.terrain=terrain);
 // Build 293 regression: construction eligibility must match resource tile rules.
 const candidateTiles=Object.values(api.tiles).filter(t=>t.id!=='0,0'&&!t.town);
 for(const kind of ['workshop','farm','quarry','ironMine','tower','harbor']){
+  const checked=new Set();
   for(const site of candidateTiles){
     isolated(site);
     const id=site.id;
@@ -55,10 +56,17 @@ for(const kind of ['workshop','farm','quarry','ironMine','tower','harbor']){
       kind==='tower'?site.terrain==='hill':
       api.coastal(id);
     if(!allowedTerrain){
+      // Sample each terrain class rather than repeatedly cloning the entire map.
+      if(checked.has(site.terrain))continue;
+      checked.add(site.terrain);
       const placement=api.placement(m,kind,id,[]);
       assert.equal(placement.ok,false,kind+' incorrectly permitted at '+id+' ('+site.terrain+')');
       const preview=api.preview(m,kind,{id,crew:1},1);
       assert.equal(preview.ok,false,kind+' preview bypasses terrain at '+id);
+      const snapshot=JSON.stringify(m);
+      const result=api.action(m,()=>true,'build',{id,kind,crew:1},1000);
+      assert.equal(result.ok,false,kind+' action bypasses terrain at '+id);
+      assert.equal(JSON.stringify(m),snapshot,'rejected construction must not mutate save');
     }
   }
 }
