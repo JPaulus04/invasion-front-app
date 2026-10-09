@@ -40,7 +40,23 @@
   function base(){
    g.fillStyle='#030808';g.fillRect(0,0,v.w,v.h);
    var ordered=Object.keys(d.visible).filter(function(id){return d.visible[id]&&tiles[id];}).map(function(id){return tiles[id];}).sort(function(a,b){return a.x+a.y-b.x-b.y||a.x-b.x;});
-   ordered.forEach(function(t){var p=at(t.id);if(p.x+s<0||p.x-s>v.w||p.y+s<0||p.y-s*2>v.h)return;var colored=!!d.cleared[t.id]||t.terrain==='water';diamond(g,p,s+.6);g.fillStyle=colored?(t.terrain==='water'?'#438fd0':t.terrain==='bank'?'#cbb873':t.terrain==='hill'?'#817759':'#83a841'):'#64696a';g.fill();g.save();diamond(g,p,s+.6);g.clip();sprite(p,t.terrain==='water'?'water':t.terrain==='bank'?'sand':t.terrain==='hill'?'rock':'grass',s+1,colored,true);g.restore();diamond(g,p,s);g.lineWidth=.6;g.strokeStyle=colored?'#25381d33':'#bac1c12a';g.stroke();
+   ordered.forEach(function(t){var p=at(t.id);if(p.x+s<0||p.x-s>v.w||p.y+s<0||p.y-s*2>v.h)return;var colored=!!d.cleared[t.id]||t.terrain==='water';diamond(g,p,s+.6);g.fillStyle=colored?(t.terrain==='water'?'#438fd0':t.terrain==='bank'?'#cbb873':t.terrain==='hill'?'#817759':'#83a841'):'#64696a';g.fill();g.save();diamond(g,p,s+.6);g.clip();sprite(p,t.terrain==='water'?'water':t.terrain==='bank'?'sand':t.terrain==='hill'?'rock':'grass',s+1,colored,true);
+    // Stylized resource accents use the same predicates as construction rules.
+    // Keep them inside the tile clip so nearby tiles remain readable.
+    if(colored&&!d.roads[t.id]&&!d.buildings[t.id]&&!t.town&&t.id!=='0,0'){
+      var seed=Math.abs(t.x*31+t.y*17),accent=api.ironDeposit&&api.ironDeposit(t.id)?'iron':api.stoneDeposit&&api.stoneDeposit(t.id)?'stone':api.fertile&&api.fertile(t.id)?'farm':null;
+      if(accent==='farm'){
+        g.strokeStyle=seed%2?'#d5bb69':'#e0c77a';g.lineWidth=Math.max(1.3,s*.024);g.lineCap='round';
+        for(var furrow=-1;furrow<=1;furrow++){g.beginPath();g.moveTo(p.x-s*.25,p.y+furrow*s*.09);g.lineTo(p.x+s*.25,p.y+furrow*s*.09);g.stroke();}
+      }else if(accent==='iron'||accent==='stone'){
+        var cx=p.x+s*.19,cy=p.y-s*.045;
+        g.fillStyle=accent==='iron'?'#596f91':'#b9b3a2';
+        g.beginPath();g.moveTo(cx-s*.15,cy+s*.09);g.lineTo(cx-s*.10,cy-s*.13);g.lineTo(cx+s*.035,cy-s*.19);g.lineTo(cx+s*.15,cy-s*.025);g.lineTo(cx+s*.09,cy+s*.10);g.closePath();g.fill();
+        g.fillStyle=accent==='iron'?'#b3e9f3':'#ece1c6';
+        g.beginPath();g.moveTo(cx-s*.10,cy-s*.13);g.lineTo(cx+s*.035,cy-s*.19);g.lineTo(cx,cy-s*.01);g.closePath();g.fill();
+      }
+    }
+    g.restore();diamond(g,p,s);g.lineWidth=.6;g.strokeStyle=colored?'#25381d33':'#bac1c12a';g.stroke();
     if(d.roads[t.id]&&t.id!=='0,0'&&!t.town){var mask=0;[[1,0,1],[-1,0,2],[0,1,4],[0,-1,8]].forEach(function(a){var id=(t.x+a[0])+','+(t.y+a[1]),next=tiles[id];if(d.roads[id]||next&&(id==='0,0'||next.town))mask|=a[2];});if(!mask)mask=3;var full={1:3,2:3,4:12,8:12}[mask]||mask,tier=api.villageLevel?api.villageLevel(m):1;if(!roadPiece(p,mask,t.terrain==='water')){g.save();diamond(g,p,s);g.clip();sprite(p,'road'+full,s,true,true);g.restore();}improvedRoad(p,t,mask,tier);}
    });
    ordered.forEach(function(t){if(t.id!=='0,0'&&!t.town)return;var p=at(t.id);[[1,0],[-1,0],[0,1],[0,-1]].forEach(function(a){var id=(t.x+a[0])+','+(t.y+a[1]);if(!d.roads[id])return;var q=at(id);if(!q)return;g.save();diamond(g,p,s);g.clip();g.lineCap='round';g.strokeStyle='#8d673e';g.lineWidth=s*.16;g.beginPath();g.moveTo(p.x,p.y);g.lineTo(p.x+(q.x-p.x)*.55,p.y+(q.y-p.y)*.55);g.stroke();g.strokeStyle='#d2a667';g.lineWidth=s*.11;g.stroke();g.restore();});});
