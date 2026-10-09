@@ -50,7 +50,7 @@ for(const kind of ['workshop','farm','quarry','ironMine','tower','harbor']){
     isolated(site);
     const id=site.id;
     const allowedTerrain=kind==='workshop'?api.forest(id):
-      kind==='farm'?(site.terrain==='plain'||site.terrain==='bank'):
+      kind==='farm'?api.fertile(id):
       kind==='quarry'?api.stoneDeposit(id):
       kind==='ironMine'?api.ironDeposit(id):
       kind==='tower'?site.terrain==='hill':
