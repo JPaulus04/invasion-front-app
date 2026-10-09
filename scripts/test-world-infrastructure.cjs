@@ -42,6 +42,27 @@ const connection=api.preview(corridor,'connection',{town:1},1);
 assert.ok(connection.ok,connection.message);assert.ok(connection.project.path.includes('2,0'));
 savedTerrain.forEach(([tile,terrain])=>tile.terrain=terrain);
 
+// Build 293 regression: construction eligibility must match resource tile rules.
+const candidateTiles=Object.values(api.tiles).filter(t=>t.id!=='0,0'&&!t.town);
+for(const kind of ['workshop','farm','quarry','ironMine','tower','harbor']){
+  for(const site of candidateTiles){
+    isolated(site);
+    const id=site.id;
+    const allowedTerrain=kind==='workshop'?api.forest(id):
+      kind==='farm'?(site.terrain==='plain'||site.terrain==='bank'):
+      kind==='quarry'?api.stoneDeposit(id):
+      kind==='ironMine'?api.ironDeposit(id):
+      kind==='tower'?site.terrain==='hill':
+      api.coastal(id);
+    if(!allowedTerrain){
+      const placement=api.placement(m,kind,id,[]);
+      assert.equal(placement.ok,false,kind+' incorrectly permitted at '+id+' ('+site.terrain+')');
+      const preview=api.preview(m,kind,{id,crew:1},1);
+      assert.equal(preview.ok,false,kind+' preview bypasses terrain at '+id);
+    }
+  }
+}
+console.log('PASS: invalid resource building placements and previews rejected across terrain map.');
 const source=fs.readFileSync('src/isometricMap221.js','utf8');
 assert.ok(source.includes('cache.isoRebuilds'),'run full build before this test');
 assert.ok(!source.includes('renderBridgeSpans242();'));
