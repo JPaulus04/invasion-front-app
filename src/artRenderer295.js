@@ -42,8 +42,8 @@ function paint(g,m,v,c,selected,path,now,cache){
  var d=m.settlement204,api=root.LSCSettlement,tiles=api.tiles;
  if(!tiles)return result;
  var items=[];
- Object.keys(d.visible||{}).forEach(function(id){
-  if(!d.visible[id]||!tiles[id]||(id!=='0,0'&&!d.cleared[id]))return;
+ Object.keys(Object.assign({'0,0':true},d.visible||{})).forEach(function(id){
+  if(!tiles[id]||(id!=='0,0'&&(!d.visible[id]||!d.cleared[id])))return;
   var t=tiles[id],kind=d.buildings&&d.buildings[id]&&d.buildings[id].kind;
   var key=id==='0,0'?'hq-l1':kind==='workshop'?'lumber-l1':kind==='quarry'?'quarry-l1':null;
   if(!key||!sprites[key]||!sprites[key].ready)return;
