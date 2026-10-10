@@ -4,16 +4,16 @@
  */
 (function(root){
 'use strict';
-var sprites=Object.create(null),mode='preview',fallback=root.LSCIso221;
+var sprites=Object.create(null),mode='preview',fallback=root.LSCIso221,retryPending=false;
 function register(key,url,options){
  if(!/^[a-z][a-z0-9_-]*$/.test(key))throw Error('Invalid sprite key');
  if(!/^assets\/[a-zA-Z0-9_./-]+\.(png|webp)$/.test(url)||url.includes('..'))throw Error('Invalid asset path');
  if(typeof Image==='undefined')return false;
- var image=new Image(),slot={ready:false,image:image,anchorX:.5,anchorY:1,scale:1};
+ var image=new Image(),slot={ready:false,failed:false,url:url,image:image,anchorX:.5,anchorY:1,scale:1};
  options=options||{};
  ['anchorX','anchorY','scale'].forEach(function(k){if(Number.isFinite(options[k]))slot[k]=options[k];});
- image.onload=function(){if(image.naturalWidth&&image.naturalHeight)slot.ready=true;};
- image.onerror=function(){slot.ready=false;};
+ image.onload=function(){slot.ready=!!(image.naturalWidth&&image.naturalHeight);slot.failed=!slot.ready;};
+ image.onerror=function(){slot.ready=false;slot.failed=true;};
  image.src=url;sprites[key]=slot;return true;
 }
 function draw(g,key,x,y,width){
@@ -36,6 +36,8 @@ register('lumber-l1','assets/new-art/lumber-l1.png',{anchorX:.5,anchorY:.94,scal
 register('quarry-l1','assets/new-art/quarry-l1.png',{anchorX:.5,anchorY:.94,scale:1});
 // A legacy mode remains available to internal regression tests only.
 function paint(g,m,v,c,selected,path,now,cache){
+ // Retry only failed sprite requests after returning to the iOS WebView.
+ if(retryPending){retryPending=false;Object.keys(sprites).forEach(function(k){var a=sprites[k];if(a.failed){a.failed=false;a.image.src=a.url;}});}
  // Existing map remains authoritative for input, overlays and selection.
  var result=fallback.paint(g,m,v,c,selected,path,now,cache);
  if(mode!=='preview'||!m||!m.settlement204||!root.LSCSettlement)return result;
@@ -69,5 +71,7 @@ function paint(g,m,v,c,selected,path,now,cache){
  }
  return result;
 }
+if(root.document&&typeof root.document.addEventListener==='function')root.document.addEventListener('visibilitychange',function(){if(!root.document.hidden)retryPending=true;});
+if(typeof root.addEventListener==='function')root.addEventListener('pageshow',function(){retryPending=true;});
 root.LSCArt295=Object.freeze({register:register,draw:draw,sort:sort,setMode:setMode,toggleMode:toggleMode,installPreviewControl:installPreviewControl,getMode:function(){return mode;},paint:paint,ready:function(key){return !!(sprites[key]&&sprites[key].ready);},previewAvailable:function(){return !!(sprites['hq-l1']&&sprites['hq-l1'].ready);}});
 })(typeof window!=='undefined'?window:globalThis);
