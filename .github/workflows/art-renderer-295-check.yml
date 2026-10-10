@@ -25,6 +25,6 @@ jobs:
       - name: Verify iOS preview configuration
         run: |
           grep -q "LSC_BUILD = '296'" scripts/set-build-version.js
-          grep -q 'LSC_BUILD_ART_PREVIEW = true' build.js
+          grep -Fq 'window.LSC_BUILD_ART_PREVIEW = true;' build.js
       - name: Check production art readiness
         run: node scripts/check-art-assets-295.cjs
