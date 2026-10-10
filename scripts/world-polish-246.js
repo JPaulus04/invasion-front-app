@@ -42,7 +42,7 @@ swap(oldStandalone,newStandalone,'standalone scale multiplier');
  const old="if(b&&b.kind==='"+kind+"'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'"+art+"'+artTier243);g.restore();}";
  const next="if(b&&b.kind==='"+kind+"'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'"+art+"'+artTier243,(Math.abs(t.x)+Math.abs(t.y)<=1)?.76:1);g.restore();}";
  if(r.includes(old))swap(old,next,kind+' HQ clearance');
- else if(!r.includes(next)&&!r.includes("var newSprite=b.kind==='quarry'?'quarry-l1'"))
+ else if(!r.includes(next)&&!r.includes("b.kind==='"+kind+"'"))
   throw Error('Build 246 missing '+kind+' renderer');
 });
 
