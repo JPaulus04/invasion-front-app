@@ -121,7 +121,7 @@ const previewHookAnchor=hookAnchor.replace("t.id==='0,0'",previewGuard);
 const previewHook243=hook243.replace("t.id==='0,0'",previewGuard);
 if(r.includes(previewHookAnchor))r=r.replace(previewHookAnchor,previewHook243);
 else if(r.includes(previewHook243)){} // Already migrated; keep idempotent.
-else if(r.includes("var newSprite=b.kind==='quarry'?'quarry-l1'")){
+else if(r.includes("if(b&&b.kind==='workshop'&&!(root.LSCArt295")){
  // New preview-aware renderer has no old town-hall hook. Insert the 243
  // fallback once, without replacing the modern HQ sprite guard.
  const before="if(b&&b.kind==='workshop'&&!(root.LSCArt295";
