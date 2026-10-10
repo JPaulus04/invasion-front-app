@@ -26,13 +26,23 @@ jobs:
         run: |
           node scripts/test-art-renderer-295.cjs
           LSC_MODERN_ART=1 node scripts/test-world-infrastructure.cjs
-      - name: Verify iOS preview configuration
-        run: |
-          node -e "const fs=require('fs');const s=fs.readFileSync('scripts/set-build-version.js','utf8');if(!s.includes(\"const LSC_BUILD = '299';\"))throw Error('Build 299 marker missing from version script');"
-          node -e "const fs=require('fs');const s=fs.readFileSync('build.js','utf8');if(!s.includes('window.LSC_BUILD_ART_PREVIEW = true;'))throw Error('Preview flag missing from build bundler');"
       - name: Build full game bundle (iOS prerequisite)
         run: |
           npm run build
           test -s www/index.html
+      - name: Verify packaged Build 299 and modern renderer
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const html = fs.readFileSync('www/index.html', 'utf8');
+          const config = fs.readFileSync('src/config.js', 'utf8');
+          assert.match(config, /const LSC_BUILD = '299';/, 'Version script did not set Build 299');
+          assert.match(html, /const LSC_BUILD = '299';/, 'Bundled game version is not 299');
+          assert.ok(html.includes('window.LSC_BUILD_ART_PREVIEW = true;'), 'Modern art bundle flag missing');
+          assert.ok(html.includes('root.LSCArt295=Object.freeze'), 'Modern renderer not bundled');
+          assert.ok(html.includes("mode='preview'"), 'Modern renderer is not the default');
+          console.log('PASS: Build 299 bundled with modern art enabled');
+          NODE
       - name: Check production art readiness
         run: node scripts/check-art-assets-295.cjs --require-assets
