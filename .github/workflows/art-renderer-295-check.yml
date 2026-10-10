@@ -16,5 +16,8 @@ jobs:
           node --check src/artRenderer295.js
           node --check src/settlementView205.js
           node --check scripts/test-art-renderer-295.cjs
+          node --check scripts/check-art-assets-295.cjs
       - name: Test preview renderer
         run: node scripts/test-art-renderer-295.cjs
+      - name: Check production art readiness
+        run: node scripts/check-art-assets-295.cjs
