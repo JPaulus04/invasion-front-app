@@ -81,6 +81,29 @@ jobs:
           </dict></plist>
           EOF
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/OutpostZero.xcarchive" -exportPath "$RUNNER_TEMP/export" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" 2>&1 | tee export.log
+      - name: Verify exported IPA identity
+        env:
+          EXPECTED_BUILD: ${{ inputs.build_number }}
+        run: |
+          python3 - <<'PY'
+          import glob, os, plistlib, zipfile
+          ipa_files = glob.glob(os.environ["RUNNER_TEMP"] + "/export/*.ipa")
+          if len(ipa_files) != 1:
+              raise SystemExit(f"Expected one IPA, found {len(ipa_files)}")
+          with zipfile.ZipFile(ipa_files[0]) as archive:
+              info_path = next((n for n in archive.namelist() if n.startswith("Payload/") and n.endswith(".app/Info.plist")), None)
+              if not info_path:
+                  raise SystemExit("Missing app Info.plist in IPA")
+              info = plistlib.loads(archive.read(info_path))
+          expected = "com.paulus.laststandcommand"
+          actual = info.get("CFBundleIdentifier")
+          number = str(info.get("CFBundleVersion", ""))
+          if actual != expected:
+              raise SystemExit(f"Unexpected bundle identifier: {actual}")
+          if number != os.environ["EXPECTED_BUILD"]:
+              raise SystemExit(f"Unexpected build number: {number}")
+          print(f"Verified IPA: {actual}, build {number}")
+          PY
       - name: Upload to App Store Connect
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
