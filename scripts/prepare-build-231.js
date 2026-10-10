@@ -28,7 +28,12 @@ const oldRoute=`if(t.id==='0,0'){name='town1';width=s*.88;}
 const newRoute=`if(t.id==='0,0'){name=null;width=s*.88;}
     else if(b){name=({farm:'farm',house:'house'}[b.kind]||null);width=s*.72;}
     else if(t.town){name=null;width=s*.85;}`;
-r=swap(r,oldRoute,newRoute,'legacy sprite route');
+// Build 296's opt-in preview modifies the legacy HQ route before this older migration runs.
+const previewRoute=`if(t.id==='0,0'){if(!(root.LSCArt295&&root.LSCArt295.getMode()==='preview'&&root.LSCArt295.ready('hq-l1'))){name='town1';width=s*.88;}}
+    else if(b){name=b.kind==='workshop'?null:({farm:'farm',quarry:'mine',ironMine:'mine',house:'house',tower:'tower',harbor:'house'}[b.kind]||'house');width=b.kind==='tower'?s*.43:s*.72;}
+    else if(t.town){name=t.town%2?'town1':'town2';width=s*.85;}`;
+if(r.includes(previewRoute))r=r.replace(previewRoute,newRoute);
+else r=swap(r,oldRoute,newRoute,'legacy sprite route');
 
 const oldHook=`if(b&&b.kind==='workshop'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'workshop');g.restore();}`;
 const newHook=`if(t.id==='0,0'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'town'+Math.max(1,Math.min(3,api.villageLevel?api.villageLevel(m):1)));g.restore();}
@@ -38,7 +43,11 @@ const newHook=`if(t.id==='0,0'){g.save();if(!colored)g.globalAlpha=.58;standalon
     if(b&&b.kind==='ironMine'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'mine');g.restore();}
     if(b&&b.kind==='tower'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'scout'+Math.max(1,Math.min(3,api.villageLevel?api.villageLevel(m):1)));g.restore();}
     if(b&&b.kind==='harbor'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'dock'+Math.max(1,Math.min(3,api.villageLevel?api.villageLevel(m):1)));g.restore();}`;
-r=swap(r,oldHook,newHook,'Priority A rendering');
+// The preview HQ replaces only the visual; the legacy renderer remains the fallback.
+const previewHook=newHook.replace("if(t.id==='0,0'){g.save();", "if(t.id==='0,0'&&!(root.LSCArt295&&root.LSCArt295.getMode()==='preview'&&root.LSCArt295.ready('hq-l1'))){g.save();");
+if(r.includes(newHook))r=r.replace(newHook,previewHook);
+else if(r.includes(oldHook))r=r.replace(oldHook,previewHook);
+else if(!r.includes(previewHook))throw Error('Build 231 baseline missing: Priority A rendering');
 if(!r.includes("if(!standalone(q,'fishingBoat'))boat(q,s*.13);")){
  if(!r.includes("boat(q,s*.13);"))throw Error('Build 231 fishing boat baseline missing');
  r=r.replace("boat(q,s*.13);","if(!standalone(q,'fishingBoat'))boat(q,s*.13);");
