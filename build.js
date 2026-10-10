@@ -143,43 +143,16 @@ requireMatch(html.includes('function researchEffects()'), 'research behavior is 
 requireMatch(html.includes('</body>') && html.includes('</html>'), 'output shell is incomplete');
 requireMatch(html.trimEnd().endsWith('</html>'), 'output contains a truncated tail');
 
-/* Build 230 Priority A art integration. */
-const priorityAssets = [
-  'town-l1.png',
-  'town-l2.png',
-  'town-l3.png',
-  'woodland-village.png',
-  'farmland-village.png',
-  'industrial-village.png',
-  'highland-village.png',
-  'water-village.png',
-  'harbor-town.png',
-  'scout-tower-l1.png',
-  'scout-tower-l2.png',
-  'scout-tower-l3.png',
-  'dock-l1.png',
-  'dock-l2.png',
-  'dock-l3.png',
-  'quarry.png',
-  'mine.png',
-  'forge.png',
-  'lumber-camp.png',
-  'fishing-boat.png',
-  'gold-mine.png',
-];
-priorityAssets.forEach(file => {
-  requireMatch(
-    fs.existsSync(path.join(ASSETS, 'buildings', file)),
-    `Build 230 Priority A asset is missing: assets/buildings/${file}`
-  );
-});
+/* Modern 2.5D renderer validation. Keep the renderer wired into the bundle,
+ * but do not require retired Build 230 building-art routes.
+ * The art-readiness workflow separately validates new PNG assets. */
 requireMatch(
-  html.includes("assets/buildings/") &&
-  html.includes("scout-tower-l1.png") &&
-  html.includes("dock-l3.png") &&
-  html.includes("town-l3.png") &&
-  html.includes("fishing-boat.png"),
-  'Build 230 Priority A renderer integration is missing'
+  html.includes('root.LSCArt295=Object.freeze') &&
+  html.includes('assets/new-art/hq-l1.png') &&
+  html.includes('assets/new-art/lumber-l1.png') &&
+  html.includes('assets/new-art/quarry-l1.png') &&
+  html.includes('window.LSC_BUILD_ART_PREVIEW = true;'),
+  'Build 297 modern art renderer integration is missing'
 );
 
 /* Required imported battlefield assets. */
