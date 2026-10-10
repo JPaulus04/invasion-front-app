@@ -60,6 +60,7 @@ const CONTROLLER_SCRIPTS = [
   'settlement205.js',
   'isometricAssets221.js',
   'isometricMap221.js',
+  'artRenderer295.js',
   'settlementView205.js',
   'starTowns.js',
   'renderer.js',
