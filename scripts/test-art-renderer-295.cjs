@@ -10,7 +10,8 @@ class FakeImage {
  constructor(){this.naturalWidth=128;this.naturalHeight=160;}
  set src(v){this._src=v;if(availableAssets.has(v.split('/').pop()))this.onload&&this.onload();else this.onerror&&this.onerror();}
 }
-const ctx={Image:FakeImage,LSCIso221:{
+let onPageShow;
+const ctx={Image:FakeImage,addEventListener(type,fn){if(type==='pageshow')onPageShow=fn;},LSCIso221:{
  paint(){legacyCalls++;return 'legacy-result';},
  project(t,c,v){return {x:t.x*40,y:t.y*20};}
 },LSCSettlement:{tiles:{'0,0':{id:'0,0',x:0,y:0},'1,0':{id:'1,0',x:1,y:0}}}};
@@ -46,13 +47,16 @@ art.paint(g,m,{w:320,h:480},{scale:100},null,[],0,{});
 assert.equal(draws,3,'HQ must render even without a cleared flag');
 m.settlement204.cleared['0,0']=true;
 availableAssets.add('lumber-l1.png');
-art.register('lumber-l1','assets/new-art/lumber-l1.png');
+assert.equal(art.ready('lumber-l1'),false,'Failed image must remain unavailable until resume');
+onPageShow();
 art.paint(g,m,{w:320,h:480},{scale:100},null,[],0,{});
-assert.equal(draws,5,'Both HQ and lumber should render after assets load');
+assert.equal(art.ready('lumber-l1'),true,'Failed sprite must reload when iOS WebView resumes');
+art.paint(g,m,{w:320,h:480},{scale:100},null,[],0,{});
+assert.equal(draws,7,'Both HQ and lumber should render after assets load');
 art.paint(g,m,{w:320,h:480},{scale:100},'0,0',[],0,{});
 assert.equal(selectionStrokes,1,'Preview must restore selected tile outline above new sprites');
 art.setMode('legacy');art.paint(g,m,{w:320,h:480},{scale:100},null,[],0,{});
-assert.equal(draws,7,'Legacy mode must not draw preview sprites');
+assert.equal(draws,9,'Legacy mode must not draw preview sprites');
 // Quarry must stay hidden until its PNG loads, then draw alongside the other buildings.
 ctx.LSCSettlement.tiles['2,0']={id:'2,0',x:2,y:0};
 m.settlement204.visible['2,0']=true;
@@ -60,9 +64,9 @@ m.settlement204.cleared['2,0']=true;
 m.settlement204.buildings['2,0']={kind:'quarry'};
 art.setMode('preview');
 art.paint(g,m,{w:320,h:480},{scale:100},null,[],0,{});
-assert.equal(draws,9,'Missing quarry must not overlay');
+assert.equal(draws,11,'Missing quarry must not overlay');
 availableAssets.add('quarry-l1.png');
 art.register('quarry-l1','assets/new-art/quarry-l1.png');
 art.paint(g,m,{w:320,h:480},{scale:100},null,[],0,{});
-assert.equal(draws,12,'Loaded HQ, lumber and quarry should all render');
+assert.equal(draws,14,'Loaded HQ, lumber and quarry should all render');
 console.log('PASS: art renderer mode, safety, fallback, sprite loading and depth sorting');
