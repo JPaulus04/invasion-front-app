@@ -44,6 +44,8 @@ function installPreviewControl(){
 }
 // Asset may be installed later; failed loads keep the legacy map visible.
 register('hq-l1','assets/new-art/hq-l1.png',{anchorX:.5,anchorY:.94,scale:1});
+register('lumber-l1','assets/new-art/lumber-l1.png',{anchorX:.5,anchorY:.94,scale:1});
+register('quarry-l1','assets/new-art/quarry-l1.png',{anchorX:.5,anchorY:.94,scale:1});
 // Explicit developer opt-in only. Do not persist across launches or alter saves.
 if((root.location&&/(?:^|[?&])artPreview=1(?:&|$)/.test(root.location.search||''))||root.LSC_BUILD_ART_PREVIEW===true){
  mode='preview';
@@ -61,7 +63,8 @@ function paint(g,m,v,c,selected,path,now,cache){
  var items=[];
  Object.keys(d.visible||{}).forEach(function(id){
   if(!d.visible[id]||!tiles[id]||(id!=='0,0'&&!d.cleared[id]))return;
-  var t=tiles[id],key=id==='0,0'?'hq-l1':d.buildings&&d.buildings[id]&&d.buildings[id].kind==='workshop'?'lumber-l1':null;
+  var t=tiles[id],kind=d.buildings&&d.buildings[id]&&d.buildings[id].kind;
+  var key=id==='0,0'?'hq-l1':kind==='workshop'?'lumber-l1':kind==='quarry'?'quarry-l1':null;
   if(!key||!sprites[key]||!sprites[key].ready)return;
   var p=fallback.project(t,c,v);
   items.push({id:id,key:key,x:p.x,y:p.y,depth:p.y});
@@ -69,7 +72,7 @@ function paint(g,m,v,c,selected,path,now,cache){
  sort(items).forEach(function(item){
   // Buildings need more screen presence than a ground tile. Their anchors
   // remain at the tile center; gameplay hit-testing stays on the old grid.
-  var width=c.scale*(item.key==='hq-l1'?1.65:1.2);
+  var width=c.scale*(item.key==='hq-l1'?1.65:1.22);
   draw(g,item.key,item.x,item.y+c.scale*.19,width);
  });
  // Preview sprites are painted after the legacy scene; restore the selection
