@@ -47,21 +47,9 @@ jobs:
           npm run build
           LSC_MODERN_ART=1 node scripts/test-world-infrastructure.cjs
           node scripts/test-art-renderer-295.cjs
-          node scripts/test-ground-textures.cjs
-          node scripts/test-road-polish.cjs
-          node scripts/test-village-development.cjs
-          node scripts/test-village-ui257.cjs
-          node scripts/test-village-perks258.cjs
-          node scripts/test-economy222.cjs
-          node scripts/test-commanders260.cjs
-          node scripts/test-commander-comparison262.cjs
-          node scripts/test-tactics266.cjs
-          node scripts/test-battle-feedback267.cjs
-          node scripts/test-defense-preparation268.cjs
-          node scripts/test-battle-preparation271.cjs
-          node scripts/test-idle-crew272.cjs
-          node scripts/test-guidance273.cjs
-          node scripts/test-pacing275.cjs
+          # Legacy raster/road/UI snapshot tests are specific to the retired
+          # generator pipeline. Run them only in the separate legacy workflow.
+          # This modern build uses its own renderer regression tests above.
           test -f www/index.html
           echo "www/index.html built ($(wc -c < www/index.html) bytes)"
 
