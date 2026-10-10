@@ -30,6 +30,8 @@ jobs:
           done
       - name: Validate project
         run: python3 scripts/check_project.py
+      - name: Generate original app icon
+        run: python3 scripts/generate_icon.py
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
