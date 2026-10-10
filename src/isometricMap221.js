@@ -61,7 +61,7 @@
    });
    ordered.forEach(function(t){if(t.id!=='0,0'&&!t.town)return;var p=at(t.id);[[1,0],[-1,0],[0,1],[0,-1]].forEach(function(a){var id=(t.x+a[0])+','+(t.y+a[1]);if(!d.roads[id])return;var q=at(id);if(!q)return;g.save();diamond(g,p,s);g.clip();g.lineCap='round';g.strokeStyle='#8d673e';g.lineWidth=s*.16;g.beginPath();g.moveTo(p.x,p.y);g.lineTo(p.x+(q.x-p.x)*.55,p.y+(q.y-p.y)*.55);g.stroke();g.strokeStyle='#d2a667';g.lineWidth=s*.11;g.stroke();g.restore();});});
    ordered.forEach(function(t){var p=at(t.id);if(p.x+s<0||p.x-s>v.w||p.y+s<0||p.y-s*2>v.h)return;var b=d.buildings[t.id],colored=!!d.cleared[t.id]||t.terrain==='water',name=null,width=s*.68;
-    if(t.id==='0,0'){name='town1';width=s*.88;}
+    if(t.id==='0,0'){if(!(root.LSCArt295&&root.LSCArt295.getMode()==='preview'&&root.LSCArt295.ready('hq-l1'))){name='town1';width=s*.88;}}
     else if(b){name=b.kind==='workshop'?null:({farm:'farm',quarry:'mine',ironMine:'mine',house:'house',tower:'tower',harbor:'house'}[b.kind]||'house');width=b.kind==='tower'?s*.43:s*.72;}
     else if(t.town){name=t.town%2?'town1':'town2';width=s*.85;}
     else if(t.landmark){name='house';width=s*.64;}
