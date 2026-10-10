@@ -31,11 +31,16 @@ const g={drawImage(){draws++;},save(){},restore(){},beginPath(){},moveTo(){},lin
 const m={settlement204:{visible:{'0,0':true,'1,0':true},cleared:{'0,0':true,'1,0':true},buildings:{'1,0':{kind:'workshop'}}}};
 assert.equal(art.paint(g,m,{w:320,h:480},{scale:100},null,[],0,{}),'legacy-result');
 assert.equal(draws,1,'Only loaded HQ should overlay; missing lumber must fall back');
+// HQ is the origin and may not be present in the cleared-tile map.
+delete m.settlement204.cleared['0,0'];
+art.paint(g,m,{w:320,h:480},{scale:100},null,[],0,{});
+assert.equal(draws,2,'HQ must render even without a cleared flag');
+m.settlement204.cleared['0,0']=true;
 art.register('lumber-l1','assets/new-art/lumber-l1.png');
 art.paint(g,m,{w:320,h:480},{scale:100},null,[],0,{});
-assert.equal(draws,3,'Both HQ and lumber should render after assets load');
+assert.equal(draws,4,'Both HQ and lumber should render after assets load');
 art.paint(g,m,{w:320,h:480},{scale:100},'0,0',[],0,{});
 assert.equal(selectionStrokes,1,'Preview must restore selected tile outline above new sprites');
 art.setMode('legacy');art.paint(g,m,{w:320,h:480},{scale:100},null,[],0,{});
-assert.equal(draws,5,'Legacy mode must not draw preview sprites');
+assert.equal(draws,6,'Legacy mode must not draw preview sprites');
 console.log('PASS: art renderer mode, safety, fallback, sprite loading and depth sorting');
