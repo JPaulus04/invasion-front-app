@@ -28,9 +28,21 @@ function sort(items){
 }
 function setMode(next){if(next!=='legacy'&&next!=='preview')throw Error('Unknown art mode');mode=next;return mode;}
 function paint(g,m,v,c,selected,path,now,cache){
- // Keep all legacy overlays, selection and animations until the new scene passes parity checks.
- // Preview mode is opt-in; it cannot silently replace missing assets.
- return fallback.paint(g,m,v,c,selected,path,now,cache);
+ // Existing map remains authoritative for input, overlays and selection.
+ var result=fallback.paint(g,m,v,c,selected,path,now,cache);
+ if(mode!=='preview'||!m||!m.settlement204||!root.LSCSettlement)return result;
+ var d=m.settlement204,api=root.LSCSettlement,tiles=api.tiles;
+ if(!tiles)return result;
+ var items=[];
+ Object.keys(d.visible||{}).forEach(function(id){
+  if(!d.visible[id]||!d.cleared[id]||!tiles[id])return;
+  var t=tiles[id],key=id==='0,0'?'hq-l1':d.buildings&&d.buildings[id]&&d.buildings[id].kind==='workshop'?'lumber-l1':null;
+  if(!key||!sprites[key]||!sprites[key].ready)return;
+  var p=fallback.project(t,c,v);
+  items.push({id:id,key:key,x:p.x,y:p.y,depth:p.y});
+ });
+ sort(items).forEach(function(item){draw(g,item.key,item.x,item.y+c.scale*.14,c.scale*.88);});
+ return result;
 }
-root.LSCArt295=Object.freeze({register:register,draw:draw,sort:sort,setMode:setMode,getMode:function(){return mode;},paint:paint,ready:function(key){return !!(sprites[key]&&sprites[key].ready);}});
+root.LSCArt295=Object.freeze({register:register,draw:draw,sort:sort,setMode:setMode,getMode:function(){return mode;},paint:paint,ready:function(key){return !!(sprites[key]&&sprites[key].ready);},previewAvailable:function(){return !!(sprites['hq-l1']&&sprites['hq-l1'].ready);}}});
 })(typeof window!=='undefined'?window:globalThis);
