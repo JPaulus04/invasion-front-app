@@ -97,7 +97,7 @@ html = html.replace(
 );
 
 const engineCode = ENGINE_SCRIPTS.map(f => `// ── ${f} ──\n${read(f)}`).join('\n\n');
-const controllerCode = CONTROLLER_SCRIPTS.map(f => `// ── ${f} ──\n${read(f)}`).join('\n\n');
+const controllerCode = CONTROLLER_SCRIPTS.map(f => `// ── ${f} ──\n${f === 'artRenderer295.js' ? 'window.LSC_BUILD_ART_PREVIEW = true;\n' : ''}${read(f)}`).join('\n\n');
 
 const firstScript = '<script src="src/config.js"></script>';
 const lastScript = '<script src="src/main.js"></script>';
