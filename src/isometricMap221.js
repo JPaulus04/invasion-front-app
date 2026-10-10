@@ -28,7 +28,7 @@
  function paint(g,m,v,c,selected,path,now,cache){
   var api=root.LSCSettlement,d=m.settlement204,s=c.scale,tiles=api.tiles,point=selected&&tiles[selected],selection=point&&project(point,c,v);
   // Camera movement reuses an overscanned raster; world/selection changes invalidate it.
-  var stamp=[revision,d.at,d.renderRevision||0,v.w,v.h,selected,(path||[]).join('|'),root.LSCArt295&&root.LSCArt295.getMode()].join(':');
+  var stamp=[revision,d.at,d.renderRevision||0,v.w,v.h,selected,(path||[]).join('|'),root.LSCArt295&&root.LSCArt295.getMode(),root.LSCArt295&&root.LSCArt295.ready('hq-l1'),root.LSCArt295&&root.LSCArt295.ready('lumber-l1'),root.LSCArt295&&root.LSCArt295.ready('quarry-l1')].join(':');
   function at(id){return tiles[id]&&project(tiles[id],c,v);}
   function sprite(p,name,w,colored,ground){var a=atlases[colored?'color':'surveyed'],r=(root.LSCIsoAssets221||{})[name];if(!a||!a.complete||!a.naturalWidth||!r)return false;var h=ground?w/2:w*r[3]/r[2];g.drawImage(a,r[0],r[1],r[2],r[3],p.x-w/2,ground?p.y-h/2:p.y+s*.14-h,w,h);return true;}
   function standalone(p,name){var im=buildingArt[name],layout=buildingLayout[name]||{scale:.7,anchorX:.5,groundY:.14};if(!im||!im.complete||!im.naturalWidth)return false;var w=s*layout.scale,h=w*im.naturalHeight/im.naturalWidth;g.drawImage(im,p.x-w*layout.anchorX,p.y+s*layout.groundY-h,w,h);return true;}
