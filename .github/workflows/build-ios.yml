@@ -47,6 +47,7 @@ jobs:
           npm run build
           LSC_MODERN_ART=1 node scripts/test-world-infrastructure.cjs
           node scripts/test-art-renderer-295.cjs
+          node scripts/check-art-assets-295.cjs --require-assets
           # Legacy raster/road/UI snapshot tests are specific to the retired
           # generator pipeline. Run them only in the separate legacy workflow.
           # This modern build uses its own renderer regression tests above.
