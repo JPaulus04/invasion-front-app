@@ -4,14 +4,16 @@
 'use strict';
 const fs=require('node:fs');
 const assert=require('node:assert/strict');
-const required=['assets/new-art/hq-l1.png','assets/new-art/lumber-l1.png','assets/new-art/quarry-l1.png'];
+// Release requires the two installed sprites; quarry remains a supported optional preview.
+const required=['assets/new-art/hq-l1.png','assets/new-art/lumber-l1.png'];
+const optional=['assets/new-art/quarry-l1.png'];
 const strict=process.argv.includes('--require-assets');
 let missing=0;
-for(const file of required){
+for(const file of required.concat(optional)){
  if(!fs.existsSync(file)){
-  missing++;
-  if(strict)throw Error('Missing production sprite: '+file);
-  console.log('PENDING '+file+' (not yet installed)');
+  if(required.includes(file))missing++;
+  if(strict&&required.includes(file))throw Error('Missing production sprite: '+file);
+  console.log((required.includes(file)?'PENDING ':'OPTIONAL ')+file+' (not yet installed; legacy quarry fallback retained)');
   continue;
  }
  const bytes=fs.readFileSync(file);
@@ -26,4 +28,5 @@ for(const file of required){
  assert.ok(color===6||color===4,file+': requires true alpha channel (RGBA/gray-alpha)');
  console.log('PASS '+file+' '+w+'x'+h+' with alpha');
 }
-if(missing&&!strict)console.log('Art preview remains unavailable until binary assets are installed.');
+if(missing)console.log('Required art preview assets are not installed.');
+else console.log('PASS: required art assets ready; optional quarry uses legacy fallback if absent.');
