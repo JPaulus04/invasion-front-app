@@ -46,7 +46,12 @@ function paint(g,m,v,c,selected,path,now,cache){
   var p=fallback.project(t,c,v);
   items.push({id:id,key:key,x:p.x,y:p.y,depth:p.y});
  });
- sort(items).forEach(function(item){draw(g,item.key,item.x,item.y+c.scale*.14,c.scale*.88);});
+ sort(items).forEach(function(item){
+  // Buildings need more screen presence than a ground tile. Their anchors
+  // remain at the tile center; gameplay hit-testing stays on the old grid.
+  var width=c.scale*(item.key==='hq-l1'?1.65:1.2);
+  draw(g,item.key,item.x,item.y+c.scale*.19,width);
+ });
  // Preview sprites are painted after the legacy scene; restore the selection
  // indicator so tall art cannot hide the player's active tile.
  if(selected&&tiles[selected]&&d.visible[selected]){
