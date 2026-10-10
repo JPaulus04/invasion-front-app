@@ -35,7 +35,7 @@ function installPreviewControl(){
  button.type='button';
  button.textContent='Art: '+(mode==='preview'?'NEW':'OLD');
  button.setAttribute('aria-label','Toggle experimental world artwork');
- button.style.cssText='position:fixed;right:12px;top:calc(60px + env(safe-area-inset-top));z-index:50000;padding:9px 12px;background:#142b36;color:#fff;border:2px solid #e9c46a;border-radius:10px;font:700 13px sans-serif;box-shadow:0 2px 10px #0007';
+ button.style.cssText='position:fixed;left:12px;top:calc(180px + env(safe-area-inset-top));z-index:50000;padding:9px 12px;background:#142b36;color:#fff;border:2px solid #e9c46a;border-radius:10px;font:700 13px sans-serif;box-shadow:0 2px 10px #0007';
  button.addEventListener('click',function(){
   toggleMode();button.textContent='Art: '+(mode==='preview'?'NEW':'OLD');
  });
