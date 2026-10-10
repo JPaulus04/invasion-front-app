@@ -28,6 +28,8 @@ function sort(items){
 }
 function setMode(next){if(next!=='legacy'&&next!=='preview')throw Error('Unknown art mode');mode=next;return mode;}
 function toggleMode(){return setMode(mode==='legacy'?'preview':'legacy');}
+// Asset may be installed later; failed loads keep the legacy map visible.
+register('hq-l1','assets/new-art/hq-l1.png',{anchorX:.5,anchorY:.94,scale:1});
 // Explicit developer opt-in only. Do not persist across launches or alter saves.
 if(root.location&&/(?:^|[?&])artPreview=1(?:&|$)/.test(root.location.search||''))mode='preview';
 function paint(g,m,v,c,selected,path,now,cache){
