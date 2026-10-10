@@ -62,12 +62,12 @@
    ordered.forEach(function(t){if(t.id!=='0,0'&&!t.town)return;var p=at(t.id);[[1,0],[-1,0],[0,1],[0,-1]].forEach(function(a){var id=(t.x+a[0])+','+(t.y+a[1]);if(!d.roads[id])return;var q=at(id);if(!q)return;g.save();diamond(g,p,s);g.clip();g.lineCap='round';g.strokeStyle='#8d673e';g.lineWidth=s*.16;g.beginPath();g.moveTo(p.x,p.y);g.lineTo(p.x+(q.x-p.x)*.55,p.y+(q.y-p.y)*.55);g.stroke();g.strokeStyle='#d2a667';g.lineWidth=s*.11;g.stroke();g.restore();});});
    ordered.forEach(function(t){var p=at(t.id);if(p.x+s<0||p.x-s>v.w||p.y+s<0||p.y-s*2>v.h)return;var b=d.buildings[t.id],colored=!!d.cleared[t.id]||t.terrain==='water',name=null,width=s*.68;
     if(t.id==='0,0'){if(!(root.LSCArt295&&root.LSCArt295.getMode()==='preview'&&root.LSCArt295.ready('hq-l1'))){name='town1';width=s*.88;}}
-    else if(b){name=b.kind==='workshop'?null:({farm:'farm',quarry:'mine',ironMine:'mine',house:'house',tower:'tower',harbor:'house'}[b.kind]||'house');width=b.kind==='tower'?s*.43:s*.72;}
+    else if(b){var newSprite=b.kind==='quarry'?'quarry-l1':b.kind==='workshop'?'lumber-l1':null;name=newSprite&&root.LSCArt295&&root.LSCArt295.getMode()==='preview'&&root.LSCArt295.ready(newSprite)?null:b.kind==='workshop'?null:({farm:'farm',quarry:'mine',ironMine:'mine',house:'house',tower:'tower',harbor:'house'}[b.kind]||'house');width=b.kind==='tower'?s*.43:s*.72;}
     else if(t.town){name=t.town%2?'town1':'town2';width=s*.85;}
     else if(t.landmark){name='house';width=s*.64;}
     else if(!d.roads[t.id]){if(t.terrain==='hill'){name='mountain';width=s*.74;}else if(t.terrain==='plain'&&Math.abs(t.x*7+t.y*11)%4){name='tree';width=s*.48;}}
     if(name){g.save();if(selection&&selected!==t.id&&p.y>selection.y&&p.y-selection.y<s&&Math.abs(p.x-selection.x)<s*.5)g.globalAlpha=.35;sprite(p,name,width,colored,false);g.restore();}
-    if(b&&b.kind==='workshop'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'workshop');g.restore();}
+    if(b&&b.kind==='workshop'&&!(root.LSCArt295&&root.LSCArt295.getMode()==='preview'&&root.LSCArt295.ready('lumber-l1'))){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'workshop');g.restore();}
     if(b&&b.kind==='harbor'){g.save();var a=[[1,0],[-1,0],[0,1],[0,-1]].find(function(a){var q=tiles[(t.x+a[0])+','+(t.y+a[1])];return q&&q.terrain==='water';})||[1,0],q=project({x:t.x+a[0]*.47,y:t.y+a[1]*.47},c,v);g.strokeStyle='#755436';g.lineWidth=s*.12;g.beginPath();g.moveTo(p.x,p.y+s*.08);g.lineTo(q.x,q.y);g.stroke();g.strokeStyle='#d9b577';g.lineWidth=s*.07;g.stroke();g.restore();boat(q,s*.13);}
    });
    ordered.forEach(function(t){
