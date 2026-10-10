@@ -26,7 +26,7 @@ jobs:
         run: node scripts/test-art-renderer-295.cjs
       - name: Verify iOS preview configuration
         run: |
-          node -e "const fs=require('fs');const s=fs.readFileSync('scripts/set-build-version.js','utf8');if(!s.includes(\"const LSC_BUILD = '298';\"))throw Error('Build 298 marker missing from version script');"
+          node -e "const fs=require('fs');const s=fs.readFileSync('scripts/set-build-version.js','utf8');if(!s.includes(\"const LSC_BUILD = '299';\"))throw Error('Build 299 marker missing from version script');"
           node -e "const fs=require('fs');const s=fs.readFileSync('build.js','utf8');if(!s.includes('window.LSC_BUILD_ART_PREVIEW = true;'))throw Error('Preview flag missing from build bundler');"
       - name: Build full game bundle (iOS prerequisite)
         run: |
