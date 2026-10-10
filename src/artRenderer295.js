@@ -27,6 +27,9 @@ function sort(items){
  });
 }
 function setMode(next){if(next!=='legacy'&&next!=='preview')throw Error('Unknown art mode');mode=next;return mode;}
+function toggleMode(){return setMode(mode==='legacy'?'preview':'legacy');}
+// Explicit developer opt-in only. Do not persist across launches or alter saves.
+if(root.location&&/(?:^|[?&])artPreview=1(?:&|$)/.test(root.location.search||''))mode='preview';
 function paint(g,m,v,c,selected,path,now,cache){
  // Existing map remains authoritative for input, overlays and selection.
  var result=fallback.paint(g,m,v,c,selected,path,now,cache);
@@ -55,5 +58,5 @@ function paint(g,m,v,c,selected,path,now,cache){
  }
  return result;
 }
-root.LSCArt295=Object.freeze({register:register,draw:draw,sort:sort,setMode:setMode,getMode:function(){return mode;},paint:paint,ready:function(key){return !!(sprites[key]&&sprites[key].ready);},previewAvailable:function(){return !!(sprites['hq-l1']&&sprites['hq-l1'].ready);}}});
+root.LSCArt295=Object.freeze({register:register,draw:draw,sort:sort,setMode:setMode,toggleMode:toggleMode,getMode:function(){return mode;},paint:paint,ready:function(key){return !!(sprites[key]&&sprites[key].ready);},previewAvailable:function(){return !!(sprites['hq-l1']&&sprites['hq-l1'].ready);}}});
 })(typeof window!=='undefined'?window:globalThis);
