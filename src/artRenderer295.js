@@ -28,10 +28,30 @@ function sort(items){
 }
 function setMode(next){if(next!=='legacy'&&next!=='preview')throw Error('Unknown art mode');mode=next;return mode;}
 function toggleMode(){return setMode(mode==='legacy'?'preview':'legacy');}
+function installPreviewControl(){
+ if(!root.document||!root.document.body||root.document.getElementById('lsc-art-preview-toggle'))return false;
+ var button=root.document.createElement('button');
+ button.id='lsc-art-preview-toggle';
+ button.type='button';
+ button.textContent='Art: '+(mode==='preview'?'NEW':'OLD');
+ button.setAttribute('aria-label','Toggle experimental world artwork');
+ button.style.cssText='position:fixed;right:12px;top:calc(60px + env(safe-area-inset-top));z-index:50000;padding:9px 12px;background:#142b36;color:#fff;border:2px solid #e9c46a;border-radius:10px;font:700 13px sans-serif;box-shadow:0 2px 10px #0007';
+ button.addEventListener('click',function(){
+  toggleMode();button.textContent='Art: '+(mode==='preview'?'NEW':'OLD');
+ });
+ root.document.body.appendChild(button);
+ return true;
+}
 // Asset may be installed later; failed loads keep the legacy map visible.
 register('hq-l1','assets/new-art/hq-l1.png',{anchorX:.5,anchorY:.94,scale:1});
 // Explicit developer opt-in only. Do not persist across launches or alter saves.
-if(root.location&&/(?:^|[?&])artPreview=1(?:&|$)/.test(root.location.search||''))mode='preview';
+if(root.location&&/(?:^|[?&])artPreview=1(?:&|$)/.test(root.location.search||'')){
+ mode='preview';
+ if(root.document){
+  if(root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',installPreviewControl,{once:true});
+  else installPreviewControl();
+ }
+}
 function paint(g,m,v,c,selected,path,now,cache){
  // Existing map remains authoritative for input, overlays and selection.
  var result=fallback.paint(g,m,v,c,selected,path,now,cache);
@@ -65,5 +85,5 @@ function paint(g,m,v,c,selected,path,now,cache){
  }
  return result;
 }
-root.LSCArt295=Object.freeze({register:register,draw:draw,sort:sort,setMode:setMode,toggleMode:toggleMode,getMode:function(){return mode;},paint:paint,ready:function(key){return !!(sprites[key]&&sprites[key].ready);},previewAvailable:function(){return !!(sprites['hq-l1']&&sprites['hq-l1'].ready);}}});
+root.LSCArt295=Object.freeze({register:register,draw:draw,sort:sort,setMode:setMode,toggleMode:toggleMode,installPreviewControl:installPreviewControl,getMode:function(){return mode;},paint:paint,ready:function(key){return !!(sprites[key]&&sprites[key].ready);},previewAvailable:function(){return !!(sprites['hq-l1']&&sprites['hq-l1'].ready);}}});
 })(typeof window!=='undefined'?window:globalThis);
