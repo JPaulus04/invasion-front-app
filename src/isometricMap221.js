@@ -99,7 +99,7 @@
     g=off.getContext('2d');g.setTransform(r,0,0,r,0,0);
     selection=point&&project(point,c,v);
     try{base();}finally{g=real;selection=oldSelection;v=oldView;}
-    cache.isoView={x:c.x,y:c.y,scale:s,w:v.w,h:v.h};
+    cache.isoView={x:c.x,y:c.y,scale:s,w:oldView.w+pad*2,h:oldView.h+pad*2};
     cache.isoStamp=stamp;cache.isoRebuilds=(cache.isoRebuilds||0)+1;
     saved=cache.isoView;f=1;left=-pad;top=-pad;
    }
