@@ -85,5 +85,5 @@ function paint(g,m,v,c,selected,path,now,cache){
  }
  return result;
 }
-root.LSCArt295=Object.freeze({register:register,draw:draw,sort:sort,setMode:setMode,toggleMode:toggleMode,installPreviewControl:installPreviewControl,getMode:function(){return mode;},paint:paint,ready:function(key){return !!(sprites[key]&&sprites[key].ready);},previewAvailable:function(){return !!(sprites['hq-l1']&&sprites['hq-l1'].ready);}}});
+root.LSCArt295=Object.freeze({register:register,draw:draw,sort:sort,setMode:setMode,toggleMode:toggleMode,installPreviewControl:installPreviewControl,getMode:function(){return mode;},paint:paint,ready:function(key){return !!(sprites[key]&&sprites[key].ready);},previewAvailable:function(){return !!(sprites['hq-l1']&&sprites['hq-l1'].ready);}});
 })(typeof window!=='undefined'?window:globalThis);
