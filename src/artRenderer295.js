@@ -38,7 +38,7 @@ function paint(g,m,v,c,selected,path,now,cache){
  if(!tiles)return result;
  var items=[];
  Object.keys(d.visible||{}).forEach(function(id){
-  if(!d.visible[id]||!d.cleared[id]||!tiles[id])return;
+  if(!d.visible[id]||!tiles[id]||(id!=='0,0'&&!d.cleared[id]))return;
   var t=tiles[id],key=id==='0,0'?'hq-l1':d.buildings&&d.buildings[id]&&d.buildings[id].kind==='workshop'?'lumber-l1':null;
   if(!key||!sprites[key]||!sprites[key].ready)return;
   var p=fallback.project(t,c,v);
