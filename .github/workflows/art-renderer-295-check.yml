@@ -26,5 +26,9 @@ jobs:
         run: |
           node -e "const fs=require('fs');const s=fs.readFileSync('scripts/set-build-version.js','utf8');if(!s.includes(\"const LSC_BUILD = '296';\"))throw Error('Build 296 marker missing from version script');"
           node -e "const fs=require('fs');const s=fs.readFileSync('build.js','utf8');if(!s.includes('window.LSC_BUILD_ART_PREVIEW = true;'))throw Error('Preview flag missing from build bundler');"
+      - name: Build full game bundle (iOS prerequisite)
+        run: |
+          npm run build
+          test -s www/index.html
       - name: Check production art readiness
         run: node scripts/check-art-assets-295.cjs
