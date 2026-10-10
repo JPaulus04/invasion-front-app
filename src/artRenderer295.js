@@ -4,7 +4,7 @@
  */
 (function(root){
 'use strict';
-var sprites=Object.create(null),mode='legacy',fallback=root.LSCIso221;
+var sprites=Object.create(null),mode='preview',fallback=root.LSCIso221;
 function register(key,url,options){
  if(!/^[a-z][a-z0-9_-]*$/.test(key))throw Error('Invalid sprite key');
  if(!/^assets\/[a-zA-Z0-9_./-]+\.(png|webp)$/.test(url)||url.includes('..'))throw Error('Invalid asset path');
@@ -28,32 +28,13 @@ function sort(items){
 }
 function setMode(next){if(next!=='legacy'&&next!=='preview')throw Error('Unknown art mode');mode=next;return mode;}
 function toggleMode(){return setMode(mode==='legacy'?'preview':'legacy');}
-function installPreviewControl(){
- if(!root.document||!root.document.body||root.document.getElementById('lsc-art-preview-toggle'))return false;
- var button=root.document.createElement('button');
- button.id='lsc-art-preview-toggle';
- button.type='button';
- button.textContent='Art: '+(mode==='preview'?'NEW':'OLD');
- button.setAttribute('aria-label','Toggle experimental world artwork');
- button.style.cssText='position:fixed;left:12px;top:calc(180px + env(safe-area-inset-top));z-index:50000;padding:9px 12px;background:#142b36;color:#fff;border:2px solid #e9c46a;border-radius:10px;font:700 13px sans-serif;box-shadow:0 2px 10px #0007';
- button.addEventListener('click',function(){
-  toggleMode();button.textContent='Art: '+(mode==='preview'?'NEW':'OLD');
- });
- root.document.body.appendChild(button);
- return true;
-}
+// Build 299: the modern world is the normal presentation. No player-facing art switch.
+function installPreviewControl(){return false;}
 // Asset may be installed later; failed loads keep the legacy map visible.
 register('hq-l1','assets/new-art/hq-l1.png',{anchorX:.5,anchorY:.94,scale:1});
 register('lumber-l1','assets/new-art/lumber-l1.png',{anchorX:.5,anchorY:.94,scale:1});
 register('quarry-l1','assets/new-art/quarry-l1.png',{anchorX:.5,anchorY:.94,scale:1});
-// Explicit developer opt-in only. Do not persist across launches or alter saves.
-if((root.location&&/(?:^|[?&])artPreview=1(?:&|$)/.test(root.location.search||''))||root.LSC_BUILD_ART_PREVIEW===true){
- mode='preview';
- if(root.document){
-  if(root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',installPreviewControl,{once:true});
-  else installPreviewControl();
- }
-}
+// A legacy mode remains available to internal regression tests only.
 function paint(g,m,v,c,selected,path,now,cache){
  // Existing map remains authoritative for input, overlays and selection.
  var result=fallback.paint(g,m,v,c,selected,path,now,cache);
