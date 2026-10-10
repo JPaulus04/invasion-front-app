@@ -42,6 +42,17 @@ function paint(g,m,v,c,selected,path,now,cache){
   items.push({id:id,key:key,x:p.x,y:p.y,depth:p.y});
  });
  sort(items).forEach(function(item){draw(g,item.key,item.x,item.y+c.scale*.14,c.scale*.88);});
+ // Preview sprites are painted after the legacy scene; restore the selection
+ // indicator so tall art cannot hide the player's active tile.
+ if(selected&&tiles[selected]&&d.visible[selected]){
+  var focus=fallback.project(tiles[selected],c,v),scale=c.scale;
+  g.save();g.beginPath();
+  g.moveTo(focus.x,focus.y-scale*.25);
+  g.lineTo(focus.x+scale*.5,focus.y);
+  g.lineTo(focus.x,focus.y+scale*.25);
+  g.lineTo(focus.x-scale*.5,focus.y);
+  g.closePath();g.strokeStyle='#ffe79b';g.lineWidth=Math.max(2,scale*.035);g.stroke();g.restore();
+ }
  return result;
 }
 root.LSCArt295=Object.freeze({register:register,draw:draw,sort:sort,setMode:setMode,getMode:function(){return mode;},paint:paint,ready:function(key){return !!(sprites[key]&&sprites[key].ready);},previewAvailable:function(){return !!(sprites['hq-l1']&&sprites['hq-l1'].ready);}}});
