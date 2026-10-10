@@ -115,7 +115,13 @@ replaceOnce(routeAnchor, route243, 'legacy building sprite route');
 const hookAnchor = "if(t.id==='0,0'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'town'+Math.max(1,Math.min(3,api.villageLevel?api.villageLevel(m):1)));g.restore();}";
 const hook243 = `var artTier243=Math.max(1,Math.min(3,api.villageLevel?api.villageLevel(m):1));
     if(t.id==='0,0'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'townHall'+artTier243);g.restore();}`;
-replaceOnce(hookAnchor, hook243, 'HQ town hall route');
+// Preserve the opt-in HQ sprite guard while migrating the older town-hall hook.
+const previewGuard="t.id==='0,0'&&!(root.LSCArt295&&root.LSCArt295.getMode()==='preview'&&root.LSCArt295.ready('hq-l1'))";
+const previewHookAnchor=hookAnchor.replace("t.id==='0,0'",previewGuard);
+const previewHook243=hook243.replace("t.id==='0,0'",previewGuard);
+if(r.includes(previewHookAnchor))r=r.replace(previewHookAnchor,previewHook243);
+else if(r.includes(previewHook243)){} // Already migrated; keep idempotent.
+else replaceOnce(hookAnchor,hook243,'HQ town hall route');
 
 const workshopHook = "if(b&&b.kind==='workshop'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'workshop');g.restore();}\n    if(b&&b.kind==='quarry'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'quarry');g.restore();}\n    if(b&&b.kind==='ironMine'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'mine');g.restore();}";
 const buildingHooks243 = "if(b&&b.kind==='farm'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'farm'+artTier243);g.restore();}\n    if(b&&b.kind==='house'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'homestead'+artTier243);g.restore();}\n    if(b&&b.kind==='workshop'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'sawmill'+artTier243);g.restore();}\n    if(b&&b.kind==='quarry'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'stoneQuarry'+artTier243);g.restore();}\n    if(b&&b.kind==='ironMine'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'ironMine'+artTier243);g.restore();}";
