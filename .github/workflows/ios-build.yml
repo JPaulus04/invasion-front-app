@@ -1,7 +1,7 @@
 name: iOS Compile Check
 on:
   push:
-    branches: [main]
+    branches: [outpost-zero]
   pull_request:
 jobs:
   build:
