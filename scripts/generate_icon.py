@@ -35,7 +35,7 @@ def pixel(x, y):
         r, g, b = 250, 191, 62
     if (x - 512) ** 2 + (y - 525) ** 2 <= 47 ** 2:
         r, g, b = 24, 48, 64
-    return bytes((r, g, b, 255))
+    return bytes((r, g, b))
 
 def chunk(tag, data):
     return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
@@ -47,7 +47,7 @@ for y in range(SIZE):
     compressed.append(compressor.compress(row))
 compressed.append(compressor.flush())
 png = b"\x89PNG\r\n\x1a\n"
-png += chunk(b"IHDR", struct.pack(">IIBBBBB", SIZE, SIZE, 8, 6, 0, 0, 0))
+png += chunk(b"IHDR", struct.pack(">IIBBBBB", SIZE, SIZE, 8, 2, 0, 0, 0))
 png += chunk(b"IDAT", b"".join(compressed))
 png += chunk(b"IEND", b"")
 output.write_bytes(png)
