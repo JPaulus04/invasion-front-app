@@ -16,6 +16,9 @@ const ctx={Image:FakeImage,LSCIso221:{
 vm.runInNewContext(source,ctx,{filename:'artRenderer295.js'});
 const art=ctx.LSCArt295;
 assert.equal(art.getMode(),'legacy');
+assert.equal(art.installPreviewControl(),false,'No DOM should leave the preview UI disabled');
+assert.equal(art.toggleMode(),'preview');
+assert.equal(art.toggleMode(),'legacy');
 assert.equal(art.paint({},null,null,null), 'legacy-result');
 assert.equal(legacyCalls,1);
 assert.throws(()=>art.setMode('broken'),/Unknown art mode/);
