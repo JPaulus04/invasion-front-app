@@ -2,12 +2,12 @@
 const fs=require('fs');
 let c=fs.readFileSync('src/config.js','utf8');
 if(!/const LSC_BUILD = '\d+';/.test(c))throw Error('LSC build marker missing');
-c=c.replace(/const LSC_BUILD = '\d+';/,"const LSC_BUILD = '294';").replace(/Build 2\d\d/g,'Build 294');
+c=c.replace(/const LSC_BUILD = '\d+';/,"const LSC_BUILD = '295';").replace(/Build 2\d\d/g,'Build 295');
 fs.writeFileSync('src/config.js',c,'utf8');
 
 let b=fs.readFileSync('build.js','utf8');
-b=b.replace(/Build 2\d\d/g,'Build 294')
-   .replace(/LSC_BUILD = '2\d\d'/g,"LSC_BUILD = '294'")
+b=b.replace(/Build 2\d\d/g,'Build 295')
+   .replace(/LSC_BUILD = '2\d\d'/g,"LSC_BUILD = '295'")
    .replace(/Last Stand Command 2\d\d/g,'Last Stand Command 277');
 if(!b.includes("'commanders260.js'"))b=b.replace("  'campaignSaves.js',", "  'campaignSaves.js',\n  'commanders260.js',\n  'commanderView260.js',");
 if(!b.includes("'defensePreparation268.js'"))b=b.replace("  'campaignSaves.js',", "  'campaignSaves.js',\n  'defensePreparation268.js',");
@@ -16,4 +16,4 @@ let map=fs.readFileSync('src/isometricMap221.js','utf8');
 map=map.replace("else if(selected&&d.visible[selected]&&api.ironDeposit(selected))", "else if(selected==='0,0')badge(selected,'HEADQUARTERS','#efcf80');\n  else if(selected&&d.visible[selected]&&!api.tile(selected).town&&api.ironDeposit(selected))");
 map=map.replace("else if(selected&&d.visible[selected]&&api.stoneDeposit(selected))", "else if(selected&&d.visible[selected]&&!api.tile(selected).town&&api.stoneDeposit(selected))");
 fs.writeFileSync('src/isometricMap221.js',map,'utf8');
-console.log('LSC build marker: 294');
+console.log('LSC build marker: 295');
