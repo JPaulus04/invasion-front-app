@@ -31,16 +31,20 @@ const oldStandalone="function standalone(p,name){var im=buildingArt[name],layout
 const newStandalone="function standalone(p,name,mult){var im=buildingArt[name],layout=buildingLayout[name]||{scale:.7,anchorX:.5,groundY:.14};if(!im||(!im.naturalWidth&&!im.width))return false;var iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,w=s*layout.scale*(mult||1),h=w*ih/iw;g.drawImage(im,p.x-w*layout.anchorX,p.y+s*layout.groundY-h,w,h);return true;}";
 swap(oldStandalone,newStandalone,'standalone scale multiplier');
 
-swap(
- "if(b&&b.kind==='quarry'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'stoneQuarry'+artTier243);g.restore();}",
- "if(b&&b.kind==='quarry'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'stoneQuarry'+artTier243,(Math.abs(t.x)+Math.abs(t.y)<=1)?.76:1);g.restore();}",
- 'quarry HQ clearance'
-);
-swap(
- "if(b&&b.kind==='ironMine'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'ironMine'+artTier243);g.restore();}",
- "if(b&&b.kind==='ironMine'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'ironMine'+artTier243,(Math.abs(t.x)+Math.abs(t.y)<=1)?.76:1);g.restore();}",
- 'iron mine HQ clearance'
-);
+// The modern art-preview renderer routes quarry/ironMine through its own
+// sprite-aware branch. Preserve that branch rather than demanding the legacy
+// standalone quarry hook; only adjust old-style hooks when present.
+[
+ ['quarry','stoneQuarry'],
+ ['ironMine','ironMine']
+].forEach(function(entry){
+ const kind=entry[0],art=entry[1];
+ const old="if(b&&b.kind==='"+kind+"'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'"+art+"'+artTier243);g.restore();}";
+ const next="if(b&&b.kind==='"+kind+"'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'"+art+"'+artTier243,(Math.abs(t.x)+Math.abs(t.y)<=1)?.76:1);g.restore();}";
+ if(r.includes(old))swap(old,next,kind+' HQ clearance');
+ else if(!r.includes(next)&&!r.includes("var newSprite=b.kind==='quarry'?'quarry-l1'"))
+  throw Error('Build 246 missing '+kind+' renderer');
+});
 
 // Keep Build 245 forest geography, but reduce large sprite draws dramatically.
 const oldForest=`function forest243(p,t){
