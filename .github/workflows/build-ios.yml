@@ -45,7 +45,8 @@ jobs:
       - name: Build game bundle
         run: |
           npm run build
-          node scripts/test-world-infrastructure.cjs
+          LSC_MODERN_ART=1 node scripts/test-world-infrastructure.cjs
+          node scripts/test-art-renderer-295.cjs
           node scripts/test-ground-textures.cjs
           node scripts/test-road-polish.cjs
           node scripts/test-village-development.cjs
