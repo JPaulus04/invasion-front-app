@@ -32,7 +32,10 @@ const newRoute=`if(t.id==='0,0'){name=null;width=s*.88;}
 const previewRoute=`if(t.id==='0,0'){if(!(root.LSCArt295&&root.LSCArt295.getMode()==='preview'&&root.LSCArt295.ready('hq-l1'))){name='town1';width=s*.88;}}
     else if(b){name=b.kind==='workshop'?null:({farm:'farm',quarry:'mine',ironMine:'mine',house:'house',tower:'tower',harbor:'house'}[b.kind]||'house');width=b.kind==='tower'?s*.43:s*.72;}
     else if(t.town){name=t.town%2?'town1':'town2';width=s*.85;}`;
-if(r.includes(previewRoute))r=r.replace(previewRoute,newRoute);
+// New art may add per-building fallback guards to the source route.
+const currentPreviewRoute=/if\(t\.id==='0,0'\)\{if\(!\(root\.LSCArt295[\s\S]*?\}\}\n    else if\(b\)\{[\s\S]*?\}\n    else if\(t\.town\)\{name=t\.town%2\?'town1':'town2';width=s\*\.85;\}/;
+if(currentPreviewRoute.test(r))r=r.replace(currentPreviewRoute,newRoute);
+else if(r.includes(previewRoute))r=r.replace(previewRoute,newRoute);
 else r=swap(r,oldRoute,newRoute,'legacy sprite route');
 
 const oldHook=`if(b&&b.kind==='workshop'){g.save();if(!colored)g.globalAlpha=.58;standalone(p,'workshop');g.restore();}`;
