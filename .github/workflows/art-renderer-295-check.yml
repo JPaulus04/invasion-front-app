@@ -1,0 +1,20 @@
+name: Art Renderer 295 Checks
+on:
+  push:
+    branches: [art-renderer-foundation-295]
+  workflow_dispatch:
+jobs:
+  renderer-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check src/artRenderer295.js
+          node --check src/settlementView205.js
+          node --check scripts/test-art-renderer-295.cjs
+      - name: Test preview renderer
+        run: node scripts/test-art-renderer-295.cjs
