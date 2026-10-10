@@ -32,19 +32,19 @@ jobs:
         run: |
           npm run build
           test -s www/index.html
-      - name: Verify packaged Build 299 and modern renderer
+      - name: Verify packaged Build 300 and modern renderer
         run: |
           node - <<'NODE'
           const fs = require('node:fs');
           const assert = require('node:assert/strict');
           const html = fs.readFileSync('www/index.html', 'utf8');
           const config = fs.readFileSync('src/config.js', 'utf8');
-          assert.match(config, /const LSC_BUILD = '299';/, 'Version script did not set Build 299');
-          assert.match(html, /const LSC_BUILD = '299';/, 'Bundled game version is not 299');
+          assert.match(config, /const LSC_BUILD = '300';/, 'Version script did not set Build 300');
+          assert.match(html, /const LSC_BUILD = '300';/, 'Bundled game version is not 299');
           assert.ok(html.includes('window.LSC_BUILD_ART_PREVIEW = true;'), 'Modern art bundle flag missing');
           assert.ok(html.includes('root.LSCArt295=Object.freeze'), 'Modern renderer not bundled');
           assert.ok(html.includes("mode='preview'"), 'Modern renderer is not the default');
-          console.log('PASS: Build 299 bundled with modern art enabled');
+          console.log('PASS: Build 300 bundled with modern art enabled');
           NODE
       - name: Check production art readiness
         run: node scripts/check-art-assets-295.cjs --require-assets
