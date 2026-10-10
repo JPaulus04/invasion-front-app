@@ -50,6 +50,10 @@ const newHook=`if(t.id==='0,0'){g.save();if(!colored)g.globalAlpha=.58;standalon
 const previewHook=newHook.replace("if(t.id==='0,0'){g.save();", "if(t.id==='0,0'&&!(root.LSCArt295&&root.LSCArt295.getMode()==='preview'&&root.LSCArt295.ready('hq-l1'))){g.save();");
 if(r.includes(newHook))r=r.replace(newHook,previewHook);
 else if(r.includes(oldHook))r=r.replace(oldHook,previewHook);
+else if(r.includes("if(b&&b.kind==='workshop'&&!(root.LSCArt295")){
+ // Modern art-preview renderer already owns the legacy building fallback.
+ // Do not overwrite it with the obsolete Build 231 standalone-art hook.
+}
 else if(!r.includes(previewHook))throw Error('Build 231 baseline missing: Priority A rendering');
 if(!r.includes("if(!standalone(q,'fishingBoat'))boat(q,s*.13);")){
  if(!r.includes("boat(q,s*.13);"))throw Error('Build 231 fishing boat baseline missing');
