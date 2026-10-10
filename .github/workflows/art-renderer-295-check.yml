@@ -15,6 +15,7 @@ jobs:
         run: |
           node --check build.js
           node --check scripts/set-build-version.js
+          node --check src/isometricMap221.js
           node --check src/artRenderer295.js
           node --check src/settlementView205.js
           node --check scripts/test-art-renderer-295.cjs
@@ -23,7 +24,7 @@ jobs:
         run: node scripts/test-art-renderer-295.cjs
       - name: Verify iOS preview configuration
         run: |
-          grep -q "LSC_BUILD = '295'" scripts/set-build-version.js
+          grep -q "LSC_BUILD = '296'" scripts/set-build-version.js
           grep -q 'LSC_BUILD_ART_PREVIEW = true' build.js
       - name: Check production art readiness
         run: node scripts/check-art-assets-295.cjs
