@@ -38,7 +38,7 @@
   function improvedRoad(p,t,mask,tier){if(tier<2||t.terrain==='water')return;var connections=[[1,0,1],[-1,0,2],[0,1,4],[0,-1,8]].filter(function(a){return mask&a[2];});if(!connections.length)connections=[[1,0,1],[-1,0,2]];g.save();g.lineCap='round';g.lineJoin='round';connections.forEach(function(a){var q=project({x:t.x+a[0]*.5,y:t.y+a[1]*.5},c,v);g.beginPath();g.moveTo(p.x,p.y);g.lineTo(q.x,q.y);g.strokeStyle=tier>=3?'#66645b99':'#d8b87c77';g.lineWidth=tier>=3?s*.13:s*.075;g.stroke();if(tier>=3){g.strokeStyle='#c9c4adbb';g.lineWidth=s*.075;g.stroke();}});g.fillStyle=tier>=3?'#c9c4adbb':'#d8b87c77';g.beginPath();g.arc(p.x,p.y,tier>=3?s*.038:s*.024,0,Math.PI*2);g.fill();g.restore();}
   function badge(id,text,color){var p=at(id);if(!p)return;g.font='bold 11px system-ui';g.textAlign='center';var w=Math.min(260,g.measureText(text).width+12);g.fillStyle='#092125ed';g.fillRect(p.x-w/2,p.y+s*.21,w,18);g.fillStyle=color||'#f9e2a2';g.fillText(text,p.x,p.y+s*.21+13,w-8);}
   function base(){
-   g.fillStyle='#030808';g.fillRect(0,0,v.w,v.h);
+   var modernBackdrop=root.LSCArt295&&root.LSCArt295.getMode()==='preview';g.fillStyle=modernBackdrop?'#354f45':'#030808';g.fillRect(0,0,v.w,v.h);
    var ordered=Object.keys(d.visible).filter(function(id){return d.visible[id]&&tiles[id];}).map(function(id){return tiles[id];}).sort(function(a,b){return a.x+a.y-b.x-b.y||a.x-b.x;});
    ordered.forEach(function(t){var p=at(t.id);if(p.x+s<0||p.x-s>v.w||p.y+s<0||p.y-s*2>v.h)return;var colored=!!d.cleared[t.id]||t.terrain==='water',modern=root.LSCArt295&&root.LSCArt295.getMode()==='preview';diamond(g,p,s+.6);g.fillStyle=modern?(colored?(t.terrain==='water'?'#3b8296':t.terrain==='bank'?'#c2b78b':t.terrain==='hill'?'#7d947c':'#79aa79'):'#455d5b'):(colored?(t.terrain==='water'?'#438fd0':t.terrain==='bank'?'#cbb873':t.terrain==='hill'?'#817759':'#83a841'):'#64696a');g.fill();g.save();diamond(g,p,s+.6);g.clip();if(!modern)sprite(p,t.terrain==='water'?'water':t.terrain==='bank'?'sand':t.terrain==='hill'?'rock':'grass',s+1,colored,true);if(modern&&colored){g.fillStyle=t.terrain==='water'?'#8bc1c544':t.terrain==='bank'?'#f3dcaa44':t.terrain==='hill'?'#c5d5b044':'#d3e8a633';g.beginPath();g.moveTo(p.x,p.y-s*.22);g.lineTo(p.x+s*.43,p.y);g.lineTo(p.x,p.y-s*.045);g.closePath();g.fill();}
     // Stylized resource accents use the same predicates as construction rules.
@@ -99,7 +99,7 @@
     g=off.getContext('2d');g.setTransform(r,0,0,r,0,0);
     selection=point&&project(point,c,v);
     try{base();}finally{g=real;selection=oldSelection;v=oldView;}
-    cache.isoView={x:c.x,y:c.y,scale:s,w:v.w+pad*2,h:v.h+pad*2};
+    cache.isoView={x:c.x,y:c.y,scale:s,w:v.w,h:v.h};
     cache.isoStamp=stamp;cache.isoRebuilds=(cache.isoRebuilds||0)+1;
     saved=cache.isoView;f=1;left=-pad;top=-pad;
    }
