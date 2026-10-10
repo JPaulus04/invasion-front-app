@@ -45,7 +45,7 @@ function installPreviewControl(){
 // Asset may be installed later; failed loads keep the legacy map visible.
 register('hq-l1','assets/new-art/hq-l1.png',{anchorX:.5,anchorY:.94,scale:1});
 // Explicit developer opt-in only. Do not persist across launches or alter saves.
-if(root.location&&/(?:^|[?&])artPreview=1(?:&|$)/.test(root.location.search||'')){
+if((root.location&&/(?:^|[?&])artPreview=1(?:&|$)/.test(root.location.search||''))||root.LSC_BUILD_ART_PREVIEW===true){
  mode='preview';
  if(root.document){
   if(root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',installPreviewControl,{once:true});
