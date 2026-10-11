@@ -41,6 +41,7 @@ final class OutpostScene: SKScene {
     private var aimPoint: CGPoint?
     private var chainLevel = 0
     private var chainUpgrades = 0
+    private var awaitingMenuRelease = false
     private let damageFlash = SKShapeNode()
     private let warning = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let arena = SKNode()
@@ -189,13 +190,16 @@ final class OutpostScene: SKScene {
     private func lockMenuBriefly() {
         menuUnlockTime = clock + 1.0
         menuNeedsFreshTouch = true
+        awaitingMenuRelease = heldTouch != nil
+        heldTouch = nil
+        aimPoint = nil
     }
 
     private func showReady() {
         phase = .ready
         clearOverlay()
         overlayText("DEFEND THE OUTPOST", y: 65, fontSize: 22)
-        overlayText("Tap or hold and drag to fire", y: 20, fontSize: 17)
+        overlayText("Tap, hold or drag to fire", y: 20, fontSize: 17)
         actionButton("START DEFENSE", key: "start", y: -45, tint: .systemTeal)
     }
 
@@ -310,6 +314,8 @@ final class OutpostScene: SKScene {
         }), distance(enemies[index].node.position, point) < 45 else { return }
         lastShot = clock
         let target = enemies[index].node.position
+        turretNode?.removeAction(forKey: "recoil")
+        turretNode?.run(.sequence([.scale(to: 0.87, duration: 0.035), .scale(to: 1.0, duration: 0.08)]), withKey: "recoil")
         turretNode?.zRotation = atan2(target.y - base.position.y, target.x - base.position.x) - .pi / 2
         let tracer = SKShapeNode()
         let path = CGMutablePath()
@@ -437,12 +443,14 @@ final class OutpostScene: SKScene {
         guard let touch = touches.first else { return }
         let point = touch.location(in: self)
         if phase == .playing {
+            guard heldTouch == nil else { return }
             heldTouch = touch
             aimPoint = point
             shoot(at: point)
             return
         }
-        if menuNeedsFreshTouch || clock < menuUnlockTime { return }
+        if clock < menuUnlockTime || awaitingMenuRelease { return }
+        menuNeedsFreshTouch = false
         let local = touch.location(in: overlay)
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
         switch (phase, tapped) {
@@ -472,6 +480,7 @@ final class OutpostScene: SKScene {
             self.heldTouch = nil
             aimPoint = nil
         }
+        awaitingMenuRelease = false
         if clock >= menuUnlockTime { menuNeedsFreshTouch = false }
     }
 
@@ -480,6 +489,7 @@ final class OutpostScene: SKScene {
             self.heldTouch = nil
             aimPoint = nil
         }
+        awaitingMenuRelease = false
         menuNeedsFreshTouch = false
     }
 
