@@ -1,7 +1,7 @@
 import SpriteKit
 
 final class OutpostScene: SKScene {
-    private enum Phase { case ready, playing, upgrades, gameOver }
+    private enum Phase { case ready, playing, upgrades, milestone, worldComplete, gameOver }
     private struct Enemy {
         let node: SKShapeNode
         var health: Int
@@ -41,6 +41,11 @@ final class OutpostScene: SKScene {
     private var aimPoint: CGPoint?
     private var chainLevel = 0
     private var chainUpgrades = 0
+    private var explosiveLevel = 0
+    private var incendiaryLevel = 0
+    private var burns: [ObjectIdentifier: (damage: Int, until: TimeInterval, nextTick: TimeInterval)] = [:]
+    private let worldWaveCount = 20
+    private var chosenAbilities: Int { [chainLevel, explosiveLevel, incendiaryLevel].filter { $0 > 0 }.count }
     private var awaitingMenuRelease = false
     private let damageFlash = SKShapeNode()
     private let warning = SKLabelNode(fontNamed: "AvenirNext-Heavy")
@@ -129,7 +134,7 @@ final class OutpostScene: SKScene {
 
     private func updateHUD() {
         title.text = "OUTPOST ZERO"
-        subtitle.text = "WAVE \(wave)  •  COINS \(coins)"
+        subtitle.text = "FRONTIER FOREST  •  \(wave)/\(worldWaveCount)  •  \(coins) COINS"
         info.text = "BASE \(health) HP  •  DAMAGE \(damage)  •  RATE \(fireRate)"
     }
 
@@ -213,7 +218,7 @@ final class OutpostScene: SKScene {
         spawned = 0
         upgradePurchased = false
         upgradeConfirmed = false
-        waveTarget = min(60, 6 + wave * 4)
+        waveTarget = wave == worldWaveCount ? 1 : min(60, 6 + wave * 4)
         spawnClock = 1.2
         waveElapsed = 0
         streak = 0
@@ -221,8 +226,9 @@ final class OutpostScene: SKScene {
     }
 
     private func spawnEnemy() {
-        let type = Int.random(in: 0...2)
-        let radius: CGFloat = type == 1 ? 23 : (type == 2 ? 17 : 14)
+        let isBoss = wave == worldWaveCount
+        let type = isBoss ? 1 : Int.random(in: 0...2)
+        let radius: CGFloat = isBoss ? 37 : (type == 1 ? 23 : (type == 2 ? 17 : 14))
         let node = SKShapeNode(circleOfRadius: radius)
         node.fillColor = type == 1 ? .systemRed : (type == 2 ? .systemPurple : .systemOrange)
         node.strokeColor = type == 1 ? .systemYellow : .white
@@ -249,8 +255,8 @@ final class OutpostScene: SKScene {
         node.zPosition = 5
         arena.addChild(node)
         let scaling = max(0, wave - 1)
-        let enemyHP = type == 1 ? 5 + scaling * 2 : (type == 2 ? 2 + scaling : 2 + scaling)
-        let speed = CGFloat(type == 2 ? 105 : (type == 1 ? 38 : 65)) + CGFloat(min(wave * 3, 45))
+        let enemyHP = isBoss ? 180 : (type == 1 ? 5 + scaling * 2 : 2 + scaling)
+        let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 1 ? 38 : 65)) + CGFloat(min(wave * 3, 45))
         let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
         healthTrack.strokeColor = .clear
@@ -262,7 +268,7 @@ final class OutpostScene: SKScene {
         healthBar.position.y = radius + 12
         healthBar.zPosition = 1
         node.addChild(healthBar)
-        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: type == 1 ? 12 : 6))
+        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: isBoss ? 250 : (type == 1 ? 12 : 6)))
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -274,6 +280,7 @@ final class OutpostScene: SKScene {
         if let aimPoint { shoot(at: aimPoint) }
         spawnClock += dt
         waveElapsed += dt
+        applyBurns()
         let spawnInterval = max(0.28, 1.12 - Double(wave) * 0.045)
         if spawned < waveTarget && spawnClock >= spawnInterval {
             spawnClock = 0
@@ -304,7 +311,11 @@ final class OutpostScene: SKScene {
             }
         }
         if health == 0 { endGame(); return }
-        if spawned == waveTarget && enemies.isEmpty { completeWave() }
+        if spawned == waveTarget && enemies.isEmpty {
+            if wave == worldWaveCount { completeWorld() }
+            else if wave % 5 == 0 { showMilestone() }
+            else { completeWave() }
+        }
     }
 
     private func shoot(at point: CGPoint) {
@@ -329,6 +340,15 @@ final class OutpostScene: SKScene {
         tracer.run(.sequence([.fadeOut(withDuration: 0.055), .removeFromParent()]))
         impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= damage)
         enemies[index].health -= damage
+        if incendiaryLevel > 0 {
+            burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel, until: clock + 2.5, nextTick: clock + 0.5)
+        }
+        if explosiveLevel > 0 {
+            for other in enemies.indices where other != index && distance(enemies[other].node.position, target) < CGFloat(35 + explosiveLevel * 15) {
+                enemies[other].health -= max(1, damage * explosiveLevel / 3)
+                impact(at: enemies[other].node.position, color: .systemOrange, destroyed: false)
+            }
+        }
         let fraction = CGFloat(max(0, enemies[index].health)) / CGFloat(enemies[index].maxHealth)
         enemies[index].healthBar.xScale = max(0.001, fraction)
         enemies[index].healthBar.fillColor = fraction > 0.5 ? .systemGreen : (fraction > 0.25 ? .systemYellow : .systemRed)
@@ -377,9 +397,25 @@ final class OutpostScene: SKScene {
         for index in enemies.indices.reversed() where enemies[index].health <= 0 {
             streak += 1
             coins += enemies[index].reward
+            burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
         }
+    }
+
+    private func applyBurns() {
+        for index in enemies.indices {
+            let key = ObjectIdentifier(enemies[index].node)
+            guard var burn = burns[key] else { continue }
+            if clock >= burn.until { burns.removeValue(forKey: key); continue }
+            if clock >= burn.nextTick {
+                enemies[index].health -= burn.damage
+                burn.nextTick = clock + 0.5
+                burns[key] = burn
+                impact(at: enemies[index].node.position, color: .systemOrange, destroyed: false)
+            }
+        }
+        removeDefeatedEnemies()
     }
 
     private func distance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
@@ -400,10 +436,61 @@ final class OutpostScene: SKScene {
         overlayText("DMG \(damage)  •  RATE \(fireRate)  •  CHAIN \(chainLevel)", y: 55, fontSize: 16)
         actionButton("DAMAGE \(damage) → \(damage + 1)    \(damageCost) COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= damageCost)
         actionButton("RATE \(fireRate) → \(fireRate + 1)    \(rateCost) COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= rateCost && fireRate < 5)
-        actionButton("CHAIN \(chainLevel) → \(chainLevel + 1)    \(chainCost) COINS", key: "chain", y: -80, tint: .systemPurple, enabled: coins >= chainCost && chainLevel < 4)
+        overlayText("ABILITIES: \(chosenAbilities)/3  •  EVERY 5 WAVES", y: -80, fontSize: 13)
         actionButton("REPAIR HP    \(repairCost) COINS", key: "repair", y: -125, tint: .systemGreen, enabled: coins >= repairCost && health < 100)
         actionButton("NEXT WAVE", key: "next", y: -178, tint: .systemTeal)
         updateHUD()
+    }
+
+
+    private func showMilestone() {
+        phase = .milestone
+        lockMenuBriefly()
+        clearOverlay()
+        overlayText("WAVE \(wave) — ABILITY CHOICE", y: 104, fontSize: 20)
+        overlayText("EQUIPPED \(chosenAbilities)/3  •  MAX LEVEL 3", y: 66, fontSize: 14)
+        let abilities: [(String, String, Int, SKColor)] = [
+            ("chain", "CHAIN LIGHTNING", chainLevel, .systemCyan),
+            ("explosive", "EXPLOSIVE ROUNDS", explosiveLevel, .systemOrange),
+            ("incendiary", "INCENDIARY ROUNDS", incendiaryLevel, .systemRed)
+        ]
+        for (index, ability) in abilities.enumerated() {
+            let available = ability.2 > 0 ? ability.2 < 3 : chosenAbilities < 3
+            let description = ability.2 == 0 ? "UNLOCK" : "LEVEL \(ability.2) → \(ability.2 + 1)"
+            actionButton("\(ability.1)  •  \(description)", key: ability.0,
+                         y: CGFloat(15 - index * 55), tint: ability.3, enabled: available)
+        }
+        overlayText("CHOOSE ONE — FREE REWARD", y: -168, fontSize: 14)
+    }
+
+    private func chooseMilestone(_ ability: String) {
+        switch ability {
+        case "chain":
+            guard chainLevel < 3 && (chainLevel > 0 || chosenAbilities < 3) else { return }
+            chainLevel += 1
+        case "explosive":
+            guard explosiveLevel < 3 && (explosiveLevel > 0 || chosenAbilities < 3) else { return }
+            explosiveLevel += 1
+        case "incendiary":
+            guard incendiaryLevel < 3 && (incendiaryLevel > 0 || chosenAbilities < 3) else { return }
+            incendiaryLevel += 1
+        default: return
+        }
+        completeWave()
+    }
+
+    private func completeWorld() {
+        phase = .worldComplete
+        lockMenuBriefly()
+        clearOverlay()
+        UserDefaults.standard.set(true, forKey: "frontierForestComplete")
+        let stars = health >= 90 ? 3 : (health >= 50 ? 2 : 1)
+        let previous = UserDefaults.standard.integer(forKey: "frontierForestStars")
+        UserDefaults.standard.set(max(stars, previous), forKey: "frontierForestStars")
+        overlayText("FRONTIER FOREST CLEARED", y: 85, fontSize: 21)
+        overlayText("20 WAVES DEFEATED", y: 40, fontSize: 19)
+        overlayText("\(stars) / 3 STARS  •  BASE \(health) HP", y: -5, fontSize: 18)
+        actionButton("PLAY AGAIN", key: "restart", y: -85, tint: .systemTeal)
     }
 
     private func endGame() {
@@ -431,6 +518,9 @@ final class OutpostScene: SKScene {
         rateUpgrades = 0
         chainLevel = 0
         chainUpgrades = 0
+        explosiveLevel = 0
+        incendiaryLevel = 0
+        burns.removeAll()
         heldTouch = nil
         aimPoint = nil
         lastShot = -100
@@ -455,13 +545,14 @@ final class OutpostScene: SKScene {
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
         switch (phase, tapped) {
         case (.ready, "start"): startWave()
-        case (.gameOver, "restart"): restart()
+        case (.gameOver, "restart"), (.worldComplete, "restart"): restart()
+        case (.milestone, "chain"): chooseMilestone("chain")
+        case (.milestone, "explosive"): chooseMilestone("explosive")
+        case (.milestone, "incendiary"): chooseMilestone("incendiary")
         case (.upgrades, "damage") where !upgradePurchased && coins >= damageCost:
             coins -= damageCost; damage += 1; damageUpgrades += 1; completeUpgrade()
         case (.upgrades, "rate") where !upgradePurchased && coins >= rateCost && fireRate < 5:
             coins -= rateCost; fireRate += 1; rateUpgrades += 1; completeUpgrade()
-        case (.upgrades, "chain") where !upgradePurchased && coins >= chainCost && chainLevel < 4:
-            coins -= chainCost; chainLevel += 1; chainUpgrades += 1; completeUpgrade()
         case (.upgrades, "repair") where !upgradePurchased && coins >= repairCost && health < 100:
             coins -= repairCost; health = min(100, health + 30); completeUpgrade()
         case (.upgrades, "next"): startWave()
