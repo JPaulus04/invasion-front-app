@@ -531,6 +531,16 @@ final class OutpostScene: SKScene {
         let stars = health * 10 >= maximumHealth * 9 ? 3 : (health * 2 >= maximumHealth ? 2 : 1)
         let previous = UserDefaults.standard.integer(forKey: "frontierForestStars")
         UserDefaults.standard.set(max(stars, previous), forKey: "frontierForestStars")
+        showWorldCompleteSummary()
+
+    }
+
+    private func showWorldCompleteSummary() {
+        phase = .worldComplete
+        ArcadeMusic.shared.play(.headquarters)
+        lockMenuBriefly()
+        clearOverlay()
+        let stars = health * 10 >= maximumHealth * 9 ? 3 : (health * 2 >= maximumHealth ? 2 : 1)
         overlayText("FRONTIER FOREST CLEARED", y: 85, fontSize: 21)
         overlayText("20 WAVES DEFEATED", y: 40, fontSize: 19)
         overlayText("\(stars) / 3 STARS  •  BASE \(health) HP", y: -5, fontSize: 18)
