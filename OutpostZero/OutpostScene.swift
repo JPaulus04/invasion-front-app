@@ -53,6 +53,7 @@ final class OutpostScene: SKScene {
     }
     private var permanentDamageBonus: Int { branchLevel(0) / 3 }
     private var permanentArmorBonus: Int { branchLevel(2) * 2 }
+    private var maximumHealth: Int { 100 + permanentArmorBonus }
     private var permanentRateBonus: Int { branchLevel(3) / 4 }
     private var permanentReactorBonus: Int { branchLevel(1) / 3 }
     private var permanentSystemsBonus: Int { branchLevel(4) / 4 }
@@ -472,7 +473,7 @@ final class OutpostScene: SKScene {
         actionButton("DAMAGE \(damage) → \(damage + 1)    \(damageCost) COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= damageCost)
         actionButton("RATE \(fireRate) → \(fireRate + 1)    \(rateCost) COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= rateCost && fireRate < 5)
         overlayText("NEXT ABILITY AT WAVE \(((wave / 5) + 1) * 5)", y: -80, fontSize: 13)
-        actionButton("REPAIR HP    \(repairCost) COINS", key: "repair", y: -125, tint: .systemGreen, enabled: coins >= repairCost && health < 100)
+        actionButton("REPAIR HP    \(repairCost) COINS", key: "repair", y: -125, tint: .systemGreen, enabled: coins >= repairCost && health < maximumHealth)
         actionButton("NEXT WAVE", key: "next", y: -178, tint: .systemTeal)
         updateHUD()
     }
@@ -524,7 +525,7 @@ final class OutpostScene: SKScene {
             UserDefaults.standard.set(availableCores + 1, forKey: "powerCoresAvailable")
         }
         UserDefaults.standard.set(true, forKey: "frontierForestComplete")
-        let stars = health >= 90 ? 3 : (health >= 50 ? 2 : 1)
+        let stars = health * 10 >= maximumHealth * 9 ? 3 : (health * 2 >= maximumHealth ? 2 : 1)
         let previous = UserDefaults.standard.integer(forKey: "frontierForestStars")
         UserDefaults.standard.set(max(stars, previous), forKey: "frontierForestStars")
         overlayText("FRONTIER FOREST CLEARED", y: 85, fontSize: 21)
@@ -579,7 +580,7 @@ final class OutpostScene: SKScene {
         bossNode = nil
         wave = 0
         coins = 0
-        health = min(150, 100 + permanentArmorBonus)
+        health = maximumHealth
         damage = 1
         fireRate = 1
         damageUpgrades = 0
@@ -629,7 +630,7 @@ final class OutpostScene: SKScene {
         case (.upgrades, "rate") where !upgradePurchased && coins >= rateCost && fireRate < 5:
             coins -= rateCost; fireRate += 1; rateUpgrades += 1; completeUpgrade()
         case (.upgrades, "repair") where !upgradePurchased && coins >= repairCost && health < 100:
-            coins -= repairCost; health = min(100, health + 30); completeUpgrade()
+            coins -= repairCost; health = min(maximumHealth, health + 30); completeUpgrade()
         case (.upgrades, "next"): startWave()
         default: break
         }
