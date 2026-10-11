@@ -307,6 +307,7 @@ final class OutpostScene: SKScene {
                 warning.text = "OUTPOST HIT!  -12 HP"
                 warning.alpha = 1
                 warning.run(.sequence([.wait(forDuration: 0.4), .fadeOut(withDuration: 0.4)]))
+                burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
                 enemies[index].node.removeFromParent()
                 enemies.remove(at: index)
                 updateHUD()
@@ -433,6 +434,7 @@ final class OutpostScene: SKScene {
             }
         }
         removeDefeatedEnemies()
+        updateHUD()
     }
 
     private func distance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
@@ -450,10 +452,10 @@ final class OutpostScene: SKScene {
         coins += 12 + wave * 2
         clearOverlay()
         overlayText("WAVE \(wave) COMPLETE", y: 95, fontSize: 23)
-        overlayText("DMG \(damage)  •  RATE \(fireRate)  •  CHAIN \(chainLevel)", y: 55, fontSize: 16)
+        overlayText("DMG \(damage)  •  RATE \(fireRate)  •  SKILLS \(chosenAbilities)/3", y: 55, fontSize: 16)
         actionButton("DAMAGE \(damage) → \(damage + 1)    \(damageCost) COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= damageCost)
         actionButton("RATE \(fireRate) → \(fireRate + 1)    \(rateCost) COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= rateCost && fireRate < 5)
-        overlayText("ABILITIES: \(chosenAbilities)/3  •  EVERY 5 WAVES", y: -80, fontSize: 13)
+        overlayText("NEXT ABILITY AT WAVE \(((wave / 5) + 1) * 5)", y: -80, fontSize: 13)
         actionButton("REPAIR HP    \(repairCost) COINS", key: "repair", y: -125, tint: .systemGreen, enabled: coins >= repairCost && health < 100)
         actionButton("NEXT WAVE", key: "next", y: -178, tint: .systemTeal)
         updateHUD()
@@ -464,20 +466,20 @@ final class OutpostScene: SKScene {
         phase = .milestone
         lockMenuBriefly()
         clearOverlay()
-        overlayText("WAVE \(wave) — ABILITY CHOICE", y: 104, fontSize: 20)
+        overlayText("WAVE \(wave)  •  CHOOSE AN ABILITY", y: 104, fontSize: 19)
         overlayText("EQUIPPED \(chosenAbilities)/3  •  MAX LEVEL 3", y: 66, fontSize: 14)
-        let abilities: [(String, String, Int, SKColor)] = [
+        let abilities: [(key: String, title: String, level: Int, tint: SKColor)] = [
             ("chain", "CHAIN LIGHTNING", chainLevel, .systemCyan),
             ("explosive", "EXPLOSIVE ROUNDS", explosiveLevel, .systemOrange),
             ("incendiary", "INCENDIARY ROUNDS", incendiaryLevel, .systemRed)
         ]
         for (index, ability) in abilities.enumerated() {
-            let available = ability.2 > 0 ? ability.2 < 3 : chosenAbilities < 3
-            let description = ability.2 == 0 ? "UNLOCK" : "LEVEL \(ability.2) → \(ability.2 + 1)"
-            actionButton("\(ability.1)  •  \(description)", key: ability.0,
-                         y: CGFloat(15 - index * 55), tint: ability.3, enabled: available)
+            let available = ability.level > 0 ? ability.level < 3 : chosenAbilities < 3
+            let description = ability.level == 0 ? "UNLOCK" : "LV \(ability.level) → \(ability.level + 1)"
+            actionButton("\(ability.title)  •  \(description)", key: ability.key,
+                         y: CGFloat(15 - index * 55), tint: ability.tint, enabled: available)
         }
-        overlayText("CHOOSE ONE — FREE REWARD", y: -168, fontSize: 14)
+        overlayText("FREE MILESTONE REWARD", y: -168, fontSize: 14)
     }
 
     private func chooseMilestone(_ ability: String) {
