@@ -1,7 +1,7 @@
 import SpriteKit
 
 final class OutpostScene: SKScene {
-    private enum Phase { case ready, playing, upgrades, milestone, worldComplete, gameOver }
+    private enum Phase { case ready, playing, upgrades, milestone, worldComplete, restoration, gameOver }
     private struct Enemy {
         let node: SKShapeNode
         var health: Int
@@ -46,6 +46,14 @@ final class OutpostScene: SKScene {
     private var burns: [ObjectIdentifier: (damage: Int, until: TimeInterval, nextTick: TimeInterval)] = [:]
     private var bossNode: SKShapeNode?
     private let worldWaveCount = 20
+    private let coreBranches = ["WEAPONS", "REACTOR", "ARMOR", "MOBILITY", "SYSTEMS"]
+    private var availableCores: Int { UserDefaults.standard.integer(forKey: "powerCoresAvailable") }
+    private func branchLevel(_ index: Int) -> Int {
+        UserDefaults.standard.integer(forKey: "coreBranch_\(index)")
+    }
+    private var permanentDamageBonus: Int { branchLevel(0) / 3 }
+    private var permanentArmorBonus: Int { branchLevel(2) * 2 }
+    private var permanentRateBonus: Int { branchLevel(3) / 4 }
     private var chosenAbilities: Int { [chainLevel, explosiveLevel, incendiaryLevel].filter { $0 > 0 }.count }
     private var awaitingMenuRelease = false
     private let damageFlash = SKShapeNode()
@@ -206,6 +214,8 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayText("DEFEND THE OUTPOST", y: 65, fontSize: 22)
         overlayText("Tap, hold or drag to fire", y: 20, fontSize: 17)
+        overlayText("POWER CORES: \(availableCores)  •  RESTORE YOUR PILOT", y: -15, fontSize: 13)
+        actionButton("CHARACTER RESTORATION", key: "restore", y: -100, tint: .systemIndigo)
         actionButton("START DEFENSE", key: "start", y: -45, tint: .systemTeal)
     }
 
@@ -257,7 +267,7 @@ final class OutpostScene: SKScene {
         arena.addChild(node)
         if isBoss { bossNode = node }
         let scaling = max(0, wave - 1)
-        let enemyHP = isBoss ? 180 : (type == 1 ? 5 + scaling * 2 : 2 + scaling)
+        let enemyHP = isBoss ? 180 : (type == 1 ? 5 + scaling * 2 : 2 + scaling) + branchLevel(4) * 0
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 1 ? 38 : 65)) + CGFloat(min(wave * 3, 45))
         let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
@@ -298,7 +308,7 @@ final class OutpostScene: SKScene {
             if enemies[index].node.position.y <= base.position.y + 30 {
                 impact(at: enemies[index].node.position, color: .systemRed, destroyed: true)
                 streak = 0
-                health = max(0, health - 12)
+                health = max(0, health - max(5, 12 - branchLevel(2) / 2))
                 base.run(.sequence([.moveBy(x: -7, y: 0, duration: 0.04), .moveBy(x: 14, y: 0, duration: 0.08), .moveBy(x: -7, y: 0, duration: 0.04)]))
                 damageFlash.removeAllActions()
                 damageFlash.alpha = 0.85
@@ -322,7 +332,7 @@ final class OutpostScene: SKScene {
     }
 
     private func shoot(at point: CGPoint) {
-        guard clock - lastShot >= 0.42 / Double(fireRate) else { return }
+        guard clock - lastShot >= 0.42 / Double(fireRate + permanentRateBonus) else { return }
         guard let index = enemies.indices.min(by: {
             distance(enemies[$0].node.position, point) < distance(enemies[$1].node.position, point)
         }), distance(enemies[index].node.position, point) < 45 else { return }
@@ -342,7 +352,7 @@ final class OutpostScene: SKScene {
         arena.addChild(tracer)
         tracer.run(.sequence([.fadeOut(withDuration: 0.055), .removeFromParent()]))
         impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= damage)
-        enemies[index].health -= damage
+        enemies[index].health -= damage + permanentDamageBonus
         if incendiaryLevel > 0 {
             burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel, until: clock + 2.5, nextTick: clock + 0.5)
         }
@@ -502,6 +512,10 @@ final class OutpostScene: SKScene {
         phase = .worldComplete
         lockMenuBriefly()
         clearOverlay()
+        if !UserDefaults.standard.bool(forKey: "frontierForestCoreClaimed") {
+            UserDefaults.standard.set(true, forKey: "frontierForestCoreClaimed")
+            UserDefaults.standard.set(availableCores + 1, forKey: "powerCoresAvailable")
+        }
         UserDefaults.standard.set(true, forKey: "frontierForestComplete")
         let stars = health >= 90 ? 3 : (health >= 50 ? 2 : 1)
         let previous = UserDefaults.standard.integer(forKey: "frontierForestStars")
@@ -509,7 +523,32 @@ final class OutpostScene: SKScene {
         overlayText("FRONTIER FOREST CLEARED", y: 85, fontSize: 21)
         overlayText("20 WAVES DEFEATED", y: 40, fontSize: 19)
         overlayText("\(stars) / 3 STARS  •  BASE \(health) HP", y: -5, fontSize: 18)
-        actionButton("PLAY AGAIN", key: "restart", y: -85, tint: .systemTeal)
+        overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -48, fontSize: 15)
+        actionButton("RESTORE CHARACTER", key: "restore", y: -105, tint: .systemIndigo)
+        actionButton("PLAY AGAIN", key: "restart", y: -160, tint: .systemTeal)
+    }
+
+    private func showRestoration() {
+        phase = .restoration
+        lockMenuBriefly()
+        clearOverlay()
+        let total = (0..<coreBranches.count).reduce(0) { $0 + branchLevel($1) }
+        overlayText("CHARACTER RESTORATION", y: 142, fontSize: 20)
+        overlayText("\(total)/50 RESTORED  •  \(availableCores) CORES AVAILABLE", y: 106, fontSize: 14)
+        for index in coreBranches.indices {
+            let level = branchLevel(index)
+            actionButton("\(coreBranches[index])   \(level)/10", key: "branch_\(index)",
+                         y: CGFloat(56 - index * 47), tint: .systemIndigo,
+                         enabled: availableCores > 0 && level < 10)
+        }
+        actionButton("BACK", key: "back", y: -200, tint: .systemTeal)
+    }
+
+    private func investCore(_ index: Int) {
+        guard coreBranches.indices.contains(index), availableCores > 0, branchLevel(index) < 10 else { return }
+        UserDefaults.standard.set(availableCores - 1, forKey: "powerCoresAvailable")
+        UserDefaults.standard.set(branchLevel(index) + 1, forKey: "coreBranch_\(index)")
+        showRestoration()
     }
 
     private func endGame() {
@@ -531,7 +570,7 @@ final class OutpostScene: SKScene {
         bossNode = nil
         wave = 0
         coins = 0
-        health = 100
+        health = min(150, 100 + permanentArmorBonus)
         damage = 1
         fireRate = 1
         damageUpgrades = 0
@@ -565,6 +604,10 @@ final class OutpostScene: SKScene {
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
         switch (phase, tapped) {
         case (.ready, "start"): startWave()
+        case (.ready, "restore"), (.worldComplete, "restore"): showRestoration()
+        case (.restoration, "back"): showReady()
+        case (.restoration, let key?) where key.hasPrefix("branch_"):
+            if let index = Int(key.dropFirst(7)) { investCore(index) }
         case (.gameOver, "restart"), (.worldComplete, "restart"): restart()
         case (.milestone, "chain"): chooseMilestone("chain")
         case (.milestone, "explosive"): chooseMilestone("explosive")
