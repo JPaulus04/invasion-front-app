@@ -10,13 +10,28 @@ on:
 
 jobs:
   testflight:
-    runs-on: macos-15
+    runs-on: macos-26
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
         with:
           ref: outpost-zero
+      - name: Select supported Xcode
+        run: |
+          set -e
+          if [ -d /Applications/Xcode_26.4.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.4.app
+          elif [ -d /Applications/Xcode_26.3.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.3.app
+          else
+            echo "::error::Xcode 26.3 or 26.4 not found"
+            exit 1
+          fi
+          xcodebuild -version
+          xcodebuild -showsdks
+          xcodebuild -version | grep -E '^Xcode 26([.]|$)'
+          xcodebuild -showsdks | grep -E 'iphoneos26([.]|$)'
       - name: Verify required release secrets
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
