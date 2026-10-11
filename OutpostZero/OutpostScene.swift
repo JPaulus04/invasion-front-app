@@ -126,9 +126,9 @@ final class OutpostScene: SKScene {
         subtitle.fontColor = .systemYellow
         info.fontSize = 15
         info.fontColor = .white
+        health = maximumHealth
         layout()
         showReady()
-        ArcadeMusic.shared.play(.headquarters)
     }
 
     override func didChangeSize(_ oldSize: CGSize) { layout() }
@@ -645,7 +645,7 @@ final class OutpostScene: SKScene {
             coins -= damageCost; damage += 1; damageUpgrades += 1; completeUpgrade()
         case (.upgrades, "rate") where !upgradePurchased && coins >= rateCost && fireRate < 5:
             coins -= rateCost; fireRate += 1; rateUpgrades += 1; completeUpgrade()
-        case (.upgrades, "repair") where !upgradePurchased && coins >= repairCost && health < 100:
+        case (.upgrades, "repair") where !upgradePurchased && coins >= repairCost && health < maximumHealth:
             coins -= repairCost; health = min(maximumHealth, health + 30); completeUpgrade()
         case (.upgrades, "next"): startWave()
         default: break
