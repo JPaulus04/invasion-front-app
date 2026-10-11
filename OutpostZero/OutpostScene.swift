@@ -315,15 +315,17 @@ final class OutpostScene: SKScene {
             if enemies[index].node.position.y <= base.position.y + 30 {
                 impact(at: enemies[index].node.position, color: .systemRed, destroyed: true)
                 streak = 0
-                health = max(0, health - max(5, 12 - branchLevel(2) / 2))
+                let impactDamage = max(5, 12 - branchLevel(2) / 2)
+                health = max(0, health - impactDamage)
                 base.run(.sequence([.moveBy(x: -7, y: 0, duration: 0.04), .moveBy(x: 14, y: 0, duration: 0.08), .moveBy(x: -7, y: 0, duration: 0.04)]))
                 damageFlash.removeAllActions()
                 damageFlash.alpha = 0.85
                 damageFlash.run(.fadeOut(withDuration: 0.32))
                 warning.removeAllActions()
-                warning.text = "OUTPOST HIT!  -12 HP"
+                warning.text = "OUTPOST HIT!  -\(impactDamage) HP"
                 warning.alpha = 1
                 warning.run(.sequence([.wait(forDuration: 0.4), .fadeOut(withDuration: 0.4)]))
+                if enemies[index].node === bossNode { bossNode = nil }
                 burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
                 enemies[index].node.removeFromParent()
                 enemies.remove(at: index)
