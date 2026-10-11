@@ -6,7 +6,7 @@ on:
       build_number:
         description: "Unique TestFlight build number"
         required: true
-        default: "300"
+        default: "301"
 
 jobs:
   testflight:
