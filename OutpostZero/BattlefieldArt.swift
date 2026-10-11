@@ -18,6 +18,28 @@ enum BattlefieldArt {
         road.zPosition = -18
         gameplay.addChild(road)
 
+        // Subtle road markings create depth without obscuring tap targets.
+        for index in 0..<11 {
+            let marker = SKShapeNode(rectOf: CGSize(width: 5, height: 24), cornerRadius: 2)
+            marker.position = CGPoint(x: scene.size.width / 2, y: CGFloat(index) * scene.size.height / 10)
+            marker.fillColor = SKColor(red: 0.82, green: 0.72, blue: 0.48, alpha: 0.3)
+            marker.strokeColor = .clear
+            marker.zPosition = -17
+            gameplay.addChild(marker)
+        }
+
+        for index in 0..<24 {
+            let left = index.isMultiple(of: 2)
+            let x = scene.size.width * (left ? 0.035 : 0.965)
+            let y = CGFloat(index) * scene.size.height / 24
+            let rock = SKShapeNode(ellipseOf: CGSize(width: CGFloat(7 + index % 3 * 3), height: CGFloat(5 + index % 4 * 2)))
+            rock.position = CGPoint(x: x, y: y)
+            rock.fillColor = SKColor(red: 0.27, green: 0.34, blue: 0.32, alpha: 1)
+            rock.strokeColor = .clear
+            rock.zPosition = -15
+            gameplay.addChild(rock)
+        }
+
         for index in 0..<18 {
             let side: CGFloat = index.isMultiple(of: 2) ? 0.11 : 0.89
             let tree = SKShapeNode(circleOfRadius: CGFloat(13 + index % 4 * 3))
