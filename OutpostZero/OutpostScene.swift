@@ -25,6 +25,7 @@ final class OutpostScene: SKScene {
     private var turretNode: SKNode?
     private var clock: TimeInterval = 0
     private let hud = SKNode()
+    private let hudPanel = SKShapeNode()
     private let overlay = SKNode()
     private let overlayBackdrop = SKShapeNode()
     private let arena = SKNode()
@@ -39,7 +40,14 @@ final class OutpostScene: SKScene {
         addChild(arena)
         BattlefieldArt.install(in: self, behind: arena)
         addChild(hud)
+        hud.zPosition = 30
+        hudPanel.fillColor = SKColor(red: 0.04, green: 0.09, blue: 0.13, alpha: 0.94)
+        hudPanel.strokeColor = SKColor(red: 0.3, green: 0.6, blue: 0.65, alpha: 0.6)
+        hudPanel.lineWidth = 1
+        hudPanel.zPosition = -1
+        hud.addChild(hudPanel)
         addChild(overlay)
+        overlay.zPosition = 40
         overlayBackdrop.fillColor = SKColor(white: 0.05, alpha: 0.82)
         overlayBackdrop.strokeColor = SKColor(white: 0.9, alpha: 0.22)
         overlayBackdrop.lineWidth = 2
@@ -82,7 +90,8 @@ final class OutpostScene: SKScene {
 
     private func layout() {
         base.position = CGPoint(x: size.width / 2, y: max(90, size.height * 0.13))
-        title.position = CGPoint(x: size.width / 2, y: size.height - 90)
+        hudPanel.path = CGPath(roundedRect: CGRect(x: 10, y: size.height - 173, width: max(1, size.width - 20), height: 111), cornerWidth: 13, cornerHeight: 13, transform: nil)
+        title.position = CGPoint(x: size.width / 2, y: size.height - 94)
         subtitle.position = CGPoint(x: size.width / 2, y: size.height - 120)
         info.position = CGPoint(x: size.width / 2, y: size.height - 150)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
@@ -129,7 +138,7 @@ final class OutpostScene: SKScene {
         spawned = 0
         upgradePurchased = false
         upgradeConfirmed = false
-        waveTarget = 5 + wave * 2
+        waveTarget = 5 + wave * 3
         spawnClock = 1.2
         updateHUD()
     }
@@ -142,7 +151,7 @@ final class OutpostScene: SKScene {
         node.strokeColor = .white
         node.lineWidth = 2
         let laneHalfWidth = min(size.width * 0.25, max(1, size.width / 2 - radius - 8))
-        node.position = CGPoint(x: CGFloat.random(in: (size.width / 2 - laneHalfWidth)...(size.width / 2 + laneHalfWidth)), y: size.height + 30)
+        node.position = CGPoint(x: CGFloat.random(in: (size.width / 2 - laneHalfWidth)...(size.width / 2 + laneHalfWidth)), y: size.height - 198)
         node.zPosition = 5
         arena.addChild(node)
         enemies.append(Enemy(node: node, health: type == 1 ? 4 + wave / 3 : (type == 2 ? 2 : 1), speed: CGFloat(type == 2 ? 105 : (type == 1 ? 38 : 65)) + CGFloat(wave * 3), reward: type == 1 ? 25 : 10))
@@ -191,10 +200,10 @@ final class OutpostScene: SKScene {
         path.addLine(to: target)
         tracer.path = path
         tracer.strokeColor = .systemYellow
-        tracer.lineWidth = 4
+        tracer.lineWidth = 2
         tracer.zPosition = 8
         arena.addChild(tracer)
-        tracer.run(.sequence([.wait(forDuration: 0.09), .removeFromParent()]))
+        tracer.run(.sequence([.fadeOut(withDuration: 0.055), .removeFromParent()]))
         enemies[index].health -= damage
         enemies[index].node.run(.sequence([.scale(to: 1.2, duration: 0.06), .scale(to: 1.0, duration: 0.08)]))
         if enemies[index].health <= 0 {
@@ -211,7 +220,7 @@ final class OutpostScene: SKScene {
 
     private func completeWave() {
         phase = .upgrades
-        coins += 25 + wave * 5
+        coins += 15 + wave * 3
         clearOverlay()
         overlayText("WAVE \(wave) COMPLETE", y: 95, fontSize: 23)
         overlayText("Choose an upgrade", y: 55, fontSize: 16)
