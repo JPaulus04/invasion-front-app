@@ -28,6 +28,8 @@ final class OutpostScene: SKScene {
     private let hudPanel = SKShapeNode()
     private let overlay = SKNode()
     private let overlayBackdrop = SKShapeNode()
+    private var overlayButtons: [String: CGRect] = [:]
+    private var streak = 0
     private let arena = SKNode()
     private let base = SKShapeNode(rectOf: CGSize(width: 160, height: 60), cornerRadius: 15)
     private let title = SKLabelNode(fontNamed: "AvenirNext-Heavy")
@@ -107,6 +109,7 @@ final class OutpostScene: SKScene {
 
     private func clearOverlay() {
         overlay.removeAllChildren()
+        overlayButtons.removeAll()
         overlay.addChild(overlayBackdrop)
         overlayBackdrop.isHidden = false
     }
@@ -122,12 +125,48 @@ final class OutpostScene: SKScene {
         overlay.addChild(label)
     }
 
+    private func actionButton(_ label: String, key: String, y: CGFloat, tint: SKColor, enabled: Bool = true) {
+        let width = min(size.width - 72, 300)
+        let frame = CGRect(x: -width / 2, y: y - 20, width: width, height: 42)
+        let button = SKShapeNode(rect: frame, cornerRadius: 11)
+        button.fillColor = enabled ? tint : SKColor(white: 0.23, alpha: 1)
+        button.strokeColor = enabled ? SKColor.white.withAlphaComponent(0.6) : .clear
+        button.lineWidth = 1.2
+        button.zPosition = 1
+        overlay.addChild(button)
+        let text = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+        text.text = label
+        text.fontSize = 17
+        text.fontColor = enabled ? .white : .lightGray
+        text.verticalAlignmentMode = .center
+        text.position = CGPoint(x: 0, y: y)
+        text.zPosition = 2
+        overlay.addChild(text)
+        if enabled { overlayButtons[key] = frame }
+    }
+
+    private func impact(at point: CGPoint, color: SKColor, destroyed: Bool) {
+        let count = destroyed ? 9 : 4
+        for index in 0..<count {
+            let spark = SKShapeNode(circleOfRadius: destroyed ? 3.5 : 2.2)
+            spark.fillColor = color
+            spark.strokeColor = .clear
+            spark.position = point
+            spark.zPosition = 12
+            arena.addChild(spark)
+            let angle = CGFloat(index) * .pi * 2 / CGFloat(count)
+            let radius: CGFloat = destroyed ? 31 : 13
+            let target = CGPoint(x: point.x + cos(angle) * radius, y: point.y + sin(angle) * radius)
+            spark.run(.sequence([.group([.move(to: target, duration: 0.22), .fadeOut(withDuration: 0.22), .scale(to: 0.2, duration: 0.22)]), .removeFromParent()]))
+        }
+    }
+
     private func showReady() {
         phase = .ready
         clearOverlay()
         overlayText("DEFEND THE OUTPOST", y: 65, fontSize: 22)
         overlayText("Tap enemies to shoot", y: 20, fontSize: 17)
-        overlayText("▶ START", y: -45, name: "start")
+        actionButton("START DEFENSE", key: "start", y: -45, tint: .systemTeal)
     }
 
     private func startWave() {
@@ -140,6 +179,7 @@ final class OutpostScene: SKScene {
         upgradeConfirmed = false
         waveTarget = 5 + wave * 3
         spawnClock = 1.2
+        streak = 0
         updateHUD()
     }
 
@@ -148,8 +188,25 @@ final class OutpostScene: SKScene {
         let radius: CGFloat = type == 1 ? 23 : (type == 2 ? 17 : 14)
         let node = SKShapeNode(circleOfRadius: radius)
         node.fillColor = type == 1 ? .systemRed : (type == 2 ? .systemPurple : .systemOrange)
-        node.strokeColor = .white
-        node.lineWidth = 2
+        node.strokeColor = type == 1 ? .systemYellow : .white
+        node.lineWidth = type == 1 ? 4 : 2
+        let core = SKShapeNode(circleOfRadius: radius * 0.47)
+        core.fillColor = type == 1 ? .darkGray : (type == 2 ? .magenta : .brown)
+        core.strokeColor = .clear
+        core.zPosition = 1
+        node.addChild(core)
+        if type == 1 {
+            let armor = SKShapeNode(rectOf: CGSize(width: radius * 1.5, height: 7), cornerRadius: 3)
+            armor.fillColor = .systemYellow
+            armor.strokeColor = .clear
+            armor.position.y = radius * 0.52
+            node.addChild(armor)
+        } else if type == 2 {
+            let wing = SKShapeNode(rectOf: CGSize(width: radius * 2.5, height: 5), cornerRadius: 2)
+            wing.fillColor = .systemPurple
+            wing.strokeColor = .white
+            node.addChild(wing)
+        }
         let laneHalfWidth = min(size.width * 0.25, max(1, size.width / 2 - radius - 8))
         node.position = CGPoint(x: CGFloat.random(in: (size.width / 2 - laneHalfWidth)...(size.width / 2 + laneHalfWidth)), y: size.height - 198)
         node.zPosition = 5
@@ -176,6 +233,8 @@ final class OutpostScene: SKScene {
             enemies[index].node.position.x += horizontalStep * direction
             enemies[index].node.position.y -= enemies[index].speed * CGFloat(dt)
             if enemies[index].node.position.y <= base.position.y + 30 {
+                impact(at: enemies[index].node.position, color: .systemRed, destroyed: true)
+                streak = 0
                 health = max(0, health - 12)
                 enemies[index].node.removeFromParent()
                 enemies.remove(at: index)
@@ -204,9 +263,11 @@ final class OutpostScene: SKScene {
         tracer.zPosition = 8
         arena.addChild(tracer)
         tracer.run(.sequence([.fadeOut(withDuration: 0.055), .removeFromParent()]))
+        impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= damage)
         enemies[index].health -= damage
         enemies[index].node.run(.sequence([.scale(to: 1.2, duration: 0.06), .scale(to: 1.0, duration: 0.08)]))
         if enemies[index].health <= 0 {
+            streak += 1
             coins += enemies[index].reward
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
@@ -224,10 +285,10 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayText("WAVE \(wave) COMPLETE", y: 95, fontSize: 23)
         overlayText("Choose an upgrade", y: 55, fontSize: 16)
-        overlayText("DAMAGE +1  •  60", y: 10, fontSize: 19, name: "damage")
-        overlayText("FIRE RATE +1  •  75", y: -35, fontSize: 19, name: "rate")
-        overlayText("REPAIR 30 HP  •  40", y: -80, fontSize: 19, name: "repair")
-        overlayText("▶ NEXT WAVE", y: -140, fontSize: 20, name: "next")
+        actionButton("DAMAGE +1     60 COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= 60)
+        actionButton("FIRE RATE +1     75 COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= 75)
+        actionButton("REPAIR +30 HP     40 COINS", key: "repair", y: -80, tint: .systemGreen, enabled: coins >= 40 && health < 100)
+        actionButton("NEXT WAVE", key: "next", y: -140, tint: .systemTeal)
         updateHUD()
     }
 
@@ -238,7 +299,7 @@ final class OutpostScene: SKScene {
         UserDefaults.standard.set(best, forKey: "bestWave")
         overlayText("OUTPOST LOST", y: 55)
         overlayText("Wave \(wave)  •  Best \(best)", y: 10, fontSize: 18)
-        overlayText("↻ RESTART", y: -55, name: "restart")
+        actionButton("RESTART", key: "restart", y: -55, tint: .systemTeal)
     }
 
     private func restart() {
@@ -250,6 +311,7 @@ final class OutpostScene: SKScene {
         damage = 1
         fireRate = 1
         lastShot = -100
+        streak = 0
         updateHUD()
         startWave()
     }
@@ -259,22 +321,7 @@ final class OutpostScene: SKScene {
         let point = touch.location(in: self)
         if phase == .playing { shoot(at: point); return }
         let local = touch.location(in: overlay)
-        // Use generous touch bands rather than requiring a precise text glyph tap.
-        let tapped: String?
-        switch phase {
-        case .ready:
-            tapped = abs(local.y + 45) < 38 ? "start" : nil
-        case .gameOver:
-            tapped = abs(local.y + 55) < 38 ? "restart" : nil
-        case .upgrades:
-            if abs(local.y + (upgradeConfirmed ? 35 : 140)) < 30 { tapped = "next" }
-            else if abs(local.y - 10) < 22 { tapped = "damage" }
-            else if abs(local.y + 35) < 22 { tapped = "rate" }
-            else if abs(local.y + 80) < 22 { tapped = "repair" }
-            else { tapped = nil }
-        case .playing:
-            tapped = nil
-        }
+        let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
         switch (phase, tapped) {
         case (.ready, "start"): startWave()
         case (.gameOver, "restart"): restart()
@@ -295,6 +342,6 @@ final class OutpostScene: SKScene {
         updateHUD()
         clearOverlay()
         overlayText("UPGRADE PURCHASED", y: 35, fontSize: 22)
-        overlayText("▶ NEXT WAVE", y: -35, name: "next")
+        actionButton("NEXT WAVE", key: "next", y: -35, tint: .systemTeal)
     }
 }
