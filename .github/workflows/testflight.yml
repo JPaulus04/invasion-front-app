@@ -6,7 +6,7 @@ on:
       build_number:
         description: "Unique TestFlight build number"
         required: true
-        default: "304"
+        default: "306"
 
 jobs:
   testflight:
@@ -51,6 +51,10 @@ jobs:
         run: brew install xcodegen
       - name: Generate Xcode project
         run: xcodegen generate
+      - name: Compile simulator before signing or uploading
+        run: |
+          set -o pipefail
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee simulator-build.log
       - name: Install signing credentials using existing LSC configuration
         env:
           CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
@@ -138,6 +142,7 @@ jobs:
         with:
           name: testflight-build-logs
           path: |
+            simulator-build.log
             archive.log
             export.log
           if-no-files-found: ignore
