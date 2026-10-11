@@ -44,6 +44,7 @@ final class OutpostScene: SKScene {
     private var explosiveLevel = 0
     private var incendiaryLevel = 0
     private var burns: [ObjectIdentifier: (damage: Int, until: TimeInterval, nextTick: TimeInterval)] = [:]
+    private var bossNode: SKShapeNode?
     private let worldWaveCount = 20
     private var chosenAbilities: Int { [chainLevel, explosiveLevel, incendiaryLevel].filter { $0 > 0 }.count }
     private var awaitingMenuRelease = false
@@ -254,6 +255,7 @@ final class OutpostScene: SKScene {
         node.position = CGPoint(x: CGFloat.random(in: (size.width / 2 - laneHalfWidth)...(size.width / 2 + laneHalfWidth)), y: size.height - 198)
         node.zPosition = 5
         arena.addChild(node)
+        if isBoss { bossNode = node }
         let scaling = max(0, wave - 1)
         let enemyHP = isBoss ? 180 : (type == 1 ? 5 + scaling * 2 : 2 + scaling)
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 1 ? 38 : 65)) + CGFloat(min(wave * 3, 45))
@@ -346,7 +348,11 @@ final class OutpostScene: SKScene {
         if explosiveLevel > 0 {
             for other in enemies.indices where other != index && distance(enemies[other].node.position, target) < CGFloat(35 + explosiveLevel * 15) {
                 enemies[other].health -= max(1, damage * explosiveLevel / 3)
+                if incendiaryLevel > 0 {
+                    burns[ObjectIdentifier(enemies[other].node)] = (damage: incendiaryLevel, until: clock + 2.5, nextTick: clock + 0.5)
+                }
                 impact(at: enemies[other].node.position, color: .systemOrange, destroyed: false)
+                updateEnemyHealthBar(at: other)
             }
         }
         let fraction = CGFloat(max(0, enemies[index].health)) / CGFloat(enemies[index].maxHealth)
@@ -385,6 +391,9 @@ final class OutpostScene: SKScene {
             bolt.run(.sequence([.fadeOut(withDuration: 0.16), .removeFromParent()]))
             impact(at: endpoint, color: .systemCyan, destroyed: enemy.health <= max(1, damage / 2))
             enemies[targetIndex].health -= max(1, damage / 2)
+            if incendiaryLevel > 0 {
+                burns[ObjectIdentifier(enemy.node)] = (damage: incendiaryLevel, until: clock + 2.5, nextTick: clock + 0.5)
+            }
             let fraction = CGFloat(max(0, enemies[targetIndex].health)) / CGFloat(enemies[targetIndex].maxHealth)
             enemies[targetIndex].healthBar.xScale = max(0.001, fraction)
             enemies[targetIndex].healthBar.fillColor = fraction > 0.5 ? .systemGreen : (fraction > 0.25 ? .systemYellow : .systemRed)
@@ -398,9 +407,16 @@ final class OutpostScene: SKScene {
             streak += 1
             coins += enemies[index].reward
             burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
+            if enemies[index].node === bossNode { bossNode = nil }
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
         }
+    }
+
+    private func updateEnemyHealthBar(at index: Int) {
+        let fraction = CGFloat(max(0, enemies[index].health)) / CGFloat(enemies[index].maxHealth)
+        enemies[index].healthBar.xScale = max(0.001, fraction)
+        enemies[index].healthBar.fillColor = fraction > 0.5 ? .systemGreen : (fraction > 0.25 ? .systemYellow : .systemRed)
     }
 
     private func applyBurns() {
@@ -413,6 +429,7 @@ final class OutpostScene: SKScene {
                 burn.nextTick = clock + 0.5
                 burns[key] = burn
                 impact(at: enemies[index].node.position, color: .systemOrange, destroyed: false)
+                updateEnemyHealthBar(at: index)
             }
         }
         removeDefeatedEnemies()
@@ -509,6 +526,7 @@ final class OutpostScene: SKScene {
     private func restart() {
         for enemy in enemies { enemy.node.removeFromParent() }
         enemies.removeAll()
+        bossNode = nil
         wave = 0
         coins = 0
         health = 100
