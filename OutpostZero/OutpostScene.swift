@@ -360,7 +360,7 @@ final class OutpostScene: SKScene {
         tracer.zPosition = 8
         arena.addChild(tracer)
         tracer.run(.sequence([.fadeOut(withDuration: 0.055), .removeFromParent()]))
-        impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= damage)
+        impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= damage + permanentDamageBonus)
         enemies[index].health -= damage + permanentDamageBonus
         if incendiaryLevel > 0 {
             burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus, until: clock + 2.5, nextTick: clock + 0.5)
