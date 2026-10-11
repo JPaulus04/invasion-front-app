@@ -170,6 +170,7 @@ final class OutpostScene: SKScene {
     }
 
     private func clearOverlay() {
+        speedButton.isHidden = true
         overlay.removeAllChildren()
         overlayButtons.removeAll()
         overlay.addChild(overlayBackdrop)
@@ -492,8 +493,13 @@ final class OutpostScene: SKScene {
 
     private func completeWave() {
         phase = .upgrades
-        lockMenuBriefly()
         coins += 12 + wave * 2
+        showUpgradeChoices()
+    }
+
+    private func showUpgradeChoices() {
+        phase = .upgrades
+        lockMenuBriefly()
         clearOverlay()
         overlayText("WAVE \(wave) COMPLETE", y: 95, fontSize: 23)
         overlayText("DMG \(damage)  •  RATE \(fireRate)  •  SKILLS \(chosenAbilities)/3", y: 55, fontSize: 16)
@@ -681,7 +687,9 @@ final class OutpostScene: SKScene {
         case (.ready, "restore"), (.worldComplete, "restore"), (.upgrades, "restore"): showRestoration()
         case (.restoration, "back"):
             if restorationReturnPhase == .worldComplete { showWorldCompleteSummary() }
-            else if restorationReturnPhase == .upgrades { completeUpgrade() }
+            else if restorationReturnPhase == .upgrades {
+                if upgradePurchased { completeUpgrade() } else { showUpgradeChoices() }
+            }
             else { showReady() }
         case (.restoration, let key?) where key.hasPrefix("branch_"):
             if let index = Int(key.dropFirst(7)) { investCore(index) }
