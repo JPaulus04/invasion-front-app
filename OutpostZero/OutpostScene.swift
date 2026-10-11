@@ -30,6 +30,8 @@ final class OutpostScene: SKScene {
     private let overlayBackdrop = SKShapeNode()
     private var overlayButtons: [String: CGRect] = [:]
     private var streak = 0
+    private var damageUpgrades = 0
+    private var rateUpgrades = 0
     private let arena = SKNode()
     private let base = SKShapeNode(rectOf: CGSize(width: 160, height: 60), cornerRadius: 15)
     private let title = SKLabelNode(fontNamed: "AvenirNext-Heavy")
@@ -177,7 +179,7 @@ final class OutpostScene: SKScene {
         spawned = 0
         upgradePurchased = false
         upgradeConfirmed = false
-        waveTarget = 5 + wave * 3
+        waveTarget = min(60, 6 + wave * 4)
         spawnClock = 1.2
         streak = 0
         updateHUD()
@@ -211,7 +213,10 @@ final class OutpostScene: SKScene {
         node.position = CGPoint(x: CGFloat.random(in: (size.width / 2 - laneHalfWidth)...(size.width / 2 + laneHalfWidth)), y: size.height - 198)
         node.zPosition = 5
         arena.addChild(node)
-        enemies.append(Enemy(node: node, health: type == 1 ? 4 + wave / 3 : (type == 2 ? 2 : 1), speed: CGFloat(type == 2 ? 105 : (type == 1 ? 38 : 65)) + CGFloat(wave * 3), reward: type == 1 ? 25 : 10))
+        let scaling = max(0, wave - 1)
+        let enemyHP = type == 1 ? 5 + scaling * 2 : (type == 2 ? 2 + scaling : 2 + scaling)
+        let speed = CGFloat(type == 2 ? 105 : (type == 1 ? 38 : 65)) + CGFloat(min(wave * 3, 45))
+        enemies.append(Enemy(node: node, health: enemyHP, speed: speed, reward: type == 1 ? 12 : 6))
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -279,15 +284,19 @@ final class OutpostScene: SKScene {
         hypot(a.x - b.x, a.y - b.y)
     }
 
+    private var damageCost: Int { 60 + damageUpgrades * 65 + damageUpgrades * damageUpgrades * 12 }
+    private var rateCost: Int { 85 + rateUpgrades * 115 }
+    private var repairCost: Int { 40 + wave * 8 }
+
     private func completeWave() {
         phase = .upgrades
-        coins += 15 + wave * 3
+        coins += 12 + wave * 2
         clearOverlay()
         overlayText("WAVE \(wave) COMPLETE", y: 95, fontSize: 23)
         overlayText("Choose an upgrade", y: 55, fontSize: 16)
-        actionButton("DAMAGE +1     60 COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= 60)
-        actionButton("FIRE RATE +1     75 COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= 75)
-        actionButton("REPAIR +30 HP     40 COINS", key: "repair", y: -80, tint: .systemGreen, enabled: coins >= 40 && health < 100)
+        actionButton("DAMAGE +1     \(damageCost) COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= damageCost)
+        actionButton("FIRE RATE +1     \(rateCost) COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= rateCost && fireRate < 5)
+        actionButton("REPAIR +30 HP     \(repairCost) COINS", key: "repair", y: -80, tint: .systemGreen, enabled: coins >= repairCost && health < 100)
         actionButton("NEXT WAVE", key: "next", y: -140, tint: .systemTeal)
         updateHUD()
     }
@@ -310,6 +319,8 @@ final class OutpostScene: SKScene {
         health = 100
         damage = 1
         fireRate = 1
+        damageUpgrades = 0
+        rateUpgrades = 0
         lastShot = -100
         streak = 0
         updateHUD()
@@ -325,12 +336,12 @@ final class OutpostScene: SKScene {
         switch (phase, tapped) {
         case (.ready, "start"): startWave()
         case (.gameOver, "restart"): restart()
-        case (.upgrades, "damage") where !upgradePurchased && coins >= 60:
-            coins -= 60; damage += 1; completeUpgrade()
-        case (.upgrades, "rate") where !upgradePurchased && coins >= 75:
-            coins -= 75; fireRate += 1; completeUpgrade()
-        case (.upgrades, "repair") where !upgradePurchased && coins >= 40:
-            coins -= 40; health = min(100, health + 30); completeUpgrade()
+        case (.upgrades, "damage") where !upgradePurchased && coins >= damageCost:
+            coins -= damageCost; damage += 1; damageUpgrades += 1; completeUpgrade()
+        case (.upgrades, "rate") where !upgradePurchased && coins >= rateCost && fireRate < 5:
+            coins -= rateCost; fireRate += 1; rateUpgrades += 1; completeUpgrade()
+        case (.upgrades, "repair") where !upgradePurchased && coins >= repairCost && health < 100:
+            coins -= repairCost; health = min(100, health + 30); completeUpgrade()
         case (.upgrades, "next"): startWave()
         default: break
         }
