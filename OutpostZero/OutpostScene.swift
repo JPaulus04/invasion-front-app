@@ -36,6 +36,9 @@ final class OutpostScene: SKScene {
     private var damageUpgrades = 0
     private var rateUpgrades = 0
     private var waveElapsed: TimeInterval = 0
+    private var fastForward = false
+    private let speedButton = SKShapeNode(rectOf: CGSize(width: 72, height: 34), cornerRadius: 9)
+    private let speedLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private var menuUnlockTime: TimeInterval = 0
     private var menuNeedsFreshTouch = false
     private var heldTouch: UITouch?
@@ -75,6 +78,16 @@ final class OutpostScene: SKScene {
         BattlefieldArt.install(in: self, behind: arena)
         addChild(hud)
         hud.zPosition = 30
+        speedButton.fillColor = .systemBlue
+        speedButton.strokeColor = .white
+        speedButton.lineWidth = 1
+        speedButton.zPosition = 5
+        speedLabel.fontSize = 15
+        speedLabel.fontColor = .white
+        speedLabel.verticalAlignmentMode = .center
+        speedLabel.text = "1× SPEED"
+        speedButton.addChild(speedLabel)
+        hud.addChild(speedButton)
         hudPanel.fillColor = SKColor(red: 0.04, green: 0.09, blue: 0.13, alpha: 0.94)
         hudPanel.strokeColor = SKColor(red: 0.3, green: 0.6, blue: 0.65, alpha: 0.6)
         hudPanel.lineWidth = 1
@@ -147,6 +160,10 @@ final class OutpostScene: SKScene {
     }
 
     private func updateHUD() {
+        speedLabel.text = fastForward ? "2× SPEED" : "1× SPEED"
+        speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
+        speedButton.isHidden = phase != .playing
+        speedButton.position = CGPoint(x: size.width - 55, y: size.height - 160)
         title.text = "OUTPOST ZERO"
         subtitle.text = "FRONTIER FOREST  •  \(wave)/\(worldWaveCount)  •  \(coins) COINS"
         info.text = "BASE \(health) HP  •  DAMAGE \(damage)  •  RATE \(fireRate)"
@@ -296,27 +313,28 @@ final class OutpostScene: SKScene {
     }
 
     override func update(_ currentTime: TimeInterval) {
-        if lastUpdate == 0 { lastUpdate = currentTime }
+        if lastUpdate == 0 { lastUpdate = currentTime; clock = currentTime }
         let dt = min(0.05, max(0, currentTime - lastUpdate))
+        let gameDt = dt * (fastForward ? 2.0 : 1.0)
         lastUpdate = currentTime
-        clock = currentTime
+        clock += gameDt
         guard phase == .playing else { return }
         if let aimPoint { shoot(at: aimPoint) }
-        spawnClock += dt
-        waveElapsed += dt
+        spawnClock += gameDt
+        waveElapsed += gameDt
         applyBurns()
         let spawnInterval = max(0.28, 1.12 - Double(wave) * 0.045)
         if spawned < waveTarget && spawnClock >= spawnInterval {
-            spawnClock = 0
+            spawnClock -= spawnInterval
             spawned += 1
             spawnEnemy()
         }
         for index in enemies.indices.reversed() {
             let current = enemies[index].node.position
-            let horizontalStep = min(abs(base.position.x - current.x), CGFloat(dt) * enemies[index].speed * 0.45)
+            let horizontalStep = min(abs(base.position.x - current.x), CGFloat(gameDt) * enemies[index].speed * 0.45)
             let direction: CGFloat = base.position.x >= current.x ? 1 : -1
             enemies[index].node.position.x += horizontalStep * direction
-            enemies[index].node.position.y -= enemies[index].speed * CGFloat(dt)
+            enemies[index].node.position.y -= enemies[index].speed * CGFloat(gameDt)
             if enemies[index].node.position.y <= base.position.y + 30 {
                 impact(at: enemies[index].node.position, color: .systemRed, destroyed: true)
                 streak = 0
@@ -616,6 +634,7 @@ final class OutpostScene: SKScene {
         enemies.removeAll()
         bossNode = nil
         wave = 0
+        fastForward = false
         coins = 0
         health = maximumHealth
         damage = 1
@@ -639,6 +658,11 @@ final class OutpostScene: SKScene {
         guard let touch = touches.first else { return }
         let point = touch.location(in: self)
         if phase == .playing {
+            if speedButton.contains(touch.location(in: hud)) {
+                fastForward.toggle()
+                updateHUD()
+                return
+            }
             guard heldTouch == nil else { return }
             heldTouch = touch
             aimPoint = point
