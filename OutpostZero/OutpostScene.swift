@@ -227,6 +227,10 @@ final class OutpostScene: SKScene {
     }
 
     private func startWave() {
+        guard wave < worldWaveCount else {
+            showWorldCompleteSummary()
+            return
+        }
         phase = .playing
         ArcadeMusic.shared.play(wave + 1 == worldWaveCount ? .boss : .forest)
         heldTouch = nil
