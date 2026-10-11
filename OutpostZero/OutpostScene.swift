@@ -541,15 +541,15 @@ final class OutpostScene: SKScene {
         lockMenuBriefly()
         clearOverlay()
         let total = (0..<coreBranches.count).reduce(0) { $0 + branchLevel($1) }
-        overlayText("CHARACTER RESTORATION", y: 142, fontSize: 20)
-        overlayText("\(total)/50 RESTORED  •  \(availableCores) CORES AVAILABLE", y: 106, fontSize: 14)
+        overlayText("CHARACTER RESTORATION", y: 160, fontSize: 20)
+        overlayText("\(total)/50 RESTORED  •  \(availableCores) CORES AVAILABLE", y: 124, fontSize: 14)
         for index in coreBranches.indices {
             let level = branchLevel(index)
             actionButton("\(coreBranches[index])   \(level)/10", key: "branch_\(index)",
-                         y: CGFloat(56 - index * 47), tint: .systemIndigo,
+                         y: CGFloat(73 - index * 47), tint: .systemIndigo,
                          enabled: availableCores > 0 && level < 10)
         }
-        actionButton("BACK", key: "back", y: -204, tint: .systemTeal)
+        actionButton("BACK", key: "back", y: -201, tint: .systemTeal)
     }
 
     private func investCore(_ index: Int) {
@@ -561,6 +561,7 @@ final class OutpostScene: SKScene {
 
     private func endGame() {
         phase = .gameOver
+        ArcadeMusic.shared.play(.headquarters)
         heldTouch = nil
         aimPoint = nil
         lockMenuBriefly()
