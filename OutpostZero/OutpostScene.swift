@@ -504,6 +504,17 @@ final class OutpostScene: SKScene {
             let description = ability.level == 0 ? "UNLOCK" : "LV \(ability.level) → \(ability.level + 1)"
             actionButton("\(ability.title)  •  \(description)", key: ability.key,
                          y: CGFloat(15 - index * 55), tint: ability.tint, enabled: available)
+            let nextLevel = min(ability.level + 1, 3)
+            let detail: String
+            switch ability.key {
+            case "chain":
+                detail = "Chains to \(nextLevel + permanentSystemsBonus) nearby enemies"
+            case "explosive":
+                detail = "Blast radius \(35 + nextLevel * 15) • splash \(nextLevel)/3 weapon damage"
+            default:
+                detail = "Burn \(nextLevel + permanentReactorBonus) damage every 0.5s for 2.5s"
+            }
+            overlayText(detail, y: CGFloat(-13 - index * 55), fontSize: 11)
         }
         overlayText("FREE MILESTONE REWARD", y: -168, fontSize: 14)
     }
