@@ -35,6 +35,8 @@ final class OutpostScene: SKScene {
     private var damageUpgrades = 0
     private var rateUpgrades = 0
     private var waveElapsed: TimeInterval = 0
+    private var menuUnlockTime: TimeInterval = 0
+    private var menuNeedsFreshTouch = false
     private let damageFlash = SKShapeNode()
     private let warning = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let arena = SKNode()
@@ -178,6 +180,11 @@ final class OutpostScene: SKScene {
             let target = CGPoint(x: point.x + cos(angle) * radius, y: point.y + sin(angle) * radius)
             spark.run(.sequence([.group([.move(to: target, duration: 0.22), .fadeOut(withDuration: 0.22), .scale(to: 0.2, duration: 0.22)]), .removeFromParent()]))
         }
+    }
+
+    private func lockMenuBriefly() {
+        menuUnlockTime = clock + 1.0
+        menuNeedsFreshTouch = true
     }
 
     private func showReady() {
@@ -332,6 +339,7 @@ final class OutpostScene: SKScene {
 
     private func completeWave() {
         phase = .upgrades
+        lockMenuBriefly()
         coins += 12 + wave * 2
         clearOverlay()
         overlayText("WAVE \(wave) COMPLETE", y: 95, fontSize: 23)
@@ -345,6 +353,7 @@ final class OutpostScene: SKScene {
 
     private func endGame() {
         phase = .gameOver
+        lockMenuBriefly()
         clearOverlay()
         let best = max(wave, UserDefaults.standard.integer(forKey: "bestWave"))
         UserDefaults.standard.set(best, forKey: "bestWave")
@@ -373,6 +382,7 @@ final class OutpostScene: SKScene {
         guard let touch = touches.first else { return }
         let point = touch.location(in: self)
         if phase == .playing { shoot(at: point); return }
+        if menuNeedsFreshTouch || clock < menuUnlockTime { return }
         let local = touch.location(in: overlay)
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
         switch (phase, tapped) {
@@ -389,9 +399,18 @@ final class OutpostScene: SKScene {
         }
     }
 
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if clock >= menuUnlockTime { menuNeedsFreshTouch = false }
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        menuNeedsFreshTouch = false
+    }
+
     private func completeUpgrade() {
         upgradePurchased = true
         upgradeConfirmed = true
+        lockMenuBriefly()
         updateHUD()
         clearOverlay()
         overlayText("UPGRADE PURCHASED", y: 35, fontSize: 22)
