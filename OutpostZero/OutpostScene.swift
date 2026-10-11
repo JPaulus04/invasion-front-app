@@ -546,7 +546,7 @@ final class OutpostScene: SKScene {
         ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
         clearOverlay()
-        let stars = health * 10 >= maximumHealth * 9 ? 3 : (health * 2 >= maximumHealth ? 2 : 1)
+        let stars = UserDefaults.standard.integer(forKey: "frontierForestStars")
         overlayText("FRONTIER FOREST CLEARED", y: 85, fontSize: 21)
         overlayText("20 WAVES DEFEATED", y: 40, fontSize: 19)
         overlayText("\(stars) / 3 STARS  •  BASE \(health) HP", y: -5, fontSize: 18)
