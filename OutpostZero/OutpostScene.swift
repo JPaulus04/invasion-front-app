@@ -54,6 +54,8 @@ final class OutpostScene: SKScene {
     private var permanentDamageBonus: Int { branchLevel(0) / 3 }
     private var permanentArmorBonus: Int { branchLevel(2) * 2 }
     private var permanentRateBonus: Int { branchLevel(3) / 4 }
+    private var permanentReactorBonus: Int { branchLevel(1) / 3 }
+    private var permanentSystemsBonus: Int { branchLevel(4) / 4 }
     private var chosenAbilities: Int { [chainLevel, explosiveLevel, incendiaryLevel].filter { $0 > 0 }.count }
     private var awaitingMenuRelease = false
     private let damageFlash = SKShapeNode()
@@ -135,7 +137,7 @@ final class OutpostScene: SKScene {
         subtitle.position = CGPoint(x: size.width / 2, y: size.height - 120)
         info.position = CGPoint(x: size.width / 2, y: size.height - 150)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
-        overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -230, width: min(size.width - 28, 390), height: 400), cornerWidth: 18, cornerHeight: 18, transform: nil)
+        overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
         damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
         warning.position = CGPoint(x: size.width / 2, y: max(170, size.height * 0.23))
         updateHUD()
@@ -267,7 +269,7 @@ final class OutpostScene: SKScene {
         arena.addChild(node)
         if isBoss { bossNode = node }
         let scaling = max(0, wave - 1)
-        let enemyHP = isBoss ? 180 : (type == 1 ? 5 + scaling * 2 : 2 + scaling) + branchLevel(4) * 0
+        let enemyHP = isBoss ? 180 : (type == 1 ? 5 + scaling * 2 : 2 + scaling)
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 1 ? 38 : 65)) + CGFloat(min(wave * 3, 45))
         let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
@@ -354,7 +356,7 @@ final class OutpostScene: SKScene {
         impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= damage)
         enemies[index].health -= damage + permanentDamageBonus
         if incendiaryLevel > 0 {
-            burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel, until: clock + 2.5, nextTick: clock + 0.5)
+            burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus, until: clock + 2.5, nextTick: clock + 0.5)
         }
         if explosiveLevel > 0 {
             for other in enemies.indices where other != index && distance(enemies[other].node.position, target) < CGFloat(35 + explosiveLevel * 15) {
@@ -380,7 +382,7 @@ final class OutpostScene: SKScene {
     private func chainAttack(from origin: CGPoint, excluding initialNode: SKShapeNode) {
         var previous = origin
         var visited: Set<ObjectIdentifier> = [ObjectIdentifier(initialNode)]
-        for _ in 0..<min(chainLevel, 4) {
+        for _ in 0..<min(chainLevel + permanentSystemsBonus, 5) {
             guard let targetIndex = enemies.indices
                 .filter({ !visited.contains(ObjectIdentifier(enemies[$0].node)) && distance(enemies[$0].node.position, previous) <= 115 })
                 .min(by: { distance(enemies[$0].node.position, previous) < distance(enemies[$1].node.position, previous) }) else { break }
@@ -541,7 +543,7 @@ final class OutpostScene: SKScene {
                          y: CGFloat(56 - index * 47), tint: .systemIndigo,
                          enabled: availableCores > 0 && level < 10)
         }
-        actionButton("BACK", key: "back", y: -200, tint: .systemTeal)
+        actionButton("BACK", key: "back", y: -204, tint: .systemTeal)
     }
 
     private func investCore(_ index: Int) {
