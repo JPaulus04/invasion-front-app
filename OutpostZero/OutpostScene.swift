@@ -37,6 +37,10 @@ final class OutpostScene: SKScene {
     private var waveElapsed: TimeInterval = 0
     private var menuUnlockTime: TimeInterval = 0
     private var menuNeedsFreshTouch = false
+    private var heldTouch: UITouch?
+    private var aimPoint: CGPoint?
+    private var chainLevel = 0
+    private var chainUpgrades = 0
     private let damageFlash = SKShapeNode()
     private let warning = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let arena = SKNode()
@@ -116,7 +120,7 @@ final class OutpostScene: SKScene {
         subtitle.position = CGPoint(x: size.width / 2, y: size.height - 120)
         info.position = CGPoint(x: size.width / 2, y: size.height - 150)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
-        overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -205, width: min(size.width - 28, 390), height: 345), cornerWidth: 18, cornerHeight: 18, transform: nil)
+        overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -230, width: min(size.width - 28, 390), height: 400), cornerWidth: 18, cornerHeight: 18, transform: nil)
         damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
         warning.position = CGPoint(x: size.width / 2, y: max(170, size.height * 0.23))
         updateHUD()
@@ -191,12 +195,14 @@ final class OutpostScene: SKScene {
         phase = .ready
         clearOverlay()
         overlayText("DEFEND THE OUTPOST", y: 65, fontSize: 22)
-        overlayText("Tap enemies to shoot", y: 20, fontSize: 17)
+        overlayText("Tap or hold and drag to fire", y: 20, fontSize: 17)
         actionButton("START DEFENSE", key: "start", y: -45, tint: .systemTeal)
     }
 
     private func startWave() {
         phase = .playing
+        heldTouch = nil
+        aimPoint = nil
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
@@ -261,6 +267,7 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock = currentTime
         guard phase == .playing else { return }
+        if let aimPoint { shoot(at: aimPoint) }
         spawnClock += dt
         waveElapsed += dt
         let spawnInterval = max(0.28, 1.12 - Double(wave) * 0.045)
@@ -320,13 +327,53 @@ final class OutpostScene: SKScene {
         enemies[index].healthBar.xScale = max(0.001, fraction)
         enemies[index].healthBar.fillColor = fraction > 0.5 ? .systemGreen : (fraction > 0.25 ? .systemYellow : .systemRed)
         enemies[index].node.run(.sequence([.scale(to: 1.2, duration: 0.06), .scale(to: 1.0, duration: 0.08)]))
-        if enemies[index].health <= 0 {
+        if chainLevel > 0 {
+            chainAttack(from: target, excluding: enemies[index].node)
+        }
+        removeDefeatedEnemies()
+        updateHUD()
+    }
+
+    private func chainAttack(from origin: CGPoint, excluding initialNode: SKShapeNode) {
+        var previous = origin
+        var visited: Set<ObjectIdentifier> = [ObjectIdentifier(initialNode)]
+        for _ in 0..<min(chainLevel, 4) {
+            guard let targetIndex = enemies.indices
+                .filter({ !visited.contains(ObjectIdentifier(enemies[$0].node)) && distance(enemies[$0].node.position, previous) <= 115 })
+                .min(by: { distance(enemies[$0].node.position, previous) < distance(enemies[$1].node.position, previous) }) else { break }
+            let enemy = enemies[targetIndex]
+            let endpoint = enemy.node.position
+            let bolt = SKShapeNode()
+            let path = CGMutablePath()
+            path.move(to: previous)
+            let midpoint = CGPoint(x: (previous.x + endpoint.x) / 2 + CGFloat.random(in: -9...9),
+                                   y: (previous.y + endpoint.y) / 2 + CGFloat.random(in: -9...9))
+            path.addLine(to: midpoint)
+            path.addLine(to: endpoint)
+            bolt.path = path
+            bolt.strokeColor = .systemCyan
+            bolt.lineWidth = 3
+            bolt.glowWidth = 4
+            bolt.zPosition = 12
+            arena.addChild(bolt)
+            bolt.run(.sequence([.fadeOut(withDuration: 0.16), .removeFromParent()]))
+            impact(at: endpoint, color: .systemCyan, destroyed: enemy.health <= max(1, damage / 2))
+            enemies[targetIndex].health -= max(1, damage / 2)
+            let fraction = CGFloat(max(0, enemies[targetIndex].health)) / CGFloat(enemies[targetIndex].maxHealth)
+            enemies[targetIndex].healthBar.xScale = max(0.001, fraction)
+            enemies[targetIndex].healthBar.fillColor = fraction > 0.5 ? .systemGreen : (fraction > 0.25 ? .systemYellow : .systemRed)
+            visited.insert(ObjectIdentifier(enemy.node))
+            previous = endpoint
+        }
+    }
+
+    private func removeDefeatedEnemies() {
+        for index in enemies.indices.reversed() where enemies[index].health <= 0 {
             streak += 1
             coins += enemies[index].reward
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
         }
-        updateHUD()
     }
 
     private func distance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
@@ -336,6 +383,7 @@ final class OutpostScene: SKScene {
     private var damageCost: Int { 60 + damageUpgrades * 65 + damageUpgrades * damageUpgrades * 12 }
     private var rateCost: Int { 85 + rateUpgrades * 115 }
     private var repairCost: Int { 40 + wave * 8 }
+    private var chainCost: Int { 110 + chainUpgrades * 150 }
 
     private func completeWave() {
         phase = .upgrades
@@ -343,16 +391,19 @@ final class OutpostScene: SKScene {
         coins += 12 + wave * 2
         clearOverlay()
         overlayText("WAVE \(wave) COMPLETE", y: 95, fontSize: 23)
-        overlayText("DMG \(damage)  •  RATE \(fireRate)  •  HP \(health)", y: 55, fontSize: 16)
+        overlayText("DMG \(damage)  •  RATE \(fireRate)  •  CHAIN \(chainLevel)", y: 55, fontSize: 16)
         actionButton("DAMAGE \(damage) → \(damage + 1)    \(damageCost) COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= damageCost)
         actionButton("RATE \(fireRate) → \(fireRate + 1)    \(rateCost) COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= rateCost && fireRate < 5)
-        actionButton("HP \(health) → \(min(100, health + 30))    \(repairCost) COINS", key: "repair", y: -80, tint: .systemGreen, enabled: coins >= repairCost && health < 100)
-        actionButton("NEXT WAVE", key: "next", y: -140, tint: .systemTeal)
+        actionButton("CHAIN \(chainLevel) → \(chainLevel + 1)    \(chainCost) COINS", key: "chain", y: -80, tint: .systemPurple, enabled: coins >= chainCost && chainLevel < 4)
+        actionButton("REPAIR HP    \(repairCost) COINS", key: "repair", y: -125, tint: .systemGreen, enabled: coins >= repairCost && health < 100)
+        actionButton("NEXT WAVE", key: "next", y: -178, tint: .systemTeal)
         updateHUD()
     }
 
     private func endGame() {
         phase = .gameOver
+        heldTouch = nil
+        aimPoint = nil
         lockMenuBriefly()
         clearOverlay()
         let best = max(wave, UserDefaults.standard.integer(forKey: "bestWave"))
@@ -372,6 +423,10 @@ final class OutpostScene: SKScene {
         fireRate = 1
         damageUpgrades = 0
         rateUpgrades = 0
+        chainLevel = 0
+        chainUpgrades = 0
+        heldTouch = nil
+        aimPoint = nil
         lastShot = -100
         streak = 0
         updateHUD()
@@ -381,7 +436,12 @@ final class OutpostScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let point = touch.location(in: self)
-        if phase == .playing { shoot(at: point); return }
+        if phase == .playing {
+            heldTouch = touch
+            aimPoint = point
+            shoot(at: point)
+            return
+        }
         if menuNeedsFreshTouch || clock < menuUnlockTime { return }
         let local = touch.location(in: overlay)
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
@@ -392,6 +452,8 @@ final class OutpostScene: SKScene {
             coins -= damageCost; damage += 1; damageUpgrades += 1; completeUpgrade()
         case (.upgrades, "rate") where !upgradePurchased && coins >= rateCost && fireRate < 5:
             coins -= rateCost; fireRate += 1; rateUpgrades += 1; completeUpgrade()
+        case (.upgrades, "chain") where !upgradePurchased && coins >= chainCost && chainLevel < 4:
+            coins -= chainCost; chainLevel += 1; chainUpgrades += 1; completeUpgrade()
         case (.upgrades, "repair") where !upgradePurchased && coins >= repairCost && health < 100:
             coins -= repairCost; health = min(100, health + 30); completeUpgrade()
         case (.upgrades, "next"): startWave()
@@ -399,11 +461,25 @@ final class OutpostScene: SKScene {
         }
     }
 
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if phase == .playing, let heldTouch, touches.contains(heldTouch) {
+            aimPoint = heldTouch.location(in: self)
+        }
+    }
+
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let heldTouch, touches.contains(heldTouch) {
+            self.heldTouch = nil
+            aimPoint = nil
+        }
         if clock >= menuUnlockTime { menuNeedsFreshTouch = false }
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let heldTouch, touches.contains(heldTouch) {
+            self.heldTouch = nil
+            aimPoint = nil
+        }
         menuNeedsFreshTouch = false
     }
 
