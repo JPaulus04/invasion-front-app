@@ -18,7 +18,7 @@ for file in sources:
     if text.count("{") != text.count("}"):
         errors.append(f"Unbalanced braces: {file.name}")
 scene = (root / "OutpostZero" / "OutpostScene.swift").read_text(encoding="utf-8")
-for feature in ("spawnEnemy()", "shoot(at:", "completeWave()", "endGame()", "restart()", "actionButton(", "overlayButtons", "impact(at:", "healthBar.xScale", "damageFlash.run", "warning.text", "waveElapsed", "damageCost", "rateCost", "repairCost", "BattlefieldArt.install"):
+for feature in ("spawnEnemy()", "shoot(at:", "completeWave()", "endGame()", "restart()", "actionButton(", "overlayButtons", "impact(at:", "healthBar.xScale", "damageFlash.run", "warning.text", "waveElapsed", "heldTouch = touch", "override func touchesMoved", "chainAttack(from: target", "chainLevel", "damageCost", "rateCost", "repairCost", "BattlefieldArt.install"):
     if feature not in scene:
         errors.append(f"Missing gameplay feature: {feature}")
 if (root / "project.yml").is_file() and "CODE_SIGNING_ALLOWED: NO" in (root / "project.yml").read_text(encoding="utf-8"):
