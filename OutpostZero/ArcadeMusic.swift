@@ -34,7 +34,7 @@ final class ArcadeMusic {
     }
 
     func play(_ theme: Theme, force: Bool = false) {
-        if current == theme && !force { return }
+        if current == theme && !force && player.isPlaying { return }
         current = theme
         guard enabled else { return }
         if !engine.isRunning {
