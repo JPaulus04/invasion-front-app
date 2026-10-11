@@ -126,6 +126,7 @@ final class OutpostScene: SKScene {
         info.fontColor = .white
         layout()
         showReady()
+        ArcadeMusic.shared.play(.headquarters)
     }
 
     override func didChangeSize(_ oldSize: CGSize) { layout() }
@@ -213,16 +214,19 @@ final class OutpostScene: SKScene {
 
     private func showReady() {
         phase = .ready
+        ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
         overlayText("DEFEND THE OUTPOST", y: 65, fontSize: 22)
         overlayText("Tap, hold or drag to fire", y: 20, fontSize: 17)
         overlayText("POWER CORES: \(availableCores)  •  RESTORE YOUR PILOT", y: -15, fontSize: 13)
         actionButton("CHARACTER RESTORATION", key: "restore", y: -100, tint: .systemIndigo)
         actionButton("START DEFENSE", key: "start", y: -45, tint: .systemTeal)
+        actionButton(ArcadeMusic.shared.isEnabled ? "MUSIC: ON" : "MUSIC: OFF", key: "music", y: -155, tint: .systemBlue)
     }
 
     private func startWave() {
         phase = .playing
+        ArcadeMusic.shared.play(wave + 1 == worldWaveCount ? .boss : .forest)
         heldTouch = nil
         aimPoint = nil
         clearOverlay()
@@ -512,6 +516,7 @@ final class OutpostScene: SKScene {
 
     private func completeWorld() {
         phase = .worldComplete
+        ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
         clearOverlay()
         if !UserDefaults.standard.bool(forKey: "frontierForestCoreClaimed") {
@@ -532,6 +537,7 @@ final class OutpostScene: SKScene {
 
     private func showRestoration() {
         phase = .restoration
+        ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
         clearOverlay()
         let total = (0..<coreBranches.count).reduce(0) { $0 + branchLevel($1) }
@@ -606,6 +612,9 @@ final class OutpostScene: SKScene {
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
         switch (phase, tapped) {
         case (.ready, "start"): startWave()
+        case (.ready, "music"):
+            ArcadeMusic.shared.toggle()
+            showReady()
         case (.ready, "restore"), (.worldComplete, "restore"): showRestoration()
         case (.restoration, "back"): showReady()
         case (.restoration, let key?) where key.hasPrefix("branch_"):
