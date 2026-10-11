@@ -5,6 +5,8 @@ final class OutpostScene: SKScene {
     private struct Enemy {
         let node: SKShapeNode
         var health: Int
+        let maxHealth: Int
+        let healthBar: SKShapeNode
         let speed: CGFloat
         let reward: Int
     }
@@ -32,6 +34,9 @@ final class OutpostScene: SKScene {
     private var streak = 0
     private var damageUpgrades = 0
     private var rateUpgrades = 0
+    private var waveElapsed: TimeInterval = 0
+    private let damageFlash = SKShapeNode()
+    private let warning = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let arena = SKNode()
     private let base = SKShapeNode(rectOf: CGSize(width: 160, height: 60), cornerRadius: 15)
     private let title = SKLabelNode(fontNamed: "AvenirNext-Heavy")
@@ -52,6 +57,16 @@ final class OutpostScene: SKScene {
         hud.addChild(hudPanel)
         addChild(overlay)
         overlay.zPosition = 40
+        damageFlash.fillColor = SKColor.red.withAlphaComponent(0.24)
+        damageFlash.strokeColor = .clear
+        damageFlash.zPosition = 35
+        damageFlash.alpha = 0
+        addChild(damageFlash)
+        warning.fontSize = 18
+        warning.fontColor = .systemRed
+        warning.zPosition = 36
+        warning.alpha = 0
+        addChild(warning)
         overlayBackdrop.fillColor = SKColor(white: 0.05, alpha: 0.82)
         overlayBackdrop.strokeColor = SKColor(white: 0.9, alpha: 0.22)
         overlayBackdrop.lineWidth = 2
@@ -100,6 +115,8 @@ final class OutpostScene: SKScene {
         info.position = CGPoint(x: size.width / 2, y: size.height - 150)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -205, width: min(size.width - 28, 390), height: 345), cornerWidth: 18, cornerHeight: 18, transform: nil)
+        damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
+        warning.position = CGPoint(x: size.width / 2, y: max(170, size.height * 0.23))
         updateHUD()
     }
 
@@ -181,6 +198,7 @@ final class OutpostScene: SKScene {
         upgradeConfirmed = false
         waveTarget = min(60, 6 + wave * 4)
         spawnClock = 1.2
+        waveElapsed = 0
         streak = 0
         updateHUD()
     }
@@ -216,7 +234,18 @@ final class OutpostScene: SKScene {
         let scaling = max(0, wave - 1)
         let enemyHP = type == 1 ? 5 + scaling * 2 : (type == 2 ? 2 + scaling : 2 + scaling)
         let speed = CGFloat(type == 2 ? 105 : (type == 1 ? 38 : 65)) + CGFloat(min(wave * 3, 45))
-        enemies.append(Enemy(node: node, health: enemyHP, speed: speed, reward: type == 1 ? 12 : 6))
+        let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
+        healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
+        healthTrack.strokeColor = .clear
+        healthTrack.position.y = radius + 12
+        node.addChild(healthTrack)
+        let healthBar = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
+        healthBar.fillColor = .systemGreen
+        healthBar.strokeColor = .clear
+        healthBar.position.y = radius + 12
+        healthBar.zPosition = 1
+        node.addChild(healthBar)
+        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: type == 1 ? 12 : 6))
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -226,7 +255,9 @@ final class OutpostScene: SKScene {
         clock = currentTime
         guard phase == .playing else { return }
         spawnClock += dt
-        if spawned < waveTarget && spawnClock >= max(0.35, 1.15 - Double(wave) * 0.04) {
+        waveElapsed += dt
+        let spawnInterval = max(0.28, 1.12 - Double(wave) * 0.045)
+        if spawned < waveTarget && spawnClock >= spawnInterval {
             spawnClock = 0
             spawned += 1
             spawnEnemy()
@@ -241,6 +272,14 @@ final class OutpostScene: SKScene {
                 impact(at: enemies[index].node.position, color: .systemRed, destroyed: true)
                 streak = 0
                 health = max(0, health - 12)
+                base.run(.sequence([.moveBy(x: -7, y: 0, duration: 0.04), .moveBy(x: 14, y: 0, duration: 0.08), .moveBy(x: -7, y: 0, duration: 0.04)]))
+                damageFlash.removeAllActions()
+                damageFlash.alpha = 0.85
+                damageFlash.run(.fadeOut(withDuration: 0.32))
+                warning.removeAllActions()
+                warning.text = "OUTPOST HIT!  -12 HP"
+                warning.alpha = 1
+                warning.run(.sequence([.wait(forDuration: 0.4), .fadeOut(withDuration: 0.4)]))
                 enemies[index].node.removeFromParent()
                 enemies.remove(at: index)
                 updateHUD()
@@ -270,6 +309,9 @@ final class OutpostScene: SKScene {
         tracer.run(.sequence([.fadeOut(withDuration: 0.055), .removeFromParent()]))
         impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= damage)
         enemies[index].health -= damage
+        let fraction = CGFloat(max(0, enemies[index].health)) / CGFloat(enemies[index].maxHealth)
+        enemies[index].healthBar.xScale = max(0.001, fraction)
+        enemies[index].healthBar.fillColor = fraction > 0.5 ? .systemGreen : (fraction > 0.25 ? .systemYellow : .systemRed)
         enemies[index].node.run(.sequence([.scale(to: 1.2, duration: 0.06), .scale(to: 1.0, duration: 0.08)]))
         if enemies[index].health <= 0 {
             streak += 1
@@ -293,10 +335,10 @@ final class OutpostScene: SKScene {
         coins += 12 + wave * 2
         clearOverlay()
         overlayText("WAVE \(wave) COMPLETE", y: 95, fontSize: 23)
-        overlayText("Choose an upgrade", y: 55, fontSize: 16)
-        actionButton("DAMAGE +1     \(damageCost) COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= damageCost)
-        actionButton("FIRE RATE +1     \(rateCost) COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= rateCost && fireRate < 5)
-        actionButton("REPAIR +30 HP     \(repairCost) COINS", key: "repair", y: -80, tint: .systemGreen, enabled: coins >= repairCost && health < 100)
+        overlayText("DMG \(damage)  •  RATE \(fireRate)  •  HP \(health)", y: 55, fontSize: 16)
+        actionButton("DAMAGE \(damage) → \(damage + 1)    \(damageCost) COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= damageCost)
+        actionButton("RATE \(fireRate) → \(fireRate + 1)    \(rateCost) COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= rateCost && fireRate < 5)
+        actionButton("HP \(health) → \(min(100, health + 30))    \(repairCost) COINS", key: "repair", y: -80, tint: .systemGreen, enabled: coins >= repairCost && health < 100)
         actionButton("NEXT WAVE", key: "next", y: -140, tint: .systemTeal)
         updateHUD()
     }
