@@ -330,11 +330,13 @@ final class OutpostScene: SKScene {
                 warning.text = "OUTPOST HIT!  -\(impactDamage) HP"
                 warning.alpha = 1
                 warning.run(.sequence([.wait(forDuration: 0.4), .fadeOut(withDuration: 0.4)]))
-                if enemies[index].node === bossNode { bossNode = nil }
+                let bossBreached = enemies[index].node === bossNode
+                if bossBreached { bossNode = nil }
                 burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
                 enemies[index].node.removeFromParent()
                 enemies.remove(at: index)
                 updateHUD()
+                if bossBreached { endGame(); return }
             }
         }
         if health == 0 { endGame(); return }
