@@ -11,6 +11,7 @@ final class OutpostScene: SKScene {
         let reward: Int
     }
     private var phase: Phase = .ready
+    private var restorationReturnPhase: Phase = .ready
     private var enemies: [Enemy] = []
     private var wave = 0
     private var spawned = 0
@@ -539,6 +540,7 @@ final class OutpostScene: SKScene {
     }
 
     private func showRestoration() {
+        if phase != .restoration { restorationReturnPhase = phase }
         phase = .restoration
         ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
@@ -620,7 +622,9 @@ final class OutpostScene: SKScene {
             ArcadeMusic.shared.toggle()
             showReady()
         case (.ready, "restore"), (.worldComplete, "restore"): showRestoration()
-        case (.restoration, "back"): showReady()
+        case (.restoration, "back"):
+            if restorationReturnPhase == .worldComplete { showWorldCompleteSummary() }
+            else { showReady() }
         case (.restoration, let key?) where key.hasPrefix("branch_"):
             if let index = Int(key.dropFirst(7)) { investCore(index) }
         case (.gameOver, "restart"), (.worldComplete, "restart"): restart()
