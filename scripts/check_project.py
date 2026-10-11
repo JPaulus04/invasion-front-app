@@ -18,16 +18,20 @@ for file in sources:
     if text.count("{") != text.count("}"):
         errors.append(f"Unbalanced braces: {file.name}")
 scene = (root / "OutpostZero" / "OutpostScene.swift").read_text(encoding="utf-8")
-for feature in ("spawnEnemy()", "shoot(at:", "completeWave()", "endGame()", "restart()", "upgradeConfirmed ? 35 : 140", "BattlefieldArt.install"):
+for feature in ("spawnEnemy()", "shoot(at:", "completeWave()", "endGame()", "restart()", "actionButton(", "overlayButtons", "impact(at:", "BattlefieldArt.install"):
     if feature not in scene:
         errors.append(f"Missing gameplay feature: {feature}")
 if (root / "project.yml").is_file() and "CODE_SIGNING_ALLOWED: NO" in (root / "project.yml").read_text(encoding="utf-8"):
     errors.append("Device signing must not be disabled in project.yml")
 art = (root / "OutpostZero" / "BattlefieldArt.swift").read_text(encoding="utf-8")
+if "road markings" not in art:
+    errors.append("Missing battlefield visual detail")
 if "behind.addChild(" in art:
     errors.append("BattlefieldArt references an undefined behind node")
 if "gameplay.addChild(" not in art:
     errors.append("BattlefieldArt must attach its nodes to gameplay")
+if "upgradeConfirmed ? 35 : 140" in scene:
+    errors.append("Legacy upgrade touch bands must not return")
 if not (root / "project.yml").is_file():
     errors.append("Missing XcodeGen project.yml")
 if errors:
