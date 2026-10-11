@@ -483,12 +483,14 @@ final class OutpostScene: SKScene {
         actionButton("RATE \(fireRate) → \(fireRate + 1)    \(rateCost) COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= rateCost && fireRate < 5)
         overlayText("NEXT ABILITY AT WAVE \(((wave / 5) + 1) * 5)", y: -80, fontSize: 13)
         actionButton("REPAIR HP    \(repairCost) COINS", key: "repair", y: -125, tint: .systemGreen, enabled: coins >= repairCost && health < maximumHealth)
+        if availableCores > 0 { actionButton("SPEND POWER CORES", key: "restore", y: -222, tint: .systemIndigo) }
         actionButton("NEXT WAVE", key: "next", y: -178, tint: .systemTeal)
         updateHUD()
     }
 
 
     private func showMilestone() {
+        awardMilestoneCore(wave)
         phase = .milestone
         lockMenuBriefly()
         clearOverlay()
@@ -516,7 +518,7 @@ final class OutpostScene: SKScene {
             }
             overlayText(detail, y: CGFloat(-13 - index * 55), fontSize: 11)
         }
-        overlayText("FREE MILESTONE REWARD", y: -168, fontSize: 14)
+        overlayText("POWER CORE EARNED  •  RESTORE BETWEEN WAVES", y: -168, fontSize: 12)
     }
 
     private func chooseMilestone(_ ability: String) {
@@ -535,15 +537,19 @@ final class OutpostScene: SKScene {
         completeWave()
     }
 
+    private func awardMilestoneCore(_ milestone: Int) {
+        let key = "frontierForestCoreWave_\(milestone)"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        UserDefaults.standard.set(availableCores + (milestone == 20 ? 2 : 1), forKey: "powerCoresAvailable")
+    }
+
     private func completeWorld() {
         phase = .worldComplete
         ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
         clearOverlay()
-        if !UserDefaults.standard.bool(forKey: "frontierForestCoreClaimed") {
-            UserDefaults.standard.set(true, forKey: "frontierForestCoreClaimed")
-            UserDefaults.standard.set(availableCores + 1, forKey: "powerCoresAvailable")
-        }
+        awardMilestoneCore(20)
         UserDefaults.standard.set(true, forKey: "frontierForestComplete")
         let stars = health * 10 >= maximumHealth * 9 ? 3 : (health * 2 >= maximumHealth ? 2 : 1)
         let previous = UserDefaults.standard.integer(forKey: "frontierForestStars")
@@ -648,9 +654,10 @@ final class OutpostScene: SKScene {
         case (.ready, "music"):
             ArcadeMusic.shared.toggle()
             showReady()
-        case (.ready, "restore"), (.worldComplete, "restore"): showRestoration()
+        case (.ready, "restore"), (.worldComplete, "restore"), (.upgrades, "restore"): showRestoration()
         case (.restoration, "back"):
             if restorationReturnPhase == .worldComplete { showWorldCompleteSummary() }
+            else if restorationReturnPhase == .upgrades { completeUpgrade() }
             else { showReady() }
         case (.restoration, let key?) where key.hasPrefix("branch_"):
             if let index = Int(key.dropFirst(7)) { investCore(index) }
@@ -701,5 +708,6 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayText("UPGRADE PURCHASED", y: 35, fontSize: 22)
         actionButton("NEXT WAVE", key: "next", y: -35, tint: .systemTeal)
+        if availableCores > 0 { actionButton("SPEND POWER CORES", key: "restore", y: -100, tint: .systemIndigo) }
     }
 }
