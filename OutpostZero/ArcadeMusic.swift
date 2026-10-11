@@ -13,8 +13,14 @@ final class ArcadeMusic {
     private var enabled = UserDefaults.standard.object(forKey: "musicEnabled") as? Bool ?? true
     private let sampleRate: Double = 22050
     private var buffers: [Theme: AVAudioPCMBuffer] = [:]
+    private var interrupted = false
 
     private init() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [.mixWithOthers])
+        } catch { /* The soundtrack remains optional if audio setup is unavailable. */ }
+        NotificationCenter.default.addObserver(self, selector: #selector(audioInterrupted(_:)), name: AVAudioSession.interruptionNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(audioRouteChanged(_:)), name: AVAudioSession.routeChangeNotification, object: nil)
         engine.attach(player)
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1)!
         engine.connect(player, to: engine.mainMixerNode, format: format)
@@ -22,6 +28,22 @@ final class ArcadeMusic {
     }
 
     var isEnabled: Bool { enabled }
+
+    @objc private func audioInterrupted(_ notification: Notification) {
+        guard let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+        if type == .began {
+            interrupted = true
+            player.pause()
+        } else {
+            interrupted = false
+            if let current, enabled { play(current, force: true) }
+        }
+    }
+
+    @objc private func audioRouteChanged(_ notification: Notification) {
+        if !interrupted && enabled && !player.isPlaying, let current { play(current, force: true) }
+    }
 
     func toggle() {
         enabled.toggle()
@@ -36,7 +58,7 @@ final class ArcadeMusic {
     func play(_ theme: Theme, force: Bool = false) {
         if current == theme && !force && player.isPlaying { return }
         current = theme
-        guard enabled else { return }
+        guard enabled && !interrupted else { return }
         if !engine.isRunning {
             do { try engine.start() } catch { return }
         }
