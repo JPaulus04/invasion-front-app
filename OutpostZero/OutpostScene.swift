@@ -232,7 +232,14 @@ final class OutpostScene: SKScene {
         aimPoint = nil
     }
 
+    private func grantStarterCoreIfNeeded() {
+        guard !UserDefaults.standard.bool(forKey: "starterCoreGranted") else { return }
+        UserDefaults.standard.set(true, forKey: "starterCoreGranted")
+        UserDefaults.standard.set(availableCores + 1, forKey: "powerCoresAvailable")
+    }
+
     private func showReady() {
+        grantStarterCoreIfNeeded()
         phase = .ready
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
@@ -514,7 +521,6 @@ final class OutpostScene: SKScene {
 
 
     private func showMilestone() {
-        awardMilestoneCore(wave)
         phase = .milestone
         lockMenuBriefly()
         clearOverlay()
@@ -542,7 +548,7 @@ final class OutpostScene: SKScene {
             }
             overlayText(detail, y: CGFloat(-13 - index * 55), fontSize: 11)
         }
-        overlayText("POWER CORE EARNED  •  RESTORE BETWEEN WAVES", y: -168, fontSize: 12)
+        overlayText("FREE MILESTONE ABILITY", y: -168, fontSize: 14)
     }
 
     private func chooseMilestone(_ ability: String) {
@@ -561,11 +567,10 @@ final class OutpostScene: SKScene {
         completeWave()
     }
 
-    private func awardMilestoneCore(_ milestone: Int) {
-        let key = "frontierForestCoreWave_\(milestone)"
-        guard !UserDefaults.standard.bool(forKey: key) else { return }
-        UserDefaults.standard.set(true, forKey: key)
-        UserDefaults.standard.set(availableCores + (milestone == 20 ? 2 : 1), forKey: "powerCoresAvailable")
+    private func awardWorldCompletionCore() {
+        guard !UserDefaults.standard.bool(forKey: "frontierForestCoreClaimed") else { return }
+        UserDefaults.standard.set(true, forKey: "frontierForestCoreClaimed")
+        UserDefaults.standard.set(availableCores + 1, forKey: "powerCoresAvailable")
     }
 
     private func completeWorld() {
@@ -573,7 +578,7 @@ final class OutpostScene: SKScene {
         ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
         clearOverlay()
-        awardMilestoneCore(20)
+        awardWorldCompletionCore()
         UserDefaults.standard.set(true, forKey: "frontierForestComplete")
         let stars = health * 10 >= maximumHealth * 9 ? 3 : (health * 2 >= maximumHealth ? 2 : 1)
         let previous = UserDefaults.standard.integer(forKey: "frontierForestStars")
