@@ -816,12 +816,12 @@ final class OutpostScene: SKScene {
         overlayText("CHARACTER RESTORATION", y: 160, fontSize: 20)
         overlayText("\(total)/50 RESTORED  •  \(availableCores) CORES AVAILABLE", y: 124, fontSize: 14)
         let effects = ["Weapons: +1 damage every 3 cores", "Reactor: stronger combat abilities", "Armor: +2 base HP per core", "Mobility: +5 move speed per core", "Systems: extra chain targets every 4 cores"]
-        overlayText(effects[min(lastRestoredBranch, 4)], y: 103, fontSize: 11)
+        overlayText(effects[min(lastRestoredBranch, 4)], y: -174, fontSize: 11)
         drawRestorationRobot()
         for index in coreBranches.indices {
             let level = branchLevel(index)
             actionButton("\(coreBranches[index])   \(level)/10", key: "branch_\(index)",
-                         y: CGFloat(73 - index * 47), tint: .systemIndigo,
+                         y: CGFloat(42 - index * 44), tint: .systemIndigo,
                          enabled: availableCores > 0 && level < 10)
         }
         actionButton("BACK", key: "back", y: -201, tint: .systemTeal)
@@ -842,7 +842,7 @@ final class OutpostScene: SKScene {
         // Reuse the battlefield robot silhouette so upgrades are visibly attached to the pilot.
         let preview = SKNode()
         preview.name = "restorationRobot"
-        preview.position = CGPoint(x: min(size.width * 0.31, 140), y: 91)
+        preview.position = CGPoint(x: 0, y: 86)
         preview.setScale(0.95)
         preview.zPosition = 5
         let body = SKShapeNode(rectOf: CGSize(width: 28, height: 34), cornerRadius: 7)
@@ -885,7 +885,7 @@ final class OutpostScene: SKScene {
         case 3: offset = CGPoint(x: 0, y: -17); tint = .systemCyan // mobility feet
         default: offset = CGPoint(x: 14, y: 0); tint = .systemYellow // systems module
         }
-        let origin = CGPoint(x: min(size.width * 0.31, 140) + offset.x * 0.95, y: 91 + offset.y * 0.95)
+        let origin = CGPoint(x: offset.x * 0.95, y: 86 + offset.y * 0.95)
         for ringIndex in 0..<3 {
             let ring = SKShapeNode(circleOfRadius: CGFloat(8 + ringIndex * 5))
             ring.fillColor = .clear
