@@ -9,6 +9,8 @@ final class OutpostScene: SKScene {
         let healthBar: SKShapeNode
         let speed: CGFloat
         let reward: Int
+        let behavior: Int
+        let spawnX: CGFloat
     }
     private var phase: Phase = .ready
     private var restorationReturnPhase: Phase = .ready
@@ -313,6 +315,7 @@ final class OutpostScene: SKScene {
         overlayBackdrop.isHidden = true
         wave += 1
         warning.isHidden = true
+        warning.alpha = 1
         let activeZone = min((wave - 1) / 5, 3)
         backgroundColor = zoneColors[activeZone]
         spawned = 0
@@ -327,10 +330,10 @@ final class OutpostScene: SKScene {
 
     private func spawnEnemy() {
         let isBoss = wave == worldWaveCount
-        let type = isBoss ? 1 : Int.random(in: 0...2)
-        let radius: CGFloat = isBoss ? 37 : (type == 1 ? 23 : (type == 2 ? 17 : 14))
+        let type = isBoss ? 1 : Int.random(in: 0...(wave >= 11 ? 3 : 2))
+        let radius: CGFloat = isBoss ? 37 : (type == 1 ? 23 : (type == 2 ? 17 : (type == 3 ? 26 : 14)))
         let node = SKShapeNode(circleOfRadius: radius)
-        node.fillColor = type == 1 ? .systemRed : (type == 2 ? .systemPurple : .systemOrange)
+        node.fillColor = type == 1 ? .systemRed : (type == 2 ? .systemPurple : (type == 3 ? .systemGray : .systemOrange))
         node.strokeColor = type == 1 ? .systemYellow : .white
         node.lineWidth = type == 1 ? 4 : 2
         let core = SKShapeNode(circleOfRadius: radius * 0.47)
@@ -356,8 +359,8 @@ final class OutpostScene: SKScene {
         arena.addChild(node)
         if isBoss { bossNode = node }
         let scaling = max(0, wave - 1)
-        let enemyHP = isBoss ? 180 : (type == 1 ? 5 + scaling * 2 : 2 + scaling)
-        let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 1 ? 38 : 65)) + CGFloat(min(wave * 3, 45))
+        let enemyHP = isBoss ? 180 : (type == 3 ? 12 + scaling * 3 : (type == 1 ? 5 + scaling * 2 : 2 + scaling))
+        let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
         healthTrack.strokeColor = .clear
@@ -369,7 +372,7 @@ final class OutpostScene: SKScene {
         healthBar.position.y = radius + 12
         healthBar.zPosition = 1
         node.addChild(healthBar)
-        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: isBoss ? 250 : (type == 1 ? 12 : 6)))
+        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: isBoss ? 250 : (type == 3 ? 20 : (type == 1 ? 12 : 6)), behavior: type, spawnX: node.position.x))
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -422,8 +425,18 @@ final class OutpostScene: SKScene {
         }
         for index in enemies.indices.reversed() {
             let current = enemies[index].node.position
-            let horizontalStep = min(abs(base.position.x - current.x), CGFloat(gameDt) * enemies[index].speed * 0.45)
-            let direction: CGFloat = base.position.x >= current.x ? 1 : -1
+            let enemy = enemies[index]
+            // Fast scouts weave; armored elites track the player before returning toward the base.
+            let destinationX: CGFloat
+            if enemy.behavior == 2 {
+                destinationX = enemy.spawnX + sin(CGFloat(waveElapsed) * 3.2 + CGFloat(index)) * min(48, size.width * 0.12)
+            } else if enemy.behavior == 3 && current.y > base.position.y + 180 {
+                destinationX = pilot.position.x
+            } else {
+                destinationX = base.position.x
+            }
+            let horizontalStep = min(abs(destinationX - current.x), CGFloat(gameDt) * enemy.speed * (enemy.behavior == 3 ? 0.65 : 0.45))
+            let direction: CGFloat = destinationX >= current.x ? 1 : -1
             enemies[index].node.position.x += horizontalStep * direction
             enemies[index].node.position.y -= enemies[index].speed * CGFloat(gameDt)
             if enemies[index].node.position.y <= base.position.y + 30 {
@@ -614,6 +627,8 @@ final class OutpostScene: SKScene {
         passageGate.removeAllActions()
         passageGate.run(.repeatForever(.sequence([.fadeAlpha(to: 0.5, duration: 0.65), .fadeAlpha(to: 1, duration: 0.65)])))
         warning.text = "GATE OPEN — WALK THROUGH TO CONTINUE"
+        warning.removeAllActions()
+        warning.alpha = 1
         warning.isHidden = false
         updateHUD()
     }
