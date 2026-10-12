@@ -58,7 +58,7 @@ final class OutpostScene: SKScene {
     private let pilotGun = SKShapeNode(rectOf: CGSize(width: 9, height: 23), cornerRadius: 3)
     private var movementOrigin: CGPoint?
     private var movementTarget: CGPoint?
-    private let pilotSpeed: CGFloat = 205
+    private var pilotSpeed: CGFloat { 205 + CGFloat(branchLevel(3) * 5) }
     private let autoFireRange: CGFloat = 260
     private var chainLevel = 0
     private var chainUpgrades = 0
@@ -707,8 +707,9 @@ final class OutpostScene: SKScene {
         let total = (0..<coreBranches.count).reduce(0) { $0 + branchLevel($1) }
         overlayText("CHARACTER RESTORATION", y: 160, fontSize: 20)
         overlayText("\(total)/50 RESTORED  •  \(availableCores) CORES AVAILABLE", y: 124, fontSize: 14)
-        let effects = ["Damage +1 every 3 levels", "Reactor improves ability power", "Base armor +2 HP each level", "Firing speed +1 every 4 levels", "Chain targets +1 every 4 levels"]
+        let effects = ["Weapons: +1 damage every 3 cores", "Reactor: stronger combat abilities", "Armor: +2 base HP per core", "Mobility: +5 move speed per core", "Systems: extra chain targets every 4 cores"]
         overlayText(effects[min(lastRestoredBranch, 4)], y: 103, fontSize: 11)
+        drawRestorationRobot()
         for index in coreBranches.indices {
             let level = branchLevel(index)
             actionButton("\(coreBranches[index])   \(level)/10", key: "branch_\(index)",
@@ -716,6 +717,35 @@ final class OutpostScene: SKScene {
                          enabled: availableCores > 0 && level < 10)
         }
         actionButton("BACK", key: "back", y: -201, tint: .systemTeal)
+    }
+
+    private func drawRestorationRobot() {
+        // Reuse the battlefield robot silhouette so upgrades are visibly attached to the pilot.
+        let preview = SKNode()
+        preview.position = CGPoint(x: 0, y: 91)
+        preview.setScale(0.68)
+        preview.zPosition = 5
+        let body = SKShapeNode(rectOf: CGSize(width: 28, height: 34), cornerRadius: 7)
+        body.fillColor = .systemCyan
+        body.strokeColor = .white
+        body.lineWidth = 3
+        preview.addChild(body)
+        let visor = SKShapeNode(rectOf: CGSize(width: 19, height: 9), cornerRadius: 3)
+        visor.fillColor = .systemBlue
+        visor.strokeColor = .white
+        visor.position.y = 6
+        body.addChild(visor)
+        let gun = SKShapeNode(rectOf: CGSize(width: 9, height: 23), cornerRadius: 3)
+        gun.fillColor = .darkGray
+        gun.strokeColor = .systemYellow
+        gun.position = CGPoint(x: 14, y: 11)
+        body.addChild(gun)
+        if branchLevel(2) > 0 { body.strokeColor = .systemGreen }
+        if branchLevel(0) > 0 { gun.strokeColor = .systemOrange }
+        if branchLevel(1) > 0 { visor.fillColor = .systemPurple }
+        if branchLevel(3) > 0 { body.lineWidth = 4 }
+        if branchLevel(4) > 0 { gun.lineWidth = 4 }
+        overlay.addChild(preview)
     }
 
     private func investCore(_ index: Int) {
@@ -728,7 +758,7 @@ final class OutpostScene: SKScene {
         flash.fillColor = .systemCyan
         flash.strokeColor = .white
         flash.alpha = 0.7
-        flash.position = CGPoint(x: 0, y: 92)
+        flash.position = CGPoint(x: 0, y: 91)
         flash.zPosition = 20
         overlay.addChild(flash)
         flash.run(.sequence([.group([.scale(to: 2.2, duration: 0.4), .fadeOut(withDuration: 0.4)]), .removeFromParent()]))
@@ -832,7 +862,7 @@ final class OutpostScene: SKScene {
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if phase == .playing, let heldTouch, touches.contains(heldTouch) {
+        if (phase == .playing || phase == .gate), let heldTouch, touches.contains(heldTouch) {
             let point = heldTouch.location(in: self)
             if let movementOrigin {
                 let dx = point.x - movementOrigin.x
