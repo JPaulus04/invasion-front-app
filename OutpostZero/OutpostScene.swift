@@ -341,6 +341,7 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
+        warning.removeAllActions()
         warning.isHidden = true
         warning.alpha = 1
         let activeZone = min((wave - 1) / 5, 3)
@@ -832,7 +833,7 @@ final class OutpostScene: SKScene {
         overlayText("CHARACTER RESTORATION", y: 160, fontSize: 20)
         overlayText("\(total)/50 RESTORED  •  \(availableCores) CORES AVAILABLE", y: 124, fontSize: 14)
         let effects = ["Weapons: +1 damage every 3 cores", "Reactor: stronger combat abilities", "Armor: +2 base HP per core", "Mobility: +5 move speed per core", "Systems: extra chain targets every 4 cores"]
-        overlayText(effects[min(lastRestoredBranch, 4)], y: -174, fontSize: 11)
+        overlayText(effects[min(lastRestoredBranch, 4)], y: -176, fontSize: 11)
         drawRestorationRobot()
         for index in coreBranches.indices {
             let level = branchLevel(index)
@@ -840,7 +841,7 @@ final class OutpostScene: SKScene {
                          y: CGFloat(42 - index * 44), tint: .systemIndigo,
                          enabled: availableCores > 0 && level < 10)
         }
-        actionButton("BACK", key: "back", y: -201, tint: .systemTeal)
+        actionButton("BACK", key: "back", y: -222, tint: .systemTeal)
     }
 
     private func refreshPilotAppearance() {
@@ -954,6 +955,10 @@ final class OutpostScene: SKScene {
         pilotShieldUntil = 0
         pilotHitCount = 0
         pilot.alpha = 1
+        pilot.removeAction(forKey: "hitFlash")
+        passageGate.removeAllActions()
+        passageGate.childNode(withName: "gateArrow")?.removeAllActions()
+        passageGate.alpha = 1
         gateUnlocked = false
         fastForward = false
         coins = 0
