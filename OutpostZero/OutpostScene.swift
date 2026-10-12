@@ -24,7 +24,7 @@ final class OutpostScene: SKScene {
     ]
     private var lastRestoredBranch = 0
     private let zoneNames = ["FOREST EDGE", "OVERGROWN PATH", "RUINED OUTPOST", "GUARDIAN CLEARING"]
-    private var zoneIndex: Int { min(wave / 5, 3) }
+    private var zoneIndex: Int { min(max(0, wave - 1) / 5, 3) }
     private var spawned = 0
     private var upgradePurchased = false
     private var upgradeConfirmed = false
@@ -155,6 +155,7 @@ final class OutpostScene: SKScene {
         pilotGun.zPosition = 2
         pilot.addChild(pilotGun)
         arena.addChild(pilot)
+        refreshPilotAppearance()
         passageGate.fillColor = .systemCyan
         passageGate.strokeColor = .white
         passageGate.lineWidth = 5
@@ -719,10 +720,21 @@ final class OutpostScene: SKScene {
         actionButton("BACK", key: "back", y: -201, tint: .systemTeal)
     }
 
+    private func refreshPilotAppearance() {
+        pilot.fillColor = .systemCyan
+        pilot.strokeColor = branchLevel(2) > 0 ? .systemGreen : .white
+        pilot.lineWidth = branchLevel(3) > 0 ? 4 : 3
+        pilotGun.strokeColor = branchLevel(0) > 0 ? .systemOrange : .systemYellow
+        pilotGun.lineWidth = branchLevel(4) > 0 ? 4 : 1
+        if let visor = pilot.children.first as? SKShapeNode {
+            visor.fillColor = branchLevel(1) > 0 ? .systemPurple : .systemBlue
+        }
+    }
+
     private func drawRestorationRobot() {
         // Reuse the battlefield robot silhouette so upgrades are visibly attached to the pilot.
         let preview = SKNode()
-        preview.position = CGPoint(x: 0, y: 91)
+        preview.position = CGPoint(x: min(size.width * 0.31, 140), y: 91)
         preview.setScale(0.68)
         preview.zPosition = 5
         let body = SKShapeNode(rectOf: CGSize(width: 28, height: 34), cornerRadius: 7)
@@ -753,12 +765,13 @@ final class OutpostScene: SKScene {
         UserDefaults.standard.set(availableCores - 1, forKey: "powerCoresAvailable")
         UserDefaults.standard.set(branchLevel(index) + 1, forKey: "coreBranch_\(index)")
         lastRestoredBranch = index
+        refreshPilotAppearance()
         showRestoration()
         let flash = SKShapeNode(circleOfRadius: 38)
         flash.fillColor = .systemCyan
         flash.strokeColor = .white
         flash.alpha = 0.7
-        flash.position = CGPoint(x: 0, y: 91)
+        flash.position = CGPoint(x: min(size.width * 0.31, 140), y: 91)
         flash.zPosition = 20
         overlay.addChild(flash)
         flash.run(.sequence([.group([.scale(to: 2.2, duration: 0.4), .fadeOut(withDuration: 0.4)]), .removeFromParent()]))
