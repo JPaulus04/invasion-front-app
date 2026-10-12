@@ -433,6 +433,22 @@ final class OutpostScene: SKScene {
         core.strokeColor = .clear
         core.zPosition = 1
         node.addChild(core)
+        if isBoss {
+            // A distinct guardian silhouette makes the final encounter recognizable at a glance.
+            let crown = SKShapeNode(rectOf: CGSize(width: radius * 1.7, height: 12), cornerRadius: 3)
+            crown.fillColor = .systemOrange
+            crown.strokeColor = .white
+            crown.lineWidth = 2
+            crown.position.y = radius * 0.8
+            crown.zPosition = 2
+            node.addChild(crown)
+            let eye = SKShapeNode(rectOf: CGSize(width: radius * 0.9, height: 10), cornerRadius: 3)
+            eye.fillColor = .systemCyan
+            eye.strokeColor = .white
+            eye.position.y = radius * 0.14
+            eye.zPosition = 3
+            node.addChild(eye)
+        }
         if type == 1 {
             let armor = SKShapeNode(rectOf: CGSize(width: radius * 1.5, height: 7), cornerRadius: 3)
             armor.fillColor = .systemYellow
