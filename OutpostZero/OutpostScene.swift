@@ -11,6 +11,7 @@ final class OutpostScene: SKScene {
         let reward: Int
         let behavior: Int
         let spawnX: CGFloat
+        let weavePhase: CGFloat
     }
     private var phase: Phase = .ready
     private var restorationReturnPhase: Phase = .ready
@@ -463,7 +464,7 @@ final class OutpostScene: SKScene {
         healthBar.position.y = radius + 12
         healthBar.zPosition = 1
         node.addChild(healthBar)
-        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: isBoss ? 250 : (type == 3 ? 20 : (type == 1 ? 12 : 6)), behavior: type, spawnX: node.position.x))
+        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: isBoss ? 250 : (type == 3 ? 20 : (type == 1 ? 12 : 6)), behavior: type, spawnX: node.position.x, weavePhase: CGFloat.random(in: 0...(2 * .pi))))
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -525,7 +526,7 @@ final class OutpostScene: SKScene {
             // Fast scouts weave; armored elites track the player before returning toward the base.
             let destinationX: CGFloat
             if enemy.behavior == 2 {
-                destinationX = enemy.spawnX + sin(CGFloat(waveElapsed) * 3.2 + CGFloat(index)) * min(48, size.width * 0.12)
+                destinationX = enemy.spawnX + sin(CGFloat(waveElapsed) * 3.2 + enemy.weavePhase) * min(48, size.width * 0.12)
             } else if enemy.behavior == 3 && current.y > base.position.y + 180 {
                 destinationX = pilot.position.x
             } else {
