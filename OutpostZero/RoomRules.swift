@@ -4,7 +4,7 @@ import CoreGraphics
 /// Shared room geometry and progression rules, independent of rendering.
 enum RoomRules {
     static func bounds(for size: CGSize) -> CGRect {
-        CGRect(x: 28, y: 70, width: max(120, size.width - 56), height: max(160, size.height - 275))
+        CGRect(x: 28, y: 70, width: max(120, size.width - 56), height: max(160, size.height - 295))
     }
 
     static func entryPoint(for size: CGSize) -> CGPoint {

@@ -14,6 +14,10 @@ jobs:
         run: |
           swiftc OutpostZero/RoomRules.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
           "$RUNNER_TEMP/room-tests"
+      - name: Test XP and combat rules
+        run: |
+          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift tests/ProgressCombatTests.swift -o "$RUNNER_TEMP/combat-tests"
+          "$RUNNER_TEMP/combat-tests"
       - name: Generate original app icon
         run: python3 scripts/generate_icon.py
       - name: Install XcodeGen
