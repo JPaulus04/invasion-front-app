@@ -15,6 +15,12 @@ final class OutpostScene: SKScene {
     private var enemies: [Enemy] = []
     private var wave = 0
     private var gateUnlocked = false
+    private let zoneColors: [SKColor] = [
+        SKColor(red: 0.08, green: 0.19, blue: 0.15, alpha: 1),
+        SKColor(red: 0.13, green: 0.22, blue: 0.10, alpha: 1),
+        SKColor(red: 0.15, green: 0.17, blue: 0.22, alpha: 1),
+        SKColor(red: 0.22, green: 0.12, blue: 0.13, alpha: 1)
+    ]
     private var lastRestoredBranch = 0
     private let zoneNames = ["FOREST EDGE", "OVERGROWN PATH", "RUINED OUTPOST", "GUARDIAN CLEARING"]
     private var zoneIndex: Int { min(wave / 5, 3) }
@@ -296,6 +302,8 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
+        let activeZone = min((wave - 1) / 5, 3)
+        backgroundColor = zoneColors[activeZone]
         spawned = 0
         upgradePurchased = false
         upgradeConfirmed = false
@@ -573,6 +581,14 @@ final class OutpostScene: SKScene {
         let nextZone = zoneNames[min(wave / 5, 3)]
         overlayText("ZONE CLEARED", y: 95, fontSize: 24)
         overlayText("GATE UNLOCKED", y: 46, fontSize: 20)
+        let gateFrame = SKShapeNode(rectOf: CGSize(width: 110, height: 118), cornerRadius: 14)
+        gateFrame.fillColor = SKColor(red: 0.06, green: 0.18, blue: 0.24, alpha: 0.8)
+        gateFrame.strokeColor = .systemCyan
+        gateFrame.lineWidth = 7
+        gateFrame.position = CGPoint(x: 0, y: -28)
+        gateFrame.zPosition = 1
+        overlay.addChild(gateFrame)
+        gateFrame.run(.repeatForever(.sequence([.fadeAlpha(to: 0.55, duration: 0.6), .fadeAlpha(to: 1, duration: 0.6)])))
         overlayText("NEXT: \(nextZone)", y: -5, fontSize: 16)
         actionButton("ENTER NEXT ZONE", key: "enterGate", y: -85, tint: .systemTeal)
     }
@@ -713,6 +729,7 @@ final class OutpostScene: SKScene {
         enemies.removeAll()
         bossNode = nil
         wave = 0
+        backgroundColor = zoneColors[0]
         pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92)
         movementTarget = nil
         movementOrigin = nil
