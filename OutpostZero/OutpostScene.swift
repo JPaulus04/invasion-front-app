@@ -841,8 +841,9 @@ final class OutpostScene: SKScene {
     private func drawRestorationRobot() {
         // Reuse the battlefield robot silhouette so upgrades are visibly attached to the pilot.
         let preview = SKNode()
+        preview.name = "restorationRobot"
         preview.position = CGPoint(x: min(size.width * 0.31, 140), y: 91)
-        preview.setScale(0.68)
+        preview.setScale(0.95)
         preview.zPosition = 5
         let body = SKShapeNode(rectOf: CGSize(width: 28, height: 34), cornerRadius: 7)
         body.fillColor = .systemCyan
@@ -874,14 +875,36 @@ final class OutpostScene: SKScene {
         lastRestoredBranch = index
         refreshPilotAppearance()
         showRestoration()
-        let flash = SKShapeNode(circleOfRadius: 38)
-        flash.fillColor = .systemCyan
-        flash.strokeColor = .white
-        flash.alpha = 0.7
-        flash.position = CGPoint(x: min(size.width * 0.31, 140), y: 91)
-        flash.zPosition = 20
-        overlay.addChild(flash)
-        flash.run(.sequence([.group([.scale(to: 2.2, duration: 0.4), .fadeOut(withDuration: 0.4)]), .removeFromParent()]))
+        // Highlight the restored hardware instead of flashing the entire character.
+        let offset: CGPoint
+        let tint: SKColor
+        switch index {
+        case 0: offset = CGPoint(x: 14, y: 11); tint = .systemOrange // weapon mount
+        case 1: offset = CGPoint(x: 0, y: 6); tint = .systemPurple // reactor visor
+        case 2: offset = CGPoint(x: 0, y: -6); tint = .systemGreen // armor shell
+        case 3: offset = CGPoint(x: 0, y: -17); tint = .systemCyan // mobility feet
+        default: offset = CGPoint(x: 14, y: 0); tint = .systemYellow // systems module
+        }
+        let origin = CGPoint(x: min(size.width * 0.31, 140) + offset.x * 0.95, y: 91 + offset.y * 0.95)
+        for ringIndex in 0..<3 {
+            let ring = SKShapeNode(circleOfRadius: CGFloat(8 + ringIndex * 5))
+            ring.fillColor = .clear
+            ring.strokeColor = tint
+            ring.lineWidth = 3
+            ring.position = origin
+            ring.zPosition = 20
+            ring.alpha = 0.95
+            overlay.addChild(ring)
+            ring.run(.sequence([
+                .wait(forDuration: Double(ringIndex) * 0.11),
+                .group([.scale(to: 2.1, duration: 0.48), .fadeOut(withDuration: 0.48)]),
+                .removeFromParent()
+            ]))
+        }
+        overlay.childNode(withName: "restorationRobot")?.run(.sequence([
+            .scale(to: 1.18, duration: 0.18),
+            .scale(to: 0.95, duration: 0.24)
+        ]))
     }
 
     private func endGame() {
