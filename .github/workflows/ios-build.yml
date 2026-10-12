@@ -10,6 +10,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate source tree
         run: python3 scripts/check_project.py
+      - name: Test room rules
+        run: |
+          swiftc OutpostZero/RoomRules.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
+          "$RUNNER_TEMP/room-tests"
       - name: Generate original app icon
         run: python3 scripts/generate_icon.py
       - name: Install XcodeGen

@@ -10,7 +10,8 @@ final class OutpostScene: SKScene {
         let speed: CGFloat
         let reward: Int
         let behavior: Int
-        let spawnX: CGFloat
+        let radius: CGFloat
+        let activeAt: TimeInterval
         let weavePhase: CGFloat
     }
     private var phase: Phase = .ready
@@ -41,7 +42,6 @@ final class OutpostScene: SKScene {
     private var damage = 1
     private var fireRate = 1
     private var lastShot: TimeInterval = -100
-    private var turretNode: SKNode?
     private var clock: TimeInterval = 0
     private let hud = SKNode()
     private let hudPanel = SKShapeNode()
@@ -90,7 +90,9 @@ final class OutpostScene: SKScene {
     private let damageFlash = SKShapeNode()
     private let warning = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let arena = SKNode()
-    private let base = SKShapeNode(rectOf: CGSize(width: 160, height: 60), cornerRadius: 15)
+    private var roomBounds: CGRect { RoomRules.bounds(for: size) }
+    private var entryPoint: CGPoint { RoomRules.entryPoint(for: size) }
+    private var coreAwardedThisRun = false
     private let title = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let subtitle = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
     private let info = SKLabelNode(fontNamed: "AvenirNext-Bold")
@@ -99,7 +101,6 @@ final class OutpostScene: SKScene {
         scaleMode = .resizeFill
         backgroundColor = SKColor(red: 0.07, green: 0.15, blue: 0.21, alpha: 1)
         addChild(arena)
-        BattlefieldArt.install(in: self, behind: arena)
         addChild(hud)
         hud.zPosition = 30
         speedButton.fillColor = .systemBlue
@@ -134,19 +135,6 @@ final class OutpostScene: SKScene {
         overlayBackdrop.lineWidth = 2
         overlayBackdrop.zPosition = -1
         overlay.addChild(overlayBackdrop)
-        base.fillColor = SKColor(red: 0.22, green: 0.43, blue: 0.59, alpha: 1)
-        base.strokeColor = .cyan
-        base.zPosition = 3
-        base.lineWidth = 3
-        arena.addChild(base)
-        let turret = SKShapeNode(circleOfRadius: 20)
-        turret.fillColor = SKColor(red: 0.13, green: 0.22, blue: 0.32, alpha: 1)
-        turret.strokeColor = .systemYellow
-        turret.lineWidth = 3
-        turret.position = CGPoint(x: 0, y: 10)
-        turret.zPosition = 4
-        base.addChild(turret)
-        turretNode = turret
         pilot.fillColor = .systemCyan
         pilot.strokeColor = .white
         pilot.lineWidth = 3
@@ -190,12 +178,6 @@ final class OutpostScene: SKScene {
         zoneBanner.zPosition = 18
         zoneBanner.alpha = 0
         hud.addChild(zoneBanner)
-        let barrel = SKShapeNode(rectOf: CGSize(width: 11, height: 35), cornerRadius: 4)
-        barrel.fillColor = .darkGray
-        barrel.strokeColor = .systemYellow
-        barrel.position = CGPoint(x: 0, y: 22)
-        barrel.zPosition = 3
-        turret.addChild(barrel)
         for label in [title, subtitle, info] {
             label.horizontalAlignmentMode = .center
             hud.addChild(label)
@@ -204,7 +186,7 @@ final class OutpostScene: SKScene {
         title.fontColor = .white
         subtitle.fontSize = 16
         subtitle.fontColor = .systemYellow
-        info.fontSize = 15
+        info.fontSize = 13
         info.fontColor = .white
         health = maximumHealth
         layout()
@@ -214,14 +196,14 @@ final class OutpostScene: SKScene {
     override func didChangeSize(_ oldSize: CGSize) { layout() }
 
     private func layout() {
-        base.position = CGPoint(x: size.width / 2, y: max(90, size.height * 0.13))
-        passageGate.position = CGPoint(x: size.width / 2, y: size.height - 230)
+        if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
+        passageGate.position = CGPoint(x: size.width / 2, y: roomBounds.maxY - 24)
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
-        if wave == 0 && phase == .ready { pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92) }
-        hudPanel.path = CGPath(roundedRect: CGRect(x: 10, y: size.height - 173, width: max(1, size.width - 20), height: 111), cornerWidth: 13, cornerHeight: 13, transform: nil)
+        if wave == 0 && phase == .ready { pilot.position = entryPoint }
+        hudPanel.path = CGPath(roundedRect: CGRect(x: 10, y: size.height - 190, width: max(1, size.width - 20), height: 128), cornerWidth: 13, cornerHeight: 13, transform: nil)
         title.position = CGPoint(x: size.width / 2, y: size.height - 94)
         subtitle.position = CGPoint(x: size.width / 2, y: size.height - 120)
-        info.position = CGPoint(x: size.width / 2, y: size.height - 150)
+        info.position = CGPoint(x: size.width / 2, y: size.height - 144)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
         damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
@@ -234,10 +216,10 @@ final class OutpostScene: SKScene {
         speedLabel.text = fastForward ? "2× SPEED" : "1× SPEED"
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
         speedButton.isHidden = phase != .playing
-        speedButton.position = CGPoint(x: size.width - 55, y: size.height - 160)
+        speedButton.position = CGPoint(x: size.width / 2, y: size.height - 168)
         title.text = "OUTPOST ZERO"
-        subtitle.text = "\(zoneNames[zoneIndex])  •  \(wave)/\(worldWaveCount)  •  \(coins) COINS"
-        info.text = "BASE \(health) HP  •  DAMAGE \(damage)  •  RATE \(fireRate)"
+        subtitle.text = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
+        info.text = "PLAYER \(health) HP  •  DAMAGE \(damage)  •  RATE \(fireRate)"
     }
 
     private func clearOverlay() {
@@ -303,33 +285,29 @@ final class OutpostScene: SKScene {
         aimPoint = nil
     }
 
-    private func grantStarterCoreIfNeeded() {
-        guard !UserDefaults.standard.bool(forKey: "starterCoreGranted") else { return }
-        UserDefaults.standard.set(true, forKey: "starterCoreGranted")
-        UserDefaults.standard.set(availableCores + 1, forKey: "powerCoresAvailable")
-    }
-
     private func showReady() {
-        grantStarterCoreIfNeeded()
         phase = .ready
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
-        overlayText("DEFEND THE OUTPOST", y: 65, fontSize: 22)
+        overlayText("CLEAR THE ROOMS", y: 65, fontSize: 22)
         overlayText("Drag to move  •  Weapons auto-fire", y: 20, fontSize: 15)
         overlayText("POWER CORES: \(availableCores)  •  RESTORE YOUR PILOT", y: -15, fontSize: 13)
-        if availableCores > 0 { overlayText("STARTER CORE READY — RESTORE A PART", y: -190, fontSize: 12) }
+        if availableCores > 0 { overlayText("POWER CORES READY — RESTORE A PART", y: -190, fontSize: 12) }
         actionButton("CHARACTER RESTORATION", key: "restore", y: -100, tint: .systemIndigo)
-        actionButton("START DEFENSE", key: "start", y: -45, tint: .systemTeal)
+        actionButton("ENTER WORLD", key: "start", y: -45, tint: .systemTeal)
         actionButton(ArcadeMusic.shared.isEnabled ? "MUSIC: ON" : "MUSIC: OFF", key: "music", y: -155, tint: .systemBlue)
     }
 
     private func startWave() {
-        if wave > 0 && wave % 5 == 0 && wave < worldWaveCount && !gateUnlocked {
+        if wave > 0 && wave < worldWaveCount && !gateUnlocked {
             showZoneGate()
             return
         }
         gateUnlocked = false
-        passageGate.isHidden = true
+        passageGate.isHidden = false
+        passageGate.fillColor = .darkGray
+        (passageGate.children.first as? SKLabelNode)?.text = "LOCKED"
+        passageGate.childNode(withName: "gateArrow")?.isHidden = true
         passageGate.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.position = CGPoint(x: 0, y: -40)
@@ -343,6 +321,11 @@ final class OutpostScene: SKScene {
         heldTouch = nil
         aimPoint = nil
         movementTarget = nil
+        movementOrigin = nil
+        pilot.position = entryPoint
+        pilotGun.zRotation = 0
+        pilotShieldUntil = clock + 1.2
+        lastShot = clock
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
@@ -374,7 +357,7 @@ final class OutpostScene: SKScene {
         for index in 0..<count {
             let side: CGFloat = index.isMultiple(of: 2) ? 0.12 : 0.88
             let x = size.width * side + CGFloat((index % 3) - 1) * 12
-            let y = base.position.y + 95 + CGFloat(index) * max(25, (size.height - base.position.y - 310) / CGFloat(count))
+            let y = roomBounds.minY + 55 + CGFloat(index) * max(25, (roomBounds.height - 100) / CGFloat(count))
             let prop: SKShapeNode
             switch zone {
             case 0: // Tall pines along the forest approach.
@@ -461,8 +444,19 @@ final class OutpostScene: SKScene {
             wing.strokeColor = .white
             node.addChild(wing)
         }
-        let laneHalfWidth = min(size.width * 0.25, max(1, size.width / 2 - radius - 8))
-        node.position = CGPoint(x: CGFloat.random(in: (size.width / 2 - laneHalfWidth)...(size.width / 2 + laneHalfWidth)), y: size.height - 198)
+        // Telegraphed materialization inside the room, never on the pilot.
+        let candidates = (0..<32).map { _ in
+            CGPoint(x: CGFloat.random(in: 0...1), y: CGFloat.random(in: 0...1))
+        }
+        node.position = RoomRules.spawnPoint(in: roomBounds, radius: radius,
+                                            pilot: pilot.position, candidates: candidates)
+        node.alpha = 0.28
+        let spawnRing = SKShapeNode(circleOfRadius: radius + 9)
+        spawnRing.name = "spawnWarning"
+        spawnRing.strokeColor = .systemOrange
+        spawnRing.lineWidth = 3
+        spawnRing.fillColor = .clear
+        node.addChild(spawnRing)
         node.zPosition = 5
         arena.addChild(node)
         if isBoss { bossNode = node }
@@ -480,7 +474,7 @@ final class OutpostScene: SKScene {
         healthBar.position.y = radius + 12
         healthBar.zPosition = 1
         node.addChild(healthBar)
-        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: isBoss ? 250 : (type == 3 ? 20 : (type == 1 ? 12 : 6)), behavior: type, spawnX: node.position.x, weavePhase: CGFloat.random(in: 0...(2 * .pi))))
+        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: isBoss ? 250 : (type == 3 ? 20 : (type == 1 ? 12 : 6)), behavior: type, radius: radius, activeAt: clock + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi))))
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -495,7 +489,7 @@ final class OutpostScene: SKScene {
             let dx = point.x - movementOrigin.x
             let dy = point.y - movementOrigin.y
             let length = hypot(dx, dy)
-            movementTarget = length > 9 ? CGPoint(x: min(max(pilot.position.x + dx / length * 90, 24), size.width - 24), y: min(max(pilot.position.y + dy / length * 90, base.position.y + 55), size.height - 215)) : nil
+            movementTarget = length > 9 ? CGPoint(x: min(max(pilot.position.x + dx / length * 90, roomBounds.minX), roomBounds.maxX), y: min(max(pilot.position.y + dy / length * 90, roomBounds.minY), roomBounds.maxY)) : nil
         }
         if let movementTarget {
             let dx = movementTarget.x - pilot.position.x
@@ -518,12 +512,10 @@ final class OutpostScene: SKScene {
             }
             return
         }
-        // Prefer the nearest reachable threat, breaking ties toward the outpost.
-        let reachable = enemies.filter { distance($0.node.position, pilot.position) <= autoFireRange }
+        // Auto-fire only at active enemies; spawning enemies cannot deal or take damage.
+        let reachable = enemies.filter { clock >= $0.activeAt && distance($0.node.position, pilot.position) <= autoFireRange }
         if let target = reachable.min(by: {
-            let first = distance($0.node.position, pilot.position) + $0.node.position.y * 0.12
-            let second = distance($1.node.position, pilot.position) + $1.node.position.y * 0.12
-            return first < second
+            distance($0.node.position, pilot.position) < distance($1.node.position, pilot.position)
         }) {
             shoot(at: target.node.position)
         }
@@ -539,58 +531,39 @@ final class OutpostScene: SKScene {
         for index in enemies.indices.reversed() {
             let current = enemies[index].node.position
             let enemy = enemies[index]
-            // Fast scouts weave; armored elites track the player before returning toward the base.
-            let destinationX: CGFloat
-            if enemy.behavior == 2 {
-                destinationX = enemy.spawnX + sin(CGFloat(waveElapsed) * 3.2 + enemy.weavePhase) * min(48, size.width * 0.12)
-            } else if enemy.behavior == 3 && current.y > base.position.y + 180 {
-                destinationX = pilot.position.x
-            } else {
-                destinationX = base.position.x
-            }
-            let horizontalStep = min(abs(destinationX - current.x), CGFloat(gameDt) * enemy.speed * (enemy.behavior == 3 ? 0.65 : 0.45))
-            let direction: CGFloat = destinationX >= current.x ? 1 : -1
-            enemies[index].node.position.x += horizontalStep * direction
-            enemies[index].node.position.y -= enemies[index].speed * CGFloat(gameDt)
-            if distance(enemies[index].node.position, pilot.position) < (enemies[index].behavior == 3 ? 43 : 31) && clock >= pilotShieldUntil {
+            guard clock >= enemy.activeAt else { continue }
+            enemy.node.alpha = 1
+            enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
+            let dx = pilot.position.x - current.x
+            let dy = pilot.position.y - current.y
+            let length = max(0.001, hypot(dx, dy))
+            let weave: CGFloat = enemy.behavior == 2 ? sin(CGFloat(waveElapsed) * 3.2 + enemy.weavePhase) * 0.6 : 0
+            let heading = atan2(dy, dx) + weave
+            let step = min(length, enemy.speed * CGFloat(gameDt))
+            enemy.node.position = RoomRules.clamp(
+                CGPoint(x: current.x + cos(heading) * step, y: current.y + sin(heading) * step),
+                to: roomBounds.insetBy(dx: enemy.radius, dy: enemy.radius))
+            if distance(enemy.node.position, pilot.position) < enemy.radius + 14 && clock >= pilotShieldUntil {
                 pilotShieldUntil = clock + 1.1
                 pilotHitCount += 1
-                let contactDamage = enemies[index].behavior == 3 ? 6 : 3
+                damageFlash.removeAllActions()
+                damageFlash.alpha = 0.7
+                damageFlash.run(.fadeOut(withDuration: 0.32))
+                let contactDamage = enemy.node === bossNode ? 12 : (enemy.behavior == 3 ? 8 : 5)
                 health = max(0, health - contactDamage)
                 impact(at: pilot.position, color: .systemCyan, destroyed: false)
                 pilot.removeAction(forKey: "hitFlash")
                 pilot.run(.sequence([.fadeAlpha(to: 0.3, duration: 0.1), .fadeAlpha(to: 1, duration: 0.1), .fadeAlpha(to: 0.3, duration: 0.1), .fadeAlpha(to: 1, duration: 0.1)]), withKey: "hitFlash")
                 warning.removeAllActions()
-                warning.text = "ROBOT HIT!  -\(contactDamage) BASE HP"
+                warning.text = "PLAYER HIT!  -\(contactDamage) HP"
                 warning.alpha = 1
                 warning.isHidden = false
                 warning.run(.sequence([.wait(forDuration: 0.45), .fadeOut(withDuration: 0.4)]))
                 updateHUD()
             }
-            if enemies[index].node.position.y <= base.position.y + 30 {
-                impact(at: enemies[index].node.position, color: .systemRed, destroyed: true)
-                streak = 0
-                let impactDamage = max(5, 12 - branchLevel(2) / 2)
-                health = max(0, health - impactDamage)
-                base.run(.sequence([.moveBy(x: -7, y: 0, duration: 0.04), .moveBy(x: 14, y: 0, duration: 0.08), .moveBy(x: -7, y: 0, duration: 0.04)]))
-                damageFlash.removeAllActions()
-                damageFlash.alpha = 0.85
-                damageFlash.run(.fadeOut(withDuration: 0.32))
-                warning.removeAllActions()
-                warning.text = "OUTPOST HIT!  -\(impactDamage) HP"
-                warning.alpha = 1
-                warning.run(.sequence([.wait(forDuration: 0.4), .fadeOut(withDuration: 0.4)]))
-                let bossBreached = enemies[index].node === bossNode
-                if bossBreached { bossNode = nil }
-                burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
-                enemies[index].node.removeFromParent()
-                enemies.remove(at: index)
-                updateHUD()
-                if bossBreached { endGame(); return }
-            }
         }
         if health == 0 { endGame(); return }
-        if spawned == waveTarget && enemies.isEmpty {
+        if RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) {
             if wave == worldWaveCount { completeWorld() }
             else if wave % 5 == 0 { showMilestone() }
             else { completeWave() }
@@ -599,13 +572,11 @@ final class OutpostScene: SKScene {
 
     private func shoot(at point: CGPoint) {
         guard clock - lastShot >= 0.42 / Double(fireRate + permanentRateBonus) else { return }
-        guard let index = enemies.indices.min(by: {
+        guard let index = enemies.indices.filter({ clock >= enemies[$0].activeAt }).min(by: {
             distance(enemies[$0].node.position, point) < distance(enemies[$1].node.position, point)
         }), distance(enemies[index].node.position, point) < 45 else { return }
         lastShot = clock
         let target = enemies[index].node.position
-        turretNode?.removeAction(forKey: "recoil")
-        turretNode?.run(.sequence([.scale(to: 0.87, duration: 0.035), .scale(to: 1.0, duration: 0.08)]), withKey: "recoil")
         pilotGun.zRotation = atan2(target.y - pilot.position.y, target.x - pilot.position.x) - .pi / 2
         let tracer = SKShapeNode()
         let path = CGMutablePath()
@@ -623,7 +594,7 @@ final class OutpostScene: SKScene {
             burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus, until: clock + 2.5, nextTick: clock + 0.5)
         }
         if explosiveLevel > 0 {
-            for other in enemies.indices where other != index && distance(enemies[other].node.position, target) < CGFloat(35 + explosiveLevel * 15) {
+            for other in enemies.indices where other != index && clock >= enemies[other].activeAt && distance(enemies[other].node.position, target) < CGFloat(35 + explosiveLevel * 15) {
                 enemies[other].health -= max(1, damage * explosiveLevel / 3)
                 if incendiaryLevel > 0 {
                     burns[ObjectIdentifier(enemies[other].node)] = (damage: incendiaryLevel, until: clock + 2.5, nextTick: clock + 0.5)
@@ -648,7 +619,7 @@ final class OutpostScene: SKScene {
         var visited: Set<ObjectIdentifier> = [ObjectIdentifier(initialNode)]
         for _ in 0..<min(chainLevel + permanentSystemsBonus, 5) {
             guard let targetIndex = enemies.indices
-                .filter({ !visited.contains(ObjectIdentifier(enemies[$0].node)) && distance(enemies[$0].node.position, previous) <= 115 })
+                .filter({ !visited.contains(ObjectIdentifier(enemies[$0].node)) && clock >= enemies[$0].activeAt && distance(enemies[$0].node.position, previous) <= 115 })
                 .min(by: { distance(enemies[$0].node.position, previous) < distance(enemies[$1].node.position, previous) }) else { break }
             let enemy = enemies[targetIndex]
             let endpoint = enemy.node.position
@@ -732,19 +703,20 @@ final class OutpostScene: SKScene {
         phase = .upgrades
         lockMenuBriefly()
         clearOverlay()
-        overlayText("WAVE \(wave) COMPLETE", y: 95, fontSize: 23)
+        overlayText("ROOM \(wave) CLEARED", y: 95, fontSize: 23)
         overlayText("DMG \(damage)  •  RATE \(fireRate)  •  SKILLS \(chosenAbilities)/3", y: 55, fontSize: 16)
         actionButton("DAMAGE \(damage) → \(damage + 1)    \(damageCost) COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= damageCost)
         actionButton("RATE \(fireRate) → \(fireRate + 1)    \(rateCost) COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= rateCost && fireRate < 5)
-        overlayText(wave % 5 == 0 ? "ZONE GATE READY AFTER UPGRADES" : "NEXT ABILITY AT WAVE \(((wave / 5) + 1) * 5)", y: -80, fontSize: 13)
-        actionButton("REPAIR HP    \(repairCost) COINS", key: "repair", y: -125, tint: .systemGreen, enabled: coins >= repairCost && health < maximumHealth)
+        overlayText("EXIT UNLOCKED  •  NEXT ABILITY: ROOM \(((wave / 5) + 1) * 5)", y: -80, fontSize: 13)
+        actionButton("HEAL PLAYER    \(repairCost) COINS", key: "repair", y: -125, tint: .systemGreen, enabled: coins >= repairCost && health < maximumHealth)
         if availableCores > 0 { actionButton("SPEND POWER CORES", key: "restore", y: -222, tint: .systemIndigo) }
-        actionButton(wave % 5 == 0 ? "OPEN ZONE GATE" : "NEXT WAVE", key: "next", y: -178, tint: .systemTeal)
+        actionButton("WALK TO EXIT", key: "next", y: -178, tint: .systemTeal)
         updateHUD()
     }
 
 
     private func showZoneGate() {
+        guard RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) else { return }
         phase = .gate
         heldTouch = nil
         movementOrigin = nil
@@ -752,6 +724,9 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         passageGate.isHidden = false
+        passageGate.fillColor = .systemCyan
+        (passageGate.children.first as? SKLabelNode)?.text = "ENTER"
+        passageGate.childNode(withName: "gateArrow")?.isHidden = false
         passageGate.alpha = 1
         passageGate.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
@@ -769,7 +744,7 @@ final class OutpostScene: SKScene {
         phase = .milestone
         lockMenuBriefly()
         clearOverlay()
-        overlayText("WAVE \(wave)  •  CHOOSE AN ABILITY", y: 104, fontSize: 19)
+        overlayText("ROOM \(wave)  •  CHOOSE AN ABILITY", y: 104, fontSize: 19)
         overlayText("EQUIPPED \(chosenAbilities)/3  •  MAX LEVEL 3", y: 66, fontSize: 14)
         let abilities: [(key: String, title: String, level: Int, tint: SKColor)] = [
             ("chain", "CHAIN LIGHTNING", chainLevel, .systemCyan),
@@ -813,7 +788,8 @@ final class OutpostScene: SKScene {
     }
 
     private func awardWorldCompletionCore() {
-        guard !UserDefaults.standard.bool(forKey: "frontierForestCoreClaimed") else { return }
+        guard !coreAwardedThisRun else { return }
+        coreAwardedThisRun = true
         UserDefaults.standard.set(true, forKey: "frontierForestCoreClaimed")
         UserDefaults.standard.set(availableCores + 1, forKey: "powerCoresAvailable")
     }
@@ -839,8 +815,9 @@ final class OutpostScene: SKScene {
         clearOverlay()
         let stars = UserDefaults.standard.integer(forKey: "frontierForestStars")
         overlayText("FRONTIER FOREST CLEARED", y: 85, fontSize: 21)
-        overlayText("20 WAVES DEFEATED", y: 40, fontSize: 19)
-        overlayText("\(stars) / 3 STARS  •  BASE \(health) HP", y: -5, fontSize: 18)
+        overlayText("20 ROOMS CLEARED", y: 40, fontSize: 19)
+        overlayText("\(stars) / 3 STARS  •  PLAYER \(health) HP", y: -5, fontSize: 18)
+        overlayText(coreAwardedThisRun ? "WORLD REWARD: +1 POWER CORE" : "WORLD REWARD CLAIMED", y: -75, fontSize: 12)
         overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -48, fontSize: 15)
         actionButton("RESTORE CHARACTER", key: "restore", y: -105, tint: .systemIndigo)
         actionButton("PLAY AGAIN", key: "restart", y: -160, tint: .systemTeal)
@@ -855,7 +832,7 @@ final class OutpostScene: SKScene {
         let total = (0..<coreBranches.count).reduce(0) { $0 + branchLevel($1) }
         overlayText("CHARACTER RESTORATION", y: 160, fontSize: 20)
         overlayText("\(total)/50 RESTORED  •  \(availableCores) CORES AVAILABLE", y: 124, fontSize: 14)
-        let effects = ["Weapons: +1 damage every 3 cores", "Reactor: stronger combat abilities", "Armor: +2 base HP per core", "Mobility: +5 move speed per core", "Systems: extra chain targets every 4 cores"]
+        let effects = ["Weapons: +1 damage every 3 cores", "Reactor: stronger combat abilities", "Armor: +2 player HP per core", "Mobility: +5 move speed per core", "Systems: extra chain targets every 4 cores"]
         overlayText(effects[min(lastRestoredBranch, 4)], y: -176, fontSize: 11)
         drawRestorationRobot()
         for index in coreBranches.indices {
@@ -956,8 +933,8 @@ final class OutpostScene: SKScene {
         clearOverlay()
         let best = max(wave, UserDefaults.standard.integer(forKey: "bestWave"))
         UserDefaults.standard.set(best, forKey: "bestWave")
-        overlayText("OUTPOST LOST", y: 55)
-        overlayText("Wave \(wave)  •  Best \(best)", y: 10, fontSize: 18)
+        overlayText("PILOT DEFEATED", y: 55)
+        overlayText("Room \(wave)  •  Best \(best)", y: 10, fontSize: 18)
         actionButton("RESTART", key: "restart", y: -55, tint: .systemTeal)
     }
 
@@ -966,13 +943,14 @@ final class OutpostScene: SKScene {
         enemies.removeAll()
         bossNode = nil
         wave = 0
+        coreAwardedThisRun = false
         passageGate.isHidden = true
         warning.isHidden = true
         zoneBanner.removeAllActions()
         zoneBanner.alpha = 0
         backgroundColor = zoneColors[0]
         updateZoneScenery(0)
-        pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92)
+        pilot.position = entryPoint
         movementTarget = nil
         movementOrigin = nil
         pilotShieldUntil = 0
@@ -1038,9 +1016,6 @@ final class OutpostScene: SKScene {
         case (.restoration, let key?) where key.hasPrefix("branch_"):
             if let index = Int(key.dropFirst(7)) { investCore(index) }
         case (.gameOver, "restart"), (.worldComplete, "restart"): restart()
-        case (.gate, "enterGate"):
-            gateUnlocked = true
-            startWave()
         case (.milestone, "chain"): chooseMilestone("chain")
         case (.milestone, "explosive"): chooseMilestone("explosive")
         case (.milestone, "incendiary"): chooseMilestone("incendiary")
@@ -1050,7 +1025,7 @@ final class OutpostScene: SKScene {
             coins -= rateCost; fireRate += 1; rateUpgrades += 1; completeUpgrade()
         case (.upgrades, "repair") where !upgradePurchased && coins >= repairCost && health < maximumHealth:
             coins -= repairCost; health = min(maximumHealth, health + 30); completeUpgrade()
-        case (.upgrades, "next"): startWave()
+        case (.upgrades, "next"): showZoneGate()
         default: break
         }
     }
@@ -1065,7 +1040,7 @@ final class OutpostScene: SKScene {
                 if length > 9 {
                     let directionX = dx / length
                     let directionY = dy / length
-                    movementTarget = CGPoint(x: min(max(pilot.position.x + directionX * 90, 24), size.width - 24), y: min(max(pilot.position.y + directionY * 90, base.position.y + 55), size.height - 215))
+                    movementTarget = CGPoint(x: min(max(pilot.position.x + directionX * 90, roomBounds.minX), roomBounds.maxX), y: min(max(pilot.position.y + directionY * 90, roomBounds.minY), roomBounds.maxY))
                 } else { movementTarget = nil }
             }
         }
@@ -1085,6 +1060,8 @@ final class OutpostScene: SKScene {
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         if let heldTouch, touches.contains(heldTouch) {
             self.heldTouch = nil
+            movementOrigin = nil
+            movementTarget = nil
             aimPoint = nil
         }
         awaitingMenuRelease = false
@@ -1094,11 +1071,6 @@ final class OutpostScene: SKScene {
     private func completeUpgrade() {
         upgradePurchased = true
         upgradeConfirmed = true
-        lockMenuBriefly()
-        updateHUD()
-        clearOverlay()
-        overlayText("UPGRADE PURCHASED", y: 35, fontSize: 22)
-        actionButton(wave % 5 == 0 ? "OPEN ZONE GATE" : "NEXT WAVE", key: "next", y: -35, tint: .systemTeal)
-        if availableCores > 0 { actionButton("SPEND POWER CORES", key: "restore", y: -100, tint: .systemIndigo) }
+        showZoneGate()
     }
 }

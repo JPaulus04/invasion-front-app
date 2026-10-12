@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -24,8 +24,8 @@ for feature in ("spawnEnemy()", "shoot(at:", "completeWave()", "endGame()", "res
 if (root / "project.yml").is_file() and "CODE_SIGNING_ALLOWED: NO" in (root / "project.yml").read_text(encoding="utf-8"):
     errors.append("Device signing must not be disabled in project.yml")
 art = (root / "OutpostZero" / "BattlefieldArt.swift").read_text(encoding="utf-8")
-if "road markings" not in art:
-    errors.append("Missing battlefield visual detail")
+if "room perimeter" not in art:
+    errors.append("Missing room boundary artwork")
 if "behind.addChild(" in art:
     errors.append("BattlefieldArt references an undefined behind node")
 if "gameplay.addChild(" not in art:
