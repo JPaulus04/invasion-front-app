@@ -18,6 +18,7 @@ final class OutpostScene: SKScene {
     private var wave = 0
     private var gateUnlocked = false
     private let passageGate = SKShapeNode(rectOf: CGSize(width: 100, height: 46), cornerRadius: 12)
+    private let zoneBanner = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let zoneColors: [SKColor] = [
         SKColor(red: 0.08, green: 0.19, blue: 0.15, alpha: 1),
         SKColor(red: 0.13, green: 0.22, blue: 0.10, alpha: 1),
@@ -166,6 +167,11 @@ final class OutpostScene: SKScene {
         passageGate.zPosition = 3
         passageGate.isHidden = true
         arena.addChild(passageGate)
+        zoneBanner.fontSize = 20
+        zoneBanner.fontColor = .white
+        zoneBanner.zPosition = 18
+        zoneBanner.alpha = 0
+        hud.addChild(zoneBanner)
         let barrel = SKShapeNode(rectOf: CGSize(width: 11, height: 35), cornerRadius: 4)
         barrel.fillColor = .darkGray
         barrel.strokeColor = .systemYellow
@@ -201,6 +207,7 @@ final class OutpostScene: SKScene {
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
         damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
         warning.position = CGPoint(x: size.width / 2, y: max(170, size.height * 0.23))
+        zoneBanner.position = CGPoint(x: size.width / 2, y: size.height - 205)
         updateHUD()
     }
 
@@ -320,6 +327,12 @@ final class OutpostScene: SKScene {
         warning.alpha = 1
         let activeZone = min((wave - 1) / 5, 3)
         backgroundColor = zoneColors[activeZone]
+        if wave == 1 || (wave - 1) % 5 == 0 {
+            zoneBanner.removeAllActions()
+            zoneBanner.text = zoneNames[activeZone]
+            zoneBanner.alpha = 1
+            zoneBanner.run(.sequence([.wait(forDuration: 1.6), .fadeOut(withDuration: 0.5)]))
+        }
         spawned = 0
         upgradePurchased = false
         upgradeConfirmed = false
@@ -845,6 +858,8 @@ final class OutpostScene: SKScene {
         wave = 0
         passageGate.isHidden = true
         warning.isHidden = true
+        zoneBanner.removeAllActions()
+        zoneBanner.alpha = 0
         backgroundColor = zoneColors[0]
         pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92)
         movementTarget = nil
