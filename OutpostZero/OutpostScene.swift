@@ -201,6 +201,7 @@ final class OutpostScene: SKScene {
     private func layout() {
         base.position = CGPoint(x: size.width / 2, y: max(90, size.height * 0.13))
         passageGate.position = CGPoint(x: size.width / 2, y: size.height - 230)
+        if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if wave == 0 && phase == .ready { pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92) }
         hudPanel.path = CGPath(roundedRect: CGRect(x: 10, y: size.height - 173, width: max(1, size.width - 20), height: 111), cornerWidth: 13, cornerHeight: 13, transform: nil)
         title.position = CGPoint(x: size.width / 2, y: size.height - 94)
@@ -340,7 +341,7 @@ final class OutpostScene: SKScene {
         spawned = 0
         upgradePurchased = false
         upgradeConfirmed = false
-        waveTarget = wave == worldWaveCount ? 1 : min(48, 5 + wave * 3)
+        waveTarget = wave == worldWaveCount ? 1 : min(40, 5 + wave * 2)
         spawnClock = 1.2
         waveElapsed = 0
         streak = 0
@@ -493,7 +494,7 @@ final class OutpostScene: SKScene {
         spawnClock += gameDt
         waveElapsed += gameDt
         applyBurns()
-        let spawnInterval = max(0.36, 1.15 - Double(wave) * 0.036)
+        let spawnInterval = max(0.42, 1.20 - Double(wave) * 0.032)
         if spawned < waveTarget && spawnClock >= spawnInterval {
             spawnClock -= spawnInterval
             spawned += 1
