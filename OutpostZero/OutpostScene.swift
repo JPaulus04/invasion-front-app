@@ -46,7 +46,9 @@ final class OutpostScene: SKScene {
     private var menuNeedsFreshTouch = false
     private var heldTouch: UITouch?
     private var aimPoint: CGPoint?
-    private let pilot = SKShapeNode(circleOfRadius: 17)
+    private let pilot = SKShapeNode(rectOf: CGSize(width: 28, height: 34), cornerRadius: 7)
+    private let pilotGun = SKShapeNode(rectOf: CGSize(width: 9, height: 23), cornerRadius: 3)
+    private var movementOrigin: CGPoint?
     private var movementTarget: CGPoint?
     private let pilotSpeed: CGFloat = 205
     private let autoFireRange: CGFloat = 260
@@ -134,6 +136,16 @@ final class OutpostScene: SKScene {
         pilot.strokeColor = .white
         pilot.lineWidth = 3
         pilot.zPosition = 9
+        let visor = SKShapeNode(rectOf: CGSize(width: 19, height: 9), cornerRadius: 3)
+        visor.fillColor = .systemBlue
+        visor.strokeColor = .white
+        visor.position.y = 6
+        pilot.addChild(visor)
+        pilotGun.fillColor = .darkGray
+        pilotGun.strokeColor = .systemYellow
+        pilotGun.position = CGPoint(x: 14, y: 11)
+        pilotGun.zPosition = 2
+        pilot.addChild(pilotGun)
         arena.addChild(pilot)
         let barrel = SKShapeNode(rectOf: CGSize(width: 11, height: 35), cornerRadius: 4)
         barrel.fillColor = .darkGray
@@ -414,7 +426,7 @@ final class OutpostScene: SKScene {
         let target = enemies[index].node.position
         turretNode?.removeAction(forKey: "recoil")
         turretNode?.run(.sequence([.scale(to: 0.87, duration: 0.035), .scale(to: 1.0, duration: 0.08)]), withKey: "recoil")
-        turretNode?.zRotation = atan2(target.y - pilot.position.y, target.x - pilot.position.x) - .pi / 2
+        pilotGun.zRotation = atan2(target.y - pilot.position.y, target.x - pilot.position.x) - .pi / 2
         let tracer = SKShapeNode()
         let path = CGMutablePath()
         path.move(to: pilot.position)
@@ -690,6 +702,7 @@ final class OutpostScene: SKScene {
         wave = 0
         pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92)
         movementTarget = nil
+        movementOrigin = nil
         gateUnlocked = false
         fastForward = false
         coins = 0
@@ -722,7 +735,8 @@ final class OutpostScene: SKScene {
             }
             guard heldTouch == nil else { return }
             heldTouch = touch
-            movementTarget = CGPoint(x: min(max(point.x, 24), size.width - 24), y: min(max(point.y, base.position.y + 55), size.height - 215))
+            movementOrigin = point
+            movementTarget = nil
             return
         }
         if clock < menuUnlockTime || awaitingMenuRelease { return }
@@ -764,7 +778,16 @@ final class OutpostScene: SKScene {
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         if phase == .playing, let heldTouch, touches.contains(heldTouch) {
             let point = heldTouch.location(in: self)
-            movementTarget = CGPoint(x: min(max(point.x, 24), size.width - 24), y: min(max(point.y, base.position.y + 55), size.height - 215))
+            if let movementOrigin {
+                let dx = point.x - movementOrigin.x
+                let dy = point.y - movementOrigin.y
+                let length = hypot(dx, dy)
+                if length > 9 {
+                    let directionX = dx / length
+                    let directionY = dy / length
+                    movementTarget = CGPoint(x: min(max(pilot.position.x + directionX * 90, 24), size.width - 24), y: min(max(pilot.position.y + directionY * 90, base.position.y + 55), size.height - 215))
+                } else { movementTarget = nil }
+            }
         }
     }
 
@@ -772,6 +795,7 @@ final class OutpostScene: SKScene {
         if let heldTouch, touches.contains(heldTouch) {
             self.heldTouch = nil
             movementTarget = nil
+            movementOrigin = nil
             aimPoint = nil
         }
         awaitingMenuRelease = false
