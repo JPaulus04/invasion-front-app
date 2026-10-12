@@ -62,6 +62,8 @@ final class OutpostScene: SKScene {
     private var movementTarget: CGPoint?
     private var pilotSpeed: CGFloat { 205 + CGFloat(branchLevel(3) * 5) }
     private let autoFireRange: CGFloat = 260
+    private var pilotShieldUntil: TimeInterval = 0
+    private var pilotHitCount = 0
     private var chainLevel = 0
     private var chainUpgrades = 0
     private var explosiveLevel = 0
@@ -439,6 +441,21 @@ final class OutpostScene: SKScene {
             let direction: CGFloat = destinationX >= current.x ? 1 : -1
             enemies[index].node.position.x += horizontalStep * direction
             enemies[index].node.position.y -= enemies[index].speed * CGFloat(gameDt)
+            if distance(enemies[index].node.position, pilot.position) < (enemies[index].behavior == 3 ? 43 : 31) && clock >= pilotShieldUntil {
+                pilotShieldUntil = clock + 1.1
+                pilotHitCount += 1
+                let contactDamage = enemies[index].behavior == 3 ? 6 : 3
+                health = max(0, health - contactDamage)
+                impact(at: pilot.position, color: .systemCyan, destroyed: false)
+                pilot.removeAction(forKey: "hitFlash")
+                pilot.run(.sequence([.fadeAlpha(to: 0.3, duration: 0.1), .fadeAlpha(to: 1, duration: 0.1), .fadeAlpha(to: 0.3, duration: 0.1), .fadeAlpha(to: 1, duration: 0.1)]), withKey: "hitFlash")
+                warning.removeAllActions()
+                warning.text = "ROBOT HIT!  -\(contactDamage) BASE HP"
+                warning.alpha = 1
+                warning.isHidden = false
+                warning.run(.sequence([.wait(forDuration: 0.45), .fadeOut(withDuration: 0.4)]))
+                updateHUD()
+            }
             if enemies[index].node.position.y <= base.position.y + 30 {
                 impact(at: enemies[index].node.position, color: .systemRed, destroyed: true)
                 streak = 0
@@ -817,6 +834,9 @@ final class OutpostScene: SKScene {
         pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92)
         movementTarget = nil
         movementOrigin = nil
+        pilotShieldUntil = 0
+        pilotHitCount = 0
+        pilot.alpha = 1
         gateUnlocked = false
         fastForward = false
         coins = 0
