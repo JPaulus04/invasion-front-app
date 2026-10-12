@@ -46,6 +46,10 @@ final class OutpostScene: SKScene {
     private var menuNeedsFreshTouch = false
     private var heldTouch: UITouch?
     private var aimPoint: CGPoint?
+    private let pilot = SKShapeNode(circleOfRadius: 17)
+    private var movementTarget: CGPoint?
+    private let pilotSpeed: CGFloat = 205
+    private let autoFireRange: CGFloat = 260
     private var chainLevel = 0
     private var chainUpgrades = 0
     private var explosiveLevel = 0
@@ -126,6 +130,11 @@ final class OutpostScene: SKScene {
         turret.zPosition = 4
         base.addChild(turret)
         turretNode = turret
+        pilot.fillColor = .systemCyan
+        pilot.strokeColor = .white
+        pilot.lineWidth = 3
+        pilot.zPosition = 9
+        arena.addChild(pilot)
         let barrel = SKShapeNode(rectOf: CGSize(width: 11, height: 35), cornerRadius: 4)
         barrel.fillColor = .darkGray
         barrel.strokeColor = .systemYellow
@@ -151,6 +160,7 @@ final class OutpostScene: SKScene {
 
     private func layout() {
         base.position = CGPoint(x: size.width / 2, y: max(90, size.height * 0.13))
+        if wave == 0 && phase == .ready { pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92) }
         hudPanel.path = CGPath(roundedRect: CGRect(x: 10, y: size.height - 173, width: max(1, size.width - 20), height: 111), cornerWidth: 13, cornerHeight: 13, transform: nil)
         title.position = CGPoint(x: size.width / 2, y: size.height - 94)
         subtitle.position = CGPoint(x: size.width / 2, y: size.height - 120)
@@ -268,6 +278,7 @@ final class OutpostScene: SKScene {
         ArcadeMusic.shared.play(wave + 1 == worldWaveCount ? .boss : .forest)
         heldTouch = nil
         aimPoint = nil
+        movementTarget = nil
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
@@ -335,7 +346,20 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += gameDt
         guard phase == .playing else { return }
-        if let aimPoint { shoot(at: aimPoint) }
+        if let movementTarget {
+            let dx = movementTarget.x - pilot.position.x
+            let dy = movementTarget.y - pilot.position.y
+            let distanceToTarget = hypot(dx, dy)
+            if distanceToTarget > 2 {
+                let step = min(distanceToTarget, pilotSpeed * CGFloat(gameDt))
+                pilot.position.x += dx / distanceToTarget * step
+                pilot.position.y += dy / distanceToTarget * step
+            }
+        }
+        if let closest = enemies.min(by: { distance($0.node.position, pilot.position) < distance($1.node.position, pilot.position) }),
+           distance(closest.node.position, pilot.position) <= autoFireRange {
+            shoot(at: closest.node.position)
+        }
         spawnClock += gameDt
         waveElapsed += gameDt
         applyBurns()
@@ -390,10 +414,10 @@ final class OutpostScene: SKScene {
         let target = enemies[index].node.position
         turretNode?.removeAction(forKey: "recoil")
         turretNode?.run(.sequence([.scale(to: 0.87, duration: 0.035), .scale(to: 1.0, duration: 0.08)]), withKey: "recoil")
-        turretNode?.zRotation = atan2(target.y - base.position.y, target.x - base.position.x) - .pi / 2
+        turretNode?.zRotation = atan2(target.y - pilot.position.y, target.x - pilot.position.x) - .pi / 2
         let tracer = SKShapeNode()
         let path = CGMutablePath()
-        path.move(to: CGPoint(x: base.position.x, y: base.position.y + 30))
+        path.move(to: pilot.position)
         path.addLine(to: target)
         tracer.path = path
         tracer.strokeColor = .systemYellow
@@ -664,6 +688,8 @@ final class OutpostScene: SKScene {
         enemies.removeAll()
         bossNode = nil
         wave = 0
+        pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92)
+        movementTarget = nil
         gateUnlocked = false
         fastForward = false
         coins = 0
@@ -696,8 +722,7 @@ final class OutpostScene: SKScene {
             }
             guard heldTouch == nil else { return }
             heldTouch = touch
-            aimPoint = point
-            shoot(at: point)
+            movementTarget = CGPoint(x: min(max(point.x, 24), size.width - 24), y: min(max(point.y, base.position.y + 55), size.height - 215))
             return
         }
         if clock < menuUnlockTime || awaitingMenuRelease { return }
@@ -738,13 +763,15 @@ final class OutpostScene: SKScene {
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         if phase == .playing, let heldTouch, touches.contains(heldTouch) {
-            aimPoint = heldTouch.location(in: self)
+            let point = heldTouch.location(in: self)
+            movementTarget = CGPoint(x: min(max(point.x, 24), size.width - 24), y: min(max(point.y, base.position.y + 55), size.height - 215))
         }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         if let heldTouch, touches.contains(heldTouch) {
             self.heldTouch = nil
+            movementTarget = nil
             aimPoint = nil
         }
         awaitingMenuRelease = false
