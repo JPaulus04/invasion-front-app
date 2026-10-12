@@ -1,7 +1,7 @@
 import SpriteKit
 
 final class OutpostScene: SKScene {
-    private enum Phase { case ready, playing, upgrades, milestone, worldComplete, restoration, gameOver }
+    private enum Phase { case ready, playing, upgrades, milestone, gate, worldComplete, restoration, gameOver }
     private struct Enemy {
         let node: SKShapeNode
         var health: Int
@@ -14,6 +14,9 @@ final class OutpostScene: SKScene {
     private var restorationReturnPhase: Phase = .ready
     private var enemies: [Enemy] = []
     private var wave = 0
+    private var gateUnlocked = false
+    private let zoneNames = ["FOREST EDGE", "OVERGROWN PATH", "RUINED OUTPOST", "GUARDIAN CLEARING"]
+    private var zoneIndex: Int { min(wave / 5, 3) }
     private var spawned = 0
     private var upgradePurchased = false
     private var upgradeConfirmed = false
@@ -165,7 +168,7 @@ final class OutpostScene: SKScene {
         speedButton.isHidden = phase != .playing
         speedButton.position = CGPoint(x: size.width - 55, y: size.height - 160)
         title.text = "OUTPOST ZERO"
-        subtitle.text = "FRONTIER FOREST  •  \(wave)/\(worldWaveCount)  •  \(coins) COINS"
+        subtitle.text = "\(zoneNames[zoneIndex])  •  \(wave)/\(worldWaveCount)  •  \(coins) COINS"
         info.text = "BASE \(health) HP  •  DAMAGE \(damage)  •  RATE \(fireRate)"
     }
 
@@ -252,6 +255,11 @@ final class OutpostScene: SKScene {
     }
 
     private func startWave() {
+        if wave > 0 && wave % 5 == 0 && wave < worldWaveCount && !gateUnlocked {
+            showZoneGate()
+            return
+        }
+        gateUnlocked = false
         guard wave < worldWaveCount else {
             showWorldCompleteSummary()
             return
@@ -520,6 +528,17 @@ final class OutpostScene: SKScene {
     }
 
 
+    private func showZoneGate() {
+        phase = .gate
+        lockMenuBriefly()
+        clearOverlay()
+        let nextZone = zoneNames[min(wave / 5, 3)]
+        overlayText("ZONE CLEARED", y: 95, fontSize: 24)
+        overlayText("GATE UNLOCKED", y: 46, fontSize: 20)
+        overlayText("NEXT: \(nextZone)", y: -5, fontSize: 16)
+        actionButton("ENTER NEXT ZONE", key: "enterGate", y: -85, tint: .systemTeal)
+    }
+
     private func showMilestone() {
         phase = .milestone
         lockMenuBriefly()
@@ -645,6 +664,7 @@ final class OutpostScene: SKScene {
         enemies.removeAll()
         bossNode = nil
         wave = 0
+        gateUnlocked = false
         fastForward = false
         coins = 0
         health = maximumHealth
@@ -699,6 +719,9 @@ final class OutpostScene: SKScene {
         case (.restoration, let key?) where key.hasPrefix("branch_"):
             if let index = Int(key.dropFirst(7)) { investCore(index) }
         case (.gameOver, "restart"), (.worldComplete, "restart"): restart()
+        case (.gate, "enterGate"):
+            gateUnlocked = true
+            startWave()
         case (.milestone, "chain"): chooseMilestone("chain")
         case (.milestone, "explosive"): chooseMilestone("explosive")
         case (.milestone, "incendiary"): chooseMilestone("incendiary")
