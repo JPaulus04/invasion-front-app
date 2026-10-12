@@ -440,9 +440,14 @@ final class OutpostScene: SKScene {
             }
             return
         }
-        if let closest = enemies.min(by: { distance($0.node.position, pilot.position) < distance($1.node.position, pilot.position) }),
-           distance(closest.node.position, pilot.position) <= autoFireRange {
-            shoot(at: closest.node.position)
+        // Prefer the nearest reachable threat, breaking ties toward the outpost.
+        let reachable = enemies.filter { distance($0.node.position, pilot.position) <= autoFireRange }
+        if let target = reachable.min(by: {
+            let first = distance($0.node.position, pilot.position) + $0.node.position.y * 0.12
+            let second = distance($1.node.position, pilot.position) + $1.node.position.y * 0.12
+            return first < second
+        }) {
+            shoot(at: target.node.position)
         }
         spawnClock += gameDt
         waveElapsed += gameDt
@@ -653,10 +658,10 @@ final class OutpostScene: SKScene {
         overlayText("DMG \(damage)  •  RATE \(fireRate)  •  SKILLS \(chosenAbilities)/3", y: 55, fontSize: 16)
         actionButton("DAMAGE \(damage) → \(damage + 1)    \(damageCost) COINS", key: "damage", y: 10, tint: .systemOrange, enabled: coins >= damageCost)
         actionButton("RATE \(fireRate) → \(fireRate + 1)    \(rateCost) COINS", key: "rate", y: -35, tint: .systemBlue, enabled: coins >= rateCost && fireRate < 5)
-        overlayText("NEXT ABILITY AT WAVE \(((wave / 5) + 1) * 5)", y: -80, fontSize: 13)
+        overlayText(wave % 5 == 0 ? "ZONE GATE READY AFTER UPGRADES" : "NEXT ABILITY AT WAVE \(((wave / 5) + 1) * 5)", y: -80, fontSize: 13)
         actionButton("REPAIR HP    \(repairCost) COINS", key: "repair", y: -125, tint: .systemGreen, enabled: coins >= repairCost && health < maximumHealth)
         if availableCores > 0 { actionButton("SPEND POWER CORES", key: "restore", y: -222, tint: .systemIndigo) }
-        actionButton("NEXT WAVE", key: "next", y: -178, tint: .systemTeal)
+        actionButton(wave % 5 == 0 ? "OPEN ZONE GATE" : "NEXT WAVE", key: "next", y: -178, tint: .systemTeal)
         updateHUD()
     }
 
@@ -982,7 +987,7 @@ final class OutpostScene: SKScene {
         updateHUD()
         clearOverlay()
         overlayText("UPGRADE PURCHASED", y: 35, fontSize: 22)
-        actionButton("NEXT WAVE", key: "next", y: -35, tint: .systemTeal)
+        actionButton(wave % 5 == 0 ? "OPEN ZONE GATE" : "NEXT WAVE", key: "next", y: -35, tint: .systemTeal)
         if availableCores > 0 { actionButton("SPEND POWER CORES", key: "restore", y: -100, tint: .systemIndigo) }
     }
 }
