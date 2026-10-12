@@ -15,6 +15,7 @@ final class OutpostScene: SKScene {
     private var enemies: [Enemy] = []
     private var wave = 0
     private var gateUnlocked = false
+    private var lastRestoredBranch = 0
     private let zoneNames = ["FOREST EDGE", "OVERGROWN PATH", "RUINED OUTPOST", "GUARDIAN CLEARING"]
     private var zoneIndex: Int { min(wave / 5, 3) }
     private var spawned = 0
@@ -269,8 +270,9 @@ final class OutpostScene: SKScene {
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
         overlayText("DEFEND THE OUTPOST", y: 65, fontSize: 22)
-        overlayText("Tap, hold or drag to fire", y: 20, fontSize: 17)
+        overlayText("Drag to move  •  Weapons auto-fire", y: 20, fontSize: 15)
         overlayText("POWER CORES: \(availableCores)  •  RESTORE YOUR PILOT", y: -15, fontSize: 13)
+        if availableCores > 0 { overlayText("STARTER CORE READY — RESTORE A PART", y: -190, fontSize: 12) }
         actionButton("CHARACTER RESTORATION", key: "restore", y: -100, tint: .systemIndigo)
         actionButton("START DEFENSE", key: "start", y: -45, tint: .systemTeal)
         actionButton(ArcadeMusic.shared.isEnabled ? "MUSIC: ON" : "MUSIC: OFF", key: "music", y: -155, tint: .systemBlue)
@@ -665,6 +667,8 @@ final class OutpostScene: SKScene {
         let total = (0..<coreBranches.count).reduce(0) { $0 + branchLevel($1) }
         overlayText("CHARACTER RESTORATION", y: 160, fontSize: 20)
         overlayText("\(total)/50 RESTORED  •  \(availableCores) CORES AVAILABLE", y: 124, fontSize: 14)
+        let effects = ["Damage +1 every 3 levels", "Reactor improves ability power", "Base armor +2 HP each level", "Firing speed +1 every 4 levels", "Chain targets +1 every 4 levels"]
+        overlayText(effects[min(lastRestoredBranch, 4)], y: 103, fontSize: 11)
         for index in coreBranches.indices {
             let level = branchLevel(index)
             actionButton("\(coreBranches[index])   \(level)/10", key: "branch_\(index)",
@@ -678,7 +682,16 @@ final class OutpostScene: SKScene {
         guard coreBranches.indices.contains(index), availableCores > 0, branchLevel(index) < 10 else { return }
         UserDefaults.standard.set(availableCores - 1, forKey: "powerCoresAvailable")
         UserDefaults.standard.set(branchLevel(index) + 1, forKey: "coreBranch_\(index)")
+        lastRestoredBranch = index
         showRestoration()
+        let flash = SKShapeNode(circleOfRadius: 38)
+        flash.fillColor = .systemCyan
+        flash.strokeColor = .white
+        flash.alpha = 0.7
+        flash.position = CGPoint(x: 0, y: 92)
+        flash.zPosition = 20
+        overlay.addChild(flash)
+        flash.run(.sequence([.group([.scale(to: 2.2, duration: 0.4), .fadeOut(withDuration: 0.4)]), .removeFromParent()]))
     }
 
     private func endGame() {
