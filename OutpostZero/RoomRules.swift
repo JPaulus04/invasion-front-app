@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 /// Shared room geometry and progression rules, independent of rendering.
 enum RoomRules {
