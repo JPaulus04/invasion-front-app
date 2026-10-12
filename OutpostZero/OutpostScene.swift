@@ -19,6 +19,7 @@ final class OutpostScene: SKScene {
     private var gateUnlocked = false
     private let passageGate = SKShapeNode(rectOf: CGSize(width: 100, height: 46), cornerRadius: 12)
     private let zoneBanner = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+    private let zoneScenery = SKNode()
     private let zoneColors: [SKColor] = [
         SKColor(red: 0.08, green: 0.19, blue: 0.15, alpha: 1),
         SKColor(red: 0.13, green: 0.22, blue: 0.10, alpha: 1),
@@ -159,6 +160,8 @@ final class OutpostScene: SKScene {
         pilotGun.position = CGPoint(x: 14, y: 11)
         pilotGun.zPosition = 2
         pilot.addChild(pilotGun)
+        arena.addChild(zoneScenery)
+        zoneScenery.zPosition = -1
         arena.addChild(pilot)
         refreshPilotAppearance()
         passageGate.fillColor = .systemCyan
@@ -327,6 +330,7 @@ final class OutpostScene: SKScene {
         warning.alpha = 1
         let activeZone = min((wave - 1) / 5, 3)
         backgroundColor = zoneColors[activeZone]
+        updateZoneScenery(activeZone)
         if wave == 1 || (wave - 1) % 5 == 0 {
             zoneBanner.removeAllActions()
             zoneBanner.text = zoneNames[activeZone]
@@ -341,6 +345,43 @@ final class OutpostScene: SKScene {
         waveElapsed = 0
         streak = 0
         updateHUD()
+    }
+
+    private func updateZoneScenery(_ zone: Int) {
+        zoneScenery.removeAllChildren()
+        let count = 7
+        for index in 0..<count {
+            let side: CGFloat = index.isMultiple(of: 2) ? 0.12 : 0.88
+            let x = size.width * side + CGFloat((index % 3) - 1) * 12
+            let y = base.position.y + 95 + CGFloat(index) * max(25, (size.height - base.position.y - 310) / CGFloat(count))
+            let prop: SKShapeNode
+            switch zone {
+            case 0: // Tall pines along the forest approach.
+                prop = SKShapeNode(path: {
+                    let path = CGMutablePath()
+                    path.move(to: CGPoint(x: 0, y: 23))
+                    path.addLine(to: CGPoint(x: -15, y: -18))
+                    path.addLine(to: CGPoint(x: 15, y: -18))
+                    path.closeSubpath()
+                    return path
+                }())
+                prop.fillColor = .systemGreen
+            case 1: // Dense overgrowth.
+                prop = SKShapeNode(ellipseOf: CGSize(width: 30, height: 17))
+                prop.fillColor = .systemMint
+            case 2: // Ruined concrete blocks.
+                prop = SKShapeNode(rectOf: CGSize(width: 27, height: 21), cornerRadius: 2)
+                prop.fillColor = .darkGray
+            default: // Red guardian markers.
+                prop = SKShapeNode(rectOf: CGSize(width: 12, height: 34), cornerRadius: 3)
+                prop.fillColor = .systemRed
+            }
+            prop.strokeColor = .white.withAlphaComponent(0.22)
+            prop.lineWidth = 1
+            prop.alpha = 0.55
+            prop.position = CGPoint(x: x, y: y)
+            zoneScenery.addChild(prop)
+        }
     }
 
     private func spawnEnemy() {
@@ -866,6 +907,7 @@ final class OutpostScene: SKScene {
         zoneBanner.removeAllActions()
         zoneBanner.alpha = 0
         backgroundColor = zoneColors[0]
+        updateZoneScenery(0)
         pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92)
         movementTarget = nil
         movementOrigin = nil
