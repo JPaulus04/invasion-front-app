@@ -15,6 +15,7 @@ final class OutpostScene: SKScene {
     private var enemies: [Enemy] = []
     private var wave = 0
     private var gateUnlocked = false
+    private let passageGate = SKShapeNode(rectOf: CGSize(width: 100, height: 46), cornerRadius: 12)
     private let zoneColors: [SKColor] = [
         SKColor(red: 0.08, green: 0.19, blue: 0.15, alpha: 1),
         SKColor(red: 0.13, green: 0.22, blue: 0.10, alpha: 1),
@@ -154,6 +155,12 @@ final class OutpostScene: SKScene {
         pilotGun.zPosition = 2
         pilot.addChild(pilotGun)
         arena.addChild(pilot)
+        passageGate.fillColor = .systemCyan
+        passageGate.strokeColor = .white
+        passageGate.lineWidth = 5
+        passageGate.zPosition = 3
+        passageGate.isHidden = true
+        arena.addChild(passageGate)
         let barrel = SKShapeNode(rectOf: CGSize(width: 11, height: 35), cornerRadius: 4)
         barrel.fillColor = .darkGray
         barrel.strokeColor = .systemYellow
@@ -179,6 +186,7 @@ final class OutpostScene: SKScene {
 
     private func layout() {
         base.position = CGPoint(x: size.width / 2, y: max(90, size.height * 0.13))
+        passageGate.position = CGPoint(x: size.width / 2, y: size.height - 230)
         if wave == 0 && phase == .ready { pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92) }
         hudPanel.path = CGPath(roundedRect: CGRect(x: 10, y: size.height - 173, width: max(1, size.width - 20), height: 111), cornerWidth: 13, cornerHeight: 13, transform: nil)
         title.position = CGPoint(x: size.width / 2, y: size.height - 94)
@@ -290,6 +298,7 @@ final class OutpostScene: SKScene {
             return
         }
         gateUnlocked = false
+        passageGate.isHidden = true
         guard wave < worldWaveCount else {
             showWorldCompleteSummary()
             return
@@ -302,6 +311,7 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
+        warning.isHidden = true
         let activeZone = min((wave - 1) / 5, 3)
         backgroundColor = zoneColors[activeZone]
         spawned = 0
@@ -367,7 +377,14 @@ final class OutpostScene: SKScene {
         let gameDt = dt * (fastForward ? 2.0 : 1.0)
         lastUpdate = currentTime
         clock += gameDt
-        guard phase == .playing else { return }
+        guard phase == .playing || phase == .gate else { return }
+        if let heldTouch, let movementOrigin {
+            let point = heldTouch.location(in: self)
+            let dx = point.x - movementOrigin.x
+            let dy = point.y - movementOrigin.y
+            let length = hypot(dx, dy)
+            movementTarget = length > 9 ? CGPoint(x: min(max(pilot.position.x + dx / length * 90, 24), size.width - 24), y: min(max(pilot.position.y + dy / length * 90, base.position.y + 55), size.height - 215)) : nil
+        }
         if let movementTarget {
             let dx = movementTarget.x - pilot.position.x
             let dy = movementTarget.y - pilot.position.y
@@ -377,6 +394,17 @@ final class OutpostScene: SKScene {
                 pilot.position.x += dx / distanceToTarget * step
                 pilot.position.y += dy / distanceToTarget * step
             }
+        }
+        if phase == .gate {
+            if distance(pilot.position, passageGate.position) < 49 {
+                passageGate.isHidden = true
+                gateUnlocked = true
+                heldTouch = nil
+                movementOrigin = nil
+                movementTarget = nil
+                startWave()
+            }
+            return
         }
         if let closest = enemies.min(by: { distance($0.node.position, pilot.position) < distance($1.node.position, pilot.position) }),
            distance(closest.node.position, pilot.position) <= autoFireRange {
@@ -576,21 +604,17 @@ final class OutpostScene: SKScene {
 
     private func showZoneGate() {
         phase = .gate
-        lockMenuBriefly()
+        heldTouch = nil
+        movementOrigin = nil
+        movementTarget = nil
         clearOverlay()
-        let nextZone = zoneNames[min(wave / 5, 3)]
-        overlayText("ZONE CLEARED", y: 95, fontSize: 24)
-        overlayText("GATE UNLOCKED", y: 46, fontSize: 20)
-        let gateFrame = SKShapeNode(rectOf: CGSize(width: 110, height: 118), cornerRadius: 14)
-        gateFrame.fillColor = SKColor(red: 0.06, green: 0.18, blue: 0.24, alpha: 0.8)
-        gateFrame.strokeColor = .systemCyan
-        gateFrame.lineWidth = 7
-        gateFrame.position = CGPoint(x: 0, y: -28)
-        gateFrame.zPosition = 1
-        overlay.addChild(gateFrame)
-        gateFrame.run(.repeatForever(.sequence([.fadeAlpha(to: 0.55, duration: 0.6), .fadeAlpha(to: 1, duration: 0.6)])))
-        overlayText("NEXT: \(nextZone)", y: -5, fontSize: 16)
-        actionButton("ENTER NEXT ZONE", key: "enterGate", y: -85, tint: .systemTeal)
+        overlayBackdrop.isHidden = true
+        passageGate.isHidden = false
+        passageGate.removeAllActions()
+        passageGate.run(.repeatForever(.sequence([.fadeAlpha(to: 0.5, duration: 0.65), .fadeAlpha(to: 1, duration: 0.65)])))
+        warning.text = "GATE OPEN — WALK THROUGH TO CONTINUE"
+        warning.isHidden = false
+        updateHUD()
     }
 
     private func showMilestone() {
@@ -729,6 +753,8 @@ final class OutpostScene: SKScene {
         enemies.removeAll()
         bossNode = nil
         wave = 0
+        passageGate.isHidden = true
+        warning.isHidden = true
         backgroundColor = zoneColors[0]
         pilot.position = CGPoint(x: size.width / 2, y: base.position.y + 92)
         movementTarget = nil
@@ -757,8 +783,8 @@ final class OutpostScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let point = touch.location(in: self)
-        if phase == .playing {
-            if speedButton.contains(touch.location(in: hud)) {
+        if phase == .playing || phase == .gate {
+            if phase == .playing && speedButton.contains(touch.location(in: hud)) {
                 fastForward.toggle()
                 updateHUD()
                 return
