@@ -329,6 +329,9 @@ final class OutpostScene: SKScene {
         }
         gateUnlocked = false
         passageGate.isHidden = true
+        passageGate.removeAllActions()
+        passageGate.childNode(withName: "gateArrow")?.removeAllActions()
+        passageGate.alpha = 1
         guard wave < worldWaveCount else {
             showWorldCompleteSummary()
             return
@@ -731,11 +734,12 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         passageGate.isHidden = false
+        passageGate.alpha = 1
         passageGate.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.run(.repeatForever(.sequence([.moveBy(x: 0, y: 7, duration: 0.45), .moveBy(x: 0, y: -7, duration: 0.45)])))
         passageGate.run(.repeatForever(.sequence([.fadeAlpha(to: 0.5, duration: 0.65), .fadeAlpha(to: 1, duration: 0.65)])))
-        warning.text = "GATE OPEN — WALK THROUGH TO CONTINUE"
+        warning.text = "WALK INTO THE GLOWING GATE"
         warning.removeAllActions()
         warning.alpha = 1
         warning.isHidden = false
