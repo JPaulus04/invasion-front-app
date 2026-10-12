@@ -323,7 +323,7 @@ final class OutpostScene: SKScene {
         spawned = 0
         upgradePurchased = false
         upgradeConfirmed = false
-        waveTarget = wave == worldWaveCount ? 1 : min(60, 6 + wave * 4)
+        waveTarget = wave == worldWaveCount ? 1 : min(48, 5 + wave * 3)
         spawnClock = 1.2
         waveElapsed = 0
         streak = 0
@@ -332,7 +332,22 @@ final class OutpostScene: SKScene {
 
     private func spawnEnemy() {
         let isBoss = wave == worldWaveCount
-        let type = isBoss ? 1 : Int.random(in: 0...(wave >= 11 ? 3 : 2))
+        // Zone-specific enemy composition introduces behaviors before raw stat inflation.
+        let roll = Int.random(in: 0..<100)
+        let type: Int
+        if isBoss {
+            type = 1
+        } else if wave <= 3 {
+            type = roll < 75 ? 0 : 2
+        } else if wave <= 5 {
+            type = roll < 15 ? 1 : (roll < 75 ? 0 : 2)
+        } else if wave <= 10 {
+            type = roll < 48 ? 2 : (roll < 82 ? 0 : 1)
+        } else if wave <= 15 {
+            type = roll < 28 ? 3 : (roll < 55 ? 1 : (roll < 80 ? 2 : 0))
+        } else {
+            type = roll < 36 ? 3 : (roll < 72 ? 1 : (roll < 89 ? 2 : 0))
+        }
         let radius: CGFloat = isBoss ? 37 : (type == 1 ? 23 : (type == 2 ? 17 : (type == 3 ? 26 : 14)))
         let node = SKShapeNode(circleOfRadius: radius)
         node.fillColor = type == 1 ? .systemRed : (type == 2 ? .systemPurple : (type == 3 ? .systemGray : .systemOrange))
@@ -419,7 +434,7 @@ final class OutpostScene: SKScene {
         spawnClock += gameDt
         waveElapsed += gameDt
         applyBurns()
-        let spawnInterval = max(0.28, 1.12 - Double(wave) * 0.045)
+        let spawnInterval = max(0.36, 1.15 - Double(wave) * 0.036)
         if spawned < waveTarget && spawnClock >= spawnInterval {
             spawnClock -= spawnInterval
             spawned += 1
