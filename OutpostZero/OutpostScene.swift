@@ -331,6 +331,7 @@ final class OutpostScene: SKScene {
         passageGate.isHidden = true
         passageGate.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
+        passageGate.childNode(withName: "gateArrow")?.position = CGPoint(x: 0, y: -40)
         passageGate.alpha = 1
         guard wave < worldWaveCount else {
             showWorldCompleteSummary()
@@ -737,6 +738,7 @@ final class OutpostScene: SKScene {
         passageGate.alpha = 1
         passageGate.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
+        passageGate.childNode(withName: "gateArrow")?.position = CGPoint(x: 0, y: -40)
         passageGate.childNode(withName: "gateArrow")?.run(.repeatForever(.sequence([.moveBy(x: 0, y: 7, duration: 0.45), .moveBy(x: 0, y: -7, duration: 0.45)])))
         passageGate.run(.repeatForever(.sequence([.fadeAlpha(to: 0.5, duration: 0.65), .fadeAlpha(to: 1, duration: 0.65)])))
         warning.text = "WALK INTO THE GLOWING GATE"
@@ -962,6 +964,7 @@ final class OutpostScene: SKScene {
         pilot.removeAction(forKey: "hitFlash")
         passageGate.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
+        passageGate.childNode(withName: "gateArrow")?.position = CGPoint(x: 0, y: -40)
         passageGate.alpha = 1
         gateUnlocked = false
         fastForward = false
