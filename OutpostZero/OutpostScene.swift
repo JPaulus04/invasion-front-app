@@ -170,6 +170,20 @@ final class OutpostScene: SKScene {
         passageGate.zPosition = 3
         passageGate.isHidden = true
         arena.addChild(passageGate)
+        let gateText = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        gateText.text = "ENTER"
+        gateText.fontSize = 13
+        gateText.fontColor = .black
+        gateText.verticalAlignmentMode = .center
+        gateText.zPosition = 1
+        passageGate.addChild(gateText)
+        let gateArrow = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        gateArrow.text = "▲"
+        gateArrow.fontSize = 22
+        gateArrow.fontColor = .systemCyan
+        gateArrow.position = CGPoint(x: 0, y: -40)
+        gateArrow.name = "gateArrow"
+        passageGate.addChild(gateArrow)
         zoneBanner.fontSize = 20
         zoneBanner.fontColor = .white
         zoneBanner.zPosition = 18
@@ -717,6 +731,8 @@ final class OutpostScene: SKScene {
         overlayBackdrop.isHidden = true
         passageGate.isHidden = false
         passageGate.removeAllActions()
+        passageGate.childNode(withName: "gateArrow")?.removeAllActions()
+        passageGate.childNode(withName: "gateArrow")?.run(.repeatForever(.sequence([.moveBy(x: 0, y: 7, duration: 0.45), .moveBy(x: 0, y: -7, duration: 0.45)])))
         passageGate.run(.repeatForever(.sequence([.fadeAlpha(to: 0.5, duration: 0.65), .fadeAlpha(to: 1, duration: 0.65)])))
         warning.text = "GATE OPEN — WALK THROUGH TO CONTINUE"
         warning.removeAllActions()
