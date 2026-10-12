@@ -253,7 +253,7 @@ final class OutpostScene: SKScene {
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
         damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
         warning.position = CGPoint(x: size.width / 2, y: max(170, size.height * 0.23))
-        zoneBanner.position = CGPoint(x: size.width / 2, y: size.height - 205)
+        zoneBanner.position = CGPoint(x: size.width / 2, y: roomBounds.maxY - 90)
         let xpWidth = max(1, size.width - 48)
         xpTrack.path = CGPath(roundedRect: CGRect(x: 0, y: 0, width: xpWidth, height: 6), cornerWidth: 3, cornerHeight: 3, transform: nil)
         xpFill.path = xpTrack.path
