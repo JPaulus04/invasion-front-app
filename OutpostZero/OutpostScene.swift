@@ -302,7 +302,8 @@ final class OutpostScene: SKScene {
         checkpointButton.isHidden = phase != .gate || !wave.isMultiple(of: 5) || checkpointUsed
         title.text = "OUTPOST ZERO"
         subtitle.text = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
-        info.text = "PLAYER \(health) HP  •  DAMAGE \(damage)  •  RATE \(fireRate)"
+        info.text = "HP \\(health)/\\(maximumHealth)  •  DMG \\(damage)  •  RATE \\(fireRate)"
+        info.fontColor = health <= maximumHealth / 3 ? .systemRed : (health <= maximumHealth * 2 / 3 ? .systemYellow : .white)
     }
 
     private func clearOverlay() {
