@@ -4,6 +4,14 @@ import CoreGraphics
 @main
 struct ProgressCombatTests {
     static func main() {
+        precondition(WorldCoreRewards.newlyEarned(previousBest: 0, completedStars: 1) == 1)
+        precondition(WorldCoreRewards.newlyEarned(previousBest: 1, completedStars: 2) == 1)
+        precondition(WorldCoreRewards.newlyEarned(previousBest: 1, completedStars: 3) == 2)
+        precondition(WorldCoreRewards.newlyEarned(previousBest: 3, completedStars: 3) == 0)
+        precondition(WorldCoreRewards.newlyEarned(previousBest: 3, completedStars: 1) == 0)
+        precondition(WorldCoreRewards.newlyEarned(previousBest: 0, completedStars: 9) == 3)
+        precondition(WorldCoreRewards.bestStars(previousBest: 3, completedStars: 1) == 3)
+        precondition(WorldCoreRewards.bestStars(previousBest: 1, completedStars: 3) == 3)
         var run = RunProgress()
         let firstThreshold = run.nextLevelXP
         run.earnXP(firstThreshold - 1)
