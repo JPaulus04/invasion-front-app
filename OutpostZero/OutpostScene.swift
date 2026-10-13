@@ -852,9 +852,14 @@ final class OutpostScene: SKScene {
                                         y: pilot.position.y - enemy.node.position.y))
                 aim.path = path
                 aim.name = "aimLine"
-                aim.strokeColor = .systemPink.withAlphaComponent(0.5)
-                aim.lineWidth = 2
+                aim.strokeColor = .systemPink.withAlphaComponent(0.85)
+                aim.lineWidth = 3
+                aim.zPosition = 6
                 enemy.node.addChild(aim)
+                aim.run(.repeatForever(.sequence([
+                    .fadeAlpha(to: 0.35, duration: 0.15),
+                    .fadeAlpha(to: 1, duration: 0.15)
+                ])))
                 if enemy.node === bossNode { launchLob(from: enemy.node.position, target: pilot.position) }
             }
         }
@@ -1281,7 +1286,7 @@ final class OutpostScene: SKScene {
             star.zPosition = 3
             overlay.addChild(star)
         }
-        overlayText("PLAYER \\(health) HP", y: -30, fontSize: 13)
+        overlayText("PLAYER \(health) HP", y: -30, fontSize: 13)
         overlayText(lastWorldCoreReward > 0 ? "NEW STAR REWARD: +\(lastWorldCoreReward) POWER CORES" : "NO NEW CORES — REPLAY FOR MORE STARS", y: -75, fontSize: 12)
         overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -48, fontSize: 15)
         actionButton("RESTORE CHARACTER", key: "restore", y: -105, tint: .systemIndigo)
