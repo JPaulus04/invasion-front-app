@@ -17,6 +17,8 @@ final class OutpostScene: SKScene {
         var shotTarget: CGPoint? = nil
         var fireAt: TimeInterval = 0
     }
+    private var worldMapIndex = 0
+    private let worldMapNames = ["FRONTIER FOREST", "ASHEN WASTES", "FROZEN RIDGE", "NEON CITADEL", "VOID FRONTIER"]
     private var phase: Phase = .ready
     private var restorationReturnPhase: Phase = .ready
     private struct XPDrop {
@@ -354,15 +356,27 @@ final class OutpostScene: SKScene {
         phase = .ready
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
-        overlayText("CLEAR THE ROOMS", y: 65, fontSize: 22)
-        overlayText("Drag to move  •  Weapons auto-fire", y: 20, fontSize: 15)
-        overlayText("POWER CORES: \(availableCores)  •  RESTORE YOUR PILOT", y: -15, fontSize: 13)
+        let selected = worldMapIndex
+        let unlocked = selected == 0
         let bestStars = min(3, max(0, UserDefaults.standard.integer(forKey: "frontierForestStars")))
-        overlayText("FOREST STARS: \(bestStars)/3  •  CORES LEFT TO EARN: \(3 - bestStars)", y: -70, fontSize: 12)
-        if availableCores > 0 { overlayText("POWER CORES READY — RESTORE A PART", y: -190, fontSize: 12) }
-        actionButton("CHARACTER RESTORATION", key: "restore", y: -100, tint: .systemIndigo)
-        actionButton("ENTER WORLD", key: "start", y: -45, tint: .systemTeal)
-        actionButton(ArcadeMusic.shared.isEnabled ? "MUSIC: ON" : "MUSIC: OFF", key: "music", y: -155, tint: .systemBlue)
+        overlayText("WORLD MAP", y: 174, fontSize: 23)
+        overlayText("◀  \(selected + 1) / \(worldMapNames.count)  ▶", y: 133, fontSize: 15)
+        let worldCard = SKShapeNode(rect: CGRect(x: -min(size.width - 90, 310) / 2, y: -18,
+                                                 width: min(size.width - 90, 310), height: 128), cornerRadius: 18)
+        worldCard.fillColor = unlocked ? SKColor.systemGreen.withAlphaComponent(0.22) : SKColor.systemGray.withAlphaComponent(0.18)
+        worldCard.strokeColor = unlocked ? .systemTeal : .gray
+        worldCard.lineWidth = 2
+        overlay.addChild(worldCard)
+        overlayText(worldMapNames[selected], y: 77, fontSize: 20)
+        overlayText(unlocked ? "AVAILABLE  •  \(bestStars)/3 STARS" : "COMING SOON", y: 39, fontSize: 15)
+        overlayText(unlocked ? "3 CORES PER WORLD  •  \(3 - bestStars) REMAINING" : "NEW ENEMIES, BOSSES AND REWARDS", y: 9, fontSize: 12)
+        actionButton("◀ PREVIOUS", key: "world_prev", y: -62, tint: .systemBlue, enabled: selected > 0)
+        actionButton("NEXT ▶", key: "world_next", y: -110, tint: .systemBlue, enabled: selected < worldMapNames.count - 1)
+        if unlocked {
+            actionButton("ENTER WORLD", key: "start", y: -160, tint: .systemTeal)
+        }
+        actionButton("CHARACTER RESTORATION", key: "restore", y: -212, tint: .systemIndigo)
+        overlayText("POWER CORES: \(availableCores)", y: -256, fontSize: 12)
     }
 
     private func startWave() {
@@ -1328,7 +1342,13 @@ final class OutpostScene: SKScene {
         let local = touch.location(in: overlay)
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
         switch (phase, tapped) {
-        case (.ready, "start"): startWave()
+        case (.ready, "start") where worldMapIndex == 0: startWave()
+        case (.ready, "world_prev"):
+            worldMapIndex = max(0, worldMapIndex - 1)
+            showReady()
+        case (.ready, "world_next"):
+            worldMapIndex = min(worldMapNames.count - 1, worldMapIndex + 1)
+            showReady()
         case (.ready, "music"):
             ArcadeMusic.shared.toggle()
             showReady()
