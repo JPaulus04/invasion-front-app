@@ -539,6 +539,32 @@ final class OutpostScene: SKScene {
             prop.alpha = 0.55
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
+            if zone == 0 {
+                // Layered pine foliage and trunk add depth without blocking movement.
+                let trunk = SKShapeNode(rectOf: CGSize(width: 6, height: 17), cornerRadius: 2)
+                trunk.fillColor = .brown
+                trunk.strokeColor = .clear
+                trunk.position = CGPoint(x: 0, y: -15)
+                trunk.zPosition = -0.1
+                prop.addChild(trunk)
+                let canopy = SKShapeNode(ellipseOf: CGSize(width: 20, height: 12))
+                canopy.fillColor = .systemMint.withAlphaComponent(0.65)
+                canopy.strokeColor = .clear
+                canopy.position = CGPoint(x: -3, y: 3)
+                canopy.zPosition = 1
+                prop.addChild(canopy)
+            }
+        }
+        // Small ground accents provide visual texture while keeping the center clear.
+        for index in 0..<12 {
+            let accent = SKShapeNode(ellipseOf: CGSize(width: 10 + CGFloat(index % 3) * 4, height: 4))
+            accent.fillColor = zone == 0 ? .systemGreen.withAlphaComponent(0.19) : .white.withAlphaComponent(0.09)
+            accent.strokeColor = .clear
+            let fraction = CGFloat(index + 1) / 13
+            accent.position = CGPoint(x: roomBounds.minX + roomBounds.width * fraction,
+                                      y: roomBounds.minY + 28 + CGFloat((index * 37 + wave * 11) % 70))
+            accent.zPosition = -0.2
+            zoneScenery.addChild(accent)
         }
     }
 
