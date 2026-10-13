@@ -1070,8 +1070,8 @@ final class OutpostScene: SKScene {
         guard !coreAwardedThisRun else { return }
         coreAwardedThisRun = true
         let previousBest = min(3, max(0, UserDefaults.standard.integer(forKey: "frontierForestStars")))
-        let newBest = min(3, max(previousBest, stars))
-        lastWorldCoreReward = max(0, newBest - previousBest)
+        let newBest = WorldCoreRewards.bestStars(previousBest: previousBest, completedStars: stars)
+        lastWorldCoreReward = WorldCoreRewards.newlyEarned(previousBest: previousBest, completedStars: stars)
         UserDefaults.standard.set(newBest, forKey: "frontierForestStars")
         UserDefaults.standard.set(true, forKey: "frontierForestCoreClaimed")
         if lastWorldCoreReward > 0 {
