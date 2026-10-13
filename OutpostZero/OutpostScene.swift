@@ -1271,7 +1271,17 @@ final class OutpostScene: SKScene {
         let stars = progress.stars
         overlayText("FRONTIER FOREST CLEARED", y: 85, fontSize: 21)
         overlayText("LEVEL \(progress.level)  •  \(progress.damageTaken) DAMAGE TAKEN", y: 40, fontSize: 16)
-        overlayText("\(stars) / 3 STARS  •  PLAYER \(health) HP", y: -5, fontSize: 18)
+        // A prominent star display makes the permanent world reward legible.
+        for index in 0..<3 {
+            let star = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            star.text = index < stars ? "★" : "☆"
+            star.fontSize = 35
+            star.fontColor = index < stars ? .systemYellow : .lightGray
+            star.position = CGPoint(x: CGFloat(index - 1) * 51, y: -11)
+            star.zPosition = 3
+            overlay.addChild(star)
+        }
+        overlayText("PLAYER \\(health) HP", y: -30, fontSize: 13)
         overlayText(lastWorldCoreReward > 0 ? "NEW STAR REWARD: +\(lastWorldCoreReward) POWER CORES" : "NO NEW CORES — REPLAY FOR MORE STARS", y: -75, fontSize: 12)
         overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -48, fontSize: 15)
         actionButton("RESTORE CHARACTER", key: "restore", y: -105, tint: .systemIndigo)
