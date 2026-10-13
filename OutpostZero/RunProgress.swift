@@ -34,3 +34,16 @@ struct CombatClock {
         if playing { time += max(0, delta) }
     }
 }
+
+/// Rewards are based on the highest stars ever earned in a world, never on repeat clears.
+enum WorldCoreRewards {
+    static func newlyEarned(previousBest: Int, completedStars: Int) -> Int {
+        let previous = min(3, max(0, previousBest))
+        let current = min(3, max(0, completedStars))
+        return max(0, current - previous)
+    }
+
+    static func bestStars(previousBest: Int, completedStars: Int) -> Int {
+        min(3, max(0, max(previousBest, completedStars)))
+    }
+}
