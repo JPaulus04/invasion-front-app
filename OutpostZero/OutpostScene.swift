@@ -523,6 +523,24 @@ final class OutpostScene: SKScene {
         if type == 5 { node.fillColor = .systemOrange }
         node.strokeColor = type == 1 ? .systemYellow : .white
         node.lineWidth = type == 1 ? 4 : 2
+        // Layered armor plates and glowing eyes make silhouettes readable at phone scale.
+        if !isBoss {
+            let shoulderWidth = radius * (type == 3 ? 1.5 : 1.25)
+            let shoulder = SKShapeNode(rectOf: CGSize(width: shoulderWidth, height: radius * 0.43), cornerRadius: 3)
+            shoulder.position.y = radius * 0.45
+            shoulder.fillColor = type == 3 ? .darkGray : .black.withAlphaComponent(0.45)
+            shoulder.strokeColor = node.strokeColor.withAlphaComponent(0.65)
+            shoulder.lineWidth = 1
+            shoulder.zPosition = 1.5
+            node.addChild(shoulder)
+            let visor = SKShapeNode(rectOf: CGSize(width: radius * 0.8, height: max(3, radius * 0.22)), cornerRadius: 2)
+            visor.position.y = radius * 0.10
+            visor.fillColor = type == 4 ? .cyan : (type == 5 ? .yellow : .systemRed)
+            visor.strokeColor = .clear
+            visor.glowWidth = 2
+            visor.zPosition = 3
+            node.addChild(visor)
+        }
         let core = SKShapeNode(circleOfRadius: radius * 0.47)
         core.fillColor = type == 1 ? .darkGray : (type == 2 ? .magenta : .brown)
         core.strokeColor = .clear
