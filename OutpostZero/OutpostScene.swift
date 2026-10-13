@@ -413,10 +413,13 @@ final class OutpostScene: SKScene {
 
     private func updateZoneScenery(_ zone: Int) {
         zoneScenery.removeAllChildren()
-        let count = 7
+        // Alternate prop placement between rooms so successive arenas feel less repetitive.
+        let count = 6 + (wave % 4)
+        let roomVariant = (wave - 1) % 4
         for index in 0..<count {
-            let side: CGFloat = index.isMultiple(of: 2) ? 0.12 : 0.88
-            let x = size.width * side + CGFloat((index % 3) - 1) * 12
+            let leftSide = (index + roomVariant).isMultiple(of: 2)
+            let side: CGFloat = leftSide ? 0.12 : 0.88
+            let x = size.width * side + CGFloat(((index + roomVariant) % 3) - 1) * 12
             let y = roomBounds.minY + 55 + CGFloat(index) * max(25, (roomBounds.height - 100) / CGFloat(count))
             let prop: SKShapeNode
             switch zone {
