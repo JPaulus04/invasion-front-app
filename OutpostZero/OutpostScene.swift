@@ -88,8 +88,8 @@ final class OutpostScene: SKScene {
     private var overlayButtons: [String: CGRect] = [:]
     private var streak = 0
     private var waveElapsed: TimeInterval = 0
-    // Enable locally for QA runs only; production builds always use normal speed.
-    private let qaFastForwardEnabled = false
+    // QA/TestFlight convenience toggle; disable before public App Store release.
+    private let qaFastForwardEnabled = true
     private var fastForward = false
     private let speedButton = SKShapeNode(rectOf: CGSize(width: 72, height: 34), cornerRadius: 9)
     private let speedLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
