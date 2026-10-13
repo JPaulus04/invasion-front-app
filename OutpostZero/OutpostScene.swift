@@ -1159,11 +1159,16 @@ final class OutpostScene: SKScene {
             let y = CGFloat(30 - index * 80)
             let cardWidth = min(size.width - 64, 324)
             let card = SKShapeNode(rect: CGRect(x: -cardWidth / 2, y: y - 48, width: cardWidth, height: 76), cornerRadius: 12)
-            card.fillColor = SKColor(white: 0.10, alpha: 0.96)
+            card.fillColor = index == 0 ? SKColor.systemOrange.withAlphaComponent(0.24) : SKColor.systemIndigo.withAlphaComponent(0.3)
             card.strokeColor = index == 0 ? .systemYellow : .systemCyan
-            card.lineWidth = 2
+            card.lineWidth = 2.5
             card.zPosition = 1
             overlay.addChild(card)
+            let accent = SKShapeNode(rect: CGRect(x: -cardWidth / 2 + 7, y: y - 38, width: 4, height: 56), cornerRadius: 2)
+            accent.fillColor = index == 0 ? .systemYellow : .systemCyan
+            accent.strokeColor = .clear
+            accent.zPosition = 2
+            overlay.addChild(accent)
             overlayText(label, y: y + 6, fontSize: 15)
             overlayText(detail, y: y - 19, fontSize: 12)
             overlayButtons[choice] = CGRect(x: -cardWidth / 2, y: y - 48, width: cardWidth, height: 76)
