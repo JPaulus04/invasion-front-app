@@ -889,6 +889,10 @@ final class OutpostScene: SKScene {
         marker.strokeColor = .systemOrange
         marker.lineWidth = 3
         marker.zPosition = 4
+        marker.run(.repeatForever(.sequence([
+            .group([.scale(to: 0.83, duration: 0.35), .fadeAlpha(to: 0.55, duration: 0.35)]),
+            .group([.scale(to: 1, duration: 0.35), .fadeAlpha(to: 1, duration: 0.35)])
+        ])))
         let cross = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         cross.text = "!"
         cross.fontColor = .systemOrange
