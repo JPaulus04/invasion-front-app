@@ -405,7 +405,8 @@ final class OutpostScene: SKScene {
         }
         spawned = 0
         waveTarget = wave == worldWaveCount ? 1 : min(40, 5 + wave * 2)
-        spawnClock = 1.2
+        // Shorten the empty opening without increasing enemy count or attack damage.
+        spawnClock = 0.9
         waveElapsed = 0
         streak = 0
         updateHUD()
