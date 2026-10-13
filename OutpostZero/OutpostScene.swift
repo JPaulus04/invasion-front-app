@@ -329,6 +329,20 @@ final class OutpostScene: SKScene {
     }
 
     private func impact(at point: CGPoint, color: SKColor, destroyed: Bool) {
+        // Brief expanding shock ring gives hits a readable silhouette at game speed.
+        let ring = SKShapeNode(circleOfRadius: destroyed ? 12 : 7)
+        ring.position = point
+        ring.fillColor = .clear
+        ring.strokeColor = color
+        ring.lineWidth = destroyed ? 3 : 2
+        ring.alpha = 0.85
+        ring.zPosition = 11
+        arena.addChild(ring)
+        ring.run(.sequence([
+            .group([.scale(to: destroyed ? 3.2 : 2.2, duration: 0.23),
+                    .fadeOut(withDuration: 0.23)]),
+            .removeFromParent()
+        ]))
         let count = destroyed ? 9 : 4
         for index in 0..<count {
             let spark = SKShapeNode(circleOfRadius: destroyed ? 3.5 : 2.2)
