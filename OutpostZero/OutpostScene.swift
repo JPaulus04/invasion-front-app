@@ -17,6 +17,8 @@ final class OutpostScene: SKScene {
         var shotTarget: CGPoint? = nil
         var fireAt: TimeInterval = 0
     }
+    private var worldMapSwipeStart: CGPoint?
+    private var worldMapSwipeMoved = false
     private var worldMapIndex = 0
     private let worldMapNames = ["FRONTIER FOREST", "ASHEN WASTES", "FROZEN RIDGE", "NEON CITADEL", "VOID FRONTIER"]
     private var phase: Phase = .ready
@@ -1338,6 +1340,10 @@ final class OutpostScene: SKScene {
             return
         }
         if clock < menuUnlockTime || awaitingMenuRelease { return }
+        if phase == .ready {
+            worldMapSwipeStart = point
+            worldMapSwipeMoved = false
+        }
         menuNeedsFreshTouch = false
         let local = touch.location(in: overlay)
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
@@ -1371,6 +1377,9 @@ final class OutpostScene: SKScene {
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if phase == .ready, let start = worldMapSwipeStart, let touch = touches.first {
+            if abs(touch.location(in: self).x - start.x) > 30 { worldMapSwipeMoved = true }
+        }
         if (phase == .playing || phase == .gate), let heldTouch, touches.contains(heldTouch) {
             let point = heldTouch.location(in: self)
             if let movementOrigin {
@@ -1387,6 +1396,15 @@ final class OutpostScene: SKScene {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if phase == .ready, let start = worldMapSwipeStart, let touch = touches.first {
+            let dx = touch.location(in: self).x - start.x
+            if abs(dx) > 65 {
+                worldMapIndex = min(worldMapNames.count - 1, max(0, worldMapIndex + (dx < 0 ? 1 : -1)))
+                showReady()
+            }
+        }
+        worldMapSwipeStart = nil
+        worldMapSwipeMoved = false
         if let heldTouch, touches.contains(heldTouch) {
             self.heldTouch = nil
             movementTarget = nil
