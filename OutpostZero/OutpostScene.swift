@@ -501,6 +501,34 @@ final class OutpostScene: SKScene {
             weapon.position.y = 15
             node.addChild(weapon)
         }
+        // Distinct silhouettes help players recognize ranged threats before they attack.
+        if type == 4 {
+            let visor = SKShapeNode(rectOf: CGSize(width: radius * 1.55, height: 5), cornerRadius: 2)
+            visor.fillColor = .systemCyan
+            visor.strokeColor = .white
+            visor.position.y = radius * 0.28
+            visor.zPosition = 3
+            node.addChild(visor)
+            let barrel = SKShapeNode(rectOf: CGSize(width: 7, height: radius * 1.7), cornerRadius: 2)
+            barrel.fillColor = .systemBlue
+            barrel.strokeColor = .white
+            barrel.position = CGPoint(x: radius * 0.9, y: 0)
+            barrel.zPosition = 2
+            node.addChild(barrel)
+        } else if type == 5 {
+            let mortar = SKShapeNode(circleOfRadius: radius * 0.5)
+            mortar.fillColor = .systemYellow
+            mortar.strokeColor = .white
+            mortar.lineWidth = 2
+            mortar.position.y = radius * 0.25
+            mortar.zPosition = 3
+            node.addChild(mortar)
+            let base = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 7), cornerRadius: 3)
+            base.fillColor = .systemOrange
+            base.strokeColor = .white
+            base.position.y = -radius * 0.65
+            node.addChild(base)
+        }
         if type == 1 {
             let armor = SKShapeNode(rectOf: CGSize(width: radius * 1.5, height: 7), cornerRadius: 3)
             armor.fillColor = .systemYellow
