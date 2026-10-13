@@ -666,15 +666,15 @@ final class OutpostScene: SKScene {
             enemy.node.childNode(withName: "aimLine")?.removeFromParent()
             fireProjectile(from: enemy.node.position, toward: target)
             enemies[index].shotTarget = nil
-            enemies[index].nextAttack = combatTime + 2.2
+            enemies[index].nextAttack = combatTime + CombatRules.shooterCooldown(room: wave)
         } else if combatTime >= enemy.nextAttack {
             if enemy.behavior == 5 {
                 launchLob(from: enemy.node.position, target: pilot.position)
-                enemies[index].nextAttack = combatTime + 3.4
+                enemies[index].nextAttack = combatTime + CombatRules.lobberCooldown(room: wave)
             } else {
                 // Lock the aim before firing so the player can sidestep it.
                 enemies[index].shotTarget = pilot.position
-                enemies[index].fireAt = combatTime + 0.7
+                enemies[index].fireAt = combatTime + CombatRules.shooterTelegraph(room: wave)
                 let aim = SKShapeNode()
                 let path = CGMutablePath()
                 path.move(to: .zero)
