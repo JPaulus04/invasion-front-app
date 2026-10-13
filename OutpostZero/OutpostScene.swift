@@ -84,6 +84,8 @@ final class OutpostScene: SKScene {
     private var overlayButtons: [String: CGRect] = [:]
     private var streak = 0
     private var waveElapsed: TimeInterval = 0
+    // Enable locally for QA runs only; production builds always use normal speed.
+    private let qaFastForwardEnabled = false
     private var fastForward = false
     private let speedButton = SKShapeNode(rectOf: CGSize(width: 72, height: 34), cornerRadius: 9)
     private let speedLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
@@ -272,7 +274,7 @@ final class OutpostScene: SKScene {
     private func updateHUD() {
         speedLabel.text = fastForward ? "2× SPEED" : "1× SPEED"
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
-        speedButton.isHidden = phase != .playing
+        speedButton.isHidden = !qaFastForwardEnabled || phase != .playing
         speedButton.position = CGPoint(x: size.width / 2, y: size.height - 168)
         xpFill.xScale = max(0.001, CGFloat(progress.xp) / CGFloat(progress.nextLevelXP))
         xpLabel.text = "LEVEL \(progress.level)  •  \(progress.xp)/\(progress.nextLevelXP) XP"
@@ -1282,7 +1284,7 @@ final class OutpostScene: SKScene {
                 showCheckpoint()
                 return
             }
-            if phase == .playing && speedButton.contains(touch.location(in: hud)) {
+            if qaFastForwardEnabled && phase == .playing && speedButton.contains(touch.location(in: hud)) {
                 fastForward.toggle()
                 updateHUD()
                 return
