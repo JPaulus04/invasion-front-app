@@ -945,8 +945,16 @@ final class OutpostScene: SKScene {
             default: label = "ARMOR +20 MAX HP"; detail = "Raise maximum health and restore 20 HP"
             }
             let y = CGFloat(30 - index * 80)
-            actionButton(label, key: choice, y: y, tint: .systemBlue)
-            overlayText(detail, y: y - 32, fontSize: 11)
+            let cardWidth = min(size.width - 64, 324)
+            let card = SKShapeNode(rect: CGRect(x: -cardWidth / 2, y: y - 48, width: cardWidth, height: 76), cornerRadius: 12)
+            card.fillColor = SKColor(white: 0.10, alpha: 0.96)
+            card.strokeColor = index == 0 ? .systemYellow : .systemCyan
+            card.lineWidth = 2
+            card.zPosition = 1
+            overlay.addChild(card)
+            overlayText(label, y: y + 6, fontSize: 15)
+            overlayText(detail, y: y - 19, fontSize: 12)
+            overlayButtons[choice] = CGRect(x: -cardWidth / 2, y: y - 48, width: cardWidth, height: 76)
         }
         overlayText("COMBAT PAUSED", y: -200, fontSize: 13)
         updateHUD()
