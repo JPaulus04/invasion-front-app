@@ -1297,7 +1297,19 @@ final class OutpostScene: SKScene {
             overlay.addChild(star)
         }
         overlayText("PLAYER \(health) HP", y: -30, fontSize: 13)
-        overlayText(lastWorldCoreReward > 0 ? "NEW STAR REWARD: +\(lastWorldCoreReward) POWER CORES" : "NO NEW CORES — REPLAY FOR MORE STARS", y: -75, fontSize: 12)
+        if lastWorldCoreReward > 0 {
+            let core = SKShapeNode(circleOfRadius: 13)
+            core.fillColor = .systemCyan
+            core.strokeColor = .white
+            core.lineWidth = 2
+            core.glowWidth = 5
+            core.position = CGPoint(x: -105, y: -76)
+            core.zPosition = 3
+            overlay.addChild(core)
+            overlayText("NEW REWARD: +\\(lastWorldCoreReward) CORES", y: -81, fontSize: 14)
+        } else {
+            overlayText("NO NEW CORES — EARN MORE STARS", y: -75, fontSize: 12)
+        }
         overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -48, fontSize: 15)
         actionButton("RESTORE CHARACTER", key: "restore", y: -105, tint: .systemIndigo)
         actionButton("PLAY AGAIN", key: "restart", y: -160, tint: .systemTeal)
