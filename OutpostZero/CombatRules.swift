@@ -11,6 +11,19 @@ enum CombatRules {
         return roll >= 60 ? 2 : 0
     }
 
+    // Gradually tighten attacks without removing the player's dodge window.
+    static func shooterTelegraph(room: Int) -> TimeInterval {
+        max(0.48, 0.7 - Double(max(0, room - 6)) * 0.012)
+    }
+
+    static func shooterCooldown(room: Int) -> TimeInterval {
+        max(1.7, 2.2 - Double(max(0, room - 6)) * 0.03)
+    }
+
+    static func lobberCooldown(room: Int) -> TimeInterval {
+        max(2.8, 3.4 - Double(max(0, room - 11)) * 0.06)
+    }
+
     static func projectileHits(from start: CGPoint, to end: CGPoint, pilot: CGPoint, radius: CGFloat) -> Bool {
         let dx = end.x - start.x
         let dy = end.y - start.y
