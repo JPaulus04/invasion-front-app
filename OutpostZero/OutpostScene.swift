@@ -200,6 +200,23 @@ final class OutpostScene: SKScene {
         visor.strokeColor = .white
         visor.position.y = 6
         pilot.addChild(visor)
+        // Armored shoulder silhouette and chest reactor for a recognizable hero.
+        for side: CGFloat in [-1, 1] {
+            let pauldron = SKShapeNode(rectOf: CGSize(width: 10, height: 13), cornerRadius: 3)
+            pauldron.position = CGPoint(x: side * 15, y: 5)
+            pauldron.fillColor = .systemIndigo
+            pauldron.strokeColor = .cyan
+            pauldron.lineWidth = 1.5
+            pauldron.zPosition = 1
+            pilot.addChild(pauldron)
+        }
+        let reactor = SKShapeNode(circleOfRadius: 4)
+        reactor.position = CGPoint(x: 0, y: -7)
+        reactor.fillColor = .systemYellow
+        reactor.strokeColor = .white
+        reactor.glowWidth = 2
+        reactor.zPosition = 2
+        pilot.addChild(reactor)
         pilotGun.fillColor = .darkGray
         pilotGun.strokeColor = .systemYellow
         pilotGun.position = CGPoint(x: 14, y: 11)
