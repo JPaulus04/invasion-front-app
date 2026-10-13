@@ -1032,11 +1032,19 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
-    private func awardWorldCompletionCore() {
+    private var lastWorldCoreReward = 0
+
+    private func awardWorldCompletionCores(stars: Int) {
         guard !coreAwardedThisRun else { return }
         coreAwardedThisRun = true
+        let previousBest = min(3, max(0, UserDefaults.standard.integer(forKey: "frontierForestStars")))
+        let newBest = min(3, max(previousBest, stars))
+        lastWorldCoreReward = max(0, newBest - previousBest)
+        UserDefaults.standard.set(newBest, forKey: "frontierForestStars")
         UserDefaults.standard.set(true, forKey: "frontierForestCoreClaimed")
-        UserDefaults.standard.set(availableCores + 1, forKey: "powerCoresAvailable")
+        if lastWorldCoreReward > 0 {
+            UserDefaults.standard.set(availableCores + lastWorldCoreReward, forKey: "powerCoresAvailable")
+        }
     }
 
     private func completeWorld() {
@@ -1044,13 +1052,9 @@ final class OutpostScene: SKScene {
         ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
         clearOverlay()
-        awardWorldCompletionCore()
+        awardWorldCompletionCores(stars: progress.stars)
         UserDefaults.standard.set(true, forKey: "frontierForestComplete")
-        let stars = progress.stars
-        let previous = UserDefaults.standard.integer(forKey: "frontierForestStars")
-        UserDefaults.standard.set(max(stars, previous), forKey: "frontierForestStars")
         showWorldCompleteSummary()
-
     }
 
     private func showWorldCompleteSummary() {
@@ -1062,7 +1066,7 @@ final class OutpostScene: SKScene {
         overlayText("FRONTIER FOREST CLEARED", y: 85, fontSize: 21)
         overlayText("LEVEL \(progress.level)  •  \(progress.damageTaken) DAMAGE TAKEN", y: 40, fontSize: 16)
         overlayText("\(stars) / 3 STARS  •  PLAYER \(health) HP", y: -5, fontSize: 18)
-        overlayText(coreAwardedThisRun ? "WORLD REWARD: +1 POWER CORE" : "WORLD REWARD CLAIMED", y: -75, fontSize: 12)
+        overlayText(lastWorldCoreReward > 0 ? "NEW STAR REWARD: +\(lastWorldCoreReward) POWER CORES" : "NO NEW CORES — REPLAY FOR MORE STARS", y: -75, fontSize: 12)
         overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -48, fontSize: 15)
         actionButton("RESTORE CHARACTER", key: "restore", y: -105, tint: .systemIndigo)
         actionButton("PLAY AGAIN", key: "restart", y: -160, tint: .systemTeal)
@@ -1198,6 +1202,7 @@ final class OutpostScene: SKScene {
         clearHostileAttacks()
         arena.isPaused = false
         coreAwardedThisRun = false
+        lastWorldCoreReward = 0
         passageGate.isHidden = true
         warning.isHidden = true
         zoneBanner.removeAllActions()
