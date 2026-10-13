@@ -369,6 +369,40 @@ final class OutpostScene: SKScene {
         worldCard.strokeColor = unlocked ? .systemTeal : .gray
         worldCard.lineWidth = 2
         overlay.addChild(worldCard)
+        // Layered destination illustration, rendered entirely in SpriteKit.
+        let palettes: [(SKColor, SKColor)] = [
+            (.systemGreen, .systemTeal), (.systemOrange, .systemRed),
+            (.systemCyan, .systemBlue), (.systemPurple, .systemPink),
+            (.darkGray, .systemIndigo)
+        ]
+        let colors = palettes[selected]
+        let horizon = SKShapeNode(rect: CGRect(x: -124, y: 4, width: 248, height: 88), cornerRadius: 12)
+        horizon.fillColor = colors.0.withAlphaComponent(0.23)
+        horizon.strokeColor = .clear
+        horizon.zPosition = 0.5
+        overlay.addChild(horizon)
+        for index in 0..<5 {
+            let x = CGFloat(index - 2) * 52
+            let peak = SKShapeNode()
+            let height: CGFloat = CGFloat(25 + ((index * 19 + selected * 11) % 32))
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: x - 35, y: 5))
+            path.addLine(to: CGPoint(x: x, y: 5 + height))
+            path.addLine(to: CGPoint(x: x + 35, y: 5))
+            path.closeSubpath()
+            peak.path = path
+            peak.fillColor = colors.1.withAlphaComponent(index.isMultiple(of: 2) ? 0.6 : 0.38)
+            peak.strokeColor = .clear
+            peak.zPosition = 0.7
+            overlay.addChild(peak)
+        }
+        let beacon = SKShapeNode(circleOfRadius: 10)
+        beacon.position = CGPoint(x: 0, y: 57)
+        beacon.fillColor = colors.1
+        beacon.strokeColor = .white
+        beacon.glowWidth = 4
+        beacon.zPosition = 0.9
+        overlay.addChild(beacon)
         overlayText(worldMapNames[selected], y: 77, fontSize: 20)
         overlayText(unlocked ? "AVAILABLE  •  \(bestStars)/3 STARS" : "COMING SOON", y: 39, fontSize: 15)
         overlayText(unlocked ? "3 CORES PER WORLD  •  \(3 - bestStars) REMAINING" : "NEW ENEMIES, BOSSES AND REWARDS", y: 9, fontSize: 12)
