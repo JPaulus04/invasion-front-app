@@ -355,6 +355,8 @@ final class OutpostScene: SKScene {
         overlayText("CLEAR THE ROOMS", y: 65, fontSize: 22)
         overlayText("Drag to move  •  Weapons auto-fire", y: 20, fontSize: 15)
         overlayText("POWER CORES: \(availableCores)  •  RESTORE YOUR PILOT", y: -15, fontSize: 13)
+        let bestStars = min(3, max(0, UserDefaults.standard.integer(forKey: "frontierForestStars")))
+        overlayText("FOREST STARS: \(bestStars)/3  •  CORES LEFT TO EARN: \(3 - bestStars)", y: -70, fontSize: 12)
         if availableCores > 0 { overlayText("POWER CORES READY — RESTORE A PART", y: -190, fontSize: 12) }
         actionButton("CHARACTER RESTORATION", key: "restore", y: -100, tint: .systemIndigo)
         actionButton("ENTER WORLD", key: "start", y: -45, tint: .systemTeal)
