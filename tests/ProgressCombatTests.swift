@@ -54,6 +54,20 @@ struct ProgressCombatTests {
         precondition(CombatRules.enemyType(room: 6, roll: 20) == 4)
         precondition(CombatRules.enemyType(room: 11, roll: 10) == 5)
         precondition(CombatRules.enemyType(room: 11, roll: 30) == 4)
+        // Attack windows shorten gradually, while never becoming instant.
+        precondition(CombatRules.shooterTelegraph(room: 1) == 0.7)
+        precondition(CombatRules.shooterTelegraph(room: 20) >= 0.48)
+        precondition(CombatRules.shooterTelegraph(room: 20) < CombatRules.shooterTelegraph(room: 6))
+        precondition(CombatRules.shooterCooldown(room: 20) < CombatRules.shooterCooldown(room: 6))
+        precondition(CombatRules.lobberCooldown(room: 20) < CombatRules.lobberCooldown(room: 11))
+        precondition(CombatRules.lobberCooldown(room: 20) >= 2.8)
+        // Room 1-5 remain melee-only; later rooms introduce progressively more ranged pressure.
+        let shootersEarly = (0..<100).filter { CombatRules.enemyType(room: 6, roll: $0) == 4 }.count
+        let shootersLate = (0..<100).filter { CombatRules.enemyType(room: 19, roll: $0) == 4 }.count
+        let lobbersEarly = (0..<100).filter { CombatRules.enemyType(room: 11, roll: $0) == 5 }.count
+        let lobbersLate = (0..<100).filter { CombatRules.enemyType(room: 19, roll: $0) == 5 }.count
+        precondition(shootersLate > shootersEarly - lobbersLate)
+        precondition(lobbersLate > lobbersEarly)
         precondition(CombatRules.projectileHits(from: .zero, to: CGPoint(x: 100, y: 0), pilot: CGPoint(x: 50, y: 0), radius: 20))
         precondition(!CombatRules.projectileHits(from: .zero, to: CGPoint(x: 100, y: 0), pilot: CGPoint(x: 50, y: 30), radius: 20))
         precondition(CombatRules.blastHits(center: .zero, pilot: CGPoint(x: 20, y: 0), radius: 43))
