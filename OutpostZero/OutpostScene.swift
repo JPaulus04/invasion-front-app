@@ -90,7 +90,7 @@ final class OutpostScene: SKScene {
     private let pilotGun = SKShapeNode(rectOf: CGSize(width: 9, height: 23), cornerRadius: 3)
     private var movementOrigin: CGPoint?
     private var movementTarget: CGPoint?
-    private var pilotSpeed: CGFloat { 205 + CGFloat(branchLevel(3) * 5) }
+    private var pilotSpeed: CGFloat { 164 + CGFloat(branchLevel(3) * 5) }
     private let autoFireRange: CGFloat = 260
     private var pilotShieldUntil: TimeInterval = 0
     private var pilotHitCount = 0
