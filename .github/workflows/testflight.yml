@@ -6,7 +6,7 @@ on:
       build_number:
         description: "Unique TestFlight build number"
         required: true
-        default: "312"
+        default: "313"
 
 jobs:
   testflight:
