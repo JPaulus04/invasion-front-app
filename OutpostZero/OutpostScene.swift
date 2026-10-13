@@ -90,7 +90,7 @@ final class OutpostScene: SKScene {
     private let pilotGun = SKShapeNode(rectOf: CGSize(width: 9, height: 23), cornerRadius: 3)
     private var movementOrigin: CGPoint?
     private var movementTarget: CGPoint?
-    private var pilotSpeed: CGFloat { 164 + CGFloat(branchLevel(3) * 5) }
+    private var pilotSpeed: CGFloat { 144 + CGFloat(branchLevel(3) * 3) }
     private let autoFireRange: CGFloat = 260
     private var pilotShieldUntil: TimeInterval = 0
     private var pilotHitCount = 0
@@ -1081,7 +1081,7 @@ final class OutpostScene: SKScene {
         let total = (0..<coreBranches.count).reduce(0) { $0 + branchLevel($1) }
         overlayText("CHARACTER RESTORATION", y: 160, fontSize: 20)
         overlayText("\(total)/50 RESTORED  •  \(availableCores) CORES AVAILABLE", y: 124, fontSize: 14)
-        let effects = ["Weapons: +1 damage every 3 cores", "Reactor: stronger combat abilities", "Armor: +2 player HP per core", "Mobility: +5 move speed per core", "Systems: extra chain targets every 4 cores"]
+        let effects = ["Weapons: +1 damage every 3 cores", "Reactor: stronger combat abilities", "Armor: +2 player HP per core", "Mobility: +3 move speed per core", "Systems: extra chain targets every 4 cores"]
         overlayText(effects[min(lastRestoredBranch, 4)], y: -176, fontSize: 11)
         drawRestorationRobot()
         for index in coreBranches.indices {
