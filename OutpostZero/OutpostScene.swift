@@ -774,6 +774,13 @@ final class OutpostScene: SKScene {
         tracer.run(.sequence([.fadeOut(withDuration: 0.055), .removeFromParent()]))
         impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= damage + permanentDamageBonus)
         enemies[index].health -= damage + permanentDamageBonus
+        // Brief enemy hit flash makes successful shots readable at normal game speed.
+        let struckNode = enemies[index].node
+        struckNode.removeAction(forKey: "enemyHitFeedback")
+        struckNode.run(.sequence([
+            .colorize(with: .white, colorBlendFactor: 0.85, duration: 0.045),
+            .colorize(withColorBlendFactor: 0, duration: 0.14)
+        ]), withKey: "enemyHitFeedback")
         if incendiaryLevel > 0 {
             burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus, until: combatTime + 2.5, nextTick: combatTime + 0.5)
         }
