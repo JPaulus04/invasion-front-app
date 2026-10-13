@@ -6,7 +6,7 @@ struct RunProgress {
     private(set) var xp = 0
     private(set) var pendingChoices = 0
     private(set) var damageTaken = 0
-    var nextLevelXP: Int { 24 + level * 10 + level * level * 2 }
+    var nextLevelXP: Int { 60 + level * 22 + level * level * 5 }
     var stars: Int { damageTaken <= 10 ? 3 : (damageTaken <= 50 ? 2 : 1) }
 
     mutating func earnXP(_ amount: Int) {
