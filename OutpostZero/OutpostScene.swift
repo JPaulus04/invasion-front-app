@@ -618,6 +618,23 @@ final class OutpostScene: SKScene {
             eye.position.y = radius * 0.14
             eye.zPosition = 3
             node.addChild(eye)
+            // Guardian side armor and reactor make the World 1 boss stand out.
+            for side: CGFloat in [-1, 1] {
+                let guardPlate = SKShapeNode(rectOf: CGSize(width: 18, height: 28), cornerRadius: 5)
+                guardPlate.position = CGPoint(x: side * radius * 0.83, y: -5)
+                guardPlate.fillColor = .systemRed
+                guardPlate.strokeColor = .systemYellow
+                guardPlate.lineWidth = 2
+                guardPlate.zPosition = 2
+                node.addChild(guardPlate)
+            }
+            let reactor = SKShapeNode(circleOfRadius: 9)
+            reactor.position = CGPoint(x: 0, y: -radius * 0.42)
+            reactor.fillColor = .systemOrange
+            reactor.strokeColor = .white
+            reactor.glowWidth = 5
+            reactor.zPosition = 4
+            node.addChild(reactor)
         }
         if type >= 4 {
             let weapon = SKShapeNode(rectOf: CGSize(width: type == 5 ? 22 : 8, height: 26), cornerRadius: 3)
