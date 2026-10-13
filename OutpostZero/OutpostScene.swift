@@ -19,6 +19,11 @@ final class OutpostScene: SKScene {
     }
     private var phase: Phase = .ready
     private var restorationReturnPhase: Phase = .ready
+    private struct XPDrop {
+        let node: SKShapeNode
+        let amount: Int
+    }
+    private var xpDrops: [XPDrop] = []
     private var enemies: [Enemy] = []
     private var wave = 0
     private var gateUnlocked = false
@@ -544,6 +549,7 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing)
+        if phase == .playing { collectXP() }
         guard phase == .playing || phase == .gate else { return }
         if let heldTouch, let movementOrigin {
             let point = heldTouch.location(in: self)
@@ -849,7 +855,16 @@ final class OutpostScene: SKScene {
         for index in enemies.indices.reversed() where enemies[index].health <= 0 {
             streak += 1
             coins += enemies[index].reward
-            progress.earnXP(enemies[index].node === bossNode ? 60 : (enemies[index].behavior >= 3 ? 10 : 6))
+            let xpAmount = enemies[index].node === bossNode ? 60 : (enemies[index].behavior >= 3 ? 10 : 6)
+            let pickup = SKShapeNode(circleOfRadius: 6)
+            pickup.fillColor = .systemCyan
+            pickup.strokeColor = .white
+            pickup.lineWidth = 1.5
+            pickup.glowWidth = 2
+            pickup.position = enemies[index].node.position
+            pickup.zPosition = 12
+            arena.addChild(pickup)
+            xpDrops.append(XPDrop(node: pickup, amount: xpAmount))
             burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             if enemies[index].node === bossNode { bossNode = nil }
             // A short expanding defeat ring remains after the enemy disappears.
@@ -899,11 +914,28 @@ final class OutpostScene: SKScene {
 
     private var repairCost: Int { 40 + wave * 8 }
 
+    private func collectXP(collectAll: Bool = false) {
+        for index in xpDrops.indices.reversed() {
+            let drop = xpDrops[index]
+            let distance = hypot(drop.node.position.x - pilot.position.x, drop.node.position.y - pilot.position.y)
+            if collectAll || distance < 38 {
+                progress.earnXP(drop.amount)
+                drop.node.removeFromParent()
+                xpDrops.remove(at: index)
+            } else if distance < 100 {
+                let fraction: CGFloat = 0.12
+                drop.node.position.x += (pilot.position.x - drop.node.position.x) * fraction
+                drop.node.position.y += (pilot.position.y - drop.node.position.y) * fraction
+            }
+        }
+    }
+
     private func completeWave() {
         guard !roomCleared else { return }
         roomCleared = true
         clearHostileAttacks()
         coins += 12 + wave * 2
+        collectXP(collectAll: true)
         progress.earnXP(6 + wave)
         let destination: Phase = wave == worldWaveCount ? .worldComplete : .gate
         if presentPendingLevelUp(returningTo: destination) { return }
@@ -1190,6 +1222,8 @@ final class OutpostScene: SKScene {
     }
 
     private func restart() {
+        for drop in xpDrops { drop.node.removeFromParent() }
+        xpDrops.removeAll()
         for enemy in enemies { enemy.node.removeFromParent() }
         enemies.removeAll()
         bossNode = nil
