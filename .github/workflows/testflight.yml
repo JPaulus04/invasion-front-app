@@ -43,6 +43,14 @@ jobs:
           for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_API_KEY_BASE64 IOS_DISTRIBUTION_P12_BASE64 KEYCHAIN_PASSWORD IOS_PROVISIONING_PROFILE_BASE64; do
             if [ -z "${!name}" ]; then echo "::error::Missing secret: $name"; exit 1; fi
           done
+      - name: Validate TestFlight build number
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || [ "$BUILD_NUMBER" -lt 313 ]; then
+            echo "::error::Build number must be numeric and at least 313."
+            exit 1
+          fi
       - name: Validate project
         run: python3 scripts/check_project.py
       - name: Generate original app icon
