@@ -848,6 +848,19 @@ final class OutpostScene: SKScene {
             progress.earnXP(enemies[index].node === bossNode ? 60 : (enemies[index].behavior >= 3 ? 10 : 6))
             burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             if enemies[index].node === bossNode { bossNode = nil }
+            // A short expanding defeat ring remains after the enemy disappears.
+            let defeatedPosition = enemies[index].node.position
+            let defeatRing = SKShapeNode(circleOfRadius: enemies[index].radius * 0.65)
+            defeatRing.strokeColor = .systemYellow
+            defeatRing.fillColor = .clear
+            defeatRing.lineWidth = 3
+            defeatRing.position = defeatedPosition
+            defeatRing.zPosition = 11
+            arena.addChild(defeatRing)
+            defeatRing.run(.sequence([
+                .group([.scale(to: 2.1, duration: 0.24), .fadeOut(withDuration: 0.24)]),
+                .removeFromParent()
+            ]))
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
         }
