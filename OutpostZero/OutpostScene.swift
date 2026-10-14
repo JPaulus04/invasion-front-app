@@ -821,10 +821,13 @@ final class OutpostScene: SKScene {
         node.lineWidth = type == 1 ? 4 : 2
         // Textured chassis overlay: preserves collision geometry while changing the visible silhouette.
         if !isBoss {
-            let armor = SKSpriteNode(texture: productionTexture(named: "scout_idle", fallback: enemyChassisTexture))
+            // Use class-specific artwork only for matching roles; never recolor finished illustrations.
+            let assetName = type == 2 ? "scout_idle" : (type == 3 ? "heavy_idle" : "enemy_default")
+            let hasProductionArt = UIImage(named: assetName) != nil
+            let armor = SKSpriteNode(texture: productionTexture(named: assetName, fallback: enemyChassisTexture))
             armor.size = CGSize(width: radius * 2.1, height: radius * 2.35)
             armor.color = type == 2 ? .systemPurple : (type == 3 ? .gray : (type == 4 ? .systemBlue : (type == 5 ? .orange : .systemRed)))
-            armor.colorBlendFactor = 0.72
+            armor.colorBlendFactor = hasProductionArt ? 0 : 0.72
             armor.zPosition = 0.8
             node.addChild(armor)
             // Silhouette accents distinguish roles even when enemy colors are similar.
