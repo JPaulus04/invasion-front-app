@@ -3,6 +3,10 @@ on:
   push:
     branches: [outpost-zero]
   pull_request:
+# Avoid wasting macOS runners on obsolete revisions during rapid iteration.
+concurrency:
+  group: ios-build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: macos-15
@@ -48,6 +52,7 @@ jobs:
             echo "Verified bundled asset: $FOUND"
           done
       - name: Capture actual simulator screenshot
+        timeout-minutes: 10
         run: |
           set -e
           DEVICE="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone [0-9]+/ {print $2; exit}')"
