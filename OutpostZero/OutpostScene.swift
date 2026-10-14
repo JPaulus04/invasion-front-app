@@ -1040,7 +1040,7 @@ final class OutpostScene: SKScene {
             reactor.zPosition = 4
             node.addChild(reactor)
         }
-        if type >= 4 {
+        if type >= 4 && !usesIllustratedEnemy {
             let weapon = SKShapeNode(rectOf: CGSize(width: type == 5 ? 22 : 8, height: 26), cornerRadius: 3)
             weapon.fillColor = type == 5 ? .systemYellow : .systemCyan
             weapon.strokeColor = .white
@@ -1048,7 +1048,7 @@ final class OutpostScene: SKScene {
             node.addChild(weapon)
         }
         // Distinct silhouettes help players recognize ranged threats before they attack.
-        if type == 4 {
+        if type == 4 && !usesIllustratedEnemy {
             let visor = SKShapeNode(rectOf: CGSize(width: radius * 1.55, height: 5), cornerRadius: 2)
             visor.fillColor = .systemCyan
             visor.strokeColor = .white
@@ -1061,7 +1061,7 @@ final class OutpostScene: SKScene {
             barrel.position = CGPoint(x: radius * 0.9, y: 0)
             barrel.zPosition = 2
             node.addChild(barrel)
-        } else if type == 5 {
+        } else if type == 5 && !usesIllustratedEnemy {
             let mortar = SKShapeNode(circleOfRadius: radius * 0.5)
             mortar.fillColor = .systemYellow
             mortar.strokeColor = .white
@@ -1075,13 +1075,13 @@ final class OutpostScene: SKScene {
             base.position.y = -radius * 0.65
             node.addChild(base)
         }
-        if type == 1 {
+        if type == 1 && !usesIllustratedEnemy {
             let armor = SKShapeNode(rectOf: CGSize(width: radius * 1.5, height: 7), cornerRadius: 3)
             armor.fillColor = .systemYellow
             armor.strokeColor = .clear
             armor.position.y = radius * 0.52
             node.addChild(armor)
-        } else if type == 2 {
+        } else if type == 2 && !usesIllustratedEnemy {
             let wing = SKShapeNode(rectOf: CGSize(width: radius * 2.5, height: 5), cornerRadius: 2)
             wing.fillColor = .systemPurple
             wing.strokeColor = .white
