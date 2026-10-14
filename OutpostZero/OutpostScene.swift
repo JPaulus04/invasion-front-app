@@ -1215,6 +1215,9 @@ final class OutpostScene: SKScene {
         }
         updateHostileAttacks(delta: gameDt)
         if health == 0 { endGame(); return }
+        // Level-up can interrupt combat during damage resolution. Do not clear
+        // the room while its upgrade selection is still open.
+        guard phase == .playing else { return }
         if RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) {
             completeWave()
         }
