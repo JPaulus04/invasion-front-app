@@ -298,6 +298,13 @@ final class OutpostScene: SKScene {
             // CI art review: hold a real room with living enemies on screen.
             // This launch-only mode does not affect normal play or TestFlight.
             for _ in 0..<3 { spawnEnemy() }
+            // Spawns normally fade in from 28% opacity. For a frozen art-review
+            // frame, reveal the finished sprites and hide their warning rings.
+            for enemy in enemies {
+                enemy.node.removeAllActions()
+                enemy.node.alpha = 1
+                enemy.node.childNode(withName: "spawnWarning")?.isHidden = true
+            }
             arena.isPaused = true
         }
     }
