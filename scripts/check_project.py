@@ -32,6 +32,17 @@ if "RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.co
     errors.append("Level-up completion must recheck whether the room was cleared")
 if 'levelChoices = Array(pool.shuffled().prefix(3))' not in scene:
     errors.append("Level-up must offer three rotating upgrade choices")
+# Finished enemy illustrations must not be covered by prototype geometry.
+enemy_section = scene.split("private func spawnEnemy()", 1)[-1].split("// Telegraphed materialization inside the room", 1)[0]
+for guard in (
+    "if type >= 4 && !usesIllustratedEnemy",
+    "if type == 4 && !usesIllustratedEnemy",
+    "if type == 5 && !usesIllustratedEnemy",
+    "if type == 1 && !usesIllustratedEnemy",
+    "if type == 2 && !usesIllustratedEnemy",
+):
+    if guard not in enemy_section:
+        errors.append(f"Illustrated enemy has an unguarded prototype overlay: {guard}")
 if (root / "project.yml").is_file() and "CODE_SIGNING_ALLOWED: NO" in (root / "project.yml").read_text(encoding="utf-8"):
     errors.append("Device signing must not be disabled in project.yml")
 art = (root / "OutpostZero" / "BattlefieldArt.swift").read_text(encoding="utf-8")
