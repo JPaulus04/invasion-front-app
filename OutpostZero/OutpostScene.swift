@@ -35,8 +35,8 @@ final class OutpostScene: SKScene {
     private let zoneBanner = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let zoneScenery = SKNode()
     private let zoneColors: [SKColor] = [
-        SKColor(red: 0.08, green: 0.19, blue: 0.15, alpha: 1),
-        SKColor(red: 0.13, green: 0.22, blue: 0.10, alpha: 1),
+        SKColor(red: 0.17, green: 0.29, blue: 0.23, alpha: 1),
+        SKColor(red: 0.20, green: 0.31, blue: 0.17, alpha: 1),
         SKColor(red: 0.15, green: 0.17, blue: 0.22, alpha: 1),
         SKColor(red: 0.22, green: 0.12, blue: 0.13, alpha: 1)
     ]
