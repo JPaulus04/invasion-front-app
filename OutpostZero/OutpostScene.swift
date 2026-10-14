@@ -599,7 +599,7 @@ final class OutpostScene: SKScene {
         let roomVariant = (wave - 1) % 4
         for index in 0..<count {
             let leftSide = (index + roomVariant).isMultiple(of: 2)
-            let side: CGFloat = leftSide ? 0.09 : 0.91
+            let side: CGFloat = zone == 0 ? (leftSide ? 0.15 : 0.85) : (leftSide ? 0.09 : 0.91)
             let x = size.width * side + CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8
             let y = roomBounds.minY + 55 + CGFloat(index) * max(25, (roomBounds.height - 100) / CGFloat(count)) + CGFloat(((index * 11 + wave * 7) % 19) - 9)
             let prop: SKShapeNode
@@ -626,7 +626,7 @@ final class OutpostScene: SKScene {
             }
             prop.strokeColor = .white.withAlphaComponent(0.22)
             prop.lineWidth = 1
-            prop.alpha = 0.55
+            prop.alpha = zone == 0 ? 0.95 : 0.55
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
             if zone == 3 {
