@@ -235,7 +235,7 @@ final class OutpostScene: SKScene {
         pilot.addChild(pilotGun)
         // Keep the procedural accessories only for the placeholder pilot.
         // A finished character PNG already contains its visor, shoulders and weapon.
-        if UIImage(named: "pilot_idle") != nil {
+        if productionImage(named: "pilot_idle") != nil {
             visor.isHidden = true
             reactor.isHidden = true
             pilotGun.isHidden = true
