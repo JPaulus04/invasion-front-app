@@ -762,6 +762,35 @@ final class OutpostScene: SKScene {
                 zoneScenery.addChild(trail)
             }
         }
+        // Fern silhouettes frame the path and vary by room without adding collision.
+        if zone == 0 {
+            for index in 0..<7 {
+                let side: CGFloat = index.isMultiple(of: 2) ? -1 : 1
+                let x = size.width * (side < 0 ? 0.18 : 0.82)
+                    + CGFloat(((index * 13 + wave * 5) % 21) - 10)
+                let y = roomBounds.minY + 80
+                    + CGFloat(index) * max(28, (roomBounds.height - 150) / 7)
+                let fern = SKNode()
+                fern.position = CGPoint(x: x, y: y)
+                fern.zPosition = -0.45
+                let stem = SKShapeNode(rectOf: CGSize(width: 2, height: 19), cornerRadius: 1)
+                stem.fillColor = SKColor(red: 0.13, green: 0.34, blue: 0.18, alpha: 0.8)
+                stem.strokeColor = .clear
+                fern.addChild(stem)
+                for leafIndex in 0..<6 {
+                    let leaf = SKShapeNode(ellipseOf: CGSize(width: 12, height: 4))
+                    leaf.fillColor = SKColor(red: 0.13 + CGFloat(leafIndex % 2) * 0.04,
+                                             green: 0.40 + CGFloat(leafIndex % 3) * 0.04,
+                                             blue: 0.22, alpha: 0.82)
+                    leaf.strokeColor = .clear
+                    leaf.position = CGPoint(x: leafIndex.isMultiple(of: 2) ? -6 : 6,
+                                            y: CGFloat(leafIndex - 3) * 3)
+                    leaf.zRotation = (leafIndex.isMultiple(of: 2) ? 1 : -1) * 0.32
+                    fern.addChild(leaf)
+                }
+                zoneScenery.addChild(fern)
+            }
+        }
         // Small ground accents provide visual texture while keeping the center clear.
         for index in 0..<12 {
             let accent = SKShapeNode(ellipseOf: CGSize(width: 10 + CGFloat(index % 3) * 4, height: 4))
