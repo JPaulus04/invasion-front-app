@@ -901,6 +901,7 @@ final class OutpostScene: SKScene {
         if type == 5 { node.fillColor = .systemOrange }
         node.strokeColor = type == 1 ? .systemYellow : .white
         node.lineWidth = type == 1 ? 4 : 2
+        let usesIllustratedEnemy = !isBoss && productionImage(named: (type == 1 || type == 2) ? "scout_idle" : (type == 3 ? "heavy_idle" : "enemy_default")) != nil
         // Textured chassis overlay: preserves collision geometry while changing the visible silhouette.
         if !isBoss {
             // Use class-specific artwork only for matching roles; never recolor finished illustrations.
@@ -944,7 +945,7 @@ final class OutpostScene: SKScene {
                     fin.zPosition = 0.7
                     node.addChild(fin)
                 }
-            } else if type == 3 {
+            } else if type == 3 && !hasProductionArt {
                 // Heavy units: broad angular shoulder armor.
                 for side: CGFloat in [-1, 1] {
                     let plate = SKShapeNode(rectOf: CGSize(width: radius * 0.75, height: radius * 1.1), cornerRadius: 3)
@@ -977,7 +978,7 @@ final class OutpostScene: SKScene {
             }
         }
         // Layered armor plates and glowing eyes make silhouettes readable at phone scale.
-        if !isBoss {
+        if !isBoss && !usesIllustratedEnemy {
             let shoulderWidth = radius * (type == 3 ? 1.5 : 1.25)
             let shoulder = SKShapeNode(rectOf: CGSize(width: shoulderWidth, height: radius * 0.43), cornerRadius: 3)
             shoulder.position.y = radius * 0.45
@@ -998,7 +999,7 @@ final class OutpostScene: SKScene {
         core.fillColor = type == 1 ? .darkGray : (type == 2 ? .magenta : .brown)
         core.strokeColor = .clear
         core.zPosition = 1
-        node.addChild(core)
+        if !usesIllustratedEnemy { node.addChild(core) }
         if isBoss {
             // A distinct guardian silhouette makes the final encounter recognizable at a glance.
             let crown = SKShapeNode(rectOf: CGSize(width: radius * 1.7, height: 12), cornerRadius: 3)
