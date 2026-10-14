@@ -509,6 +509,34 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
+    private lazy var forestPineTexture: SKTexture = {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 72, height: 100))
+        let image = renderer.image { context in
+            let cg = context.cgContext
+            cg.setFillColor(UIColor(red: 0.27, green: 0.19, blue: 0.13, alpha: 1).cgColor)
+            cg.fill(CGRect(x: 32, y: 67, width: 9, height: 28))
+            for (level, width) in [(0, 26.0), (1, 31.0), (2, 35.0)] {
+                let y = CGFloat(8 + level * 21)
+                let half = CGFloat(width)
+                let path = UIBezierPath()
+                path.move(to: CGPoint(x: 36, y: y))
+                path.addLine(to: CGPoint(x: 36 - half, y: y + 39))
+                path.addQuadCurve(to: CGPoint(x: 36 + half, y: y + 39),
+                                  controlPoint: CGPoint(x: 36, y: y + 32))
+                path.close()
+                UIColor(red: 0.08 + CGFloat(level) * 0.025, green: 0.31 + CGFloat(level) * 0.045,
+                        blue: 0.24 + CGFloat(level) * 0.015, alpha: 1).setFill()
+                path.fill()
+                cg.setStrokeColor(UIColor(red: 0.32, green: 0.65, blue: 0.48, alpha: 0.6).cgColor)
+                cg.setLineWidth(1.5)
+                cg.move(to: CGPoint(x: 35, y: y + 6))
+                cg.addLine(to: CGPoint(x: 21, y: y + 30))
+                cg.strokePath()
+            }
+        }
+        return SKTexture(image: image)
+    }()
+
     private func updateZoneScenery(_ zone: Int) {
         zoneScenery.removeAllChildren()
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
@@ -547,6 +575,14 @@ final class OutpostScene: SKScene {
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
             if zone == 0 {
+                // Render a shaded, irregular pine sprite instead of exposing the triangle primitive.
+                prop.fillColor = .clear
+                prop.strokeColor = .clear
+                let tree = SKSpriteNode(texture: forestPineTexture)
+                tree.size = CGSize(width: 46 + CGFloat(index % 3) * 8, height: 62 + CGFloat(index % 3) * 9)
+                tree.position.y = 5
+                tree.zPosition = 1
+                prop.addChild(tree)
                 // Layered pine foliage and trunk add depth without blocking movement.
                 let trunk = SKShapeNode(rectOf: CGSize(width: 6, height: 17), cornerRadius: 2)
                 trunk.fillColor = .brown
