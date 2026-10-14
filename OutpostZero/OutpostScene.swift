@@ -614,6 +614,22 @@ final class OutpostScene: SKScene {
             prop.alpha = 0.55
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
+            if zone == 1 {
+                // Dense overgrowth uses layered leaves rather than a single mint oval.
+                prop.fillColor = .clear
+                prop.strokeColor = .clear
+                for leafIndex in 0..<5 {
+                    let leaf = SKShapeNode(ellipseOf: CGSize(width: 17, height: 11))
+                    leaf.fillColor = SKColor(red: 0.10 + CGFloat(leafIndex % 2) * 0.04,
+                                             green: 0.36 + CGFloat(leafIndex % 3) * 0.06,
+                                             blue: 0.22, alpha: 0.85)
+                    leaf.strokeColor = .clear
+                    leaf.position = CGPoint(x: CGFloat(leafIndex - 2) * 6,
+                                            y: CGFloat((leafIndex * 7) % 11) - 5)
+                    leaf.zRotation = CGFloat(leafIndex - 2) * 0.22
+                    prop.addChild(leaf)
+                }
+            }
             if zone == 0 {
                 // Render a shaded, irregular pine sprite instead of exposing the triangle primitive.
                 prop.fillColor = .clear
