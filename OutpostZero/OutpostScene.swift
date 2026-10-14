@@ -285,6 +285,10 @@ final class OutpostScene: SKScene {
         health = maximumHealth
         layout()
         showReady()
+        // CI-only launch flag: capture real combat rather than the world-map menu.
+        if ProcessInfo.processInfo.arguments.contains("-captureCombatScreenshot") {
+            startWave()
+        }
     }
 
     override func didChangeSize(_ oldSize: CGSize) { layout() }
