@@ -58,9 +58,9 @@ jobs:
           xcrun simctl install "$DEVICE" "$APP"
           xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureCombatScreenshot
           mkdir -p screenshots
-          sleep 3
+          sleep 1
           xcrun simctl io "$DEVICE" screenshot screenshots/build-314-combat-early.png
-          sleep 5
+          sleep 2
           xcrun simctl io "$DEVICE" screenshot screenshots/build-314-simulator.png
       - name: Validate simulator screenshot was captured
         run: |
