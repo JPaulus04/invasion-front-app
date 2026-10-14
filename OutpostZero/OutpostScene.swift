@@ -321,7 +321,8 @@ final class OutpostScene: SKScene {
         speedLabel.text = fastForward ? "2× SPEED" : "1× SPEED"
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
         speedButton.isHidden = !qaFastForwardEnabled || phase != .playing
-        speedButton.position = CGPoint(x: size.width / 2, y: size.height - 168)
+        // Keep the QA speed toggle below the HUD, never on top of the XP bar.
+        speedButton.position = CGPoint(x: size.width - 56, y: size.height - 199)
         xpFill.xScale = max(0.001, CGFloat(progress.xp) / CGFloat(progress.nextLevelXP))
         xpLabel.text = "LEVEL \(progress.level)  •  \(progress.xp)/\(progress.nextLevelXP) XP"
         checkpointButton.isHidden = phase != .gate || !wave.isMultiple(of: 5) || checkpointUsed
