@@ -297,7 +297,7 @@ final class OutpostScene: SKScene {
             startWave()
             // CI art review: hold a real room with living enemies on screen.
             // This launch-only mode does not affect normal play or TestFlight.
-            for _ in 0..<3 { spawnEnemy() }
+            for kind in [1, 2, 3] { spawnEnemy(artReviewType: kind) }
             // Spawns normally fade in from 28% opacity. For a frozen art-review
             // frame, reveal the finished sprites and hide their warning rings.
             for enemy in enemies {
@@ -907,11 +907,11 @@ final class OutpostScene: SKScene {
         return SKTexture(image: image)
     }()
 
-    private func spawnEnemy() {
+    private func spawnEnemy(artReviewType: Int? = nil) {
         let isBoss = wave == worldWaveCount
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
         let roll = Int.random(in: 0..<100)
-        let type = CombatRules.enemyType(room: wave, roll: roll)
+        let type = artReviewType ?? CombatRules.enemyType(room: wave, roll: roll)
         let radius: CGFloat = isBoss ? 37 : (type == 1 ? 23 : (type == 2 ? 17 : (type == 3 ? 26 : 14)))
         let node = SKShapeNode(circleOfRadius: radius)
         node.fillColor = type == 1 ? .systemRed : (type == 2 ? .systemPurple : (type == 3 ? .systemGray : .systemOrange))
