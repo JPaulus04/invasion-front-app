@@ -24,8 +24,10 @@ jobs:
         run: python3 scripts/generate_icon.py
       - name: Install XcodeGen
         run: brew install xcodegen
-      - name: Generate forest environment artwork
-        run: python3 scripts/generate_forest_art.py
+      - name: Validate generated forest artwork
+        run: |
+          python3 scripts/generate_forest_art.py
+          python3 scripts/check_art_sprites.py
       - name: Generate Xcode project
         run: xcodegen generate
       - name: Compile iOS simulator app
