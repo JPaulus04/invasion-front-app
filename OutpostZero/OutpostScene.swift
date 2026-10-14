@@ -385,6 +385,26 @@ final class OutpostScene: SKScene {
                     .fadeOut(withDuration: 0.13)]),
             .removeFromParent()
         ]))
+        // Direction-neutral fragments scatter briefly on a kill, then disappear.
+        if destroyed {
+            for index in 0..<5 {
+                let fragment = SKShapeNode(rectOf: CGSize(width: 5, height: 8), cornerRadius: 1)
+                fragment.fillColor = color.withAlphaComponent(0.9)
+                fragment.strokeColor = .white.withAlphaComponent(0.35)
+                fragment.lineWidth = 0.5
+                fragment.position = point
+                fragment.zPosition = 12
+                arena.addChild(fragment)
+                let angle = CGFloat(index) * (.pi * 2 / 5) + 0.3
+                let endpoint = CGPoint(x: point.x + cos(angle) * 39, y: point.y + sin(angle) * 39)
+                fragment.run(.sequence([
+                    .group([.move(to: endpoint, duration: 0.32),
+                            .rotate(byAngle: angle + 1.5, duration: 0.32),
+                            .fadeOut(withDuration: 0.32)]),
+                    .removeFromParent()
+                ]))
+            }
+        }
         let count = destroyed ? 9 : 4
         for index in 0..<count {
             let spark = SKShapeNode(circleOfRadius: destroyed ? 3.5 : 2.2)
