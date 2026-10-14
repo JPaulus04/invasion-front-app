@@ -297,7 +297,18 @@ final class OutpostScene: SKScene {
             startWave()
             // CI art review: hold a real room with living enemies on screen.
             // This launch-only mode does not affect normal play or TestFlight.
-            for kind in [1, 2, 3] { spawnEnemy(artReviewType: kind) }
+            for (index, kind) in [1, 2, 3].enumerated() {
+                spawnEnemy(artReviewType: kind)
+                // Stable positions ensure each character is unobstructed and
+                // comparisons remain consistent across future art revisions.
+                if let enemy = enemies.last {
+                    let horizontal = CGFloat(index - 1) * roomBounds.width * 0.26
+                    enemy.node.position = CGPoint(
+                        x: roomBounds.midX + horizontal,
+                        y: roomBounds.midY + roomBounds.height * 0.20
+                    )
+                }
+            }
             // Spawns normally fade in from 28% opacity. For a frozen art-review
             // frame, reveal the finished sprites and hide their warning rings.
             for enemy in enemies {
