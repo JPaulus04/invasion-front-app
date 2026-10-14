@@ -918,6 +918,11 @@ final class OutpostScene: SKScene {
                 pilot.position.y += dy / distanceToTarget * step
             }
         }
+        // Lightweight movement animation: idle stance settles, moving stance tilts and bobs.
+        let isMoving = movementTarget.map { distance($0, pilot.position) > 3 } ?? false
+        let desiredTilt: CGFloat = isMoving ? (movementTarget!.x >= pilot.position.x ? -0.075 : 0.075) : 0
+        pilot.zRotation += (desiredTilt - pilot.zRotation) * min(1, CGFloat(dt) * 10)
+        pilot.yScale = isMoving ? 1 + 0.035 * sin(CGFloat(clock) * 17) : 1
         if phase == .gate {
             if distance(pilot.position, passageGate.position) < 49 {
                 passageGate.isHidden = true
