@@ -38,22 +38,9 @@ enum BattlefieldArt {
             soil.strokeColor = .clear
             artwork.addChild(soil)
         }
-        // Dappled sunlit ground in small, soft patches. These remain behind
-        // gameplay sprites and preserve clear visibility of projectiles.
-        for index in 0..<9 {
-            let x = CGFloat((index * 29 + 17) % 89) / 89
-            let y = CGFloat((index * 41 + 13) % 91) / 91
-            let light = SKShapeNode(ellipseOf: CGSize(
-                width: room.width * CGFloat(0.10 + Double(index % 3) * 0.035),
-                height: room.height * CGFloat(0.045 + Double(index % 2) * 0.025)))
-            light.position = CGPoint(
-                x: room.minX + room.width * x,
-                y: room.minY + room.height * y)
-            light.zRotation = CGFloat(index % 5) * 0.21
-            light.fillColor = SKColor(red: 0.74, green: 0.78, blue: 0.42, alpha: 0.075)
-            light.strokeColor = .clear
-            artwork.addChild(light)
-        }
+        // Broad, extremely subtle color variation comes from the soil patches
+        // above. Do not add hard-edged circular light spots: the simulator
+        // review showed those read as painted dots, not natural sunlight.
         // Small isolated leaf clusters are intentionally irregular, not rows.
         for index in 0..<28 {
             let x = CGFloat((index * 37 + 11) % 97) / 97
