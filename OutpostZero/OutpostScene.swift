@@ -594,13 +594,13 @@ final class OutpostScene: SKScene {
     private func updateZoneScenery(_ zone: Int) {
         zoneScenery.removeAllChildren()
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
-        let count = 6 + (wave % 4)
+        let count = 5 + (wave % 3)
         let roomVariant = (wave - 1) % 4
         for index in 0..<count {
             let leftSide = (index + roomVariant).isMultiple(of: 2)
-            let side: CGFloat = leftSide ? 0.12 : 0.88
-            let x = size.width * side + CGFloat(((index + roomVariant) % 3) - 1) * 12
-            let y = roomBounds.minY + 55 + CGFloat(index) * max(25, (roomBounds.height - 100) / CGFloat(count))
+            let side: CGFloat = leftSide ? 0.09 : 0.91
+            let x = size.width * side + CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8
+            let y = roomBounds.minY + 55 + CGFloat(index) * max(25, (roomBounds.height - 100) / CGFloat(count)) + CGFloat(((index * 11 + wave * 7) % 19) - 9)
             let prop: SKShapeNode
             switch zone {
             case 0: // Tall pines along the forest approach.
@@ -685,7 +685,9 @@ final class OutpostScene: SKScene {
                 prop.addChild(shadow)
                 let hasPineArt = UIImage(named: "forest_pine") != nil
                 let tree = SKSpriteNode(texture: productionTexture(named: "forest_pine", fallback: forestPineTexture))
-                tree.size = CGSize(width: 46 + CGFloat(index % 3) * 8, height: 62 + CGFloat(index % 3) * 9)
+                tree.size = CGSize(width: 43 + CGFloat((index * 7 + wave) % 5) * 6, height: 59 + CGFloat((index * 3 + wave) % 5) * 8)
+                tree.xScale = (index + wave).isMultiple(of: 3) ? -1 : 1
+                tree.zRotation = CGFloat(((index * 7 + wave * 3) % 9) - 4) * 0.018
                 tree.position.y = 5
                 tree.zPosition = 1
                 prop.addChild(tree)
