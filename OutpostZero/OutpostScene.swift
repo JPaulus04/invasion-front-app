@@ -904,7 +904,7 @@ final class OutpostScene: SKScene {
         // Textured chassis overlay: preserves collision geometry while changing the visible silhouette.
         if !isBoss {
             // Use class-specific artwork only for matching roles; never recolor finished illustrations.
-            let assetName = type == 2 ? "scout_idle" : (type == 3 ? "heavy_idle" : "enemy_default")
+            let assetName = (type == 1 || type == 2) ? "scout_idle" : (type == 3 ? "heavy_idle" : "enemy_default")
             let hasProductionArt = productionImage(named: assetName) != nil
             // The collision circle must not show through transparent character art.
             if hasProductionArt {
@@ -913,7 +913,7 @@ final class OutpostScene: SKScene {
             }
             let armor = SKSpriteNode(texture: productionTexture(named: assetName, fallback: enemyChassisTexture))
             armor.size = CGSize(width: radius * 2.1, height: radius * 2.35)
-            armor.color = type == 2 ? .systemPurple : (type == 3 ? .gray : (type == 4 ? .systemBlue : (type == 5 ? .orange : .systemRed)))
+            armor.color = (type == 1 || type == 2) ? .systemRed : (type == 3 ? .gray : (type == 4 ? .systemBlue : .orange))
             armor.colorBlendFactor = hasProductionArt ? 0 : 0.72
             armor.zPosition = 0.8
             node.addChild(armor)
@@ -938,7 +938,7 @@ final class OutpostScene: SKScene {
                     path.addLine(to: CGPoint(x: side * radius * 1.1, y: -radius * 0.35))
                     path.closeSubpath()
                     fin.path = path
-                    fin.fillColor = .systemPurple
+                    fin.fillColor = .systemRed
                     fin.strokeColor = .white.withAlphaComponent(0.6)
                     fin.lineWidth = 1
                     fin.zPosition = 0.7
