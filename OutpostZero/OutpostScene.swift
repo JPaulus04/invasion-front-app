@@ -720,6 +720,26 @@ final class OutpostScene: SKScene {
                 patch.position = CGPoint(x: x, y: y)
                 patch.zPosition = -0.7
                 zoneScenery.addChild(patch)
+                // Small illustrated leaf clusters break up the flat floor patches.
+                if index.isMultiple(of: 2) {
+                    for leafIndex in 0..<3 {
+                        let leaf = SKShapeNode(ellipseOf: CGSize(width: 9, height: 4))
+                        leaf.fillColor = SKColor(
+                            red: 0.16 + CGFloat(leafIndex) * 0.045,
+                            green: 0.35 + CGFloat((index + leafIndex) % 3) * 0.06,
+                            blue: 0.19,
+                            alpha: 0.72
+                        )
+                        leaf.strokeColor = .clear
+                        leaf.position = CGPoint(
+                            x: x + CGFloat(leafIndex - 1) * 7,
+                            y: y + CGFloat((leafIndex * 5 + index) % 7) - 3
+                        )
+                        leaf.zRotation = CGFloat(leafIndex - 1) * 0.55
+                        leaf.zPosition = -0.55
+                        zoneScenery.addChild(leaf)
+                    }
+                }
                 if index.isMultiple(of: 3) {
                     let stone = SKShapeNode(ellipseOf: CGSize(width: 10 + CGFloat(index % 3) * 3, height: 6))
                     stone.fillColor = SKColor(red: 0.32, green: 0.39, blue: 0.36, alpha: 0.7)
