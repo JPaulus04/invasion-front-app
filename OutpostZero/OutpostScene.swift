@@ -387,6 +387,7 @@ final class OutpostScene: SKScene {
     }
 
     private func showReady() {
+        hud.isHidden = true
         phase = .ready
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
@@ -448,6 +449,7 @@ final class OutpostScene: SKScene {
     }
 
     private func startWave() {
+        hud.isHidden = false
         if wave > 0 && wave < worldWaveCount && !gateUnlocked {
             showZoneGate()
             return
@@ -1279,6 +1281,7 @@ final class OutpostScene: SKScene {
     }
 
     private func showWorldCompleteSummary() {
+        hud.isHidden = true
         phase = .worldComplete
         ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
@@ -1316,6 +1319,7 @@ final class OutpostScene: SKScene {
     }
 
     private func showRestoration() {
+        hud.isHidden = true
         if phase != .restoration { restorationReturnPhase = phase }
         phase = .restoration
         ArcadeMusic.shared.play(.headquarters)
