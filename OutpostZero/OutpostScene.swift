@@ -831,7 +831,7 @@ final class OutpostScene: SKScene {
             armor.zPosition = 0.8
             node.addChild(armor)
             // Silhouette accents distinguish roles even when enemy colors are similar.
-            if type == 2 {
+            if type == 2 && !hasProductionArt {
                 // Fast scouts: swept-back fins, narrow frame.
                 armor.xScale = 0.78
                 for side: CGFloat in [-1, 1] {
