@@ -617,6 +617,34 @@ final class OutpostScene: SKScene {
         }
     }
 
+    private lazy var enemyChassisTexture: SKTexture = {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 80, height: 90))
+        let image = renderer.image { _ in
+            let outline = UIBezierPath()
+            outline.move(to: CGPoint(x: 19, y: 17))
+            outline.addLine(to: CGPoint(x: 32, y: 7))
+            outline.addLine(to: CGPoint(x: 48, y: 7))
+            outline.addLine(to: CGPoint(x: 61, y: 17))
+            outline.addLine(to: CGPoint(x: 70, y: 47))
+            outline.addLine(to: CGPoint(x: 58, y: 78))
+            outline.addLine(to: CGPoint(x: 22, y: 78))
+            outline.addLine(to: CGPoint(x: 10, y: 47))
+            outline.close()
+            UIColor(red: 0.20, green: 0.28, blue: 0.32, alpha: 1).setFill()
+            outline.fill()
+            UIColor(red: 0.65, green: 0.82, blue: 0.84, alpha: 1).setStroke()
+            outline.lineWidth = 3
+            outline.stroke()
+            let panel = UIBezierPath(roundedRect: CGRect(x: 24, y: 24, width: 32, height: 29), cornerRadius: 5)
+            UIColor(red: 0.07, green: 0.12, blue: 0.17, alpha: 1).setFill()
+            panel.fill()
+            let slit = UIBezierPath(roundedRect: CGRect(x: 25, y: 29, width: 30, height: 7), cornerRadius: 3)
+            UIColor(red: 0.68, green: 0.96, blue: 0.91, alpha: 1).setFill()
+            slit.fill()
+        }
+        return SKTexture(image: image)
+    }()
+
     private func spawnEnemy() {
         let isBoss = wave == worldWaveCount
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
@@ -629,6 +657,15 @@ final class OutpostScene: SKScene {
         if type == 5 { node.fillColor = .systemOrange }
         node.strokeColor = type == 1 ? .systemYellow : .white
         node.lineWidth = type == 1 ? 4 : 2
+        // Textured chassis overlay: preserves collision geometry while changing the visible silhouette.
+        if !isBoss {
+            let armor = SKSpriteNode(texture: enemyChassisTexture)
+            armor.size = CGSize(width: radius * 2.1, height: radius * 2.35)
+            armor.color = type == 2 ? .systemPurple : (type == 3 ? .gray : (type == 4 ? .systemBlue : (type == 5 ? .orange : .systemRed)))
+            armor.colorBlendFactor = 0.72
+            armor.zPosition = 0.8
+            node.addChild(armor)
+        }
         // Layered armor plates and glowing eyes make silhouettes readable at phone scale.
         if !isBoss {
             let shoulderWidth = radius * (type == 3 ? 1.5 : 1.25)
