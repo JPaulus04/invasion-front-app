@@ -665,6 +665,55 @@ final class OutpostScene: SKScene {
             armor.colorBlendFactor = 0.72
             armor.zPosition = 0.8
             node.addChild(armor)
+            // Silhouette accents distinguish roles even when enemy colors are similar.
+            if type == 2 {
+                // Fast scouts: swept-back fins, narrow frame.
+                armor.xScale = 0.78
+                for side: CGFloat in [-1, 1] {
+                    let fin = SKShapeNode()
+                    let path = CGMutablePath()
+                    path.move(to: CGPoint(x: side * radius * 0.45, y: radius * 0.35))
+                    path.addLine(to: CGPoint(x: side * radius * 1.5, y: radius * 0.95))
+                    path.addLine(to: CGPoint(x: side * radius * 1.1, y: -radius * 0.35))
+                    path.closeSubpath()
+                    fin.path = path
+                    fin.fillColor = .systemPurple
+                    fin.strokeColor = .white.withAlphaComponent(0.6)
+                    fin.lineWidth = 1
+                    fin.zPosition = 0.7
+                    node.addChild(fin)
+                }
+            } else if type == 3 {
+                // Heavy units: broad angular shoulder armor.
+                for side: CGFloat in [-1, 1] {
+                    let plate = SKShapeNode(rectOf: CGSize(width: radius * 0.75, height: radius * 1.1), cornerRadius: 3)
+                    plate.position = CGPoint(x: side * radius * 0.85, y: 0)
+                    plate.fillColor = .darkGray
+                    plate.strokeColor = .lightGray
+                    plate.lineWidth = 2
+                    plate.zPosition = 1.1
+                    node.addChild(plate)
+                }
+            } else if type == 4 {
+                // Shooters: narrow antennae distinguish precision threats.
+                for side: CGFloat in [-1, 1] {
+                    let antenna = SKShapeNode(rectOf: CGSize(width: 3, height: radius * 0.85), cornerRadius: 1)
+                    antenna.position = CGPoint(x: side * radius * 0.65, y: radius * 0.9)
+                    antenna.fillColor = .cyan
+                    antenna.strokeColor = .clear
+                    antenna.zPosition = 1.2
+                    node.addChild(antenna)
+                }
+            } else if type == 5 {
+                // Lobbers: oversized rear mortar housing.
+                let mortar = SKShapeNode(ellipseOf: CGSize(width: radius * 1.55, height: radius * 0.8))
+                mortar.position.y = radius * 0.8
+                mortar.fillColor = .brown
+                mortar.strokeColor = .systemYellow
+                mortar.lineWidth = 2
+                mortar.zPosition = 1.2
+                node.addChild(mortar)
+            }
         }
         // Layered armor plates and glowing eyes make silhouettes readable at phone scale.
         if !isBoss {
