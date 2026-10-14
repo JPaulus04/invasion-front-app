@@ -683,7 +683,8 @@ final class OutpostScene: SKScene {
                 shadow.position = CGPoint(x: 9, y: -22)
                 shadow.zPosition = -0.5
                 prop.addChild(shadow)
-                let tree = SKSpriteNode(texture: forestPineTexture)
+                let hasPineArt = UIImage(named: "forest_pine") != nil
+                let tree = SKSpriteNode(texture: productionTexture(named: "forest_pine", fallback: forestPineTexture))
                 tree.size = CGSize(width: 46 + CGFloat(index % 3) * 8, height: 62 + CGFloat(index % 3) * 9)
                 tree.position.y = 5
                 tree.zPosition = 1
@@ -694,12 +695,14 @@ final class OutpostScene: SKScene {
                 trunk.strokeColor = .clear
                 trunk.position = CGPoint(x: 0, y: -15)
                 trunk.zPosition = -0.1
+                trunk.isHidden = hasPineArt
                 prop.addChild(trunk)
                 let canopy = SKShapeNode(ellipseOf: CGSize(width: 20, height: 12))
                 canopy.fillColor = .systemMint.withAlphaComponent(0.65)
                 canopy.strokeColor = .clear
                 canopy.position = CGPoint(x: -3, y: 3)
                 canopy.zPosition = 1
+                canopy.isHidden = hasPineArt
                 prop.addChild(canopy)
             }
         }
