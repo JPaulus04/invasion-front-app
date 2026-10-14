@@ -10,7 +10,7 @@ enum BattlefieldArt {
         gameplay.addChild(artwork)
         let room = RoomRules.bounds(for: scene.size).insetBy(dx: -12, dy: -12)
         let floor = SKShapeNode(rect: room, cornerRadius: 18)
-        floor.fillColor = SKColor(red: 0.23, green: 0.27, blue: 0.23, alpha: 1)
+        floor.fillColor = SKColor(red: 0.27, green: 0.32, blue: 0.25, alpha: 1)
         floor.strokeColor = SKColor(red: 0.47, green: 0.55, blue: 0.43, alpha: 1)
         floor.lineWidth = 7
         artwork.addChild(floor)
@@ -37,6 +37,22 @@ enum BattlefieldArt {
                 : SKColor(red: 0.42, green: 0.51, blue: 0.29, alpha: 0.13)
             soil.strokeColor = .clear
             artwork.addChild(soil)
+        }
+        // Dappled sunlit ground in small, soft patches. These remain behind
+        // gameplay sprites and preserve clear visibility of projectiles.
+        for index in 0..<9 {
+            let x = CGFloat((index * 29 + 17) % 89) / 89
+            let y = CGFloat((index * 41 + 13) % 91) / 91
+            let light = SKShapeNode(ellipseOf: CGSize(
+                width: room.width * CGFloat(0.10 + Double(index % 3) * 0.035),
+                height: room.height * CGFloat(0.045 + Double(index % 2) * 0.025)))
+            light.position = CGPoint(
+                x: room.minX + room.width * x,
+                y: room.minY + room.height * y)
+            light.zRotation = CGFloat(index % 5) * 0.21
+            light.fillColor = SKColor(red: 0.74, green: 0.78, blue: 0.42, alpha: 0.075)
+            light.strokeColor = .clear
+            artwork.addChild(light)
         }
         // Small isolated leaf clusters are intentionally irregular, not rows.
         for index in 0..<28 {
