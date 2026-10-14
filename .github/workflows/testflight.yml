@@ -6,7 +6,7 @@ on:
       build_number:
         description: "Unique TestFlight build number"
         required: true
-        default: "313"
+        default: "314"
 
 jobs:
   testflight:
@@ -47,8 +47,8 @@ jobs:
         env:
           BUILD_NUMBER: ${{ inputs.build_number }}
         run: |
-          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || [ "$BUILD_NUMBER" -lt 313 ]; then
-            echo "::error::Build number must be numeric and at least 313."
+          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || [ "$BUILD_NUMBER" -lt 314 ]; then
+            echo "::error::Build number must be numeric and at least 314."
             exit 1
           fi
       - name: Validate project
