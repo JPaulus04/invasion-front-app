@@ -317,6 +317,10 @@ final class OutpostScene: SKScene {
                 enemy.node.childNode(withName: "spawnWarning")?.isHidden = true
             }
             arena.isPaused = true
+            // Freeze the entire QA scene: gameplay update must not clear the
+            // room after these deliberately staged enemies are installed.
+            phase = .levelUp
+            updateHUD()
         }
     }
 
