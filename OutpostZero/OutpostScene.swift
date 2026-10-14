@@ -276,9 +276,9 @@ final class OutpostScene: SKScene {
             label.horizontalAlignmentMode = .center
             hud.addChild(label)
         }
-        title.fontSize = 27
+        title.fontSize = 22
         title.fontColor = .white
-        subtitle.fontSize = 16
+        subtitle.fontSize = 14
         subtitle.fontColor = .systemYellow
         info.fontSize = 13
         info.fontColor = .white
@@ -298,10 +298,10 @@ final class OutpostScene: SKScene {
         passageGate.position = CGPoint(x: size.width / 2, y: roomBounds.maxY - 24)
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
-        hudPanel.path = CGPath(roundedRect: CGRect(x: 10, y: size.height - 208, width: max(1, size.width - 20), height: 146), cornerWidth: 13, cornerHeight: 13, transform: nil)
-        title.position = CGPoint(x: size.width / 2, y: size.height - 94)
-        subtitle.position = CGPoint(x: size.width / 2, y: size.height - 120)
-        info.position = CGPoint(x: size.width / 2, y: size.height - 144)
+        hudPanel.path = CGPath(roundedRect: CGRect(x: 10, y: size.height - 183, width: max(1, size.width - 20), height: 112), cornerWidth: 13, cornerHeight: 13, transform: nil)
+        title.position = CGPoint(x: size.width / 2, y: size.height - 89)
+        subtitle.position = CGPoint(x: size.width / 2, y: size.height - 112)
+        info.position = CGPoint(x: size.width / 2, y: size.height - 132)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
         damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
@@ -310,9 +310,9 @@ final class OutpostScene: SKScene {
         let xpWidth = max(1, size.width - 48)
         xpTrack.path = CGPath(roundedRect: CGRect(x: 0, y: 0, width: xpWidth, height: 6), cornerWidth: 3, cornerHeight: 3, transform: nil)
         xpFill.path = xpTrack.path
-        xpTrack.position = CGPoint(x: 24, y: size.height - 184)
+        xpTrack.position = CGPoint(x: 24, y: size.height - 158)
         xpFill.position = xpTrack.position
-        xpLabel.position = CGPoint(x: size.width / 2, y: size.height - 200)
+        xpLabel.position = CGPoint(x: size.width / 2, y: size.height - 174)
         checkpointButton.position = CGPoint(x: size.width / 2, y: roomBounds.minY + 25)
         updateHUD()
     }
