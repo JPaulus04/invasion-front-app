@@ -89,7 +89,7 @@ final class OutpostScene: SKScene {
     private var streak = 0
     private var waveElapsed: TimeInterval = 0
     // QA/TestFlight convenience toggle; disable before public App Store release.
-    private let qaFastForwardEnabled = true
+    private let qaFastForwardEnabled = ProcessInfo.processInfo.arguments.contains("-enableQASpeed")
     private var fastForward = false
     private let speedButton = SKShapeNode(rectOf: CGSize(width: 72, height: 34), cornerRadius: 9)
     private let speedLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
