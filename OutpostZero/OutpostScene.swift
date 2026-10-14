@@ -1623,6 +1623,16 @@ final class OutpostScene: SKScene {
         default: runArmor += 20; health = min(maximumHealth, health + 20)
         }
         if progress.pendingChoices > 0 { showLevelUp(); return }
+        // A final enemy may have died on the same frame as the level-up.
+        // Finish that cleared room after the upgrade choice, not before it.
+        if levelUpReturnPhase == .playing &&
+           RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) {
+            arena.isPaused = false
+            clearOverlay()
+            overlayBackdrop.isHidden = true
+            completeWave()
+            return
+        }
         arena.isPaused = false
         clearOverlay()
         overlayBackdrop.isHidden = true
