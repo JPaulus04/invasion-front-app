@@ -74,8 +74,8 @@ P([(51,18),(70,17),(64,20),(49,23)],(255,255,255,150))
 
 def chunk(tag,data):
     return struct.pack('>I',len(data))+tag+data+struct.pack('>I',zlib.crc32(tag+data)&0xffffffff)
-raw=b''.join(b'\\x00'+art.pixels[y*128*4:(y+1)*128*4] for y in range(128))
-png=b'\\x89PNG\\r\\n\\x1a\\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',128,128,8,6,0,0,0))+chunk(b'IDAT',zlib.compress(raw,9))+chunk(b'IEND',b'')
+raw=b''.join(b'\x00'+art.pixels[y*128*4:(y+1)*128*4] for y in range(128))
+png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',128,128,8,6,0,0,0))+chunk(b'IDAT',zlib.compress(raw,9))+chunk(b'IEND',b'')
 out=pathlib.Path('OutpostZero/ArtAssets/pilot_idle.png')
 out.write_bytes(png)
 print('Generated detailed pilot',out)
