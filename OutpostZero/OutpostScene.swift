@@ -1448,15 +1448,19 @@ final class OutpostScene: SKScene {
             streak += 1
             coins += enemies[index].reward
             let xpAmount = enemies[index].node === bossNode ? 60 : (enemies[index].behavior >= 3 ? 10 : 6)
-            let pickup = SKShapeNode(circleOfRadius: 6)
-            pickup.fillColor = .systemCyan
-            pickup.strokeColor = .white
-            pickup.lineWidth = 1.5
-            pickup.glowWidth = 2
-            pickup.position = enemies[index].node.position
-            pickup.zPosition = 12
-            arena.addChild(pickup)
-            xpDrops.append(XPDrop(node: pickup, amount: xpAmount))
+            // XP belongs to the kill immediately; it must not wait for a pickup or room clear.
+            progress.earnXP(xpAmount)
+            let xpLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            xpLabel.text = "+\(xpAmount) XP"
+            xpLabel.fontSize = 13
+            xpLabel.fontColor = .cyan
+            xpLabel.position = enemies[index].node.position
+            xpLabel.zPosition = 14
+            arena.addChild(xpLabel)
+            xpLabel.run(.sequence([
+                .group([.moveBy(x: 0, y: 25, duration: 0.55), .fadeOut(withDuration: 0.55)]),
+                .removeFromParent()
+            ]))
             burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             if enemies[index].node === bossNode { bossNode = nil }
             // A short expanding defeat ring remains after the enemy disappears.
@@ -1474,6 +1478,12 @@ final class OutpostScene: SKScene {
             ]))
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
+        }
+        // Pause for a level-up as soon as the earned XP crosses a threshold,
+        // even when other enemies remain in the current room.
+        if phase == .playing && progress.pendingChoices > 0 {
+            updateHUD()
+            _ = presentPendingLevelUp(returningTo: .playing)
         }
     }
 
