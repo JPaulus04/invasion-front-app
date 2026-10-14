@@ -30,17 +30,19 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee xcodebuild.log
-      - name: Verify production pilot PNG is bundled
+      - name: Verify production character PNGs are bundled
         run: |
           set -e
           APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           test -d "$APP"
-          FOUND="$(find "$APP" -type f -name 'pilot_idle.png' -print -quit)"
-          if [ -z "$FOUND" ]; then
-            echo "::error::pilot_idle.png is missing from the compiled iOS app bundle"
-            exit 1
-          fi
-          echo "Production pilot asset bundled at: $FOUND"
+          for ASSET in pilot_idle.png scout_idle.png; do
+            FOUND="$(find "$APP" -type f -name "$ASSET" -print -quit)"
+            if [ -z "$FOUND" ]; then
+              echo "::error::$ASSET is missing from the compiled iOS app bundle"
+              exit 1
+            fi
+            echo "Verified bundled asset: $FOUND"
+          done
       - name: Capture actual simulator screenshot
         run: |
           set -e
