@@ -82,7 +82,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-314-simulator-screenshot
-          path: screenshots/build-314-simulator.png
+          path: screenshots/build-314-*.png
           if-no-files-found: ignore
       - name: Upload build diagnostics
         if: always()
