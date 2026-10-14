@@ -611,6 +611,28 @@ final class OutpostScene: SKScene {
                 prop.addChild(canopy)
             }
         }
+        // A sparse forest-floor layer adds depth without obstructing the playable center.
+        if zone <= 1 {
+            for index in 0..<18 {
+                let fraction = CGFloat(index + 1) / 19
+                let x = roomBounds.minX + roomBounds.width * fraction
+                let y = roomBounds.minY + 40 + CGFloat((index * 47 + wave * 23) % max(1, Int(roomBounds.height - 85)))
+                let patch = SKShapeNode(ellipseOf: CGSize(width: CGFloat(16 + (index % 4) * 9), height: CGFloat(7 + (index % 3) * 3)))
+                patch.fillColor = SKColor(red: 0.10, green: 0.25, blue: 0.16, alpha: 0.38)
+                patch.strokeColor = .clear
+                patch.position = CGPoint(x: x, y: y)
+                patch.zPosition = -0.7
+                zoneScenery.addChild(patch)
+                if index.isMultiple(of: 3) {
+                    let stone = SKShapeNode(ellipseOf: CGSize(width: 10 + CGFloat(index % 3) * 3, height: 6))
+                    stone.fillColor = SKColor(red: 0.32, green: 0.39, blue: 0.36, alpha: 0.7)
+                    stone.strokeColor = .clear
+                    stone.position = CGPoint(x: x + 5, y: y - 3)
+                    stone.zPosition = -0.6
+                    zoneScenery.addChild(stone)
+                }
+            }
+        }
         // Small ground accents provide visual texture while keeping the center clear.
         for index in 0..<12 {
             let accent = SKShapeNode(ellipseOf: CGSize(width: 10 + CGFloat(index % 3) * 4, height: 4))
