@@ -614,6 +614,20 @@ final class OutpostScene: SKScene {
             prop.alpha = 0.55
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
+            if zone == 3 {
+                // Guardian clearing markers emit a slow warning beacon.
+                let beacon = SKShapeNode(circleOfRadius: 5)
+                beacon.position.y = 15
+                beacon.fillColor = .systemOrange
+                beacon.strokeColor = .systemYellow
+                beacon.glowWidth = 3
+                beacon.zPosition = 2
+                prop.addChild(beacon)
+                beacon.run(.repeatForever(.sequence([
+                    .fadeAlpha(to: 0.25, duration: 0.75),
+                    .fadeAlpha(to: 1, duration: 0.75)
+                ])))
+            }
             if zone == 2 {
                 // Weathered ruins: cracked capstone and recessed masonry joint.
                 let cap = SKShapeNode(rectOf: CGSize(width: 30, height: 6), cornerRadius: 1)
