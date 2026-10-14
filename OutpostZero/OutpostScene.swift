@@ -1127,7 +1127,13 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing)
-        if phase == .playing { collectXP() }
+        if phase == .playing {
+            collectXP()
+            if progress.pendingChoices > 0 {
+                _ = presentPendingLevelUp(returningTo: .playing)
+                return
+            }
+        }
         guard phase == .playing || phase == .gate else { return }
         if let heldTouch, let movementOrigin {
             let point = heldTouch.location(in: self)
