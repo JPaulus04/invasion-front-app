@@ -295,6 +295,10 @@ final class OutpostScene: SKScene {
         // CI-only launch flag: capture real combat rather than the world-map menu.
         if ProcessInfo.processInfo.arguments.contains("-captureCombatScreenshot") {
             startWave()
+            // CI art review: hold a real room with living enemies on screen.
+            // This launch-only mode does not affect normal play or TestFlight.
+            for _ in 0..<3 { spawnEnemy() }
+            arena.isPaused = true
         }
     }
 
