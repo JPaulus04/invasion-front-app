@@ -60,6 +60,20 @@ jobs:
           sleep 8
           mkdir -p screenshots
           xcrun simctl io "$DEVICE" screenshot screenshots/build-314-simulator.png
+      - name: Validate simulator screenshot was captured
+        run: |
+          set -e
+          test -s screenshots/build-314-simulator.png
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          p = Path("screenshots/build-314-simulator.png")
+          data = p.read_bytes()
+          assert data[:8] == b'\\x89PNG\\r\\n\\x1a\\n', "Screenshot is not a PNG"
+          width, height = struct.unpack(">II", data[16:24])
+          assert width >= 320 and height >= 568, f"Unexpected screenshot dimensions: {width}x{height}"
+          print(f"Verified simulator screenshot: {width}x{height}, {len(data)} bytes")
+          PY
       - name: Upload actual simulator screenshot
         if: always()
         uses: actions/upload-artifact@v4
