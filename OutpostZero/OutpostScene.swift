@@ -217,6 +217,10 @@ final class OutpostScene: SKScene {
         reactor.glowWidth = 2
         reactor.zPosition = 2
         pilot.addChild(reactor)
+        reactor.run(.repeatForever(.sequence([
+            .group([.scale(to: 1.22, duration: 0.6), .fadeAlpha(to: 0.72, duration: 0.6)]),
+            .group([.scale(to: 1, duration: 0.6), .fadeAlpha(to: 1, duration: 0.6)])
+        ])))
         pilotGun.fillColor = .darkGray
         pilotGun.strokeColor = .systemYellow
         pilotGun.position = CGPoint(x: 14, y: 11)
