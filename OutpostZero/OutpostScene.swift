@@ -302,7 +302,7 @@ final class OutpostScene: SKScene {
         checkpointButton.isHidden = phase != .gate || !wave.isMultiple(of: 5) || checkpointUsed
         title.text = "OUTPOST ZERO"
         subtitle.text = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
-        info.text = "HP \\(health)/\\(maximumHealth)  •  DMG \\(damage)  •  RATE \\(fireRate)"
+        info.text = "HP \(health)/\(maximumHealth)  •  DMG \(damage)  •  RATE \(fireRate)"
         info.fontColor = health <= maximumHealth / 3 ? .systemRed : (health <= maximumHealth * 2 / 3 ? .systemYellow : .white)
     }
 
@@ -408,7 +408,7 @@ final class OutpostScene: SKScene {
             (.darkGray, .systemIndigo)
         ]
         let colors = palettes[selected]
-        let horizon = SKShapeNode(rect: CGRect(x: -124, y: 4, width: 248, height: 88), cornerRadius: 12)
+        let horizon = SKShapeNode(rect: CGRect(x: -124, y: -12, width: 248, height: 56), cornerRadius: 12)
         horizon.fillColor = colors.0.withAlphaComponent(0.23)
         horizon.strokeColor = .clear
         horizon.zPosition = 0.5
@@ -418,9 +418,9 @@ final class OutpostScene: SKScene {
             let peak = SKShapeNode()
             let height: CGFloat = CGFloat(25 + ((index * 19 + selected * 11) % 32))
             let path = CGMutablePath()
-            path.move(to: CGPoint(x: x - 35, y: 5))
-            path.addLine(to: CGPoint(x: x, y: 5 + height))
-            path.addLine(to: CGPoint(x: x + 35, y: 5))
+            path.move(to: CGPoint(x: x - 35, y: -12))
+            path.addLine(to: CGPoint(x: x, y: -12 + height * 0.75))
+            path.addLine(to: CGPoint(x: x + 35, y: -12))
             path.closeSubpath()
             peak.path = path
             peak.fillColor = colors.1.withAlphaComponent(index.isMultiple(of: 2) ? 0.6 : 0.38)
@@ -429,15 +429,15 @@ final class OutpostScene: SKScene {
             overlay.addChild(peak)
         }
         let beacon = SKShapeNode(circleOfRadius: 10)
-        beacon.position = CGPoint(x: 0, y: 57)
+        beacon.position = CGPoint(x: 0, y: 22)
         beacon.fillColor = colors.1
         beacon.strokeColor = .white
         beacon.glowWidth = 4
         beacon.zPosition = 0.9
         overlay.addChild(beacon)
-        overlayText(worldMapNames[selected], y: 77, fontSize: 20)
-        overlayText(unlocked ? "AVAILABLE  •  \(bestStars)/3 STARS" : "COMING SOON", y: 39, fontSize: 15)
-        overlayText(unlocked ? "3 CORES PER WORLD  •  \(3 - bestStars) REMAINING" : "NEW ENEMIES, BOSSES AND REWARDS", y: 9, fontSize: 12)
+        overlayText(worldMapNames[selected], y: 81, fontSize: 18)
+        overlayText(unlocked ? "AVAILABLE  •  \(bestStars)/3 STARS" : "COMING SOON", y: 55, fontSize: 13)
+        overlayText(unlocked ? "\(3 - bestStars) CORES STILL EARNABLE" : "NEW ENEMIES AND REWARDS", y: -11, fontSize: 11)
         actionButton("◀ PREVIOUS", key: "world_prev", y: -62, tint: .systemBlue, enabled: selected > 0)
         actionButton("NEXT ▶", key: "world_next", y: -110, tint: .systemBlue, enabled: selected < worldMapNames.count - 1)
         if unlocked {
