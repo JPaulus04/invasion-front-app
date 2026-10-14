@@ -578,6 +578,12 @@ final class OutpostScene: SKScene {
                 // Render a shaded, irregular pine sprite instead of exposing the triangle primitive.
                 prop.fillColor = .clear
                 prop.strokeColor = .clear
+                let shadow = SKShapeNode(ellipseOf: CGSize(width: 43, height: 14))
+                shadow.fillColor = SKColor.black.withAlphaComponent(0.32)
+                shadow.strokeColor = .clear
+                shadow.position = CGPoint(x: 9, y: -22)
+                shadow.zPosition = -0.5
+                prop.addChild(shadow)
                 let tree = SKSpriteNode(texture: forestPineTexture)
                 tree.size = CGSize(width: 46 + CGFloat(index % 3) * 8, height: 62 + CGFloat(index % 3) * 9)
                 tree.position.y = 5
