@@ -29,10 +29,9 @@ jobs:
           set -o pipefail
           xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee xcodebuild.log
       - name: Capture actual simulator screenshot
-        continue-on-error: true
         run: |
           set -e
-          DEVICE="$(xcrun simctl list devices available | grep -m1 -E 'iPhone [0-9]+' | sed -E 's/.*\\(([0-9A-F-]{36})\\).*/\\1/')"
+          DEVICE="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone [0-9]+/ {print $2; exit}')"
           test -n "$DEVICE"
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
