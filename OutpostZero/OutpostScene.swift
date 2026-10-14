@@ -1575,7 +1575,9 @@ final class OutpostScene: SKScene {
         if explosiveLevel < 3 { pool.append("explosive") }
         if incendiaryLevel < 3 { pool.append("incendiary") }
         if health < maximumHealth { pool.append("heal") }
-        levelChoices = ["damage"] + Array(pool.shuffled().prefix(2))
+        // All three choices should rotate; damage remains in the pool but is not mandatory.
+        pool.append("damage")
+        levelChoices = Array(pool.shuffled().prefix(3))
         for (index, choice) in levelChoices.enumerated() {
             let label: String
             let detail: String
