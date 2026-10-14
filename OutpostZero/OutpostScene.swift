@@ -196,7 +196,7 @@ final class OutpostScene: SKScene {
         pilot.lineWidth = 3
         pilot.zPosition = 9
         // Illustrated armor plate covers the original collision body without changing gameplay.
-        let pilotArmor = SKSpriteNode(texture: pilotArmorTexture)
+        let pilotArmor = SKSpriteNode(texture: productionTexture(named: "pilot_idle", fallback: pilotArmorTexture))
         pilotArmor.size = CGSize(width: 41, height: 49)
         pilotArmor.zPosition = 0.5
         pilot.addChild(pilotArmor)
@@ -736,6 +736,15 @@ final class OutpostScene: SKScene {
         }
     }
 
+    // Production art takes precedence when a validated PNG is bundled in the app.
+    // Until then, existing procedural textures keep the game fully playable.
+    private func productionTexture(named name: String, fallback: SKTexture) -> SKTexture {
+        guard let image = UIImage(named: name) else { return fallback }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .linear
+        return texture
+    }
+
     private lazy var pilotArmorTexture: SKTexture = {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 96, height: 112))
         let image = renderer.image { _ in
@@ -812,7 +821,7 @@ final class OutpostScene: SKScene {
         node.lineWidth = type == 1 ? 4 : 2
         // Textured chassis overlay: preserves collision geometry while changing the visible silhouette.
         if !isBoss {
-            let armor = SKSpriteNode(texture: enemyChassisTexture)
+            let armor = SKSpriteNode(texture: productionTexture(named: "scout_idle", fallback: enemyChassisTexture))
             armor.size = CGSize(width: radius * 2.1, height: radius * 2.35)
             armor.color = type == 2 ? .systemPurple : (type == 3 ? .gray : (type == 4 ? .systemBlue : (type == 5 ? .orange : .systemRed)))
             armor.colorBlendFactor = 0.72
