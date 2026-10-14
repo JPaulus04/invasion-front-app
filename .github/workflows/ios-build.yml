@@ -24,6 +24,8 @@ jobs:
         run: python3 scripts/generate_icon.py
       - name: Install XcodeGen
         run: brew install xcodegen
+      - name: Generate forest environment artwork
+        run: python3 scripts/generate_forest_art.py
       - name: Generate Xcode project
         run: xcodegen generate
       - name: Compile iOS simulator app
@@ -35,7 +37,7 @@ jobs:
           set -e
           APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           test -d "$APP"
-          for ASSET in pilot_idle.png scout_idle.png; do
+          for ASSET in pilot_idle.png scout_idle.png heavy_idle.png forest_pine.png; do
             FOUND="$(find "$APP" -type f -name "$ASSET" -print -quit)"
             if [ -z "$FOUND" ]; then
               echo "::error::$ASSET is missing from the compiled iOS app bundle"
