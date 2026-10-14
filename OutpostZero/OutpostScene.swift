@@ -233,6 +233,16 @@ final class OutpostScene: SKScene {
         pilotGun.position = CGPoint(x: 14, y: 11)
         pilotGun.zPosition = 2
         pilot.addChild(pilotGun)
+        // Keep the procedural accessories only for the placeholder pilot.
+        // A finished character PNG already contains its visor, shoulders and weapon.
+        if UIImage(named: "pilot_idle") != nil {
+            visor.isHidden = true
+            reactor.isHidden = true
+            pilotGun.isHidden = true
+            for child in pilot.children where child is SKShapeNode && child !== pilotGun && child !== visor && child !== reactor {
+                child.isHidden = true
+            }
+        }
         arena.addChild(zoneScenery)
         zoneScenery.zPosition = -1
         arena.addChild(pilot)
