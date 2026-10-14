@@ -683,7 +683,7 @@ final class OutpostScene: SKScene {
                 shadow.position = CGPoint(x: 9, y: -22)
                 shadow.zPosition = -0.5
                 prop.addChild(shadow)
-                let hasPineArt = UIImage(named: "forest_pine") != nil
+                let hasPineArt = productionImage(named: "forest_pine") != nil
                 let tree = SKSpriteNode(texture: productionTexture(named: "forest_pine", fallback: forestPineTexture))
                 tree.size = CGSize(width: 43 + CGFloat((index * 7 + wave) % 5) * 6, height: 59 + CGFloat((index * 3 + wave) % 5) * 8)
                 tree.xScale = (index + wave).isMultiple(of: 3) ? -1 : 1
@@ -757,8 +757,21 @@ final class OutpostScene: SKScene {
 
     // Production art takes precedence when a validated PNG is bundled in the app.
     // Until then, existing procedural textures keep the game fully playable.
+    // XcodeGen can copy ArtAssets either to the bundle root or into an ArtAssets folder.
+    // Resolve both layouts so a successful bundle check also means the game can display the PNG.
+    private func productionImage(named name: String) -> UIImage? {
+        if let image = UIImage(named: name) { return image }
+        for subdirectory in [nil, "ArtAssets"] as [String?] {
+            if let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: subdirectory),
+               let image = UIImage(contentsOfFile: url.path) {
+                return image
+            }
+        }
+        return nil
+    }
+
     private func productionTexture(named name: String, fallback: SKTexture) -> SKTexture {
-        guard let image = UIImage(named: name) else { return fallback }
+        guard let image = productionImage(named: name) else { return fallback }
         let texture = SKTexture(image: image)
         texture.filteringMode = .linear
         return texture
@@ -842,7 +855,7 @@ final class OutpostScene: SKScene {
         if !isBoss {
             // Use class-specific artwork only for matching roles; never recolor finished illustrations.
             let assetName = type == 2 ? "scout_idle" : (type == 3 ? "heavy_idle" : "enemy_default")
-            let hasProductionArt = UIImage(named: assetName) != nil
+            let hasProductionArt = productionImage(named: assetName) != nil
             // The collision circle must not show through transparent character art.
             if hasProductionArt {
                 node.fillColor = .clear
