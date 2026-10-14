@@ -666,6 +666,18 @@ final class OutpostScene: SKScene {
                 }
             }
         }
+        // Narrow broken trail ties the room together without adding collision obstacles.
+        if zone <= 1 {
+            for index in 0..<9 {
+                let trail = SKShapeNode(ellipseOf: CGSize(width: CGFloat(28 + index % 3 * 8), height: 14))
+                trail.fillColor = SKColor(red: 0.32, green: 0.30, blue: 0.22, alpha: 0.20)
+                trail.strokeColor = .clear
+                trail.position = CGPoint(x: size.width * 0.5 + CGFloat((index * 17 + wave * 7) % 49 - 24),
+                                         y: roomBounds.minY + 48 + CGFloat(index) * max(18, (roomBounds.height - 90) / 9))
+                trail.zPosition = -0.85
+                zoneScenery.addChild(trail)
+            }
+        }
         // Small ground accents provide visual texture while keeping the center clear.
         for index in 0..<12 {
             let accent = SKShapeNode(ellipseOf: CGSize(width: 10 + CGFloat(index % 3) * 4, height: 4))
