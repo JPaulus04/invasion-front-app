@@ -372,6 +372,19 @@ final class OutpostScene: SKScene {
                     .fadeOut(withDuration: 0.23)]),
             .removeFromParent()
         ]))
+        // A short-lived luminous flash adds impact weight without persistent screen clutter.
+        let flash = SKShapeNode(circleOfRadius: destroyed ? 18 : 10)
+        flash.position = point
+        flash.fillColor = color.withAlphaComponent(destroyed ? 0.48 : 0.30)
+        flash.strokeColor = .white.withAlphaComponent(0.65)
+        flash.lineWidth = 1
+        flash.zPosition = 10.5
+        arena.addChild(flash)
+        flash.run(.sequence([
+            .group([.scale(to: destroyed ? 2.1 : 1.5, duration: 0.13),
+                    .fadeOut(withDuration: 0.13)]),
+            .removeFromParent()
+        ]))
         let count = destroyed ? 9 : 4
         for index in 0..<count {
             let spark = SKShapeNode(circleOfRadius: destroyed ? 3.5 : 2.2)
