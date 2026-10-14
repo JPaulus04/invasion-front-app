@@ -963,7 +963,7 @@ final class OutpostScene: SKScene {
                     plate.zPosition = 1.1
                     node.addChild(plate)
                 }
-            } else if type == 4 {
+            } else if type == 4 && !hasProductionArt {
                 // Shooters: narrow antennae distinguish precision threats.
                 for side: CGFloat in [-1, 1] {
                     let antenna = SKShapeNode(rectOf: CGSize(width: 3, height: radius * 0.85), cornerRadius: 1)
@@ -973,7 +973,7 @@ final class OutpostScene: SKScene {
                     antenna.zPosition = 1.2
                     node.addChild(antenna)
                 }
-            } else if type == 5 {
+            } else if type == 5 && !hasProductionArt {
                 // Lobbers: oversized rear mortar housing.
                 let mortar = SKShapeNode(ellipseOf: CGSize(width: radius * 1.55, height: radius * 0.8))
                 mortar.position.y = radius * 0.8
