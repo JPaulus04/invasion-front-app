@@ -614,6 +614,21 @@ final class OutpostScene: SKScene {
             prop.alpha = 0.55
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
+            if zone == 2 {
+                // Weathered ruins: cracked capstone and recessed masonry joint.
+                let cap = SKShapeNode(rectOf: CGSize(width: 30, height: 6), cornerRadius: 1)
+                cap.fillColor = SKColor(red: 0.43, green: 0.47, blue: 0.45, alpha: 1)
+                cap.strokeColor = .clear
+                cap.position.y = 9
+                cap.zPosition = 1
+                prop.addChild(cap)
+                let seam = SKShapeNode(rectOf: CGSize(width: 2, height: 14))
+                seam.fillColor = .black.withAlphaComponent(0.4)
+                seam.strokeColor = .clear
+                seam.position = CGPoint(x: -3, y: -5)
+                seam.zPosition = 1
+                prop.addChild(seam)
+            }
             if zone == 1 {
                 // Dense overgrowth uses layered leaves rather than a single mint oval.
                 prop.fillColor = .clear
