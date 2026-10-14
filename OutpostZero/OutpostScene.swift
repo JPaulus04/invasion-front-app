@@ -841,6 +841,11 @@ final class OutpostScene: SKScene {
             // Use class-specific artwork only for matching roles; never recolor finished illustrations.
             let assetName = type == 2 ? "scout_idle" : (type == 3 ? "heavy_idle" : "enemy_default")
             let hasProductionArt = UIImage(named: assetName) != nil
+            // The collision circle must not show through transparent character art.
+            if hasProductionArt {
+                node.fillColor = .clear
+                node.strokeColor = .clear
+            }
             let armor = SKSpriteNode(texture: productionTexture(named: assetName, fallback: enemyChassisTexture))
             armor.size = CGSize(width: radius * 2.1, height: radius * 2.35)
             armor.color = type == 2 ? .systemPurple : (type == 3 ? .gray : (type == 4 ? .systemBlue : (type == 5 ? .orange : .systemRed)))
