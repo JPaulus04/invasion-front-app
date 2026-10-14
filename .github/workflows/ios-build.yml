@@ -39,7 +39,7 @@ jobs:
           xcrun simctl bootstatus "$DEVICE" -b
           APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           xcrun simctl install "$DEVICE" "$APP"
-          xcrun simctl launch "$DEVICE" com.paulus.laststandcommand
+          xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureCombatScreenshot
           sleep 8
           mkdir -p screenshots
           xcrun simctl io "$DEVICE" screenshot screenshots/build-314-simulator.png
