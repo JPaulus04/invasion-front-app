@@ -950,17 +950,8 @@ final class OutpostScene: SKScene {
             armor.color = (type == 1 || type == 2) ? .systemRed : (type == 3 ? .gray : (type == 4 ? .systemBlue : .orange))
             armor.colorBlendFactor = hasProductionArt ? 0 : 0.72
             armor.zPosition = 0.8
-            // A restrained rim highlight separates dark robot silhouettes
-            // from the forest floor without repainting the source illustration.
-            if hasProductionArt {
-                let rim = SKShapeNode(ellipseOf: CGSize(
-                    width: radius * 2.16, height: radius * 2.38))
-                rim.fillColor = .clear
-                rim.strokeColor = SKColor(red: 0.62, green: 0.86, blue: 0.96, alpha: 0.19)
-                rim.lineWidth = 1.2
-                rim.zPosition = 0.6
-                node.addChild(rim)
-            }
+            // Production sprites carry their own silhouette; do not draw
+            // an ellipse around the artwork (it reads as a collision ring).
             node.addChild(armor)
             if hasProductionArt {
                 // Ground shadow anchors illustrated enemies without obscuring their silhouette.
