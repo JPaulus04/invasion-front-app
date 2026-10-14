@@ -31,6 +31,7 @@ jobs:
       - name: Validate generated forest artwork
         run: |
           python3 scripts/generate_forest_art.py
+          python3 scripts/generate_pilot_art.py
           python3 scripts/check_art_sprites.py
       - name: Generate Xcode project
         run: xcodegen generate
