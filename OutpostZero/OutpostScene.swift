@@ -200,6 +200,13 @@ final class OutpostScene: SKScene {
         pilotArmor.size = CGSize(width: 41, height: 49)
         pilotArmor.zPosition = 0.5
         pilot.addChild(pilotArmor)
+        // Ground contact and a soft offset shadow give the pilot depth at phone scale.
+        let pilotShadow = SKShapeNode(ellipseOf: CGSize(width: 33, height: 11))
+        pilotShadow.fillColor = SKColor.black.withAlphaComponent(0.32)
+        pilotShadow.strokeColor = .clear
+        pilotShadow.position = CGPoint(x: 4, y: -23)
+        pilotShadow.zPosition = -0.6
+        pilot.addChild(pilotShadow)
         pilot.fillColor = .clear
         pilot.strokeColor = .clear
         let visor = SKShapeNode(rectOf: CGSize(width: 19, height: 9), cornerRadius: 3)
