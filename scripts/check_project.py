@@ -21,6 +21,17 @@ scene = (root / "OutpostZero" / "OutpostScene.swift").read_text(encoding="utf-8"
 for feature in ("spawnEnemy()", "shoot(at:", "completeWave()", "endGame()", "restart()", "actionButton(", "overlayButtons", "impact(at:", "healthBar.xScale", "damageFlash.run", "warning.text", "waveElapsed", "heldTouch = touch", "override func touchesMoved", "chainAttack(from: target", "chainLevel", "progress.earnXP", "showLevelUp()", "updateHostileAttacks", "repairCost", "BattlefieldArt.install"):
     if feature not in scene:
         errors.append(f"Missing gameplay feature: {feature}")
+# Guard the XP-on-kill and mid-room level-up contract against regressions.
+kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
+choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]
+if "progress.earnXP(xpAmount)" not in kill_section:
+    errors.append("Kills must grant XP immediately")
+if "presentPendingLevelUp(returningTo: .playing)" not in kill_section:
+    errors.append("Mid-room kills must trigger pending level-up choices")
+if "RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count)" not in choice_section:
+    errors.append("Level-up completion must recheck whether the room was cleared")
+if 'levelChoices = Array(pool.shuffled().prefix(3))' not in scene:
+    errors.append("Level-up must offer three rotating upgrade choices")
 if (root / "project.yml").is_file() and "CODE_SIGNING_ALLOWED: NO" in (root / "project.yml").read_text(encoding="utf-8"):
     errors.append("Device signing must not be disabled in project.yml")
 art = (root / "OutpostZero" / "BattlefieldArt.swift").read_text(encoding="utf-8")
