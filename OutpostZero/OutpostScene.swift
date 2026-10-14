@@ -195,6 +195,13 @@ final class OutpostScene: SKScene {
         pilot.strokeColor = .white
         pilot.lineWidth = 3
         pilot.zPosition = 9
+        // Illustrated armor plate covers the original collision body without changing gameplay.
+        let pilotArmor = SKSpriteNode(texture: pilotArmorTexture)
+        pilotArmor.size = CGSize(width: 41, height: 49)
+        pilotArmor.zPosition = 0.5
+        pilot.addChild(pilotArmor)
+        pilot.fillColor = .clear
+        pilot.strokeColor = .clear
         let visor = SKShapeNode(rectOf: CGSize(width: 19, height: 9), cornerRadius: 3)
         visor.fillColor = .systemBlue
         visor.strokeColor = .white
@@ -616,6 +623,40 @@ final class OutpostScene: SKScene {
             zoneScenery.addChild(accent)
         }
     }
+
+    private lazy var pilotArmorTexture: SKTexture = {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 96, height: 112))
+        let image = renderer.image { _ in
+            let torso = UIBezierPath()
+            torso.move(to: CGPoint(x: 31, y: 12))
+            torso.addLine(to: CGPoint(x: 65, y: 12))
+            torso.addLine(to: CGPoint(x: 80, y: 29))
+            torso.addLine(to: CGPoint(x: 73, y: 86))
+            torso.addLine(to: CGPoint(x: 60, y: 104))
+            torso.addLine(to: CGPoint(x: 36, y: 104))
+            torso.addLine(to: CGPoint(x: 23, y: 86))
+            torso.addLine(to: CGPoint(x: 16, y: 29))
+            torso.close()
+            UIColor(red: 0.12, green: 0.26, blue: 0.36, alpha: 1).setFill()
+            torso.fill()
+            UIColor(red: 0.59, green: 0.88, blue: 0.89, alpha: 1).setStroke()
+            torso.lineWidth = 4
+            torso.stroke()
+            let chest = UIBezierPath(roundedRect: CGRect(x: 32, y: 49, width: 32, height: 33), cornerRadius: 6)
+            UIColor(red: 0.07, green: 0.13, blue: 0.22, alpha: 1).setFill()
+            chest.fill()
+            let helmet = UIBezierPath(roundedRect: CGRect(x: 28, y: 15, width: 40, height: 33), cornerRadius: 10)
+            UIColor(red: 0.18, green: 0.35, blue: 0.46, alpha: 1).setFill()
+            helmet.fill()
+            UIColor(red: 0.60, green: 0.89, blue: 0.95, alpha: 1).setStroke()
+            helmet.lineWidth = 2
+            helmet.stroke()
+            let visor = UIBezierPath(roundedRect: CGRect(x: 32, y: 28, width: 32, height: 9), cornerRadius: 4)
+            UIColor(red: 0.24, green: 0.88, blue: 0.98, alpha: 1).setFill()
+            visor.fill()
+        }
+        return SKTexture(image: image)
+    }()
 
     private lazy var enemyChassisTexture: SKTexture = {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 80, height: 90))
