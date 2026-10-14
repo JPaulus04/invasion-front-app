@@ -85,8 +85,8 @@ for index, (top, bottom, half) in enumerate(tiers):
 def chunk(tag, data):
     return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff)
 
-raw = b''.join(b'\\x00' + pixels[y * W * 4:(y + 1) * W * 4] for y in range(H))
-png = b'\\x89PNG\\r\\n\\x1a\\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', W, H, 8, 6, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw, 9)) + chunk(b'IEND', b'')
+raw = b''.join(b'\x00' + pixels[y * W * 4:(y + 1) * W * 4] for y in range(H))
+png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', W, H, 8, 6, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw, 9)) + chunk(b'IEND', b'')
 out = pathlib.Path('OutpostZero/ArtAssets/forest_pine.png')
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_bytes(png)
