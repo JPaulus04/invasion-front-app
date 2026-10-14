@@ -57,22 +57,25 @@ jobs:
           APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           xcrun simctl install "$DEVICE" "$APP"
           xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureCombatScreenshot
-          sleep 8
           mkdir -p screenshots
+          sleep 3
+          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-combat-early.png
+          sleep 5
           xcrun simctl io "$DEVICE" screenshot screenshots/build-314-simulator.png
       - name: Validate simulator screenshot was captured
         run: |
           set -e
           test -s screenshots/build-314-simulator.png
+          test -s screenshots/build-314-combat-early.png
           python3 - <<'PY'
           from pathlib import Path
           import struct
-          p = Path("screenshots/build-314-simulator.png")
-          data = p.read_bytes()
-          assert data[:8] == bytes((137, 80, 78, 71, 13, 10, 26, 10)), "Screenshot is not a PNG"
-          width, height = struct.unpack(">II", data[16:24])
-          assert width >= 320 and height >= 568, f"Unexpected screenshot dimensions: {width}x{height}"
-          print(f"Verified simulator screenshot: {width}x{height}, {len(data)} bytes")
+          for p in (Path("screenshots/build-314-combat-early.png"), Path("screenshots/build-314-simulator.png")):
+              data = p.read_bytes()
+              assert data[:8] == bytes((137, 80, 78, 71, 13, 10, 26, 10)), f"{p} is not a PNG"
+              width, height = struct.unpack(">II", data[16:24])
+              assert width >= 320 and height >= 568, f"Unexpected screenshot dimensions: {width}x{height}"
+              print(f"Verified {p}: {width}x{height}, {len(data)} bytes")
           PY
       - name: Upload actual simulator screenshot
         if: always()
