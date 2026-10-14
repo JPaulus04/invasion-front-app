@@ -916,6 +916,15 @@ final class OutpostScene: SKScene {
             armor.colorBlendFactor = hasProductionArt ? 0 : 0.72
             armor.zPosition = 0.8
             node.addChild(armor)
+            if hasProductionArt {
+                // Ground shadow anchors illustrated enemies without obscuring their silhouette.
+                let contactShadow = SKShapeNode(ellipseOf: CGSize(width: radius * 1.7, height: radius * 0.48))
+                contactShadow.fillColor = SKColor.black.withAlphaComponent(0.34)
+                contactShadow.strokeColor = .clear
+                contactShadow.position = CGPoint(x: 3, y: -radius * 0.86)
+                contactShadow.zPosition = -0.5
+                node.addChild(contactShadow)
+            }
             // Silhouette accents distinguish roles even when enemy colors are similar.
             if type == 2 && !hasProductionArt {
                 // Fast scouts: swept-back fins, narrow frame.
