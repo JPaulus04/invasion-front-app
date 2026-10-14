@@ -15,13 +15,8 @@ enum BattlefieldArt {
         floor.lineWidth = 7
         artwork.addChild(floor)
         // The room perimeter replaces the scrolling road and base-defense lane.
-        for row in 0..<Int(room.height / 48) {
-            let line = SKShapeNode(rectOf: CGSize(width: room.width - 18, height: 1))
-            line.fillColor = SKColor.white.withAlphaComponent(0.05)
-            line.strokeColor = .clear
-            line.position = CGPoint(x: room.midX, y: room.minY + CGFloat(row) * 48 + 24)
-            artwork.addChild(line)
-        }
+        // Keep the forest floor uninterrupted; the old horizontal guide lines
+        // made the arena resemble a grid instead of natural terrain.
         let entrance = SKShapeNode(rectOf: CGSize(width: 86, height: 12), cornerRadius: 4)
         entrance.fillColor = .systemTeal
         entrance.strokeColor = .white
