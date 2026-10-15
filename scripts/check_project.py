@@ -33,6 +33,18 @@ if "lockedLoadout.availableTacticalUpgrades(" not in scene:
     errors.append("XP choices must be restricted to committed abilities")
 if "private func updateOrbitingDefenses()" not in scene:
     errors.append("Orbital blade must have a real contact damage effect")
+if "private func showSettings()" not in scene or "key: \"toggle_music\"" not in scene:
+    errors.append("Player-facing settings and music toggle must be visible")
+if "settingsShortcut.contains(point)" not in scene or "key: \"close_settings\"" not in scene:
+    errors.append("Settings shortcut must have a touch route and exit")
+if "private func toggleSpeedPreference()" not in scene or "outpostZeroDoubleSpeed" not in scene:
+    errors.append("Speed selector must be player-accessible and persistent")
+if "qaFastForwardEnabled" in scene:
+    errors.append("Speed control must not depend on a QA launch argument")
+if "func setAppActive(_ active: Bool)" not in scene or "case (.interrupted, \"resume_run\")" not in scene:
+    errors.append("Interruption must pause combat until explicit resume")
+if 'ProcessInfo.processInfo.arguments.contains("-captureSettingsScreenshot")' not in scene:
+    errors.append("Simulator must verify settings and interruption recovery")
 if "CombatRules.orbitalBladeHits(" not in scene:
     errors.append("Orbital combat must use tested physical contact rules")
 if 'ProcessInfo.processInfo.arguments.contains("-captureOvergrownScreenshot")' not in scene:

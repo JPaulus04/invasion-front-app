@@ -1,7 +1,7 @@
 import SpriteKit
 
 final class OutpostScene: SKScene {
-    private enum Phase { case ready, loadout, playing, levelUp, checkpoint, gate, worldComplete, restoration, gameOver }
+    private enum Phase { case ready, loadout, playing, levelUp, checkpoint, gate, settings, interrupted, worldComplete, restoration, gameOver }
     private struct Enemy {
         let node: SKShapeNode
         var health: Int
@@ -92,13 +92,16 @@ final class OutpostScene: SKScene {
     private let hud = SKNode()
     private let hudPanel = SKShapeNode()
     private let overlay = SKNode()
+    private let settingsShortcut = SKShapeNode(rectOf: CGSize(width: 44, height: 42), cornerRadius: 10)
+    private var settingsReturnPhase: Phase = .ready
+    private var interruptedReturnPhase: Phase = .playing
     private let overlayBackdrop = SKShapeNode()
     private var overlayButtons: [String: CGRect] = [:]
     private var streak = 0
     private var waveElapsed: TimeInterval = 0
-    // QA/TestFlight convenience toggle; disable before public App Store release.
-    private let qaFastForwardEnabled = ProcessInfo.processInfo.arguments.contains("-enableQASpeed")
-    private var fastForward = false
+    // A real player setting: never hide this behind a QA launch argument.
+    // Remember the selected pace between runs and application launches.
+    private var fastForward = UserDefaults.standard.bool(forKey: "outpostZeroDoubleSpeed")
     private let speedButton = SKShapeNode(rectOf: CGSize(width: 72, height: 34), cornerRadius: 9)
     private let speedLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private var menuUnlockTime: TimeInterval = 0
@@ -184,6 +187,18 @@ final class OutpostScene: SKScene {
         hud.addChild(hudPanel)
         addChild(overlay)
         overlay.zPosition = 40
+        settingsShortcut.name = "settingsShortcut"
+        settingsShortcut.fillColor = SKColor(red: 0.07, green: 0.16, blue: 0.23, alpha: 0.95)
+        settingsShortcut.strokeColor = .systemTeal
+        settingsShortcut.lineWidth = 1.5
+        settingsShortcut.zPosition = 50
+        let settingsIcon = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        settingsIcon.text = "⚙"
+        settingsIcon.fontSize = 29
+        settingsIcon.fontColor = .white
+        settingsIcon.verticalAlignmentMode = .center
+        settingsShortcut.addChild(settingsIcon)
+        addChild(settingsShortcut)
         damageFlash.fillColor = SKColor.red.withAlphaComponent(0.24)
         damageFlash.strokeColor = .clear
         damageFlash.zPosition = 35
@@ -349,6 +364,31 @@ final class OutpostScene: SKScene {
         health = maximumHealth
         layout()
         showReady()
+        // CI-only settings and lifecycle integration: a call must pause
+        // hostile attacks, and resuming must require deliberate input.
+        if ProcessInfo.processInfo.arguments.contains("-captureSettingsScreenshot") {
+            startWave()
+            setAppActive(false)
+            precondition(phase == .interrupted && arena.isPaused &&
+                         overlayButtons["resume_run"] != nil,
+                         "Backgrounding must freeze combat until resume")
+            resumeInterruptedRun()
+            precondition(phase == .playing && !arena.isPaused &&
+                         combatTime < pilotShieldUntil,
+                         "Resuming must protect the pilot and restart combat")
+            showSettings()
+            precondition(phase == .settings && arena.isPaused &&
+                         overlayButtons["toggle_music"] != nil &&
+                         overlayButtons["toggle_speed"] != nil &&
+                         overlayButtons["close_settings"] != nil,
+                         "Settings must provide both audio and gameplay speed")
+            let originalSpeed = fastForward
+            toggleSpeedPreference()
+            precondition(fastForward != originalSpeed, "Speed toggle must change gameplay pace")
+            toggleSpeedPreference()
+            precondition(fastForward == originalSpeed, "Speed toggle must support restoring pace")
+            showSettings()
+        }
         // Capture the new world-entry loadout and verify the real lock route.
         // Screenshots show a complete selection, not empty prototype buttons.
         if ProcessInfo.processInfo.arguments.contains("-captureLoadoutScreenshot") {
@@ -519,13 +559,15 @@ final class OutpostScene: SKScene {
         xpFill.position = xpTrack.position
         xpLabel.position = CGPoint(x: size.width / 2, y: size.height - 160)
         checkpointButton.position = CGPoint(x: size.width / 2, y: roomBounds.minY + 25)
+        settingsShortcut.position = CGPoint(x: 36, y: size.height - 199)
         updateHUD()
     }
 
     private func updateHUD() {
         speedLabel.text = fastForward ? "2× SPEED" : "1× SPEED"
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
-        speedButton.isHidden = !qaFastForwardEnabled || phase != .playing
+        speedButton.isHidden = phase != .playing && phase != .gate
+        settingsShortcut.isHidden = ![Phase.ready, .loadout, .playing, .gate].contains(phase)
         // Keep the QA speed toggle below the HUD, never on top of the XP bar.
         speedButton.position = CGPoint(x: size.width - 56, y: size.height - 199)
         xpFill.xScale = max(0.001, CGFloat(progress.xp) / CGFloat(progress.nextLevelXP))
@@ -710,6 +752,7 @@ final class OutpostScene: SKScene {
         }
         actionButton("CHARACTER RESTORATION", key: "restore", y: -212, tint: .systemIndigo)
         overlayText("POWER CORES: \(availableCores)", y: -256, fontSize: 12)
+        updateHUD()
     }
 
     private func showLoadout() {
@@ -739,6 +782,78 @@ final class OutpostScene: SKScene {
         actionButton("LOCK LOADOUT & ENTER", key: "lock_loadout", y: -181,
                      tint: .systemGreen, enabled: draftLoadout.isReady)
         actionButton("BACK TO WORLDS", key: "back_loadout", y: -228, tint: .systemBlue)
+        updateHUD()
+    }
+
+    private func toggleSpeedPreference() {
+        fastForward.toggle()
+        UserDefaults.standard.set(fastForward, forKey: "outpostZeroDoubleSpeed")
+        updateHUD()
+    }
+
+    private func showSettings() {
+        guard phase != .settings || settingsReturnPhase != .settings else { return }
+        if phase != .settings { settingsReturnPhase = phase }
+        phase = .settings
+        arena.isPaused = true
+        hud.isHidden = true
+        lockMenuBriefly()
+        clearOverlay()
+        overlayText("SETTINGS", y: 137, fontSize: 27)
+        overlayText("AUDIO & GAMEPLAY", y: 98, fontSize: 13)
+        actionButton(ArcadeMusic.shared.isEnabled ? "MUSIC: ON" : "MUSIC: OFF",
+                     key: "toggle_music", y: 42, tint: .systemTeal)
+        actionButton(fastForward ? "GAME SPEED: 2×" : "GAME SPEED: 1×",
+                     key: "toggle_speed", y: -16, tint: .systemIndigo)
+        overlayText("PREFERENCES SAVED AUTOMATICALLY", y: -83, fontSize: 11)
+        actionButton(settingsReturnPhase == .playing || settingsReturnPhase == .gate
+                     ? "RESUME GAME" : "BACK",
+                     key: "close_settings", y: -143, tint: .systemBlue)
+        updateHUD()
+    }
+
+    private func closeSettings() {
+        guard phase == .settings else { return }
+        let destination = settingsReturnPhase
+        switch destination {
+        case .playing, .gate:
+            hud.isHidden = false
+            arena.isPaused = false
+            clearOverlay()
+            overlayBackdrop.isHidden = true
+            phase = destination
+            pilotShieldUntil = max(pilotShieldUntil, combatTime + 1.2)
+            updateHUD()
+        case .loadout: showLoadout()
+        default: showReady()
+        }
+    }
+
+    // A phone call, app switch or lock must never let enemies damage a
+    // stationary pilot. Even after becoming active we remain paused until
+    // the player explicitly taps RESUME.
+    func setAppActive(_ active: Bool) {
+        guard !active && (phase == .playing || phase == .gate) else { return }
+        interruptedReturnPhase = phase
+        phase = .interrupted
+        arena.isPaused = true
+        lockMenuBriefly()
+        clearOverlay()
+        overlayText("RUN PAUSED", y: 92, fontSize: 27)
+        overlayText("ROOM \(wave)  •  \(health) HP", y: 45, fontSize: 17)
+        overlayText("PROGRESS PROTECTED DURING INTERRUPTION", y: -9, fontSize: 11)
+        actionButton("RESUME RUN", key: "resume_run", y: -86, tint: .systemTeal)
+        updateHUD()
+    }
+
+    private func resumeInterruptedRun() {
+        guard phase == .interrupted else { return }
+        phase = interruptedReturnPhase
+        arena.isPaused = false
+        clearOverlay()
+        overlayBackdrop.isHidden = true
+        pilotShieldUntil = max(pilotShieldUntil, combatTime + 1.5)
+        updateHUD()
     }
 
     @discardableResult
@@ -2426,7 +2541,7 @@ final class OutpostScene: SKScene {
         passageGate.childNode(withName: "gateArrow")?.position = CGPoint(x: 0, y: -40)
         passageGate.alpha = 1
         gateUnlocked = false
-        fastForward = false
+        // Speed is a persistent preference, not a per-run upgrade.
         coins = 0
         health = maximumHealth
         damage = 1
@@ -2450,14 +2565,17 @@ final class OutpostScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let point = touch.location(in: self)
+        if !settingsShortcut.isHidden && settingsShortcut.contains(point) {
+            showSettings()
+            return
+        }
         if phase == .playing || phase == .gate {
             if phase == .gate && !checkpointButton.isHidden && checkpointButton.contains(touch.location(in: hud)) {
                 showCheckpoint()
                 return
             }
-            if qaFastForwardEnabled && phase == .playing && speedButton.contains(touch.location(in: hud)) {
-                fastForward.toggle()
-                updateHUD()
+            if !speedButton.isHidden && speedButton.contains(touch.location(in: hud)) {
+                toggleSpeedPreference()
                 return
             }
             guard heldTouch == nil else { return }
@@ -2475,6 +2593,14 @@ final class OutpostScene: SKScene {
         let local = touch.location(in: overlay)
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
         switch (phase, tapped) {
+        case (.settings, "toggle_music"):
+            ArcadeMusic.shared.toggle()
+            showSettings()
+        case (.settings, "toggle_speed"):
+            toggleSpeedPreference()
+            showSettings()
+        case (.settings, "close_settings"): closeSettings()
+        case (.interrupted, "resume_run"): resumeInterruptedRun()
         case (.ready, "start") where worldMapIndex == 0:
             draftLoadout = AbilityLoadout()
             showLoadout()
@@ -2488,9 +2614,6 @@ final class OutpostScene: SKScene {
             showReady()
         case (.ready, "world_next"):
             worldMapIndex = min(worldMapNames.count - 1, worldMapIndex + 1)
-            showReady()
-        case (.ready, "music"):
-            ArcadeMusic.shared.toggle()
             showReady()
         case (.ready, "restore"), (.worldComplete, "restore"): showRestoration()
         case (.restoration, "back"):
