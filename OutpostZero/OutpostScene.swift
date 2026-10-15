@@ -367,8 +367,6 @@ final class OutpostScene: SKScene {
                         x: roomBounds.midX + CGFloat(index - 1) * roomBounds.width * 0.30,
                         y: roomBounds.midY + roomBounds.height * 0.20
                     )
-                    enemies[enemies.count - 1].health = 70
-                    enemies[enemies.count - 1].maxHealth = 70
                     enemies[enemies.count - 1].nextAttack = combatTime + 1.2
                 }
             }
@@ -1230,7 +1228,8 @@ final class OutpostScene: SKScene {
         arena.addChild(node)
         if isBoss { bossNode = node }
         let scaling = max(0, wave - 1)
-        let enemyHP = isBoss ? 180 : (type == 3 ? 12 + scaling * 3 : (type == 1 ? 5 + scaling * 2 : 2 + scaling))
+        let enemyHP = ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames")
+            ? 70 : (isBoss ? 180 : (type == 3 ? 12 + scaling * 3 : (type == 1 ? 5 + scaling * 2 : 2 + scaling)))
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
