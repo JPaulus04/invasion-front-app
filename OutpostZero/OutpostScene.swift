@@ -1,7 +1,7 @@
 import SpriteKit
 
 final class OutpostScene: SKScene {
-    private enum Phase { case ready, playing, levelUp, checkpoint, gate, worldComplete, restoration, gameOver }
+    private enum Phase { case ready, loadout, playing, levelUp, checkpoint, gate, worldComplete, restoration, gameOver }
     private struct Enemy {
         let node: SKShapeNode
         var health: Int
@@ -61,6 +61,13 @@ final class OutpostScene: SKScene {
     private var roomCleared = false
     private var levelUpReturnPhase: Phase = .playing
     private var levelChoices: [String] = []
+    private var draftLoadout = AbilityLoadout()
+    // Simulator QA scenes bypass menus, so their deterministic default uses
+    // only existing skills. Normal gameplay locks the user's exact selection.
+    private var lockedLoadout = AbilityLoadout.simulatorDefault
+    private var orbitLevel = 0
+    private var orbitalNodes: [SKShapeNode] = []
+    private var lastOrbitalHit: [ObjectIdentifier: TimeInterval] = [:]
     private var checkpointUsed = false
     private let xpTrack = SKShapeNode()
     private let xpFill = SKShapeNode()
@@ -674,10 +681,39 @@ final class OutpostScene: SKScene {
         actionButton("◀ PREVIOUS", key: "world_prev", y: -62, tint: .systemBlue, enabled: selected > 0)
         actionButton("NEXT ▶", key: "world_next", y: -110, tint: .systemBlue, enabled: selected < worldMapNames.count - 1)
         if unlocked {
-            actionButton("ENTER WORLD", key: "start", y: -160, tint: .systemTeal)
+            actionButton("PREPARE LOADOUT", key: "start", y: -160, tint: .systemTeal)
         }
         actionButton("CHARACTER RESTORATION", key: "restore", y: -212, tint: .systemIndigo)
         overlayText("POWER CORES: \(availableCores)", y: -256, fontSize: 12)
+    }
+
+    private func showLoadout() {
+        phase = .loadout
+        hud.isHidden = true
+        clearOverlay()
+        overlayText("MISSION LOADOUT", y: 162, fontSize: 23)
+        overlayText("PRIMARY: AUTO RIFLE  •  ALWAYS EQUIPPED", y: 126, fontSize: 11)
+        overlayText("SELECT 3 OF 4  •  LOCKED FOR 20 ROOMS", y: 99, fontSize: 12)
+        overlayText("\(draftLoadout.selected.count)/3 TACTICAL ABILITIES SELECTED",
+                    y: 76, fontSize: 12)
+        let options: [(String, String)] = [
+            ("chain", "CHAIN LIGHTNING  •  CROWDS"),
+            ("explosive", "EXPLOSIVE ROUNDS  •  AREA"),
+            ("incendiary", "INCENDIARY ROUNDS  •  BOSS"),
+            ("orbit", "ORBITAL BLADES  •  DEFENSE")
+        ]
+        for (index, option) in options.enumerated() {
+            let chosen = draftLoadout.contains(option.0)
+            actionButton("\(chosen ? "✓ " : "＋ ")\(option.1)",
+                         key: "pick_\(option.0)", y: CGFloat(42 - index * 53),
+                         tint: chosen ? .systemTeal : .systemIndigo,
+                         enabled: chosen || draftLoadout.selected.count < 3)
+            // Full loadouts remain editable: remove an ability to swap.
+            // Disabled unselected cards are displayed but don't accept taps.
+        }
+        actionButton("LOCK LOADOUT & ENTER", key: "lock_loadout", y: -181,
+                     tint: .systemGreen, enabled: draftLoadout.isReady)
+        actionButton("BACK TO WORLDS", key: "back_loadout", y: -228, tint: .systemBlue)
     }
 
     private func startWave() {
@@ -1397,6 +1433,8 @@ final class OutpostScene: SKScene {
             shoot(at: target.node.position)
         }
         if presentPendingLevelUp(returningTo: .playing) { return }
+        updateOrbitingDefenses()
+        if phase != .playing { return }
         spawnClock += gameDt
         waveElapsed += gameDt
         applyBurns()
@@ -1627,6 +1665,54 @@ final class OutpostScene: SKScene {
         lobs.removeAll()
     }
 
+    private func rebuildOrbitingDefenses() {
+        for blade in orbitalNodes { blade.removeFromParent() }
+        orbitalNodes.removeAll()
+        for index in 0..<orbitLevel {
+            let blade = SKShapeNode(rectOf: CGSize(width: 10, height: 23), cornerRadius: 3)
+            blade.name = "orbitalBlade"
+            blade.fillColor = SKColor(red: 0.22, green: 0.88, blue: 0.95, alpha: 1)
+            blade.strokeColor = .systemCyan
+            blade.lineWidth = 1.5
+            blade.glowWidth = 2
+            blade.zPosition = 11
+            arena.addChild(blade)
+            orbitalNodes.append(blade)
+        }
+    }
+
+    private func updateOrbitingDefenses() {
+        guard orbitLevel > 0, !orbitalNodes.isEmpty, phase == .playing else { return }
+        // All positions derive from the same paused combat clock as hostile
+        // projectiles. No free orbital strikes while choosing a level-up.
+        for (index, blade) in orbitalNodes.enumerated() {
+            let angle = CGFloat(combatTime) * 2.65 +
+                CGFloat(index) * (2 * .pi / CGFloat(orbitalNodes.count))
+            blade.position = CGPoint(
+                x: pilot.position.x + cos(angle) * 46,
+                y: pilot.position.y + sin(angle) * 46
+            )
+            blade.zRotation = angle + .pi / 2
+            for enemyIndex in enemies.indices {
+                let enemy = enemies[enemyIndex]
+                guard enemy.health > 0, combatTime >= enemy.activeAt,
+                      distance(blade.position, enemy.node.position) < enemy.radius + 13 else {
+                    continue
+                }
+                let key = ObjectIdentifier(enemy.node)
+                guard combatTime - (lastOrbitalHit[key] ?? -100) >= 0.50 else { continue }
+                lastOrbitalHit[key] = combatTime
+                // Reliable modest contact damage, not projectile invulnerability.
+                enemies[enemyIndex].health -= 1 + orbitLevel
+                impact(at: blade.position, color: .systemCyan,
+                       destroyed: enemies[enemyIndex].health <= 0)
+                updateEnemyHealthBar(at: enemyIndex)
+            }
+        }
+        removeDefeatedEnemies()
+        updateHUD()
+    }
+
     private func shoot(at point: CGPoint) {
         guard combatTime - lastShot >= 0.42 / Double(fireRate + permanentRateBonus) else { return }
         guard let index = enemies.indices.filter({ combatTime >= enemies[$0].activeAt }).min(by: {
@@ -1764,6 +1850,7 @@ final class OutpostScene: SKScene {
                 .removeFromParent()
             ]))
             burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
+            lastOrbitalHit.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             if enemies[index].node === bossNode { bossNode = nil }
             // A short expanding defeat ring remains after the enemy disappears.
             let defeatedPosition = enemies[index].node.position
@@ -1881,9 +1968,9 @@ final class OutpostScene: SKScene {
         overlayText("CHOOSE ONE FREE UPGRADE", y: 87, fontSize: 15)
         var pool = ["armor"]
         if fireRate < 5 { pool.append("rate") }
-        if chainLevel < 3 { pool.append("chain") }
-        if explosiveLevel < 3 { pool.append("explosive") }
-        if incendiaryLevel < 3 { pool.append("incendiary") }
+        pool += lockedLoadout.availableTacticalUpgrades(
+            chain: chainLevel, explosive: explosiveLevel,
+            incendiary: incendiaryLevel, orbit: orbitLevel)
         if health < maximumHealth { pool.append("heal") }
         // All three choices should rotate; damage remains in the pool but is not mandatory.
         pool.append("damage")
@@ -1897,6 +1984,7 @@ final class OutpostScene: SKScene {
             case "chain": label = "CHAIN LIGHTNING  LV \(chainLevel + 1)"; detail = "Hits additional nearby enemies"
             case "explosive": label = "EXPLOSIVE ROUNDS  LV \(explosiveLevel + 1)"; detail = "Weapon hits splash nearby enemies"
             case "incendiary": label = "INCENDIARY ROUNDS  LV \(incendiaryLevel + 1)"; detail = "Weapon hits inflict lasting burn damage"
+            case "orbit": label = "ORBITAL BLADES  LV \(orbitLevel + 1)"; detail = "Spinning blades strike nearby foes"
             case "heal": label = "RECOVER 40 HP"; detail = "Restore health, up to your maximum"
             default: label = "ARMOR +20 MAX HP"; detail = "Raise maximum health and restore 20 HP"
             }
@@ -1943,6 +2031,9 @@ final class OutpostScene: SKScene {
         case "chain": chainLevel = min(3, chainLevel + 1)
         case "explosive": explosiveLevel = min(3, explosiveLevel + 1)
         case "incendiary": incendiaryLevel = min(3, incendiaryLevel + 1)
+        case "orbit":
+            orbitLevel = min(3, orbitLevel + 1)
+            rebuildOrbitingDefenses()
         case "heal": health = min(maximumHealth, health + 40)
         default: runArmor += 20; health = min(maximumHealth, health + 20)
         }
@@ -2109,9 +2200,18 @@ final class OutpostScene: SKScene {
     }
 
     private func refreshPilotAppearance() {
-        pilot.fillColor = .systemCyan
-        pilot.strokeColor = branchLevel(2) > 0 ? .systemGreen : .white
-        pilot.lineWidth = branchLevel(3) > 0 ? 4 : 3
+        // The illustrated character entirely replaces the original cyan
+        // prototype body. Restoring a white stroke here drew a square halo
+        // around the PNG on real phones.
+        if productionImage(named: "pilot_idle") != nil {
+            pilot.fillColor = .clear
+            pilot.strokeColor = .clear
+            pilot.lineWidth = 0
+        } else {
+            pilot.fillColor = .systemCyan
+            pilot.strokeColor = branchLevel(2) > 0 ? .systemGreen : .white
+            pilot.lineWidth = branchLevel(3) > 0 ? 4 : 3
+        }
         pilotGun.strokeColor = branchLevel(0) > 0 ? .systemOrange : .systemYellow
         pilotGun.lineWidth = branchLevel(4) > 0 ? 4 : 1
         if let visor = pilot.children.first as? SKShapeNode {
@@ -2246,13 +2346,17 @@ final class OutpostScene: SKScene {
         chainLevel = 0
         explosiveLevel = 0
         incendiaryLevel = 0
+        orbitLevel = 0
+        lastOrbitalHit.removeAll()
+        rebuildOrbitingDefenses()
         burns.removeAll()
         heldTouch = nil
         aimPoint = nil
         lastShot = -100
         streak = 0
         updateHUD()
-        startWave()
+        draftLoadout = AbilityLoadout()
+        showLoadout()
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -2283,7 +2387,15 @@ final class OutpostScene: SKScene {
         let local = touch.location(in: overlay)
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
         switch (phase, tapped) {
-        case (.ready, "start") where worldMapIndex == 0: startWave()
+        case (.ready, "start") where worldMapIndex == 0:
+            draftLoadout = AbilityLoadout()
+            showLoadout()
+        case (.loadout, "back_loadout"): showReady()
+        case (.loadout, let key?) where key.hasPrefix("pick_"):
+            if draftLoadout.toggle(String(key.dropFirst(5))) { showLoadout() }
+        case (.loadout, "lock_loadout") where draftLoadout.isReady:
+            lockedLoadout = draftLoadout
+            startWave()
         case (.ready, "world_prev"):
             worldMapIndex = max(0, worldMapIndex - 1)
             showReady()

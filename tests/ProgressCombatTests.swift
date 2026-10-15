@@ -12,6 +12,28 @@ struct ProgressCombatTests {
         precondition(WorldCoreRewards.newlyEarned(previousBest: 0, completedStars: 9) == 3)
         precondition(WorldCoreRewards.bestStars(previousBest: 3, completedStars: 1) == 3)
         precondition(WorldCoreRewards.bestStars(previousBest: 1, completedStars: 3) == 3)
+        // Locked loadouts constrain tactical upgrades in every level-up menu.
+        var loadout = AbilityLoadout()
+        precondition(!loadout.isReady)
+        precondition(!loadout.toggle("invalid"))
+        precondition(loadout.toggle("chain"))
+        precondition(loadout.toggle("explosive"))
+        precondition(loadout.toggle("orbit"))
+        precondition(loadout.isReady)
+        precondition(!loadout.toggle("incendiary"))
+        precondition(loadout.selected == ["chain", "explosive", "orbit"])
+        precondition(loadout.availableTacticalUpgrades(
+            chain: 0, explosive: 0, incendiary: 0, orbit: 0
+        ) == ["chain", "explosive", "orbit"])
+        precondition(loadout.availableTacticalUpgrades(
+            chain: 3, explosive: 2, incendiary: 0, orbit: 3
+        ) == ["explosive"])
+        precondition(loadout.toggle("explosive"))
+        precondition(!loadout.isReady)
+        precondition(loadout.toggle("incendiary"))
+        precondition(loadout.selected == ["chain", "orbit", "incendiary"])
+        precondition(AbilityLoadout(selected: ["orbit", "orbit", "invalid", "chain"])
+                     .selected == ["orbit", "chain"])
         var run = RunProgress()
         let firstThreshold = run.nextLevelXP
         run.earnXP(firstThreshold - 1)

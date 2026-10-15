@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -21,6 +21,18 @@ scene = (root / "OutpostZero" / "OutpostScene.swift").read_text(encoding="utf-8"
 for feature in ("spawnEnemy()", "shoot(at:", "completeWave()", "endGame()", "restart()", "actionButton(", "overlayButtons", "impact(at:", "healthBar.xScale", "damageFlash.run", "warning.text", "waveElapsed", "heldTouch = touch", "override func touchesMoved", "chainAttack(from: target", "chainLevel", "progress.earnXP", "showLevelUp()", "updateHostileAttacks", "repairCost", "BattlefieldArt.install"):
     if feature not in scene:
         errors.append(f"Missing gameplay feature: {feature}")
+# The published pilot PNG must not be outlined by the old rectangle.
+pilot_visual = scene.split("private func refreshPilotAppearance()", 1)[-1].split("private func drawRestorationRobot()", 1)[0]
+if 'productionImage(named: "pilot_idle") != nil' not in pilot_visual or "pilot.strokeColor = .clear" not in pilot_visual:
+    errors.append("Illustrated pilot must never restore the prototype white outline")
+if "case (.ready, \"start\") where worldMapIndex == 0:\n            draftLoadout = AbilityLoadout()" not in scene:
+    errors.append("World entry must first open loadout selection")
+if "case (.loadout, \"lock_loadout\") where draftLoadout.isReady:" not in scene:
+    errors.append("Cannot enter a world without three committed tactical abilities")
+if "lockedLoadout.availableTacticalUpgrades(" not in scene:
+    errors.append("XP choices must be restricted to committed abilities")
+if "private func updateOrbitingDefenses()" not in scene:
+    errors.append("Orbital blade must have a real contact damage effect")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]
