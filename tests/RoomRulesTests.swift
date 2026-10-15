@@ -12,6 +12,20 @@ struct RoomRulesTests {
             let gate = CGPoint(x: room.midX, y: room.maxY - 24)
             precondition(room.contains(gate), "Exit must be reachable")
             precondition(hypot(entry.x - gate.x, entry.y - gate.y) > 49, "Entry cannot immediately trigger exit")
+            precondition(!RoomRules.enteredGate(pilot: entry, gate: gate),
+                         "New room must not auto-advance from entry")
+            precondition(!RoomRules.enteredGate(
+                pilot: CGPoint(x: gate.x, y: gate.y - 36), gate: gate),
+                         "Approaching the gate is not entering it")
+            precondition(!RoomRules.enteredGate(
+                pilot: CGPoint(x: gate.x + 44, y: gate.y), gate: gate),
+                         "Passing beside the door cannot advance")
+            precondition(RoomRules.enteredGate(
+                pilot: CGPoint(x: gate.x, y: gate.y - 8), gate: gate),
+                         "Stepping into the doorway must advance")
+            precondition(RoomRules.enteredGate(
+                pilot: CGPoint(x: gate.x + 30, y: gate.y + 10), gate: gate),
+                         "A diagonal approach inside portal bounds must advance")
             for pilot in [entry, CGPoint(x: room.midX, y: room.midY), gate] {
                 for radius in [CGFloat(14), 17, 23, 26, 37] {
                     let candidateSets: [[CGPoint]] = [[], [CGPoint(x: 0.5, y: 0.5)], [CGPoint(x: 0, y: 0), CGPoint(x: 1, y: 1)]]
@@ -31,6 +45,6 @@ struct RoomRulesTests {
         precondition(!RoomRules.isCleared(spawned: 4, target: 7, living: 0), "Pending spawns keep exit locked")
         precondition(!RoomRules.isCleared(spawned: 7, target: 7, living: 1), "Last enemy keeps exit locked")
         precondition(RoomRules.isCleared(spawned: 7, target: 7, living: 0))
-        print("Room geometry, safe spawns, entry placement, and clear conditions passed")
+        print("Room geometry, safe spawns, physical portal entry, and clear conditions passed")
     }
 }
