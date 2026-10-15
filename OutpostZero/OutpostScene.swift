@@ -719,12 +719,19 @@ final class OutpostScene: SKScene {
                 shadow.position = CGPoint(x: 9, y: -22)
                 shadow.zPosition = -0.5
                 prop.addChild(shadow)
-                let hasPineArt = productionImage(named: "forest_pine") != nil
-                let tree = SKSpriteNode(texture: productionTexture(named: "forest_pine", fallback: forestPineTexture))
-                tree.size = CGSize(width: 43 + CGFloat((index * 7 + wave) % 5) * 6, height: 59 + CGFloat((index * 3 + wave) % 5) * 8)
+                // Roughly every third tree is a broadleaf: intentionally distinct
+                // outline, with a consistent side placement and clear center lane.
+                let isBroadleaf = (index + roomVariant).isMultiple(of: 3)
+                let treeAsset = isBroadleaf ? "forest_broadleaf" : "forest_pine"
+                let hasTreeArt = productionImage(named: treeAsset) != nil
+                let tree = SKSpriteNode(texture: productionTexture(named: treeAsset, fallback: forestPineTexture))
+                tree.size = CGSize(
+                    width: 43 + CGFloat((index * 7 + wave) % 5) * 6,
+                    height: 59 + CGFloat((index * 3 + wave) % 5) * 8
+                )
                 tree.xScale = (index + wave).isMultiple(of: 3) ? -1 : 1
                 tree.zRotation = CGFloat(((index * 7 + wave * 3) % 9) - 4) * 0.018
-                tree.position.y = 5
+                tree.position = CGPoint(x: isBroadleaf ? (leftSide ? 5 : -5) : 0, y: 5)
                 tree.zPosition = 1
                 prop.addChild(tree)
                 // Layered pine foliage and trunk add depth without blocking movement.
@@ -733,14 +740,14 @@ final class OutpostScene: SKScene {
                 trunk.strokeColor = .clear
                 trunk.position = CGPoint(x: 0, y: -15)
                 trunk.zPosition = -0.1
-                trunk.isHidden = hasPineArt
+                trunk.isHidden = hasTreeArt
                 prop.addChild(trunk)
                 let canopy = SKShapeNode(ellipseOf: CGSize(width: 20, height: 12))
                 canopy.fillColor = .systemMint.withAlphaComponent(0.65)
                 canopy.strokeColor = .clear
                 canopy.position = CGPoint(x: -3, y: 3)
                 canopy.zPosition = 1
-                canopy.isHidden = hasPineArt
+                canopy.isHidden = hasTreeArt
                 prop.addChild(canopy)
             }
         }
