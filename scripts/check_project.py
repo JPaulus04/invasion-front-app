@@ -101,6 +101,19 @@ if "behind.addChild(" in art:
     errors.append("BattlefieldArt references an undefined behind node")
 if "gameplay.addChild(" not in art:
     errors.append("BattlefieldArt must attach its nodes to gameplay")
+# Protect the mobile art pass from returning to round terrain stamps and
+# evenly spaced left-to-right floor markings.
+if "static func terrainShape(width: CGFloat, height: CGFloat, variation: Int)" not in art:
+    errors.append("Organic floor silhouette helper missing")
+if "let patches: [(CGFloat, CGFloat, CGFloat, CGFloat)]" in art:
+    errors.append("Old circular floor patches must not return")
+if "SKShapeNode(ellipseOf:" in art:
+    errors.append("Large ellipse terrain stamps must not return")
+forest_floor = scene.split("// Sparse, asymmetrical forest dressing.", 1)[-1].split("// Fern silhouettes", 1)[0]
+if "BattlefieldArt.terrainShape(" not in forest_floor:
+    errors.append("Forest floor must use irregular debris silhouettes")
+if "let fraction = CGFloat(index + 1) / 13" in scene:
+    errors.append("Equidistant horizontal ground marks must not return")
 if "upgradeConfirmed ? 35 : 140" in scene:
     errors.append("Legacy upgrade touch bands must not return")
 if not (root / "project.yml").is_file():

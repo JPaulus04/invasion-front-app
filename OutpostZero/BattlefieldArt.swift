@@ -2,6 +2,36 @@ import SpriteKit
 
 /// Original vector room artwork. No external art dependencies.
 enum BattlefieldArt {
+    /// Low-profile asymmetrical debris silhouette shared by the static room
+    /// floor and zone-specific dressing. No circular terrain stamps.
+    static func terrainShape(width: CGFloat, height: CGFloat, variation: Int) -> CGPath {
+        let bend = CGFloat(variation % 5) * 0.025
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: -width * 0.53, y: -height * 0.09))
+        path.addQuadCurve(
+            to: CGPoint(x: -width * 0.20, y: height * (0.40 + bend)),
+            control: CGPoint(x: -width * 0.51, y: height * 0.33)
+        )
+        path.addQuadCurve(
+            to: CGPoint(x: width * 0.25, y: height * 0.31),
+            control: CGPoint(x: width * 0.01, y: height * 0.56)
+        )
+        path.addQuadCurve(
+            to: CGPoint(x: width * 0.50, y: -height * 0.09),
+            control: CGPoint(x: width * 0.49, y: height * 0.25)
+        )
+        path.addQuadCurve(
+            to: CGPoint(x: width * 0.13, y: -height * 0.44),
+            control: CGPoint(x: width * 0.43, y: -height * 0.36)
+        )
+        path.addQuadCurve(
+            to: CGPoint(x: -width * 0.35, y: -height * (0.25 + bend)),
+            control: CGPoint(x: -width * 0.07, y: -height * 0.55)
+        )
+        path.closeSubpath()
+        return path
+    }
+
     static func install(in scene: SKScene, behind gameplay: SKNode) {
         gameplay.childNode(withName: "roomArtwork")?.removeFromParent()
         let artwork = SKNode()
@@ -17,43 +47,45 @@ enum BattlefieldArt {
         // The room perimeter replaces the scrolling road and base-defense lane.
         // Keep the forest floor uninterrupted; the old horizontal guide lines
         // made the arena resemble a grid instead of natural terrain.
-        // Low-contrast organic patches break up the flat floor without
-        // reintroducing the horizontal guide lines the art review rejected.
-        // Deterministic placement keeps screenshots comparable between builds.
-        let patches: [(CGFloat, CGFloat, CGFloat, CGFloat)] = [
-            (0.17, 0.22, 0.19, 0.10), (0.74, 0.28, 0.22, 0.12),
-            (0.38, 0.43, 0.24, 0.11), (0.81, 0.59, 0.17, 0.09),
-            (0.22, 0.72, 0.21, 0.10), (0.58, 0.82, 0.26, 0.12)
-        ]
-        for (index, patch) in patches.enumerated() {
-            let (x, y, width, height) = patch
-            let soil = SKShapeNode(ellipseOf: CGSize(
-                width: room.width * width, height: room.height * height))
+        // A restrained, irregular forest-floor treatment. The previous broad
+        // ellipses read like painted circles at phone scale, and evenly spaced
+        // marks looked like guide lines. No collision or scrolling is involved.
+        for index in 0..<12 {
+            let nx = CGFloat((index * 43 + 9) % 97) / 97
+            let ny = CGFloat((index * 59 + 23) % 89) / 89
+            let width = CGFloat(23 + (index * 11) % 29)
+            let height = CGFloat(9 + (index * 7) % 13)
+            let soil = SKShapeNode(path: terrainShape(
+                width: width, height: height, variation: index
+            ))
             soil.position = CGPoint(
-                x: room.minX + room.width * x,
-                y: room.minY + room.height * y)
-            soil.fillColor = index.isMultiple(of: 2)
-                ? SKColor(red: 0.35, green: 0.30, blue: 0.22, alpha: 0.16)
-                : SKColor(red: 0.42, green: 0.51, blue: 0.29, alpha: 0.13)
+                x: room.minX + 24 + (room.width - 48) * nx,
+                y: room.minY + 27 + (room.height - 54) * ny
+            )
+            soil.zRotation = CGFloat(index % 7 - 3) * 0.12
+            soil.fillColor = index.isMultiple(of: 3)
+                ? SKColor(red: 0.28, green: 0.24, blue: 0.18, alpha: 0.12)
+                : SKColor(red: 0.19, green: 0.33, blue: 0.23, alpha: 0.10)
             soil.strokeColor = .clear
             artwork.addChild(soil)
         }
-        // Broad, extremely subtle color variation comes from the soil patches
-        // above. Do not add hard-edged circular light spots: the simulator
-        // review showed those read as painted dots, not natural sunlight.
-        // Small isolated leaf clusters are intentionally irregular, not rows.
-        for index in 0..<28 {
-            let x = CGFloat((index * 37 + 11) % 97) / 97
-            let y = CGFloat((index * 53 + 29) % 101) / 101
-            let leaf = SKShapeNode(ellipseOf: CGSize(
-                width: CGFloat(4 + index % 4), height: CGFloat(2 + index % 3)))
+        // Tiny litter is independent of soil patches and avoids aligned rows.
+        // Keeping detail small preserves the pilot and enemy silhouettes.
+        for index in 0..<25 {
+            let x = CGFloat((index * 41 + 19) % 101) / 101
+            let y = CGFloat((index * 67 + 31) % 103) / 103
+            let leaf = SKShapeNode(path: terrainShape(
+                width: CGFloat(4 + index % 5), height: CGFloat(2 + index % 3),
+                variation: index + 2
+            ))
             leaf.position = CGPoint(
                 x: room.minX + 18 + (room.width - 36) * x,
-                y: room.minY + 18 + (room.height - 36) * y)
-            leaf.zRotation = CGFloat(index % 7) * 0.38
-            leaf.fillColor = index.isMultiple(of: 3)
-                ? SKColor(red: 0.71, green: 0.55, blue: 0.25, alpha: 0.37)
-                : SKColor(red: 0.51, green: 0.65, blue: 0.34, alpha: 0.30)
+                y: room.minY + 18 + (room.height - 36) * y
+            )
+            leaf.zRotation = CGFloat(index % 9) * 0.34
+            leaf.fillColor = index.isMultiple(of: 4)
+                ? SKColor(red: 0.64, green: 0.49, blue: 0.26, alpha: 0.34)
+                : SKColor(red: 0.41, green: 0.57, blue: 0.30, alpha: 0.30)
             leaf.strokeColor = .clear
             artwork.addChild(leaf)
         }

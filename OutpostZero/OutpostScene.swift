@@ -900,58 +900,80 @@ final class OutpostScene: SKScene {
                 prop.addChild(canopy)
             }
         }
-        // A sparse forest-floor layer adds depth without obstructing the playable center.
+        // Sparse, asymmetrical forest dressing. Avoid evenly spaced ellipses:
+        // they created obvious rows and dark round spots in the simulator.
         if zone <= 1 {
-            for index in 0..<18 {
-                let fraction = CGFloat(index + 1) / 19
-                let x = roomBounds.minX + roomBounds.width * fraction
-                let y = roomBounds.minY + 40 + CGFloat((index * 47 + wave * 23) % max(1, Int(roomBounds.height - 85)))
-                let patch = SKShapeNode(ellipseOf: CGSize(width: CGFloat(16 + (index % 4) * 9), height: CGFloat(7 + (index % 3) * 3)))
-                patch.fillColor = SKColor(red: 0.10, green: 0.25, blue: 0.16, alpha: 0.38)
+            for index in 0..<17 {
+                let fx = CGFloat((index * 37 + wave * 17 + 11) % 97) / 97
+                let fy = CGFloat((index * 53 + wave * 29 + 7) % 89) / 89
+                let x = roomBounds.minX + 21 + (roomBounds.width - 42) * fx
+                let y = roomBounds.minY + 37 + (roomBounds.height - 85) * fy
+                let patch = SKShapeNode(path: BattlefieldArt.terrainShape(
+                    width: CGFloat(13 + (index * 7) % 20),
+                    height: CGFloat(5 + (index * 3) % 7),
+                    variation: wave + index
+                ))
+                patch.fillColor = SKColor(
+                    red: 0.10, green: 0.24, blue: 0.16, alpha: 0.24
+                )
                 patch.strokeColor = .clear
                 patch.position = CGPoint(x: x, y: y)
+                patch.zRotation = CGFloat((index * 3 + wave) % 9 - 4) * 0.16
                 patch.zPosition = -0.7
                 zoneScenery.addChild(patch)
-                // Small illustrated leaf clusters break up the flat floor patches.
                 if index.isMultiple(of: 2) {
-                    for leafIndex in 0..<3 {
-                        let leaf = SKShapeNode(ellipseOf: CGSize(width: 9, height: 4))
+                    for leafIndex in 0..<2 {
+                        let leaf = SKShapeNode(path: BattlefieldArt.terrainShape(
+                            width: 7, height: 3, variation: index + leafIndex
+                        ))
                         leaf.fillColor = SKColor(
-                            red: 0.16 + CGFloat(leafIndex) * 0.045,
-                            green: 0.35 + CGFloat((index + leafIndex) % 3) * 0.06,
-                            blue: 0.19,
-                            alpha: 0.72
+                            red: 0.17 + CGFloat(leafIndex) * 0.04,
+                            green: 0.36 + CGFloat(index % 3) * 0.05,
+                            blue: 0.20, alpha: 0.57
                         )
                         leaf.strokeColor = .clear
                         leaf.position = CGPoint(
-                            x: x + CGFloat(leafIndex - 1) * 7,
-                            y: y + CGFloat((leafIndex * 5 + index) % 7) - 3
+                            x: x + CGFloat(leafIndex * 7 - 4),
+                            y: y + CGFloat((index * 5 + leafIndex) % 7 - 3)
                         )
-                        leaf.zRotation = CGFloat(leafIndex - 1) * 0.55
+                        leaf.zRotation = CGFloat((index + leafIndex) % 5) * 0.31
                         leaf.zPosition = -0.55
                         zoneScenery.addChild(leaf)
                     }
                 }
-                if index.isMultiple(of: 3) {
-                    let stone = SKShapeNode(ellipseOf: CGSize(width: 10 + CGFloat(index % 3) * 3, height: 6))
-                    stone.fillColor = SKColor(red: 0.32, green: 0.39, blue: 0.36, alpha: 0.7)
+                if index.isMultiple(of: 5) {
+                    let stone = SKShapeNode(path: BattlefieldArt.terrainShape(
+                        width: 11, height: 6, variation: index
+                    ))
+                    stone.fillColor = SKColor(
+                        red: 0.32, green: 0.37, blue: 0.33, alpha: 0.57
+                    )
                     stone.strokeColor = .clear
-                    stone.position = CGPoint(x: x + 5, y: y - 3)
+                    stone.position = CGPoint(x: x + 6, y: y - 4)
                     stone.zPosition = -0.6
                     zoneScenery.addChild(stone)
                 }
             }
-        }
-        // Narrow broken trail ties the room together without adding collision obstacles.
-        if zone <= 1 {
-            for index in 0..<9 {
-                let trail = SKShapeNode(ellipseOf: CGSize(width: CGFloat(28 + index % 3 * 8), height: 14))
-                trail.fillColor = SKColor(red: 0.32, green: 0.30, blue: 0.22, alpha: 0.20)
-                trail.strokeColor = .clear
-                trail.position = CGPoint(x: size.width * 0.5 + CGFloat((index * 17 + wave * 7) % 49 - 24),
-                                         y: roomBounds.minY + 48 + CGFloat(index) * max(18, (roomBounds.height - 90) / 9))
-                trail.zPosition = -0.85
-                zoneScenery.addChild(trail)
+            // The broken path is only a handful of subdued scuffs. No
+            // repeated horizontal bands, straight road markings or obstacles.
+            for index in 0..<6 {
+                let scuff = SKShapeNode(path: BattlefieldArt.terrainShape(
+                    width: CGFloat(20 + (index * 5) % 15),
+                    height: CGFloat(6 + index % 4),
+                    variation: index + wave
+                ))
+                scuff.fillColor = SKColor(
+                    red: 0.30, green: 0.27, blue: 0.19, alpha: 0.11
+                )
+                scuff.strokeColor = .clear
+                scuff.position = CGPoint(
+                    x: roomBounds.midX + CGFloat((index * 23 + wave * 11) % 67 - 33),
+                    y: roomBounds.minY + 55 + CGFloat(index) *
+                        max(25, (roomBounds.height - 110) / 6)
+                )
+                scuff.zRotation = CGFloat((index * 3 + wave) % 7 - 3) * 0.12
+                scuff.zPosition = -0.85
+                zoneScenery.addChild(scuff)
             }
         }
         // Fern silhouettes frame the path and vary by room without adding collision.
@@ -983,17 +1005,7 @@ final class OutpostScene: SKScene {
                 zoneScenery.addChild(fern)
             }
         }
-        // Small ground accents provide visual texture while keeping the center clear.
-        for index in 0..<12 {
-            let accent = SKShapeNode(ellipseOf: CGSize(width: 10 + CGFloat(index % 3) * 4, height: 4))
-            accent.fillColor = zone == 0 ? .systemGreen.withAlphaComponent(0.19) : .white.withAlphaComponent(0.09)
-            accent.strokeColor = .clear
-            let fraction = CGFloat(index + 1) / 13
-            accent.position = CGPoint(x: roomBounds.minX + roomBounds.width * fraction,
-                                      y: roomBounds.minY + 28 + CGFloat((index * 37 + wave * 11) % 70))
-            accent.zPosition = -0.2
-            zoneScenery.addChild(accent)
-        }
+        // No uniformly spaced horizontal accent dashes: the forest is not a grid.
     }
 
     // Production art takes precedence when a validated PNG is bundled in the app.
