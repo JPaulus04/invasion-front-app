@@ -1279,7 +1279,7 @@ final class OutpostScene: SKScene {
             pilotArt.xScale = isMoving ? 1 + 0.018 * sin(stridePhase) : 1
         }
         if phase == .gate {
-            if distance(pilot.position, passageGate.position) < 49 {
+            if RoomRules.enteredGate(pilot: pilot.position, gate: passageGate.position) {
                 passageGate.isHidden = true
                 gateUnlocked = true
                 heldTouch = nil
