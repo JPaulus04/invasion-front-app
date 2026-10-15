@@ -1408,6 +1408,7 @@ final class OutpostScene: SKScene {
         if let target = enemy.shotTarget {
             guard combatTime >= enemy.fireAt else { return }
             enemy.node.childNode(withName: "aimLine")?.removeFromParent()
+            enemy.node.childNode(withName: "aimReticle")?.removeFromParent()
             fireProjectile(from: enemy.node.position, toward: target)
             enemies[index].shotTarget = nil
             enemies[index].nextAttack = combatTime + CombatRules.shooterCooldown(room: wave)
@@ -1434,6 +1435,22 @@ final class OutpostScene: SKScene {
                     .fadeAlpha(to: 0.35, duration: 0.15),
                     .fadeAlpha(to: 1, duration: 0.15)
                 ])))
+                // Lock an unmistakable pink target ring to the shooter’s
+                // chosen firing point. The player can step away while the
+                // short warning is displayed; the ring does not chase them.
+                let aimReticle = SKShapeNode(circleOfRadius: 11)
+                aimReticle.name = "aimReticle"
+                aimReticle.position = CGPoint(x: pilot.position.x - enemy.node.position.x,
+                                             y: pilot.position.y - enemy.node.position.y)
+                aimReticle.strokeColor = .systemPink
+                aimReticle.lineWidth = 3
+                aimReticle.fillColor = .clear
+                aimReticle.zPosition = 7
+                enemy.node.addChild(aimReticle)
+                aimReticle.run(.repeatForever(.sequence([
+                    .group([.scale(to: 0.65, duration: 0.18), .fadeAlpha(to: 0.55, duration: 0.18)]),
+                    .group([.scale(to: 1.0, duration: 0.18), .fadeAlpha(to: 1.0, duration: 0.18)])
+                ])))
                 if enemy.node === bossNode { launchLob(from: enemy.node.position, target: pilot.position) }
             }
         }
@@ -1458,17 +1475,28 @@ final class OutpostScene: SKScene {
         let radius: CGFloat = 43
         let marker = SKShapeNode(circleOfRadius: radius)
         marker.position = target
-        marker.fillColor = .systemOrange.withAlphaComponent(0.18)
+        marker.fillColor = .systemOrange.withAlphaComponent(0.23)
         marker.strokeColor = .systemOrange
-        marker.lineWidth = 3
+        marker.lineWidth = 4
         marker.zPosition = 4
+        // A shrinking yellow countdown ring indicates *when* the mortar will
+        // land; the orange perimeter indicates *where*. Unlike a generic
+        // flash, it gives players actionable information while dodging.
+        let countdown = SKShapeNode(circleOfRadius: radius * 0.82)
+        countdown.name = "mortarCountdown"
+        countdown.fillColor = .clear
+        countdown.strokeColor = .systemYellow
+        countdown.lineWidth = 3
+        countdown.zPosition = 1
+        marker.addChild(countdown)
+        countdown.run(.scale(to: 0.18, duration: 1.4))
         marker.run(.repeatForever(.sequence([
             .group([.scale(to: 0.83, duration: 0.35), .fadeAlpha(to: 0.55, duration: 0.35)]),
             .group([.scale(to: 1, duration: 0.35), .fadeAlpha(to: 1, duration: 0.35)])
         ])))
         let cross = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         cross.text = "!"
-        cross.fontColor = .systemOrange
+        cross.fontColor = .systemYellow
         cross.fontSize = 25
         cross.verticalAlignmentMode = .center
         marker.addChild(cross)
