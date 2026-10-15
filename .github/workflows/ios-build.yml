@@ -53,8 +53,44 @@ jobs:
             fi
             echo "Verified bundled asset: $FOUND"
           done
+      - name: Package compiled simulator app
+        run: |
+          set -e
+          APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
+          test -x "$APP/OutpostZero"
+          ditto -c -k --keepParent "$APP" OutpostZero-simulator-app.zip
+          test -s OutpostZero-simulator-app.zip
+      - name: Upload compiled simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+          path: OutpostZero-simulator-app.zip
+          retention-days: 5
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-log
+          path: xcodebuild.log
+          if-no-files-found: ignore
+  simulator-review:
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download compiled simulator app
+        uses: actions/download-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+      - name: Restore executable app bundle
+        run: |
+          set -e
+          mkdir -p simulator-app
+          ditto -x -k OutpostZero-simulator-app.zip simulator-app
+          test -x simulator-app/OutpostZero.app/OutpostZero
       - name: Capture actual simulator screenshot
-        timeout-minutes: 4
+        timeout-minutes: 9
         run: |
           set -e
           # Every simulator subprocess is bounded so a stalled simctl cannot
@@ -70,9 +106,17 @@ jobs:
           DEVICE="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone [0-9]+/ {print $2; exit}')"
           test -n "$DEVICE"
           run_bounded 30 xcrun simctl boot "$DEVICE" || true
-          run_bounded 100 xcrun simctl bootstatus "$DEVICE" -b
-          APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
-          run_bounded 40 xcrun simctl install "$DEVICE" "$APP"
+          run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b
+          APP="simulator-app/OutpostZero.app"
+          # If CoreSimulatorService is cold, allow a generous first install.
+          # On failure restart only the simulator rather than recompiling iOS.
+          if ! run_bounded 110 xcrun simctl install "$DEVICE" "$APP"; then
+            echo "::warning::Install stalled; rebooting fresh simulator and retrying"
+            run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
+            run_bounded 45 xcrun simctl boot "$DEVICE" || true
+            run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b
+            run_bounded 120 xcrun simctl install "$DEVICE" "$APP"
+          fi
           mkdir -p screenshots
           # A cold-booted simulator can show a gray launch screen for several
           # seconds while still returning success from 'simctl launch'.
@@ -129,11 +173,4 @@ jobs:
         with:
           name: build-314-simulator-screenshot
           path: screenshots/build-314-*.png
-          if-no-files-found: ignore
-      - name: Upload build diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-build-log
-          path: xcodebuild.log
           if-no-files-found: ignore
