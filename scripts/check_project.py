@@ -33,6 +33,10 @@ if "lockedLoadout.availableTacticalUpgrades(" not in scene:
     errors.append("XP choices must be restricted to committed abilities")
 if "private func updateOrbitingDefenses()" not in scene:
     errors.append("Orbital blade must have a real contact damage effect")
+if 'ProcessInfo.processInfo.arguments.contains("-captureLoadoutScreenshot")' not in scene:
+    errors.append("Build 315 must capture the actual pre-world loadout selection")
+if "private func enterSelectedWorld() -> Bool" not in scene or "_ = enterSelectedWorld()" not in scene:
+    errors.append("Loadout simulator QA and touch route must share a lock action")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

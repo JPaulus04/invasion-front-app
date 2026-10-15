@@ -349,6 +349,21 @@ final class OutpostScene: SKScene {
         health = maximumHealth
         layout()
         showReady()
+        // Capture the new world-entry loadout and verify the real lock route.
+        // Screenshots show a complete selection, not empty prototype buttons.
+        if ProcessInfo.processInfo.arguments.contains("-captureLoadoutScreenshot") {
+            draftLoadout = AbilityLoadout(selected: ["chain", "incendiary", "orbit"])
+            showLoadout()
+            precondition(draftLoadout.isReady &&
+                         overlayButtons["pick_explosive"] == nil &&
+                         overlayButtons["lock_loadout"] != nil,
+                         "Three selected abilities must unlock entry and disable a fourth")
+            precondition(enterSelectedWorld() && wave == 1 &&
+                         lockedLoadout.contains("orbit") &&
+                         !lockedLoadout.contains("explosive"),
+                         "Entering a world must lock exactly the selected abilities")
+            showLoadout()
+        }
         // CI-only room-clear screenshot: verify that combat hides the exit and
         // defeating the last foe exposes a readable ENTER gate.
         if ProcessInfo.processInfo.arguments.contains("-captureGateScreenshot") {
@@ -714,6 +729,14 @@ final class OutpostScene: SKScene {
         actionButton("LOCK LOADOUT & ENTER", key: "lock_loadout", y: -181,
                      tint: .systemGreen, enabled: draftLoadout.isReady)
         actionButton("BACK TO WORLDS", key: "back_loadout", y: -228, tint: .systemBlue)
+    }
+
+    @discardableResult
+    private func enterSelectedWorld() -> Bool {
+        guard phase == .loadout, draftLoadout.isReady else { return false }
+        lockedLoadout = draftLoadout
+        startWave()
+        return true
     }
 
     private func startWave() {
@@ -2394,8 +2417,7 @@ final class OutpostScene: SKScene {
         case (.loadout, let key?) where key.hasPrefix("pick_"):
             if draftLoadout.toggle(String(key.dropFirst(5))) { showLoadout() }
         case (.loadout, "lock_loadout") where draftLoadout.isReady:
-            lockedLoadout = draftLoadout
-            startWave()
+            _ = enterSelectedWorld()
         case (.ready, "world_prev"):
             worldMapIndex = max(0, worldMapIndex - 1)
             showReady()
