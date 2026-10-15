@@ -609,6 +609,8 @@ final class OutpostScene: SKScene {
         (passageGate.children.first as? SKLabelNode)?.text = "LOCKED"
         passageGate.childNode(withName: "gateArrow")?.isHidden = true
         passageGate.removeAllActions()
+        passageGate.childNode(withName: "portalEnergy")?.removeAllActions()
+        passageGate.childNode(withName: "portalEnergy")?.alpha = 1
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.position = CGPoint(x: 0, y: -40)
         passageGate.alpha = 1
@@ -1832,7 +1834,7 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         passageGate.isHidden = false
-        passageGate.fillColor = .systemCyan
+        passageGate.fillColor = SKColor(red: 0.07, green: 0.12, blue: 0.17, alpha: 1)
         (passageGate.children.first as? SKLabelNode)?.text = "ENTER"
         passageGate.childNode(withName: "gateArrow")?.isHidden = false
         passageGate.alpha = 1
@@ -1840,7 +1842,13 @@ final class OutpostScene: SKScene {
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.position = CGPoint(x: 0, y: -40)
         passageGate.childNode(withName: "gateArrow")?.run(.repeatForever(.sequence([.moveBy(x: 0, y: 7, duration: 0.45), .moveBy(x: 0, y: -7, duration: 0.45)])))
-        passageGate.run(.repeatForever(.sequence([.fadeAlpha(to: 0.5, duration: 0.65), .fadeAlpha(to: 1, duration: 0.65)])))
+        // Pulse only the portal energy, keeping its metal doorway solid.
+        let energy = passageGate.childNode(withName: "portalEnergy")
+        energy?.removeAllActions()
+        energy?.run(.repeatForever(.sequence([
+            .fadeAlpha(to: 0.35, duration: 0.65),
+            .fadeAlpha(to: 0.88, duration: 0.65)
+        ])))
         warning.text = "ROOM CLEAR — EXIT OPEN"
         warning.fontColor = .systemGreen
         warning.fontSize = 13
