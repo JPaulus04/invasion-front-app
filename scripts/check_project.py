@@ -42,9 +42,14 @@ if "RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.co
     errors.append("Exit gate must require a cleared room")
 if "passageGate.isHidden = false" not in gate_section or "phase = .gate" not in gate_section:
     errors.append("Cleared rooms must expose a walk-through exit gate")
-for sprite in ("scout_idle", "raider_idle", "heavy_idle"):
+for sprite in ("scout_idle", "raider_idle", "heavy_idle", "shooter_idle", "lobber_idle"):
     if sprite not in scene:
         errors.append(f"Missing illustrated enemy mapping: {sprite}")
+# CI snapshots must stage all five distinct enemy silhouettes for review.
+if "for (index, kind) in [1, 2, 3, 4, 5].enumerated()" not in scene:
+    errors.append("Combat screenshot must stage all five enemy classes")
+if 'ProcessInfo.processInfo.arguments.contains("-captureGateScreenshot")' not in scene:
+    errors.append("Missing gate-open screenshot mode")
 # Finished enemy illustrations must not be covered by prototype geometry.
 enemy_section = scene.split("private func spawnEnemy()", 1)[-1].split("// Telegraphed materialization inside the room", 1)[0]
 for guard in (
