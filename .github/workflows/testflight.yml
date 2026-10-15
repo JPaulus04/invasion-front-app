@@ -73,16 +73,13 @@ jobs:
       - name: Compile simulator before signing or uploading
         run: |
           set -o pipefail
-          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee simulator-build.log
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/OutpostZeroSimulatorDerivedData" CODE_SIGNING_ALLOWED=NO build 2>&1 | tee simulator-build.log
       - name: Verify artwork inside compiled simulator bundle
         run: |
           set -e
-          APP="$(find "$PWD/build" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name 'OutpostZero.app' -path '*Debug-iphonesimulator*' -print -quit 2>/dev/null || true)"
-          # Build output path can differ across macOS images; resolve it via xcodebuild.
-          if [ -z "$APP" ]; then
-            PRODUCTS="$(xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -showBuildSettings | awk '/ TARGET_BUILD_DIR = / {print $3; exit}')"
-            APP="$PRODUCTS/OutpostZero.app"
-          fi
+          # Use the exact DerivedData path supplied to the compile step.
+          # This is stable across macOS runner images and avoids false negatives.
+          APP="$RUNNER_TEMP/OutpostZeroSimulatorDerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           test -d "$APP"
           for ASSET in pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
             find "$APP" -type f -name "$ASSET" -print -quit | grep -q . || { echo "::error::Simulator app missing $ASSET"; exit 1; }
