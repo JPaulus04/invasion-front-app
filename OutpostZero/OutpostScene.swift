@@ -847,12 +847,20 @@ final class OutpostScene: SKScene {
 
     private func updateZoneScenery(_ zone: Int) {
         zoneScenery.removeAllChildren()
+        // The forest becomes cooler and darker in Rooms 6-10. The previous
+        // backdrop tint was hidden beneath the opaque room-art floor.
+        if let floor = arena.childNode(withName: "roomArtwork")?.children.first as? SKShapeNode {
+            floor.fillColor = zone == 1
+                ? SKColor(red: 0.22, green: 0.30, blue: 0.23, alpha: 1)
+                : SKColor(red: 0.27, green: 0.32, blue: 0.25, alpha: 1)
+        }
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
         let count = zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)
         let roomVariant = (wave - 1) % 4
         for index in 0..<count {
             let leftSide = (index + roomVariant).isMultiple(of: 2)
-            let side: CGFloat = zone == 0 ? (leftSide ? 0.12 : 0.88) : (leftSide ? 0.09 : 0.91)
+            let side: CGFloat = zone == 0 ? (leftSide ? 0.12 : 0.88) :
+                (zone == 1 ? (leftSide ? 0.16 : 0.84) : (leftSide ? 0.09 : 0.91))
             let x = size.width * side + CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8
             let y = roomBounds.minY + 55 + CGFloat(index) * max(25, (roomBounds.height - 100) / CGFloat(count)) + CGFloat(((index * 11 + wave * 7) % 19) - 9)
             let prop: SKShapeNode
@@ -917,7 +925,7 @@ final class OutpostScene: SKScene {
                 // the perimeter, outside the player's movement corridor.
                 prop.fillColor = .clear
                 prop.strokeColor = .clear
-                let canopy = (index + roomVariant).isMultiple(of: 3)
+                let canopy = (index + roomVariant) % 3 != 1
                 if canopy {
                     let shadow = SKShapeNode(ellipseOf: CGSize(width: 48, height: 13))
                     shadow.fillColor = .black.withAlphaComponent(0.32)
@@ -927,7 +935,7 @@ final class OutpostScene: SKScene {
                     prop.addChild(shadow)
                     let tree = SKSpriteNode(texture: productionTexture(
                         named: "forest_broadleaf", fallback: forestPineTexture))
-                    tree.size = CGSize(width: 66, height: 87)
+                    tree.size = CGSize(width: 70, height: 94)
                     tree.position = CGPoint(x: leftSide ? -5 : 5, y: 8)
                     tree.xScale = leftSide ? 1 : -1
                     tree.zRotation = CGFloat((index + wave) % 5 - 2) * 0.025
@@ -949,7 +957,7 @@ final class OutpostScene: SKScene {
                     }
                 } else {
                     let underbrush = SKShapeNode(path: BattlefieldArt.terrainShape(
-                        width: 47, height: 15, variation: index + wave))
+                        width: 53, height: 17, variation: index + wave))
                     underbrush.fillColor = SKColor(red: 0.08, green: 0.21, blue: 0.14, alpha: 0.9)
                     underbrush.strokeColor = .clear
                     underbrush.position.y = -12
@@ -964,7 +972,7 @@ final class OutpostScene: SKScene {
                             blue: 0.17 + CGFloat(leafIndex % 2) * 0.04, alpha: 0.96)
                         leaf.strokeColor = .clear
                         leaf.position = CGPoint(
-                            x: CGFloat((leafIndex * 11) % 54 - 26),
+                            x: CGFloat((leafIndex * 11) % 60 - 29),
                             y: CGFloat((leafIndex * 13) % 21 - 7))
                         leaf.zRotation = CGFloat((leafIndex * 3 + wave) % 7 - 3) * 0.20
                         leaf.zPosition = 0.2 + CGFloat(leafIndex) * 0.01
