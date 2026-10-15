@@ -346,9 +346,19 @@ final class OutpostScene: SKScene {
             passageGate.alpha = 1
             passageGate.childNode(withName: "gateArrow")?.removeAllActions()
         }
+        // CI-only motion review: run real combat and movement instead of
+        // freezing an art-review frame. This never executes in normal play.
+        if ProcessInfo.processInfo.arguments.contains("-captureGameplayVideo") {
+            startWave()
+            movementTarget = CGPoint(x: roomBounds.midX + roomBounds.width * 0.18,
+                                     y: roomBounds.midY - roomBounds.height * 0.08)
+        }
         // CI-only launch flag: capture real combat rather than the world-map menu.
         if ProcessInfo.processInfo.arguments.contains("-captureCombatScreenshot") {
             startWave()
+            // The six posed QA enemies comprise the whole displayed test room.
+            waveTarget = 6
+            spawned = 6
             // CI art review: hold a real room with living enemies on screen.
             // This launch-only mode does not affect normal play or TestFlight.
             for (index, kind) in [1, 2, 3, 0, 4, 5].enumerated() {
