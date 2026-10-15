@@ -45,7 +45,7 @@ jobs:
           set -e
           APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           test -d "$APP"
-          for ASSET in pilot_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
+          for ASSET in pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
             FOUND="$(find "$APP" -type f -name "$ASSET" -print -quit)"
             if [ -z "$FOUND" ]; then
               echo "::error::$ASSET is missing from the compiled iOS app bundle"
