@@ -85,55 +85,40 @@ jobs:
           }
           capture_scene -captureGateScreenshot screenshots/build-314-gate-open.png
           capture_scene -captureCombatScreenshot screenshots/build-314-simulator.png
-          # Unlike the frozen character-art image, this recording exercises
-          # real movement, spawning, auto-fire and enemy reaction timing.
+          # Sample a live, moving combat encounter at three different times.
+          # Independent PNG captures avoid simulator video-recorder hangs.
           xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
-          xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureGameplayVideo
-          sleep 2
-          # Bash background jobs may ignore SIGINT, leaving a recorder
-          # running until the whole CI step times out. Start a dedicated
-          # process group and signal it explicitly to finalize the MP4.
-          DEVICE="$DEVICE" python3 - <<'PY'
-          import os
-          from pathlib import Path
-          import signal
-          import subprocess
-          import time
-
-          output = Path("screenshots/build-314-combat-motion.mp4")
-          cmd = ["xcrun", "simctl", "io", os.environ["DEVICE"],
-                 "recordVideo", "--codec=h264", "--force", str(output)]
-          recorder = subprocess.Popen(cmd, start_new_session=True)
-          try:
-              time.sleep(9)
-              os.killpg(recorder.pid, signal.SIGINT)
-              recorder.wait(timeout=18)
-          except subprocess.TimeoutExpired:
-              os.killpg(recorder.pid, signal.SIGTERM)
-              recorder.wait(timeout=5)
-              raise RuntimeError("Simulator recording failed to stop")
-          finally:
-              if recorder.poll() is None:
-                  os.killpg(recorder.pid, signal.SIGTERM)
-          assert output.exists() and output.stat().st_size > 100000, "No playable-size recording"
-          print(f"Recorded {output}: {output.stat().st_size} bytes")
-          PY
+          xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureGameplayFrames
+          sleep 3
+          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-1.png
+          sleep 3
+          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-2.png
+          sleep 3
+          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-3.png
       - name: Validate simulator screenshot was captured
         run: |
           set -e
           test -s screenshots/build-314-simulator.png
           test -s screenshots/build-314-gate-open.png
           python3 scripts/validate_simulator_screenshots.py screenshots/build-314-simulator.png screenshots/build-314-gate-open.png
-          test -s screenshots/build-314-combat-motion.mp4
-          test "$(wc -c < screenshots/build-314-combat-motion.mp4)" -gt 100000
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/build-314-motion-1.png \
+            screenshots/build-314-motion-2.png \
+            screenshots/build-314-motion-3.png
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          frames = [Path(f"screenshots/build-314-motion-{index}.png").read_bytes() for index in (1, 2, 3)]
+          hashes = {sha256(frame).digest() for frame in frames}
+          assert len(hashes) >= 2, "Live combat snapshots are identical: scene may be frozen"
+          print(f"PASS: {len(hashes)} different live combat captures")
+          PY
       - name: Upload actual simulator screenshot
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-314-simulator-screenshot
-          path: |
-            screenshots/build-314-*.png
-            screenshots/build-314-*.mp4
+          path: screenshots/build-314-*.png
           if-no-files-found: ignore
       - name: Upload build diagnostics
         if: always()
