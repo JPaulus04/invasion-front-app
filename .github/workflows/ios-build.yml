@@ -69,15 +69,21 @@ jobs:
           xcrun simctl io "$DEVICE" screenshot screenshots/build-314-combat-early.png
           sleep 2
           xcrun simctl io "$DEVICE" screenshot screenshots/build-314-simulator.png
+          # Capture the gate after a cleared room in a separate app launch.
+          xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+          xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureGateScreenshot
+          sleep 2
+          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-gate-open.png
       - name: Validate simulator screenshot was captured
         run: |
           set -e
           test -s screenshots/build-314-simulator.png
           test -s screenshots/build-314-combat-early.png
+          test -s screenshots/build-314-gate-open.png
           python3 - <<'PY'
           from pathlib import Path
           import struct
-          for p in (Path("screenshots/build-314-combat-early.png"), Path("screenshots/build-314-simulator.png")):
+          for p in (Path("screenshots/build-314-combat-early.png"), Path("screenshots/build-314-simulator.png"), Path("screenshots/build-314-gate-open.png")):
               data = p.read_bytes()
               assert data[:8] == bytes((137, 80, 78, 71, 13, 10, 26, 10)), f"{p} is not a PNG"
               width, height = struct.unpack(">II", data[16:24])
