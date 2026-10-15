@@ -155,7 +155,7 @@ final class OutpostScene: SKScene {
         speedButton.strokeColor = .white
         speedButton.lineWidth = 1
         speedButton.zPosition = 5
-        speedLabel.fontSize = 15
+        speedLabel.fontSize = 12
         speedLabel.fontColor = .white
         speedLabel.verticalAlignmentMode = .center
         speedLabel.text = "1× SPEED"
