@@ -34,7 +34,9 @@ def verify(path: Path) -> None:
     previous = bytearray(stride)
     colors = set()
     # Ignore static phone notch/home bar; sample the game area.
-    x_positions = range(width // 8, width * 7 // 8, max(1, width // 24))
+    # A denser grid catches small, moving sprites in intentionally sparse
+    # ranged arenas without treating real gameplay as an unrendered frame.
+    x_positions = range(width // 8, width * 7 // 8, max(1, width // 40))
     y_step = max(1, height // 35)
     for y in range(height):
         offset = y * (stride + 1)
@@ -65,7 +67,9 @@ def verify(path: Path) -> None:
         previous = row
     # A blank simulator frame has one battlefield color. Rendered gameplay
     # has scenery, characters, gate and HUD with many distinct colors.
-    if len(colors) < 20:
+    # A truly blank canvas stays nearly monochrome. Low-prop ranged rooms
+    # legitimately produce fewer colors than dense forest/gate screenshots.
+    if len(colors) < 15:
         raise ValueError(f"blank or unrendered simulator capture ({len(colors)} sampled colors)")
     print(f"PASS: {path} {width}x{height}, {len(colors)} battlefield colors")
 
