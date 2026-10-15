@@ -54,15 +54,25 @@ jobs:
             echo "Verified bundled asset: $FOUND"
           done
       - name: Capture actual simulator screenshot
-        timeout-minutes: 10
+        timeout-minutes: 4
         run: |
           set -e
+          # Every simulator subprocess is bounded so a stalled simctl cannot
+          # pin the macOS runner until the whole job times out.
+          run_bounded() {
+            LIMIT="$1"; shift
+            python3 - "$LIMIT" "$@" <<'PY'
+          import subprocess
+          import sys
+          subprocess.run(sys.argv[2:], check=True, timeout=int(sys.argv[1]))
+          PY
+          }
           DEVICE="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone [0-9]+/ {print $2; exit}')"
           test -n "$DEVICE"
-          xcrun simctl boot "$DEVICE" || true
-          xcrun simctl bootstatus "$DEVICE" -b
+          run_bounded 30 xcrun simctl boot "$DEVICE" || true
+          run_bounded 100 xcrun simctl bootstatus "$DEVICE" -b
           APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
-          xcrun simctl install "$DEVICE" "$APP"
+          run_bounded 40 xcrun simctl install "$DEVICE" "$APP"
           mkdir -p screenshots
           # A cold-booted simulator can show a gray launch screen for several
           # seconds while still returning success from 'simctl launch'.
@@ -71,10 +81,10 @@ jobs:
             FLAG="$1"
             OUTPUT="$2"
             for ATTEMPT in 1 2 3; do
-              xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
-              xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"
+              run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+              run_bounded 35 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"
               sleep 4
-              xcrun simctl io "$DEVICE" screenshot "$OUTPUT"
+              run_bounded 30 xcrun simctl io "$DEVICE" screenshot "$OUTPUT"
               if python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
                 return 0
               fi
@@ -87,14 +97,14 @@ jobs:
           capture_scene -captureCombatScreenshot screenshots/build-314-simulator.png
           # Sample a live, moving combat encounter at three different times.
           # Independent PNG captures avoid simulator video-recorder hangs.
-          xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
-          xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureGameplayFrames
+          run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+          run_bounded 35 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureGameplayFrames
           sleep 3
-          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-1.png
+          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-1.png
           sleep 3
-          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-2.png
+          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-2.png
           sleep 3
-          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-3.png
+          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-3.png
       - name: Validate simulator screenshot was captured
         run: |
           set -e
