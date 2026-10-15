@@ -292,6 +292,17 @@ final class OutpostScene: SKScene {
         health = maximumHealth
         layout()
         showReady()
+        // CI-only room-clear screenshot: verify that combat hides the exit and
+        // defeating the last foe exposes a readable ENTER gate.
+        if ProcessInfo.processInfo.arguments.contains("-captureGateScreenshot") {
+            startWave()
+            spawned = waveTarget
+            showZoneGate()
+            // Keep the exit fully visible for a stable visual regression frame.
+            passageGate.removeAllActions()
+            passageGate.alpha = 1
+            passageGate.childNode(withName: "gateArrow")?.removeAllActions()
+        }
         // CI-only launch flag: capture real combat rather than the world-map menu.
         if ProcessInfo.processInfo.arguments.contains("-captureCombatScreenshot") {
             startWave()
