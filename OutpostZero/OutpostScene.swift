@@ -547,7 +547,9 @@ final class OutpostScene: SKScene {
             return
         }
         gateUnlocked = false
-        passageGate.isHidden = false
+        // Keep the exit hidden during combat; the gate only appears after
+        // the room is cleared, avoiding a distracting LOCKED banner.
+        passageGate.isHidden = true
         passageGate.fillColor = .darkGray
         (passageGate.children.first as? SKLabelNode)?.text = "LOCKED"
         passageGate.childNode(withName: "gateArrow")?.isHidden = true
