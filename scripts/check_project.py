@@ -65,7 +65,7 @@ for flag in ("-captureLevelUpScreenshot", "-captureLevelUpResumeScreenshot"):
     if flag not in scene:
         errors.append(f"Missing level-up simulator capture: {flag}")
 qa_scene = scene.split("// CI-only level-up integration review:", 1)[-1].split("// CI-only launch flag:", 1)[0]
-for statement in ("removeDefeatedEnemies()", "progress.pendingChoices == 1", "chooseLevelUpgrade(levelChoices[0])", "progress.pendingChoices == 0"):
+for statement in ("removeDefeatedEnemies()", "progress.pendingChoices == 1", "activateLevelUp(at: CGPoint(x: rect.midX, y: rect.midY))", "progress.pendingChoices == 0"):
     if statement not in qa_scene:
         errors.append(f"Level-up integration regression: {statement}")
 # The same upgrade-card hit testing must be used by simulator QA and real taps.
