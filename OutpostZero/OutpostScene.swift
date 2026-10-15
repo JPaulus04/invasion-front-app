@@ -934,11 +934,11 @@ final class OutpostScene: SKScene {
         if type == 5 { node.fillColor = .systemOrange }
         node.strokeColor = type == 1 ? .systemYellow : .white
         node.lineWidth = type == 1 ? 4 : 2
-        let usesIllustratedEnemy = !isBoss && productionImage(named: (type == 1 || type == 2) ? "scout_idle" : (type == 3 ? "heavy_idle" : "enemy_default")) != nil
+        let usesIllustratedEnemy = !isBoss && productionImage(named: type == 1 ? "scout_idle" : (type == 2 ? "raider_idle" : (type == 3 ? "heavy_idle" : "enemy_default"))) != nil
         // Textured chassis overlay: preserves collision geometry while changing the visible silhouette.
         if !isBoss {
             // Use class-specific artwork only for matching roles; never recolor finished illustrations.
-            let assetName = (type == 1 || type == 2) ? "scout_idle" : (type == 3 ? "heavy_idle" : "enemy_default")
+            let assetName = type == 1 ? "scout_idle" : (type == 2 ? "raider_idle" : (type == 3 ? "heavy_idle" : "enemy_default"))
             let hasProductionArt = productionImage(named: assetName) != nil
             // The collision circle must not show through transparent character art.
             if hasProductionArt {
