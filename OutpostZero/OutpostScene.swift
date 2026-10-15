@@ -308,17 +308,16 @@ final class OutpostScene: SKScene {
             startWave()
             // CI art review: hold a real room with living enemies on screen.
             // This launch-only mode does not affect normal play or TestFlight.
-            for (index, kind) in [1, 2, 3, 4, 5].enumerated() {
+            for (index, kind) in [1, 2, 3, 0, 4, 5].enumerated() {
                 spawnEnemy(artReviewType: kind)
-                // Keep all five classes visible in the actual screenshot:
-                // three melee designs above, two ranged threats below.
+                // Three enemies per row: melee threats above and the
+                // ordinary grunt plus ranged threats below.
                 if let enemy = enemies.last {
-                    let horizontal = index < 3
-                        ? CGFloat(index - 1) * roomBounds.width * 0.26
-                        : CGFloat(index == 3 ? -1 : 1) * roomBounds.width * 0.18
+                    let column = index % 3
+                    let row = index / 3
                     enemy.node.position = CGPoint(
-                        x: roomBounds.midX + horizontal,
-                        y: roomBounds.midY + roomBounds.height * (index < 3 ? 0.23 : 0.01)
+                        x: roomBounds.midX + CGFloat(column - 1) * roomBounds.width * 0.28,
+                        y: roomBounds.midY + roomBounds.height * (row == 0 ? 0.23 : 0.01)
                     )
                 }
             }
@@ -956,11 +955,11 @@ final class OutpostScene: SKScene {
         if type == 5 { node.fillColor = .systemOrange }
         node.strokeColor = type == 1 ? .systemYellow : .white
         node.lineWidth = type == 1 ? 4 : 2
-        let usesIllustratedEnemy = !isBoss && productionImage(named: type == 1 ? "scout_idle" : (type == 2 ? "raider_idle" : (type == 3 ? "heavy_idle" : (type == 4 ? "shooter_idle" : (type == 5 ? "lobber_idle" : "enemy_default"))))) != nil
+        let usesIllustratedEnemy = !isBoss && productionImage(named: type == 1 ? "scout_idle" : (type == 2 ? "raider_idle" : (type == 3 ? "heavy_idle" : (type == 4 ? "shooter_idle" : (type == 5 ? "lobber_idle" : "grunt_idle"))))) != nil
         // Textured chassis overlay: preserves collision geometry while changing the visible silhouette.
         if !isBoss {
             // Use class-specific artwork only for matching roles; never recolor finished illustrations.
-            let assetName = type == 1 ? "scout_idle" : (type == 2 ? "raider_idle" : (type == 3 ? "heavy_idle" : (type == 4 ? "shooter_idle" : (type == 5 ? "lobber_idle" : "enemy_default"))))
+            let assetName = type == 1 ? "scout_idle" : (type == 2 ? "raider_idle" : (type == 3 ? "heavy_idle" : (type == 4 ? "shooter_idle" : (type == 5 ? "lobber_idle" : "grunt_idle"))))
             let hasProductionArt = productionImage(named: assetName) != nil
             // The collision circle must not show through transparent character art.
             if hasProductionArt {
