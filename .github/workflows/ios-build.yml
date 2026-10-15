@@ -76,7 +76,7 @@ jobs:
   simulator-review:
     needs: build
     runs-on: macos-15
-    timeout-minutes: 17
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Download compiled simulator app
@@ -90,7 +90,7 @@ jobs:
           ditto -x -k OutpostZero-simulator-app.zip simulator-app
           test -x simulator-app/OutpostZero.app/OutpostZero
       - name: Capture actual simulator screenshot
-        timeout-minutes: 11
+        timeout-minutes: 14
         run: |
           set -e
           # Every simulator subprocess is bounded so a stalled simctl cannot
@@ -148,26 +148,51 @@ jobs:
           capture_scene -captureCombatScreenshot screenshots/build-314-simulator.png
           capture_scene -captureLevelUpScreenshot screenshots/build-314-level-up.png
           capture_scene -captureLevelUpResumeScreenshot screenshots/build-314-level-up-resumed.png
-          # Sample a live, moving combat encounter at three different times.
-          # Independent PNG captures avoid simulator video-recorder hangs.
-          run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
-          run_bounded 35 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureGameplayFrames
+          # The live gameplay launch is especially prone to timing out after
+          # four rapid cold-state art captures. Retry it just like the static
+          # screenshots rather than mistaking a slow CoreSimulator for a crash.
+          launch_live_scene() {
+            FLAG="$1"
+            for ATTEMPT in 1 2 3; do
+              run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+              if run_bounded 50 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+                return 0
+              fi
+              echo "::warning::Live simulator launch for $FLAG timed out (attempt $ATTEMPT)"
+              sleep 5
+            done
+            echo "::error::Cannot launch live QA scene $FLAG after three attempts"
+            return 1
+          }
+          capture_live_frame() {
+            OUTPUT="$1"
+            for ATTEMPT in 1 2; do
+              if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT"; then
+                return 0
+              fi
+              echo "::warning::Timed out capturing $OUTPUT (attempt $ATTEMPT)"
+              sleep 4
+            done
+            echo "::error::Cannot capture live QA frame $OUTPUT"
+            return 1
+          }
+          # Three real frames exercise movement and auto-fire, without relying
+          # on the simulator video recorder, which can hang on macOS runners.
+          launch_live_scene -captureGameplayFrames
           sleep 3
-          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-1.png
+          capture_live_frame screenshots/build-314-motion-1.png
           sleep 3
-          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-2.png
+          capture_live_frame screenshots/build-314-motion-2.png
           sleep 3
-          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-3.png
-          # Advance to Room 11 with both ranged attack classes under real
-          # AI control; sample their warning indicators and projectiles.
-          run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
-          run_bounded 35 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureRangedCombatFrames
+          capture_live_frame screenshots/build-314-motion-3.png
+          # Room 11: observe both shooters and lobbers under live AI control.
+          launch_live_scene -captureRangedCombatFrames
           sleep 2
-          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-1.png
+          capture_live_frame screenshots/build-314-ranged-1.png
           sleep 3
-          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-2.png
+          capture_live_frame screenshots/build-314-ranged-2.png
           sleep 3
-          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-3.png
+          capture_live_frame screenshots/build-314-ranged-3.png
       - name: Validate simulator screenshot was captured
         run: |
           set -e
