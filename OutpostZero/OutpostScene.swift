@@ -268,6 +268,48 @@ final class OutpostScene: SKScene {
         gateText.verticalAlignmentMode = .center
         gateText.zPosition = 4
         passageGate.addChild(gateText)
+        // Illustrated structural details make this an in-world doorway,
+        // not a floating rectangular menu button.
+        let portalWindow = SKShapeNode(rectOf: CGSize(width: 76, height: 33), cornerRadius: 8)
+        portalWindow.fillColor = SKColor(red: 0.06, green: 0.23, blue: 0.33, alpha: 1)
+        portalWindow.strokeColor = .systemCyan
+        portalWindow.lineWidth = 1.5
+        portalWindow.zPosition = 0.5
+        passageGate.addChild(portalWindow)
+        let portalEnergy = SKShapeNode(rectOf: CGSize(width: 62, height: 21), cornerRadius: 7)
+        portalEnergy.name = "portalEnergy"
+        portalEnergy.fillColor = SKColor(red: 0.19, green: 0.76, blue: 0.88, alpha: 0.48)
+        portalEnergy.strokeColor = .clear
+        portalEnergy.zPosition = 1
+        passageGate.addChild(portalEnergy)
+        for side: CGFloat in [-1, 1] {
+            let pylon = SKShapeNode(rectOf: CGSize(width: 12, height: 67), cornerRadius: 3)
+            pylon.position = CGPoint(x: side * 52, y: 0)
+            pylon.fillColor = SKColor(red: 0.19, green: 0.28, blue: 0.36, alpha: 1)
+            pylon.strokeColor = .systemTeal
+            pylon.lineWidth = 2
+            pylon.zPosition = 3
+            passageGate.addChild(pylon)
+            let indicator = SKShapeNode(rectOf: CGSize(width: 4, height: 17), cornerRadius: 1)
+            indicator.fillColor = .systemCyan
+            indicator.strokeColor = .clear
+            indicator.position.y = 4
+            pylon.addChild(indicator)
+        }
+        let lintel = SKShapeNode(rectOf: CGSize(width: 115, height: 10), cornerRadius: 3)
+        lintel.position.y = 32
+        lintel.fillColor = SKColor(red: 0.23, green: 0.33, blue: 0.39, alpha: 1)
+        lintel.strokeColor = .systemTeal
+        lintel.lineWidth = 2
+        lintel.zPosition = 3
+        passageGate.addChild(lintel)
+        let threshold = SKShapeNode(rectOf: CGSize(width: 116, height: 9), cornerRadius: 3)
+        threshold.position.y = -31
+        threshold.fillColor = SKColor(red: 0.21, green: 0.31, blue: 0.36, alpha: 1)
+        threshold.strokeColor = .systemTeal
+        threshold.lineWidth = 1.5
+        threshold.zPosition = 3
+        passageGate.addChild(threshold)
         let gateArrow = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         gateArrow.text = "▲"
         gateArrow.fontSize = 22
