@@ -90,12 +90,34 @@ jobs:
           xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
           xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureGameplayVideo
           sleep 2
-          xcrun simctl io "$DEVICE" recordVideo --codec=h264 --force screenshots/build-314-combat-motion.mp4 &
-          RECORD_PID=$!
-          sleep 9
-          kill -INT "$RECORD_PID" || true
-          wait "$RECORD_PID" || true
-          test -s screenshots/build-314-combat-motion.mp4
+          # Bash background jobs may ignore SIGINT, leaving a recorder
+          # running until the whole CI step times out. Start a dedicated
+          # process group and signal it explicitly to finalize the MP4.
+          DEVICE="$DEVICE" python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import signal
+          import subprocess
+          import time
+
+          output = Path("screenshots/build-314-combat-motion.mp4")
+          cmd = ["xcrun", "simctl", "io", os.environ["DEVICE"],
+                 "recordVideo", "--codec=h264", "--force", str(output)]
+          recorder = subprocess.Popen(cmd, start_new_session=True)
+          try:
+              time.sleep(9)
+              os.killpg(recorder.pid, signal.SIGINT)
+              recorder.wait(timeout=18)
+          except subprocess.TimeoutExpired:
+              os.killpg(recorder.pid, signal.SIGTERM)
+              recorder.wait(timeout=5)
+              raise RuntimeError("Simulator recording failed to stop")
+          finally:
+              if recorder.poll() is None:
+                  os.killpg(recorder.pid, signal.SIGTERM)
+          assert output.exists() and output.stat().st_size > 100000, "No playable-size recording"
+          print(f"Recorded {output}: {output.stat().st_size} bytes")
+          PY
       - name: Validate simulator screenshot was captured
         run: |
           set -e
