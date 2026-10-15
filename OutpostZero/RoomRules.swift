@@ -37,6 +37,14 @@ enum RoomRules {
         })!
     }
 
+    /// A room advances only when the character actually steps into the open
+    /// portal, not when approaching from almost a character-length away.
+    static func enteredGate(pilot: CGPoint, gate: CGPoint) -> Bool {
+        abs(pilot.x - gate.x) <= 36 &&
+        pilot.y >= gate.y - 14 &&
+        pilot.y <= gate.y + 36
+    }
+
     static func isCleared(spawned: Int, target: Int, living: Int) -> Bool {
         target > 0 && spawned == target && living == 0
     }
