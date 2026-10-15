@@ -51,7 +51,7 @@ if "for (index, kind) in [1, 2, 3, 4, 5].enumerated()" not in scene:
 if 'ProcessInfo.processInfo.arguments.contains("-captureGateScreenshot")' not in scene:
     errors.append("Missing gate-open screenshot mode")
 # Finished enemy illustrations must not be covered by prototype geometry.
-enemy_section = scene.split("private func spawnEnemy()", 1)[-1].split("// Telegraphed materialization inside the room", 1)[0]
+enemy_section = scene.split("private func spawnEnemy(artReviewType: Int? = nil)", 1)[-1].split("// Telegraphed materialization inside the room", 1)[0]
 for guard in (
     "if type >= 4 && !usesIllustratedEnemy",
     "if type == 4 && !usesIllustratedEnemy",
