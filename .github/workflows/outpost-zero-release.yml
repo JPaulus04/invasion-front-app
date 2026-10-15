@@ -1,22 +1,55 @@
 name: Outpost Zero TestFlight
 
+concurrency:
+  group: outpost-zero-testflight-release
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
       build_number:
         description: "Unique TestFlight build number"
         required: true
-        default: "309"
+        default: "314"
 
 jobs:
   testflight:
     runs-on: macos-26
     permissions:
       contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
           ref: outpost-zero
+      - name: Confirm validated Outpost Zero source
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          export RELEASE_SHA="$(git rev-parse HEAD)"
+          echo "Selected Outpost Zero source: $RELEASE_SHA"
+          python3 - <<'PY'
+          import json, os, urllib.request
+          repo = os.environ["REPOSITORY"]
+          sha = os.environ["RELEASE_SHA"]
+          url = f"https://api.github.com/repos/{repo}/actions/runs?branch=outpost-zero&event=push&per_page=50"
+          req = urllib.request.Request(url, headers={
+              "Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+          })
+          with urllib.request.urlopen(req, timeout=30) as response:
+              runs = json.load(response).get("workflow_runs", [])
+          reviewed = [r for r in runs if r.get("head_sha") == sha and
+                      r.get("name") == "iOS Compile Check" and
+                      r.get("status") == "completed" and
+                      r.get("conclusion") == "success"]
+          if not reviewed:
+              raise SystemExit("Release blocked: source commit lacks a successful iOS/simulator review. Run the iOS Compile Check on outpost-zero first.")
+          print("PASS: Signed release source matches validated iOS/simulator run " + reviewed[0]["html_url"])
+          PY
       - name: Select supported Xcode
         run: |
           set -e
@@ -45,14 +78,47 @@ jobs:
           for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_API_KEY_BASE64 IOS_DISTRIBUTION_P12_BASE64 KEYCHAIN_PASSWORD IOS_PROVISIONING_PROFILE_BASE64; do
             if [ -z "${!name}" ]; then echo "::error::Missing secret: $name"; exit 1; fi
           done
+      - name: Validate TestFlight build number
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || [ "$BUILD_NUMBER" -lt 314 ]; then
+            echo "::error::Build number must be numeric and at least 314."
+            exit 1
+          fi
       - name: Validate project
         run: python3 scripts/check_project.py
       - name: Generate original app icon
         run: python3 scripts/generate_icon.py
+      - name: Prepare and validate all production artwork
+        run: |
+          set -e
+          python3 scripts/generate_forest_art.py
+          python3 scripts/generate_pilot_art.py
+          python3 scripts/generate_enemy_art.py
+          python3 scripts/check_art_sprites.py
+          # Fail before signing or uploading if any gameplay sprite is absent.
+          for ASSET in pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
+            test -s "OutpostZero/ArtAssets/$ASSET" || { echo "::error::Missing generated asset: $ASSET"; exit 1; }
+          done
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
         run: xcodegen generate
+      - name: Compile simulator before signing or uploading
+        run: |
+          set -o pipefail
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/OutpostZeroSimulatorDerivedData" CODE_SIGNING_ALLOWED=NO build 2>&1 | tee simulator-build.log
+      - name: Verify artwork inside compiled simulator bundle
+        run: |
+          set -e
+          # Use the exact DerivedData path supplied to the compile step.
+          # This is stable across macOS runner images and avoids false negatives.
+          APP="$RUNNER_TEMP/OutpostZeroSimulatorDerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
+          test -d "$APP"
+          for ASSET in pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
+            find "$APP" -type f -name "$ASSET" -print -quit | grep -q . || { echo "::error::Simulator app missing $ASSET"; exit 1; }
+          done
       - name: Install signing credentials using existing LSC configuration
         env:
           CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
@@ -120,7 +186,16 @@ jobs:
               raise SystemExit(f"Unexpected bundle identifier: {actual}")
           if number != os.environ["EXPECTED_BUILD"]:
               raise SystemExit(f"Unexpected build number: {number}")
-          print(f"Verified IPA: {actual}, build {number}")
+          # The signed export must contain the same art verified in simulator.
+          required = ("pilot_idle.png", "grunt_idle.png", "scout_idle.png",
+                      "raider_idle.png", "heavy_idle.png", "shooter_idle.png",
+                      "lobber_idle.png", "forest_pine.png", "forest_broadleaf.png")
+          with zipfile.ZipFile(ipa_files[0]) as archive:
+              bundled = archive.namelist()
+              for asset in required:
+                  if not any(name.endswith("/" + asset) for name in bundled):
+                      raise SystemExit(f"Exported IPA missing production artwork: {asset}")
+          print(f"Verified IPA: {actual}, build {number}, {len(required)} production sprites")
           PY
       - name: Upload to App Store Connect
         env:
@@ -140,6 +215,7 @@ jobs:
         with:
           name: testflight-build-logs
           path: |
+            simulator-build.log
             archive.log
             export.log
           if-no-files-found: ignore
