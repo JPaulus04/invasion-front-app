@@ -32,6 +32,19 @@ if "RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.co
     errors.append("Level-up completion must recheck whether the room was cleared")
 if 'levelChoices = Array(pool.shuffled().prefix(3))' not in scene:
     errors.append("Level-up must offer three rotating upgrade choices")
+# Room transitions must remain player-driven: no exit during combat,
+# and a visible exit only after the room-clear condition is satisfied.
+start_wave = scene.split("private func startWave()", 1)[-1].split("private lazy var forestPineTexture", 1)[0]
+gate_section = scene.split("private func showZoneGate()", 1)[-1].split("private func ", 1)[0]
+if "passageGate.isHidden = true" not in start_wave:
+    errors.append("Exit gate must stay hidden during active combat")
+if "RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count)" not in gate_section:
+    errors.append("Exit gate must require a cleared room")
+if "passageGate.isHidden = false" not in gate_section or "phase = .gate" not in gate_section:
+    errors.append("Cleared rooms must expose a walk-through exit gate")
+for sprite in ("scout_idle", "raider_idle", "heavy_idle"):
+    if sprite not in scene:
+        errors.append(f"Missing illustrated enemy mapping: {sprite}")
 # Finished enemy illustrations must not be covered by prototype geometry.
 enemy_section = scene.split("private func spawnEnemy()", 1)[-1].split("// Telegraphed materialization inside the room", 1)[0]
 for guard in (
