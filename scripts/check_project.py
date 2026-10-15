@@ -68,6 +68,19 @@ qa_scene = scene.split("// CI-only level-up integration review:", 1)[-1].split("
 for statement in ("removeDefeatedEnemies()", "progress.pendingChoices == 1", "chooseLevelUpgrade(levelChoices[0])", "progress.pendingChoices == 0"):
     if statement not in qa_scene:
         errors.append(f"Level-up integration regression: {statement}")
+# The same upgrade-card hit testing must be used by simulator QA and real taps.
+if "private func levelChoice(at point: CGPoint)" not in scene:
+    errors.append("Level-up hit-test helper missing")
+if "private func activateLevelUp(at point: CGPoint)" not in scene:
+    errors.append("Level-up tap action helper missing")
+if "case (.levelUp, _): _ = activateLevelUp(at: local)" not in scene:
+    errors.append("Touch selection must use tested card hitboxes")
+if "activateLevelUp(at: CGPoint(x: rect.midX, y: rect.midY))" not in qa_scene:
+    errors.append("Simulator must trigger the production level-up tap route")
+if "controlsHint.text = \"DRAG TO MOVE  •  AUTO-FIRE\"" not in scene:
+    errors.append("First room needs concise touch and auto-fire guidance")
+if "ROOM CLEAR — WALK INTO GATE" not in scene:
+    errors.append("First-room exit must explain physical portal entry")
 # Finished enemy illustrations must not be covered by prototype geometry.
 enemy_section = scene.split("private func spawnEnemy(artReviewType: Int? = nil)", 1)[-1].split("// Telegraphed materialization inside the room", 1)[0]
 for guard in (

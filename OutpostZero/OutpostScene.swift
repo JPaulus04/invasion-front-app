@@ -33,6 +33,7 @@ final class OutpostScene: SKScene {
     private var gateUnlocked = false
     private let passageGate = SKShapeNode(rectOf: CGSize(width: 100, height: 46), cornerRadius: 12)
     private let zoneBanner = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+    private let controlsHint = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let zoneScenery = SKNode()
     private let zoneColors: [SKColor] = [
         SKColor(red: 0.17, green: 0.29, blue: 0.23, alpha: 1),
@@ -322,6 +323,12 @@ final class OutpostScene: SKScene {
         zoneBanner.zPosition = 18
         zoneBanner.alpha = 0
         hud.addChild(zoneBanner)
+        controlsHint.text = "DRAG TO MOVE  •  AUTO-FIRE"
+        controlsHint.fontSize = 12
+        controlsHint.fontColor = .white
+        controlsHint.zPosition = 19
+        controlsHint.isHidden = true
+        hud.addChild(controlsHint)
         for label in [title, subtitle, info] {
             label.horizontalAlignmentMode = .center
             hud.addChild(label)
@@ -397,9 +404,25 @@ final class OutpostScene: SKScene {
             precondition(progress.level == 2 && progress.xp == 6 &&
                          progress.pendingChoices == 1 && phase == .levelUp,
                          "A combat kill must immediately pause for a level-up")
+            // Check the actual card rectangles before selecting. This uses
+            // the same hit-test and action route as a user's screen touch.
+            for choice in levelChoices {
+                guard let rect = overlayButtons[choice] else {
+                    preconditionFailure("Missing visible level-up card hitbox")
+                }
+                precondition(levelChoice(at: CGPoint(x: rect.midX, y: rect.midY)) == choice,
+                             "Tap must resolve to its visible card")
+            }
+            precondition(levelChoice(at: CGPoint(x: 0, y: 200)) == nil,
+                         "Empty overlay space must not select an upgrade")
             if qaLevelUpResume {
                 precondition(!levelChoices.isEmpty, "No level-up choices offered")
-                chooseLevelUpgrade(levelChoices[0])
+                let choice = levelChoices[0]
+                guard let rect = overlayButtons[choice] else {
+                    preconditionFailure("Selected card has no hitbox")
+                }
+                precondition(activateLevelUp(at: CGPoint(x: rect.midX, y: rect.midY)),
+                             "On-screen upgrade card must be tappable")
                 precondition(phase == .playing && progress.pendingChoices == 0,
                              "Upgrade choice must resume combat exactly once")
             }
@@ -456,6 +479,7 @@ final class OutpostScene: SKScene {
         damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
         warning.position = CGPoint(x: size.width / 2, y: max(170, size.height * 0.23))
         zoneBanner.position = CGPoint(x: size.width / 2, y: roomBounds.maxY - 90)
+        controlsHint.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 66)
         let xpWidth = max(1, size.width - 48)
         xpTrack.path = CGPath(roundedRect: CGRect(x: 0, y: 0, width: xpWidth, height: 6), cornerWidth: 3, cornerHeight: 3, transform: nil)
         xpFill.path = xpTrack.path
@@ -696,6 +720,13 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
+        controlsHint.removeAllActions()
+        controlsHint.isHidden = wave != 1
+        controlsHint.alpha = 1
+        if wave == 1 {
+            controlsHint.run(.sequence([.wait(forDuration: 3.0),
+                                        .fadeOut(withDuration: 0.5)]))
+        }
         warning.removeAllActions()
         warning.isHidden = true
         warning.alpha = 1
@@ -1418,6 +1449,9 @@ final class OutpostScene: SKScene {
         progress.recordDamage(actual)
         pilotShieldUntil = combatTime + 1.1
         pilotHitCount += 1
+        // Combat feedback takes precedence over the one-time control hint.
+        controlsHint.removeAllActions()
+        controlsHint.isHidden = true
         damageFlash.removeAllActions()
         damageFlash.alpha = 0.7
         damageFlash.run(.fadeOut(withDuration: 0.32))
@@ -1875,6 +1909,20 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
+    /// Single hit-testing path shared by real touches and simulator QA.
+    /// Keep the visible card and its tappable region in the same coordinates.
+    private func levelChoice(at point: CGPoint) -> String? {
+        guard phase == .levelUp else { return nil }
+        return levelChoices.first(where: { overlayButtons[$0]?.contains(point) == true })
+    }
+
+    @discardableResult
+    private func activateLevelUp(at point: CGPoint) -> Bool {
+        guard let choice = levelChoice(at: point) else { return false }
+        chooseLevelUpgrade(choice)
+        return true
+    }
+
     private func chooseLevelUpgrade(_ choice: String) {
         guard phase == .levelUp, levelChoices.contains(choice), progress.chooseUpgrade() else { return }
         switch choice {
@@ -1952,7 +2000,8 @@ final class OutpostScene: SKScene {
             .fadeAlpha(to: 0.35, duration: 0.65),
             .fadeAlpha(to: 0.88, duration: 0.65)
         ])))
-        warning.text = "ROOM CLEAR — EXIT OPEN"
+        warning.text = wave == 1 ? "ROOM CLEAR — WALK INTO GATE" : "ROOM CLEAR — EXIT OPEN"
+        controlsHint.isHidden = true
         warning.fontColor = .systemGreen
         warning.fontSize = 13
         warning.position = CGPoint(x: passageGate.position.x, y: passageGate.position.y - 65)
@@ -2239,7 +2288,7 @@ final class OutpostScene: SKScene {
         case (.restoration, let key?) where key.hasPrefix("branch_"):
             if let index = Int(key.dropFirst(7)) { investCore(index) }
         case (.gameOver, "restart"), (.worldComplete, "restart"): restart()
-        case (.levelUp, let choice?): chooseLevelUpgrade(choice)
+        case (.levelUp, _): _ = activateLevelUp(at: local)
         case (.checkpoint, "heal") where !checkpointUsed && health < maximumHealth && coins >= repairCost:
             coins -= repairCost
             health = min(maximumHealth, health + 40)
