@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Reject blank iOS simulator captures instead of accepting a valid PNG header."""
+from pathlib import Path
+import struct
+import sys
+import zlib
+
+PNG = b"\x89PNG\r\n\x1a\n"
+
+def verify(path: Path) -> None:
+    data = path.read_bytes()
+    if not data.startswith(PNG) or len(data) < 33:
+        raise ValueError("invalid PNG header")
+    width, height, depth, color, _, _, interlace = struct.unpack(">IIBBBBB", data[16:29])
+    if width < 320 or height < 568 or depth != 8 or color not in (2, 6) or interlace:
+        raise ValueError(f"unexpected PNG format {width}x{height}, depth={depth}, color={color}")
+    channels = 4 if color == 6 else 3
+    compressed = bytearray()
+    position = 8
+    while position + 12 <= len(data):
+        length = struct.unpack(">I", data[position:position + 4])[0]
+        tag = data[position + 4:position + 8]
+        if position + 12 + length > len(data):
+            raise ValueError("truncated PNG")
+        if tag == b"IDAT":
+            compressed.extend(data[position + 8:position + 8 + length])
+        position += 12 + length
+        if tag == b"IEND":
+            break
+    raw = zlib.decompress(compressed)
+    stride = width * channels
+    if len(raw) != (stride + 1) * height:
+        raise ValueError("incorrect decoded PNG length")
+    previous = bytearray(stride)
+    colors = set()
+    # Ignore static phone notch/home bar; sample the game area.
+    x_positions = range(width // 8, width * 7 // 8, max(1, width // 24))
+    y_step = max(1, height // 35)
+    for y in range(height):
+        offset = y * (stride + 1)
+        mode = raw[offset]
+        row = bytearray(raw[offset + 1: offset + 1 + stride])
+        if mode == 1:
+            for i in range(channels, stride):
+                row[i] = (row[i] + row[i - channels]) & 255
+        elif mode == 2:
+            for i in range(stride):
+                row[i] = (row[i] + previous[i]) & 255
+        elif mode == 3:
+            for i in range(stride):
+                row[i] = (row[i] + ((row[i - channels] if i >= channels else 0) + previous[i]) // 2) & 255
+        elif mode == 4:
+            for i in range(stride):
+                left = row[i - channels] if i >= channels else 0
+                up = previous[i]
+                upper_left = previous[i - channels] if i >= channels else 0
+                p = left + up - upper_left
+                pa, pb, pc = abs(p - left), abs(p - up), abs(p - upper_left)
+                predictor = left if pa <= pb and pa <= pc else (up if pb <= pc else upper_left)
+                row[i] = (row[i] + predictor) & 255
+        elif mode != 0:
+            raise ValueError(f"unsupported PNG filter {mode}")
+        if height // 7 < y < height * 13 // 14 and y % y_step == 0:
+            colors.update(bytes(row[x * channels:x * channels + 3]) for x in x_positions)
+        previous = row
+    # A blank simulator frame has one battlefield color. Rendered gameplay
+    # has scenery, characters, gate and HUD with many distinct colors.
+    if len(colors) < 20:
+        raise ValueError(f"blank or unrendered simulator capture ({len(colors)} sampled colors)")
+    print(f"PASS: {path} {width}x{height}, {len(colors)} battlefield colors")
+
+if __name__ == "__main__":
+    try:
+        if len(sys.argv) < 2:
+            raise ValueError("provide at least one screenshot")
+        for arg in sys.argv[1:]:
+            verify(Path(arg))
+    except (OSError, ValueError, zlib.error) as error:
+        print(f"ERROR: screenshot verification failed: {error}", file=sys.stderr)
+        sys.exit(1)
