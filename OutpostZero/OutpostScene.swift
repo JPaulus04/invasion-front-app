@@ -199,6 +199,7 @@ final class OutpostScene: SKScene {
         let pilotArmor = SKSpriteNode(texture: productionTexture(named: "pilot_idle", fallback: pilotArmorTexture))
         pilotArmor.size = CGSize(width: 41, height: 49)
         pilotArmor.zPosition = 0.5
+        pilotArmor.name = "pilotArt"
         pilot.addChild(pilotArmor)
         // Ground contact and a soft offset shadow give the pilot depth at phone scale.
         let pilotShadow = SKShapeNode(ellipseOf: CGSize(width: 33, height: 11))
@@ -971,6 +972,7 @@ final class OutpostScene: SKScene {
             armor.color = (type == 1 || type == 2) ? .systemRed : (type == 3 ? .gray : (type == 4 ? .systemBlue : .orange))
             armor.colorBlendFactor = hasProductionArt ? 0 : 0.72
             armor.zPosition = 0.8
+            armor.name = "enemyArt"
             // Production sprites carry their own silhouette; do not draw
             // an ellipse around the artwork (it reads as a collision ring).
             node.addChild(armor)
@@ -1206,6 +1208,14 @@ final class OutpostScene: SKScene {
         let desiredTilt: CGFloat = isMoving ? (movementTarget!.x >= pilot.position.x ? -0.075 : 0.075) : 0
         pilot.zRotation += (desiredTilt - pilot.zRotation) * min(1, CGFloat(dt) * 10)
         pilot.yScale = isMoving ? 1 + 0.035 * sin(CGFloat(clock) * 17) : 1
+        // Animate the illustrated armor independently of the collision body
+        // and its ground shadow: a running stride or a quiet idle breath.
+        if let pilotArt = pilot.childNode(withName: "pilotArt") as? SKSpriteNode {
+            let stridePhase = CGFloat(clock) * 15
+            pilotArt.position.y = isMoving ? 1.8 * sin(stridePhase) : 0.55 * sin(CGFloat(clock) * 2.4)
+            pilotArt.zRotation = isMoving ? 0.028 * sin(stridePhase * 0.5) : 0
+            pilotArt.xScale = isMoving ? 1 + 0.018 * sin(stridePhase) : 1
+        }
         if phase == .gate {
             if distance(pilot.position, passageGate.position) < 49 {
                 passageGate.isHidden = true
@@ -1257,6 +1267,16 @@ final class OutpostScene: SKScene {
                 enemy.node.position = RoomRules.clamp(
                     CGPoint(x: current.x + cos(heading) * step, y: current.y + sin(heading) * step),
                     to: roomBounds.insetBy(dx: enemy.radius, dy: enemy.radius))
+            }
+            // Illustrated chassis stride and breathing leave health bars and
+            // collision geometry stable, while differentiating slow heavies
+            // from quick raiders without adding confusing hitbox movement.
+            if let enemyArt = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                let advancing = abs(step) > 0.1 && enemies[index].shotTarget == nil
+                let pace: CGFloat = enemy.behavior == 3 ? 6.0 : (enemy.behavior == 2 ? 16.0 : 10.0)
+                let stride = CGFloat(clock) * pace + enemy.weavePhase
+                enemyArt.position.y = advancing ? sin(stride) * 1.5 : sin(CGFloat(clock) * 2.0 + enemy.weavePhase) * 0.35
+                enemyArt.zRotation = advancing ? sin(stride * 0.5) * 0.035 : 0
             }
             if distance(enemy.node.position, pilot.position) < enemy.radius + 14 {
                 damagePilot(enemy.node === bossNode ? 12 : (enemy.behavior == 3 ? 8 : 5))
@@ -1421,7 +1441,29 @@ final class OutpostScene: SKScene {
         }), distance(enemies[index].node.position, point) < 45 else { return }
         lastShot = combatTime
         let target = enemies[index].node.position
-        pilotGun.zRotation = atan2(target.y - pilot.position.y, target.x - pilot.position.x) - .pi / 2
+        let shotAngle = atan2(target.y - pilot.position.y, target.x - pilot.position.x)
+        pilotGun.zRotation = shotAngle - .pi / 2
+        // Short muzzle burst signals every auto-fired shot at full phone
+        // speed without adding a persistent projectile or changing damage.
+        let muzzle = SKShapeNode()
+        let muzzlePath = CGMutablePath()
+        muzzlePath.move(to: CGPoint(x: 0, y: 0))
+        muzzlePath.addLine(to: CGPoint(x: 14, y: 0))
+        muzzlePath.addLine(to: CGPoint(x: 4, y: 5))
+        muzzlePath.addLine(to: CGPoint(x: 0, y: 0))
+        muzzlePath.addLine(to: CGPoint(x: 4, y: -5))
+        muzzlePath.addLine(to: CGPoint(x: 14, y: 0))
+        muzzle.path = muzzlePath
+        muzzle.fillColor = .systemYellow
+        muzzle.strokeColor = .white
+        muzzle.lineWidth = 1.4
+        muzzle.zPosition = 12
+        muzzle.position = CGPoint(x: pilot.position.x + cos(shotAngle) * 19,
+                                  y: pilot.position.y + sin(shotAngle) * 19)
+        muzzle.zRotation = shotAngle
+        arena.addChild(muzzle)
+        muzzle.run(.sequence([.group([.scale(to: 1.6, duration: 0.065),
+                                     .fadeOut(withDuration: 0.09)]), .removeFromParent()]))
         let tracer = SKShapeNode()
         let path = CGMutablePath()
         path.move(to: pilot.position)
@@ -1441,6 +1483,15 @@ final class OutpostScene: SKScene {
             .colorize(with: .white, colorBlendFactor: 0.85, duration: 0.045),
             .colorize(withColorBlendFactor: 0, duration: 0.14)
         ]), withKey: "enemyHitFeedback")
+        // The visible production sprite needs the flash too: its transparent
+        // collision container alone doesn't show color changes.
+        if let enemyArt = struckNode.childNode(withName: "enemyArt") as? SKSpriteNode {
+            enemyArt.removeAction(forKey: "spriteHitFeedback")
+            enemyArt.run(.sequence([
+                .colorize(with: .white, colorBlendFactor: 0.9, duration: 0.045),
+                .colorize(withColorBlendFactor: 0, duration: 0.13)
+            ]), withKey: "spriteHitFeedback")
+        }
         if incendiaryLevel > 0 {
             burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus, until: combatTime + 2.5, nextTick: combatTime + 0.5)
         }
@@ -1534,6 +1585,23 @@ final class OutpostScene: SKScene {
                 .group([.scale(to: 2.1, duration: 0.24), .fadeOut(withDuration: 0.24)]),
                 .removeFromParent()
             ]))
+            // Four short-lived armor sparks give defeated enemies more
+            // physical weight without flooding the room with particles.
+            for fragment in 0..<4 {
+                let shard = SKShapeNode(rectOf: CGSize(width: 4, height: 7), cornerRadius: 1)
+                shard.fillColor = fragment.isMultiple(of: 2) ? .systemOrange : .systemCyan
+                shard.strokeColor = .clear
+                shard.position = defeatedPosition
+                shard.zRotation = CGFloat(fragment) * .pi / 4
+                shard.zPosition = 12
+                arena.addChild(shard)
+                let direction = CGFloat(fragment) * (.pi / 2) + .pi / 4
+                shard.run(.sequence([
+                    .group([.moveBy(x: cos(direction) * 21, y: sin(direction) * 21, duration: 0.24),
+                            .fadeOut(withDuration: 0.24), .rotate(byAngle: 1.1, duration: 0.24)]),
+                    .removeFromParent()
+                ]))
+            }
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
         }
