@@ -364,6 +364,16 @@ final class OutpostScene: SKScene {
                          "Entering a world must lock exactly the selected abilities")
             showLoadout()
         }
+        // Art review for Rooms 6-10: stage actual forest-overgrowth scenery
+        // without changing combat balance or the launch state seen by players.
+        if ProcessInfo.processInfo.arguments.contains("-captureOvergrownScreenshot") {
+            wave = 5
+            gateUnlocked = true
+            startWave()
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+        }
         // CI-only room-clear screenshot: verify that combat hides the exit and
         // defeating the last foe exposes a readable ENTER gate.
         if ProcessInfo.processInfo.arguments.contains("-captureGateScreenshot") {
@@ -838,7 +848,7 @@ final class OutpostScene: SKScene {
     private func updateZoneScenery(_ zone: Int) {
         zoneScenery.removeAllChildren()
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
-        let count = zone == 0 ? 8 + (wave % 3) : 5 + (wave % 3)
+        let count = zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)
         let roomVariant = (wave - 1) % 4
         for index in 0..<count {
             let leftSide = (index + roomVariant).isMultiple(of: 2)
@@ -869,7 +879,7 @@ final class OutpostScene: SKScene {
             }
             prop.strokeColor = .white.withAlphaComponent(0.22)
             prop.lineWidth = 1
-            prop.alpha = zone == 0 ? 0.95 : 0.55
+            prop.alpha = zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55)
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
             if zone == 3 {
@@ -902,19 +912,64 @@ final class OutpostScene: SKScene {
                 prop.addChild(seam)
             }
             if zone == 1 {
-                // Dense overgrowth uses layered leaves rather than a single mint oval.
+                // Overgrown Path has a distinct canopy: broadleaf trees,
+                // hanging vines and larger layered thickets. All remain on
+                // the perimeter, outside the player's movement corridor.
                 prop.fillColor = .clear
                 prop.strokeColor = .clear
-                for leafIndex in 0..<5 {
-                    let leaf = SKShapeNode(ellipseOf: CGSize(width: 17, height: 11))
-                    leaf.fillColor = SKColor(red: 0.10 + CGFloat(leafIndex % 2) * 0.04,
-                                             green: 0.36 + CGFloat(leafIndex % 3) * 0.06,
-                                             blue: 0.22, alpha: 0.85)
-                    leaf.strokeColor = .clear
-                    leaf.position = CGPoint(x: CGFloat(leafIndex - 2) * 6,
-                                            y: CGFloat((leafIndex * 7) % 11) - 5)
-                    leaf.zRotation = CGFloat(leafIndex - 2) * 0.22
-                    prop.addChild(leaf)
+                let canopy = (index + roomVariant).isMultiple(of: 3)
+                if canopy {
+                    let shadow = SKShapeNode(ellipseOf: CGSize(width: 48, height: 13))
+                    shadow.fillColor = .black.withAlphaComponent(0.32)
+                    shadow.strokeColor = .clear
+                    shadow.position = CGPoint(x: 5, y: -24)
+                    shadow.zPosition = -0.6
+                    prop.addChild(shadow)
+                    let tree = SKSpriteNode(texture: productionTexture(
+                        named: "forest_broadleaf", fallback: forestPineTexture))
+                    tree.size = CGSize(width: 66, height: 87)
+                    tree.position = CGPoint(x: leftSide ? -5 : 5, y: 8)
+                    tree.xScale = leftSide ? 1 : -1
+                    tree.zRotation = CGFloat((index + wave) % 5 - 2) * 0.025
+                    tree.zPosition = 0.8
+                    prop.addChild(tree)
+                    for vineIndex in 0..<2 {
+                        let vine = SKShapeNode(path: {
+                            let p = CGMutablePath()
+                            let vx = CGFloat(vineIndex == 0 ? -16 : 19)
+                            p.move(to: CGPoint(x: vx, y: 13))
+                            p.addQuadCurve(to: CGPoint(x: vx + 4, y: -29),
+                                           control: CGPoint(x: vx - 9, y: -10))
+                            return p
+                        }())
+                        vine.strokeColor = SKColor(red: 0.24, green: 0.55, blue: 0.30, alpha: 0.9)
+                        vine.lineWidth = 2
+                        vine.zPosition = 1.2
+                        prop.addChild(vine)
+                    }
+                } else {
+                    let underbrush = SKShapeNode(path: BattlefieldArt.terrainShape(
+                        width: 47, height: 15, variation: index + wave))
+                    underbrush.fillColor = SKColor(red: 0.08, green: 0.21, blue: 0.14, alpha: 0.9)
+                    underbrush.strokeColor = .clear
+                    underbrush.position.y = -12
+                    prop.addChild(underbrush)
+                    for leafIndex in 0..<8 {
+                        let leaf = SKShapeNode(ellipseOf: CGSize(
+                            width: CGFloat(15 + leafIndex % 3 * 4),
+                            height: CGFloat(10 + leafIndex % 2 * 4)))
+                        leaf.fillColor = SKColor(
+                            red: 0.09 + CGFloat(leafIndex % 3) * 0.025,
+                            green: 0.32 + CGFloat(leafIndex % 4) * 0.045,
+                            blue: 0.17 + CGFloat(leafIndex % 2) * 0.04, alpha: 0.96)
+                        leaf.strokeColor = .clear
+                        leaf.position = CGPoint(
+                            x: CGFloat((leafIndex * 11) % 54 - 26),
+                            y: CGFloat((leafIndex * 13) % 21 - 7))
+                        leaf.zRotation = CGFloat((leafIndex * 3 + wave) % 7 - 3) * 0.20
+                        leaf.zPosition = 0.2 + CGFloat(leafIndex) * 0.01
+                        prop.addChild(leaf)
+                    }
                 }
             }
             if zone == 0 {
@@ -1719,7 +1774,9 @@ final class OutpostScene: SKScene {
             for enemyIndex in enemies.indices {
                 let enemy = enemies[enemyIndex]
                 guard enemy.health > 0, combatTime >= enemy.activeAt,
-                      distance(blade.position, enemy.node.position) < enemy.radius + 13 else {
+                      CombatRules.orbitalBladeHits(blade: blade.position,
+                                                   enemy: enemy.node.position,
+                                                   enemyRadius: enemy.radius) else {
                     continue
                 }
                 let key = ObjectIdentifier(enemy.node)

@@ -92,6 +92,10 @@ struct ProgressCombatTests {
         precondition(lobbersLate > lobbersEarly)
         precondition(CombatRules.projectileHits(from: .zero, to: CGPoint(x: 100, y: 0), pilot: CGPoint(x: 50, y: 0), radius: 20))
         precondition(!CombatRules.projectileHits(from: .zero, to: CGPoint(x: 100, y: 0), pilot: CGPoint(x: 50, y: 30), radius: 20))
+        precondition(CombatRules.orbitalBladeHits(blade: CGPoint(x: 46, y: 0),
+                                                 enemy: CGPoint(x: 62, y: 0), enemyRadius: 10))
+        precondition(!CombatRules.orbitalBladeHits(blade: CGPoint(x: 46, y: 0),
+                                                  enemy: CGPoint(x: 80, y: 0), enemyRadius: 10))
         precondition(CombatRules.blastHits(center: .zero, pilot: CGPoint(x: 20, y: 0), radius: 43))
         precondition(!CombatRules.blastHits(center: .zero, pilot: CGPoint(x: 70, y: 0), radius: 43))
         print("XP carryover, queued choices, run reset, damage ratings, paused attacks, enemy rollout and dodging passed")

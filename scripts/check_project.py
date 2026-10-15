@@ -33,6 +33,10 @@ if "lockedLoadout.availableTacticalUpgrades(" not in scene:
     errors.append("XP choices must be restricted to committed abilities")
 if "private func updateOrbitingDefenses()" not in scene:
     errors.append("Orbital blade must have a real contact damage effect")
+if "CombatRules.orbitalBladeHits(" not in scene:
+    errors.append("Orbital combat must use tested physical contact rules")
+if 'ProcessInfo.processInfo.arguments.contains("-captureOvergrownScreenshot")' not in scene:
+    errors.append("Overgrown Path must have a simulator art-review scene")
 if 'ProcessInfo.processInfo.arguments.contains("-captureLoadoutScreenshot")' not in scene:
     errors.append("Build 315 must capture the actual pre-world loadout selection")
 if "private func enterSelectedWorld() -> Bool" not in scene or "_ = enterSelectedWorld()" not in scene:

@@ -145,6 +145,7 @@ jobs:
             return 1
           }
           capture_scene -captureLoadoutScreenshot screenshots/build-315-loadout.png
+          capture_scene -captureOvergrownScreenshot screenshots/build-315-overgrown-path.png
           capture_scene -captureGateScreenshot screenshots/build-315-gate-open.png
           capture_scene -captureCombatScreenshot screenshots/build-315-simulator.png
           capture_scene -captureLevelUpScreenshot screenshots/build-315-level-up.png
@@ -198,7 +199,8 @@ jobs:
         run: |
           set -e
           test -s screenshots/build-315-loadout.png
-          python3 scripts/validate_simulator_screenshots.py screenshots/build-315-loadout.png
+          test -s screenshots/build-315-overgrown-path.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/build-315-loadout.png screenshots/build-315-overgrown-path.png
           test -s screenshots/build-315-simulator.png
           test -s screenshots/build-315-gate-open.png
           test -s screenshots/build-315-level-up.png

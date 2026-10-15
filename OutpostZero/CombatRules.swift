@@ -32,6 +32,12 @@ enum CombatRules {
         return hypot(start.x + t * dx - pilot.x, start.y + t * dy - pilot.y) <= radius
     }
 
+    // Orbital blades are modeled as short-range contact equipment, not
+    // invulnerability. They only strike when they physically reach a foe.
+    static func orbitalBladeHits(blade: CGPoint, enemy: CGPoint, enemyRadius: CGFloat) -> Bool {
+        hypot(blade.x - enemy.x, blade.y - enemy.y) < enemyRadius + 13
+    }
+
     static func blastHits(center: CGPoint, pilot: CGPoint, radius: CGFloat) -> Bool {
         hypot(center.x - pilot.x, center.y - pilot.y) <= radius + 14
     }
