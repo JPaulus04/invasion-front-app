@@ -348,10 +348,8 @@ final class OutpostScene: SKScene {
         }
         // CI-only motion review: run real combat and movement instead of
         // freezing an art-review frame. This never executes in normal play.
-        if ProcessInfo.processInfo.arguments.contains("-captureGameplayVideo") {
+        if ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") {
             startWave()
-            movementTarget = CGPoint(x: roomBounds.midX + roomBounds.width * 0.18,
-                                     y: roomBounds.midY - roomBounds.height * 0.08)
         }
         // CI-only launch flag: capture real combat rather than the world-map menu.
         if ProcessInfo.processInfo.arguments.contains("-captureCombatScreenshot") {
@@ -1240,6 +1238,16 @@ final class OutpostScene: SKScene {
             }
         }
         guard phase == .playing || phase == .gate else { return }
+        // QA-only guided movement sweeps across the combat lane so consecutive
+        // simulator frames show actual locomotion, dodging and automatic fire.
+        // This launch argument is never used in the shipped game.
+        if phase == .playing && ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") {
+            let t = CGFloat(combatTime)
+            movementTarget = CGPoint(
+                x: roomBounds.midX + sin(t * 0.86) * roomBounds.width * 0.25,
+                y: roomBounds.minY + roomBounds.height * (0.28 + 0.11 * sin(t * 0.49))
+            )
+        }
         if let heldTouch, let movementOrigin {
             let point = heldTouch.location(in: self)
             let dx = point.x - movementOrigin.x
