@@ -32,6 +32,16 @@ if "RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.co
     errors.append("Level-up completion must recheck whether the room was cleared")
 if 'levelChoices = Array(pool.shuffled().prefix(3))' not in scene:
     errors.append("Level-up must offer three rotating upgrade choices")
+# Ranged attacks must communicate both the selected shot target and
+# the mortar's time-to-impact without changing actual combat damage.
+ranged_attack = scene.split("private func updateRangedAttack(at index: Int)", 1)[-1].split("private func fireProjectile", 1)[0]
+lob_attack = scene.split("private func launchLob(from origin: CGPoint, target: CGPoint)", 1)[-1].split("private func updateHostileAttacks", 1)[0]
+if 'aimReticle.name = "aimReticle"' not in ranged_attack:
+    errors.append("Shooters need a visible, fixed target reticle before firing")
+if 'childNode(withName: "aimReticle")?.removeFromParent()' not in ranged_attack:
+    errors.append("Shooter reticle must be removed when its shot fires")
+if 'countdown.name = "mortarCountdown"' not in lob_attack or "countdown.run(.scale(to: 0.18, duration: 1.4))" not in lob_attack:
+    errors.append("Mortar attack must show a readable time-to-impact countdown")
 # Room transitions must remain player-driven: no exit during combat,
 # and a visible exit only after the room-clear condition is satisfied.
 start_wave = scene.split("private func startWave()", 1)[-1].split("private lazy var forestPineTexture", 1)[0]
