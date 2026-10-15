@@ -91,3 +91,43 @@ out = pathlib.Path('OutpostZero/ArtAssets/forest_pine.png')
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_bytes(png)
 print('Generated', out, W, H)
+
+# A second environment silhouette: broadleaf canopy, warm trunk, rounded leaves.
+# Reuse the same palette, canvas, and PNG encoder as the pine above.
+pixels = bytearray(W * H * 4)
+polygon([(69, 105), (93, 106), (94, 173), (105, 191), (95, 198),
+         (83, 186), (78, 200), (70, 196), (61, 190), (68, 171)], (30, 44, 43, 255))
+polygon([(73, 111), (87, 109), (89, 174), (98, 189), (90, 189),
+         (82, 180), (77, 193), (68, 187), (76, 171)], (114, 78, 53, 255))
+polygon([(76, 119), (81, 117), (82, 176), (78, 184), (74, 174)], (170, 111, 65, 255))
+polygon([(67, 138), (45, 120), (49, 114), (75, 131)], (41, 54, 43, 255))
+polygon([(92, 133), (112, 114), (119, 118), (94, 143)], (43, 50, 42, 255))
+# Chunky overlapping lobes produce an organic silhouette, not a pine triangle.
+lobes = [(45, 91, 34, 35), (66, 53, 37, 34), (103, 57, 36, 35),
+         (123, 89, 34, 37), (91, 107, 53, 40), (69, 86, 50, 49)]
+for x, y, rx, ry in lobes:
+    ellipse(x, y + 3, rx + 4, ry + 3, (15, 54, 52, 255))
+for x, y, rx, ry in lobes:
+    ellipse(x, y, rx, ry, (34, 107, 76, 255))
+# Off-centre light catches and dark underside layers create canopy volume.
+for x, y, rx, ry in [(40, 75, 19, 16), (61, 44, 21, 15),
+                     (100, 47, 21, 18), (123, 79, 18, 18),
+                     (77, 77, 23, 19), (91, 101, 27, 13)]:
+    ellipse(x - 4, y - 4, rx, ry, (70, 149, 98, 255))
+for x, y, rx, ry in [(46, 66, 12, 8), (67, 34, 15, 8),
+                     (105, 37, 12, 9), (116, 71, 11, 8),
+                     (77, 65, 13, 10), (69, 89, 15, 7)]:
+    ellipse(x - 3, y, rx, ry, (121, 184, 116, 255))
+for x, y, rx, ry in [(39, 113, 22, 9), (75, 122, 30, 12),
+                     (120, 105, 21, 11)]:
+    ellipse(x, y, rx, ry, (18, 75, 66, 195))
+# Broken highlights: small individual leaf groups, not a smooth green ball.
+for x, y in [(38, 57), (58, 27), (95, 29), (123, 59),
+             (49, 87), (78, 51), (106, 88)]:
+    polygon([(x - 6, y + 3), (x, y - 4), (x + 8, y + 1),
+             (x + 1, y + 7)], (153, 200, 129, 245))
+raw = b''.join(b'\x00' + pixels[y * W * 4:(y + 1) * W * 4] for y in range(H))
+png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', W, H, 8, 6, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw, 9)) + chunk(b'IEND', b'')
+out = pathlib.Path('OutpostZero/ArtAssets/forest_broadleaf.png')
+out.write_bytes(png)
+print('Generated', out, W, H)
