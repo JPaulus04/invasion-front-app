@@ -351,6 +351,29 @@ final class OutpostScene: SKScene {
         if ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") {
             startWave()
         }
+        // CI-only ranged combat review: jump directly to the first room
+        // featuring both shooters and lobbers. These enemies have extra
+        // health only for observation; shipped combat stats are unchanged.
+        if ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames") {
+            wave = 10
+            gateUnlocked = true
+            startWave()
+            waveTarget = 3
+            spawned = 3
+            for (index, kind) in [4, 5, 4].enumerated() {
+                spawnEnemy(artReviewType: kind)
+                if let enemy = enemies.last {
+                    enemy.node.position = CGPoint(
+                        x: roomBounds.midX + CGFloat(index - 1) * roomBounds.width * 0.30,
+                        y: roomBounds.midY + roomBounds.height * 0.20
+                    )
+                    enemies[enemies.count - 1].health = 70
+                    enemies[enemies.count - 1].maxHealth = 70
+                    enemies[enemies.count - 1].nextAttack = combatTime + 1.2
+                }
+            }
+            updateHUD()
+        }
         // CI-only launch flag: capture real combat rather than the world-map menu.
         if ProcessInfo.processInfo.arguments.contains("-captureCombatScreenshot") {
             startWave()
@@ -1241,7 +1264,10 @@ final class OutpostScene: SKScene {
         // QA-only guided movement sweeps across the combat lane so consecutive
         // simulator frames show actual locomotion, dodging and automatic fire.
         // This launch argument is never used in the shipped game.
-        if phase == .playing && ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") {
+        if phase == .playing && (
+            ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") ||
+            ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames")
+        ) {
             let t = CGFloat(combatTime)
             movementTarget = CGPoint(
                 x: roomBounds.midX + sin(t * 0.86) * roomBounds.width * 0.25,
