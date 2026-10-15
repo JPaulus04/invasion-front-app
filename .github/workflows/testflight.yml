@@ -55,6 +55,17 @@ jobs:
         run: python3 scripts/check_project.py
       - name: Generate original app icon
         run: python3 scripts/generate_icon.py
+      - name: Prepare and validate all production artwork
+        run: |
+          set -e
+          python3 scripts/generate_forest_art.py
+          python3 scripts/generate_pilot_art.py
+          python3 scripts/generate_enemy_art.py
+          python3 scripts/check_art_sprites.py
+          # Fail before signing or uploading if any gameplay sprite is absent.
+          for ASSET in pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
+            test -s "OutpostZero/ArtAssets/$ASSET" || { echo "::error::Missing generated asset: $ASSET"; exit 1; }
+          done
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
@@ -63,6 +74,19 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee simulator-build.log
+      - name: Verify artwork inside compiled simulator bundle
+        run: |
+          set -e
+          APP="$(find "$PWD/build" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name 'OutpostZero.app' -path '*Debug-iphonesimulator*' -print -quit 2>/dev/null || true)"
+          # Build output path can differ across macOS images; resolve it via xcodebuild.
+          if [ -z "$APP" ]; then
+            PRODUCTS="$(xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -showBuildSettings | awk '/ TARGET_BUILD_DIR = / {print $3; exit}')"
+            APP="$PRODUCTS/OutpostZero.app"
+          fi
+          test -d "$APP"
+          for ASSET in pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
+            find "$APP" -type f -name "$ASSET" -print -quit | grep -q . || { echo "::error::Simulator app missing $ASSET"; exit 1; }
+          done
       - name: Install signing credentials using existing LSC configuration
         env:
           CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
@@ -130,7 +154,16 @@ jobs:
               raise SystemExit(f"Unexpected bundle identifier: {actual}")
           if number != os.environ["EXPECTED_BUILD"]:
               raise SystemExit(f"Unexpected build number: {number}")
-          print(f"Verified IPA: {actual}, build {number}")
+          # The signed export must contain the same art verified in simulator.
+          required = ("pilot_idle.png", "grunt_idle.png", "scout_idle.png",
+                      "raider_idle.png", "heavy_idle.png", "shooter_idle.png",
+                      "lobber_idle.png", "forest_pine.png", "forest_broadleaf.png")
+          with zipfile.ZipFile(ipa_files[0]) as archive:
+              bundled = archive.namelist()
+              for asset in required:
+                  if not any(name.endswith("/" + asset) for name in bundled):
+                      raise SystemExit(f"Exported IPA missing production artwork: {asset}")
+          print(f"Verified IPA: {actual}, build {number}, {len(required)} production sprites")
           PY
       - name: Upload to App Store Connect
         env:

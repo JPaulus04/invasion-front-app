@@ -116,6 +116,17 @@ if "let fraction = CGFloat(index + 1) / 13" in scene:
     errors.append("Equidistant horizontal ground marks must not return")
 if "upgradeConfirmed ? 35 : 140" in scene:
     errors.append("Legacy upgrade touch bands must not return")
+# Keep the manual TestFlight flow in parity with the simulator workflow:
+# otherwise a green debug build can release placeholder artwork.
+release_workflow = root / ".github" / "workflows" / "testflight.yml"
+if release_workflow.is_file():
+    release = release_workflow.read_text(encoding="utf-8")
+    for command in ("scripts/generate_forest_art.py", "scripts/generate_pilot_art.py",
+                    "scripts/generate_enemy_art.py", "scripts/check_art_sprites.py"):
+        if command not in release:
+            errors.append(f"TestFlight workflow missing art preparation: {command}")
+    if "Exported IPA missing production artwork" not in release:
+        errors.append("TestFlight export must verify all bundled artwork")
 if not (root / "project.yml").is_file():
     errors.append("Missing XcodeGen project.yml")
 if errors:
