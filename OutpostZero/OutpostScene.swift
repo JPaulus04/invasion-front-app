@@ -255,18 +255,18 @@ final class OutpostScene: SKScene {
         zoneScenery.zPosition = -1
         arena.addChild(pilot)
         refreshPilotAppearance()
-        passageGate.fillColor = .systemCyan
-        passageGate.strokeColor = .white
-        passageGate.lineWidth = 5
+        passageGate.fillColor = SKColor(red: 0.07, green: 0.12, blue: 0.17, alpha: 1)
+        passageGate.strokeColor = .systemCyan
+        passageGate.lineWidth = 4
         passageGate.zPosition = 3
         passageGate.isHidden = true
         arena.addChild(passageGate)
         let gateText = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         gateText.text = "ENTER"
         gateText.fontSize = 13
-        gateText.fontColor = .black
+        gateText.fontColor = .white
         gateText.verticalAlignmentMode = .center
-        gateText.zPosition = 1
+        gateText.zPosition = 4
         passageGate.addChild(gateText)
         let gateArrow = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         gateArrow.text = "▲"
