@@ -76,7 +76,7 @@ jobs:
   simulator-review:
     needs: build
     runs-on: macos-15
-    timeout-minutes: 14
+    timeout-minutes: 17
     steps:
       - uses: actions/checkout@v4
       - name: Download compiled simulator app
@@ -90,7 +90,7 @@ jobs:
           ditto -x -k OutpostZero-simulator-app.zip simulator-app
           test -x simulator-app/OutpostZero.app/OutpostZero
       - name: Capture actual simulator screenshot
-        timeout-minutes: 9
+        timeout-minutes: 11
         run: |
           set -e
           # Every simulator subprocess is bounded so a stalled simctl cannot
@@ -126,13 +126,20 @@ jobs:
             OUTPUT="$2"
             for ATTEMPT in 1 2 3; do
               run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
-              run_bounded 35 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"
-              sleep 4
-              run_bounded 30 xcrun simctl io "$DEVICE" screenshot "$OUTPUT"
-              if python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
+              # Cold-booted CoreSimulator can accept the app but not yet
+              # serve pixels. Launch/screenshot timeout is retriable too.
+              if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+                echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
+                sleep 4
+                continue
+              fi
+              sleep 8
+              if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT" &&
+                 python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
                 return 0
               fi
-              echo "::warning::Simulator frame for $FLAG not rendered (attempt $ATTEMPT); retrying"
+              echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT); retrying"
+              sleep 4
             done
             echo "::error::Simulator never rendered a usable frame for $FLAG"
             return 1
@@ -144,21 +151,21 @@ jobs:
           run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
           run_bounded 35 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureGameplayFrames
           sleep 3
-          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-1.png
+          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-1.png
           sleep 3
-          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-2.png
+          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-2.png
           sleep 3
-          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-3.png
+          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-3.png
           # Advance to Room 11 with both ranged attack classes under real
           # AI control; sample their warning indicators and projectiles.
           run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
           run_bounded 35 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureRangedCombatFrames
           sleep 2
-          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-1.png
+          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-1.png
           sleep 3
-          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-2.png
+          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-2.png
           sleep 3
-          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-3.png
+          run_bounded 55 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-3.png
       - name: Validate simulator screenshot was captured
         run: |
           set -e
