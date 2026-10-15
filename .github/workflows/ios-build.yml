@@ -149,6 +149,16 @@ jobs:
           run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-2.png
           sleep 3
           run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-motion-3.png
+          # Advance to Room 11 with both ranged attack classes under real
+          # AI control; sample their warning indicators and projectiles.
+          run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+          run_bounded 35 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureRangedCombatFrames
+          sleep 2
+          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-1.png
+          sleep 3
+          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-2.png
+          sleep 3
+          run_bounded 30 xcrun simctl io "$DEVICE" screenshot screenshots/build-314-ranged-3.png
       - name: Validate simulator screenshot was captured
         run: |
           set -e
@@ -166,6 +176,17 @@ jobs:
           hashes = {sha256(frame).digest() for frame in frames}
           assert len(hashes) >= 2, "Live combat snapshots are identical: scene may be frozen"
           print(f"PASS: {len(hashes)} different live combat captures")
+          PY
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/build-314-ranged-1.png \
+            screenshots/build-314-ranged-2.png \
+            screenshots/build-314-ranged-3.png
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          files = [Path(f"screenshots/build-314-ranged-{i}.png").read_bytes() for i in (1, 2, 3)]
+          assert len({sha256(data).digest() for data in files}) >= 2, "Ranged combat scene did not change over time"
+          print("PASS: three live ranged enemy screenshots")
           PY
       - name: Upload actual simulator screenshot
         if: always()
