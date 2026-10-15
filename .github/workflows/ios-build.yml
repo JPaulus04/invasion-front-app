@@ -146,6 +146,8 @@ jobs:
           }
           capture_scene -captureGateScreenshot screenshots/build-314-gate-open.png
           capture_scene -captureCombatScreenshot screenshots/build-314-simulator.png
+          capture_scene -captureLevelUpScreenshot screenshots/build-314-level-up.png
+          capture_scene -captureLevelUpResumeScreenshot screenshots/build-314-level-up-resumed.png
           # Sample a live, moving combat encounter at three different times.
           # Independent PNG captures avoid simulator video-recorder hangs.
           run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
@@ -171,7 +173,18 @@ jobs:
           set -e
           test -s screenshots/build-314-simulator.png
           test -s screenshots/build-314-gate-open.png
+          test -s screenshots/build-314-level-up.png
+          test -s screenshots/build-314-level-up-resumed.png
           python3 scripts/validate_simulator_screenshots.py screenshots/build-314-simulator.png screenshots/build-314-gate-open.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/build-314-level-up.png screenshots/build-314-level-up-resumed.png
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          paused = Path("screenshots/build-314-level-up.png").read_bytes()
+          resumed = Path("screenshots/build-314-level-up-resumed.png").read_bytes()
+          assert sha256(paused).digest() != sha256(resumed).digest(), "Level-up selection did not change scene"
+          print("PASS: XP-on-kill level-up menu and resumed combat frames differ")
+          PY
           python3 scripts/validate_simulator_screenshots.py \
             screenshots/build-314-motion-1.png \
             screenshots/build-314-motion-2.png \

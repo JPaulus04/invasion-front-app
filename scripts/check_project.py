@@ -60,6 +60,14 @@ if "for (index, kind) in [1, 2, 3, 0, 4, 5].enumerated()" not in scene:
     errors.append("Combat screenshot must stage all six enemy classes")
 if 'ProcessInfo.processInfo.arguments.contains("-captureGateScreenshot")' not in scene:
     errors.append("Missing gate-open screenshot mode")
+# CI must exercise the real XP-on-kill -> upgrade menu -> combat resume transition.
+for flag in ("-captureLevelUpScreenshot", "-captureLevelUpResumeScreenshot"):
+    if flag not in scene:
+        errors.append(f"Missing level-up simulator capture: {flag}")
+qa_scene = scene.split("// CI-only level-up integration review:", 1)[-1].split("// CI-only launch flag:", 1)[0]
+for statement in ("removeDefeatedEnemies()", "progress.pendingChoices == 1", "chooseLevelUpgrade(levelChoices[0])", "progress.pendingChoices == 0"):
+    if statement not in qa_scene:
+        errors.append(f"Level-up integration regression: {statement}")
 # Finished enemy illustrations must not be covered by prototype geometry.
 enemy_section = scene.split("private func spawnEnemy(artReviewType: Int? = nil)", 1)[-1].split("// Telegraphed materialization inside the room", 1)[0]
 for guard in (

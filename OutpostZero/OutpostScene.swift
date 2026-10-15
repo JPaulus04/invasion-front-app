@@ -372,6 +372,38 @@ final class OutpostScene: SKScene {
             }
             updateHUD()
         }
+        // CI-only level-up integration review: an actual heavy-enemy kill
+        // crosses the XP threshold while two enemies remain alive. This
+        // exercises kill rewards, pause/menu presentation, selection, and
+        // return to live combat without modifying TestFlight progression.
+        let qaLevelUp = ProcessInfo.processInfo.arguments.contains("-captureLevelUpScreenshot")
+        let qaLevelUpResume = ProcessInfo.processInfo.arguments.contains("-captureLevelUpResumeScreenshot")
+        if qaLevelUp || qaLevelUpResume {
+            startWave()
+            waveTarget = 3
+            spawned = 3
+            for (index, kind) in [3, 0, 1].enumerated() {
+                spawnEnemy(artReviewType: kind)
+                enemies[enemies.count - 1].node.position = CGPoint(
+                    x: roomBounds.midX + CGFloat(index - 1) * roomBounds.width * 0.25,
+                    y: roomBounds.midY + roomBounds.height * 0.20
+                )
+            }
+            // Heavy units award ten XP; the six-point overflow must carry.
+            let threshold = progress.nextLevelXP
+            progress.earnXP(threshold - 4)
+            enemies[0].health = 0
+            removeDefeatedEnemies()
+            precondition(progress.level == 2 && progress.xp == 6 &&
+                         progress.pendingChoices == 1 && phase == .levelUp,
+                         "A combat kill must immediately pause for a level-up")
+            if qaLevelUpResume {
+                precondition(!levelChoices.isEmpty, "No level-up choices offered")
+                chooseLevelUpgrade(levelChoices[0])
+                precondition(phase == .playing && progress.pendingChoices == 0,
+                             "Upgrade choice must resume combat exactly once")
+            }
+        }
         // CI-only launch flag: capture real combat rather than the world-map menu.
         if ProcessInfo.processInfo.arguments.contains("-captureCombatScreenshot") {
             startWave()
