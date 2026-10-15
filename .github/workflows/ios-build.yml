@@ -63,33 +63,34 @@ jobs:
           xcrun simctl bootstatus "$DEVICE" -b
           APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           xcrun simctl install "$DEVICE" "$APP"
-          xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureCombatScreenshot
           mkdir -p screenshots
-          sleep 1
-          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-combat-early.png
-          sleep 2
-          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-simulator.png
-          # Capture the gate after a cleared room in a separate app launch.
-          xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
-          xcrun simctl launch "$DEVICE" com.paulus.laststandcommand -captureGateScreenshot
-          sleep 2
-          xcrun simctl io "$DEVICE" screenshot screenshots/build-314-gate-open.png
+          # A cold-booted simulator can show a gray launch screen for several
+          # seconds while still returning success from 'simctl launch'.
+          # Retry until a decoded screenshot contains actual rendered colors.
+          capture_scene() {
+            FLAG="$1"
+            OUTPUT="$2"
+            for ATTEMPT in 1 2 3; do
+              xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+              xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"
+              sleep 4
+              xcrun simctl io "$DEVICE" screenshot "$OUTPUT"
+              if python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
+                return 0
+              fi
+              echo "::warning::Simulator frame for $FLAG not rendered (attempt $ATTEMPT); retrying"
+            done
+            echo "::error::Simulator never rendered a usable frame for $FLAG"
+            return 1
+          }
+          capture_scene -captureGateScreenshot screenshots/build-314-gate-open.png
+          capture_scene -captureCombatScreenshot screenshots/build-314-simulator.png
       - name: Validate simulator screenshot was captured
         run: |
           set -e
           test -s screenshots/build-314-simulator.png
-          test -s screenshots/build-314-combat-early.png
           test -s screenshots/build-314-gate-open.png
-          python3 - <<'PY'
-          from pathlib import Path
-          import struct
-          for p in (Path("screenshots/build-314-combat-early.png"), Path("screenshots/build-314-simulator.png"), Path("screenshots/build-314-gate-open.png")):
-              data = p.read_bytes()
-              assert data[:8] == bytes((137, 80, 78, 71, 13, 10, 26, 10)), f"{p} is not a PNG"
-              width, height = struct.unpack(">II", data[16:24])
-              assert width >= 320 and height >= 568, f"Unexpected screenshot dimensions: {width}x{height}"
-              print(f"Verified {p}: {width}x{height}, {len(data)} bytes")
-          PY
+          python3 scripts/validate_simulator_screenshots.py screenshots/build-314-simulator.png screenshots/build-314-gate-open.png
       - name: Upload actual simulator screenshot
         if: always()
         uses: actions/upload-artifact@v4
