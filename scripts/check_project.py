@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift", "CampaignPacing.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -119,6 +119,12 @@ if "WorldCatalog.recordBestRoom(worldMapIndex, room: worldWaveCount)" not in sce
     errors.append("Completed worlds must record Room 20 as their best result")
 if '"RESUME WORLD \\(storedRun.worldIndex + 1)' not in scene:
     errors.append("Saved runs from later worlds must be directly resumable on the default world map")
+if "CampaignPacing.targetEnemies(room: wave)" not in scene or "CampaignPacing.enemyHealth(world: worldMapIndex" not in scene:
+    errors.append("20-room QA tests must use the same enemy pacing as actual gameplay")
+if "CampaignPacing.clearCoins(room: wave)" not in scene or "CampaignPacing.clearXP(room: wave)" not in scene:
+    errors.append("Full-run XP and coin tests must match the game")
+if "guard health > 0, progress.pendingChoices > 0" not in scene:
+    errors.append("A lethal hit must end the run before a level-up can interrupt death")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

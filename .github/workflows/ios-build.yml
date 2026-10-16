@@ -24,6 +24,10 @@ jobs:
         run: |
           swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/AbilityLoadout.swift OutpostZero/PersistentProgression.swift OutpostZero/RunRecovery.swift tests/ProgressCombatTests.swift -o "$RUNNER_TEMP/combat-tests"
           "$RUNNER_TEMP/combat-tests"
+      - name: Test full twenty-room campaign pacing
+        run: |
+          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/CampaignPacing.swift OutpostZero/PersistentProgression.swift tests/CampaignPacingTests.swift -o "$RUNNER_TEMP/campaign-tests"
+          "$RUNNER_TEMP/campaign-tests"
       - name: Test world unlocks, individual core rewards and enemy mixes
         run: |
           swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift tests/WorldCatalogTests.swift -o "$RUNNER_TEMP/world-tests"

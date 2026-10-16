@@ -138,7 +138,7 @@ final class OutpostScene: SKScene {
     private var incendiaryLevel = 0
     private var burns: [ObjectIdentifier: (damage: Int, until: TimeInterval, nextTick: TimeInterval)] = [:]
     private var bossNode: SKShapeNode?
-    private let worldWaveCount = 20
+    private let worldWaveCount = CampaignPacing.roomsPerWorld
     private let coreBranches = ["WEAPONS", "REACTOR", "ARMOR", "MOBILITY", "SYSTEMS"]
     private var availableCores: Int { UserDefaults.standard.integer(forKey: "powerCoresAvailable") }
     private func branchLevel(_ index: Int) -> Int {
@@ -1478,7 +1478,7 @@ final class OutpostScene: SKScene {
             zoneBanner.run(.sequence([.wait(forDuration: 1.6), .fadeOut(withDuration: 0.5)]))
         }
         spawned = 0
-        waveTarget = wave == worldWaveCount ? 1 : min(40, 5 + wave * 2)
+        waveTarget = CampaignPacing.targetEnemies(room: wave)
         // Shorten the empty opening without increasing enemy count or attack damage.
         spawnClock = 0.9
         waveElapsed = 0
@@ -2128,9 +2128,7 @@ final class OutpostScene: SKScene {
         if isBoss { bossNode = node }
         let scaling = max(0, wave - 1)
         let enemyHP = ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames")
-            ? 70 : (isBoss ? selectedWorld.bossHealth :
-                (type == 3 ? 12 + scaling * 3 : (type == 1 ? 5 + scaling * 2 : 2 + scaling)) +
-                    selectedWorld.enemyHealthBonus)
+            ? 70 : CampaignPacing.enemyHealth(world: worldMapIndex, room: wave, type: type)
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
@@ -2143,7 +2141,7 @@ final class OutpostScene: SKScene {
         healthBar.position.y = radius + 12
         healthBar.zPosition = 1
         node.addChild(healthBar)
-        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: isBoss ? 250 : (type == 3 ? 20 : (type == 1 ? 12 : 6)), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi)), nextAttack: combatTime + 1.7))
+        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi)), nextAttack: combatTime + 1.7))
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -2153,6 +2151,8 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing)
+        // A lethal hazard/contact hit wins over an already-earned XP choice.
+        if phase == .playing && health <= 0 { endGame(); return }
         if phase == .playing && combatTime >= nextRunSaveAt {
             nextRunSaveAt = combatTime + 4.0
             saveRunRecovery()
@@ -2236,10 +2236,11 @@ final class OutpostScene: SKScene {
         spawnClock += gameDt
         waveElapsed += gameDt
         updateTerrainHazards()
+        if health <= 0 { endGame(); return }
         if phase != .playing { return }
         applyBurns()
         if presentPendingLevelUp(returningTo: .playing) { return }
-        let spawnInterval = max(0.42, 1.20 - Double(wave) * 0.032)
+        let spawnInterval = CampaignPacing.spawnInterval(room: wave)
         if spawned < waveTarget && spawnClock >= spawnInterval {
             spawnClock -= spawnInterval
             spawned += 1
@@ -2692,7 +2693,8 @@ final class OutpostScene: SKScene {
             bankSalvage(PersistentProgression.enemyReward(
                 isHeavy: enemies[index].behavior >= 3,
                 isBoss: enemies[index].node === bossNode))
-            let xpAmount = enemies[index].node === bossNode ? 60 : (enemies[index].behavior >= 3 ? 10 : 6)
+            let xpAmount = CampaignPacing.killXP(
+                type: enemies[index].behavior, isBoss: enemies[index].node === bossNode)
             // XP belongs to the kill immediately; it must not wait for a pickup or room clear.
             let paidXP = awardRoomXP(xpAmount)
             let xpLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
@@ -2781,7 +2783,7 @@ final class OutpostScene: SKScene {
         hypot(a.x - b.x, a.y - b.y)
     }
 
-    private var repairCost: Int { 40 + wave * 8 }
+    private var repairCost: Int { CampaignPacing.healingCost(room: wave) }
 
     private func collectXP(collectAll: Bool = false) {
         for index in xpDrops.indices.reversed() {
@@ -2804,9 +2806,9 @@ final class OutpostScene: SKScene {
         roomCleared = true
         clearHostileAttacks()
         bankSalvage(PersistentProgression.roomReward(room: wave))
-        awardRoomCoins(12 + wave * 2)
+        awardRoomCoins(CampaignPacing.clearCoins(room: wave))
         collectXP(collectAll: true)
-        awardRoomXP(6 + wave)
+        awardRoomXP(CampaignPacing.clearXP(room: wave))
         let destination: Phase = wave == worldWaveCount ? .worldComplete : .gate
         saveRunRecovery()
         if presentPendingLevelUp(returningTo: destination) { return }
@@ -2815,7 +2817,7 @@ final class OutpostScene: SKScene {
 
     @discardableResult
     private func presentPendingLevelUp(returningTo destination: Phase) -> Bool {
-        guard progress.pendingChoices > 0 else { return false }
+        guard health > 0, progress.pendingChoices > 0 else { return false }
         levelUpReturnPhase = destination
         showLevelUp()
         return true
