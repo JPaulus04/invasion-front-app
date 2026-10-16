@@ -144,6 +144,7 @@ jobs:
             echo "::error::Simulator never rendered a usable frame for $FLAG"
             return 1
           }
+          capture_scene -capturePausedRunScreenshot screenshots/build-316-paused-run.png
           capture_scene -captureSettingsScreenshot screenshots/build-316-settings.png
           capture_scene -captureLoadoutScreenshot screenshots/build-316-loadout.png
           capture_scene -captureOvergrownScreenshot screenshots/build-316-overgrown-path.png
@@ -200,7 +201,8 @@ jobs:
         run: |
           set -e
           test -s screenshots/build-316-settings.png
-          python3 scripts/validate_simulator_screenshots.py screenshots/build-316-settings.png
+          test -s screenshots/build-316-paused-run.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/build-316-settings.png screenshots/build-316-paused-run.png
           test -s screenshots/build-316-loadout.png
           test -s screenshots/build-316-overgrown-path.png
           python3 scripts/validate_simulator_screenshots.py screenshots/build-316-loadout.png screenshots/build-316-overgrown-path.png

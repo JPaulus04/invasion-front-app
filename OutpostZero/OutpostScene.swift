@@ -366,6 +366,13 @@ final class OutpostScene: SKScene {
         showReady()
         // CI-only settings and lifecycle integration: a call must pause
         // hostile attacks, and resuming must require deliberate input.
+        if ProcessInfo.processInfo.arguments.contains("-capturePausedRunScreenshot") {
+            startWave()
+            setAppActive(false)
+            precondition(phase == .interrupted && arena.isPaused &&
+                         overlayButtons["resume_run"] != nil,
+                         "Interruption must display tappable RESUME RUN")
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureSettingsScreenshot") {
             startWave()
             setAppActive(false)
@@ -542,10 +549,14 @@ final class OutpostScene: SKScene {
         passageGate.position = CGPoint(x: size.width / 2, y: roomBounds.maxY - 24)
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
-        hudPanel.path = CGPath(roundedRect: CGRect(x: 10, y: size.height - 169, width: max(1, size.width - 20), height: 98), cornerWidth: 13, cornerHeight: 13, transform: nil)
-        title.position = CGPoint(x: size.width / 2, y: size.height - 83)
-        subtitle.position = CGPoint(x: size.width / 2, y: size.height - 105)
-        info.position = CGPoint(x: size.width / 2, y: size.height - 125)
+        // The original heading crossed the top border and the health label
+        // crowded the XP bar. Allocate enough vertical room for all four rows.
+        hudPanel.path = CGPath(roundedRect: CGRect(
+            x: 10, y: size.height - 188, width: max(1, size.width - 20), height: 118),
+            cornerWidth: 13, cornerHeight: 13, transform: nil)
+        title.position = CGPoint(x: size.width / 2, y: size.height - 94)
+        subtitle.position = CGPoint(x: size.width / 2, y: size.height - 121)
+        info.position = CGPoint(x: size.width / 2, y: size.height - 143)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
         damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
@@ -555,11 +566,11 @@ final class OutpostScene: SKScene {
         let xpWidth = max(1, size.width - 48)
         xpTrack.path = CGPath(roundedRect: CGRect(x: 0, y: 0, width: xpWidth, height: 6), cornerWidth: 3, cornerHeight: 3, transform: nil)
         xpFill.path = xpTrack.path
-        xpTrack.position = CGPoint(x: 24, y: size.height - 146)
+        xpTrack.position = CGPoint(x: 24, y: size.height - 161)
         xpFill.position = xpTrack.position
-        xpLabel.position = CGPoint(x: size.width / 2, y: size.height - 160)
+        xpLabel.position = CGPoint(x: size.width / 2, y: size.height - 177)
         checkpointButton.position = CGPoint(x: size.width / 2, y: roomBounds.minY + 25)
-        settingsShortcut.position = CGPoint(x: 36, y: size.height - 199)
+        settingsShortcut.position = CGPoint(x: 36, y: size.height - 212)
         updateHUD()
     }
 
@@ -568,8 +579,16 @@ final class OutpostScene: SKScene {
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
         speedButton.isHidden = phase != .playing && phase != .gate
         settingsShortcut.isHidden = ![Phase.ready, .loadout, .playing, .gate].contains(phase)
-        // Keep the QA speed toggle below the HUD, never on top of the XP bar.
-        speedButton.position = CGPoint(x: size.width - 56, y: size.height - 199)
+        // Player speed control sits below the HUD, clear of the XP bar.
+        speedButton.position = CGPoint(x: size.width - 56, y: size.height - 212)
+        if phase == .ready || phase == .loadout {
+            // In menus, keep the gear inside the panel rather than
+            // floating over its top-left border.
+            settingsShortcut.position = CGPoint(
+                x: size.width - 52, y: overlay.position.y + 155)
+        } else {
+            settingsShortcut.position = CGPoint(x: 36, y: size.height - 212)
+        }
         xpFill.xScale = max(0.001, CGFloat(progress.xp) / CGFloat(progress.nextLevelXP))
         xpLabel.text = "LEVEL \(progress.level)  •  \(progress.xp)/\(progress.nextLevelXP) XP"
         checkpointButton.isHidden = phase != .gate || !wave.isMultiple(of: 5) || checkpointUsed
@@ -584,6 +603,12 @@ final class OutpostScene: SKScene {
         checkpointButton.isHidden = true
         overlay.removeAllChildren()
         overlayButtons.removeAll()
+        // Every menu begins with the standard card. The world map and
+        // interruption screens override its height without affecting others.
+        overlayBackdrop.path = CGPath(roundedRect: CGRect(
+            x: -min(size.width - 28, 390) / 2, y: -245,
+            width: min(size.width - 28, 390), height: 430),
+            cornerWidth: 18, cornerHeight: 18, transform: nil)
         overlay.addChild(overlayBackdrop)
         overlayBackdrop.isHidden = false
     }
@@ -697,10 +722,16 @@ final class OutpostScene: SKScene {
         phase = .ready
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
+        // The previous panel clipped WORLD MAP at its top and left the
+        // power-core counter outside its bottom. Keep both inside the card.
+        overlayBackdrop.path = CGPath(roundedRect: CGRect(
+            x: -min(size.width - 28, 390) / 2, y: -293,
+            width: min(size.width - 28, 390), height: 489),
+            cornerWidth: 18, cornerHeight: 18, transform: nil)
         let selected = worldMapIndex
         let unlocked = selected == 0
         let bestStars = min(3, max(0, UserDefaults.standard.integer(forKey: "frontierForestStars")))
-        overlayText("WORLD MAP", y: 174, fontSize: 23)
+        overlayText("WORLD MAP", y: 159, fontSize: 23)
         overlayText("◀  \(selected + 1) / \(worldMapNames.count)  ▶", y: 133, fontSize: 15)
         let worldCard = SKShapeNode(rect: CGRect(x: -min(size.width - 90, 310) / 2, y: -18,
                                                  width: min(size.width - 90, 310), height: 128), cornerRadius: 18)
@@ -744,14 +775,16 @@ final class OutpostScene: SKScene {
         overlay.addChild(beacon)
         overlayText(worldMapNames[selected], y: 81, fontSize: 18)
         overlayText(unlocked ? "AVAILABLE  •  \(bestStars)/3 STARS" : "COMING SOON", y: 55, fontSize: 13)
-        overlayText(unlocked ? "\(3 - bestStars) CORES STILL EARNABLE" : "NEW ENEMIES AND REWARDS", y: -11, fontSize: 11)
-        actionButton("◀ PREVIOUS", key: "world_prev", y: -62, tint: .systemBlue, enabled: selected > 0)
-        actionButton("NEXT ▶", key: "world_next", y: -110, tint: .systemBlue, enabled: selected < worldMapNames.count - 1)
+        // Keep the reward count beneath the world illustration, not on
+        // top of the mountains and beacon.
+        overlayText(unlocked ? "\(3 - bestStars) CORES STILL EARNABLE" : "NEW ENEMIES AND REWARDS", y: -35, fontSize: 11)
+        actionButton("◀ PREVIOUS", key: "world_prev", y: -83, tint: .systemBlue, enabled: selected > 0)
+        actionButton("NEXT ▶", key: "world_next", y: -132, tint: .systemBlue, enabled: selected < worldMapNames.count - 1)
         if unlocked {
-            actionButton("PREPARE LOADOUT", key: "start", y: -160, tint: .systemTeal)
+            actionButton("PREPARE LOADOUT", key: "start", y: -181, tint: .systemTeal)
         }
-        actionButton("CHARACTER RESTORATION", key: "restore", y: -212, tint: .systemIndigo)
-        overlayText("POWER CORES: \(availableCores)", y: -256, fontSize: 12)
+        actionButton("CHARACTER RESTORATION", key: "restore", y: -232, tint: .systemIndigo)
+        overlayText("POWER CORES: \(availableCores)", y: -272, fontSize: 12)
         updateHUD()
     }
 
@@ -839,9 +872,15 @@ final class OutpostScene: SKScene {
         arena.isPaused = true
         lockMenuBriefly()
         clearOverlay()
+        // Focused pause card leaves the room visible instead of covering
+        // nearly the entire battlefield with a tall black rectangle.
+        overlayBackdrop.path = CGPath(roundedRect: CGRect(
+            x: -min(size.width - 28, 390) / 2, y: -155,
+            width: min(size.width - 28, 390), height: 310),
+            cornerWidth: 18, cornerHeight: 18, transform: nil)
         overlayText("RUN PAUSED", y: 92, fontSize: 27)
         overlayText("ROOM \(wave)  •  \(health) HP", y: 45, fontSize: 17)
-        overlayText("PROGRESS PROTECTED DURING INTERRUPTION", y: -9, fontSize: 11)
+        overlayText("COMBAT FROZEN UNTIL YOU RESUME", y: -9, fontSize: 12)
         actionButton("RESUME RUN", key: "resume_run", y: -86, tint: .systemTeal)
         updateHUD()
     }

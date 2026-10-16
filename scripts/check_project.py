@@ -45,6 +45,14 @@ if "func setAppActive(_ active: Bool)" not in scene or "case (.interrupted, \"re
     errors.append("Interruption must pause combat until explicit resume")
 if 'ProcessInfo.processInfo.arguments.contains("-captureSettingsScreenshot")' not in scene:
     errors.append("Simulator must verify settings and interruption recovery")
+if 'ProcessInfo.processInfo.arguments.contains("-capturePausedRunScreenshot")' not in scene:
+    errors.append("Simulator must validate the focused pause card")
+if 'y: -293,' not in scene or 'y: -272, fontSize: 12)' not in scene:
+    errors.append("World map must fit power-core status inside its panel")
+if "COMBAT FROZEN UNTIL YOU RESUME" not in scene:
+    errors.append("Pause message must not promise unsaved progress protection")
+if "settingsShortcut.position = CGPoint(" not in scene or "y: overlay.position.y + 155" not in scene:
+    errors.append("World-map settings button must remain inside its panel")
 if "CombatRules.orbitalBladeHits(" not in scene:
     errors.append("Orbital combat must use tested physical contact rules")
 if 'ProcessInfo.processInfo.arguments.contains("-captureOvergrownScreenshot")' not in scene:
