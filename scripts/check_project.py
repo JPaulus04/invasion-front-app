@@ -114,7 +114,11 @@ if "-captureFloodedBossScreenshot" not in scene or "-captureToxicBossScreenshot"
 if "selectedWorld.title : \"OUTPOST ZERO\"" not in scene:
     errors.append("Combat HUD must identify the selected world")
 if "WorldCatalog.recordBestRoom(worldMapIndex, room: wave)" not in scene:
-    errors.append("Defeat progress must be stored separately for each world")
+    errors.append("Best room must be tracked as each new room begins")
+if "WorldCatalog.recordBestRoom(worldMapIndex, room: worldWaveCount)" not in scene:
+    errors.append("Completed worlds must record Room 20 as their best result")
+if '"RESUME WORLD \\(storedRun.worldIndex + 1)' not in scene:
+    errors.append("Saved runs from later worlds must be directly resumable on the default world map")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

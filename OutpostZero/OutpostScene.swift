@@ -411,6 +411,26 @@ final class OutpostScene: SKScene {
                          "Recovery must preserve loadout, stats and room")
             // Avoid leaving a QA fixture in the simulator defaults.
             recovery.clear()
+            let laterWorld = RunSnapshot(
+                version: RunSnapshot.schema, worldIndex: 2,
+                room: 12, location: .battle,
+                health: 24, coins: 406, damage: 4, fireRate: 2,
+                chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
+                orbitLevel: 1, runArmor: 20, checkpointUsed: false,
+                checkpointPresented: false,
+                progress: RunProgress(), abilities: ["chain", "orbit", "incendiary"],
+                earnedSalvage: 140, roomSalvageCredit: 18,
+                roomCoinCredit: 32, roomXPCredit: 40)
+            precondition(recovery.save(laterWorld))
+            worldMapIndex = 0
+            showReady()
+            precondition(overlayButtons["recover_run"] != nil,
+                         "Any selected world must offer the existing saved run")
+            recoverSavedRun()
+            precondition(worldMapIndex == 2 && wave == 12 &&
+                         phase == .interrupted && health == 24,
+                         "Resume must reopen the actual world, not the selected map card")
+            recovery.clear()
             showReady()
         }
         if ProcessInfo.processInfo.arguments.contains("-captureHeadquartersScreenshot") {
@@ -957,13 +977,17 @@ final class OutpostScene: SKScene {
         overlayText("REGION: \(world.region)", y: -27, fontSize: 11)
         overlayText(released ? (unlocked ? "\(3 - bestStars) CORES STILL EARNABLE" : world.brief)
                              : "MORE WORLDS IN DEVELOPMENT", y: -43, fontSize: 10)
+        if released && unlocked {
+            overlayText("BEST ROOM: \(WorldCatalog.bestRoom(selected))/\(worldWaveCount)",
+                        y: -59, fontSize: 10)
+        }
         actionButton("◀ PREVIOUS", key: "world_prev", y: -83, tint: .systemBlue, enabled: selected > 0)
         actionButton("NEXT ▶", key: "world_next", y: -132, tint: .systemBlue, enabled: selected < WorldCatalog.worlds.count - 1)
-        if let storedRun = recovery.load(), storedRun.worldIndex == selected {
-            actionButton("RESUME ROOM \(storedRun.room)", key: "recover_run",
-                         y: -181, tint: .systemTeal)
-        } else if recovery.load() != nil {
-            overlayText("FINISH OR DISCARD SAVED RUN FIRST", y: -186, fontSize: 11)
+        if let storedRun = recovery.load() {
+            // Always offer Resume, even when the world map starts at World 1.
+            // The saved snapshot restores its own world index and room.
+            actionButton("RESUME WORLD \(storedRun.worldIndex + 1) • ROOM \(storedRun.room)",
+                         key: "recover_run", y: -181, tint: .systemTeal)
         } else if unlocked {
             actionButton("PREPARE LOADOUT", key: "start", y: -181, tint: .systemTeal)
         }
@@ -1416,6 +1440,9 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
+        if !isCaptureMode {
+            _ = WorldCatalog.recordBestRoom(worldMapIndex, room: wave)
+        }
         roomSalvageEarned = 0
         roomSalvageRecoveredCredit = 0
         roomCoinsEarned = 0
@@ -2990,6 +3017,9 @@ final class OutpostScene: SKScene {
         ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
         clearOverlay()
+        if !isCaptureMode {
+            _ = WorldCatalog.recordBestRoom(worldMapIndex, room: worldWaveCount)
+        }
         awardWorldCompletionCores(stars: progress.stars)
         // A completed-world bonus is not replayed enemy/room income.
         // In particular, resuming a cleared final boss room must receive the
