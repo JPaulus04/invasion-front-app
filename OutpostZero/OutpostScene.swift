@@ -56,6 +56,7 @@ final class OutpostScene: SKScene {
     private var roomSalvageRecoveredCredit = 0
     private var isRestoringRun = false
     private var nextRunSaveAt: TimeInterval = 0
+    private var discardRunArmed = false
     private var health = 100
     private var damage = 1
     private var fireRate = 1
@@ -763,6 +764,7 @@ final class OutpostScene: SKScene {
     }
 
     private func showReady() {
+        discardRunArmed = false
         hud.isHidden = true
         phase = .ready
         ArcadeMusic.shared.play(.headquarters)
@@ -841,10 +843,12 @@ final class OutpostScene: SKScene {
     private func bankSalvage(_ amount: Int) {
         // An interrupted room may be replayed. Credit only rewards earned
         // beyond the amount previously banked in this room.
-        let previousOwed = max(0, roomSalvageEarned - roomSalvageRecoveredCredit)
+        let freshReward = RunRecoveryStore.newSalvage(
+            earnedOnReplay: roomSalvageEarned,
+            previouslyCredited: roomSalvageRecoveredCredit,
+            reward: amount)
         roomSalvageEarned += max(0, amount)
-        let currentOwed = max(0, roomSalvageEarned - roomSalvageRecoveredCredit)
-        salvageBankedThisRun += permanent.bank(currentOwed - previousOwed)
+        salvageBankedThisRun += permanent.bank(freshReward)
     }
 
     private var isCaptureMode: Bool {
@@ -898,21 +902,32 @@ final class OutpostScene: SKScene {
         if snapshot.location == .clearedGate {
             roomCleared = true
             spawned = waveTarget
-            showZoneGate()
+            if wave < worldWaveCount { showZoneGate() }
         }
         isRestoringRun = false
-        // Remain frozen until explicitly resumed, including after iOS kills
-        // and recreates the process.
         if progress.pendingChoices > 0 {
-            _ = presentPendingLevelUp(returningTo:
-                snapshot.location == .clearedGate ? .gate : .playing)
+            let destination: Phase = snapshot.location == .clearedGate
+                ? (wave == worldWaveCount ? .worldComplete : .gate)
+                : .playing
+            _ = presentPendingLevelUp(returningTo: destination)
+        } else if snapshot.location == .clearedGate && wave == worldWaveCount {
+            // The boss was defeated, but iOS terminated the app before the
+            // victory summary. Complete it once; do not create an exit gate.
+            completeWorld()
         } else {
+            // Return frozen until the player explicitly chooses to resume.
             setAppActive(false)
         }
         saveRunRecovery()
     }
 
     private func discardSavedRun() {
+        if !discardRunArmed {
+            discardRunArmed = true
+            showHeadquarters()
+            return
+        }
+        discardRunArmed = false
         recovery.clear()
         // Discarding an old save cannot change permanently banked Salvage.
         restart()
@@ -931,14 +946,15 @@ final class OutpostScene: SKScene {
         actionButton("ABILITY LAB", key: "ability_lab", y: -23, tint: .systemIndigo)
         actionButton("CHARACTER RESTORATION", key: "restore", y: -81, tint: .systemPurple)
         if recovery.load() != nil {
-            actionButton("DISCARD SAVED RUN", key: "discard_run",
-                         y: -128, tint: .systemRed)
+            actionButton(discardRunArmed ? "CONFIRM DISCARD RUN" : "DISCARD SAVED RUN",
+                         key: "discard_run", y: -128, tint: .systemRed)
         }
         actionButton("BACK TO WORLD MAP", key: "hq_back", y: -182, tint: .systemBlue)
         updateHUD()
     }
 
     private func showGearBay() {
+        discardRunArmed = false
         phase = .gearBay
         hud.isHidden = true
         clearOverlay()
@@ -962,6 +978,7 @@ final class OutpostScene: SKScene {
     }
 
     private func showAbilityLab() {
+        discardRunArmed = false
         phase = .abilityLab
         hud.isHidden = true
         clearOverlay()
@@ -978,8 +995,8 @@ final class OutpostScene: SKScene {
                          tint: index.isMultiple(of: 2) ? .systemTeal : .systemIndigo,
                          enabled: level < 5 && permanent.salvage >= price)
         }
-        overlayText("SELECT UP TO 3 ABILITIES FOR EACH WORLD", y: -180, fontSize: 11)
-        actionButton("BACK TO HEADQUARTERS", key: "hq_back", y: -225, tint: .systemBlue)
+        overlayText("SELECT 3 ABILITIES BEFORE EACH WORLD", y: -158, fontSize: 11)
+        actionButton("BACK TO HEADQUARTERS", key: "hq_back", y: -209, tint: .systemBlue)
         updateHUD()
     }
 

@@ -93,6 +93,24 @@ struct ProgressCombatTests {
             progress: restoredProgress, abilities: ["chain", "incendiary", "orbit"],
             earnedSalvage: 297, roomSalvageCredit: 24)
         precondition(!recover.save(bad))
+        precondition(RunRecoveryStore.newSalvage(
+            earnedOnReplay: 0, previouslyCredited: 24, reward: 12) == 0)
+        precondition(RunRecoveryStore.newSalvage(
+            earnedOnReplay: 12, previouslyCredited: 24, reward: 12) == 0)
+        precondition(RunRecoveryStore.newSalvage(
+            earnedOnReplay: 24, previouslyCredited: 24, reward: 6) == 6)
+        precondition(RunRecoveryStore.newSalvage(
+            earnedOnReplay: 25, previouslyCredited: 24, reward: -10) == 0)
+        let completedRoom = RunSnapshot(
+            version: RunSnapshot.schema, room: 20, location: .clearedGate,
+            health: 15, coins: 2500, damage: 9, fireRate: 5,
+            chainLevel: 3, explosiveLevel: 3, incendiaryLevel: 3,
+            orbitLevel: 3, runArmor: 80, checkpointUsed: true,
+            progress: restoredProgress,
+            abilities: ["chain", "incendiary", "orbit"],
+            earnedSalvage: 1100, roomSalvageCredit: 88)
+        precondition(completedRoom.isValid && recover.save(completedRoom))
+        precondition(recover.load()?.location == .clearedGate)
         recover.clear()
         precondition(recover.load() == nil)
         recoveryStorage.removePersistentDomain(forName: recoverySuite)

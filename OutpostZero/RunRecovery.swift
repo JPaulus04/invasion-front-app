@@ -28,18 +28,27 @@ struct RunSnapshot: Codable {
 
     var isValid: Bool {
         version == Self.schema && (1...20).contains(room) &&
-        health > 0 && health <= 400 && coins >= 0 && coins <= 1_000_000 &&
-        (1...20).contains(damage) && (1...5).contains(fireRate) &&
+        health > 0 && health <= 1_500 && coins >= 0 && coins <= 1_000_000 &&
+        (1...100).contains(damage) && (1...5).contains(fireRate) &&
         (0...3).contains(chainLevel) && (0...3).contains(explosiveLevel) &&
         (0...3).contains(incendiaryLevel) && (0...3).contains(orbitLevel) &&
-        (0...500).contains(runArmor) && (1...100).contains(progress.level) &&
-        progress.xp >= 0 && progress.pendingChoices >= 0 &&
+        (0...1_000).contains(runArmor) && (1...100).contains(progress.level) &&
+        progress.xp >= 0 && progress.xp < progress.nextLevelXP &&
+        (0...50).contains(progress.pendingChoices) &&
         earnedSalvage >= 0 && roomSalvageCredit >= 0 &&
         AbilityLoadout(selected: abilities).isReady && Set(abilities).count == 3
     }
 }
 
 final class RunRecoveryStore {
+    /// Amount payable after replaying a partially completed room. This
+    /// prevents force-quitting from duplicating Salvage earned before a save.
+    static func newSalvage(earnedOnReplay: Int, previouslyCredited: Int, reward: Int) -> Int {
+        let previous = max(0, earnedOnReplay - previouslyCredited)
+        let updated = max(0, earnedOnReplay + max(0, reward) - previouslyCredited)
+        return max(0, updated - previous)
+    }
+
     private let storage: UserDefaults
     private let key = "outpostZeroRunSnapshotV1"
     init(storage: UserDefaults = .standard) { self.storage = storage }
