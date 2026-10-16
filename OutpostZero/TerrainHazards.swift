@@ -39,7 +39,7 @@ enum TerrainHazards {
         let barrier = patch(.rubble, x: left, y: 0.76, width: 0.24, height: 0.11, bounds: bounds)
         switch world {
         case 1: return [water, acid, barrier]
-        case 2: return [water, barrier] // Frozen region reserves acid for toxic zones
+        case 2: return [acid, barrier] // Toxic Crossing pulses acid without water slowdown
         default: return [water, acid, barrier]
         }
     }

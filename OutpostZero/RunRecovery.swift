@@ -4,9 +4,10 @@ import Foundation
 /// positions are deliberately reconstructed from the current room's beginning.
 struct RunSnapshot: Codable {
     enum Location: String, Codable { case battle, clearedGate }
-    static let schema = 2
+    static let schema = 3
 
     let version: Int
+    let worldIndex: Int
     let room: Int
     let location: Location
     let health: Int
@@ -29,7 +30,8 @@ struct RunSnapshot: Codable {
     let roomXPCredit: Int
 
     var isValid: Bool {
-        version == Self.schema && (1...20).contains(room) &&
+        version == Self.schema && (0..<WorldCatalog.playableCount).contains(worldIndex) &&
+        (1...20).contains(room) &&
         health > 0 && health <= 1_500 && coins >= 0 && coins <= 1_000_000 &&
         (1...100).contains(damage) && (1...5).contains(fireRate) &&
         (0...3).contains(chainLevel) && (0...3).contains(explosiveLevel) &&

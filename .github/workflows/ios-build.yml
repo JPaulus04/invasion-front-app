@@ -22,8 +22,12 @@ jobs:
           "$RUNNER_TEMP/room-tests"
       - name: Test XP and combat rules
         run: |
-          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/AbilityLoadout.swift OutpostZero/PersistentProgression.swift OutpostZero/RunRecovery.swift tests/ProgressCombatTests.swift -o "$RUNNER_TEMP/combat-tests"
+          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/AbilityLoadout.swift OutpostZero/PersistentProgression.swift OutpostZero/RunRecovery.swift tests/ProgressCombatTests.swift -o "$RUNNER_TEMP/combat-tests"
           "$RUNNER_TEMP/combat-tests"
+      - name: Test world unlocks, individual core rewards and enemy mixes
+        run: |
+          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift tests/WorldCatalogTests.swift -o "$RUNNER_TEMP/world-tests"
+          "$RUNNER_TEMP/world-tests"
       - name: Generate original app icon
         run: python3 scripts/generate_icon.py
       - name: Install XcodeGen
@@ -151,6 +155,7 @@ jobs:
           capture_scene -captureLoadoutScreenshot screenshots/outpost-zero-loadout.png
           capture_scene -captureOvergrownScreenshot screenshots/outpost-zero-overgrown-path.png
           capture_scene -captureTerrainHazardsScreenshot screenshots/outpost-zero-terrain.png
+          capture_scene -captureWorldExpansionScreenshot screenshots/outpost-zero-flooded-outpost.png
           capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
           capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
           capture_scene -captureLevelUpScreenshot screenshots/outpost-zero-level-up.png
@@ -212,7 +217,9 @@ jobs:
           test -s screenshots/outpost-zero-loadout.png
           test -s screenshots/outpost-zero-overgrown-path.png
           test -s screenshots/outpost-zero-terrain.png
+          test -s screenshots/outpost-zero-flooded-outpost.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-terrain.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-flooded-outpost.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-loadout.png screenshots/outpost-zero-overgrown-path.png
           test -s screenshots/outpost-zero-simulator.png
           test -s screenshots/outpost-zero-gate-open.png

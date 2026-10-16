@@ -20,7 +20,7 @@ final class OutpostScene: SKScene {
     private var worldMapSwipeStart: CGPoint?
     private var worldMapSwipeMoved = false
     private var worldMapIndex = 0
-    private let worldMapNames = ["FRONTIER FOREST", "ASHEN WASTES", "FROZEN RIDGE", "NEON CITADEL", "VOID FRONTIER"]
+    private var selectedWorld: WorldInfo { WorldCatalog.info(worldMapIndex) }
     private var phase: Phase = .ready
     private var restorationReturnPhase: Phase = .ready
     private struct XPDrop {
@@ -391,7 +391,8 @@ final class OutpostScene: SKScene {
             // Simulator QA verifies the player-facing recovery route. The
             // isolated capture device has no real-world save to overwrite.
             let snapshot = RunSnapshot(
-                version: RunSnapshot.schema, room: 12, location: .battle,
+                version: RunSnapshot.schema, worldIndex: 0,
+                room: 12, location: .battle,
                 health: 21, coins: 1506, damage: 4, fireRate: 3,
                 chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
                 orbitLevel: 2, runArmor: 20, checkpointUsed: false,
@@ -471,6 +472,25 @@ final class OutpostScene: SKScene {
         }
         // Art review for Rooms 6-10: stage actual forest-overgrowth scenery
         // without changing combat balance or the launch state seen by players.
+        if ProcessInfo.processInfo.arguments.contains("-captureWorldExpansionScreenshot") {
+            // Validate the first newly playable world with its actual water
+            // patches, its entry route and a distinct world presentation.
+            UserDefaults.standard.set(true, forKey: "frontierForestComplete")
+            worldMapIndex = 1
+            showReady()
+            precondition(WorldCatalog.unlocked(1) && overlayButtons["start"] != nil,
+                         "Clearing World 1 must unlock Flooded Outpost")
+            draftLoadout = AbilityLoadout(selected: ["chain", "explosive", "orbit"])
+            showLoadout()
+            precondition(enterSelectedWorld() && wave == 1 &&
+                         roomHazards.contains(where: { $0.kind == .water }) &&
+                         !roomHazards.contains(where: { $0.kind == .acid }),
+                         "World 2 must launch with water and distinct terrain")
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+            UserDefaults.standard.removeObject(forKey: "frontierForestComplete")
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot") {
             wave = 11
             gateUnlocked = true
@@ -805,10 +825,12 @@ final class OutpostScene: SKScene {
             width: min(size.width - 28, 390), height: 489),
             cornerWidth: 18, cornerHeight: 18, transform: nil)
         let selected = worldMapIndex
-        let unlocked = selected == 0
-        let bestStars = min(3, max(0, UserDefaults.standard.integer(forKey: "frontierForestStars")))
+        let world = selectedWorld
+        let unlocked = WorldCatalog.unlocked(selected)
+        let released = selected < WorldCatalog.playableCount
+        let bestStars = WorldCatalog.stars(selected)
         overlayText("WORLD MAP", y: 159, fontSize: 23)
-        overlayText("◀  \(selected + 1) / \(worldMapNames.count)  ▶", y: 133, fontSize: 15)
+        overlayText("◀  WORLD \(selected + 1) / \(WorldCatalog.worlds.count)  ▶", y: 133, fontSize: 15)
         let worldCard = SKShapeNode(rect: CGRect(x: -min(size.width - 90, 310) / 2, y: -18,
                                                  width: min(size.width - 90, 310), height: 128), cornerRadius: 18)
         worldCard.fillColor = unlocked ? SKColor.systemGreen.withAlphaComponent(0.22) : SKColor.systemGray.withAlphaComponent(0.18)
@@ -817,11 +839,12 @@ final class OutpostScene: SKScene {
         overlay.addChild(worldCard)
         // Layered destination illustration, rendered entirely in SpriteKit.
         let palettes: [(SKColor, SKColor)] = [
-            (.systemGreen, .systemTeal), (.systemOrange, .systemRed),
+            (.systemGreen, .systemTeal), (.systemBlue, .systemCyan),
+            (.systemGreen, .systemYellow), (.systemOrange, .systemRed),
             (.systemCyan, .systemBlue), (.systemPurple, .systemPink),
             (.darkGray, .systemIndigo)
         ]
-        let colors = palettes[selected]
+        let colors = palettes[min(world.biome, palettes.count - 1)]
         let horizon = SKShapeNode(rect: CGRect(x: -124, y: -12, width: 248, height: 56), cornerRadius: 12)
         horizon.fillColor = colors.0.withAlphaComponent(0.23)
         horizon.strokeColor = .clear
@@ -849,20 +872,22 @@ final class OutpostScene: SKScene {
         beacon.glowWidth = 4
         beacon.zPosition = 0.9
         overlay.addChild(beacon)
-        overlayText(worldMapNames[selected], y: 81, fontSize: 18)
-        overlayText(unlocked ? "AVAILABLE  •  \(bestStars)/3 STARS" : "COMING SOON", y: 55, fontSize: 13)
-        // Keep the reward count beneath the world illustration, not on
-        // top of the mountains and beacon.
-        overlayText(unlocked ? "\(3 - bestStars) CORES STILL EARNABLE" : "NEW ENEMIES AND REWARDS", y: -35, fontSize: 11)
+        overlayText(world.title, y: 81, fontSize: 17)
+        overlayText(released
+            ? (unlocked ? "AVAILABLE  •  \(bestStars)/3 STARS" : "LOCKED — CLEAR PREVIOUS WORLD")
+            : "PLANNED — NOT YET PLAYABLE", y: 55, fontSize: 12)
+        overlayText("REGION: \(world.region)", y: -27, fontSize: 11)
+        overlayText(released ? (unlocked ? "\(3 - bestStars) CORES STILL EARNABLE" : world.brief)
+                             : "MORE WORLDS IN DEVELOPMENT", y: -43, fontSize: 10)
         actionButton("◀ PREVIOUS", key: "world_prev", y: -83, tint: .systemBlue, enabled: selected > 0)
-        actionButton("NEXT ▶", key: "world_next", y: -132, tint: .systemBlue, enabled: selected < worldMapNames.count - 1)
-        if unlocked {
-            if let storedRun = recovery.load() {
-                actionButton("RESUME ROOM \(storedRun.room)", key: "recover_run",
-                             y: -181, tint: .systemTeal)
-            } else {
-                actionButton("PREPARE LOADOUT", key: "start", y: -181, tint: .systemTeal)
-            }
+        actionButton("NEXT ▶", key: "world_next", y: -132, tint: .systemBlue, enabled: selected < WorldCatalog.worlds.count - 1)
+        if let storedRun = recovery.load(), storedRun.worldIndex == selected {
+            actionButton("RESUME ROOM \(storedRun.room)", key: "recover_run",
+                         y: -181, tint: .systemTeal)
+        } else if recovery.load() != nil {
+            overlayText("FINISH OR DISCARD SAVED RUN FIRST", y: -186, fontSize: 11)
+        } else if unlocked {
+            actionButton("PREPARE LOADOUT", key: "start", y: -181, tint: .systemTeal)
         }
         actionButton("HEADQUARTERS & UPGRADES", key: "headquarters", y: -232, tint: .systemIndigo)
         overlayText("POWER CORES: \(availableCores)", y: -272, fontSize: 12)
@@ -915,7 +940,8 @@ final class OutpostScene: SKScene {
             (phase == .gate || phase == .checkpoint || roomCleared)
                 ? .clearedGate : .battle
         let snapshot = RunSnapshot(
-            version: RunSnapshot.schema, room: wave, location: location,
+            version: RunSnapshot.schema, worldIndex: worldMapIndex,
+            room: wave, location: location,
             health: health, coins: coins, damage: damage, fireRate: fireRate,
             chainLevel: chainLevel, explosiveLevel: explosiveLevel,
             incendiaryLevel: incendiaryLevel, orbitLevel: orbitLevel,
@@ -931,6 +957,7 @@ final class OutpostScene: SKScene {
     private func recoverSavedRun() {
         guard let snapshot = recovery.load() else { showReady(); return }
         isRestoringRun = true
+        worldMapIndex = snapshot.worldIndex
         restart()  // Clear remaining nodes without clearing saved recovery.
         progress = snapshot.progress
         lockedLoadout = AbilityLoadout(selected: snapshot.abilities)
@@ -1071,7 +1098,7 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayText("MISSION LOADOUT", y: 162, fontSize: 23)
         overlayText("PRIMARY: AUTO RIFLE  •  ALWAYS EQUIPPED", y: 126, fontSize: 11)
-        overlayText("SELECT 3 OF 4  •  LOCKED FOR 20 ROOMS", y: 99, fontSize: 12)
+        overlayText("WORLD \(worldMapIndex + 1)  •  LOCKED FOR 20 ROOMS", y: 99, fontSize: 12)
         overlayText("\(draftLoadout.selected.count)/3 TACTICAL ABILITIES SELECTED",
                     y: 76, fontSize: 12)
         let options: [(String, String)] = [
@@ -1178,7 +1205,9 @@ final class OutpostScene: SKScene {
 
     @discardableResult
     private func enterSelectedWorld() -> Bool {
-        guard phase == .loadout, draftLoadout.isReady else { return false }
+        guard phase == .loadout, draftLoadout.isReady,
+              WorldCatalog.unlocked(worldMapIndex),
+              recovery.load() == nil else { return false }
         lockedLoadout = draftLoadout
         recovery.clear()
         // Ensure newly purchased armor is active from the first room.
@@ -1324,14 +1353,18 @@ final class OutpostScene: SKScene {
         warning.isHidden = true
         warning.alpha = 1
         let activeZone = min((wave - 1) / 5, 3)
-        backgroundColor = zoneColors[activeZone]
+        backgroundColor = worldColor(for: activeZone)
         updateZoneScenery(activeZone)
         rebuildTerrainHazards()
         nextAcidDamageAt = combatTime + 1.0
         enemyAcidDamageAt.removeAll()
         if wave == 1 || (wave - 1) % 5 == 0 {
             zoneBanner.removeAllActions()
-            zoneBanner.text = zoneNames[activeZone]
+            let labels = worldMapIndex == 0 ? zoneNames :
+                (worldMapIndex == 1
+                    ? ["OUTER DOCKS", "FLOODED CHANNEL", "PUMP STATION", "WARDEN PLATFORM"]
+                    : ["TOXIC PERIMETER", "CORROSIVE PASS", "WASTE PROCESSING", "SENTINEL CHAMBER"])
+            zoneBanner.text = labels[activeZone]
             zoneBanner.alpha = 1
             zoneBanner.run(.sequence([.wait(forDuration: 1.6), .fadeOut(withDuration: 0.5)]))
         }
@@ -1373,14 +1406,36 @@ final class OutpostScene: SKScene {
         return SKTexture(image: image)
     }()
 
-    private func updateZoneScenery(_ zone: Int) {
+    private func worldColor(for zone: Int) -> SKColor {
+        if worldMapIndex == 0 { return zoneColors[min(3, max(0, zone))] }
+        let colors: [SKColor] = worldMapIndex == 1 ? [
+            SKColor(red: 0.11, green: 0.22, blue: 0.29, alpha: 1),
+            SKColor(red: 0.10, green: 0.20, blue: 0.25, alpha: 1),
+            SKColor(red: 0.13, green: 0.19, blue: 0.24, alpha: 1),
+            SKColor(red: 0.13, green: 0.18, blue: 0.27, alpha: 1)
+        ] : [
+            SKColor(red: 0.22, green: 0.26, blue: 0.13, alpha: 1),
+            SKColor(red: 0.25, green: 0.22, blue: 0.12, alpha: 1),
+            SKColor(red: 0.21, green: 0.22, blue: 0.17, alpha: 1),
+            SKColor(red: 0.21, green: 0.18, blue: 0.18, alpha: 1)
+        ]
+        return colors[min(3, max(0, zone))]
+    }
+
+    private func updateZoneScenery(_ requestedZone: Int) {
+        // Later worlds emphasize industrial ruins rather than using the
+        // forest's illustrated pines for every environment.
+        let zone = worldMapIndex == 0 ? requestedZone :
+            (worldMapIndex == 1 ? max(1, requestedZone) : max(2, requestedZone))
         zoneScenery.removeAllChildren()
         // The forest becomes cooler and darker in Rooms 6-10. The previous
         // backdrop tint was hidden beneath the opaque room-art floor.
         if let floor = arena.childNode(withName: "roomArtwork")?.children.first as? SKShapeNode {
-            floor.fillColor = zone == 1
-                ? SKColor(red: 0.22, green: 0.30, blue: 0.23, alpha: 1)
-                : SKColor(red: 0.27, green: 0.32, blue: 0.25, alpha: 1)
+            floor.fillColor = worldMapIndex == 0
+                ? (zone == 1
+                    ? SKColor(red: 0.22, green: 0.30, blue: 0.23, alpha: 1)
+                    : SKColor(red: 0.27, green: 0.32, blue: 0.25, alpha: 1))
+                : worldColor(for: requestedZone)
         }
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
         let count = zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)
@@ -1746,7 +1801,7 @@ final class OutpostScene: SKScene {
         let isBoss = wave == worldWaveCount
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
         let roll = Int.random(in: 0..<100)
-        let type = artReviewType ?? CombatRules.enemyType(room: wave, roll: roll)
+        let type = artReviewType ?? WorldCatalog.enemyType(world: worldMapIndex, room: wave, roll: roll)
         let radius: CGFloat = isBoss ? 37 : (type == 1 ? 23 : (type == 2 ? 17 : (type == 3 ? 26 : 14)))
         let node = SKShapeNode(circleOfRadius: radius)
         node.fillColor = type == 1 ? .systemRed : (type == 2 ? .systemPurple : (type == 3 ? .systemGray : .systemOrange))
@@ -1859,14 +1914,15 @@ final class OutpostScene: SKScene {
         if isBoss {
             // A distinct guardian silhouette makes the final encounter recognizable at a glance.
             let crown = SKShapeNode(rectOf: CGSize(width: radius * 1.7, height: 12), cornerRadius: 3)
-            crown.fillColor = .systemOrange
+            crown.fillColor = worldMapIndex == 0 ? .systemOrange :
+                (worldMapIndex == 1 ? .systemBlue : .systemGreen)
             crown.strokeColor = .white
             crown.lineWidth = 2
             crown.position.y = radius * 0.8
             crown.zPosition = 2
             node.addChild(crown)
             let eye = SKShapeNode(rectOf: CGSize(width: radius * 0.9, height: 10), cornerRadius: 3)
-            eye.fillColor = .systemCyan
+            eye.fillColor = worldMapIndex == 2 ? .systemGreen : .systemCyan
             eye.strokeColor = .white
             eye.position.y = radius * 0.14
             eye.zPosition = 3
@@ -1875,15 +1931,17 @@ final class OutpostScene: SKScene {
             for side: CGFloat in [-1, 1] {
                 let guardPlate = SKShapeNode(rectOf: CGSize(width: 18, height: 28), cornerRadius: 5)
                 guardPlate.position = CGPoint(x: side * radius * 0.83, y: -5)
-                guardPlate.fillColor = .systemRed
-                guardPlate.strokeColor = .systemYellow
+                guardPlate.fillColor = worldMapIndex == 0 ? .systemRed :
+                    (worldMapIndex == 1 ? .systemBlue : .systemGreen)
+                guardPlate.strokeColor = worldMapIndex == 2 ? .systemYellow : .white
                 guardPlate.lineWidth = 2
                 guardPlate.zPosition = 2
                 node.addChild(guardPlate)
             }
             let reactor = SKShapeNode(circleOfRadius: 9)
             reactor.position = CGPoint(x: 0, y: -radius * 0.42)
-            reactor.fillColor = .systemOrange
+            reactor.fillColor = worldMapIndex == 0 ? .systemOrange :
+                (worldMapIndex == 1 ? .systemCyan : .systemGreen)
             reactor.strokeColor = .white
             reactor.glowWidth = 5
             reactor.zPosition = 4
@@ -1961,7 +2019,9 @@ final class OutpostScene: SKScene {
         if isBoss { bossNode = node }
         let scaling = max(0, wave - 1)
         let enemyHP = ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames")
-            ? 70 : (isBoss ? 180 : (type == 3 ? 12 + scaling * 3 : (type == 1 ? 5 + scaling * 2 : 2 + scaling)))
+            ? 70 : (isBoss ? selectedWorld.bossHealth :
+                (type == 3 ? 12 + scaling * 3 : (type == 1 ? 5 + scaling * 2 : 2 + scaling)) +
+                    selectedWorld.enemyHealthBonus)
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
@@ -2171,9 +2231,10 @@ final class OutpostScene: SKScene {
                 projectiles.count + lobs.count
             guard CombatRules.mayBeginRangedAttack(
                 room: wave, activeThreats: threatening) else { return }
-            if enemy.behavior == 5 {
+            if enemy.behavior == 5 || (enemy.node === bossNode && selectedWorld.bossStyle == 2) {
                 launchLob(from: enemy.node.position, target: pilot.position)
-                enemies[index].nextAttack = combatTime + CombatRules.lobberCooldown(room: wave)
+                enemies[index].nextAttack = combatTime +
+                    (enemy.node === bossNode ? 2.8 : CombatRules.lobberCooldown(room: wave))
             } else {
                 // Lock the aim before firing so the player can sidestep it.
                 enemies[index].shotTarget = pilot.position
@@ -2209,7 +2270,9 @@ final class OutpostScene: SKScene {
                     .group([.scale(to: 0.65, duration: 0.18), .fadeAlpha(to: 0.55, duration: 0.18)]),
                     .group([.scale(to: 1.0, duration: 0.18), .fadeAlpha(to: 1.0, duration: 0.18)])
                 ])))
-                if enemy.node === bossNode { launchLob(from: enemy.node.position, target: pilot.position) }
+                if enemy.node === bossNode && selectedWorld.bossStyle == 0 {
+                    launchLob(from: enemy.node.position, target: pilot.position)
+                }
             }
         }
     }
@@ -2798,11 +2861,7 @@ final class OutpostScene: SKScene {
     private func awardWorldCompletionCores(stars: Int) {
         guard !coreAwardedThisRun else { return }
         coreAwardedThisRun = true
-        let previousBest = min(3, max(0, UserDefaults.standard.integer(forKey: "frontierForestStars")))
-        let newBest = WorldCoreRewards.bestStars(previousBest: previousBest, completedStars: stars)
-        lastWorldCoreReward = WorldCoreRewards.newlyEarned(previousBest: previousBest, completedStars: stars)
-        UserDefaults.standard.set(newBest, forKey: "frontierForestStars")
-        UserDefaults.standard.set(true, forKey: "frontierForestCoreClaimed")
+        lastWorldCoreReward = WorldCatalog.recordVictory(worldMapIndex, stars: stars)
         if lastWorldCoreReward > 0 {
             UserDefaults.standard.set(availableCores + lastWorldCoreReward, forKey: "powerCoresAvailable")
         }
@@ -2816,7 +2875,6 @@ final class OutpostScene: SKScene {
         awardWorldCompletionCores(stars: progress.stars)
         bankSalvage(PersistentProgression.worldCompletionBonus)
         recovery.clear()
-        UserDefaults.standard.set(true, forKey: "frontierForestComplete")
         showWorldCompleteSummary()
     }
 
@@ -2827,7 +2885,7 @@ final class OutpostScene: SKScene {
         lockMenuBriefly()
         clearOverlay()
         let stars = progress.stars
-        overlayText("FRONTIER FOREST CLEARED", y: 85, fontSize: 21)
+        overlayText("\(selectedWorld.title) CLEARED", y: 85, fontSize: 18)
         overlayText("LEVEL \(progress.level)  •  \(progress.damageTaken) DAMAGE TAKEN", y: 40, fontSize: 16)
         // A prominent star display makes the permanent world reward legible.
         for index in 0..<3 {
@@ -2856,6 +2914,9 @@ final class OutpostScene: SKScene {
         overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -48, fontSize: 15)
         actionButton("HEADQUARTERS", key: "headquarters", y: -105, tint: .systemIndigo)
         actionButton("PLAY AGAIN", key: "restart", y: -160, tint: .systemTeal)
+        if WorldCatalog.unlocked(worldMapIndex + 1) {
+            actionButton("NEXT WORLD", key: "next_world", y: -212, tint: .systemGreen)
+        }
     }
 
     private func showRestoration() {
@@ -3113,7 +3174,7 @@ final class OutpostScene: SKScene {
             purchasePermanentUpgrade(String(key.dropFirst(4)))
         case (.abilityLab, let key?) where key.hasPrefix("buy_"):
             purchasePermanentUpgrade(String(key.dropFirst(4)))
-        case (.ready, "start") where worldMapIndex == 0:
+        case (.ready, "start") where WorldCatalog.unlocked(worldMapIndex) && recovery.load() == nil:
             draftLoadout = AbilityLoadout()
             showLoadout()
         case (.loadout, "back_loadout"): showReady()
@@ -3125,7 +3186,7 @@ final class OutpostScene: SKScene {
             worldMapIndex = max(0, worldMapIndex - 1)
             showReady()
         case (.ready, "world_next"):
-            worldMapIndex = min(worldMapNames.count - 1, worldMapIndex + 1)
+            worldMapIndex = min(WorldCatalog.worlds.count - 1, worldMapIndex + 1)
             showReady()
         case (.ready, "restore"), (.worldComplete, "restore"): showRestoration()
         case (.restoration, "back"):
@@ -3134,6 +3195,9 @@ final class OutpostScene: SKScene {
             else { showReady() }
         case (.restoration, let key?) where key.hasPrefix("branch_"):
             if let index = Int(key.dropFirst(7)) { investCore(index) }
+        case (.worldComplete, "next_world") where WorldCatalog.unlocked(worldMapIndex + 1):
+            worldMapIndex += 1
+            restart()
         case (.gameOver, "restart"), (.worldComplete, "restart"): restart()
         case (.levelUp, _): _ = activateLevelUp(at: local)
         case (.checkpoint, "heal") where !checkpointUsed && health < maximumHealth && coins >= repairCost:
@@ -3169,7 +3233,7 @@ final class OutpostScene: SKScene {
         if phase == .ready, let start = worldMapSwipeStart, let touch = touches.first {
             let dx = touch.location(in: self).x - start.x
             if abs(dx) > 65 {
-                worldMapIndex = min(worldMapNames.count - 1, max(0, worldMapIndex + (dx < 0 ? 1 : -1)))
+                worldMapIndex = min(WorldCatalog.worlds.count - 1, max(0, worldMapIndex + (dx < 0 ? 1 : -1)))
                 showReady()
             }
         }

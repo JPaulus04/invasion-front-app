@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -25,7 +25,7 @@ for feature in ("spawnEnemy()", "shoot(at:", "completeWave()", "endGame()", "res
 pilot_visual = scene.split("private func refreshPilotAppearance()", 1)[-1].split("private func drawRestorationRobot()", 1)[0]
 if 'productionImage(named: "pilot_idle") != nil' not in pilot_visual or "pilot.strokeColor = .clear" not in pilot_visual:
     errors.append("Illustrated pilot must never restore the prototype white outline")
-if "case (.ready, \"start\") where worldMapIndex == 0:\n            draftLoadout = AbilityLoadout()" not in scene:
+if 'case (.ready, "start") where WorldCatalog.unlocked(worldMapIndex) && recovery.load() == nil:' not in scene:
     errors.append("World entry must first open loadout selection")
 if "case (.loadout, \"lock_loadout\") where draftLoadout.isReady:" not in scene:
     errors.append("Cannot enter a world without three committed tactical abilities")
@@ -93,6 +93,12 @@ if 'ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot
     errors.append("Simulator must include a hazardous arena preview")
 if "TerrainHazards.acidTouches(" not in scene or "TerrainHazards.waterSpeed(" not in scene:
     errors.append("Water slowdown and acid damage must be connected to gameplay")
+if "WorldCatalog.recordVictory(worldMapIndex, stars: stars)" not in scene:
+    errors.append("Each world must award its own stars and power cores")
+if "WorldCatalog.enemyType(world: worldMapIndex" not in scene:
+    errors.append("World-specific enemies must be drawn from tested rules")
+if 'ProcessInfo.processInfo.arguments.contains("-captureWorldExpansionScreenshot")' not in scene:
+    errors.append("Simulator must capture an actual unlocked Flooded Outpost arena")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

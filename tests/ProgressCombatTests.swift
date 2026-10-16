@@ -72,7 +72,7 @@ struct ProgressCombatTests {
         var restoredProgress = RunProgress()
         restoredProgress.earnXP(100)
         let saved = RunSnapshot(
-            version: RunSnapshot.schema, room: 12, location: .battle,
+            version: RunSnapshot.schema, worldIndex: 0, room: 12, location: .battle,
             health: 21, coins: 1506, damage: 4, fireRate: 3,
             chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
             orbitLevel: 2, runArmor: 20, checkpointUsed: false,
@@ -81,7 +81,7 @@ struct ProgressCombatTests {
             roomCoinCredit: 84, roomXPCredit: 58)
         precondition(saved.isValid && recover.save(saved))
         let reopened = RunRecoveryStore(storage: recoveryStorage).load()
-        precondition(reopened?.room == 12 && reopened?.health == 21 &&
+        precondition(reopened?.worldIndex == 0 && reopened?.room == 12 && reopened?.health == 21 &&
                      reopened?.coins == 1506 && reopened?.runArmor == 20 &&
                      reopened?.earnedSalvage == 297 &&
                      reopened?.roomCoinCredit == 84 &&
@@ -110,7 +110,7 @@ struct ProgressCombatTests {
         precondition(RunRecoveryStore.incrementalReward(
             earnedOnReplay: 80, previouslyCredited: 84, reward: 8) == 4)
         let completedRoom = RunSnapshot(
-            version: RunSnapshot.schema, room: 20, location: .clearedGate,
+            version: RunSnapshot.schema, worldIndex: 0, room: 20, location: .clearedGate,
             health: 15, coins: 2500, damage: 9, fireRate: 5,
             chainLevel: 3, explosiveLevel: 3, incendiaryLevel: 3,
             orbitLevel: 3, runArmor: 80, checkpointUsed: true,
