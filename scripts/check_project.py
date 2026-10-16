@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift", "CampaignPacing.swift", "FrontierFloorArt.swift", "CombatVisuals.swift", "CharacterMotion.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift", "CampaignPacing.swift", "FrontierFloorArt.swift", "CombatVisuals.swift", "CharacterMotion.swift", "EnemyCombatFeedback.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -37,6 +37,14 @@ if "let isMoving = distance(pilotBeforeMovement, pilot.position) > 0.35" not in 
     errors.append("Pilot must not show a walking animation when blocked by rubble")
 if 'childNode(withName: "pilotGroundShadow")' not in scene:
     errors.append("The pilot shadow must stay grounded during sprite motion")
+if "EnemyCombatFeedback.hit(enemies[index].node" not in scene:
+    errors.append("Rifle impacts must recoil the visible sprite only")
+if "EnemyCombatFeedback.defeat(in: arena" not in scene:
+    errors.append("Enemy destruction must retain an illustrated visual echo")
+if "scale(to: 1.2, duration: 0.06)" in scene:
+    errors.append("Hit feedback must not scale collision containers")
+if "-captureCombatFeedbackScreenshot" not in scene:
+    errors.append("Simulator review must include combat-hit artwork")
 # The published pilot PNG must not be outlined by the old rectangle.
 pilot_visual = scene.split("private func refreshPilotAppearance()", 1)[-1].split("private func drawRestorationRobot()", 1)[0]
 if 'productionImage(named: "pilot_idle") != nil' not in pilot_visual or "pilot.strokeColor = .clear" not in pilot_visual:

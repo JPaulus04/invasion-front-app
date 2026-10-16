@@ -706,7 +706,8 @@ final class OutpostScene: SKScene {
             }
         }
         // CI-only launch flag: capture real combat rather than the world-map menu.
-        if ProcessInfo.processInfo.arguments.contains("-captureCombatScreenshot") {
+        if ProcessInfo.processInfo.arguments.contains("-captureCombatScreenshot") ||
+           ProcessInfo.processInfo.arguments.contains("-captureCombatFeedbackScreenshot") {
             startWave()
             // The six posed QA enemies comprise the whole displayed test room.
             waveTarget = 6
@@ -725,6 +726,18 @@ final class OutpostScene: SKScene {
                         y: roomBounds.midY + roomBounds.height * (row == 0 ? 0.23 : 0.01)
                     )
                 }
+            }
+            if ProcessInfo.processInfo.arguments.contains("-captureCombatFeedbackScreenshot"),
+               let first = enemies.first {
+                EnemyCombatFeedback.hit(first.node, from: pilot.position)
+                EnemyCombatFeedback.impact(in: arena, at: first.node.position,
+                                           color: .systemYellow, destroyed: true)
+                EnemyCombatFeedback.defeat(in: arena, enemy: first.node,
+                                           radius: first.radius,
+                                           role: first.behavior, isBoss: false)
+                precondition(arena.children.contains(where: {
+                    $0.name == "enemyDefeatEcho"
+                }), "Visual QA requires illustrated enemy destruction")
             }
             // Spawns normally fade in from 28% opacity. For a frozen art-review
             // frame, reveal the finished sprites and hide their warning rings.
@@ -853,66 +866,8 @@ final class OutpostScene: SKScene {
     }
 
     private func impact(at point: CGPoint, color: SKColor, destroyed: Bool) {
-        // Brief expanding shock ring gives hits a readable silhouette at game speed.
-        let ring = SKShapeNode(circleOfRadius: destroyed ? 12 : 7)
-        ring.position = point
-        ring.fillColor = .clear
-        ring.strokeColor = color
-        ring.lineWidth = destroyed ? 3 : 2
-        ring.alpha = 0.85
-        ring.zPosition = 11
-        arena.addChild(ring)
-        ring.run(.sequence([
-            .group([.scale(to: destroyed ? 3.2 : 2.2, duration: 0.23),
-                    .fadeOut(withDuration: 0.23)]),
-            .removeFromParent()
-        ]))
-        // A short-lived luminous flash adds impact weight without persistent screen clutter.
-        let flash = SKShapeNode(circleOfRadius: destroyed ? 18 : 10)
-        flash.position = point
-        flash.fillColor = color.withAlphaComponent(destroyed ? 0.48 : 0.30)
-        flash.strokeColor = .white.withAlphaComponent(0.65)
-        flash.lineWidth = 1
-        flash.zPosition = 10.5
-        arena.addChild(flash)
-        flash.run(.sequence([
-            .group([.scale(to: destroyed ? 2.1 : 1.5, duration: 0.13),
-                    .fadeOut(withDuration: 0.13)]),
-            .removeFromParent()
-        ]))
-        // Direction-neutral fragments scatter briefly on a kill, then disappear.
-        if destroyed {
-            for index in 0..<5 {
-                let fragment = SKShapeNode(rectOf: CGSize(width: 5, height: 8), cornerRadius: 1)
-                fragment.fillColor = color.withAlphaComponent(0.9)
-                fragment.strokeColor = .white.withAlphaComponent(0.35)
-                fragment.lineWidth = 0.5
-                fragment.position = point
-                fragment.zPosition = 12
-                arena.addChild(fragment)
-                let angle = CGFloat(index) * (.pi * 2 / 5) + 0.3
-                let endpoint = CGPoint(x: point.x + cos(angle) * 39, y: point.y + sin(angle) * 39)
-                fragment.run(.sequence([
-                    .group([.move(to: endpoint, duration: 0.32),
-                            .rotate(byAngle: angle + 1.5, duration: 0.32),
-                            .fadeOut(withDuration: 0.32)]),
-                    .removeFromParent()
-                ]))
-            }
-        }
-        let count = destroyed ? 9 : 4
-        for index in 0..<count {
-            let spark = SKShapeNode(circleOfRadius: destroyed ? 3.5 : 2.2)
-            spark.fillColor = color
-            spark.strokeColor = .clear
-            spark.position = point
-            spark.zPosition = 12
-            arena.addChild(spark)
-            let angle = CGFloat(index) * .pi * 2 / CGFloat(count)
-            let radius: CGFloat = destroyed ? 31 : 13
-            let target = CGPoint(x: point.x + cos(angle) * radius, y: point.y + sin(angle) * radius)
-            spark.run(.sequence([.group([.move(to: target, duration: 0.22), .fadeOut(withDuration: 0.22), .scale(to: 0.2, duration: 0.22)]), .removeFromParent()]))
-        }
+        EnemyCombatFeedback.impact(in: arena, at: point, color: color,
+                                   destroyed: destroyed)
     }
 
     private func lockMenuBriefly() {
@@ -1413,6 +1368,7 @@ final class OutpostScene: SKScene {
                 enemyAcidDamageAt[identifier] = combatTime + 1.0
                 impact(at: node.position, color: .systemGreen,
                        destroyed: enemies[index].health <= 0)
+                EnemyCombatFeedback.hit(enemies[index].node, from: node.position)
                 updateEnemyHealthBar(at: index)
             }
             if enemyDamaged { removeDefeatedEnemies() }
@@ -2610,6 +2566,7 @@ final class OutpostScene: SKScene {
                     permanent.rank("orbit") + gearReactorBonus
                 impact(at: blade.position, color: .systemCyan,
                        destroyed: enemies[enemyIndex].health <= 0)
+                EnemyCombatFeedback.hit(enemies[enemyIndex].node, from: pilot.position)
                 updateEnemyHealthBar(at: enemyIndex)
             }
         }
@@ -2635,22 +2592,7 @@ final class OutpostScene: SKScene {
         let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus
         impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= totalBulletDamage)
         enemies[index].health -= totalBulletDamage
-        // Brief enemy hit flash makes successful shots readable at normal game speed.
-        let struckNode = enemies[index].node
-        struckNode.removeAction(forKey: "enemyHitFeedback")
-        struckNode.run(.sequence([
-            .colorize(with: .white, colorBlendFactor: 0.85, duration: 0.045),
-            .colorize(withColorBlendFactor: 0, duration: 0.14)
-        ]), withKey: "enemyHitFeedback")
-        // The visible production sprite needs the flash too: its transparent
-        // collision container alone doesn't show color changes.
-        if let enemyArt = struckNode.childNode(withName: "enemyArt") as? SKSpriteNode {
-            enemyArt.removeAction(forKey: "spriteHitFeedback")
-            enemyArt.run(.sequence([
-                .colorize(with: .white, colorBlendFactor: 0.9, duration: 0.045),
-                .colorize(withColorBlendFactor: 0, duration: 0.13)
-            ]), withKey: "spriteHitFeedback")
-        }
+        EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
         if incendiaryLevel > 0 {
             burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus + gearReactorBonus + permanent.rank("incendiary"), until: combatTime + 2.5, nextTick: combatTime + 0.5)
         }
@@ -2660,14 +2602,15 @@ final class OutpostScene: SKScene {
                 if incendiaryLevel > 0 {
                     burns[ObjectIdentifier(enemies[other].node)] = (damage: incendiaryLevel, until: combatTime + 2.5, nextTick: combatTime + 0.5)
                 }
-                impact(at: enemies[other].node.position, color: .systemOrange, destroyed: false)
+                impact(at: enemies[other].node.position, color: .systemOrange,
+                       destroyed: enemies[other].health <= 0)
+                EnemyCombatFeedback.hit(enemies[other].node, from: target)
                 updateEnemyHealthBar(at: other)
             }
         }
         let fraction = CGFloat(max(0, enemies[index].health)) / CGFloat(enemies[index].maxHealth)
         enemies[index].healthBar.xScale = max(0.001, fraction)
         enemies[index].healthBar.fillColor = fraction > 0.5 ? .systemGreen : (fraction > 0.25 ? .systemYellow : .systemRed)
-        enemies[index].node.run(.sequence([.scale(to: 1.2, duration: 0.06), .scale(to: 1.0, duration: 0.08)]))
         if chainLevel > 0 {
             chainAttack(from: target, excluding: enemies[index].node)
         }
@@ -2701,6 +2644,7 @@ final class OutpostScene: SKScene {
             let chainDamage = max(1, damage / 2 + permanent.rank("chain") + gearReactorBonus)
             impact(at: endpoint, color: .systemCyan, destroyed: enemy.health <= chainDamage)
             enemies[targetIndex].health -= chainDamage
+            EnemyCombatFeedback.hit(enemies[targetIndex].node, from: previous)
             if incendiaryLevel > 0 {
                 burns[ObjectIdentifier(enemy.node)] = (damage: incendiaryLevel, until: combatTime + 2.5, nextTick: combatTime + 0.5)
             }
@@ -2739,37 +2683,12 @@ final class OutpostScene: SKScene {
             burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             lastOrbitalHit.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             enemyAcidDamageAt.removeValue(forKey: ObjectIdentifier(enemies[index].node))
-            if enemies[index].node === bossNode { bossNode = nil }
-            // A short expanding defeat ring remains after the enemy disappears.
-            let defeatedPosition = enemies[index].node.position
-            let defeatRing = SKShapeNode(circleOfRadius: enemies[index].radius * 0.65)
-            defeatRing.strokeColor = .systemYellow
-            defeatRing.fillColor = .clear
-            defeatRing.lineWidth = 3
-            defeatRing.position = defeatedPosition
-            defeatRing.zPosition = 11
-            arena.addChild(defeatRing)
-            defeatRing.run(.sequence([
-                .group([.scale(to: 2.1, duration: 0.24), .fadeOut(withDuration: 0.24)]),
-                .removeFromParent()
-            ]))
-            // Four short-lived armor sparks give defeated enemies more
-            // physical weight without flooding the room with particles.
-            for fragment in 0..<4 {
-                let shard = SKShapeNode(rectOf: CGSize(width: 4, height: 7), cornerRadius: 1)
-                shard.fillColor = fragment.isMultiple(of: 2) ? .systemOrange : .systemCyan
-                shard.strokeColor = .clear
-                shard.position = defeatedPosition
-                shard.zRotation = CGFloat(fragment) * .pi / 4
-                shard.zPosition = 12
-                arena.addChild(shard)
-                let direction = CGFloat(fragment) * (.pi / 2) + .pi / 4
-                shard.run(.sequence([
-                    .group([.moveBy(x: cos(direction) * 21, y: sin(direction) * 21, duration: 0.24),
-                            .fadeOut(withDuration: 0.24), .rotate(byAngle: 1.1, duration: 0.24)]),
-                    .removeFromParent()
-                ]))
-            }
+            let defeatedBoss = enemies[index].node === bossNode
+            if defeatedBoss { bossNode = nil }
+            EnemyCombatFeedback.defeat(in: arena, enemy: enemies[index].node,
+                                       radius: enemies[index].radius,
+                                       role: enemies[index].behavior,
+                                       isBoss: defeatedBoss)
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
         }
@@ -2799,7 +2718,9 @@ final class OutpostScene: SKScene {
                 enemies[index].health -= burn.damage
                 burn.nextTick = combatTime + 0.5
                 burns[key] = burn
-                impact(at: enemies[index].node.position, color: .systemOrange, destroyed: false)
+                impact(at: enemies[index].node.position, color: .systemOrange,
+                       destroyed: enemies[index].health <= 0)
+                EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
                 updateEnemyHealthBar(at: index)
             }
         }
