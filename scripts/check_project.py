@@ -109,6 +109,10 @@ if "private func advanceToNextWorld()" not in scene:
     errors.append("World-completion buttons must use a guarded next-world transition")
 if 'aimLineLeft' not in scene or 'aimLineRight' not in scene or "wardenVolleyTargets(" not in scene:
     errors.append("Tidal Warden fan must warn visibly before firing three shots")
+if "-captureFloodedBossScreenshot" not in scene or "-captureToxicBossScreenshot" not in scene:
+    errors.append("Both new worlds must have simulator boss-spawn and attack coverage")
+if "selectedWorld.title : \"OUTPOST ZERO\"" not in scene:
+    errors.append("Combat HUD must identify the selected world")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

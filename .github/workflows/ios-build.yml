@@ -161,6 +161,8 @@ jobs:
           # cannot hide their first actual render behind older art captures.
           capture_scene -captureWorldExpansionScreenshot screenshots/outpost-zero-flooded-outpost.png
           capture_scene -captureWorldTransitionScreenshot screenshots/outpost-zero-toxic-crossing.png
+          capture_scene -captureFloodedBossScreenshot screenshots/outpost-zero-tidal-warden.png
+          capture_scene -captureToxicBossScreenshot screenshots/outpost-zero-toxic-sentinel.png
           capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
           capture_scene -captureRecoveryScreenshot screenshots/outpost-zero-recovery.png
           capture_scene -capturePausedRunScreenshot screenshots/outpost-zero-paused-run.png
@@ -229,9 +231,13 @@ jobs:
           test -s screenshots/outpost-zero-loadout.png
           test -s screenshots/outpost-zero-overgrown-path.png
           test -s screenshots/outpost-zero-terrain.png
+          test -s screenshots/outpost-zero-tidal-warden.png
+          test -s screenshots/outpost-zero-toxic-sentinel.png
           test -s screenshots/outpost-zero-flooded-outpost.png
           test -s screenshots/outpost-zero-toxic-crossing.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-terrain.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-tidal-warden.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-toxic-sentinel.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-flooded-outpost.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-toxic-crossing.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-loadout.png screenshots/outpost-zero-overgrown-path.png

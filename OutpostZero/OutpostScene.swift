@@ -473,6 +473,50 @@ final class OutpostScene: SKScene {
         }
         // Art review for Rooms 6-10: stage actual forest-overgrowth scenery
         // without changing combat balance or the launch state seen by players.
+        // Real SpriteKit boss integration: stage the final room and
+        // confirm each world's attack behavior, health and telegraphs.
+        if ProcessInfo.processInfo.arguments.contains("-captureFloodedBossScreenshot") {
+            worldMapIndex = 1
+            wave = 19
+            gateUnlocked = true
+            startWave()
+            spawned = waveTarget
+            spawnEnemy()
+            precondition(wave == 20 && enemies.count == 1 &&
+                         bossNode != nil && enemies[0].health == selectedWorld.bossHealth &&
+                         zoneBanner.text == "BOSS: TIDAL WARDEN",
+                         "Flooded boss must spawn as the correct final encounter")
+            combatClock.advance(2.2, playing: true)
+            updateRangedAttack(at: 0)
+            precondition(enemies[0].shotTarget != nil &&
+                         bossNode?.childNode(withName: "aimLineLeft") != nil &&
+                         bossNode?.childNode(withName: "aimLineRight") != nil,
+                         "Tidal Warden needs visibly warned fan attack")
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+        }
+        if ProcessInfo.processInfo.arguments.contains("-captureToxicBossScreenshot") {
+            worldMapIndex = 2
+            wave = 19
+            gateUnlocked = true
+            startWave()
+            spawned = waveTarget
+            spawnEnemy()
+            precondition(wave == 20 && enemies.count == 1 &&
+                         bossNode != nil && enemies[0].health == selectedWorld.bossHealth &&
+                         zoneBanner.text == "BOSS: TOXIC SENTINEL" &&
+                         roomHazards.contains(where: { $0.kind == .acid }),
+                         "Toxic boss must spawn with active terrain hazards")
+            combatClock.advance(2.2, playing: true)
+            updateRangedAttack(at: 0)
+            precondition(lobs.count == 1 &&
+                         lobs[0].marker.childNode(withName: "mortarCountdown") != nil,
+                         "Toxic Sentinel must signal its mortar impact")
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureWorldExpansionScreenshot") {
             // Validate the first newly playable world with its actual water
             // patches, its entry route and a distinct world presentation.
@@ -720,7 +764,8 @@ final class OutpostScene: SKScene {
         xpLabel.text = "LEVEL \(progress.level)  •  \(progress.xp)/\(progress.nextLevelXP) XP"
         checkpointButton.isHidden = phase != .gate || !wave.isMultiple(of: 5) || checkpointUsed
         title.text = wave == worldWaveCount && phase == .playing
-            ? selectedWorld.boss : "OUTPOST ZERO"
+            ? selectedWorld.boss : (phase == .playing || phase == .gate
+                                   ? selectedWorld.title : "OUTPOST ZERO")
         subtitle.text = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
         info.text = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
         info.fontColor = health <= maximumHealth / 3 ? .systemRed : (health <= maximumHealth * 2 / 3 ? .systemYellow : .white)
