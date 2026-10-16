@@ -2821,37 +2821,134 @@ final class OutpostScene: SKScene {
         // All three choices should rotate; damage remains in the pool but is not mandatory.
         pool.append("damage")
         levelChoices = Array(pool.shuffled().prefix(3))
+        // Module-style choices use role colors rather than highlighting the
+        // first random choice. No rarity tiers are implied by these accents.
+        // Tappable rectangles match the full illustrated card exactly.
         for (index, choice) in levelChoices.enumerated() {
             let label: String
             let detail: String
+            let category: String
+            let symbol: String
+            let tint: SKColor
             switch choice {
-            case "damage": label = "DAMAGE \(damage) → \(damage + 1)"; detail = "Stronger weapon hits"
-            case "rate": label = "FIRE RATE \(fireRate) → \(fireRate + 1)"; detail = "Shoot more often"
-            case "chain": label = "CHAIN LIGHTNING  LV \(chainLevel + 1)"; detail = "Hits additional nearby enemies"
-            case "explosive": label = "EXPLOSIVE ROUNDS  LV \(explosiveLevel + 1)"; detail = "Weapon hits splash nearby enemies"
-            case "incendiary": label = "INCENDIARY ROUNDS  LV \(incendiaryLevel + 1)"; detail = "Weapon hits inflict lasting burn damage"
-            case "orbit": label = "ORBITAL BLADES  LV \(orbitLevel + 1)"; detail = "Spinning blades strike nearby foes"
-            case "heal": label = "RECOVER 40 HP"; detail = "Restore health, up to your maximum"
-            default: label = "ARMOR +20 MAX HP"; detail = "Raise maximum health and restore 20 HP"
+            case "damage":
+                label = "DAMAGE \(damage) → \(damage + 1)"
+                detail = "Stronger weapon hits"
+                category = "WEAPON"
+                symbol = "DMG"
+                tint = SKColor(red: 1, green: 0.67, blue: 0.29, alpha: 1)
+            case "rate":
+                label = "FIRE RATE \(fireRate) → \(fireRate + 1)"
+                detail = "Shoot more often"
+                category = "WEAPON"
+                symbol = "SPD"
+                tint = SKColor(red: 1, green: 0.67, blue: 0.29, alpha: 1)
+            case "chain":
+                label = "CHAIN LIGHTNING  LV \(chainLevel + 1)"
+                detail = "Hits additional nearby enemies"
+                category = "TACTICAL"
+                symbol = "ARC"
+                tint = SKColor(red: 0.51, green: 0.74, blue: 1, alpha: 1)
+            case "explosive":
+                label = "EXPLOSIVE ROUNDS  LV \(explosiveLevel + 1)"
+                detail = "Weapon hits splash nearby enemies"
+                category = "ORDNANCE"
+                symbol = "AOE"
+                tint = SKColor(red: 1, green: 0.57, blue: 0.38, alpha: 1)
+            case "incendiary":
+                label = "INCENDIARY ROUNDS  LV \(incendiaryLevel + 1)"
+                detail = "Weapon hits inflict lasting burn damage"
+                category = "ORDNANCE"
+                symbol = "HOT"
+                tint = SKColor(red: 1, green: 0.57, blue: 0.38, alpha: 1)
+            case "orbit":
+                label = "ORBITAL BLADES  LV \(orbitLevel + 1)"
+                detail = "Spinning blades strike nearby foes"
+                category = "TACTICAL"
+                symbol = "ORB"
+                tint = SKColor(red: 0.63, green: 0.70, blue: 1, alpha: 1)
+            case "heal":
+                label = "RECOVER 40 HP"
+                detail = "Restore health, up to your maximum"
+                category = "DEFENSE"
+                symbol = "HP"
+                tint = SKColor(red: 0.41, green: 0.89, blue: 0.61, alpha: 1)
+            default:
+                label = "ARMOR +20 MAX HP"
+                detail = "Raise maximum health and restore 20 HP"
+                category = "DEFENSE"
+                symbol = "ARM"
+                tint = SKColor(red: 0.41, green: 0.89, blue: 0.61, alpha: 1)
             }
-            let y = CGFloat(30 - index * 80)
             let cardWidth = min(size.width - 64, 324)
-            let card = SKShapeNode(rect: CGRect(x: -cardWidth / 2, y: y - 48, width: cardWidth, height: 76), cornerRadius: 12)
-            card.fillColor = index == 0 ? SKColor.systemOrange.withAlphaComponent(0.24) : SKColor.systemIndigo.withAlphaComponent(0.3)
-            card.strokeColor = index == 0 ? .systemYellow : .systemCyan
-            card.lineWidth = 2.5
+            let cardCenterY = CGFloat(23 - index * 86)
+            let frame = CGRect(x: -cardWidth / 2, y: cardCenterY - 39,
+                               width: cardWidth, height: 78)
+            let card = SKShapeNode(rect: frame, cornerRadius: 13)
+            card.name = "upgradeModuleCard"
+            card.fillColor = SKColor(
+                red: 0.08, green: 0.14, blue: 0.20, alpha: 0.94)
+            card.strokeColor = tint.withAlphaComponent(0.74)
+            card.lineWidth = 1.8
             card.zPosition = 1
             overlay.addChild(card)
-            let accent = SKShapeNode(rect: CGRect(x: -cardWidth / 2 + 7, y: y - 38, width: 4, height: 56), cornerRadius: 2)
-            accent.fillColor = index == 0 ? .systemYellow : .systemCyan
-            accent.strokeColor = .clear
-            accent.zPosition = 2
-            overlay.addChild(accent)
-            overlayText(label, y: y + 6, fontSize: 15)
-            overlayText(detail, y: y - 19, fontSize: 12)
-            overlayButtons[choice] = CGRect(x: -cardWidth / 2, y: y - 48, width: cardWidth, height: 76)
+
+            // A restrained lower-edge light reflects the upgrade's function;
+            // the same weight is given to each of the three random choices.
+            let lowerEdge = SKShapeNode(rect: CGRect(
+                x: -cardWidth / 2 + 13, y: cardCenterY - 33,
+                width: cardWidth - 26, height: 2), cornerRadius: 1)
+            lowerEdge.fillColor = tint.withAlphaComponent(0.22)
+            lowerEdge.strokeColor = .clear
+            lowerEdge.zPosition = 2
+            overlay.addChild(lowerEdge)
+
+            let emblem = SKShapeNode(circleOfRadius: 17)
+            emblem.position = CGPoint(x: -cardWidth / 2 + 33, y: cardCenterY)
+            emblem.fillColor = tint.withAlphaComponent(0.16)
+            emblem.strokeColor = tint
+            emblem.lineWidth = 1.6
+            emblem.zPosition = 2
+            overlay.addChild(emblem)
+            let symbolLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            symbolLabel.text = symbol
+            symbolLabel.fontSize = symbol.count > 2 ? 9 : 12
+            symbolLabel.fontColor = tint
+            symbolLabel.verticalAlignmentMode = .center
+            symbolLabel.zPosition = 1
+            emblem.addChild(symbolLabel)
+
+            let textLeft = -cardWidth / 2 + 64
+            let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            titleLabel.text = label
+            titleLabel.fontSize = 13
+            titleLabel.fontColor = .white
+            titleLabel.horizontalAlignmentMode = .left
+            titleLabel.position = CGPoint(x: textLeft, y: cardCenterY + 3)
+            titleLabel.zPosition = 3
+            overlay.addChild(titleLabel)
+
+            let detailLabel = SKLabelNode(fontNamed: "AvenirNext-Medium")
+            detailLabel.text = detail
+            detailLabel.fontSize = 10
+            detailLabel.fontColor = SKColor(white: 0.83, alpha: 1)
+            detailLabel.horizontalAlignmentMode = .left
+            detailLabel.position = CGPoint(x: textLeft, y: cardCenterY - 19)
+            detailLabel.zPosition = 3
+            overlay.addChild(detailLabel)
+
+            let categoryLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+            categoryLabel.text = category
+            categoryLabel.fontSize = 8
+            categoryLabel.fontColor = tint
+            categoryLabel.horizontalAlignmentMode = .right
+            categoryLabel.position = CGPoint(
+                x: cardWidth / 2 - 14, y: cardCenterY + 24)
+            categoryLabel.zPosition = 3
+            overlay.addChild(categoryLabel)
+            overlayButtons[choice] = frame
         }
-        overlayText("COMBAT PAUSED", y: -200, fontSize: 13)
+        overlayText("COMBAT PAUSED  •  SELECT TO RESUME", y: -214, fontSize: 11)
         updateHUD()
     }
 
