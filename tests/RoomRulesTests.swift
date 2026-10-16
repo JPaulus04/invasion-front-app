@@ -41,6 +41,40 @@ struct RoomRulesTests {
             let clamped = RoomRules.clamp(CGPoint(x: -100, y: 10000), to: room)
             precondition(clamped.x == room.minX && clamped.y == room.maxY)
         }
+        // Terrain does not change World 1 until balancing is validated.
+        let reference = RoomRules.bounds(for: CGSize(width: 393, height: 852))
+        let entry = RoomRules.entryPoint(for: CGSize(width: 393, height: 852))
+        let exit = CGPoint(x: reference.midX, y: reference.maxY - 24)
+        precondition(TerrainHazards.patches(world: 0, room: 18, bounds: reference).isEmpty)
+        for room in 1...20 {
+            let hazards = TerrainHazards.patches(world: 1, room: room, bounds: reference)
+            precondition(hazards.count == 3)
+            precondition(!hazards.contains { $0.contains(entry, margin: 16) })
+            precondition(!hazards.contains { $0.contains(exit, margin: 16) })
+            // Entire center lane remains unobstructed, not just two endpoints.
+            for fraction in 0...20 {
+                let point = CGPoint(x: reference.midX,
+                    y: reference.minY + reference.height * CGFloat(fraction) / 20)
+                precondition(!hazards.contains { $0.contains(point, margin: 14) },
+                             "Every room requires a guaranteed escape corridor")
+            }
+            let water = hazards[0]
+            let submerged = CGPoint(x: water.frame.midX, y: water.frame.midY)
+            precondition(TerrainHazards.waterSpeed(at: submerged, patches: hazards) == 0.62)
+            precondition(TerrainHazards.waterSpeed(at: entry, patches: hazards) == 1)
+            let rubble = hazards[2]
+            let center = CGPoint(x: rubble.frame.midX, y: rubble.frame.midY)
+            precondition(TerrainHazards.hitsObstacle(center, patches: hazards))
+            precondition(TerrainHazards.resolveMovement(
+                from: entry, to: center, patches: hazards) != center,
+                "Blocked terrain must stop movement")
+        }
+        let patches = TerrainHazards.patches(world: 1, room: 12, bounds: reference)
+        let toxic = CGPoint(x: patches[1].frame.midX, y: patches[1].frame.midY)
+        precondition(!TerrainHazards.acidTouches(toxic, patches: patches, at: 1.5))
+        precondition(TerrainHazards.acidTouches(toxic, patches: patches, at: 2.5))
+        precondition(!TerrainHazards.acidTouches(toxic, patches: patches, at: 5.5))
+        precondition(!TerrainHazards.acidTouches(entry, patches: patches, at: 2.5))
         precondition(!RoomRules.isCleared(spawned: 0, target: 0, living: 0))
         precondition(!RoomRules.isCleared(spawned: 4, target: 7, living: 0), "Pending spawns keep exit locked")
         precondition(!RoomRules.isCleared(spawned: 7, target: 7, living: 1), "Last enemy keeps exit locked")

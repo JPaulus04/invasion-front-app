@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -87,6 +87,12 @@ if "CombatRules.mortarWarningScale(" not in scene:
     errors.append("2x game speed must accelerate the mortar warning clock with the impact")
 if "checkpointPresented = true" not in scene or "showCheckpoint()" not in scene:
     errors.append("Milestone healing stations must be presented to wounded pilots")
+if "TerrainHazards.resolveMovement(" not in scene or "updateTerrainHazards()" not in scene:
+    errors.append("Terrain hazards must control real movement and damage, not just scenery")
+if 'ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot")' not in scene:
+    errors.append("Simulator must include a hazardous arena preview")
+if "TerrainHazards.acidTouches(" not in scene or "TerrainHazards.waterSpeed(" not in scene:
+    errors.append("Water slowdown and acid damage must be connected to gameplay")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

@@ -35,6 +35,10 @@ final class OutpostScene: SKScene {
     private let zoneBanner = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let controlsHint = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let zoneScenery = SKNode()
+    private let hazardScenery = SKNode()
+    private var roomHazards: [TerrainHazards.Patch] = []
+    private var nextAcidDamageAt: TimeInterval = 0
+    private var enemyAcidDamageAt: [ObjectIdentifier: TimeInterval] = [:]
     private let zoneColors: [SKColor] = [
         SKColor(red: 0.17, green: 0.29, blue: 0.23, alpha: 1),
         SKColor(red: 0.20, green: 0.31, blue: 0.17, alpha: 1),
@@ -291,6 +295,8 @@ final class OutpostScene: SKScene {
         }
         arena.addChild(zoneScenery)
         zoneScenery.zPosition = -1
+        arena.addChild(hazardScenery)
+        hazardScenery.zPosition = -0.6
         arena.addChild(pilot)
         refreshPilotAppearance()
         passageGate.fillColor = SKColor(red: 0.07, green: 0.12, blue: 0.17, alpha: 1)
@@ -465,6 +471,22 @@ final class OutpostScene: SKScene {
         }
         // Art review for Rooms 6-10: stage actual forest-overgrowth scenery
         // without changing combat balance or the launch state seen by players.
+        if ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot") {
+            wave = 11
+            gateUnlocked = true
+            startWave()
+            precondition(roomHazards.count == 3 &&
+                         hazardScenery.children.count == 3 &&
+                         TerrainHazards.waterSpeed(
+                             at: CGPoint(x: roomHazards[0].frame.midX,
+                                         y: roomHazards[0].frame.midY),
+                             patches: roomHazards) < 1,
+                         "Preview must render water, acid, and blocked terrain")
+            // Stage the terrain without live enemy attacks in the screenshot.
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureOvergrownScreenshot") {
             wave = 5
             gateUnlocked = true
@@ -600,6 +622,7 @@ final class OutpostScene: SKScene {
         if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
         passageGate.position = CGPoint(x: size.width / 2, y: roomBounds.maxY - 24)
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
+        if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
         // The original heading crossed the top border and the health label
         // crowded the XP bar. Allocate enough vertical room for all four rows.
@@ -1165,6 +1188,84 @@ final class OutpostScene: SKScene {
         return true
     }
 
+    private func rebuildTerrainHazards() {
+        hazardScenery.removeAllChildren()
+        roomHazards = TerrainHazards.patches(
+            world: worldMapIndex, room: wave, bounds: roomBounds,
+            preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
+        for patch in roomHazards {
+            let shape = SKShapeNode(ellipseOf: patch.frame.size)
+            shape.name = "terrain_\(patch.kind.rawValue)"
+            shape.position = CGPoint(x: patch.frame.midX, y: patch.frame.midY)
+            shape.lineWidth = 2.5
+            shape.zPosition = 0
+            switch patch.kind {
+            case .water:
+                shape.fillColor = SKColor(red: 0.08, green: 0.39, blue: 0.63, alpha: 0.72)
+                shape.strokeColor = SKColor(red: 0.44, green: 0.78, blue: 0.97, alpha: 1)
+            case .acid:
+                shape.fillColor = SKColor(red: 0.15, green: 0.55, blue: 0.09, alpha: 0.48)
+                shape.strokeColor = .systemYellow
+            case .rubble:
+                shape.path = CGPath(roundedRect: CGRect(
+                    x: -patch.frame.width / 2, y: -patch.frame.height / 2,
+                    width: patch.frame.width, height: patch.frame.height),
+                    cornerWidth: 7, cornerHeight: 7, transform: nil)
+                shape.fillColor = SKColor(red: 0.25, green: 0.25, blue: 0.29, alpha: 1)
+                shape.strokeColor = .lightGray
+            }
+            hazardScenery.addChild(shape)
+            let caption = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            caption.text = patch.kind == .water ? "SLOW WATER" :
+                (patch.kind == .acid ? "ACID" : "BLOCKED")
+            caption.fontSize = 10
+            caption.fontColor = .white
+            caption.verticalAlignmentMode = .center
+            caption.zPosition = 2
+            shape.addChild(caption)
+        }
+    }
+
+    private func updateTerrainHazards() {
+        guard !roomHazards.isEmpty else { return }
+        let acidOn = TerrainHazards.acidActive(at: waveElapsed)
+        for patchNode in hazardScenery.children {
+            guard patchNode.name == "terrain_acid", let shape = patchNode as? SKShapeNode else {
+                continue
+            }
+            shape.fillColor = acidOn
+                ? SKColor(red: 0.32, green: 0.88, blue: 0.13, alpha: 0.82)
+                : SKColor(red: 0.15, green: 0.55, blue: 0.09, alpha: 0.48)
+            shape.strokeColor = acidOn ? .systemRed : .systemYellow
+            shape.glowWidth = acidOn ? 3 : 0
+        }
+        guard phase == .playing else { return }
+        if TerrainHazards.acidTouches(pilot.position, patches: roomHazards, at: waveElapsed),
+           combatTime >= nextAcidDamageAt {
+            nextAcidDamageAt = combatTime + 1.0
+            damagePilot(5)
+        }
+        // Enemies also take acid damage. A pilot can lure them into an active
+        // pool, but damage is modest so terrain does not trivialize combat.
+        if acidOn {
+            for index in enemies.indices {
+                let node = enemies[index].node
+                let identifier = ObjectIdentifier(node)
+                guard enemies[index].health > 0,
+                      combatTime >= enemies[index].activeAt,
+                      TerrainHazards.acidTouches(node.position, patches: roomHazards,
+                                                at: waveElapsed),
+                      combatTime >= (enemyAcidDamageAt[identifier] ?? 0) else { continue }
+                enemies[index].health -= 2
+                enemyAcidDamageAt[identifier] = combatTime + 1.0
+                impact(at: node.position, color: .systemGreen,
+                       destroyed: enemies[index].health <= 0)
+                updateEnemyHealthBar(at: index)
+            }
+            removeDefeatedEnemies()
+        }
+    }
+
     private func startWave() {
         hud.isHidden = false
         if wave > 0 && wave < worldWaveCount && !gateUnlocked {
@@ -1225,6 +1326,9 @@ final class OutpostScene: SKScene {
         let activeZone = min((wave - 1) / 5, 3)
         backgroundColor = zoneColors[activeZone]
         updateZoneScenery(activeZone)
+        rebuildTerrainHazards()
+        nextAcidDamageAt = combatTime + 1.0
+        enemyAcidDamageAt.removeAll()
         if wave == 1 || (wave - 1) % 5 == 0 {
             zoneBanner.removeAllActions()
             zoneBanner.text = zoneNames[activeZone]
@@ -1910,9 +2014,13 @@ final class OutpostScene: SKScene {
             let dy = movementTarget.y - pilot.position.y
             let distanceToTarget = hypot(dx, dy)
             if distanceToTarget > 2 {
-                let step = min(distanceToTarget, pilotSpeed * CGFloat(gameDt))
-                pilot.position.x += dx / distanceToTarget * step
-                pilot.position.y += dy / distanceToTarget * step
+                let slow = TerrainHazards.waterSpeed(at: pilot.position, patches: roomHazards)
+                let step = min(distanceToTarget, pilotSpeed * slow * CGFloat(gameDt))
+                let requested = CGPoint(
+                    x: pilot.position.x + dx / distanceToTarget * step,
+                    y: pilot.position.y + dy / distanceToTarget * step)
+                pilot.position = TerrainHazards.resolveMovement(
+                    from: pilot.position, to: requested, patches: roomHazards, radius: 12)
             }
         }
         // Lightweight movement animation: idle stance settles, moving stance tilts and bobs.
@@ -1951,6 +2059,8 @@ final class OutpostScene: SKScene {
         if phase != .playing { return }
         spawnClock += gameDt
         waveElapsed += gameDt
+        updateTerrainHazards()
+        if phase != .playing { return }
         applyBurns()
         if presentPendingLevelUp(returningTo: .playing) { return }
         let spawnInterval = max(0.42, 1.20 - Double(wave) * 0.032)
@@ -1978,9 +2088,14 @@ final class OutpostScene: SKScene {
             let heading = atan2(dy, dx) + weave
             let step = min(length, enemy.speed * CGFloat(gameDt)) * movement
             if enemies[index].shotTarget == nil {
-                enemy.node.position = RoomRules.clamp(
-                    CGPoint(x: current.x + cos(heading) * step, y: current.y + sin(heading) * step),
+                let speedScale = TerrainHazards.waterSpeed(at: current, patches: roomHazards)
+                let desiredPosition = RoomRules.clamp(
+                    CGPoint(x: current.x + cos(heading) * step * speedScale,
+                            y: current.y + sin(heading) * step * speedScale),
                     to: roomBounds.insetBy(dx: enemy.radius, dy: enemy.radius))
+                enemy.node.position = TerrainHazards.resolveMovement(
+                    from: current, to: desiredPosition,
+                    patches: roomHazards, radius: enemy.radius)
             }
             // Illustrated chassis stride and breathing leave health bars and
             // collision geometry stable, while differentiating slow heavies
@@ -2387,6 +2502,7 @@ final class OutpostScene: SKScene {
             ]))
             burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             lastOrbitalHit.removeValue(forKey: ObjectIdentifier(enemies[index].node))
+            enemyAcidDamageAt.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             if enemies[index].node === bossNode { bossNode = nil }
             // A short expanding defeat ring remains after the enemy disappears.
             let defeatedPosition = enemies[index].node.position
@@ -2889,6 +3005,10 @@ final class OutpostScene: SKScene {
         zoneBanner.alpha = 0
         backgroundColor = zoneColors[0]
         updateZoneScenery(0)
+        roomHazards.removeAll()
+        hazardScenery.removeAllChildren()
+        enemyAcidDamageAt.removeAll()
+        nextAcidDamageAt = 0
         pilot.position = entryPoint
         movementTarget = nil
         movementOrigin = nil

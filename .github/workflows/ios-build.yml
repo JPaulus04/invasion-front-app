@@ -18,7 +18,7 @@ jobs:
         run: python3 scripts/check_art_sprites.py
       - name: Test room rules
         run: |
-          swiftc OutpostZero/RoomRules.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
+          swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
           "$RUNNER_TEMP/room-tests"
       - name: Test XP and combat rules
         run: |
@@ -150,6 +150,7 @@ jobs:
           capture_scene -captureSettingsScreenshot screenshots/outpost-zero-settings.png
           capture_scene -captureLoadoutScreenshot screenshots/outpost-zero-loadout.png
           capture_scene -captureOvergrownScreenshot screenshots/outpost-zero-overgrown-path.png
+          capture_scene -captureTerrainHazardsScreenshot screenshots/outpost-zero-terrain.png
           capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
           capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
           capture_scene -captureLevelUpScreenshot screenshots/outpost-zero-level-up.png
@@ -210,6 +211,8 @@ jobs:
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-settings.png screenshots/outpost-zero-paused-run.png
           test -s screenshots/outpost-zero-loadout.png
           test -s screenshots/outpost-zero-overgrown-path.png
+          test -s screenshots/outpost-zero-terrain.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-terrain.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-loadout.png screenshots/outpost-zero-overgrown-path.png
           test -s screenshots/outpost-zero-simulator.png
           test -s screenshots/outpost-zero-gate-open.png
