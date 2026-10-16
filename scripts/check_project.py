@@ -125,6 +125,12 @@ if "CampaignPacing.clearCoins(room: wave)" not in scene or "CampaignPacing.clear
     errors.append("Full-run XP and coin tests must match the game")
 if "guard health > 0, progress.pendingChoices > 0" not in scene:
     errors.append("A lethal hit must end the run before a level-up can interrupt death")
+if "if displayedAcidActive != acidOn" not in scene or "guard !acidVisualNodes.isEmpty else { return }" not in scene:
+    errors.append("Acid artwork must update only on phase transitions and skip water-only rooms")
+if "if subtitle.text != subtitleText" not in scene or "if info.text != infoText" not in scene:
+    errors.append("Combat HUD should not rerender labels whose values have not changed")
+if "if enemyDamaged { removeDefeatedEnemies() }" not in scene:
+    errors.append("Hazard updates must avoid full enemy-death sweeps without actual damage")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

@@ -36,6 +36,10 @@ final class OutpostScene: SKScene {
     private let controlsHint = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let zoneScenery = SKNode()
     private let hazardScenery = SKNode()
+    // Cache only toxic pool nodes, and only repaint when the hazard phase
+    // actually changes. Water-only rooms require no acid work per frame.
+    private var acidVisualNodes: [SKShapeNode] = []
+    private var displayedAcidActive: Bool?
     private var roomHazards: [TerrainHazards.Patch] = []
     private var nextAcidDamageAt: TimeInterval = 0
     private var enemyAcidDamageAt: [ObjectIdentifier: TimeInterval] = [:]
@@ -766,7 +770,8 @@ final class OutpostScene: SKScene {
     }
 
     private func updateHUD() {
-        speedLabel.text = fastForward ? "2× SPEED" : "1× SPEED"
+        let speedText = fastForward ? "2× SPEED" : "1× SPEED"
+        if speedLabel.text != speedText { speedLabel.text = speedText }
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
         speedButton.isHidden = phase != .playing && phase != .gate
         settingsShortcut.isHidden = ![Phase.ready, .loadout, .playing, .gate].contains(phase)
@@ -780,14 +785,19 @@ final class OutpostScene: SKScene {
         } else {
             settingsShortcut.position = CGPoint(x: 36, y: size.height - 212)
         }
-        xpFill.xScale = max(0.001, CGFloat(progress.xp) / CGFloat(progress.nextLevelXP))
-        xpLabel.text = "LEVEL \(progress.level)  •  \(progress.xp)/\(progress.nextLevelXP) XP"
+        let desiredXPScale = max(0.001, CGFloat(progress.xp) / CGFloat(progress.nextLevelXP))
+        if abs(xpFill.xScale - desiredXPScale) > 0.0005 { xpFill.xScale = desiredXPScale }
+        let xpText = "LEVEL \(progress.level)  •  \(progress.xp)/\(progress.nextLevelXP) XP"
+        if xpLabel.text != xpText { xpLabel.text = xpText }
         checkpointButton.isHidden = phase != .gate || !wave.isMultiple(of: 5) || checkpointUsed
-        title.text = wave == worldWaveCount && phase == .playing
+        let titleText = wave == worldWaveCount && phase == .playing
             ? selectedWorld.boss : (phase == .playing || phase == .gate
                                    ? selectedWorld.title : "OUTPOST ZERO")
-        subtitle.text = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
-        info.text = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
+        if title.text != titleText { title.text = titleText }
+        let subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
+        if subtitle.text != subtitleText { subtitle.text = subtitleText }
+        let infoText = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
+        if info.text != infoText { info.text = infoText }
         info.fontColor = health <= maximumHealth / 3 ? .systemRed : (health <= maximumHealth * 2 / 3 ? .systemYellow : .white)
     }
 
@@ -1323,6 +1333,8 @@ final class OutpostScene: SKScene {
 
     private func rebuildTerrainHazards() {
         hazardScenery.removeAllChildren()
+        acidVisualNodes.removeAll()
+        displayedAcidActive = nil
         roomHazards = TerrainHazards.patches(
             world: worldMapIndex, room: wave, bounds: roomBounds,
             preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
@@ -1339,6 +1351,7 @@ final class OutpostScene: SKScene {
             case .acid:
                 shape.fillColor = SKColor(red: 0.15, green: 0.55, blue: 0.09, alpha: 0.48)
                 shape.strokeColor = .systemYellow
+                acidVisualNodes.append(shape)
             case .rubble:
                 shape.path = CGPath(roundedRect: CGRect(
                     x: -patch.frame.width / 2, y: -patch.frame.height / 2,
@@ -1360,17 +1373,17 @@ final class OutpostScene: SKScene {
     }
 
     private func updateTerrainHazards() {
-        guard !roomHazards.isEmpty else { return }
+        guard !acidVisualNodes.isEmpty else { return }
         let acidOn = TerrainHazards.acidActive(at: waveElapsed)
-        for patchNode in hazardScenery.children {
-            guard patchNode.name == "terrain_acid", let shape = patchNode as? SKShapeNode else {
-                continue
+        if displayedAcidActive != acidOn {
+            displayedAcidActive = acidOn
+            for shape in acidVisualNodes {
+                shape.fillColor = acidOn
+                    ? SKColor(red: 0.32, green: 0.88, blue: 0.13, alpha: 0.82)
+                    : SKColor(red: 0.15, green: 0.55, blue: 0.09, alpha: 0.48)
+                shape.strokeColor = acidOn ? .systemRed : .systemYellow
+                shape.glowWidth = acidOn ? 3 : 0
             }
-            shape.fillColor = acidOn
-                ? SKColor(red: 0.32, green: 0.88, blue: 0.13, alpha: 0.82)
-                : SKColor(red: 0.15, green: 0.55, blue: 0.09, alpha: 0.48)
-            shape.strokeColor = acidOn ? .systemRed : .systemYellow
-            shape.glowWidth = acidOn ? 3 : 0
         }
         guard phase == .playing else { return }
         if TerrainHazards.acidTouches(pilot.position, patches: roomHazards, at: waveElapsed),
@@ -1381,6 +1394,7 @@ final class OutpostScene: SKScene {
         // Enemies also take acid damage. A pilot can lure them into an active
         // pool, but damage is modest so terrain does not trivialize combat.
         if acidOn {
+            var enemyDamaged = false
             for index in enemies.indices {
                 let node = enemies[index].node
                 let identifier = ObjectIdentifier(node)
@@ -1390,12 +1404,13 @@ final class OutpostScene: SKScene {
                                                 at: waveElapsed),
                       combatTime >= (enemyAcidDamageAt[identifier] ?? 0) else { continue }
                 enemies[index].health -= 2
+                enemyDamaged = true
                 enemyAcidDamageAt[identifier] = combatTime + 1.0
                 impact(at: node.position, color: .systemGreen,
                        destroyed: enemies[index].health <= 0)
                 updateEnemyHealthBar(at: index)
             }
-            removeDefeatedEnemies()
+            if enemyDamaged { removeDefeatedEnemies() }
         }
     }
 
@@ -3228,6 +3243,8 @@ final class OutpostScene: SKScene {
         updateZoneScenery(0)
         roomHazards.removeAll()
         hazardScenery.removeAllChildren()
+        acidVisualNodes.removeAll()
+        displayedAcidActive = nil
         enemyAcidDamageAt.removeAll()
         nextAcidDamageAt = 0
         pilot.position = entryPoint

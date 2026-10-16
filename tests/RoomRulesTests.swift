@@ -87,6 +87,18 @@ struct RoomRulesTests {
         precondition(TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 2.5))
         precondition(!TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 5.5))
         precondition(!TerrainHazards.acidTouches(entry, patches: toxicPatches, at: 2.5))
+        // Active-state transitions, not every simulation frame, should drive
+        // a redraw. Two 6-second cycles contain four visual transitions.
+        var priorAcidOn = TerrainHazards.acidActive(at: 0)
+        var visualTransitions = 0
+        for frame in 1...720 {
+            let acidOn = TerrainHazards.acidActive(at: Double(frame) / 60)
+            if acidOn != priorAcidOn {
+                visualTransitions += 1
+                priorAcidOn = acidOn
+            }
+        }
+        precondition(visualTransitions == 4)
         // Both small and large phones retain the guaranteed safe corridor.
         for screen in [CGSize(width: 320, height: 568), CGSize(width: 768, height: 1024)] {
             let arena = RoomRules.bounds(for: screen)
