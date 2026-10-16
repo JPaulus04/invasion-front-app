@@ -106,8 +106,10 @@ if 'aimReticle.name = "aimReticle"' not in ranged_attack:
     errors.append("Shooters need a visible, fixed target reticle before firing")
 if 'childNode(withName: "aimReticle")?.removeFromParent()' not in ranged_attack:
     errors.append("Shooter reticle must be removed when its shot fires")
-if 'countdown.name = "mortarCountdown"' not in lob_attack or "countdown.run(.scale(to: 0.18, duration: 1.4))" not in lob_attack:
-    errors.append("Mortar attack must show a readable time-to-impact countdown")
+if 'countdown.name = "mortarCountdown"' not in lob_attack or "countdown.setScale(1)" not in lob_attack:
+    errors.append("Mortar attack must install a readable time-to-impact countdown")
+if "CombatRules.mortarWarningScale(" not in scene:
+    errors.append("Mortar warning must advance from combat time even at 2x speed")
 # Room transitions must remain player-driven: no exit during combat,
 # and a visible exit only after the room-clear condition is satisfied.
 start_wave = scene.split("private func startWave()", 1)[-1].split("private lazy var forestPineTexture", 1)[0]
