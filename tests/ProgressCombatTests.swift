@@ -178,7 +178,7 @@ struct ProgressCombatTests {
         precondition(CombatRules.mortarWarningScale(elapsed: 0, flightTime: 1.4) == 1)
         precondition(abs(CombatRules.mortarWarningScale(elapsed: 0.7, flightTime: 1.4) - 0.59) < 0.001)
         precondition(abs(CombatRules.mortarWarningScale(elapsed: 1.4, flightTime: 1.4) - 0.18) < 0.001)
-        precondition(CombatRules.mortarWarningScale(elapsed: 5, flightTime: 1.4) == 0.18)
+        precondition(abs(CombatRules.mortarWarningScale(elapsed: 5, flightTime: 1.4) - 0.18) < 0.001)
         // Attack windows shorten gradually, while never becoming instant.
         precondition(CombatRules.shooterTelegraph(room: 1) == 0.7)
         precondition(CombatRules.shooterTelegraph(room: 20) >= 0.48)
