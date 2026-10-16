@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -61,6 +61,18 @@ if 'ProcessInfo.processInfo.arguments.contains("-captureLoadoutScreenshot")' not
     errors.append("Build 315 must capture the actual pre-world loadout selection")
 if "private func enterSelectedWorld() -> Bool" not in scene or "_ = enterSelectedWorld()" not in scene:
     errors.append("Loadout simulator QA and touch route must share a lock action")
+if "bankSalvage(PersistentProgression.roomReward(room: wave))" not in scene:
+    errors.append("Each cleared room must bank permanent Salvage immediately")
+if "bankSalvage(PersistentProgression.enemyReward(" not in scene:
+    errors.append("Enemy defeats must bank Salvage immediately")
+if 'case (.gameOver, "headquarters")' not in scene:
+    errors.append("Defeated players must reach upgrade headquarters")
+if 'private func showGearBay()' not in scene or 'private func showAbilityLab()' not in scene:
+    errors.append("Permanent gear and ability masteries need usable menus")
+if "gearWeaponBonus" not in scene or 'permanent.rank("armor") * 15' not in scene:
+    errors.append("Purchased gear must affect next-run combat stats")
+if 'ProcessInfo.processInfo.arguments.contains("-captureHeadquartersScreenshot")' not in scene:
+    errors.append("Simulator must capture the headquarters upgrade menu")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

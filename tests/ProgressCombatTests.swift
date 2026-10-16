@@ -34,6 +34,34 @@ struct ProgressCombatTests {
         precondition(loadout.selected == ["chain", "orbit", "incendiary"])
         precondition(AbilityLoadout(selected: ["orbit", "orbit", "invalid", "chain"])
                      .selected == ["orbit", "chain"])
+        // Salvage survives failed attempts, and purchase benefits are
+        // independent of run XP and exclusive world-core currency.
+        let suite = "outpost.zero.progression.test"
+        let store = UserDefaults(suiteName: suite)!
+        store.removePersistentDomain(forName: suite)
+        let permanent = PersistentProgression(storage: store)
+        precondition(permanent.salvage == 0 && permanent.rank("weapon") == 0)
+        precondition(!permanent.purchase("weapon"))
+        precondition(permanent.bank(-25) == 0)
+        precondition(permanent.bank(64) == 64)
+        precondition(!permanent.purchase("weapon"))
+        precondition(permanent.bank(1) == 1)
+        precondition(permanent.purchase("weapon"))
+        precondition(permanent.salvage == 0 && permanent.rank("weapon") == 1)
+        precondition(permanent.cost("weapon") == 130)
+        precondition(!permanent.purchase("invalid"))
+        precondition(permanent.bank(300) == 300)
+        precondition(permanent.purchase("armor"))
+        precondition(permanent.purchase("chain"))
+        precondition(permanent.rank("armor") == 1 && permanent.rank("chain") == 1)
+        let restarted = PersistentProgression(storage: store)
+        precondition(restarted.rank("weapon") == 1 && restarted.rank("chain") == 1)
+        precondition(restarted.salvage == permanent.salvage)
+        precondition(PersistentProgression.roomReward(room: 12) >
+                     PersistentProgression.roomReward(room: 3))
+        precondition(PersistentProgression.enemyReward(isHeavy: false, isBoss: true) >
+                     PersistentProgression.enemyReward(isHeavy: false, isBoss: false))
+        store.removePersistentDomain(forName: suite)
         var run = RunProgress()
         let firstThreshold = run.nextLevelXP
         run.earnXP(firstThreshold - 1)

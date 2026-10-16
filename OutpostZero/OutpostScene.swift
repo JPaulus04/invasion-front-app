@@ -1,7 +1,7 @@
 import SpriteKit
 
 final class OutpostScene: SKScene {
-    private enum Phase { case ready, loadout, playing, levelUp, checkpoint, gate, settings, interrupted, worldComplete, restoration, gameOver }
+    private enum Phase { case ready, headquarters, gearBay, abilityLab, loadout, playing, levelUp, checkpoint, gate, settings, interrupted, worldComplete, restoration, gameOver }
     private struct Enemy {
         let node: SKShapeNode
         var health: Int
@@ -49,6 +49,8 @@ final class OutpostScene: SKScene {
     private var spawnClock: TimeInterval = 0
     private var lastUpdate: TimeInterval = 0
     private var coins = 0
+    private let permanent = PersistentProgression()
+    private var salvageBankedThisRun = 0
     private var health = 100
     private var damage = 1
     private var fireRate = 1
@@ -129,7 +131,9 @@ final class OutpostScene: SKScene {
     }
     private var permanentDamageBonus: Int { branchLevel(0) / 3 }
     private var permanentArmorBonus: Int { branchLevel(2) * 2 }
-    private var maximumHealth: Int { 100 + permanentArmorBonus + runArmor }
+    private var gearWeaponBonus: Int { permanent.rank("weapon") }
+    private var gearReactorBonus: Int { permanent.rank("reactor") }
+    private var maximumHealth: Int { 100 + permanentArmorBonus + permanent.rank("armor") * 15 + runArmor }
     private var permanentRateBonus: Int { branchLevel(3) / 4 }
     private var permanentReactorBonus: Int { branchLevel(1) / 3 }
     private var permanentSystemsBonus: Int { branchLevel(4) / 4 }
@@ -366,6 +370,19 @@ final class OutpostScene: SKScene {
         showReady()
         // CI-only settings and lifecycle integration: a call must pause
         // hostile attacks, and resuming must require deliberate input.
+        if ProcessInfo.processInfo.arguments.contains("-captureHeadquartersScreenshot") {
+            showHeadquarters()
+            precondition(overlayButtons["gear_bay"] != nil &&
+                         overlayButtons["ability_lab"] != nil,
+                         "Headquarters must expose both permanent upgrade areas")
+            showGearBay()
+            precondition(phase == .gearBay && overlayButtons["hq_back"] != nil,
+                         "Gear Bay must be reachable and have a way out")
+            showAbilityLab()
+            precondition(phase == .abilityLab && overlayButtons["hq_back"] != nil,
+                         "Ability Lab must be reachable and have a way out")
+            showHeadquarters()
+        }
         if ProcessInfo.processInfo.arguments.contains("-capturePausedRunScreenshot") {
             startWave()
             setAppActive(false)
@@ -594,7 +611,7 @@ final class OutpostScene: SKScene {
         checkpointButton.isHidden = phase != .gate || !wave.isMultiple(of: 5) || checkpointUsed
         title.text = "OUTPOST ZERO"
         subtitle.text = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
-        info.text = "HP \(health)/\(maximumHealth)  •  DMG \(damage)  •  RATE \(fireRate)"
+        info.text = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
         info.fontColor = health <= maximumHealth / 3 ? .systemRed : (health <= maximumHealth * 2 / 3 ? .systemYellow : .white)
     }
 
@@ -783,9 +800,81 @@ final class OutpostScene: SKScene {
         if unlocked {
             actionButton("PREPARE LOADOUT", key: "start", y: -181, tint: .systemTeal)
         }
-        actionButton("CHARACTER RESTORATION", key: "restore", y: -232, tint: .systemIndigo)
+        actionButton("HEADQUARTERS & UPGRADES", key: "headquarters", y: -232, tint: .systemIndigo)
         overlayText("POWER CORES: \(availableCores)", y: -272, fontSize: 12)
         updateHUD()
+    }
+
+    private func bankSalvage(_ amount: Int) {
+        salvageBankedThisRun += permanent.bank(amount)
+    }
+
+    private func showHeadquarters() {
+        phase = .headquarters
+        hud.isHidden = true
+        ArcadeMusic.shared.play(.headquarters)
+        clearOverlay()
+        overlayText("HEADQUARTERS", y: 156, fontSize: 24)
+        overlayText("\(permanent.salvage) SALVAGE  •  \(availableCores) CORES", y: 117, fontSize: 15)
+        overlayText("PERMANENT UPGRADES BETWEEN RUNS", y: 88, fontSize: 12)
+        actionButton("GEAR BAY", key: "gear_bay", y: 35, tint: .systemTeal)
+        actionButton("ABILITY LAB", key: "ability_lab", y: -23, tint: .systemIndigo)
+        actionButton("CHARACTER RESTORATION", key: "restore", y: -81, tint: .systemPurple)
+        actionButton("BACK TO WORLD MAP", key: "hq_back", y: -170, tint: .systemBlue)
+        updateHUD()
+    }
+
+    private func showGearBay() {
+        phase = .gearBay
+        hud.isHidden = true
+        clearOverlay()
+        overlayText("GEAR BAY", y: 162, fontSize: 24)
+        overlayText("\(permanent.salvage) SALVAGE AVAILABLE", y: 128, fontSize: 14)
+        overlayText("EQUIPMENT STAYS UPGRADED AFTER DEFEAT", y: 104, fontSize: 11)
+        let labels = ["WEAPON", "ARMOR", "REACTOR"]
+        for (index, id) in PersistentProgression.gear.enumerated() {
+            let level = permanent.rank(id)
+            let price = permanent.cost(id)
+            let label = level == 5 ? "\(labels[index])  LV 5  •  MAX" :
+                "\(labels[index])  LV \(level)  •  \(price) SALVAGE"
+            actionButton(label, key: "buy_\(id)", y: CGFloat(50 - index * 63),
+                         tint: index == 0 ? .systemOrange : (index == 1 ? .systemTeal : .systemIndigo),
+                         enabled: level < 5 && permanent.salvage >= price)
+        }
+        overlayText("WEAPON: +1 DMG / LV", y: -133, fontSize: 11)
+        overlayText("ARMOR: +15 HP / LV  •  REACTOR: ABILITY POWER", y: -155, fontSize: 10)
+        actionButton("BACK TO HEADQUARTERS", key: "hq_back", y: -209, tint: .systemBlue)
+        updateHUD()
+    }
+
+    private func showAbilityLab() {
+        phase = .abilityLab
+        hud.isHidden = true
+        clearOverlay()
+        overlayText("ABILITY LAB", y: 159, fontSize: 24)
+        overlayText("\(permanent.salvage) SALVAGE AVAILABLE", y: 125, fontSize: 14)
+        overlayText("MASTERY ONLY WORKS WHEN EQUIPPED", y: 101, fontSize: 11)
+        let labels = ["CHAIN LIGHTNING", "EXPLOSIVES", "INCENDIARY", "ORBITAL BLADES"]
+        for (index, id) in PersistentProgression.abilities.enumerated() {
+            let level = permanent.rank(id)
+            let price = permanent.cost(id)
+            let label = level == 5 ? "\(labels[index])  LV 5 MAX" :
+                "\(labels[index])  LV \(level)  •  \(price)"
+            actionButton(label, key: "buy_\(id)", y: CGFloat(61 - index * 56),
+                         tint: index.isMultiple(of: 2) ? .systemTeal : .systemIndigo,
+                         enabled: level < 5 && permanent.salvage >= price)
+        }
+        overlayText("SELECT UP TO 3 ABILITIES FOR EACH WORLD", y: -180, fontSize: 11)
+        actionButton("BACK TO HEADQUARTERS", key: "hq_back", y: -225, tint: .systemBlue)
+        updateHUD()
+    }
+
+    private func purchasePermanentUpgrade(_ id: String) {
+        guard phase == .gearBay || phase == .abilityLab else { return }
+        let currentScreen = phase
+        guard permanent.purchase(id) else { return }
+        refreshPilotAppearance()
+        if currentScreen == .gearBay { showGearBay() } else { showAbilityLab() }
     }
 
     private func showLoadout() {
@@ -899,6 +988,9 @@ final class OutpostScene: SKScene {
     private func enterSelectedWorld() -> Bool {
         guard phase == .loadout, draftLoadout.isReady else { return false }
         lockedLoadout = draftLoadout
+        // Ensure newly purchased armor is active from the first room.
+        health = maximumHealth
+        salvageBankedThisRun = 0
         startWave()
         return true
     }
@@ -1945,7 +2037,8 @@ final class OutpostScene: SKScene {
                 guard combatTime - (lastOrbitalHit[key] ?? -100) >= 0.50 else { continue }
                 lastOrbitalHit[key] = combatTime
                 // Reliable modest contact damage, not projectile invulnerability.
-                enemies[enemyIndex].health -= 1 + orbitLevel
+                enemies[enemyIndex].health -= 1 + orbitLevel +
+                    permanent.rank("orbit") + gearReactorBonus
                 impact(at: blade.position, color: .systemCyan,
                        destroyed: enemies[enemyIndex].health <= 0)
                 updateEnemyHealthBar(at: enemyIndex)
@@ -1995,8 +2088,9 @@ final class OutpostScene: SKScene {
         tracer.zPosition = 8
         arena.addChild(tracer)
         tracer.run(.sequence([.fadeOut(withDuration: 0.055), .removeFromParent()]))
-        impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= damage + permanentDamageBonus)
-        enemies[index].health -= damage + permanentDamageBonus
+        let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus
+        impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= totalBulletDamage)
+        enemies[index].health -= totalBulletDamage
         // Brief enemy hit flash makes successful shots readable at normal game speed.
         let struckNode = enemies[index].node
         struckNode.removeAction(forKey: "enemyHitFeedback")
@@ -2014,11 +2108,11 @@ final class OutpostScene: SKScene {
             ]), withKey: "spriteHitFeedback")
         }
         if incendiaryLevel > 0 {
-            burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus, until: combatTime + 2.5, nextTick: combatTime + 0.5)
+            burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus + gearReactorBonus + permanent.rank("incendiary"), until: combatTime + 2.5, nextTick: combatTime + 0.5)
         }
         if explosiveLevel > 0 {
-            for other in enemies.indices where other != index && combatTime >= enemies[other].activeAt && distance(enemies[other].node.position, target) < CGFloat(35 + explosiveLevel * 15) {
-                enemies[other].health -= max(1, damage * explosiveLevel / 3)
+            for other in enemies.indices where other != index && combatTime >= enemies[other].activeAt && distance(enemies[other].node.position, target) < CGFloat(35 + explosiveLevel * 15 + permanent.rank("explosive") * 5) {
+                enemies[other].health -= max(1, damage * explosiveLevel / 3 + permanent.rank("explosive") + gearReactorBonus)
                 if incendiaryLevel > 0 {
                     burns[ObjectIdentifier(enemies[other].node)] = (damage: incendiaryLevel, until: combatTime + 2.5, nextTick: combatTime + 0.5)
                 }
@@ -2040,7 +2134,7 @@ final class OutpostScene: SKScene {
     private func chainAttack(from origin: CGPoint, excluding initialNode: SKShapeNode) {
         var previous = origin
         var visited: Set<ObjectIdentifier> = [ObjectIdentifier(initialNode)]
-        for _ in 0..<min(chainLevel + permanentSystemsBonus, 5) {
+        for _ in 0..<min(chainLevel + permanentSystemsBonus + permanent.rank("chain") / 2, 6) {
             guard let targetIndex = enemies.indices
                 .filter({ !visited.contains(ObjectIdentifier(enemies[$0].node)) && combatTime >= enemies[$0].activeAt && distance(enemies[$0].node.position, previous) <= 115 })
                 .min(by: { distance(enemies[$0].node.position, previous) < distance(enemies[$1].node.position, previous) }) else { break }
@@ -2060,8 +2154,9 @@ final class OutpostScene: SKScene {
             bolt.zPosition = 12
             arena.addChild(bolt)
             bolt.run(.sequence([.fadeOut(withDuration: 0.16), .removeFromParent()]))
-            impact(at: endpoint, color: .systemCyan, destroyed: enemy.health <= max(1, damage / 2))
-            enemies[targetIndex].health -= max(1, damage / 2)
+            let chainDamage = max(1, damage / 2 + permanent.rank("chain") + gearReactorBonus)
+            impact(at: endpoint, color: .systemCyan, destroyed: enemy.health <= chainDamage)
+            enemies[targetIndex].health -= chainDamage
             if incendiaryLevel > 0 {
                 burns[ObjectIdentifier(enemy.node)] = (damage: incendiaryLevel, until: combatTime + 2.5, nextTick: combatTime + 0.5)
             }
@@ -2077,6 +2172,9 @@ final class OutpostScene: SKScene {
         for index in enemies.indices.reversed() where enemies[index].health <= 0 {
             streak += 1
             coins += enemies[index].reward
+            bankSalvage(PersistentProgression.enemyReward(
+                isHeavy: enemies[index].behavior >= 3,
+                isBoss: enemies[index].node === bossNode))
             let xpAmount = enemies[index].node === bossNode ? 60 : (enemies[index].behavior >= 3 ? 10 : 6)
             // XP belongs to the kill immediately; it must not wait for a pickup or room clear.
             progress.earnXP(xpAmount)
@@ -2184,6 +2282,7 @@ final class OutpostScene: SKScene {
         guard !roomCleared else { return }
         roomCleared = true
         clearHostileAttacks()
+        bankSalvage(PersistentProgression.roomReward(room: wave))
         coins += 12 + wave * 2
         collectXP(collectAll: true)
         progress.earnXP(6 + wave)
@@ -2377,6 +2476,7 @@ final class OutpostScene: SKScene {
         lockMenuBriefly()
         clearOverlay()
         awardWorldCompletionCores(stars: progress.stars)
+        bankSalvage(PersistentProgression.worldCompletionBonus)
         UserDefaults.standard.set(true, forKey: "frontierForestComplete")
         showWorldCompleteSummary()
     }
@@ -2400,7 +2500,7 @@ final class OutpostScene: SKScene {
             star.zPosition = 3
             overlay.addChild(star)
         }
-        overlayText("PLAYER \(health) HP", y: -30, fontSize: 13)
+        overlayText("PLAYER \(health) HP  •  +\(salvageBankedThisRun) SALVAGE", y: -30, fontSize: 13)
         if lastWorldCoreReward > 0 {
             let core = SKShapeNode(circleOfRadius: 13)
             core.fillColor = .systemCyan
@@ -2410,12 +2510,12 @@ final class OutpostScene: SKScene {
             core.position = CGPoint(x: -105, y: -76)
             core.zPosition = 3
             overlay.addChild(core)
-            overlayText("NEW REWARD: +\\(lastWorldCoreReward) CORES", y: -81, fontSize: 14)
+            overlayText("NEW REWARD: +\(lastWorldCoreReward) CORES", y: -81, fontSize: 14)
         } else {
             overlayText("NO NEW CORES — EARN MORE STARS", y: -75, fontSize: 12)
         }
         overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -48, fontSize: 15)
-        actionButton("RESTORE CHARACTER", key: "restore", y: -105, tint: .systemIndigo)
+        actionButton("HEADQUARTERS", key: "headquarters", y: -105, tint: .systemIndigo)
         actionButton("PLAY AGAIN", key: "restart", y: -160, tint: .systemTeal)
     }
 
@@ -2541,9 +2641,12 @@ final class OutpostScene: SKScene {
         clearOverlay()
         let best = max(wave, UserDefaults.standard.integer(forKey: "bestWave"))
         UserDefaults.standard.set(best, forKey: "bestWave")
-        overlayText("PILOT DEFEATED", y: 55)
-        overlayText("Room \(wave)  •  Best \(best)", y: 10, fontSize: 18)
-        actionButton("RESTART", key: "restart", y: -55, tint: .systemTeal)
+        overlayText("PILOT DEFEATED", y: 97)
+        overlayText("ROOM \(wave)  •  BEST \(best)", y: 54, fontSize: 17)
+        overlayText("+\(salvageBankedThisRun) SALVAGE BANKED", y: 14, fontSize: 17)
+        overlayText("TOTAL SALVAGE: \(permanent.salvage)", y: -23, fontSize: 13)
+        actionButton("HEADQUARTERS & UPGRADES", key: "headquarters", y: -87, tint: .systemIndigo)
+        actionButton("RETRY WORLD", key: "restart", y: -157, tint: .systemTeal)
     }
 
     private func restart() {
@@ -2582,6 +2685,7 @@ final class OutpostScene: SKScene {
         gateUnlocked = false
         // Speed is a persistent preference, not a per-run upgrade.
         coins = 0
+        salvageBankedThisRun = 0
         health = maximumHealth
         damage = 1
         fireRate = 1
@@ -2640,6 +2744,17 @@ final class OutpostScene: SKScene {
             showSettings()
         case (.settings, "close_settings"): closeSettings()
         case (.interrupted, "resume_run"): resumeInterruptedRun()
+        case (.ready, "headquarters"), (.gameOver, "headquarters"),
+             (.worldComplete, "headquarters"): showHeadquarters()
+        case (.headquarters, "gear_bay"): showGearBay()
+        case (.headquarters, "ability_lab"): showAbilityLab()
+        case (.headquarters, "restore"): showRestoration()
+        case (.headquarters, "hq_back"): showReady()
+        case (.gearBay, "hq_back"), (.abilityLab, "hq_back"): showHeadquarters()
+        case (.gearBay, let key?) where key.hasPrefix("buy_"):
+            purchasePermanentUpgrade(String(key.dropFirst(4)))
+        case (.abilityLab, let key?) where key.hasPrefix("buy_"):
+            purchasePermanentUpgrade(String(key.dropFirst(4)))
         case (.ready, "start") where worldMapIndex == 0:
             draftLoadout = AbilityLoadout()
             showLoadout()
@@ -2657,6 +2772,7 @@ final class OutpostScene: SKScene {
         case (.ready, "restore"), (.worldComplete, "restore"): showRestoration()
         case (.restoration, "back"):
             if restorationReturnPhase == .worldComplete { showWorldCompleteSummary() }
+            else if restorationReturnPhase == .headquarters { showHeadquarters() }
             else { showReady() }
         case (.restoration, let key?) where key.hasPrefix("branch_"):
             if let index = Int(key.dropFirst(7)) { investCore(index) }
