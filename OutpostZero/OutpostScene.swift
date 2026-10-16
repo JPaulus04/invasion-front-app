@@ -2130,16 +2130,18 @@ final class OutpostScene: SKScene {
         let enemyHP = ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames")
             ? 70 : CampaignPacing.enemyHealth(world: worldMapIndex, room: wave, type: type)
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
+        // Keep the track and fill together above the larger illustrated sprite.
+        let healthBarOffset: CGFloat = usesIllustratedEnemy
+            ? radius * 1.39 + 9 : radius + 12
         let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
         healthTrack.strokeColor = .clear
-        healthTrack.position.y = radius + 12
+        healthTrack.position.y = healthBarOffset
         node.addChild(healthTrack)
         let healthBar = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthBar.fillColor = .systemGreen
         healthBar.strokeColor = .clear
-        healthBar.position.y = usesIllustratedEnemy
-            ? radius * 1.39 + 9 : radius + 12
+        healthBar.position.y = healthBarOffset
         healthBar.zPosition = 1
         node.addChild(healthBar)
         enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi)), nextAttack: combatTime + 1.7))
