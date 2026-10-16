@@ -51,6 +51,18 @@ enum BattlefieldArt {
         ambient.alpha = 0.90
         ambient.zPosition = -2
         artwork.addChild(ambient)
+        // A separate matte maritime bed makes World 2 readable even outside
+        // the gameplay boundary. It never participates in hit testing.
+        let flooded = SKSpriteNode(texture: FrontierFloorArt.floodedTexture(
+            for: scene.size))
+        flooded.name = "floodedAmbientBackdrop"
+        flooded.position = CGPoint(x: scene.size.width * 0.5,
+                                   y: scene.size.height * 0.5)
+        flooded.size = scene.size
+        flooded.alpha = 1
+        flooded.zPosition = -2
+        flooded.isHidden = true
+        artwork.addChild(flooded)
 
         let floor = SKShapeNode(rect: room, cornerRadius: 18)
         floor.name = "roomFloor"

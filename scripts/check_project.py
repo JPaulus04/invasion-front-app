@@ -254,6 +254,12 @@ if "let patches: [(CGFloat, CGFloat, CGFloat, CGFloat)]" in art:
     errors.append("Old circular floor patches must not return")
 if "SKShapeNode(ellipseOf:" in art:
     errors.append("Large ellipse terrain stamps must not return")
+if 'flooded.name = "floodedAmbientBackdrop"' not in art:
+    errors.append("World 2 must have its own prerendered maritime surface")
+if 'if zone == 1 && worldMapIndex == 1' not in scene:
+    errors.append("Flooded Outpost must not reuse forest broadleaf props")
+if 'if worldMapIndex == 0 && zone <= 1' not in scene:
+    errors.append("Forest litter must not be painted into flooded rooms")
 forest_floor = scene.split("// Sparse, asymmetrical forest dressing.", 1)[-1].split("// Fern silhouettes", 1)[0]
 if "BattlefieldArt.terrainShape(" not in forest_floor:
     errors.append("Forest floor must use irregular debris silhouettes")

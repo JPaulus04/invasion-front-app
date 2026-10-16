@@ -1528,6 +1528,127 @@ final class OutpostScene: SKScene {
         return colors[min(3, max(0, zone))]
     }
 
+
+    /// Maritime silhouettes have a low node count and stay at the sides.
+    /// No added collision shapes, touch targets or hazard indicators.
+    private func addFloodedEdgeProp(to prop: SKShapeNode, index: Int,
+                                    leftSide: Bool) {
+        prop.fillColor = .clear
+        prop.strokeColor = .clear
+        let shadow = SKShapeNode(ellipseOf: CGSize(width: 43, height: 11))
+        shadow.fillColor = SKColor.black.withAlphaComponent(0.32)
+        shadow.strokeColor = .clear
+        shadow.position = CGPoint(x: 4, y: -17)
+        shadow.zPosition = -0.6
+        prop.addChild(shadow)
+
+        let steel = SKColor(red: 0.29, green: 0.39, blue: 0.41, alpha: 1)
+        let edge = SKColor(red: 0.53, green: 0.64, blue: 0.60, alpha: 1)
+        let rust = SKColor(red: 0.52, green: 0.32, blue: 0.21, alpha: 1)
+        switch index % 3 {
+        case 0:
+            // Leaning mooring post and its corroded reinforced base.
+            let support = SKShapeNode(rectOf: CGSize(width: 13, height: 51),
+                                      cornerRadius: 3)
+            support.fillColor = steel
+            support.strokeColor = SKColor(red: 0.11, green: 0.22,
+                                           blue: 0.26, alpha: 1)
+            support.lineWidth = 2
+            support.position = CGPoint(x: 0, y: 5)
+            support.zRotation = leftSide ? -0.10 : 0.10
+            support.zPosition = 0.6
+            prop.addChild(support)
+            let cap = SKShapeNode(rectOf: CGSize(width: 23, height: 8),
+                                  cornerRadius: 2)
+            cap.fillColor = edge
+            cap.strokeColor = .clear
+            cap.position = CGPoint(x: 0, y: 25)
+            support.addChild(cap)
+            let oxidation = SKShapeNode(rectOf: CGSize(width: 8, height: 10),
+                                        cornerRadius: 1)
+            oxidation.fillColor = rust.withAlphaComponent(0.82)
+            oxidation.strokeColor = .clear
+            oxidation.position = CGPoint(x: leftSide ? -3 : 3, y: -7)
+            support.addChild(oxidation)
+        case 1:
+            // Broken concrete dock plinth with a chipped raised top.
+            let block = SKShapeNode(path: {
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: -21, y: -16))
+                path.addLine(to: CGPoint(x: -17, y: 7))
+                path.addLine(to: CGPoint(x: -5, y: 14))
+                path.addLine(to: CGPoint(x: 19, y: 9))
+                path.addLine(to: CGPoint(x: 22, y: -13))
+                path.closeSubpath()
+                return path
+            }())
+            block.fillColor = SKColor(red: 0.29, green: 0.38,
+                                     blue: 0.39, alpha: 1)
+            block.strokeColor = SKColor(red: 0.13, green: 0.25,
+                                       blue: 0.27, alpha: 1)
+            block.lineWidth = 1.5
+            block.zPosition = 0.6
+            prop.addChild(block)
+            let top = SKShapeNode(path: {
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: -17, y: 7))
+                path.addLine(to: CGPoint(x: -5, y: 14))
+                path.addLine(to: CGPoint(x: 19, y: 9))
+                path.addLine(to: CGPoint(x: 9, y: 4))
+                path.closeSubpath()
+                return path
+            }())
+            top.fillColor = edge.withAlphaComponent(0.82)
+            top.strokeColor = .clear
+            top.zPosition = 0.7
+            prop.addChild(top)
+            let crack = SKShapeNode()
+            let fracture = CGMutablePath()
+            fracture.move(to: CGPoint(x: -1, y: 5))
+            fracture.addLine(to: CGPoint(x: 2, y: -1))
+            fracture.addLine(to: CGPoint(x: -2, y: -8))
+            crack.path = fracture
+            crack.strokeColor = SKColor.black.withAlphaComponent(0.33)
+            crack.lineWidth = 1.5
+            crack.zPosition = 0.8
+            prop.addChild(crack)
+        default:
+            // Driftwood and a rusting metal rail sunk into the waterfront.
+            let beam = SKShapeNode(rectOf: CGSize(width: 52, height: 9),
+                                   cornerRadius: 2)
+            beam.fillColor = SKColor(red: 0.33, green: 0.37,
+                                     blue: 0.36, alpha: 1)
+            beam.strokeColor = SKColor(red: 0.14, green: 0.24,
+                                       blue: 0.27, alpha: 1)
+            beam.lineWidth = 1.5
+            beam.zRotation = leftSide ? 0.14 : -0.14
+            beam.position = CGPoint(x: 0, y: -3)
+            beam.zPosition = 0.6
+            prop.addChild(beam)
+            let corrodedEdge = SKShapeNode(rectOf: CGSize(width: 33, height: 2))
+            corrodedEdge.fillColor = rust.withAlphaComponent(0.88)
+            corrodedEdge.strokeColor = .clear
+            corrodedEdge.position = CGPoint(x: 4, y: -2)
+            beam.addChild(corrodedEdge)
+        }
+        // Small reeds are silhouette accents, not water hazard markers.
+        for reedIndex in 0..<3 {
+            let reed = SKShapeNode()
+            let path = CGMutablePath()
+            let baseX = CGFloat(reedIndex * 8 - 12)
+            path.move(to: CGPoint(x: baseX, y: -18))
+            path.addQuadCurve(
+                to: CGPoint(x: baseX + (leftSide ? 5 : -5), y: -7 - CGFloat(reedIndex * 3)),
+                control: CGPoint(x: baseX - 4, y: -11))
+            reed.path = path
+            reed.strokeColor = SKColor(
+                red: 0.35, green: 0.50, blue: 0.37, alpha: 0.58)
+            reed.lineWidth = 1.4
+            reed.zPosition = 0.8
+            prop.addChild(reed)
+        }
+    }
+
     private func updateZoneScenery(_ requestedZone: Int) {
         // Later worlds emphasize industrial ruins rather than using the
         // forest's illustrated pines for every environment.
@@ -1540,19 +1661,22 @@ final class OutpostScene: SKScene {
         let roomArt = arena.childNode(withName: "roomArtwork")
         let nonForestWorld = worldMapIndex != 0
         roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = nonForestWorld
+        roomArt?.childNode(withName: "floodedAmbientBackdrop")?.isHidden = worldMapIndex != 1
         if let floor = roomArt?.childNode(withName: "roomFloor") as? SKShapeNode {
-            floor.fillColor = nonForestWorld
+            floor.fillColor = worldMapIndex == 2
                 ? worldColor(for: requestedZone)
-                : (zone == 1
+                : (worldMapIndex == 1
+                    ? SKColor(red: 0.10, green: 0.19, blue: 0.23, alpha: 0.14)
+                    : (zone == 1
                     ? SKColor(red: 0.16, green: 0.25, blue: 0.20, alpha: 0.16)
-                    : SKColor(red: 0.18, green: 0.28, blue: 0.20, alpha: 0.12))
+                    : SKColor(red: 0.18, green: 0.28, blue: 0.20, alpha: 0.12)))
             floor.strokeColor = nonForestWorld
                 ? SKColor(red: 0.10, green: 0.18, blue: 0.19, alpha: 0.70)
                 : SKColor(red: 0.10, green: 0.19, blue: 0.17, alpha: 0.18)
         }
         roomArt?.childNode(withName: "roomContactEdge")?.alpha = nonForestWorld ? 1 : 0.55
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
-        let count = zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)
+        let count = worldMapIndex == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3))
         let roomVariant = (wave - 1) % 4
         for index in 0..<count {
             let leftSide = (index + roomVariant).isMultiple(of: 2)
@@ -1616,7 +1740,13 @@ final class OutpostScene: SKScene {
                 seam.zPosition = 1
                 prop.addChild(seam)
             }
-            if zone == 1 {
+            if zone == 1 && worldMapIndex == 1 {
+                // Flooded Outpost has metal piers, eroded blocks and driftwood,
+                // not broadleaf trees borrowed from the forest. These are
+                // decorative edge props; water slowdowns come from hazards.
+                addFloodedEdgeProp(to: prop, index: index, leftSide: leftSide)
+            }
+            if zone == 1 && worldMapIndex == 0 {
                 // Overgrown Path has a distinct canopy: broadleaf trees,
                 // hanging vines and larger layered thickets. All remain on
                 // the perimeter, outside the player's movement corridor.
@@ -1721,7 +1851,7 @@ final class OutpostScene: SKScene {
         }
         // Sparse, asymmetrical forest dressing. Avoid evenly spaced ellipses:
         // they created obvious rows and dark round spots in the simulator.
-        if zone <= 1 {
+        if worldMapIndex == 0 && zone <= 1 {
             for index in 0..<17 {
                 let fx = CGFloat((index * 37 + wave * 17 + 11) % 97) / 97
                 let fy = CGFloat((index * 53 + wave * 29 + 7) % 89) / 89

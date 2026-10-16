@@ -220,4 +220,132 @@ enum FrontierFloorArt {
         textures[key] = texture
         return texture
     }
+
+    /// Flooded Outpost has its own desaturated maritime floor, rather than
+    /// reusing forest litter or a featureless opaque blue rectangle.
+    /// Render once per resolution: no new per-frame nodes or game mechanics.
+    static func floodedTexture(for size: CGSize) -> SKTexture {
+        let width = max(128, Int(ceil(size.width)))
+        let height = max(128, Int(ceil(size.height)))
+        let key = "flooded:\(width)x\(height)"
+        if let cached = textures[key] { return cached }
+        let canvas = CGSize(width: width, height: height)
+        let rendererFormat = UIGraphicsImageRendererFormat()
+        rendererFormat.opaque = true
+        rendererFormat.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: canvas, format: rendererFormat)
+        let image = renderer.image { output in
+            let ctx = output.cgContext
+            let bounds = CGRect(origin: .zero, size: canvas)
+            let colorSpace = CGColorSpaceCreateDeviceRGB()
+            ctx.setFillColor(UIColor(red: 0.105, green: 0.205,
+                                     blue: 0.245, alpha: 1).cgColor)
+            ctx.fill(bounds)
+
+            // Submerged concrete, cooler toward the upper half. This remains
+            // deliberately quieter than the hazard indicators above it.
+            let bed = CGGradient(colorsSpace: colorSpace, colors: [
+                UIColor(red: 0.15, green: 0.27, blue: 0.29, alpha: 0.62).cgColor,
+                UIColor(red: 0.07, green: 0.18, blue: 0.24, alpha: 0.54).cgColor,
+                UIColor(red: 0.10, green: 0.19, blue: 0.20, alpha: 0.40).cgColor
+            ] as CFArray, locations: [0, 0.48, 1])!
+            ctx.drawLinearGradient(bed, start: .zero,
+                                   end: CGPoint(x: canvas.width * 0.28,
+                                                y: canvas.height),
+                                   options: [])
+
+            // Silt banks and staining frame the playable corridor. Uneven
+            // silhouettes prevent them from reading as water-hazard circles.
+            var seed: UInt32 = 0x0F10D04C
+            func random() -> CGFloat {
+                seed = 1_664_525 &* seed &+ 1_013_904_223
+                return CGFloat(seed % 10_000) / 10_000
+            }
+            for index in 0..<36 {
+                let left = index.isMultiple(of: 2)
+                let x = canvas.width * (left ? (0.04 + random() * 0.22)
+                                               : (0.74 + random() * 0.22))
+                let y = canvas.height * (0.12 + random() * 0.78)
+                let w = 12 + random() * 28
+                let h = 6 + random() * 11
+                let silt = CGMutablePath()
+                silt.move(to: CGPoint(x: x - w * 0.55, y: y))
+                silt.addLine(to: CGPoint(x: x - w * 0.24, y: y - h * 0.54))
+                silt.addQuadCurve(to: CGPoint(x: x + w * 0.48,
+                                               y: y - h * 0.22),
+                                  control: CGPoint(x: x + w * 0.10,
+                                                   y: y - h * 0.78))
+                silt.addLine(to: CGPoint(x: x + w * 0.62, y: y + h * 0.40))
+                silt.addLine(to: CGPoint(x: x - w * 0.24, y: y + h * 0.45))
+                silt.closeSubpath()
+                ctx.addPath(silt)
+                ctx.setFillColor(UIColor(
+                    red: index.isMultiple(of: 4) ? 0.37 : 0.055,
+                    green: index.isMultiple(of: 4) ? 0.34 : 0.15,
+                    blue: index.isMultiple(of: 4) ? 0.23 : 0.19,
+                    alpha: index.isMultiple(of: 4) ? 0.19 : 0.21).cgColor)
+                ctx.fillPath()
+            }
+            // Directional light scattered on wet flooring. Thin irregular
+            // glints, not outlines around hazards or repeatable road markings.
+            for index in 0..<88 {
+                let x = canvas.width * (0.06 + random() * 0.88)
+                let y = canvas.height * (0.12 + random() * 0.78)
+                let length = 3 + random() * (index.isMultiple(of: 5) ? 18 : 8)
+                let tilt = (random() - 0.5) * 2.5
+                ctx.setLineWidth(index.isMultiple(of: 4) ? 1.1 : 0.65)
+                ctx.setStrokeColor(UIColor(
+                    red: 0.41, green: 0.67, blue: 0.69,
+                    alpha: 0.08 + random() * 0.16).cgColor)
+                ctx.move(to: CGPoint(x: x, y: y))
+                ctx.addLine(to: CGPoint(x: x + length, y: y + tilt))
+                ctx.strokePath()
+            }
+            // Half-buried masonry fragments at the two sides read as an old
+            // flooded installation, without claiming the path is blocked.
+            for index in 0..<21 {
+                let left = index.isMultiple(of: 2)
+                let x = canvas.width * (left ? 0.02 + random() * 0.18
+                                               : 0.80 + random() * 0.18)
+                let y = canvas.height * (0.12 + random() * 0.77)
+                let width = 6 + random() * 13
+                let height = 4 + random() * 6
+                let shard = CGMutablePath()
+                shard.move(to: CGPoint(x: x - width / 2, y: y - height / 2))
+                shard.addLine(to: CGPoint(x: x + width * 0.26,
+                                          y: y - height * 0.60))
+                shard.addLine(to: CGPoint(x: x + width / 2,
+                                          y: y + height * 0.34))
+                shard.addLine(to: CGPoint(x: x - width * 0.32,
+                                          y: y + height / 2))
+                shard.closeSubpath()
+                ctx.addPath(shard)
+                ctx.setFillColor(UIColor(red: 0.30, green: 0.39,
+                                         blue: 0.39, alpha: 0.37).cgColor)
+                ctx.fillPath()
+                ctx.setLineWidth(0.8)
+                ctx.setStrokeColor(UIColor(red: 0.56, green: 0.66,
+                                           blue: 0.63, alpha: 0.28).cgColor)
+                ctx.move(to: CGPoint(x: x - width / 2, y: y - height / 2))
+                ctx.addLine(to: CGPoint(x: x - width * 0.32,
+                                        y: y + height / 2))
+                ctx.strokePath()
+            }
+            // Soft reflected skylight anchors the middle without a bright
+            // spotlight underneath the pilot or obscuring telegraphs.
+            let centerLight = CGGradient(colorsSpace: colorSpace, colors: [
+                UIColor(red: 0.38, green: 0.60, blue: 0.64, alpha: 0.10).cgColor,
+                UIColor(red: 0.17, green: 0.36, blue: 0.42, alpha: 0).cgColor
+            ] as CFArray, locations: [0, 1])!
+            let glowCenter = CGPoint(x: canvas.width * 0.49,
+                                     y: canvas.height * 0.53)
+            ctx.drawRadialGradient(centerLight, startCenter: glowCenter,
+                startRadius: 0, endCenter: glowCenter,
+                endRadius: canvas.width * 0.64, options: [])
+        }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .linear
+        textures[key] = texture
+        return texture
+    }
 }
