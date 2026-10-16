@@ -99,6 +99,12 @@ if "WorldCatalog.enemyType(world: worldMapIndex" not in scene:
     errors.append("World-specific enemies must be drawn from tested rules")
 if 'ProcessInfo.processInfo.arguments.contains("-captureWorldExpansionScreenshot")' not in scene:
     errors.append("Simulator must capture an actual unlocked Flooded Outpost arena")
+if 'ProcessInfo.processInfo.arguments.contains("-captureWorldTransitionScreenshot")' not in scene:
+    errors.append("Simulator must validate the World 2 -> World 3 transition and new loadout")
+if "private func advanceToNextWorld()" not in scene:
+    errors.append("World-completion buttons must use a guarded next-world transition")
+if 'aimLineLeft' not in scene or 'aimLineRight' not in scene or "wardenVolleyTargets(" not in scene:
+    errors.append("Tidal Warden fan must warn visibly before firing three shots")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

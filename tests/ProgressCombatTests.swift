@@ -173,6 +173,17 @@ struct ProgressCombatTests {
         precondition(!CombatRules.mayBeginRangedAttack(room: 19, activeThreats: 3))
         precondition(CombatRules.enemyType(room: 11, roll: 10) == 5)
         precondition(CombatRules.enemyType(room: 11, roll: 30) == 4)
+        // Tidal Warden side shots must be symmetric about a visible center
+        // line, with enough angular separation to dodge them.
+        let fanOrigin = CGPoint(x: 50, y: 80)
+        let fan = CombatRules.wardenVolleyTargets(
+            origin: fanOrigin, target: CGPoint(x: 50, y: 220))
+        precondition(fan.count == 3)
+        precondition(abs(fan[1].x - 50) < 0.001)
+        precondition(abs(fan[1].y - 220) < 0.001)
+        precondition(abs(fan[0].x + fan[2].x - 100) < 0.001)
+        precondition(abs(fan[0].y - fan[2].y) < 0.001)
+        precondition(fan[0].x < 50 && fan[2].x > 50)
         // The telegraphed mortar ring reaches impact on combat time even when
         // the entire simulation runs at twice the ordinary wall-clock pace.
         precondition(CombatRules.mortarWarningScale(elapsed: 0, flightTime: 1.4) == 1)

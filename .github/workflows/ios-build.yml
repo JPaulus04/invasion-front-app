@@ -134,6 +134,15 @@ jobs:
               # serve pixels. Launch/screenshot timeout is retriable too.
               if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
                 echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
+                if [ "$ATTEMPT" != 3 ]; then
+                  # A cold CoreSimulatorService can become unresponsive even
+                  # after installation. Reboot the simulator before retrying
+                  # rather than issuing launch to the same wedged instance.
+                  run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
+                  run_bounded 45 xcrun simctl boot "$DEVICE" || true
+                  run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b || true
+                  run_bounded 65 xcrun simctl install "$DEVICE" "$APP" || true
+                fi
                 sleep 4
                 continue
               fi
@@ -156,6 +165,7 @@ jobs:
           capture_scene -captureOvergrownScreenshot screenshots/outpost-zero-overgrown-path.png
           capture_scene -captureTerrainHazardsScreenshot screenshots/outpost-zero-terrain.png
           capture_scene -captureWorldExpansionScreenshot screenshots/outpost-zero-flooded-outpost.png
+          capture_scene -captureWorldTransitionScreenshot screenshots/outpost-zero-toxic-crossing.png
           capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
           capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
           capture_scene -captureLevelUpScreenshot screenshots/outpost-zero-level-up.png
@@ -218,8 +228,10 @@ jobs:
           test -s screenshots/outpost-zero-overgrown-path.png
           test -s screenshots/outpost-zero-terrain.png
           test -s screenshots/outpost-zero-flooded-outpost.png
+          test -s screenshots/outpost-zero-toxic-crossing.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-terrain.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-flooded-outpost.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-toxic-crossing.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-loadout.png screenshots/outpost-zero-overgrown-path.png
           test -s screenshots/outpost-zero-simulator.png
           test -s screenshots/outpost-zero-gate-open.png

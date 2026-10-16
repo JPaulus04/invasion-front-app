@@ -491,6 +491,37 @@ final class OutpostScene: SKScene {
             updateHUD()
             UserDefaults.standard.removeObject(forKey: "frontierForestComplete")
         }
+        if ProcessInfo.processInfo.arguments.contains("-captureWorldTransitionScreenshot") {
+            // CI-only completed World 2 -> World 3 route. The app must reset
+            // run XP and equipment while retaining the unlocked destination.
+            UserDefaults.standard.set(true, forKey: "frontierForestComplete")
+            worldMapIndex = 1
+            draftLoadout = AbilityLoadout(selected: ["chain", "explosive", "orbit"])
+            showLoadout()
+            precondition(enterSelectedWorld() && wave == 1)
+            // The integration route is deliberately fast-forwarded to the
+            // reward screen; no artificial enemy kills or user-side rewards.
+            progress = RunProgress()
+            completeWorld()
+            precondition(phase == .worldComplete &&
+                         WorldCatalog.unlocked(2) &&
+                         overlayButtons["next_world"] != nil &&
+                         WorldCatalog.completed(1),
+                         "Defeating World 2 must unlock a next-world button")
+            advanceToNextWorld()
+            precondition(worldMapIndex == 2 && wave == 0 &&
+                         phase == .loadout && draftLoadout.selected.isEmpty,
+                         "Next World must reset the run and open World 3 loadout")
+            draftLoadout = AbilityLoadout(selected: ["chain", "incendiary", "orbit"])
+            showLoadout()
+            precondition(enterSelectedWorld() && wave == 1 &&
+                         roomHazards.contains(where: { $0.kind == .acid }) &&
+                         !roomHazards.contains(where: { $0.kind == .water }),
+                         "Toxic Crossing must start with only acid and rubble")
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot") {
             wave = 11
             gateUnlocked = true
@@ -687,7 +718,8 @@ final class OutpostScene: SKScene {
         xpFill.xScale = max(0.001, CGFloat(progress.xp) / CGFloat(progress.nextLevelXP))
         xpLabel.text = "LEVEL \(progress.level)  •  \(progress.xp)/\(progress.nextLevelXP) XP"
         checkpointButton.isHidden = phase != .gate || !wave.isMultiple(of: 5) || checkpointUsed
-        title.text = "OUTPOST ZERO"
+        title.text = wave == worldWaveCount && phase == .playing
+            ? selectedWorld.boss : "OUTPOST ZERO"
         subtitle.text = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
         info.text = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
         info.fontColor = health <= maximumHealth / 3 ? .systemRed : (health <= maximumHealth * 2 / 3 ? .systemYellow : .white)
@@ -1358,13 +1390,15 @@ final class OutpostScene: SKScene {
         rebuildTerrainHazards()
         nextAcidDamageAt = combatTime + 1.0
         enemyAcidDamageAt.removeAll()
-        if wave == 1 || (wave - 1) % 5 == 0 {
+        if wave == 1 || (wave - 1) % 5 == 0 || wave == worldWaveCount {
             zoneBanner.removeAllActions()
             let labels = worldMapIndex == 0 ? zoneNames :
                 (worldMapIndex == 1
                     ? ["OUTER DOCKS", "FLOODED CHANNEL", "PUMP STATION", "WARDEN PLATFORM"]
                     : ["TOXIC PERIMETER", "CORROSIVE PASS", "WASTE PROCESSING", "SENTINEL CHAMBER"])
-            zoneBanner.text = labels[activeZone]
+            zoneBanner.text = wave == worldWaveCount
+                ? "BOSS: \(selectedWorld.boss)" : labels[activeZone]
+            zoneBanner.fontColor = wave == worldWaveCount ? .systemYellow : .white
             zoneBanner.alpha = 1
             zoneBanner.run(.sequence([.wait(forDuration: 1.6), .fadeOut(withDuration: 0.5)]))
         }
@@ -2221,7 +2255,16 @@ final class OutpostScene: SKScene {
             guard combatTime >= enemy.fireAt else { return }
             enemy.node.childNode(withName: "aimLine")?.removeFromParent()
             enemy.node.childNode(withName: "aimReticle")?.removeFromParent()
-            fireProjectile(from: enemy.node.position, toward: target)
+            if enemy.node === bossNode && selectedWorld.bossStyle == 1 {
+                for direction in CombatRules.wardenVolleyTargets(
+                    origin: enemy.node.position, target: target) {
+                    fireProjectile(from: enemy.node.position, toward: direction)
+                }
+                enemy.node.childNode(withName: "aimLineLeft")?.removeFromParent()
+                enemy.node.childNode(withName: "aimLineRight")?.removeFromParent()
+            } else {
+                fireProjectile(from: enemy.node.position, toward: target)
+            }
             enemies[index].shotTarget = nil
             enemies[index].nextAttack = combatTime + CombatRules.shooterCooldown(room: wave)
         } else if combatTime >= enemy.nextAttack {
@@ -2250,6 +2293,24 @@ final class OutpostScene: SKScene {
                 aim.lineWidth = 3
                 aim.zPosition = 6
                 enemy.node.addChild(aim)
+                if enemy.node === bossNode && selectedWorld.bossStyle == 1 {
+                    let targets = CombatRules.wardenVolleyTargets(
+                        origin: enemy.node.position, target: pilot.position)
+                    for (index, direction) in [targets[0], targets[2]].enumerated() {
+                        let side = SKShapeNode()
+                        let sidePath = CGMutablePath()
+                        sidePath.move(to: .zero)
+                        sidePath.addLine(to: CGPoint(
+                            x: direction.x - enemy.node.position.x,
+                            y: direction.y - enemy.node.position.y))
+                        side.path = sidePath
+                        side.name = index == 0 ? "aimLineLeft" : "aimLineRight"
+                        side.strokeColor = .systemCyan.withAlphaComponent(0.78)
+                        side.lineWidth = 2.5
+                        side.zPosition = 6
+                        enemy.node.addChild(side)
+                    }
+                }
                 aim.run(.repeatForever(.sequence([
                     .fadeAlpha(to: 0.35, duration: 0.15),
                     .fadeAlpha(to: 1, duration: 0.15)
@@ -2867,6 +2928,15 @@ final class OutpostScene: SKScene {
         }
     }
 
+    /// One transition path serves both the next-world button and the simulator
+    /// integration check. An unfinished or unreleased world cannot be entered.
+    private func advanceToNextWorld() {
+        guard phase == .worldComplete, WorldCatalog.unlocked(worldMapIndex + 1),
+              recovery.load() == nil else { return }
+        worldMapIndex += 1
+        restart()
+    }
+
     private func completeWorld() {
         phase = .worldComplete
         ArcadeMusic.shared.play(.headquarters)
@@ -3195,9 +3265,7 @@ final class OutpostScene: SKScene {
             else { showReady() }
         case (.restoration, let key?) where key.hasPrefix("branch_"):
             if let index = Int(key.dropFirst(7)) { investCore(index) }
-        case (.worldComplete, "next_world") where WorldCatalog.unlocked(worldMapIndex + 1):
-            worldMapIndex += 1
-            restart()
+        case (.worldComplete, "next_world"): advanceToNextWorld()
         case (.gameOver, "restart"), (.worldComplete, "restart"): restart()
         case (.levelUp, _): _ = activateLevelUp(at: local)
         case (.checkpoint, "heal") where !checkpointUsed && health < maximumHealth && coins >= repairCost:

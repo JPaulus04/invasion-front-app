@@ -34,6 +34,17 @@ enum CombatRules {
         return max(0.18, 1 - fraction * 0.82)
     }
 
+    /// The Tidal Warden fires three separately telegraphed projectiles in a
+    /// 24-degree fan. Players can dodge through gaps; no hidden side shots.
+    static func wardenVolleyTargets(origin: CGPoint, target: CGPoint) -> [CGPoint] {
+        let direction = atan2(target.y - origin.y, target.x - origin.x)
+        let reach = max(1, hypot(target.x - origin.x, target.y - origin.y))
+        return [-CGFloat.pi / 7.5, 0, CGFloat.pi / 7.5].map { offset in
+            CGPoint(x: origin.x + cos(direction + offset) * reach,
+                    y: origin.y + sin(direction + offset) * reach)
+        }
+    }
+
     // Gradually tighten attacks without removing the player's dodge window.
     static func shooterTelegraph(room: Int) -> TimeInterval {
         max(0.48, 0.7 - Double(max(0, room - 6)) * 0.012)
