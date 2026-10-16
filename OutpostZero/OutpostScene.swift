@@ -252,6 +252,7 @@ final class OutpostScene: SKScene {
         pilotShadow.fillColor = SKColor.black.withAlphaComponent(0.32)
         pilotShadow.strokeColor = .clear
         pilotShadow.position = CGPoint(x: 4, y: -23)
+        pilotShadow.name = "pilotGroundShadow"
         pilotShadow.zPosition = -0.6
         pilot.addChild(pilotShadow)
         pilot.fillColor = .clear
@@ -293,7 +294,9 @@ final class OutpostScene: SKScene {
             visor.isHidden = true
             reactor.isHidden = true
             pilotGun.isHidden = true
-            for child in pilot.children where child is SKShapeNode && child !== pilotGun && child !== visor && child !== reactor {
+            for child in pilot.children where child is SKShapeNode &&
+                    child !== pilotGun && child !== visor &&
+                    child !== reactor && child.name != "pilotGroundShadow" {
                 child.isHidden = true
             }
         }
@@ -1552,6 +1555,10 @@ final class OutpostScene: SKScene {
         let zone = worldMapIndex == 0 ? requestedZone :
             (worldMapIndex == 1 ? max(1, requestedZone) : max(2, requestedZone))
         zoneScenery.removeAllChildren()
+        // The forest lighting treatment should never tint later industrial
+        // or toxic worlds, which keep their own world-specific palettes.
+        arena.childNode(withName: "roomArtwork")?
+            .childNode(withName: "frontierFloorSurface")?.isHidden = worldMapIndex != 0
         // The forest becomes cooler and darker in Rooms 6-10. The previous
         // backdrop tint was hidden beneath the opaque room-art floor.
         if let floor = arena.childNode(withName: "roomArtwork")?.children.first as? SKShapeNode {

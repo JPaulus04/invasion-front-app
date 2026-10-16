@@ -44,6 +44,16 @@ enum BattlefieldArt {
         floor.strokeColor = SKColor(red: 0.47, green: 0.55, blue: 0.43, alpha: 1)
         floor.lineWidth = 7
         artwork.addChild(floor)
+        // Transparent lighting over the original room color. Gameplay keeps
+        // its original silhouettes and collision limits.
+        let forestSurface = SKSpriteNode(texture: FrontierFloorArt.texture(
+            for: room.insetBy(dx: 5, dy: 5).size))
+        forestSurface.name = "frontierFloorSurface"
+        forestSurface.position = CGPoint(x: room.midX, y: room.midY)
+        forestSurface.size = room.insetBy(dx: 5, dy: 5).size
+        forestSurface.alpha = 0.92
+        forestSurface.zPosition = 0.01
+        artwork.addChild(forestSurface)
         // The room perimeter replaces the scrolling road and base-defense lane.
         // Keep the forest floor uninterrupted; the old horizontal guide lines
         // made the arena resemble a grid instead of natural terrain.
