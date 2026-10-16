@@ -82,6 +82,48 @@ for index, (top, bottom, half) in enumerate(tiers):
         polygon([(cx + 5, yy - 6), (cx + extent - 7, yy + 8),
                  (cx + extent - 18, yy + 5)], (12, 67, 68, 200))
 
+
+# Fine, irregular needle clusters break up the broad tiered facets.
+# These sit within the existing crown rather than turning the silhouette
+# into a noisy solid triangle. Every tree keeps the same clear centerline.
+for index, (top, bottom, half) in enumerate(tiers):
+    cx = 80 + [-2, 2, -1, 3, 0][index]
+    span = bottom - top
+    for step in range(5):
+        t = (step + 1.1) / 6.4
+        y = top + int(span * t)
+        reach = half * t
+        for side in (-1, 1):
+            tip = cx + side * (reach + (3 if (step + index) % 3 else 0))
+            inside = cx + side * max(3, reach - 12)
+            needle = (79, 158, 114, 235) if side < 0 else (12, 77, 65, 238)
+            if (step + index) % 4 == 0:
+                needle = (124, 187, 134, 220) if side < 0 else (20, 95, 83, 235)
+            polygon([
+                (inside, y - 2), (tip, y + 6),
+                (cx + side * (reach - 3), y + 1),
+                (inside + side * 3, y + 4)
+            ], needle)
+    # Lower undersides stay dark while sunlight catches short upward sprigs.
+    for branch in range(3):
+        y = bottom - 13 - branch * 6
+        extent = half * (y - top) / span
+        px = cx - extent * (0.44 + 0.15 * branch)
+        polygon([
+            (px - 3, y + 3), (px + 4, y - 6),
+            (px + 8, y), (px + 3, y + 2)
+        ], (132, 203, 143, 190))
+        px = cx + extent * (0.42 + 0.12 * branch)
+        polygon([
+            (px - 5, y + 1), (px + 2, y - 4),
+            (px + 9, y + 3), (px + 1, y + 2)
+        ], (8, 59, 59, 190))
+
+# A narrow, shaded trunk break grounds the silhouette without a bare
+# straight pole showing through the crown.
+polygon([(76, 182), (82, 185), (83, 196), (77, 196)], (77, 61, 46, 235))
+polygon([(77, 186), (79, 185), (79, 195), (77, 194)], (171, 113, 70, 180))
+
 def chunk(tag, data):
     return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff)
 
@@ -126,6 +168,36 @@ for x, y in [(38, 57), (58, 27), (95, 29), (123, 59),
              (49, 87), (78, 51), (106, 88)]:
     polygon([(x - 6, y + 3), (x, y - 4), (x + 8, y + 1),
              (x + 1, y + 7)], (153, 200, 129, 245))
+# Hand-placed small canopies soften the repeated circles and make the crown
+# read like overlapping leaves rather than a flat green disk.
+for i, (x, y) in enumerate([
+    (28, 72), (43, 41), (59, 23), (80, 29), (103, 25),
+    (125, 47), (136, 75), (125, 107), (100, 122), (76, 125),
+    (49, 111), (28, 94), (56, 66), (93, 71), (109, 91)
+]):
+    spread = 5 + i % 4
+    # Left/top-facing facets are brighter, under-crown facets cooler.
+    shade = (99, 177, 119, 230) if i % 3 else (16, 73, 67, 225)
+    polygon([
+        (x - spread, y + 3), (x - 2, y - 5),
+        (x + spread, y - 2), (x + 2, y + 6)
+    ], shade)
+    if i % 3 != 0:
+        polygon([
+            (x - 3, y - 1), (x, y - 5),
+            (x + spread - 1, y - 2), (x + 1, y)
+        ], (163, 208, 146, 165))
+
+# Deep internal gaps separate the lowest leaf masses; keep them irregular
+# and small so the overall silhouette remains legible on a phone.
+for x, y, rx, ry in [(34, 104, 9, 4), (63, 117, 12, 5),
+                     (111, 113, 13, 6), (129, 86, 7, 4)]:
+    ellipse(x, y, rx, ry, (14, 65, 62, 160))
+for x, y in [(36, 51), (52, 30), (79, 43), (113, 46), (126, 74)]:
+    polygon([(x - 4, y), (x + 2, y - 4),
+             (x + 7, y - 1), (x + 1, y + 2)],
+            (195, 224, 152, 145))
+
 raw = b''.join(b'\x00' + pixels[y * W * 4:(y + 1) * W * 4] for y in range(H))
 png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', W, H, 8, 6, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw, 9)) + chunk(b'IEND', b'')
 out = pathlib.Path('OutpostZero/ArtAssets/forest_broadleaf.png')
