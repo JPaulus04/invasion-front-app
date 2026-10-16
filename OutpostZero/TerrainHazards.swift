@@ -11,7 +11,16 @@ enum TerrainHazards {
         let frame: CGRect
 
         func contains(_ point: CGPoint, margin: CGFloat = 0) -> Bool {
-            frame.insetBy(dx: -margin, dy: -margin).contains(point)
+            if kind == .rubble {
+                return frame.insetBy(dx: -margin, dy: -margin).contains(point)
+            }
+            // Water and acid render as elliptical pools; their interaction
+            // regions must match the artwork instead of invisible rectangles.
+            let radiusX = max(1, frame.width / 2 + margin)
+            let radiusY = max(1, frame.height / 2 + margin)
+            let x = (point.x - frame.midX) / radiusX
+            let y = (point.y - frame.midY) / radiusY
+            return x * x + y * y <= 1
         }
     }
 
@@ -66,6 +75,11 @@ enum TerrainHazards {
     static func hitsObstacle(_ point: CGPoint, patches: [Patch],
                              radius: CGFloat = 10) -> Bool {
         patches.contains { $0.kind == .rubble && $0.contains(point, margin: radius) }
+    }
+
+    static func spawnAllowed(_ point: CGPoint, radius: CGFloat,
+                             patches: [Patch]) -> Bool {
+        !hitsObstacle(point, patches: patches, radius: radius + 8)
     }
 
     /// Sliding collision: try the requested movement, then each axis. A

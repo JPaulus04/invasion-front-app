@@ -69,12 +69,30 @@ struct RoomRulesTests {
                 from: entry, to: center, patches: hazards) != center,
                 "Blocked terrain must stop movement")
         }
+        // Pool physics exactly follows the visible elliptical silhouette.
         let patches = TerrainHazards.patches(world: 1, room: 12, bounds: reference)
+        let watery = patches[0]
+        let poolCorner = CGPoint(x: watery.frame.minX + 2, y: watery.frame.minY + 2)
+        precondition(!watery.contains(poolCorner))
+        precondition(TerrainHazards.waterSpeed(at: poolCorner, patches: patches) == 1)
+        let blockedCenter = CGPoint(x: patches[2].frame.midX, y: patches[2].frame.midY)
+        precondition(!TerrainHazards.spawnAllowed(blockedCenter, radius: 15, patches: patches))
+        precondition(TerrainHazards.spawnAllowed(entry, radius: 15, patches: patches))
         let toxic = CGPoint(x: patches[1].frame.midX, y: patches[1].frame.midY)
         precondition(!TerrainHazards.acidTouches(toxic, patches: patches, at: 1.5))
         precondition(TerrainHazards.acidTouches(toxic, patches: patches, at: 2.5))
         precondition(!TerrainHazards.acidTouches(toxic, patches: patches, at: 5.5))
         precondition(!TerrainHazards.acidTouches(entry, patches: patches, at: 2.5))
+        // Both small and large phones retain the guaranteed safe corridor.
+        for screen in [CGSize(width: 320, height: 568), CGSize(width: 768, height: 1024)] {
+            let arena = RoomRules.bounds(for: screen)
+            let localPatches = TerrainHazards.patches(world: 1, room: 17, bounds: arena)
+            for i in 0...25 {
+                let p = CGPoint(x: arena.midX,
+                    y: arena.minY + arena.height * CGFloat(i) / 25)
+                precondition(!localPatches.contains { $0.contains(p, margin: 14) })
+            }
+        }
         precondition(!RoomRules.isCleared(spawned: 0, target: 0, living: 0))
         precondition(!RoomRules.isCleared(spawned: 4, target: 7, living: 0), "Pending spawns keep exit locked")
         precondition(!RoomRules.isCleared(spawned: 7, target: 7, living: 1), "Last enemy keeps exit locked")

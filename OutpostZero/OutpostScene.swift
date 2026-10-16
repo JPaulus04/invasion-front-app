@@ -1937,8 +1937,15 @@ final class OutpostScene: SKScene {
             node.addChild(wing)
         }
         // Telegraphed materialization inside the room, never on the pilot.
-        let candidates = (0..<32).map { _ in
-            CGPoint(x: CGFloat.random(in: 0...1), y: CGFloat.random(in: 0...1))
+        let candidateBounds = roomBounds.insetBy(dx: radius + 10, dy: radius + 18)
+        let candidates = (0..<32).compactMap { _ -> CGPoint? in
+            let sample = CGPoint(x: CGFloat.random(in: 0...1),
+                                 y: CGFloat.random(in: 0...1))
+            let location = CGPoint(
+                x: candidateBounds.minX + candidateBounds.width * sample.x,
+                y: candidateBounds.minY + candidateBounds.height * sample.y)
+            return TerrainHazards.spawnAllowed(location, radius: radius,
+                                               patches: roomHazards) ? sample : nil
         }
         node.position = RoomRules.spawnPoint(in: roomBounds, radius: radius,
                                             pilot: pilot.position, candidates: candidates)
