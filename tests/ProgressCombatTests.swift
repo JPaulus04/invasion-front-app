@@ -183,7 +183,7 @@ struct ProgressCombatTests {
         precondition(abs(fan[1].y - 220) < 0.001)
         precondition(abs(fan[0].x + fan[2].x - 100) < 0.001)
         precondition(abs(fan[0].y - fan[2].y) < 0.001)
-        precondition(fan[0].x < 50 && fan[2].x > 50)
+        precondition(fan[0].x > 50 && fan[2].x < 50)
         // The telegraphed mortar ring reaches impact on combat time even when
         // the entire simulation runs at twice the ordinary wall-clock pace.
         precondition(CombatRules.mortarWarningScale(elapsed: 0, flightTime: 1.4) == 1)
