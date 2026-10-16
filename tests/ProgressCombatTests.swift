@@ -77,12 +77,15 @@ struct ProgressCombatTests {
             chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
             orbitLevel: 2, runArmor: 20, checkpointUsed: false,
             progress: restoredProgress, abilities: ["chain", "incendiary", "orbit"],
-            earnedSalvage: 297, roomSalvageCredit: 24)
+            earnedSalvage: 297, roomSalvageCredit: 24,
+            roomCoinCredit: 84, roomXPCredit: 58)
         precondition(saved.isValid && recover.save(saved))
         let reopened = RunRecoveryStore(storage: recoveryStorage).load()
         precondition(reopened?.room == 12 && reopened?.health == 21 &&
                      reopened?.coins == 1506 && reopened?.runArmor == 20 &&
                      reopened?.earnedSalvage == 297 &&
+                     reopened?.roomCoinCredit == 84 &&
+                     reopened?.roomXPCredit == 58 &&
                      reopened?.progress.level == 2 &&
                      reopened?.abilities == ["chain", "incendiary", "orbit"])
         let bad = RunSnapshot(
@@ -91,16 +94,21 @@ struct ProgressCombatTests {
             chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
             orbitLevel: 2, runArmor: 20, checkpointUsed: false,
             progress: restoredProgress, abilities: ["chain", "incendiary", "orbit"],
-            earnedSalvage: 297, roomSalvageCredit: 24)
+            earnedSalvage: 297, roomSalvageCredit: 24,
+            roomCoinCredit: 84, roomXPCredit: 58)
         precondition(!recover.save(bad))
-        precondition(RunRecoveryStore.newSalvage(
+        precondition(RunRecoveryStore.incrementalReward(
             earnedOnReplay: 0, previouslyCredited: 24, reward: 12) == 0)
-        precondition(RunRecoveryStore.newSalvage(
+        precondition(RunRecoveryStore.incrementalReward(
             earnedOnReplay: 12, previouslyCredited: 24, reward: 12) == 0)
-        precondition(RunRecoveryStore.newSalvage(
+        precondition(RunRecoveryStore.incrementalReward(
             earnedOnReplay: 24, previouslyCredited: 24, reward: 6) == 6)
-        precondition(RunRecoveryStore.newSalvage(
+        precondition(RunRecoveryStore.incrementalReward(
             earnedOnReplay: 25, previouslyCredited: 24, reward: -10) == 0)
+        precondition(RunRecoveryStore.incrementalReward(
+            earnedOnReplay: 0, previouslyCredited: 84, reward: 50) == 0)
+        precondition(RunRecoveryStore.incrementalReward(
+            earnedOnReplay: 80, previouslyCredited: 84, reward: 8) == 4)
         let completedRoom = RunSnapshot(
             version: RunSnapshot.schema, room: 20, location: .clearedGate,
             health: 15, coins: 2500, damage: 9, fireRate: 5,
@@ -108,7 +116,8 @@ struct ProgressCombatTests {
             orbitLevel: 3, runArmor: 80, checkpointUsed: true,
             progress: restoredProgress,
             abilities: ["chain", "incendiary", "orbit"],
-            earnedSalvage: 1100, roomSalvageCredit: 88)
+            earnedSalvage: 1100, roomSalvageCredit: 88,
+            roomCoinCredit: 42, roomXPCredit: 62)
         precondition(completedRoom.isValid && recover.save(completedRoom))
         precondition(recover.load()?.location == .clearedGate)
         recover.clear()

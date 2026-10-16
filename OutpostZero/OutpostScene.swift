@@ -54,6 +54,10 @@ final class OutpostScene: SKScene {
     private var salvageBankedThisRun = 0
     private var roomSalvageEarned = 0
     private var roomSalvageRecoveredCredit = 0
+    private var roomCoinsEarned = 0
+    private var roomCoinsRecoveredCredit = 0
+    private var roomXPEarned = 0
+    private var roomXPRecoveredCredit = 0
     private var isRestoringRun = false
     private var nextRunSaveAt: TimeInterval = 0
     private var discardRunArmed = false
@@ -385,7 +389,8 @@ final class OutpostScene: SKScene {
                 chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
                 orbitLevel: 2, runArmor: 20, checkpointUsed: false,
                 progress: RunProgress(), abilities: ["chain", "orbit", "incendiary"],
-                earnedSalvage: 290, roomSalvageCredit: 24)
+                earnedSalvage: 290, roomSalvageCredit: 24,
+                roomCoinCredit: 75, roomXPCredit: 68)
             precondition(recovery.save(snapshot))
             showReady()
             precondition(overlayButtons["recover_run"] != nil,
@@ -843,12 +848,34 @@ final class OutpostScene: SKScene {
     private func bankSalvage(_ amount: Int) {
         // An interrupted room may be replayed. Credit only rewards earned
         // beyond the amount previously banked in this room.
-        let freshReward = RunRecoveryStore.newSalvage(
+        let freshReward = RunRecoveryStore.incrementalReward(
             earnedOnReplay: roomSalvageEarned,
             previouslyCredited: roomSalvageRecoveredCredit,
             reward: amount)
         roomSalvageEarned += max(0, amount)
         salvageBankedThisRun += permanent.bank(freshReward)
+    }
+
+    @discardableResult
+    private func awardRoomCoins(_ reward: Int) -> Int {
+        let paid = RunRecoveryStore.incrementalReward(
+            earnedOnReplay: roomCoinsEarned,
+            previouslyCredited: roomCoinsRecoveredCredit,
+            reward: reward)
+        roomCoinsEarned += max(0, reward)
+        coins += paid
+        return paid
+    }
+
+    @discardableResult
+    private func awardRoomXP(_ reward: Int) -> Int {
+        let paid = RunRecoveryStore.incrementalReward(
+            earnedOnReplay: roomXPEarned,
+            previouslyCredited: roomXPRecoveredCredit,
+            reward: reward)
+        roomXPEarned += max(0, reward)
+        progress.earnXP(paid)
+        return paid
     }
 
     private var isCaptureMode: Bool {
@@ -871,7 +898,9 @@ final class OutpostScene: SKScene {
             runArmor: runArmor, checkpointUsed: checkpointUsed,
             progress: progress, abilities: lockedLoadout.selected,
             earnedSalvage: salvageBankedThisRun,
-            roomSalvageCredit: max(roomSalvageRecoveredCredit, roomSalvageEarned))
+            roomSalvageCredit: max(roomSalvageRecoveredCredit, roomSalvageEarned),
+            roomCoinCredit: max(roomCoinsRecoveredCredit, roomCoinsEarned),
+            roomXPCredit: max(roomXPRecoveredCredit, roomXPEarned))
         _ = recovery.save(snapshot)
     }
 
@@ -898,6 +927,10 @@ final class OutpostScene: SKScene {
         checkpointUsed = snapshot.checkpointUsed
         roomSalvageRecoveredCredit = snapshot.roomSalvageCredit
         roomSalvageEarned = 0
+        roomCoinsRecoveredCredit = snapshot.roomCoinCredit
+        roomCoinsEarned = 0
+        roomXPRecoveredCredit = snapshot.roomXPCredit
+        roomXPEarned = 0
         rebuildOrbitingDefenses()
         if snapshot.location == .clearedGate {
             roomCleared = true
@@ -1173,6 +1206,10 @@ final class OutpostScene: SKScene {
         wave += 1
         roomSalvageEarned = 0
         roomSalvageRecoveredCredit = 0
+        roomCoinsEarned = 0
+        roomCoinsRecoveredCredit = 0
+        roomXPEarned = 0
+        roomXPRecoveredCredit = 0
         controlsHint.removeAllActions()
         controlsHint.isHidden = wave != 1
         controlsHint.alpha = 1
@@ -2312,17 +2349,19 @@ final class OutpostScene: SKScene {
     }
 
     private func removeDefeatedEnemies() {
+        var defeatedCount = 0
         for index in enemies.indices.reversed() where enemies[index].health <= 0 {
+            defeatedCount += 1
             streak += 1
-            coins += enemies[index].reward
+            awardRoomCoins(enemies[index].reward)
             bankSalvage(PersistentProgression.enemyReward(
                 isHeavy: enemies[index].behavior >= 3,
                 isBoss: enemies[index].node === bossNode))
             let xpAmount = enemies[index].node === bossNode ? 60 : (enemies[index].behavior >= 3 ? 10 : 6)
             // XP belongs to the kill immediately; it must not wait for a pickup or room clear.
-            progress.earnXP(xpAmount)
+            let paidXP = awardRoomXP(xpAmount)
             let xpLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-            xpLabel.text = "+\(xpAmount) XP"
+            xpLabel.text = paidXP > 0 ? "+\(paidXP) XP" : "XP RECOVERED"
             xpLabel.fontSize = 13
             xpLabel.fontColor = .cyan
             xpLabel.position = enemies[index].node.position
@@ -2368,6 +2407,9 @@ final class OutpostScene: SKScene {
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
         }
+        // Save all kill rewards together to align permanent Salvage
+        // with the replay-safe XP and coin credits.
+        if defeatedCount > 0 { saveRunRecovery() }
         // Pause for a level-up as soon as the earned XP crosses a threshold,
         // even when other enemies remain in the current room.
         if phase == .playing && progress.pendingChoices > 0 {
@@ -2410,7 +2452,7 @@ final class OutpostScene: SKScene {
             let drop = xpDrops[index]
             let distance = hypot(drop.node.position.x - pilot.position.x, drop.node.position.y - pilot.position.y)
             if collectAll || distance < 38 {
-                progress.earnXP(drop.amount)
+                awardRoomXP(drop.amount)
                 drop.node.removeFromParent()
                 xpDrops.remove(at: index)
             } else if distance < 100 {
@@ -2426,9 +2468,9 @@ final class OutpostScene: SKScene {
         roomCleared = true
         clearHostileAttacks()
         bankSalvage(PersistentProgression.roomReward(room: wave))
-        coins += 12 + wave * 2
+        awardRoomCoins(12 + wave * 2)
         collectXP(collectAll: true)
-        progress.earnXP(6 + wave)
+        awardRoomXP(6 + wave)
         let destination: Phase = wave == worldWaveCount ? .worldComplete : .gate
         saveRunRecovery()
         if presentPendingLevelUp(returningTo: destination) { return }
@@ -2841,6 +2883,10 @@ final class OutpostScene: SKScene {
         salvageBankedThisRun = 0
         roomSalvageEarned = 0
         roomSalvageRecoveredCredit = 0
+        roomCoinsEarned = 0
+        roomCoinsRecoveredCredit = 0
+        roomXPEarned = 0
+        roomXPRecoveredCredit = 0
         nextRunSaveAt = 0
         health = maximumHealth
         damage = 1

@@ -4,7 +4,7 @@ import Foundation
 /// positions are deliberately reconstructed from the current room's beginning.
 struct RunSnapshot: Codable {
     enum Location: String, Codable { case battle, clearedGate }
-    static let schema = 1
+    static let schema = 2
 
     let version: Int
     let room: Int
@@ -25,6 +25,8 @@ struct RunSnapshot: Codable {
     /// Salvage already earned in this room (including any prior recovery).
     /// A restarted room must not pay these rewards twice.
     let roomSalvageCredit: Int
+    let roomCoinCredit: Int
+    let roomXPCredit: Int
 
     var isValid: Bool {
         version == Self.schema && (1...20).contains(room) &&
@@ -36,14 +38,15 @@ struct RunSnapshot: Codable {
         progress.xp >= 0 && progress.xp < progress.nextLevelXP &&
         (0...50).contains(progress.pendingChoices) &&
         earnedSalvage >= 0 && roomSalvageCredit >= 0 &&
+        roomCoinCredit >= 0 && roomXPCredit >= 0 &&
         AbilityLoadout(selected: abilities).isReady && Set(abilities).count == 3
     }
 }
 
 final class RunRecoveryStore {
     /// Amount payable after replaying a partially completed room. This
-    /// prevents force-quitting from duplicating Salvage earned before a save.
-    static func newSalvage(earnedOnReplay: Int, previouslyCredited: Int, reward: Int) -> Int {
+    /// prevents force-quitting from duplicating XP, coins or Salvage.
+    static func incrementalReward(earnedOnReplay: Int, previouslyCredited: Int, reward: Int) -> Int {
         let previous = max(0, earnedOnReplay - previouslyCredited)
         let updated = max(0, earnedOnReplay + max(0, reward) - previouslyCredited)
         return max(0, updated - previous)

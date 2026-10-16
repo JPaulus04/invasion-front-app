@@ -77,13 +77,15 @@ if 'private func recoverSavedRun()' not in scene or 'key: "recover_run"' not in 
     errors.append("Saved runs must be recoverable from the world map")
 if "saveRunRecovery()" not in scene or "recovery.clear()" not in scene:
     errors.append("Run recovery must be saved and cleared deliberately")
+if "awardRoomXP(xpAmount)" not in scene or "awardRoomCoins(enemies[index].reward)" not in scene:
+    errors.append("Recovered rooms must not double-pay XP or coins")
 if 'ProcessInfo.processInfo.arguments.contains("-captureRecoveryScreenshot")' not in scene:
     errors.append("Simulator must test run-recovery lifecycle")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]
-if "progress.earnXP(xpAmount)" not in kill_section:
-    errors.append("Kills must grant XP immediately")
+if "awardRoomXP(xpAmount)" not in kill_section:
+    errors.append("Kills must grant replay-safe XP immediately")
 if "presentPendingLevelUp(returningTo: .playing)" not in kill_section:
     errors.append("Mid-room kills must trigger pending level-up choices")
 if "RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count)" not in choice_section:
