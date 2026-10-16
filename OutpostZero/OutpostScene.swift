@@ -2946,7 +2946,10 @@ final class OutpostScene: SKScene {
         lockMenuBriefly()
         clearOverlay()
         awardWorldCompletionCores(stars: progress.stars)
-        bankSalvage(PersistentProgression.worldCompletionBonus)
+        // A completed-world bonus is not replayed enemy/room income.
+        // In particular, resuming a cleared final boss room must receive the
+        // full bonus, independent of its recorded roomSalvageCredit.
+        salvageBankedThisRun += permanent.bank(PersistentProgression.worldCompletionBonus)
         recovery.clear()
         showWorldCompleteSummary()
     }

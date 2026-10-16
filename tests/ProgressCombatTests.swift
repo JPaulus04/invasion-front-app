@@ -61,6 +61,16 @@ struct ProgressCombatTests {
                      PersistentProgression.roomReward(room: 3))
         precondition(PersistentProgression.enemyReward(isHeavy: false, isBoss: true) >
                      PersistentProgression.enemyReward(isHeavy: false, isBoss: false))
+        // The completion bonus is a separate award, not another Room 20
+        // enemy reward subject to an interrupted room's replay credit.
+        precondition(PersistentProgression.worldCompletionBonus == 100)
+        let completionSuite = "outpost.zero.completion.test"
+        let completionStorage = UserDefaults(suiteName: completionSuite)!
+        completionStorage.removePersistentDomain(forName: completionSuite)
+        let completionProgress = PersistentProgression(storage: completionStorage)
+        let paidBonus = completionProgress.bank(PersistentProgression.worldCompletionBonus)
+        precondition(paidBonus == 100 && completionProgress.salvage == 100)
+        completionStorage.removePersistentDomain(forName: completionSuite)
         store.removePersistentDomain(forName: suite)
         // Persist and recover a Room 12 battle without losing the chosen
         // abilities or re-paying rewards for already cleared rooms.

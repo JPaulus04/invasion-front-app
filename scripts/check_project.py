@@ -63,6 +63,8 @@ if "private func enterSelectedWorld() -> Bool" not in scene or "_ = enterSelecte
     errors.append("Loadout simulator QA and touch route must share a lock action")
 if "bankSalvage(PersistentProgression.roomReward(room: wave))" not in scene:
     errors.append("Each cleared room must bank permanent Salvage immediately")
+if "salvageBankedThisRun += permanent.bank(PersistentProgression.worldCompletionBonus)" not in scene:
+    errors.append("World-completion Salvage must bypass recovered-room reward caps")
 if "bankSalvage(PersistentProgression.enemyReward(" not in scene:
     errors.append("Enemy defeats must bank Salvage immediately")
 if '(.gameOver, "headquarters")' not in scene or 'restart()\n            showHeadquarters()' not in scene:
