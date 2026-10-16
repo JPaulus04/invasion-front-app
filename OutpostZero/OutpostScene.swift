@@ -2125,7 +2125,9 @@ final class OutpostScene: SKScene {
         countdown.lineWidth = 3
         countdown.zPosition = 1
         marker.addChild(countdown)
-        countdown.run(.scale(to: 0.18, duration: 1.4))
+        // The countdown scale is advanced from combatTime in
+        // updateHostileAttacks; SKAction time is not accelerated at 2× speed.
+        countdown.setScale(1)
         marker.run(.repeatForever(.sequence([
             .group([.scale(to: 0.83, duration: 0.35), .fadeAlpha(to: 0.55, duration: 0.35)]),
             .group([.scale(to: 1, duration: 0.35), .fadeAlpha(to: 1, duration: 0.35)])
@@ -2168,6 +2170,10 @@ final class OutpostScene: SKScene {
             lob.shell.position = CGPoint(x: lob.origin.x + (lob.target.x - lob.origin.x) * t,
                                          y: lob.origin.y + (lob.target.y - lob.origin.y) * t + sin(t * .pi) * 55)
             lob.marker.alpha = 0.5 + 0.5 * t
+            lob.marker.childNode(withName: "mortarCountdown")?.setScale(
+                CombatRules.mortarWarningScale(
+                    elapsed: combatTime - lob.launchedAt,
+                    flightTime: lob.impactAt - lob.launchedAt))
             if combatTime >= lob.impactAt {
                 if CombatRules.blastHits(center: lob.target, pilot: pilot.position, radius: lob.radius) { damagePilot(12) }
                 impact(at: lob.target, color: .systemOrange, destroyed: true)

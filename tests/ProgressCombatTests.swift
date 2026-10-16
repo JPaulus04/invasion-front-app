@@ -173,6 +173,12 @@ struct ProgressCombatTests {
         precondition(!CombatRules.mayBeginRangedAttack(room: 19, activeThreats: 3))
         precondition(CombatRules.enemyType(room: 11, roll: 10) == 5)
         precondition(CombatRules.enemyType(room: 11, roll: 30) == 4)
+        // The telegraphed mortar ring reaches impact on combat time even when
+        // the entire simulation runs at twice the ordinary wall-clock pace.
+        precondition(CombatRules.mortarWarningScale(elapsed: 0, flightTime: 1.4) == 1)
+        precondition(abs(CombatRules.mortarWarningScale(elapsed: 0.7, flightTime: 1.4) - 0.59) < 0.001)
+        precondition(abs(CombatRules.mortarWarningScale(elapsed: 1.4, flightTime: 1.4) - 0.18) < 0.001)
+        precondition(CombatRules.mortarWarningScale(elapsed: 5, flightTime: 1.4) == 0.18)
         // Attack windows shorten gradually, while never becoming instant.
         precondition(CombatRules.shooterTelegraph(room: 1) == 0.7)
         precondition(CombatRules.shooterTelegraph(room: 20) >= 0.48)

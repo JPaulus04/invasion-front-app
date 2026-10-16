@@ -27,6 +27,13 @@ enum CombatRules {
         activeThreats < maximumConcurrentRangedThreats(room: room)
     }
 
+    /// The mortar warning must advance on the same combat clock as impact
+    /// resolution, including when the player uses 2× game speed.
+    static func mortarWarningScale(elapsed: TimeInterval, flightTime: TimeInterval) -> CGFloat {
+        let fraction = CGFloat(max(0, min(1, elapsed / max(0.001, flightTime))))
+        return max(0.18, 1 - fraction * 0.82)
+    }
+
     // Gradually tighten attacks without removing the player's dodge window.
     static func shooterTelegraph(room: Int) -> TimeInterval {
         max(0.48, 0.7 - Double(max(0, room - 6)) * 0.012)

@@ -83,6 +83,8 @@ if 'ProcessInfo.processInfo.arguments.contains("-captureRecoveryScreenshot")' no
     errors.append("Simulator must test run-recovery lifecycle")
 if "CombatRules.mayBeginRangedAttack(" not in scene:
     errors.append("Concurrent ranged attacks must respect a tested readable threat cap")
+if "CombatRules.mortarWarningScale(" not in scene:
+    errors.append("2x game speed must accelerate the mortar warning clock with the impact")
 if "checkpointPresented = true" not in scene or "showCheckpoint()" not in scene:
     errors.append("Milestone healing stations must be presented to wounded pilots")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
