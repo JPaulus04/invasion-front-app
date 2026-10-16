@@ -38,8 +38,8 @@ enum TerrainHazards {
         let acid = patch(.acid, x: right, y: 0.59, width: 0.29, height: 0.16, bounds: bounds)
         let barrier = patch(.rubble, x: left, y: 0.76, width: 0.24, height: 0.11, bounds: bounds)
         switch world {
-        case 1: return [water, acid, barrier]
-        case 2: return [acid, barrier] // Toxic Crossing pulses acid without water slowdown
+        case 1: return [water, barrier] // Flooded Outpost: slowdown and blocked paths
+        case 2: return [acid, barrier] // Toxic Crossing: pulsing acid without water slowdown
         default: return [water, acid, barrier]
         }
     }

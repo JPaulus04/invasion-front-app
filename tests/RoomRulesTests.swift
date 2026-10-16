@@ -48,7 +48,8 @@ struct RoomRulesTests {
         precondition(TerrainHazards.patches(world: 0, room: 18, bounds: reference).isEmpty)
         for room in 1...20 {
             let hazards = TerrainHazards.patches(world: 1, room: room, bounds: reference)
-            precondition(hazards.count == 3)
+            precondition(hazards.count == 2)
+            precondition(!hazards.contains { $0.kind == .acid })
             precondition(!hazards.contains { $0.contains(entry, margin: 16) })
             precondition(!hazards.contains { $0.contains(exit, margin: 16) })
             // Entire center lane remains unobstructed, not just two endpoints.
@@ -62,7 +63,7 @@ struct RoomRulesTests {
             let submerged = CGPoint(x: water.frame.midX, y: water.frame.midY)
             precondition(TerrainHazards.waterSpeed(at: submerged, patches: hazards) == 0.62)
             precondition(TerrainHazards.waterSpeed(at: entry, patches: hazards) == 1)
-            let rubble = hazards[2]
+            let rubble = hazards[1]
             let center = CGPoint(x: rubble.frame.midX, y: rubble.frame.midY)
             precondition(TerrainHazards.hitsObstacle(center, patches: hazards))
             precondition(TerrainHazards.resolveMovement(
@@ -75,14 +76,17 @@ struct RoomRulesTests {
         let poolCorner = CGPoint(x: watery.frame.minX + 2, y: watery.frame.minY + 2)
         precondition(!watery.contains(poolCorner))
         precondition(TerrainHazards.waterSpeed(at: poolCorner, patches: patches) == 1)
-        let blockedCenter = CGPoint(x: patches[2].frame.midX, y: patches[2].frame.midY)
+        let blockedCenter = CGPoint(x: patches[1].frame.midX, y: patches[1].frame.midY)
         precondition(!TerrainHazards.spawnAllowed(blockedCenter, radius: 15, patches: patches))
         precondition(TerrainHazards.spawnAllowed(entry, radius: 15, patches: patches))
-        let toxic = CGPoint(x: patches[1].frame.midX, y: patches[1].frame.midY)
-        precondition(!TerrainHazards.acidTouches(toxic, patches: patches, at: 1.5))
-        precondition(TerrainHazards.acidTouches(toxic, patches: patches, at: 2.5))
-        precondition(!TerrainHazards.acidTouches(toxic, patches: patches, at: 5.5))
-        precondition(!TerrainHazards.acidTouches(entry, patches: patches, at: 2.5))
+        let toxicPatches = TerrainHazards.patches(world: 2, room: 12, bounds: reference)
+        precondition(toxicPatches.count == 2)
+        precondition(!toxicPatches.contains { $0.kind == .water })
+        let toxic = CGPoint(x: toxicPatches[0].frame.midX, y: toxicPatches[0].frame.midY)
+        precondition(!TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 1.5))
+        precondition(TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 2.5))
+        precondition(!TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 5.5))
+        precondition(!TerrainHazards.acidTouches(entry, patches: toxicPatches, at: 2.5))
         // Both small and large phones retain the guaranteed safe corridor.
         for screen in [CGSize(width: 320, height: 568), CGSize(width: 768, height: 1024)] {
             let arena = RoomRules.bounds(for: screen)
