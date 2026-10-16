@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift", "CampaignPacing.swift", "FrontierFloorArt.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift", "CampaignPacing.swift", "FrontierFloorArt.swift", "CombatVisuals.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -27,6 +27,10 @@ if 'child.name != "pilotGroundShadow"' not in scene:
     errors.append("Do not accidentally hide the pilot's ground shadow with placeholder shapes")
 if 'frontierFloorSurface' not in scene or 'worldMapIndex != 0' not in scene:
     errors.append("Forest floor artwork must be hidden in the later worlds")
+if "CombatVisuals.rifleTracer(in: arena" not in scene:
+    errors.append("Rifle attacks must use layered, short-lived tracer artwork")
+if "pilotFacing * (isMoving" not in scene or "pilotFacing = 1" not in scene:
+    errors.append("Pilot combat-facing animation must reset safely between runs")
 # The published pilot PNG must not be outlined by the old rectangle.
 pilot_visual = scene.split("private func refreshPilotAppearance()", 1)[-1].split("private func drawRestorationRobot()", 1)[0]
 if 'productionImage(named: "pilot_idle") != nil' not in pilot_visual or "pilot.strokeColor = .clear" not in pilot_visual:

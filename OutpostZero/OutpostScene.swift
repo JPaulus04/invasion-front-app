@@ -131,6 +131,7 @@ final class OutpostScene: SKScene {
     private var aimPoint: CGPoint?
     private let pilot = SKShapeNode(rectOf: CGSize(width: 28, height: 34), cornerRadius: 7)
     private let pilotGun = SKShapeNode(rectOf: CGSize(width: 9, height: 23), cornerRadius: 3)
+    private var pilotFacing: CGFloat = 1
     private var movementOrigin: CGPoint?
     private var movementTarget: CGPoint?
     private var pilotSpeed: CGFloat { 144 + CGFloat(branchLevel(3) * 3) }
@@ -243,15 +244,15 @@ final class OutpostScene: SKScene {
         pilot.zPosition = 9
         // Illustrated armor plate covers the original collision body without changing gameplay.
         let pilotArmor = SKSpriteNode(texture: productionTexture(named: "pilot_idle", fallback: pilotArmorTexture))
-        pilotArmor.size = CGSize(width: 41, height: 49)
+        pilotArmor.size = CGSize(width: 46, height: 55)
         pilotArmor.zPosition = 0.5
         pilotArmor.name = "pilotArt"
         pilot.addChild(pilotArmor)
         // Ground contact and a soft offset shadow give the pilot depth at phone scale.
-        let pilotShadow = SKShapeNode(ellipseOf: CGSize(width: 33, height: 11))
+        let pilotShadow = SKShapeNode(ellipseOf: CGSize(width: 38, height: 12))
         pilotShadow.fillColor = SKColor.black.withAlphaComponent(0.32)
         pilotShadow.strokeColor = .clear
-        pilotShadow.position = CGPoint(x: 4, y: -23)
+        pilotShadow.position = CGPoint(x: 4, y: -25)
         pilotShadow.name = "pilotGroundShadow"
         pilotShadow.zPosition = -0.6
         pilot.addChild(pilotShadow)
@@ -1952,7 +1953,7 @@ final class OutpostScene: SKScene {
                 node.strokeColor = .clear
             }
             let armor = SKSpriteNode(texture: productionTexture(named: assetName, fallback: enemyChassisTexture))
-            armor.size = CGSize(width: radius * 2.1, height: radius * 2.35)
+            armor.size = CGSize(width: radius * 2.3, height: radius * 2.55)
             armor.color = (type == 1 || type == 2) ? .systemRed : (type == 3 ? .gray : (type == 4 ? .systemBlue : .orange))
             armor.colorBlendFactor = hasProductionArt ? 0 : 0.72
             armor.zPosition = 0.8
@@ -2232,7 +2233,7 @@ final class OutpostScene: SKScene {
             let stridePhase = CGFloat(clock) * 15
             pilotArt.position.y = isMoving ? 1.8 * sin(stridePhase) : 0.55 * sin(CGFloat(clock) * 2.4)
             pilotArt.zRotation = isMoving ? 0.028 * sin(stridePhase * 0.5) : 0
-            pilotArt.xScale = isMoving ? 1 + 0.018 * sin(stridePhase) : 1
+            pilotArt.xScale = pilotFacing * (isMoving ? 1 + 0.018 * sin(stridePhase) : 1)
         }
         if phase == .gate {
             if RoomRules.enteredGate(pilot: pilot.position, gate: passageGate.position) {
@@ -2596,38 +2597,13 @@ final class OutpostScene: SKScene {
         lastShot = combatTime
         let target = enemies[index].node.position
         let shotAngle = atan2(target.y - pilot.position.y, target.x - pilot.position.x)
+        if abs(target.x - pilot.position.x) > 10 {
+            pilotFacing = target.x < pilot.position.x ? -1 : 1
+        }
         pilotGun.zRotation = shotAngle - .pi / 2
-        // Short muzzle burst signals every auto-fired shot at full phone
-        // speed without adding a persistent projectile or changing damage.
-        let muzzle = SKShapeNode()
-        let muzzlePath = CGMutablePath()
-        muzzlePath.move(to: CGPoint(x: 0, y: 0))
-        muzzlePath.addLine(to: CGPoint(x: 14, y: 0))
-        muzzlePath.addLine(to: CGPoint(x: 4, y: 5))
-        muzzlePath.addLine(to: CGPoint(x: 0, y: 0))
-        muzzlePath.addLine(to: CGPoint(x: 4, y: -5))
-        muzzlePath.addLine(to: CGPoint(x: 14, y: 0))
-        muzzle.path = muzzlePath
-        muzzle.fillColor = .systemYellow
-        muzzle.strokeColor = .white
-        muzzle.lineWidth = 1.4
-        muzzle.zPosition = 12
-        muzzle.position = CGPoint(x: pilot.position.x + cos(shotAngle) * 19,
-                                  y: pilot.position.y + sin(shotAngle) * 19)
-        muzzle.zRotation = shotAngle
-        arena.addChild(muzzle)
-        muzzle.run(.sequence([.group([.scale(to: 1.6, duration: 0.065),
-                                     .fadeOut(withDuration: 0.09)]), .removeFromParent()]))
-        let tracer = SKShapeNode()
-        let path = CGMutablePath()
-        path.move(to: pilot.position)
-        path.addLine(to: target)
-        tracer.path = path
-        tracer.strokeColor = .systemYellow
-        tracer.lineWidth = 2
-        tracer.zPosition = 8
-        arena.addChild(tracer)
-        tracer.run(.sequence([.fadeOut(withDuration: 0.055), .removeFromParent()]))
+        CombatVisuals.rifleTracer(in: arena, origin: pilot.position,
+                                 target: target, incendiary: incendiaryLevel > 0,
+                                 explosive: explosiveLevel > 0)
         let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus
         impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= totalBulletDamage)
         enemies[index].health -= totalBulletDamage
@@ -3262,6 +3238,7 @@ final class OutpostScene: SKScene {
         pilotShieldUntil = 0
         pilotHitCount = 0
         pilot.alpha = 1
+        pilotFacing = 1
         pilot.removeAction(forKey: "hitFlash")
         passageGate.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
