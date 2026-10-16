@@ -2,13 +2,29 @@ import Foundation
 import CoreGraphics
 
 enum CombatRules {
+    /// Ranged enemies are introduced gently rather than replacing half the
+    /// enemy population the instant shooters appear. The threat increases
+    /// through late rooms, with mixed melee enemies still present.
     static func enemyType(room: Int, roll: Int) -> Int {
         if room == 20 { return 1 }
-        if room >= 11 && roll < min(36, 22 + (room - 11)) { return 5 } // lobber frequency increases in late rooms
-        if room >= 6 && roll < min(60, 45 + (room - 6)) { return 4 } // more ranged pressure as rooms advance
-        if room >= 4 && roll >= 85 { return 1 } // armored melee
-        if room >= 11 && roll >= 70 { return 3 } // heavy melee
+        if room >= 11 && roll < min(26, 12 + (room - 11) * 2) { return 5 }
+        if room >= 6 && roll < (room <= 10 ? 25 : min(55, 38 + (room - 11) * 2)) { return 4 }
+        if room >= 4 && roll >= 85 { return 1 }
+        if room >= 11 && roll >= 70 { return 3 }
         return roll >= 60 ? 2 : 0
+    }
+
+    /// A screen filled with ranged enemies should not produce an unavoidable
+    /// wall of simultaneous projectiles and marked mortars. Difficulty grows
+    /// through additional threats, not instant overlapping attacks.
+    static func maximumConcurrentRangedThreats(room: Int) -> Int {
+        if room <= 10 { return 1 }
+        if room <= 15 { return 2 }
+        return 3
+    }
+
+    static func mayBeginRangedAttack(room: Int, activeThreats: Int) -> Bool {
+        activeThreats < maximumConcurrentRangedThreats(room: room)
     }
 
     // Gradually tighten attacks without removing the player's dodge window.

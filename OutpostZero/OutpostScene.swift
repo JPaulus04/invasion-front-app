@@ -81,6 +81,7 @@ final class OutpostScene: SKScene {
     private var orbitalNodes: [SKShapeNode] = []
     private var lastOrbitalHit: [ObjectIdentifier: TimeInterval] = [:]
     private var checkpointUsed = false
+    private var checkpointPresented = false
     private let xpTrack = SKShapeNode()
     private let xpFill = SKShapeNode()
     private let xpLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
@@ -1192,6 +1193,7 @@ final class OutpostScene: SKScene {
         clearHostileAttacks()
         roomCleared = false
         checkpointUsed = false
+        checkpointPresented = false
         ArcadeMusic.shared.play(wave + 1 == worldWaveCount ? .boss : .forest)
         heldTouch = nil
         aimPoint = nil
@@ -2041,6 +2043,12 @@ final class OutpostScene: SKScene {
             enemies[index].shotTarget = nil
             enemies[index].nextAttack = combatTime + CombatRules.shooterCooldown(room: wave)
         } else if combatTime >= enemy.nextAttack {
+            // Aim markers, shots in flight and mortar warnings all count
+            // toward the same readable combat-pressure budget.
+            let threatening = enemies.filter { $0.shotTarget != nil }.count +
+                projectiles.count + lobs.count
+            guard CombatRules.mayBeginRangedAttack(
+                room: wave, activeThreats: threatening) else { return }
             if enemy.behavior == 5 {
                 launchLob(from: enemy.node.position, target: pilot.position)
                 enemies[index].nextAttack = combatTime + CombatRules.lobberCooldown(room: wave)
@@ -2646,6 +2654,14 @@ final class OutpostScene: SKScene {
         warning.isHidden = false
         updateHUD()
         saveRunRecovery()
+        // Make the optional repair opportunity discoverable at milestones;
+        // this is NOT an XP upgrade and never grants a free room-clear perk.
+        // Only present once, and only to a wounded pilot.
+        if wave.isMultiple(of: 5), wave < worldWaveCount,
+           !checkpointPresented, !checkpointUsed, health < maximumHealth {
+            checkpointPresented = true
+            showCheckpoint()
+        }
     }
 
     private var lastWorldCoreReward = 0
@@ -2856,6 +2872,7 @@ final class OutpostScene: SKScene {
         runArmor = 0
         roomCleared = false
         checkpointUsed = false
+        checkpointPresented = false
         clearHostileAttacks()
         arena.isPaused = false
         coreAwardedThisRun = false

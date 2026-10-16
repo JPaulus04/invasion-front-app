@@ -81,6 +81,10 @@ if "awardRoomXP(xpAmount)" not in scene or "awardRoomCoins(enemies[index].reward
     errors.append("Recovered rooms must not double-pay XP or coins")
 if 'ProcessInfo.processInfo.arguments.contains("-captureRecoveryScreenshot")' not in scene:
     errors.append("Simulator must test run-recovery lifecycle")
+if "CombatRules.mayBeginRangedAttack(" not in scene:
+    errors.append("Concurrent ranged attacks must respect a tested readable threat cap")
+if "checkpointPresented = true" not in scene or "showCheckpoint()" not in scene:
+    errors.append("Milestone healing stations must be presented to wounded pilots")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

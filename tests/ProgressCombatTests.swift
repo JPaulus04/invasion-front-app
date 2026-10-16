@@ -163,6 +163,14 @@ struct ProgressCombatTests {
             for roll in 0..<100 { precondition(CombatRules.enemyType(room: room, roll: roll) < 4) }
         }
         precondition(CombatRules.enemyType(room: 6, roll: 20) == 4)
+        precondition(CombatRules.enemyType(room: 6, roll: 30) != 4)
+        precondition(CombatRules.maximumConcurrentRangedThreats(room: 6) == 1)
+        precondition(CombatRules.maximumConcurrentRangedThreats(room: 12) == 2)
+        precondition(CombatRules.maximumConcurrentRangedThreats(room: 19) == 3)
+        precondition(CombatRules.mayBeginRangedAttack(room: 6, activeThreats: 0))
+        precondition(!CombatRules.mayBeginRangedAttack(room: 6, activeThreats: 1))
+        precondition(CombatRules.mayBeginRangedAttack(room: 19, activeThreats: 2))
+        precondition(!CombatRules.mayBeginRangedAttack(room: 19, activeThreats: 3))
         precondition(CombatRules.enemyType(room: 11, roll: 10) == 5)
         precondition(CombatRules.enemyType(room: 11, roll: 30) == 4)
         // Attack windows shorten gradually, while never becoming instant.
@@ -172,6 +180,13 @@ struct ProgressCombatTests {
         precondition(CombatRules.shooterCooldown(room: 20) < CombatRules.shooterCooldown(room: 6))
         precondition(CombatRules.lobberCooldown(room: 20) < CombatRules.lobberCooldown(room: 11))
         precondition(CombatRules.lobberCooldown(room: 20) >= 2.8)
+        // The first ranged rooms should be manageable with a fresh character.
+        let rangedEarly = (0..<100).filter { CombatRules.enemyType(room: 6, roll: $0) >= 4 }.count
+        let rangedMid = (0..<100).filter { CombatRules.enemyType(room: 11, roll: $0) >= 4 }.count
+        let rangedLast = (0..<100).filter { CombatRules.enemyType(room: 19, roll: $0) >= 4 }.count
+        precondition(rangedEarly <= 25)
+        precondition(rangedMid > rangedEarly && rangedMid < rangedLast)
+        precondition(rangedLast <= 55)
         // Room 1-5 remain melee-only; later rooms introduce progressively more ranged pressure.
         let shootersEarly = (0..<100).filter { CombatRules.enemyType(room: 6, roll: $0) == 4 }.count
         let shootersLate = (0..<100).filter { CombatRules.enemyType(room: 19, roll: $0) == 4 }.count
