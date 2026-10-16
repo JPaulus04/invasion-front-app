@@ -3161,10 +3161,10 @@ final class OutpostScene: SKScene {
         aimPoint = nil
         lockMenuBriefly()
         clearOverlay()
-        let best = max(wave, UserDefaults.standard.integer(forKey: "bestWave"))
-        UserDefaults.standard.set(best, forKey: "bestWave")
+        let best = WorldCatalog.recordBestRoom(worldMapIndex, room: wave)
         overlayText("PILOT DEFEATED", y: 97)
-        overlayText("ROOM \(wave)  •  BEST \(best)", y: 54, fontSize: 17)
+        overlayText(selectedWorld.title, y: 68, fontSize: 14)
+        overlayText("ROOM \(wave)  •  WORLD BEST \(best)", y: 42, fontSize: 15)
         overlayText("+\(salvageBankedThisRun) SALVAGE BANKED", y: 14, fontSize: 17)
         overlayText("TOTAL SALVAGE: \(permanent.salvage)", y: -23, fontSize: 13)
         actionButton("HEADQUARTERS & UPGRADES", key: "headquarters", y: -87, tint: .systemIndigo)

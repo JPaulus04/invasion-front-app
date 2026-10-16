@@ -62,6 +62,29 @@ enum WorldCatalog {
 
     private static func starsKey(_ index: Int) -> String { "outpostZero.world.\(index).stars" }
     private static func clearKey(_ index: Int) -> String { "outpostZero.world.\(index).complete" }
+    private static func bestRoomKey(_ index: Int) -> String { "outpostZero.world.\(index).bestRoom" }
+
+    /// Personal best is world-specific; older players keep their World 1
+    /// "bestWave" record. World 2 cannot inherit that previous result.
+    static func bestRoom(_ index: Int, storage: UserDefaults = .standard) -> Int {
+        guard worlds.indices.contains(index) else { return 0 }
+        let value = storage.integer(forKey: bestRoomKey(index))
+        let legacy = index == 0 ? storage.integer(forKey: "bestWave") : 0
+        return min(20, max(0, max(value, legacy)))
+    }
+
+    /// Record defeat/attempt progress, retaining the highest room reached.
+    @discardableResult
+    static func recordBestRoom(_ index: Int, room: Int,
+                               storage: UserDefaults = .standard) -> Int {
+        guard worlds.indices.contains(index), (1...20).contains(room) else {
+            return bestRoom(index, storage: storage)
+        }
+        let best = max(bestRoom(index, storage: storage), room)
+        storage.set(best, forKey: bestRoomKey(index))
+        if index == 0 { storage.set(best, forKey: "bestWave") }
+        return best
+    }
 
     static func stars(_ index: Int, storage: UserDefaults = .standard) -> Int {
         let saved = storage.integer(forKey: starsKey(index))

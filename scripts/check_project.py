@@ -113,6 +113,8 @@ if "-captureFloodedBossScreenshot" not in scene or "-captureToxicBossScreenshot"
     errors.append("Both new worlds must have simulator boss-spawn and attack coverage")
 if "selectedWorld.title : \"OUTPOST ZERO\"" not in scene:
     errors.append("Combat HUD must identify the selected world")
+if "WorldCatalog.recordBestRoom(worldMapIndex, room: wave)" not in scene:
+    errors.append("Defeat progress must be stored separately for each world")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]
