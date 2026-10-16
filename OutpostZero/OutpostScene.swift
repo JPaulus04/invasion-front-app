@@ -2238,12 +2238,14 @@ final class OutpostScene: SKScene {
             }
             return
         }
-        // Auto-fire only at active enemies; spawning enemies cannot deal or take damage.
-        let reachable = enemies.filter { combatTime >= $0.activeAt && distance($0.node.position, pilot.position) <= autoFireRange }
-        if let target = reachable.min(by: {
-            distance($0.node.position, pilot.position) < distance($1.node.position, pilot.position)
-        }) {
-            shoot(at: target.node.position)
+        // Scan once per available shot, without allocating an enemy array or
+        // rechecking target distance inside the weapon routine.
+        if combatTime - lastShot >= 0.42 / Double(fireRate + permanentRateBonus),
+           let index = CombatRules.nearestActiveTarget(
+                count: enemies.count, origin: pilot.position, range: autoFireRange,
+                isActive: { combatTime >= enemies[$0].activeAt && enemies[$0].health > 0 },
+                position: { enemies[$0].node.position }) {
+            shoot(at: enemies[index].node.position, selectedIndex: index)
         }
         if presentPendingLevelUp(returningTo: .playing) { return }
         updateOrbitingDefenses()
@@ -2579,11 +2581,11 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
-    private func shoot(at point: CGPoint) {
+    private func shoot(at point: CGPoint, selectedIndex index: Int) {
         guard combatTime - lastShot >= 0.42 / Double(fireRate + permanentRateBonus) else { return }
-        guard let index = enemies.indices.filter({ combatTime >= enemies[$0].activeAt }).min(by: {
-            distance(enemies[$0].node.position, point) < distance(enemies[$1].node.position, point)
-        }), distance(enemies[index].node.position, point) < 45 else { return }
+        guard enemies.indices.contains(index), enemies[index].health > 0,
+              combatTime >= enemies[index].activeAt,
+              distance(enemies[index].node.position, point) < 45 else { return }
         lastShot = combatTime
         let target = enemies[index].node.position
         let shotAngle = atan2(target.y - pilot.position.y, target.x - pilot.position.x)

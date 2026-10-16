@@ -2,6 +2,30 @@ import Foundation
 import CoreGraphics
 
 enum CombatRules {
+    /// Select the nearest active enemy in one allocation-free pass. A tie
+    /// retains the earlier enemy, matching the game's prior target behavior.
+    static func nearestActiveTarget(
+        count: Int, origin: CGPoint, range: CGFloat,
+        isActive: (Int) -> Bool, position: (Int) -> CGPoint
+    ) -> Int? {
+        guard count > 0, range > 0 else { return nil }
+        var best: Int?
+        var closestSquared = range * range
+        for index in 0..<count {
+            guard isActive(index) else { continue }
+            let point = position(index)
+            let dx = point.x - origin.x
+            let dy = point.y - origin.y
+            let distanceSquared = dx * dx + dy * dy
+            if distanceSquared <= closestSquared &&
+               (best == nil || distanceSquared < closestSquared) {
+                best = index
+                closestSquared = distanceSquared
+            }
+        }
+        return best
+    }
+
     /// Ranged enemies are introduced gently rather than replacing half the
     /// enemy population the instant shooters appear. The threat increases
     /// through late rooms, with mixed melee enemies still present.

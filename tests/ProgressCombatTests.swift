@@ -202,6 +202,30 @@ struct ProgressCombatTests {
         precondition(!CombatRules.mayBeginRangedAttack(room: 19, activeThreats: 3))
         precondition(CombatRules.enemyType(room: 11, roll: 10) == 5)
         precondition(CombatRules.enemyType(room: 11, roll: 30) == 4)
+        // A single target scan must select the closest active enemy,
+        // ignore spawning/dead enemies and respect the rifle's 260pt range.
+        let positions = [
+            CGPoint(x: 0, y: 90), CGPoint(x: 0, y: 15),
+            CGPoint(x: 0, y: 25), CGPoint(x: 300, y: 0),
+            CGPoint(x: 0, y: 15)
+        ]
+        let active = [true, false, true, true, true]
+        let nearest = CombatRules.nearestActiveTarget(
+            count: positions.count, origin: .zero, range: 260,
+            isActive: { active[$0] }, position: { positions[$0] })
+        precondition(nearest == 4, "Nearest active target should win")
+        precondition(CombatRules.nearestActiveTarget(
+            count: positions.count, origin: .zero, range: 260,
+            isActive: { $0 == 2 || $0 == 4 }, position: { positions[$0] }) == 4)
+        precondition(CombatRules.nearestActiveTarget(
+            count: positions.count, origin: .zero, range: 10,
+            isActive: { active[$0] }, position: { positions[$0] }) == nil)
+        precondition(CombatRules.nearestActiveTarget(
+            count: 0, origin: .zero, range: 260,
+            isActive: { _ in true }, position: { _ in .zero }) == nil)
+        precondition(CombatRules.nearestActiveTarget(
+            count: positions.count, origin: .zero, range: 260,
+            isActive: { _ in false }, position: { positions[$0] }) == nil)
         // Tidal Warden side shots must be symmetric about a visible center
         // line, with enough angular separation to dodge them.
         let fanOrigin = CGPoint(x: 50, y: 80)

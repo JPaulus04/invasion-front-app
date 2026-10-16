@@ -131,6 +131,10 @@ if "if subtitle.text != subtitleText" not in scene or "if info.text != infoText"
     errors.append("Combat HUD should not rerender labels whose values have not changed")
 if "if enemyDamaged { removeDefeatedEnemies() }" not in scene:
     errors.append("Hazard updates must avoid full enemy-death sweeps without actual damage")
+if "CombatRules.nearestActiveTarget(" not in scene or "selectedIndex: index" not in scene:
+    errors.append("Auto-fire must reuse a single tested nearest-target scan")
+if "let reachable = enemies.filter" in scene:
+    errors.append("Auto-fire must not allocate a filtered enemy array every combat frame")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]
