@@ -1534,19 +1534,24 @@ final class OutpostScene: SKScene {
         let zone = worldMapIndex == 0 ? requestedZone :
             (worldMapIndex == 1 ? max(1, requestedZone) : max(2, requestedZone))
         zoneScenery.removeAllChildren()
-        // The forest lighting treatment should never tint later industrial
-        // or toxic worlds, which keep their own world-specific palettes.
-        arena.childNode(withName: "roomArtwork")?
-            .childNode(withName: "frontierFloorSurface")?.isHidden = worldMapIndex != 0
-        // The forest becomes cooler and darker in Rooms 6-10. The previous
-        // backdrop tint was hidden beneath the opaque room-art floor.
-        if let floor = arena.childNode(withName: "roomArtwork")?.children.first as? SKShapeNode {
-            floor.fillColor = worldMapIndex == 0
-                ? (zone == 1
-                    ? SKColor(red: 0.22, green: 0.30, blue: 0.23, alpha: 1)
-                    : SKColor(red: 0.27, green: 0.32, blue: 0.25, alpha: 1))
-                : worldColor(for: requestedZone)
+        // Forest art is atmospheric, not terrain geometry. Only World 1
+        // displays the continuous forest texture; later worlds retain their
+        // distinct opaque industrial and toxic environment palettes.
+        let roomArt = arena.childNode(withName: "roomArtwork")
+        let nonForestWorld = worldMapIndex != 0
+        roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = nonForestWorld
+        roomArt?.childNode(withName: "frontierFloorSurface")?.isHidden = nonForestWorld
+        if let floor = roomArt?.childNode(withName: "roomFloor") as? SKShapeNode {
+            floor.fillColor = nonForestWorld
+                ? worldColor(for: requestedZone)
+                : (zone == 1
+                    ? SKColor(red: 0.16, green: 0.25, blue: 0.20, alpha: 0.16)
+                    : SKColor(red: 0.18, green: 0.28, blue: 0.20, alpha: 0.12))
+            floor.strokeColor = nonForestWorld
+                ? SKColor(red: 0.10, green: 0.18, blue: 0.19, alpha: 0.70)
+                : SKColor(red: 0.10, green: 0.19, blue: 0.17, alpha: 0.18)
         }
+        roomArt?.childNode(withName: "roomContactEdge")?.alpha = nonForestWorld ? 1 : 0.55
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
         let count = zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)
         let roomVariant = (wave - 1) % 4
