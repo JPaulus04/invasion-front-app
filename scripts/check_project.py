@@ -29,7 +29,7 @@ if 'frontierFloorSurface' not in scene or 'worldMapIndex != 0' not in scene:
     errors.append("Forest floor artwork must be hidden in the later worlds")
 if "CombatVisuals.rifleTracer(in: arena" not in scene:
     errors.append("Rifle attacks must use layered, short-lived tracer artwork")
-if "pilotFacing * (isMoving" not in scene or "pilotFacing = 1" not in scene:
+if "facing: pilotFacing" not in scene or "pilotFacing = 1" not in scene:
     errors.append("Pilot combat-facing animation must reset safely between runs")
 if "CharacterMotion.pilot(" not in scene or "CharacterMotion.enemy(" not in scene:
     errors.append("Character motion must use shared art-only pose timing")
