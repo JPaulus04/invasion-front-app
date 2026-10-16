@@ -186,15 +186,16 @@ final class OutpostScene: SKScene {
         speedLabel.text = "1× SPEED"
         speedButton.addChild(speedLabel)
         hud.addChild(speedButton)
-        xpTrack.fillColor = SKColor(white: 0.2, alpha: 1)
+        xpTrack.fillColor = SKColor(red: 0.04, green: 0.10, blue: 0.12, alpha: 0.96)
         xpTrack.strokeColor = .clear
-        xpFill.fillColor = .systemMint
+        xpFill.fillColor = SKColor(red: 0.38, green: 0.85, blue: 0.68, alpha: 1)
         xpFill.strokeColor = .clear
         xpFill.zPosition = 1
         hud.addChild(xpTrack)
         hud.addChild(xpFill)
-        xpLabel.fontSize = 11
-        xpLabel.fontColor = .white
+        xpLabel.fontSize = 10
+        xpLabel.fontColor = SKColor(white: 0.86, alpha: 1)
+        xpLabel.horizontalAlignmentMode = .right
         hud.addChild(xpLabel)
         checkpointButton.fillColor = .systemGreen
         checkpointButton.strokeColor = .white
@@ -205,8 +206,8 @@ final class OutpostScene: SKScene {
         checkpointLabel.verticalAlignmentMode = .center
         checkpointButton.addChild(checkpointLabel)
         hud.addChild(checkpointButton)
-        hudPanel.fillColor = SKColor(red: 0.04, green: 0.09, blue: 0.13, alpha: 0.94)
-        hudPanel.strokeColor = SKColor(red: 0.3, green: 0.6, blue: 0.65, alpha: 0.6)
+        hudPanel.fillColor = SKColor(red: 0.035, green: 0.08, blue: 0.11, alpha: 0.91)
+        hudPanel.strokeColor = SKColor(red: 0.27, green: 0.51, blue: 0.54, alpha: 0.29)
         hudPanel.lineWidth = 1
         hudPanel.zPosition = -1
         hud.addChild(hudPanel)
@@ -399,11 +400,11 @@ final class OutpostScene: SKScene {
             label.horizontalAlignmentMode = .center
             hud.addChild(label)
         }
-        title.fontSize = 22
+        title.fontSize = 18
         title.fontColor = .white
-        subtitle.fontSize = 14
-        subtitle.fontColor = .systemYellow
-        info.fontSize = 13
+        subtitle.fontSize = 12
+        subtitle.fontColor = SKColor(red: 0.98, green: 0.78, blue: 0.37, alpha: 1)
+        info.fontSize = 11
         info.fontColor = .white
         health = maximumHealth
         layout()
@@ -776,28 +777,34 @@ final class OutpostScene: SKScene {
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
-        // The original heading crossed the top border and the health label
-        // crowded the XP bar. Allocate enough vertical room for all four rows.
+        // Compact three-line combat header; the slim XP bar shares its last
+        // row with the XP value. All information remains visible, but the
+        // arena gains vertical breathing room.
         hudPanel.path = CGPath(roundedRect: CGRect(
-            x: 10, y: size.height - 188, width: max(1, size.width - 20), height: 118),
+            x: 12, y: size.height - 171,
+            width: max(1, size.width - 24), height: 96),
             cornerWidth: 13, cornerHeight: 13, transform: nil)
-        title.position = CGPoint(x: size.width / 2, y: size.height - 94)
+        title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         subtitle.position = CGPoint(x: size.width / 2, y: size.height - 121)
-        info.position = CGPoint(x: size.width / 2, y: size.height - 143)
+        info.position = CGPoint(x: size.width / 2, y: size.height - 141)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
         damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
         warning.position = CGPoint(x: size.width / 2, y: max(170, size.height * 0.23))
         zoneBanner.position = CGPoint(x: size.width / 2, y: roomBounds.maxY - 90)
         controlsHint.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 66)
-        let xpWidth = max(1, size.width - 48)
-        xpTrack.path = CGPath(roundedRect: CGRect(x: 0, y: 0, width: xpWidth, height: 6), cornerWidth: 3, cornerHeight: 3, transform: nil)
+        // Reserve the right side of the progress row for the level counter,
+        // avoiding an additional line below the panel.
+        let xpWidth = max(1, size.width - 169)
+        xpTrack.path = CGPath(roundedRect: CGRect(
+            x: 0, y: 0, width: xpWidth, height: 5),
+            cornerWidth: 2.5, cornerHeight: 2.5, transform: nil)
         xpFill.path = xpTrack.path
-        xpTrack.position = CGPoint(x: 24, y: size.height - 161)
+        xpTrack.position = CGPoint(x: 24, y: size.height - 160)
         xpFill.position = xpTrack.position
-        xpLabel.position = CGPoint(x: size.width / 2, y: size.height - 177)
+        xpLabel.position = CGPoint(x: size.width - 25, y: size.height - 162)
         checkpointButton.position = CGPoint(x: size.width / 2, y: roomBounds.minY + 25)
-        settingsShortcut.position = CGPoint(x: 36, y: size.height - 212)
+        settingsShortcut.position = CGPoint(x: 36, y: size.height - 195)
         updateHUD()
     }
 
@@ -807,15 +814,15 @@ final class OutpostScene: SKScene {
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
         speedButton.isHidden = phase != .playing && phase != .gate
         settingsShortcut.isHidden = ![Phase.ready, .loadout, .playing, .gate].contains(phase)
-        // Player speed control sits below the HUD, clear of the XP bar.
-        speedButton.position = CGPoint(x: size.width - 56, y: size.height - 212)
+        // Player controls sit below the compact header.
+        speedButton.position = CGPoint(x: size.width - 56, y: size.height - 195)
         if phase == .ready || phase == .loadout {
             // In menus, keep the gear inside the panel rather than
             // floating over its top-left border.
             settingsShortcut.position = CGPoint(
                 x: size.width - 52, y: overlay.position.y + 155)
         } else {
-            settingsShortcut.position = CGPoint(x: 36, y: size.height - 212)
+            settingsShortcut.position = CGPoint(x: 36, y: size.height - 195)
         }
         let desiredXPScale = max(0.001, CGFloat(progress.xp) / CGFloat(progress.nextLevelXP))
         if abs(xpFill.xScale - desiredXPScale) > 0.0005 { xpFill.xScale = desiredXPScale }
