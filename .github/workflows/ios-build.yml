@@ -20,6 +20,10 @@ jobs:
         run: |
           swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
           "$RUNNER_TEMP/room-tests"
+      - name: Test character motion and recoil
+        run: |
+          swiftc OutpostZero/CharacterMotion.swift tests/CharacterMotionTests.swift -o "$RUNNER_TEMP/motion-tests"
+          "$RUNNER_TEMP/motion-tests"
       - name: Test XP and combat rules
         run: |
           swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/AbilityLoadout.swift OutpostZero/PersistentProgression.swift OutpostZero/RunRecovery.swift tests/ProgressCombatTests.swift -o "$RUNNER_TEMP/combat-tests"

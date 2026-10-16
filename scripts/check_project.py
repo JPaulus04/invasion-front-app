@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift", "CampaignPacing.swift", "FrontierFloorArt.swift", "CombatVisuals.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift", "CampaignPacing.swift", "FrontierFloorArt.swift", "CombatVisuals.swift", "CharacterMotion.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -31,6 +31,12 @@ if "CombatVisuals.rifleTracer(in: arena" not in scene:
     errors.append("Rifle attacks must use layered, short-lived tracer artwork")
 if "pilotFacing * (isMoving" not in scene or "pilotFacing = 1" not in scene:
     errors.append("Pilot combat-facing animation must reset safely between runs")
+if "CharacterMotion.pilot(" not in scene or "CharacterMotion.enemy(" not in scene:
+    errors.append("Character motion must use shared art-only pose timing")
+if "let isMoving = distance(pilotBeforeMovement, pilot.position) > 0.35" not in scene:
+    errors.append("Pilot must not show a walking animation when blocked by rubble")
+if 'childNode(withName: "pilotGroundShadow")' not in scene:
+    errors.append("The pilot shadow must stay grounded during sprite motion")
 # The published pilot PNG must not be outlined by the old rectangle.
 pilot_visual = scene.split("private func refreshPilotAppearance()", 1)[-1].split("private func drawRestorationRobot()", 1)[0]
 if 'productionImage(named: "pilot_idle") != nil' not in pilot_visual or "pilot.strokeColor = .clear" not in pilot_visual:

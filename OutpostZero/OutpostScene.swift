@@ -132,6 +132,7 @@ final class OutpostScene: SKScene {
     private let pilot = SKShapeNode(rectOf: CGSize(width: 28, height: 34), cornerRadius: 7)
     private let pilotGun = SKShapeNode(rectOf: CGSize(width: 9, height: 23), cornerRadius: 3)
     private var pilotFacing: CGFloat = 1
+    private var nextFootstepAt: TimeInterval = 0
     private var movementOrigin: CGPoint?
     private var movementTarget: CGPoint?
     private var pilotSpeed: CGFloat { 144 + CGFloat(branchLevel(3) * 3) }
@@ -1967,6 +1968,7 @@ final class OutpostScene: SKScene {
                 contactShadow.fillColor = SKColor.black.withAlphaComponent(0.34)
                 contactShadow.strokeColor = .clear
                 contactShadow.position = CGPoint(x: 3, y: -radius * 0.86)
+                contactShadow.name = "enemyGroundShadow"
                 contactShadow.zPosition = -0.5
                 node.addChild(contactShadow)
             }
@@ -2208,6 +2210,7 @@ final class OutpostScene: SKScene {
             let length = hypot(dx, dy)
             movementTarget = length > 9 ? CGPoint(x: min(max(pilot.position.x + dx / length * 90, roomBounds.minX), roomBounds.maxX), y: min(max(pilot.position.y + dy / length * 90, roomBounds.minY), roomBounds.maxY)) : nil
         }
+        let pilotBeforeMovement = pilot.position
         if let movementTarget {
             let dx = movementTarget.x - pilot.position.x
             let dy = movementTarget.y - pilot.position.y
@@ -2222,18 +2225,37 @@ final class OutpostScene: SKScene {
                     from: pilot.position, to: requested, patches: roomHazards, radius: 12)
             }
         }
-        // Lightweight movement animation: idle stance settles, moving stance tilts and bobs.
-        let isMoving = movementTarget.map { distance($0, pilot.position) > 3 } ?? false
-        let desiredTilt: CGFloat = isMoving ? (movementTarget!.x >= pilot.position.x ? -0.075 : 0.075) : 0
-        pilot.zRotation += (desiredTilt - pilot.zRotation) * min(1, CGFloat(dt) * 10)
-        pilot.yScale = isMoving ? 1 + 0.035 * sin(CGFloat(clock) * 17) : 1
-        // Animate the illustrated armor independently of the collision body
-        // and its ground shadow: a running stride or a quiet idle breath.
+        // Animate the visible sprite, not its parent collision container.
+        // An actual displacement check prevents walking-in-place into rubble.
+        let isMoving = distance(pilotBeforeMovement, pilot.position) > 0.35
+        let pose = CharacterMotion.pilot(
+            time: combatTime, moving: isMoving, facing: pilotFacing,
+            timeSinceShot: combatTime - lastShot)
+        pilot.zRotation = 0
+        pilot.yScale = 1
         if let pilotArt = pilot.childNode(withName: "pilotArt") as? SKSpriteNode {
-            let stridePhase = CGFloat(clock) * 15
-            pilotArt.position.y = isMoving ? 1.8 * sin(stridePhase) : 0.55 * sin(CGFloat(clock) * 2.4)
-            pilotArt.zRotation = isMoving ? 0.028 * sin(stridePhase * 0.5) : 0
-            pilotArt.xScale = pilotFacing * (isMoving ? 1 + 0.018 * sin(stridePhase) : 1)
+            pilotArt.position.y = pose.verticalOffset
+            pilotArt.zRotation = pose.lean
+            pilotArt.xScale = pose.widthScale
+            pilotArt.yScale = pose.heightScale
+        }
+        if let ground = pilot.childNode(withName: "pilotGroundShadow") as? SKShapeNode {
+            ground.xScale = pose.shadowScale
+        }
+        if isMoving && worldMapIndex == 0 && clock >= nextFootstepAt {
+            nextFootstepAt = clock + 0.19
+            let footprint = SKShapeNode(ellipseOf: CGSize(width: 7, height: 3))
+            footprint.fillColor = SKColor(red: 0.62, green: 0.64, blue: 0.46, alpha: 0.24)
+            footprint.strokeColor = .clear
+            footprint.position = CGPoint(
+                x: pilot.position.x + (sin(CGFloat(clock) * 15) > 0 ? -6 : 6),
+                y: pilot.position.y - 21)
+            footprint.zPosition = pilot.zPosition - 1
+            arena.addChild(footprint)
+            footprint.run(.sequence([.group([
+                .scale(to: 1.6, duration: 0.3),
+                .fadeOut(withDuration: 0.3)
+            ]), .removeFromParent()]))
         }
         if phase == .gate {
             if RoomRules.enteredGate(pilot: pilot.position, gate: passageGate.position) {
@@ -2299,15 +2321,21 @@ final class OutpostScene: SKScene {
                     from: current, to: desiredPosition,
                     patches: roomHazards, radius: enemy.radius)
             }
-            // Illustrated chassis stride and breathing leave health bars and
-            // collision geometry stable, while differentiating slow heavies
-            // from quick raiders without adding confusing hitbox movement.
+            // Different movement silhouettes: heavies lumber, raiders
+            // dart, ranged units visibly brace while telegraphing.
+            // Only art transforms change; hitboxes and health bars stay fixed.
+            let advancing = distance(current, enemy.node.position) > 0.25
+            let enemyPose = CharacterMotion.enemy(
+                time: combatTime, behavior: enemy.behavior,
+                phase: enemy.weavePhase, moving: advancing,
+                aiming: enemies[index].shotTarget != nil)
             if let enemyArt = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
-                let advancing = abs(step) > 0.1 && enemies[index].shotTarget == nil
-                let pace: CGFloat = enemy.behavior == 3 ? 6.0 : (enemy.behavior == 2 ? 16.0 : 10.0)
-                let stride = CGFloat(clock) * pace + enemy.weavePhase
-                enemyArt.position.y = advancing ? sin(stride) * 1.5 : sin(CGFloat(clock) * 2.0 + enemy.weavePhase) * 0.35
-                enemyArt.zRotation = advancing ? sin(stride * 0.5) * 0.035 : 0
+                enemyArt.position.y = enemyPose.verticalOffset
+                enemyArt.zRotation = enemyPose.lean
+                enemyArt.yScale = enemyPose.heightScale
+            }
+            if let ground = enemy.node.childNode(withName: "enemyGroundShadow") as? SKShapeNode {
+                ground.xScale = enemyPose.shadowScale
             }
             if distance(enemy.node.position, pilot.position) < enemy.radius + 14 {
                 damagePilot(enemy.node === bossNode ? 12 : (enemy.behavior == 3 ? 8 : 5))
@@ -3239,7 +3267,10 @@ final class OutpostScene: SKScene {
         pilotHitCount = 0
         pilot.alpha = 1
         pilotFacing = 1
+        nextFootstepAt = 0
         pilot.removeAction(forKey: "hitFlash")
+        pilot.childNode(withName: "pilotArt")?.xScale = 1
+        pilot.childNode(withName: "pilotArt")?.yScale = 1
         passageGate.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.position = CGPoint(x: 0, y: -40)
