@@ -112,13 +112,42 @@ jobs:
             python3 - "$LIMIT" "$@" <<'PY'
           import subprocess
           import sys
-          subprocess.run(sys.argv[2:], check=True, timeout=int(sys.argv[1]))
+          try:
+              subprocess.run(sys.argv[2:], check=True, timeout=int(sys.argv[1]))
+          except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
+              print(f"Simulator command unavailable: {error}", file=sys.stderr)
+              sys.exit(1)
           PY
           }
-          DEVICE="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone [0-9]+/ {print $2; exit}')"
-          test -n "$DEVICE"
-          run_bounded 30 xcrun simctl boot "$DEVICE" || true
-          run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b
+          # A cold CoreSimulatorService occasionally hangs in bootstatus.
+          # Do not fail a successfully compiled game because the first device
+          # is wedged: try another installed iPhone simulator on the same runner.
+          DEVICE=""
+          DEVICE_CANDIDATES="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data=json.load(sys.stdin)["devices"]
+          found=[]
+          for runtime, devices in sorted(data.items(), reverse=True):
+              for device in devices:
+                  if device.get("isAvailable", True) and device.get("name", "").startswith("iPhone"):
+                      found.append(device["udid"])
+          print("\\n".join(found[:4]))
+          ')"
+          for CANDIDATE in $DEVICE_CANDIDATES; do
+            echo "Preparing simulator $CANDIDATE"
+            run_bounded 35 xcrun simctl boot "$CANDIDATE" || true
+            if run_bounded 90 xcrun simctl bootstatus "$CANDIDATE" -b; then
+              DEVICE="$CANDIDATE"
+              break
+            fi
+            echo "::warning::Simulator $CANDIDATE did not boot; trying a fresh device"
+            run_bounded 20 xcrun simctl shutdown "$CANDIDATE" || true
+          done
+          if [ -z "$DEVICE" ]; then
+            echo "::error::No available iPhone simulator reached boot readiness"
+            exit 1
+          fi
+          echo "Simulator ready: $DEVICE"
           APP="simulator-app/OutpostZero.app"
           # If CoreSimulatorService is cold, allow a generous first install.
           # On failure restart only the simulator rather than recompiling iOS.
