@@ -84,6 +84,126 @@ enum FrontierFloorArt {
                 ctx.strokeEllipse(in: pebble.offsetBy(dx: -0.6, dy: -0.5))
             }
 
+            // A second material scale breaks up the flat painted surface.
+            // Organic moss shadows are rendered into one texture instead of
+            // dozens of independently animated or overlapping SpriteKit nodes.
+            // Keep the middle open: all foreground detail belongs near edges.
+            for index in 0..<30 {
+                let onLeft = index.isMultiple(of: 2)
+                let edgeX = onLeft ? canvas.width * (0.07 + random() * 0.24)
+                                   : canvas.width * (0.69 + random() * 0.24)
+                let center = CGPoint(
+                    x: edgeX,
+                    y: canvas.height * (0.09 + random() * 0.83)
+                )
+                let wide = 12 + random() * 22
+                let tall = 6 + random() * 11
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: center.x - wide * 0.56,
+                                      y: center.y - tall * 0.12))
+                path.addQuadCurve(
+                    to: CGPoint(x: center.x - wide * 0.10,
+                                y: center.y + tall * 0.58),
+                    control: CGPoint(x: center.x - wide * 0.55,
+                                     y: center.y + tall * 0.75))
+                path.addQuadCurve(
+                    to: CGPoint(x: center.x + wide * 0.57,
+                                y: center.y + tall * 0.05),
+                    control: CGPoint(x: center.x + wide * 0.19,
+                                     y: center.y + tall * 0.73))
+                path.addQuadCurve(
+                    to: CGPoint(x: center.x + wide * 0.05,
+                                y: center.y - tall * 0.49),
+                    control: CGPoint(x: center.x + wide * 0.46,
+                                     y: center.y - tall * 0.52))
+                path.addQuadCurve(
+                    to: CGPoint(x: center.x - wide * 0.56,
+                                y: center.y - tall * 0.12),
+                    control: CGPoint(x: center.x - wide * 0.30,
+                                     y: center.y - tall * 0.64))
+                ctx.addPath(path)
+                ctx.setFillColor(UIColor(
+                    red: index.isMultiple(of: 4) ? 0.36 : 0.08,
+                    green: index.isMultiple(of: 4) ? 0.43 : 0.24,
+                    blue: index.isMultiple(of: 4) ? 0.23 : 0.16,
+                    alpha: index.isMultiple(of: 4) ? 0.13 : 0.24
+                ).cgColor)
+                ctx.fillPath()
+
+                // A few individually angled leaf facets give each patch
+                // small-scale relief; none form horizontal rows or grids.
+                for blade in 0..<3 {
+                    let bx = center.x + (random() - 0.5) * wide
+                    let by = center.y + (random() - 0.5) * tall
+                    let tip = 3 + random() * 5
+                    let direction: CGFloat = onLeft ? 1 : -1
+                    let leaf = CGMutablePath()
+                    leaf.move(to: CGPoint(x: bx - direction * tip * 0.6, y: by - 1))
+                    leaf.addLine(to: CGPoint(x: bx + direction * tip, y: by - tip))
+                    leaf.addLine(to: CGPoint(x: bx + direction * tip * 0.6, y: by + 2))
+                    leaf.closeSubpath()
+                    ctx.addPath(leaf)
+                    ctx.setFillColor(UIColor(
+                        red: 0.31, green: 0.48, blue: 0.26,
+                        alpha: 0.16 + random() * 0.16
+                    ).cgColor)
+                    ctx.fillPath()
+                }
+            }
+
+            // Broken stones have a dark lower plane and a small lit upper
+            // facet. Their asymmetry makes them read as natural debris,
+            // without resembling circular footprints or collision markers.
+            for index in 0..<16 {
+                let side = index.isMultiple(of: 2)
+                let x = canvas.width * (side ? (0.04 + random() * 0.26)
+                                             : (0.70 + random() * 0.26))
+                let y = canvas.height * (0.10 + random() * 0.80)
+                let extent = 4 + random() * 6
+                let silhouette = CGMutablePath()
+                silhouette.move(to: CGPoint(x: x - extent, y: y + 1))
+                silhouette.addLine(to: CGPoint(x: x - extent * 0.44,
+                                               y: y - extent * 0.68))
+                silhouette.addLine(to: CGPoint(x: x + extent * 0.75,
+                                               y: y - extent * 0.38))
+                silhouette.addLine(to: CGPoint(x: x + extent, y: y + extent * 0.32))
+                silhouette.addLine(to: CGPoint(x: x - extent * 0.46,
+                                               y: y + extent * 0.48))
+                silhouette.closeSubpath()
+                ctx.addPath(silhouette)
+                ctx.setFillColor(UIColor(red: 0.13, green: 0.20,
+                                         blue: 0.19, alpha: 0.38).cgColor)
+                ctx.fillPath()
+
+                let facet = CGMutablePath()
+                facet.move(to: CGPoint(x: x - extent * 0.77, y: y))
+                facet.addLine(to: CGPoint(x: x - extent * 0.40,
+                                          y: y - extent * 0.54))
+                facet.addLine(to: CGPoint(x: x + extent * 0.41,
+                                          y: y - extent * 0.29))
+                facet.addLine(to: CGPoint(x: x + extent * 0.17,
+                                          y: y + extent * 0.12))
+                facet.closeSubpath()
+                ctx.addPath(facet)
+                ctx.setFillColor(UIColor(red: 0.51, green: 0.56,
+                                         blue: 0.43, alpha: 0.25).cgColor)
+                ctx.fillPath()
+            }
+
+            // A restrained warm break in the canopy provides a focal point
+            // for the player. This is lighting only, never an enemy indicator.
+            let canopyLight = CGGradient(colorsSpace: space, colors: [
+                UIColor(red: 0.75, green: 0.81, blue: 0.45, alpha: 0.12).cgColor,
+                UIColor(red: 0.47, green: 0.69, blue: 0.39, alpha: 0.04).cgColor,
+                UIColor(red: 0.40, green: 0.52, blue: 0.31, alpha: 0).cgColor
+            ] as CFArray, locations: [0, 0.55, 1])!
+            let clearing = CGPoint(x: canvas.width * 0.43,
+                                   y: canvas.height * 0.43)
+            ctx.drawRadialGradient(canopyLight,
+                startCenter: clearing, startRadius: 0,
+                endCenter: clearing, endRadius: canvas.width * 0.58,
+                options: [])
+
             // Subtle edge shadow reinforces depth without obscuring characters.
             let vignette = CGGradient(colorsSpace: space, colors: [
                 UIColor(white: 0, alpha: 0).cgColor,
