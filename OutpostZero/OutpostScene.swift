@@ -245,18 +245,31 @@ final class OutpostScene: SKScene {
         pilot.zPosition = 9
         // Illustrated armor plate covers the original collision body without changing gameplay.
         let pilotArmor = SKSpriteNode(texture: productionTexture(named: "pilot_idle", fallback: pilotArmorTexture))
-        pilotArmor.size = CGSize(width: 46, height: 55)
+        // Visual scale only: give the hero enough screen presence to read
+        // its face, shoulder plates and reactor at normal phone size.
+        // The 28x34 collision container and movement physics do not change.
+        pilotArmor.size = CGSize(width: 53, height: 63)
         pilotArmor.zPosition = 0.5
         pilotArmor.name = "pilotArt"
         pilot.addChild(pilotArmor)
         // Ground contact and a soft offset shadow give the pilot depth at phone scale.
-        let pilotShadow = SKShapeNode(ellipseOf: CGSize(width: 38, height: 12))
-        pilotShadow.fillColor = SKColor.black.withAlphaComponent(0.32)
+        let pilotShadow = SKShapeNode(ellipseOf: CGSize(width: 43, height: 13))
+        pilotShadow.fillColor = SKColor.black.withAlphaComponent(0.42)
         pilotShadow.strokeColor = .clear
-        pilotShadow.position = CGPoint(x: 4, y: -25)
+        pilotShadow.position = CGPoint(x: 4, y: -27)
         pilotShadow.name = "pilotGroundShadow"
         pilotShadow.zPosition = -0.6
         pilot.addChild(pilotShadow)
+        // A soft reflected patch differentiates blue-white armor from the
+        // olive forest floor. No bright selection ring or collision marker.
+        let armorBounce = SKShapeNode(ellipseOf: CGSize(width: 30, height: 8))
+        armorBounce.name = "pilotArmorBounce"
+        armorBounce.position = CGPoint(x: -3, y: -26)
+        armorBounce.fillColor = SKColor(
+            red: 0.31, green: 0.71, blue: 0.83, alpha: 0.16)
+        armorBounce.strokeColor = .clear
+        armorBounce.zPosition = -0.45
+        pilot.addChild(armorBounce)
         pilot.fillColor = .clear
         pilot.strokeColor = .clear
         let visor = SKShapeNode(rectOf: CGSize(width: 19, height: 9), cornerRadius: 3)
@@ -298,7 +311,8 @@ final class OutpostScene: SKScene {
             pilotGun.isHidden = true
             for child in pilot.children where child is SKShapeNode &&
                     child !== pilotGun && child !== visor &&
-                    child !== reactor && child.name != "pilotGroundShadow" {
+                    child !== reactor && child.name != "pilotGroundShadow" &&
+                    child.name != "pilotArmorBounce" {
                 child.isHidden = true
             }
         }
@@ -1910,7 +1924,11 @@ final class OutpostScene: SKScene {
                 node.strokeColor = .clear
             }
             let armor = SKSpriteNode(texture: productionTexture(named: assetName, fallback: enemyChassisTexture))
-            armor.size = CGSize(width: radius * 2.3, height: radius * 2.55)
+            // A modest art-only enlargement preserves the threat silhouette
+            // without modifying radius, overlap tests or ranged attack rules.
+            armor.size = CGSize(
+                width: radius * (hasProductionArt ? 2.48 : 2.3),
+                height: radius * (hasProductionArt ? 2.74 : 2.55))
             armor.color = (type == 1 || type == 2) ? .systemRed : (type == 3 ? .gray : (type == 4 ? .systemBlue : .orange))
             armor.colorBlendFactor = hasProductionArt ? 0 : 0.72
             armor.zPosition = 0.8
@@ -1920,10 +1938,11 @@ final class OutpostScene: SKScene {
             node.addChild(armor)
             if hasProductionArt {
                 // Ground shadow anchors illustrated enemies without obscuring their silhouette.
-                let contactShadow = SKShapeNode(ellipseOf: CGSize(width: radius * 1.7, height: radius * 0.48))
-                contactShadow.fillColor = SKColor.black.withAlphaComponent(0.34)
+                let contactShadow = SKShapeNode(ellipseOf: CGSize(
+                    width: radius * 1.85, height: radius * 0.51))
+                contactShadow.fillColor = SKColor.black.withAlphaComponent(0.39)
                 contactShadow.strokeColor = .clear
-                contactShadow.position = CGPoint(x: 3, y: -radius * 0.86)
+                contactShadow.position = CGPoint(x: 3, y: -radius * 0.99)
                 contactShadow.name = "enemyGroundShadow"
                 contactShadow.zPosition = -0.5
                 node.addChild(contactShadow)
@@ -2119,7 +2138,8 @@ final class OutpostScene: SKScene {
         let healthBar = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthBar.fillColor = .systemGreen
         healthBar.strokeColor = .clear
-        healthBar.position.y = radius + 12
+        healthBar.position.y = usesIllustratedEnemy
+            ? radius * 1.39 + 9 : radius + 12
         healthBar.zPosition = 1
         node.addChild(healthBar)
         enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi)), nextAttack: combatTime + 1.7))
@@ -2197,6 +2217,9 @@ final class OutpostScene: SKScene {
         }
         if let ground = pilot.childNode(withName: "pilotGroundShadow") as? SKShapeNode {
             ground.xScale = pose.shadowScale
+        }
+        if let bounce = pilot.childNode(withName: "pilotArmorBounce") as? SKShapeNode {
+            bounce.xScale = pose.shadowScale
         }
         if isMoving && worldMapIndex == 0 && clock >= nextFootstepAt {
             nextFootstepAt = clock + 0.19
