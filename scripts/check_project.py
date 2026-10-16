@@ -25,8 +25,10 @@ if 'FrontierFloorArt.texture(' not in (root / "OutpostZero" / "BattlefieldArt.sw
     errors.append("Frontier Forest needs a pre-rendered ground-lighting layer")
 if 'child.name != "pilotGroundShadow"' not in scene:
     errors.append("Do not accidentally hide the pilot's ground shadow with placeholder shapes")
-if 'frontierFloorSurface' not in scene or 'worldMapIndex != 0' not in scene:
-    errors.append("Forest floor artwork must be hidden in the later worlds")
+if 'forestAmbientBackdrop' not in scene or 'worldMapIndex != 0' not in scene:
+    errors.append("Full-screen forest ground must be hidden in the later worlds")
+if '"frontierFloorSurface"' in (root / "OutpostZero" / "BattlefieldArt.swift").read_text(encoding="utf-8"):
+    errors.append("Do not reintroduce a second forest texture inside the room")
 if "CombatVisuals.rifleTracer(in: arena" not in scene:
     errors.append("Rifle attacks must use layered, short-lived tracer artwork")
 if "facing: pilotFacing" not in scene or "pilotFacing = 1" not in scene:

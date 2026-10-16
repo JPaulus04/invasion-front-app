@@ -122,6 +122,11 @@ jobs:
           # A cold CoreSimulatorService occasionally hangs in bootstatus.
           # Do not fail a successfully compiled game because the first device
           # is wedged: try another installed iPhone simulator on the same runner.
+          # Simulator boot can hang at the service level on hosted Macs.
+          # Reset the daemon once before listing devices; a failed/absent
+          # process is harmless on fresh runners.
+          run_bounded 12 /usr/bin/killall -9 CoreSimulatorService || true
+          sleep 3
           DEVICE=""
           DEVICE_CANDIDATES="$(xcrun simctl list devices available -j | python3 -c '
           import json, sys
@@ -140,8 +145,10 @@ jobs:
               DEVICE="$CANDIDATE"
               break
             fi
-            echo "::warning::Simulator $CANDIDATE did not boot; trying a fresh device"
+            echo "::warning::Simulator $CANDIDATE did not boot; resetting CoreSimulatorService"
             run_bounded 20 xcrun simctl shutdown "$CANDIDATE" || true
+            run_bounded 12 /usr/bin/killall -9 CoreSimulatorService || true
+            sleep 3
           done
           if [ -z "$DEVICE" ]; then
             echo "::error::No available iPhone simulator reached boot readiness"

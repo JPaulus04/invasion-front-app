@@ -60,18 +60,10 @@ enum BattlefieldArt {
         floor.strokeColor = SKColor(red: 0.10, green: 0.19, blue: 0.17, alpha: 0.19)
         floor.lineWidth = 4
         artwork.addChild(floor)
-        // Transparent lighting over the original room color. Gameplay keeps
-        // its original silhouettes and collision limits.
-        let forestSurface = SKSpriteNode(texture: FrontierFloorArt.texture(
-            for: room.insetBy(dx: 5, dy: 5).size))
-        forestSurface.name = "frontierFloorSurface"
-        forestSurface.position = CGPoint(x: room.midX, y: room.midY)
-        forestSurface.size = room.insetBy(dx: 5, dy: 5).size
-        // Retain the named focal-light layer for existing world switches,
-        // but the full-bleed texture now owns the overall forest surface.
-        forestSurface.alpha = 0.12
-        forestSurface.zPosition = 0.01
-        artwork.addChild(forestSurface)
+        // One continuous prerendered texture now covers the forest world.
+        // Rendering a second smaller texture inside the room produced a
+        // visible rectangle with a different debris pattern and lighting.
+        // Collision boundaries remain entirely in RoomRules.
         // Keep the action zone visually framed, but not like a bright game
         // board. The original repeated terrain stamps, regularly spaced litter
         // and teal entrance stripe competed with combat indicators. Fine

@@ -1540,7 +1540,6 @@ final class OutpostScene: SKScene {
         let roomArt = arena.childNode(withName: "roomArtwork")
         let nonForestWorld = worldMapIndex != 0
         roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = nonForestWorld
-        roomArt?.childNode(withName: "frontierFloorSurface")?.isHidden = nonForestWorld
         if let floor = roomArt?.childNode(withName: "roomFloor") as? SKShapeNode {
             floor.fillColor = nonForestWorld
                 ? worldColor(for: requestedZone)
