@@ -144,16 +144,16 @@ jobs:
             echo "::error::Simulator never rendered a usable frame for $FLAG"
             return 1
           }
-          capture_scene -captureHeadquartersScreenshot screenshots/build-318-headquarters.png
-          capture_scene -captureRecoveryScreenshot screenshots/build-318-recovery.png
-          capture_scene -capturePausedRunScreenshot screenshots/build-318-paused-run.png
-          capture_scene -captureSettingsScreenshot screenshots/build-318-settings.png
-          capture_scene -captureLoadoutScreenshot screenshots/build-318-loadout.png
-          capture_scene -captureOvergrownScreenshot screenshots/build-318-overgrown-path.png
-          capture_scene -captureGateScreenshot screenshots/build-318-gate-open.png
-          capture_scene -captureCombatScreenshot screenshots/build-318-simulator.png
-          capture_scene -captureLevelUpScreenshot screenshots/build-318-level-up.png
-          capture_scene -captureLevelUpResumeScreenshot screenshots/build-318-level-up-resumed.png
+          capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
+          capture_scene -captureRecoveryScreenshot screenshots/outpost-zero-recovery.png
+          capture_scene -capturePausedRunScreenshot screenshots/outpost-zero-paused-run.png
+          capture_scene -captureSettingsScreenshot screenshots/outpost-zero-settings.png
+          capture_scene -captureLoadoutScreenshot screenshots/outpost-zero-loadout.png
+          capture_scene -captureOvergrownScreenshot screenshots/outpost-zero-overgrown-path.png
+          capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
+          capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
+          capture_scene -captureLevelUpScreenshot screenshots/outpost-zero-level-up.png
+          capture_scene -captureLevelUpResumeScreenshot screenshots/outpost-zero-level-up-resumed.png
           # The live gameplay launch is especially prone to timing out after
           # four rapid cold-state art captures. Retry it just like the static
           # screenshots rather than mistaking a slow CoreSimulator for a crash.
@@ -186,65 +186,65 @@ jobs:
           # on the simulator video recorder, which can hang on macOS runners.
           launch_live_scene -captureGameplayFrames
           sleep 3
-          capture_live_frame screenshots/build-318-motion-1.png
+          capture_live_frame screenshots/outpost-zero-motion-1.png
           sleep 3
-          capture_live_frame screenshots/build-318-motion-2.png
+          capture_live_frame screenshots/outpost-zero-motion-2.png
           sleep 3
-          capture_live_frame screenshots/build-318-motion-3.png
+          capture_live_frame screenshots/outpost-zero-motion-3.png
           # Room 11: observe both shooters and lobbers under live AI control.
           launch_live_scene -captureRangedCombatFrames
           sleep 2
-          capture_live_frame screenshots/build-318-ranged-1.png
+          capture_live_frame screenshots/outpost-zero-ranged-1.png
           sleep 3
-          capture_live_frame screenshots/build-318-ranged-2.png
+          capture_live_frame screenshots/outpost-zero-ranged-2.png
           sleep 3
-          capture_live_frame screenshots/build-318-ranged-3.png
+          capture_live_frame screenshots/outpost-zero-ranged-3.png
       - name: Validate simulator screenshot was captured
         run: |
           set -e
-          test -s screenshots/build-318-settings.png
-          test -s screenshots/build-318-paused-run.png
-          test -s screenshots/build-318-headquarters.png
-          test -s screenshots/build-318-recovery.png
-          python3 scripts/validate_simulator_screenshots.py screenshots/build-318-headquarters.png
-          python3 scripts/validate_simulator_screenshots.py screenshots/build-318-settings.png screenshots/build-318-paused-run.png
-          test -s screenshots/build-318-loadout.png
-          test -s screenshots/build-318-overgrown-path.png
-          python3 scripts/validate_simulator_screenshots.py screenshots/build-318-loadout.png screenshots/build-318-overgrown-path.png
-          test -s screenshots/build-318-simulator.png
-          test -s screenshots/build-318-gate-open.png
-          test -s screenshots/build-318-level-up.png
-          test -s screenshots/build-318-level-up-resumed.png
-          python3 scripts/validate_simulator_screenshots.py screenshots/build-318-simulator.png screenshots/build-318-gate-open.png
-          python3 scripts/validate_simulator_screenshots.py screenshots/build-318-level-up.png screenshots/build-318-level-up-resumed.png
+          test -s screenshots/outpost-zero-settings.png
+          test -s screenshots/outpost-zero-paused-run.png
+          test -s screenshots/outpost-zero-headquarters.png
+          test -s screenshots/outpost-zero-recovery.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-headquarters.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-settings.png screenshots/outpost-zero-paused-run.png
+          test -s screenshots/outpost-zero-loadout.png
+          test -s screenshots/outpost-zero-overgrown-path.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-loadout.png screenshots/outpost-zero-overgrown-path.png
+          test -s screenshots/outpost-zero-simulator.png
+          test -s screenshots/outpost-zero-gate-open.png
+          test -s screenshots/outpost-zero-level-up.png
+          test -s screenshots/outpost-zero-level-up-resumed.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-simulator.png screenshots/outpost-zero-gate-open.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-level-up.png screenshots/outpost-zero-level-up-resumed.png
           python3 - <<'PY'
           from pathlib import Path
           from hashlib import sha256
-          paused = Path("screenshots/build-318-level-up.png").read_bytes()
-          resumed = Path("screenshots/build-318-level-up-resumed.png").read_bytes()
+          paused = Path("screenshots/outpost-zero-level-up.png").read_bytes()
+          resumed = Path("screenshots/outpost-zero-level-up-resumed.png").read_bytes()
           assert sha256(paused).digest() != sha256(resumed).digest(), "Level-up selection did not change scene"
           print("PASS: XP-on-kill level-up menu and resumed combat frames differ")
           PY
           python3 scripts/validate_simulator_screenshots.py \
-            screenshots/build-318-motion-1.png \
-            screenshots/build-318-motion-2.png \
-            screenshots/build-318-motion-3.png
+            screenshots/outpost-zero-motion-1.png \
+            screenshots/outpost-zero-motion-2.png \
+            screenshots/outpost-zero-motion-3.png
           python3 - <<'PY'
           from pathlib import Path
           from hashlib import sha256
-          frames = [Path(f"screenshots/build-318-motion-{index}.png").read_bytes() for index in (1, 2, 3)]
+          frames = [Path(f"screenshots/outpost-zero-motion-{index}.png").read_bytes() for index in (1, 2, 3)]
           hashes = {sha256(frame).digest() for frame in frames}
           assert len(hashes) >= 2, "Live combat snapshots are identical: scene may be frozen"
           print(f"PASS: {len(hashes)} different live combat captures")
           PY
           python3 scripts/validate_simulator_screenshots.py \
-            screenshots/build-318-ranged-1.png \
-            screenshots/build-318-ranged-2.png \
-            screenshots/build-318-ranged-3.png
+            screenshots/outpost-zero-ranged-1.png \
+            screenshots/outpost-zero-ranged-2.png \
+            screenshots/outpost-zero-ranged-3.png
           python3 - <<'PY'
           from pathlib import Path
           from hashlib import sha256
-          files = [Path(f"screenshots/build-318-ranged-{i}.png").read_bytes() for i in (1, 2, 3)]
+          files = [Path(f"screenshots/outpost-zero-ranged-{i}.png").read_bytes() for i in (1, 2, 3)]
           assert len({sha256(data).digest() for data in files}) >= 2, "Ranged combat scene did not change over time"
           print("PASS: three live ranged enemy screenshots")
           PY
@@ -252,6 +252,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-318-simulator-screenshot
-          path: screenshots/build-318-*.png
+          name: outpost-zero-simulator-screenshot
+          path: screenshots/outpost-zero-*.png
           if-no-files-found: ignore
