@@ -131,7 +131,7 @@ jobs:
               for device in devices:
                   if device.get("isAvailable", True) and device.get("name", "").startswith("iPhone"):
                       found.append(device["udid"])
-          print("\\n".join(found[:4]))
+          print(chr(10).join(found[:4]))
           ')"
           for CANDIDATE in $DEVICE_CANDIDATES; do
             echo "Preparing simulator $CANDIDATE"
