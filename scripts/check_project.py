@@ -235,8 +235,11 @@ for guard in (
 if (root / "project.yml").is_file() and "CODE_SIGNING_ALLOWED: NO" in (root / "project.yml").read_text(encoding="utf-8"):
     errors.append("Device signing must not be disabled in project.yml")
 art = (root / "OutpostZero" / "BattlefieldArt.swift").read_text(encoding="utf-8")
-if "room perimeter" not in art:
+if ("room = RoomRules.bounds" not in art or
+        'contactEdge.name = "roomContactEdge"' not in art):
     errors.append("Missing room boundary artwork")
+if "let entrance = SKShapeNode" in art:
+    errors.append("Static horizontal entrance stripe must not return")
 if "behind.addChild(" in art:
     errors.append("BattlefieldArt references an undefined behind node")
 if "gameplay.addChild(" not in art:
