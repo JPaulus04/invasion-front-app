@@ -89,7 +89,7 @@ struct ProgressCombatTests {
                      reopened?.progress.level == 2 &&
                      reopened?.abilities == ["chain", "incendiary", "orbit"])
         let bad = RunSnapshot(
-            version: 999, room: 12, location: .battle,
+            version: 999, worldIndex: 0, room: 12, location: .battle,
             health: 21, coins: 1506, damage: 4, fireRate: 3,
             chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
             orbitLevel: 2, runArmor: 20, checkpointUsed: false,
