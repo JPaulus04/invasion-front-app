@@ -65,7 +65,7 @@ if "bankSalvage(PersistentProgression.roomReward(room: wave))" not in scene:
     errors.append("Each cleared room must bank permanent Salvage immediately")
 if "bankSalvage(PersistentProgression.enemyReward(" not in scene:
     errors.append("Enemy defeats must bank Salvage immediately")
-if 'case (.gameOver, "headquarters")' not in scene:
+if '(.gameOver, "headquarters")' not in scene or 'restart()\n            showHeadquarters()' not in scene:
     errors.append("Defeated players must reach upgrade headquarters")
 if 'private func showGearBay()' not in scene or 'private func showAbilityLab()' not in scene:
     errors.append("Permanent gear and ability masteries need usable menus")

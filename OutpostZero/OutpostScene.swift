@@ -2744,8 +2744,12 @@ final class OutpostScene: SKScene {
             showSettings()
         case (.settings, "close_settings"): closeSettings()
         case (.interrupted, "resume_run"): resumeInterruptedRun()
-        case (.ready, "headquarters"), (.gameOver, "headquarters"),
-             (.worldComplete, "headquarters"): showHeadquarters()
+        case (.ready, "headquarters"): showHeadquarters()
+        case (.gameOver, "headquarters"), (.worldComplete, "headquarters"):
+            // Failed/completed runs must reset before choosing another world.
+            // The already-banked Salvage and purchased gear persist.
+            restart()
+            showHeadquarters()
         case (.headquarters, "gear_bay"): showGearBay()
         case (.headquarters, "ability_lab"): showAbilityLab()
         case (.headquarters, "restore"): showRestoration()
