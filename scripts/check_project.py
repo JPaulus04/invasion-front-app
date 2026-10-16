@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -73,6 +73,12 @@ if "gearWeaponBonus" not in scene or 'permanent.rank("armor") * 15' not in scene
     errors.append("Purchased gear must affect next-run combat stats")
 if 'ProcessInfo.processInfo.arguments.contains("-captureHeadquartersScreenshot")' not in scene:
     errors.append("Simulator must capture the headquarters upgrade menu")
+if 'private func recoverSavedRun()' not in scene or 'key: "recover_run"' not in scene:
+    errors.append("Saved runs must be recoverable from the world map")
+if "saveRunRecovery()" not in scene or "recovery.clear()" not in scene:
+    errors.append("Run recovery must be saved and cleared deliberately")
+if 'ProcessInfo.processInfo.arguments.contains("-captureRecoveryScreenshot")' not in scene:
+    errors.append("Simulator must test run-recovery lifecycle")
 # Guard the XP-on-kill and mid-room level-up contract against regressions.
 kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split("private func updateEnemyHealthBar", 1)[0]
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]

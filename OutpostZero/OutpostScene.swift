@@ -50,7 +50,12 @@ final class OutpostScene: SKScene {
     private var lastUpdate: TimeInterval = 0
     private var coins = 0
     private let permanent = PersistentProgression()
+    private let recovery = RunRecoveryStore()
     private var salvageBankedThisRun = 0
+    private var roomSalvageEarned = 0
+    private var roomSalvageRecoveredCredit = 0
+    private var isRestoringRun = false
+    private var nextRunSaveAt: TimeInterval = 0
     private var health = 100
     private var damage = 1
     private var fireRate = 1
@@ -370,6 +375,29 @@ final class OutpostScene: SKScene {
         showReady()
         // CI-only settings and lifecycle integration: a call must pause
         // hostile attacks, and resuming must require deliberate input.
+        if ProcessInfo.processInfo.arguments.contains("-captureRecoveryScreenshot") {
+            // Simulator QA verifies the player-facing recovery route. The
+            // isolated capture device has no real-world save to overwrite.
+            let snapshot = RunSnapshot(
+                version: RunSnapshot.schema, room: 12, location: .battle,
+                health: 21, coins: 1506, damage: 4, fireRate: 3,
+                chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
+                orbitLevel: 2, runArmor: 20, checkpointUsed: false,
+                progress: RunProgress(), abilities: ["chain", "orbit", "incendiary"],
+                earnedSalvage: 290, roomSalvageCredit: 24)
+            precondition(recovery.save(snapshot))
+            showReady()
+            precondition(overlayButtons["recover_run"] != nil,
+                         "Saved runs must be visible on the world map")
+            recoverSavedRun()
+            precondition(wave == 12 && health == 21 && coins == 1506 &&
+                         phase == .interrupted && arena.isPaused &&
+                         lockedLoadout.contains("orbit") && runArmor == 20,
+                         "Recovery must preserve loadout, stats and room")
+            // Avoid leaving a QA fixture in the simulator defaults.
+            recovery.clear()
+            showReady()
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureHeadquartersScreenshot") {
             showHeadquarters()
             precondition(overlayButtons["gear_bay"] != nil &&
@@ -798,7 +826,12 @@ final class OutpostScene: SKScene {
         actionButton("◀ PREVIOUS", key: "world_prev", y: -83, tint: .systemBlue, enabled: selected > 0)
         actionButton("NEXT ▶", key: "world_next", y: -132, tint: .systemBlue, enabled: selected < worldMapNames.count - 1)
         if unlocked {
-            actionButton("PREPARE LOADOUT", key: "start", y: -181, tint: .systemTeal)
+            if let storedRun = recovery.load() {
+                actionButton("RESUME ROOM \(storedRun.room)", key: "recover_run",
+                             y: -181, tint: .systemTeal)
+            } else {
+                actionButton("PREPARE LOADOUT", key: "start", y: -181, tint: .systemTeal)
+            }
         }
         actionButton("HEADQUARTERS & UPGRADES", key: "headquarters", y: -232, tint: .systemIndigo)
         overlayText("POWER CORES: \(availableCores)", y: -272, fontSize: 12)
@@ -806,7 +839,84 @@ final class OutpostScene: SKScene {
     }
 
     private func bankSalvage(_ amount: Int) {
-        salvageBankedThisRun += permanent.bank(amount)
+        // An interrupted room may be replayed. Credit only rewards earned
+        // beyond the amount previously banked in this room.
+        let previousOwed = max(0, roomSalvageEarned - roomSalvageRecoveredCredit)
+        roomSalvageEarned += max(0, amount)
+        let currentOwed = max(0, roomSalvageEarned - roomSalvageRecoveredCredit)
+        salvageBankedThisRun += permanent.bank(currentOwed - previousOwed)
+    }
+
+    private var isCaptureMode: Bool {
+        ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-capture") }
+    }
+
+    private func saveRunRecovery() {
+        guard !isRestoringRun, !isCaptureMode, health > 0,
+              (phase == .playing || phase == .gate ||
+               phase == .checkpoint || phase == .levelUp),
+              wave >= 1 else { return }
+        let location: RunSnapshot.Location =
+            (phase == .gate || phase == .checkpoint || roomCleared)
+                ? .clearedGate : .battle
+        let snapshot = RunSnapshot(
+            version: RunSnapshot.schema, room: wave, location: location,
+            health: health, coins: coins, damage: damage, fireRate: fireRate,
+            chainLevel: chainLevel, explosiveLevel: explosiveLevel,
+            incendiaryLevel: incendiaryLevel, orbitLevel: orbitLevel,
+            runArmor: runArmor, checkpointUsed: checkpointUsed,
+            progress: progress, abilities: lockedLoadout.selected,
+            earnedSalvage: salvageBankedThisRun,
+            roomSalvageCredit: max(roomSalvageRecoveredCredit, roomSalvageEarned))
+        _ = recovery.save(snapshot)
+    }
+
+    private func recoverSavedRun() {
+        guard let snapshot = recovery.load() else { showReady(); return }
+        isRestoringRun = true
+        restart()  // Clear remaining nodes without clearing saved recovery.
+        progress = snapshot.progress
+        lockedLoadout = AbilityLoadout(selected: snapshot.abilities)
+        draftLoadout = lockedLoadout
+        runArmor = snapshot.runArmor
+        coins = snapshot.coins
+        health = min(snapshot.health, maximumHealth)
+        damage = snapshot.damage
+        fireRate = snapshot.fireRate
+        chainLevel = snapshot.chainLevel
+        explosiveLevel = snapshot.explosiveLevel
+        incendiaryLevel = snapshot.incendiaryLevel
+        orbitLevel = snapshot.orbitLevel
+        salvageBankedThisRun = snapshot.earnedSalvage
+        wave = snapshot.room - 1
+        gateUnlocked = true
+        startWave()
+        checkpointUsed = snapshot.checkpointUsed
+        roomSalvageRecoveredCredit = snapshot.roomSalvageCredit
+        roomSalvageEarned = 0
+        rebuildOrbitingDefenses()
+        if snapshot.location == .clearedGate {
+            roomCleared = true
+            spawned = waveTarget
+            showZoneGate()
+        }
+        isRestoringRun = false
+        // Remain frozen until explicitly resumed, including after iOS kills
+        // and recreates the process.
+        if progress.pendingChoices > 0 {
+            _ = presentPendingLevelUp(returningTo:
+                snapshot.location == .clearedGate ? .gate : .playing)
+        } else {
+            setAppActive(false)
+        }
+        saveRunRecovery()
+    }
+
+    private func discardSavedRun() {
+        recovery.clear()
+        // Discarding an old save cannot change permanently banked Salvage.
+        restart()
+        showHeadquarters()
     }
 
     private func showHeadquarters() {
@@ -820,7 +930,11 @@ final class OutpostScene: SKScene {
         actionButton("GEAR BAY", key: "gear_bay", y: 35, tint: .systemTeal)
         actionButton("ABILITY LAB", key: "ability_lab", y: -23, tint: .systemIndigo)
         actionButton("CHARACTER RESTORATION", key: "restore", y: -81, tint: .systemPurple)
-        actionButton("BACK TO WORLD MAP", key: "hq_back", y: -170, tint: .systemBlue)
+        if recovery.load() != nil {
+            actionButton("DISCARD SAVED RUN", key: "discard_run",
+                         y: -128, tint: .systemRed)
+        }
+        actionButton("BACK TO WORLD MAP", key: "hq_back", y: -182, tint: .systemBlue)
         updateHUD()
     }
 
@@ -915,7 +1029,10 @@ final class OutpostScene: SKScene {
 
     private func showSettings() {
         guard phase != .settings || settingsReturnPhase != .settings else { return }
-        if phase != .settings { settingsReturnPhase = phase }
+        if phase != .settings {
+            saveRunRecovery()
+            settingsReturnPhase = phase
+        }
         phase = .settings
         arena.isPaused = true
         hud.isHidden = true
@@ -956,6 +1073,7 @@ final class OutpostScene: SKScene {
     // the player explicitly taps RESUME.
     func setAppActive(_ active: Bool) {
         guard !active && (phase == .playing || phase == .gate) else { return }
+        saveRunRecovery()
         interruptedReturnPhase = phase
         phase = .interrupted
         arena.isPaused = true
@@ -988,6 +1106,7 @@ final class OutpostScene: SKScene {
     private func enterSelectedWorld() -> Bool {
         guard phase == .loadout, draftLoadout.isReady else { return false }
         lockedLoadout = draftLoadout
+        recovery.clear()
         // Ensure newly purchased armor is active from the first room.
         health = maximumHealth
         salvageBankedThisRun = 0
@@ -1035,6 +1154,8 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
+        roomSalvageEarned = 0
+        roomSalvageRecoveredCredit = 0
         controlsHint.removeAllActions()
         controlsHint.isHidden = wave != 1
         controlsHint.alpha = 1
@@ -1061,6 +1182,7 @@ final class OutpostScene: SKScene {
         waveElapsed = 0
         streak = 0
         updateHUD()
+        saveRunRecovery()
     }
 
     private lazy var forestPineTexture: SKTexture = {
@@ -1695,6 +1817,10 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing)
+        if phase == .playing && combatTime >= nextRunSaveAt {
+            nextRunSaveAt = combatTime + 4.0
+            saveRunRecovery()
+        }
         if phase == .playing {
             collectXP()
             if progress.pendingChoices > 0 {
@@ -2287,6 +2413,7 @@ final class OutpostScene: SKScene {
         collectXP(collectAll: true)
         progress.earnXP(6 + wave)
         let destination: Phase = wave == worldWaveCount ? .worldComplete : .gate
+        saveRunRecovery()
         if presentPendingLevelUp(returningTo: destination) { return }
         if destination == .worldComplete { completeWorld() } else { showZoneGate() }
     }
@@ -2378,7 +2505,12 @@ final class OutpostScene: SKScene {
         case "heal": health = min(maximumHealth, health + 40)
         default: runArmor += 20; health = min(maximumHealth, health + 20)
         }
-        if progress.pendingChoices > 0 { showLevelUp(); return }
+        if progress.pendingChoices > 0 {
+            saveRunRecovery()
+            showLevelUp()
+            return
+        }
+        saveRunRecovery()
         // A final enemy may have died on the same frame as the level-up.
         // Finish that cleared room after the upgrade choice, not before it.
         if levelUpReturnPhase == .playing &&
@@ -2417,6 +2549,7 @@ final class OutpostScene: SKScene {
                      enabled: health < maximumHealth && coins >= repairCost)
         actionButton("BACK TO EXIT", key: "back", y: -95, tint: .systemTeal)
         overlayText("ONE PURCHASE PER CHECKPOINT", y: -155, fontSize: 12)
+        saveRunRecovery()
     }
 
     private func showZoneGate() {
@@ -2453,6 +2586,7 @@ final class OutpostScene: SKScene {
         warning.alpha = 1
         warning.isHidden = false
         updateHUD()
+        saveRunRecovery()
     }
 
     private var lastWorldCoreReward = 0
@@ -2477,6 +2611,7 @@ final class OutpostScene: SKScene {
         clearOverlay()
         awardWorldCompletionCores(stars: progress.stars)
         bankSalvage(PersistentProgression.worldCompletionBonus)
+        recovery.clear()
         UserDefaults.standard.set(true, forKey: "frontierForestComplete")
         showWorldCompleteSummary()
     }
@@ -2631,6 +2766,7 @@ final class OutpostScene: SKScene {
     }
 
     private func endGame() {
+        recovery.clear()
         phase = .gameOver
         arena.isPaused = true
         clearHostileAttacks()
@@ -2686,6 +2822,9 @@ final class OutpostScene: SKScene {
         // Speed is a persistent preference, not a per-run upgrade.
         coins = 0
         salvageBankedThisRun = 0
+        roomSalvageEarned = 0
+        roomSalvageRecoveredCredit = 0
+        nextRunSaveAt = 0
         health = maximumHealth
         damage = 1
         fireRate = 1
@@ -2744,7 +2883,9 @@ final class OutpostScene: SKScene {
             showSettings()
         case (.settings, "close_settings"): closeSettings()
         case (.interrupted, "resume_run"): resumeInterruptedRun()
+        case (.ready, "recover_run"): recoverSavedRun()
         case (.ready, "headquarters"): showHeadquarters()
+        case (.headquarters, "discard_run"): discardSavedRun()
         case (.gameOver, "headquarters"), (.worldComplete, "headquarters"):
             // Failed/completed runs must reset before choosing another world.
             // The already-banked Salvage and purchased gear persist.

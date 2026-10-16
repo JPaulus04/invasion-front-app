@@ -1,7 +1,7 @@
 import Foundation
 
 /// Run-only progress. Permanent power-core restoration is stored separately.
-struct RunProgress {
+struct RunProgress: Codable {
     private(set) var level = 1
     private(set) var xp = 0
     private(set) var pendingChoices = 0

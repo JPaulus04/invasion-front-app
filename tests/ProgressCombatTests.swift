@@ -62,6 +62,40 @@ struct ProgressCombatTests {
         precondition(PersistentProgression.enemyReward(isHeavy: false, isBoss: true) >
                      PersistentProgression.enemyReward(isHeavy: false, isBoss: false))
         store.removePersistentDomain(forName: suite)
+        // Persist and recover a Room 12 battle without losing the chosen
+        // abilities or re-paying rewards for already cleared rooms.
+        let recoverySuite = "outpost.zero.recovery.test"
+        let recoveryStorage = UserDefaults(suiteName: recoverySuite)!
+        recoveryStorage.removePersistentDomain(forName: recoverySuite)
+        let recover = RunRecoveryStore(storage: recoveryStorage)
+        precondition(recover.load() == nil)
+        var restoredProgress = RunProgress()
+        restoredProgress.earnXP(100)
+        let saved = RunSnapshot(
+            version: RunSnapshot.schema, room: 12, location: .battle,
+            health: 21, coins: 1506, damage: 4, fireRate: 3,
+            chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
+            orbitLevel: 2, runArmor: 20, checkpointUsed: false,
+            progress: restoredProgress, abilities: ["chain", "incendiary", "orbit"],
+            earnedSalvage: 297, roomSalvageCredit: 24)
+        precondition(saved.isValid && recover.save(saved))
+        let reopened = RunRecoveryStore(storage: recoveryStorage).load()
+        precondition(reopened?.room == 12 && reopened?.health == 21 &&
+                     reopened?.coins == 1506 && reopened?.runArmor == 20 &&
+                     reopened?.earnedSalvage == 297 &&
+                     reopened?.progress.level == 2 &&
+                     reopened?.abilities == ["chain", "incendiary", "orbit"])
+        let bad = RunSnapshot(
+            version: 999, room: 12, location: .battle,
+            health: 21, coins: 1506, damage: 4, fireRate: 3,
+            chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
+            orbitLevel: 2, runArmor: 20, checkpointUsed: false,
+            progress: restoredProgress, abilities: ["chain", "incendiary", "orbit"],
+            earnedSalvage: 297, roomSalvageCredit: 24)
+        precondition(!recover.save(bad))
+        recover.clear()
+        precondition(recover.load() == nil)
+        recoveryStorage.removePersistentDomain(forName: recoverySuite)
         var run = RunProgress()
         let firstThreshold = run.nextLevelXP
         run.earnXP(firstThreshold - 1)
