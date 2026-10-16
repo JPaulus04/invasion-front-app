@@ -53,6 +53,7 @@ enum BattlefieldArt {
         artwork.addChild(ambient)
 
         let floor = SKShapeNode(rect: room, cornerRadius: 18)
+        floor.name = "roomFloor"
         // Only a quiet tonal mask marks the permitted movement boundary in
         // the forest; later worlds can still use a fully opaque room fill.
         floor.fillColor = SKColor(red: 0.18, green: 0.28, blue: 0.20, alpha: 0.12)
