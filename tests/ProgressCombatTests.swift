@@ -75,7 +75,7 @@ struct ProgressCombatTests {
             version: RunSnapshot.schema, worldIndex: 0, room: 12, location: .battle,
             health: 21, coins: 1506, damage: 4, fireRate: 3,
             chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
-            orbitLevel: 2, runArmor: 20, checkpointUsed: false,
+            orbitLevel: 2, runArmor: 20, checkpointUsed: false, checkpointPresented: false,
             progress: restoredProgress, abilities: ["chain", "incendiary", "orbit"],
             earnedSalvage: 297, roomSalvageCredit: 24,
             roomCoinCredit: 84, roomXPCredit: 58)
@@ -86,13 +86,14 @@ struct ProgressCombatTests {
                      reopened?.earnedSalvage == 297 &&
                      reopened?.roomCoinCredit == 84 &&
                      reopened?.roomXPCredit == 58 &&
+                     reopened?.checkpointPresented == false &&
                      reopened?.progress.level == 2 &&
                      reopened?.abilities == ["chain", "incendiary", "orbit"])
         let bad = RunSnapshot(
             version: 999, worldIndex: 0, room: 12, location: .battle,
             health: 21, coins: 1506, damage: 4, fireRate: 3,
             chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
-            orbitLevel: 2, runArmor: 20, checkpointUsed: false,
+            orbitLevel: 2, runArmor: 20, checkpointUsed: false, checkpointPresented: false,
             progress: restoredProgress, abilities: ["chain", "incendiary", "orbit"],
             earnedSalvage: 297, roomSalvageCredit: 24,
             roomCoinCredit: 84, roomXPCredit: 58)
@@ -113,13 +114,31 @@ struct ProgressCombatTests {
             version: RunSnapshot.schema, worldIndex: 0, room: 20, location: .clearedGate,
             health: 15, coins: 2500, damage: 9, fireRate: 5,
             chainLevel: 3, explosiveLevel: 3, incendiaryLevel: 3,
-            orbitLevel: 3, runArmor: 80, checkpointUsed: true,
+            orbitLevel: 3, runArmor: 80, checkpointUsed: true, checkpointPresented: true,
             progress: restoredProgress,
             abilities: ["chain", "incendiary", "orbit"],
             earnedSalvage: 1100, roomSalvageCredit: 88,
             roomCoinCredit: 42, roomXPCredit: 62)
         precondition(completedRoom.isValid && recover.save(completedRoom))
         precondition(recover.load()?.location == .clearedGate)
+        precondition(recover.load()?.checkpointPresented == true)
+        // A cleared milestone is recovered with its healing offer already
+        // recorded; returning to its open gate must not show it again.
+        let offeredCheckpoint = RunSnapshot(
+            version: RunSnapshot.schema, worldIndex: 1, room: 10,
+            location: .clearedGate, health: 32, coins: 240,
+            damage: 3, fireRate: 2,
+            chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
+            orbitLevel: 2, runArmor: 10,
+            checkpointUsed: false, checkpointPresented: true,
+            progress: restoredProgress,
+            abilities: ["chain", "incendiary", "orbit"],
+            earnedSalvage: 220, roomSalvageCredit: 24,
+            roomCoinCredit: 42, roomXPCredit: 62)
+        precondition(offeredCheckpoint.isValid && recover.save(offeredCheckpoint))
+        precondition(recover.load()?.worldIndex == 1)
+        precondition(recover.load()?.room == 10)
+        precondition(recover.load()?.checkpointPresented == true)
         recover.clear()
         precondition(recover.load() == nil)
         recoveryStorage.removePersistentDomain(forName: recoverySuite)

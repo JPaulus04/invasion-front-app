@@ -81,6 +81,8 @@ if "awardRoomXP(xpAmount)" not in scene or "awardRoomCoins(enemies[index].reward
     errors.append("Recovered rooms must not double-pay XP or coins")
 if 'ProcessInfo.processInfo.arguments.contains("-captureRecoveryScreenshot")' not in scene:
     errors.append("Simulator must test run-recovery lifecycle")
+if "checkpointPresented: checkpointPresented" not in scene or "checkpointPresented = snapshot.checkpointPresented" not in scene:
+    errors.append("Checkpoint presentation state must persist across app termination")
 if "CombatRules.mayBeginRangedAttack(" not in scene:
     errors.append("Concurrent ranged attacks must respect a tested readable threat cap")
 if "CombatRules.mortarWarningScale(" not in scene:

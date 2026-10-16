@@ -157,6 +157,10 @@ jobs:
             echo "::error::Simulator never rendered a usable frame for $FLAG"
             return 1
           }
+          # Prioritize the two new playable worlds, so simulator trouble
+          # cannot hide their first actual render behind older art captures.
+          capture_scene -captureWorldExpansionScreenshot screenshots/outpost-zero-flooded-outpost.png
+          capture_scene -captureWorldTransitionScreenshot screenshots/outpost-zero-toxic-crossing.png
           capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
           capture_scene -captureRecoveryScreenshot screenshots/outpost-zero-recovery.png
           capture_scene -capturePausedRunScreenshot screenshots/outpost-zero-paused-run.png
@@ -164,8 +168,6 @@ jobs:
           capture_scene -captureLoadoutScreenshot screenshots/outpost-zero-loadout.png
           capture_scene -captureOvergrownScreenshot screenshots/outpost-zero-overgrown-path.png
           capture_scene -captureTerrainHazardsScreenshot screenshots/outpost-zero-terrain.png
-          capture_scene -captureWorldExpansionScreenshot screenshots/outpost-zero-flooded-outpost.png
-          capture_scene -captureWorldTransitionScreenshot screenshots/outpost-zero-toxic-crossing.png
           capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
           capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
           capture_scene -captureLevelUpScreenshot screenshots/outpost-zero-level-up.png

@@ -396,6 +396,7 @@ final class OutpostScene: SKScene {
                 health: 21, coins: 1506, damage: 4, fireRate: 3,
                 chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
                 orbitLevel: 2, runArmor: 20, checkpointUsed: false,
+                checkpointPresented: false,
                 progress: RunProgress(), abilities: ["chain", "orbit", "incendiary"],
                 earnedSalvage: 290, roomSalvageCredit: 24,
                 roomCoinCredit: 75, roomXPCredit: 68)
@@ -978,6 +979,7 @@ final class OutpostScene: SKScene {
             chainLevel: chainLevel, explosiveLevel: explosiveLevel,
             incendiaryLevel: incendiaryLevel, orbitLevel: orbitLevel,
             runArmor: runArmor, checkpointUsed: checkpointUsed,
+            checkpointPresented: checkpointPresented,
             progress: progress, abilities: lockedLoadout.selected,
             earnedSalvage: salvageBankedThisRun,
             roomSalvageCredit: max(roomSalvageRecoveredCredit, roomSalvageEarned),
@@ -1008,6 +1010,7 @@ final class OutpostScene: SKScene {
         gateUnlocked = true
         startWave()
         checkpointUsed = snapshot.checkpointUsed
+        checkpointPresented = snapshot.checkpointPresented
         roomSalvageRecoveredCredit = snapshot.roomSalvageCredit
         roomSalvageEarned = 0
         roomCoinsRecoveredCredit = snapshot.roomCoinCredit

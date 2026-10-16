@@ -4,7 +4,7 @@ import Foundation
 /// positions are deliberately reconstructed from the current room's beginning.
 struct RunSnapshot: Codable {
     enum Location: String, Codable { case battle, clearedGate }
-    static let schema = 3
+    static let schema = 4
 
     let version: Int
     let worldIndex: Int
@@ -20,6 +20,9 @@ struct RunSnapshot: Codable {
     let orbitLevel: Int
     let runArmor: Int
     let checkpointUsed: Bool
+    /// Once offered, the milestone healing screen must not reopen repeatedly
+    /// when the player returns to a cleared room after iOS terminates.
+    let checkpointPresented: Bool
     let progress: RunProgress
     let abilities: [String]
     let earnedSalvage: Int
