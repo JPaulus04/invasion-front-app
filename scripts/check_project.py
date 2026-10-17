@@ -221,8 +221,10 @@ if "awardRoomXP(xpAmount)" not in kill_section:
     errors.append("Kills must grant replay-safe XP immediately")
 if "presentPendingLevelUp(returningTo: .playing)" not in kill_section:
     errors.append("Mid-room kills must trigger pending level-up choices")
-if "RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count)" not in choice_section:
-    errors.append("Level-up completion must recheck whether the room was cleared")
+if not all(fragment in choice_section for fragment in (
+        "RoomRules.isCleared(", "SurvivalEncounterRules.extractionActive(",
+        "levelUpReturnPhase == .playing && !roomCleared")):
+    errors.append("Level-up completion must recheck tactical clear AND timed extraction")
 if 'levelChoices = choices.shuffled()' not in scene or 'prefix(3 - choices.count)' not in scene:
     errors.append("Level-up must show three rotating upgrade choices alongside featured tactical options")
 # Ranged attacks must communicate both the selected shot target and
