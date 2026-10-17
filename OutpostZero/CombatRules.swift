@@ -186,8 +186,16 @@ enum EncounterDirector {
         case .flank:
             return slot.isMultiple(of: 3) ? 63 + seed % 9 : 33 + seed % 67
         case .crossfire:
-            // One shooter in each ~five-enemy group, not a shooter wall.
-            return slot.isMultiple(of: 5) ? 6 + seed % 8 : 34 + seed % 66
+            // Reserve one shooter slot for approximately every five enemies.
+            // Avoid the earlier lobber thresholds in Flooded/Toxic worlds:
+            // those worlds should display crossfire as actual rifle fire.
+            let shooterRoll: Int
+            switch world {
+            case 1: shooterRoll = 19 + seed % 7
+            case 2: shooterRoll = max(25, min(30, 15 + room) + 2)
+            default: shooterRoll = 6 + seed % 8
+            }
+            return slot.isMultiple(of: 5) ? shooterRoll : 34 + seed % 66
         case .siege:
             // One telegraphed lobber in each ~six-enemy group; other slots
             // remain mixed melee so players can dodge through gaps.

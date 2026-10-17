@@ -151,7 +151,7 @@ if '-captureAcidActiveScreenshot' not in scene or 'displayedAcidActive == true' 
     errors.append("Simulator must exercise and photograph the damaging acid phase")
 if "WorldCatalog.recordVictory(worldMapIndex, stars: stars)" not in scene:
     errors.append("Each world must award its own stars and power cores")
-if "WorldCatalog.enemyType(world: worldMapIndex" not in scene:
+if "WorldCatalog.enemyType(" not in scene or "world: worldMapIndex, room: wave, roll: roll" not in scene:
     errors.append("World-specific enemies must be drawn from tested rules")
 if 'ProcessInfo.processInfo.arguments.contains("-captureWorldExpansionScreenshot")' not in scene:
     errors.append("Simulator must capture an actual unlocked Flooded Outpost arena")
