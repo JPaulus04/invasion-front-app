@@ -39,7 +39,8 @@ def verify(path: Path) -> None:
         "outpost-zero-arena-center.png": 1,
         "outpost-zero-arena-east.png": 2
     }
-    is_survival = path.name.startswith("outpost-zero-survival-")
+    is_survival = (path.name.startswith("outpost-zero-survival-") or
+                   path.name == "outpost-zero-extraction-open.png")
     # Ignore static phone notch/home bar; sample the game area.
     # A denser grid catches small, moving sprites in intentionally sparse
     # ranged arenas without treating real gameplay as an unrendered frame.
@@ -98,7 +99,7 @@ def verify(path: Path) -> None:
         arena_marker[1] > 90 or arena_marker[2] < 170
     ):
         raise ValueError(
-            f"not a live survival-swarm capture, marker {arena_marker}")
+            f"not a live survival/extraction capture, marker {arena_marker}")
     print(f"PASS: {path} {width}x{height}, {len(colors)} battlefield colors")
 
 if __name__ == "__main__":

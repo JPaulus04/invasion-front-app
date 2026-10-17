@@ -57,6 +57,12 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Remove procedural dangling broadleaf vines and straight survival-arena floor outline. Hide forest room edge strokes.
 - Simulator captures must show actual updated normal portal, survival orb and clean overgrown forest. No generic image substitutions and no TestFlight upload.
 
+## Visual QA correction following the first October 17 simulator pass
+- Full CI 39075581821 passed, but manual inspection found the survival extraction screenshot was actually the iOS home screen! The prior validator incorrectly accepted any colorful PNG at this filename. A magenta simulator-only identity square must now be present, just as in the live swarm QA frames; crashed apps cannot pass review.
+- Fixed the QA-only extraction fixture's completion flag (direct completeWave now marks survival spawning finished as real expiry does); keep the legitimate post-extraction kill+reward assertion.
+- Even without a border stroke, the opaque expanded-arena ground showed a horizontal lower edge. Oversize visual ground far outside collision bounds so its cutoff is never inside the visible gameplay viewport.
+- Require a second genuine screenshot/artifact inspection before final approval.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

@@ -767,6 +767,16 @@ final class OutpostScene: SKScene {
                          phase == .gate && !extractionPortal.isHidden &&
                          survivalSpawnPhaseFinished,
                          "Timed evacuation must allow earned kills, not new spawns")
+            // Reject screenshots of the iOS home screen or a crashed process.
+            // Test-only magenta identity marker is absent from shipped play.
+            let identity = SKShapeNode(rectOf: CGSize(width: 26, height: 26))
+            identity.fillColor = SKColor(red: 1, green: 0, blue: 1, alpha: 1)
+            identity.strokeColor = .white
+            identity.lineWidth = 2
+            identity.zPosition = 65
+            identity.position = CGPoint(x: size.width * 0.90,
+                                        y: size.height * 0.60)
+            hud.addChild(identity)
             arena.isPaused = true
         }
         // Scene-level end-to-end regression: walk into extraction with live
@@ -1101,7 +1111,11 @@ final class OutpostScene: SKScene {
     /// otherwise appear disconnected from moving terrain and enemies.
     private func installArenaPreviewGround() {
         arena.childNode(withName: "expandedArenaPreviewGround")?.removeFromParent()
-        let floor = SKShapeNode(rect: roomBounds, cornerRadius: 18)
+        // Render well beyond the movement boundary: otherwise the lower
+        // edge creates a conspicuous straight green stripe on an iPhone.
+        // Gameplay collision still uses roomBounds, not this visual rect.
+        let floor = SKShapeNode(
+            rect: roomBounds.insetBy(dx: -size.width, dy: -size.height))
         floor.name = "expandedArenaPreviewGround"
         floor.fillColor = SKColor(red: 0.12, green: 0.22, blue: 0.19, alpha: 1)
         floor.strokeColor = .clear
@@ -3899,6 +3913,9 @@ final class OutpostScene: SKScene {
     private func completeWave() {
         guard !roomCleared else { return }
         roomCleared = true
+        if activeEncounter == .survival {
+            survivalSpawnPhaseFinished = true
+        }
         clearHostileAttacks()
         bankSalvage(PersistentProgression.roomReward(room: wave))
         if activeEncounter != .survival {
