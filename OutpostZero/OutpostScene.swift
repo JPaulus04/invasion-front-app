@@ -1493,8 +1493,12 @@ final class OutpostScene: SKScene {
             waveElapsed = min(snapshot.timedEncounterElapsed ?? 0,
                               SurvivalEncounterRules.duration(
                                   world: worldMapIndex, room: wave))
-            survivalSpawnPhaseFinished = SurvivalEncounterRules.extractionActive(
-                world: worldMapIndex, room: wave, elapsed: waveElapsed)
+            // A snapshot written after timeout but before portal completion
+            // can still be .battle. Do not suppress its completion trigger:
+            // the first resumed combat frame must open extraction.
+            survivalSpawnPhaseFinished = snapshot.location == .clearedGate &&
+                SurvivalEncounterRules.extractionActive(
+                    world: worldMapIndex, room: wave, elapsed: waveElapsed)
             // No refill on resume. Rebuild only the bounded living swarm
             // recorded at interruption; reward replay credits remain active.
             if let savedLiving = snapshot.timedEncounterLiving {
