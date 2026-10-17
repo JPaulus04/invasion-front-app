@@ -13,19 +13,29 @@ enum TerrainHazards {
         /// Shared by drawing and hit testing: no circular graphic hiding an
         /// invisible rectangle, and no damage outside the actual spill.
         let outline: [CGPoint]
+        // Computed once per room layout; hit detection, enemy navigation and
+        // artwork all reuse this immutable CGPath. Rebuilding paths on every
+        // movement sample would cause CPU spikes with crowded rooms.
+        private let collisionPath: CGPath
 
-        func outlinePath() -> CGPath {
+        init(kind: Kind, frame: CGRect, outline: [CGPoint]) {
+            self.kind = kind
+            self.frame = frame
+            self.outline = outline
             let path = CGMutablePath()
-            guard let first = outline.first else { return path }
-            path.move(to: CGPoint(x: first.x * frame.width,
-                                  y: first.y * frame.height))
-            for vertex in outline.dropFirst() {
-                path.addLine(to: CGPoint(x: vertex.x * frame.width,
-                                         y: vertex.y * frame.height))
+            if let first = outline.first {
+                path.move(to: CGPoint(x: first.x * frame.width,
+                                      y: first.y * frame.height))
+                for vertex in outline.dropFirst() {
+                    path.addLine(to: CGPoint(x: vertex.x * frame.width,
+                                             y: vertex.y * frame.height))
+                }
+                path.closeSubpath()
             }
-            path.closeSubpath()
-            return path
+            collisionPath = path
         }
+
+        func outlinePath() -> CGPath { collisionPath }
 
         func contains(_ point: CGPoint, margin: CGFloat = 0) -> Bool {
             if kind == .rubble {
@@ -33,8 +43,7 @@ enum TerrainHazards {
             }
             let local = CGPoint(x: point.x - frame.midX,
                                 y: point.y - frame.midY)
-            let profile = outlinePath()
-            if profile.contains(local) { return true }
+            if collisionPath.contains(local) { return true }
             guard margin > 0, outline.count >= 3 else { return false }
             // Clearance around the polygon is the distance to its real
             // shoreline, not an enlarged bounding rectangle.
@@ -79,8 +88,8 @@ enum TerrainHazards {
                             y: 0.79, width: 0.24, height: 0.11,
                             bounds: bounds, alternate: alternate)
         switch world {
-        case 1: return [water, barrier] // Flooded Outpost: slowdown and blocked paths
-        case 2: return [acid, barrier] // Toxic Crossing: pulsing acid without water slowdown
+        case 1: return [water, barrier] // Flooded Outpost: impassable channels and debris
+        case 2: return [acid, barrier] // Toxic Crossing: pulsing acid and blocked paths
         default: return [water, acid, barrier]
         }
     }
