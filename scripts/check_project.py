@@ -33,6 +33,10 @@ if "CombatVisuals.rifleTracer(in: arena" not in scene:
     errors.append("Rifle attacks must use layered, short-lived tracer artwork")
 if "CombatVisuals.explosiveBurst(in: arena" not in scene or "CombatVisuals.markBurning(" not in scene or "CombatVisuals.chainArc(in: arena" not in scene:
     errors.append("Tactical abilities must have unique explosive, burning and chain effects")
+if "AbilitySynergies.thermiteBonus(" not in scene or "AbilitySynergies.conductiveBonus(" not in scene or "AbilitySynergies.bladeArcDamage(" not in scene:
+    errors.append("Combined abilities must change damage, not just visuals")
+if "AbilitySynergies.preview(" not in scene:
+    errors.append("Level-up cards must identify synergistic upgrade opportunities")
 if "facing: pilotFacing" not in scene or "pilotFacing = 1" not in scene:
     errors.append("Pilot combat-facing animation must reset safely between runs")
 if "CharacterMotion.pilot(" not in scene or "CharacterMotion.enemy(" not in scene:

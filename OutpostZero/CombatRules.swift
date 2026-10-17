@@ -231,3 +231,52 @@ enum EncounterDirector {
         }
     }
 }
+
+
+/// Upgrading matching modules transforms an existing three-slot loadout.
+/// Modifiers are intentionally bounded and independently testable.
+enum AbilitySynergies {
+    static func chainReach(chain: Int, incendiary: Int) -> CGFloat {
+        guard chain > 0 else { return 0 }
+        return 115 + (incendiary > 0 ? CGFloat(17 + min(3, chain) * 6) : 0)
+    }
+    static func conductiveBonus(chain: Int, incendiary: Int, burning: Bool) -> Int {
+        guard chain > 0, incendiary > 0, burning else { return 0 }
+        return 1 + min(3, chain)
+    }
+    static func thermiteBonus(explosive: Int, incendiary: Int, burning: Bool) -> Int {
+        guard explosive > 0, incendiary > 0 else { return 0 }
+        return 1 + min(3, incendiary) + (burning ? 2 : 0)
+    }
+    static func burnDuration(incendiary: Int, explosive: Int) -> TimeInterval {
+        guard incendiary > 0 else { return 0 }
+        return explosive > 0 ? 3.25 : 2.5
+    }
+    static func bladeArcDamage(chain: Int, orbit: Int) -> Int {
+        guard chain > 0, orbit > 0 else { return 0 }
+        return min(4, 1 + min(chain, orbit))
+    }
+    static func bladeArcReach(chain: Int, orbit: Int) -> CGFloat {
+        guard chain > 0, orbit > 0 else { return 0 }
+        return CGFloat(65 + min(3, chain) * 8)
+    }
+    static let bladeArcCooldown: TimeInterval = 1.45
+
+    static func preview(ability: String, chain: Int, explosive: Int,
+                        incendiary: Int, orbit: Int) -> String? {
+        switch ability {
+        case "chain":
+            if incendiary > 0 { return "COMBO: VOLTAIC FLAMES" }
+            if orbit > 0 { return "COMBO: ARC BLADES" }
+        case "explosive":
+            if incendiary > 0 { return "COMBO: THERMITE BURST" }
+        case "incendiary":
+            if explosive > 0 { return "COMBO: THERMITE BURST" }
+            if chain > 0 { return "COMBO: VOLTAIC FLAMES" }
+        case "orbit":
+            if chain > 0 { return "COMBO: ARC BLADES" }
+        default: break
+        }
+        return nil
+    }
+}

@@ -267,6 +267,44 @@ struct ProgressCombatTests {
                 }
             }
         }
+        // True gameplay modifiers, not just alternate effect colors.
+        precondition(AbilitySynergies.chainReach(chain: 0, incendiary: 3) == 0)
+        precondition(AbilitySynergies.chainReach(chain: 1, incendiary: 0) == 115)
+        precondition(AbilitySynergies.chainReach(chain: 2, incendiary: 1) == 144)
+        precondition(AbilitySynergies.chainReach(chain: 3, incendiary: 3) == 150)
+        precondition(AbilitySynergies.conductiveBonus(
+            chain: 2, incendiary: 1, burning: true) == 3)
+        precondition(AbilitySynergies.conductiveBonus(
+            chain: 2, incendiary: 1, burning: false) == 0)
+        precondition(AbilitySynergies.thermiteBonus(
+            explosive: 2, incendiary: 1, burning: false) == 2)
+        precondition(AbilitySynergies.thermiteBonus(
+            explosive: 2, incendiary: 1, burning: true) == 4)
+        precondition(AbilitySynergies.thermiteBonus(
+            explosive: 0, incendiary: 1, burning: true) == 0)
+        precondition(AbilitySynergies.burnDuration(
+            incendiary: 0, explosive: 3) == 0)
+        precondition(AbilitySynergies.burnDuration(
+            incendiary: 1, explosive: 0) == 2.5)
+        precondition(AbilitySynergies.burnDuration(
+            incendiary: 1, explosive: 1) == 3.25)
+        precondition(AbilitySynergies.bladeArcDamage(chain: 0, orbit: 3) == 0)
+        precondition(AbilitySynergies.bladeArcDamage(chain: 1, orbit: 1) == 2)
+        precondition(AbilitySynergies.bladeArcDamage(chain: 3, orbit: 3) == 4)
+        precondition(AbilitySynergies.bladeArcReach(chain: 3, orbit: 3) == 89)
+        precondition(AbilitySynergies.bladeArcCooldown >= 1.2)
+        precondition(AbilitySynergies.preview(
+            ability: "incendiary", chain: 0, explosive: 1,
+            incendiary: 0, orbit: 0) == "COMBO: THERMITE BURST")
+        precondition(AbilitySynergies.preview(
+            ability: "orbit", chain: 1, explosive: 0,
+            incendiary: 0, orbit: 0) == "COMBO: ARC BLADES")
+        precondition(AbilitySynergies.preview(
+            ability: "chain", chain: 0, explosive: 0,
+            incendiary: 1, orbit: 0) == "COMBO: VOLTAIC FLAMES")
+        precondition(AbilitySynergies.preview(
+            ability: "orbit", chain: 0, explosive: 0,
+            incendiary: 0, orbit: 0) == nil)
         // A single target scan must select the closest active enemy,
         // ignore spawning/dead enemies and respect the rifle's 260pt range.
         let positions = [

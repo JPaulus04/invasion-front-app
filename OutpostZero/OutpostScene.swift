@@ -88,6 +88,7 @@ final class OutpostScene: SKScene {
     private var orbitLevel = 0
     private var orbitalNodes: [SKShapeNode] = []
     private var lastOrbitalHit: [ObjectIdentifier: TimeInterval] = [:]
+    private var nextBladeArcAt: TimeInterval = 0
     private var checkpointUsed = false
     private var checkpointPresented = false
     private let xpTrack = SKShapeNode()
@@ -1759,6 +1760,7 @@ final class OutpostScene: SKScene {
         pilotGun.zRotation = 0
         pilotShieldUntil = combatTime + 1.2
         lastShot = combatTime
+        nextBladeArcAt = combatTime + 0.7
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
@@ -3185,6 +3187,30 @@ final class OutpostScene: SKScene {
                        destroyed: enemies[enemyIndex].health <= 0)
                 EnemyCombatFeedback.hit(enemies[enemyIndex].node, from: pilot.position)
                 updateEnemyHealthBar(at: enemyIndex)
+                // ARC BLADES: limited single-target lightning from the struck
+                // enemy, with a global cooldown across all orbiting blades.
+                let reach = AbilitySynergies.bladeArcReach(
+                    chain: chainLevel, orbit: orbitLevel)
+                if reach > 0, combatTime >= nextBladeArcAt,
+                   let arcIndex = enemies.indices
+                    .filter({ $0 != enemyIndex && enemies[$0].health > 0 &&
+                        combatTime >= enemies[$0].activeAt &&
+                        distance(enemies[$0].node.position, enemy.node.position) <= reach })
+                    .min(by: { distance(enemies[$0].node.position, enemy.node.position) <
+                                distance(enemies[$1].node.position, enemy.node.position) }) {
+                    nextBladeArcAt = combatTime + AbilitySynergies.bladeArcCooldown
+                    let discharge = AbilitySynergies.bladeArcDamage(
+                        chain: chainLevel, orbit: orbitLevel)
+                    let arcPosition = enemies[arcIndex].node.position
+                    CombatVisuals.chainArc(in: arena, from: enemy.node.position,
+                                           to: arcPosition, rank: chainLevel)
+                    enemies[arcIndex].health -= discharge
+                    impact(at: arcPosition, color: .systemCyan,
+                           destroyed: enemies[arcIndex].health <= 0)
+                    EnemyCombatFeedback.hit(enemies[arcIndex].node,
+                                            from: enemy.node.position)
+                    updateEnemyHealthBar(at: arcIndex)
+                }
             }
         }
         removeDefeatedEnemies()
@@ -3216,14 +3242,23 @@ final class OutpostScene: SKScene {
         enemies[index].health -= totalBulletDamage
         EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
         if incendiaryLevel > 0 {
-            burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus + gearReactorBonus + permanent.rank("incendiary"), until: combatTime + 2.5, nextTick: combatTime + 0.5)
+            burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus + gearReactorBonus + permanent.rank("incendiary"), until: combatTime + AbilitySynergies.burnDuration(
+                incendiary: incendiaryLevel, explosive: explosiveLevel),
+                nextTick: combatTime + 0.5)
             CombatVisuals.markBurning(enemies[index].node, radius: enemies[index].radius)
         }
         if explosiveLevel > 0 {
             for other in enemies.indices where other != index && combatTime >= enemies[other].activeAt && distance(enemies[other].node.position, target) < CGFloat(35 + explosiveLevel * 15 + permanent.rank("explosive") * 5) {
-                enemies[other].health -= max(1, damage * explosiveLevel / 3 + permanent.rank("explosive") + gearReactorBonus)
+                let alreadyBurning = (burns[ObjectIdentifier(enemies[other].node)]?.until ?? 0) > combatTime
+                let thermiteBonus = AbilitySynergies.thermiteBonus(
+                    explosive: explosiveLevel, incendiary: incendiaryLevel,
+                    burning: alreadyBurning)
+                enemies[other].health -= max(1, damage * explosiveLevel / 3 +
+                    permanent.rank("explosive") + gearReactorBonus) + thermiteBonus
                 if incendiaryLevel > 0 {
-                    burns[ObjectIdentifier(enemies[other].node)] = (damage: incendiaryLevel, until: combatTime + 2.5, nextTick: combatTime + 0.5)
+                    burns[ObjectIdentifier(enemies[other].node)] = (damage: incendiaryLevel, until: combatTime + AbilitySynergies.burnDuration(
+                incendiary: incendiaryLevel, explosive: explosiveLevel),
+                nextTick: combatTime + 0.5)
                     CombatVisuals.markBurning(enemies[other].node,
                                                radius: enemies[other].radius)
                 }
@@ -3248,18 +3283,26 @@ final class OutpostScene: SKScene {
         var visited: Set<ObjectIdentifier> = [ObjectIdentifier(initialNode)]
         for _ in 0..<min(chainLevel + permanentSystemsBonus + permanent.rank("chain") / 2, 6) {
             guard let targetIndex = enemies.indices
-                .filter({ !visited.contains(ObjectIdentifier(enemies[$0].node)) && combatTime >= enemies[$0].activeAt && distance(enemies[$0].node.position, previous) <= 115 })
+                .filter({ !visited.contains(ObjectIdentifier(enemies[$0].node)) && combatTime >= enemies[$0].activeAt && distance(enemies[$0].node.position, previous) <=
+                    AbilitySynergies.chainReach(chain: chainLevel,
+                                                incendiary: incendiaryLevel) })
                 .min(by: { distance(enemies[$0].node.position, previous) < distance(enemies[$1].node.position, previous) }) else { break }
             let enemy = enemies[targetIndex]
             let endpoint = enemy.node.position
             CombatVisuals.chainArc(in: arena, from: previous,
                                    to: endpoint, rank: chainLevel)
-            let chainDamage = max(1, damage / 2 + permanent.rank("chain") + gearReactorBonus)
+            let conductiveBonus = AbilitySynergies.conductiveBonus(
+                chain: chainLevel, incendiary: incendiaryLevel,
+                burning: (burns[ObjectIdentifier(enemy.node)]?.until ?? 0) > combatTime)
+            let chainDamage = max(1, damage / 2 + permanent.rank("chain") +
+                gearReactorBonus) + conductiveBonus
             impact(at: endpoint, color: .systemCyan, destroyed: enemy.health <= chainDamage)
             enemies[targetIndex].health -= chainDamage
             EnemyCombatFeedback.hit(enemies[targetIndex].node, from: previous)
             if incendiaryLevel > 0 {
-                burns[ObjectIdentifier(enemy.node)] = (damage: incendiaryLevel, until: combatTime + 2.5, nextTick: combatTime + 0.5)
+                burns[ObjectIdentifier(enemy.node)] = (damage: incendiaryLevel, until: combatTime + AbilitySynergies.burnDuration(
+                incendiary: incendiaryLevel, explosive: explosiveLevel),
+                nextTick: combatTime + 0.5)
                 CombatVisuals.markBurning(enemy.node, radius: enemy.radius)
             }
             let fraction = CGFloat(max(0, enemies[targetIndex].health)) / CGFloat(enemies[targetIndex].maxHealth)
@@ -3431,25 +3474,37 @@ final class OutpostScene: SKScene {
                 tint = SKColor(red: 1, green: 0.67, blue: 0.29, alpha: 1)
             case "chain":
                 label = "CHAIN LIGHTNING  LV \(chainLevel + 1)"
-                detail = "Hits additional nearby enemies"
+                detail = AbilitySynergies.preview(
+                    ability: "chain", chain: chainLevel,
+                    explosive: explosiveLevel, incendiary: incendiaryLevel,
+                    orbit: orbitLevel) ?? "Hits additional nearby enemies"
                 category = "TACTICAL"
                 symbol = "ARC"
                 tint = SKColor(red: 0.51, green: 0.74, blue: 1, alpha: 1)
             case "explosive":
                 label = "EXPLOSIVE ROUNDS  LV \(explosiveLevel + 1)"
-                detail = "Weapon hits splash nearby enemies"
+                detail = AbilitySynergies.preview(
+                    ability: "explosive", chain: chainLevel,
+                    explosive: explosiveLevel, incendiary: incendiaryLevel,
+                    orbit: orbitLevel) ?? "Weapon hits splash nearby enemies"
                 category = "ORDNANCE"
                 symbol = "AOE"
                 tint = SKColor(red: 1, green: 0.57, blue: 0.38, alpha: 1)
             case "incendiary":
                 label = "INCENDIARY ROUNDS  LV \(incendiaryLevel + 1)"
-                detail = "Weapon hits inflict lasting burn damage"
+                detail = AbilitySynergies.preview(
+                    ability: "incendiary", chain: chainLevel,
+                    explosive: explosiveLevel, incendiary: incendiaryLevel,
+                    orbit: orbitLevel) ?? "Weapon hits inflict lasting burn damage"
                 category = "ORDNANCE"
                 symbol = "HOT"
                 tint = SKColor(red: 1, green: 0.57, blue: 0.38, alpha: 1)
             case "orbit":
                 label = "ORBITAL BLADES  LV \(orbitLevel + 1)"
-                detail = "Spinning blades strike nearby foes"
+                detail = AbilitySynergies.preview(
+                    ability: "orbit", chain: chainLevel,
+                    explosive: explosiveLevel, incendiary: incendiaryLevel,
+                    orbit: orbitLevel) ?? "Spinning blades strike nearby foes"
                 category = "TACTICAL"
                 symbol = "ORB"
                 tint = SKColor(red: 0.63, green: 0.70, blue: 1, alpha: 1)
@@ -3930,6 +3985,7 @@ final class OutpostScene: SKScene {
         incendiaryLevel = 0
         orbitLevel = 0
         lastOrbitalHit.removeAll()
+        nextBladeArcAt = 0
         rebuildOrbitingDefenses()
         burns.removeAll()
         heldTouch = nil
