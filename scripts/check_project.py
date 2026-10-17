@@ -129,6 +129,8 @@ if 'let shape = SKShapeNode(path: patch.outlinePath())' not in scene:
     errors.append("Hazards must use their physical polygon boundaries for drawing")
 if 'interior.name = "liquidSurfaceDetail"' not in scene or 'interior.maskNode = textureMask' not in scene:
     errors.append("Water and acid section detail must be clipped to the exact hazard outline")
+if 'groundBank.name = "softTerrainBank"' not in scene or 'for index in 0..<7' not in scene:
+    errors.append("Terrain sections need softened environmental banks and material shelves")
 if 'for index in 0..<19' not in scene or 'for lane in 0..<3' not in scene:
     errors.append("Terrain-section surfaces must have distinct runoff and submerged-material detailing")
 if 'caption.text = patch.kind == .water' in scene or 'shape = SKShapeNode(ellipseOf: patch.frame.size)' in scene:

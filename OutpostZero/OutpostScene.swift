@@ -1328,16 +1328,16 @@ final class OutpostScene: SKScene {
             let shape = SKShapeNode(path: patch.outlinePath())
             shape.name = "terrain_\(patch.kind.rawValue)"
             shape.position = CGPoint(x: patch.frame.midX, y: patch.frame.midY)
-            shape.lineWidth = 2.5
+            shape.lineWidth = 1.65
             shape.zPosition = 0
             switch patch.kind {
             case .water:
-                shape.fillColor = SKColor(red: 0.08, green: 0.37, blue: 0.53, alpha: 0.74)
-                shape.strokeColor = SKColor(red: 0.44, green: 0.74, blue: 0.79, alpha: 0.88)
+                shape.fillColor = SKColor(red: 0.065, green: 0.29, blue: 0.43, alpha: 0.66)
+                shape.strokeColor = SKColor(red: 0.36, green: 0.66, blue: 0.72, alpha: 0.43)
                 decorateLiquidHazard(shape, kind: .water, size: patch.frame.size)
             case .acid:
-                shape.fillColor = SKColor(red: 0.15, green: 0.48, blue: 0.09, alpha: 0.62)
-                shape.strokeColor = SKColor(red: 0.87, green: 0.78, blue: 0.34, alpha: 1)
+                shape.fillColor = SKColor(red: 0.19, green: 0.43, blue: 0.13, alpha: 0.66)
+                shape.strokeColor = SKColor(red: 0.64, green: 0.72, blue: 0.29, alpha: 0.45)
                 decorateLiquidHazard(shape, kind: .acid, size: patch.frame.size)
                 acidVisualNodes.append(shape)
             case .rubble:
@@ -1381,6 +1381,21 @@ final class OutpostScene: SKScene {
         // slowdown and damage. One static crop per room section; nothing is
         // sampled or redrawn during movement/combat frames.
         guard let bankPath = pool.path else { return }
+
+        // A translucent bank/lip extends a few points beyond the water line.
+        // The physical polygon remains exact; this rim is visual sediment and
+        // replaces the previous strong, continuous neon-blue/yellow outline.
+        let groundBank = SKShapeNode(path: bankPath)
+        groundBank.name = "softTerrainBank"
+        groundBank.setScale(1.035)
+        groundBank.fillColor = .clear
+        groundBank.strokeColor = acid
+            ? SKColor(red: 0.33, green: 0.28, blue: 0.13, alpha: 0.37)
+            : SKColor(red: 0.12, green: 0.25, blue: 0.28, alpha: 0.39)
+        groundBank.lineWidth = 7
+        groundBank.zPosition = -0.3
+        pool.addChild(groundBank)
+
         let textureMask = SKShapeNode(path: bankPath)
         textureMask.fillColor = .white
         textureMask.strokeColor = .clear
@@ -1457,12 +1472,36 @@ final class OutpostScene: SKScene {
             interior.addChild(fleck)
         }
 
-        // A narrow inner contour gives the terrain a physical bank instead
-        // of a bright colored floating plane.
+        // Angular shore shelves tie the side-channel to nearby ground and
+        // equipment. They render inside the clipped physical polygon, so the
+        // movement lane remains open and untouched.
+        for index in 0..<7 {
+            let y = h * (CGFloat(index) / 6 - 0.5) * 0.75
+            let innerX = w * (acid ? -0.19 : 0.17)
+            let stagger = CGFloat(index % 3 - 1) * w * 0.025
+            let x = innerX + stagger
+            let width = w * (index.isMultiple(of: 2) ? 0.14 : 0.105)
+            let shelfPath = CGMutablePath()
+            shelfPath.move(to: CGPoint(x: x - width * 0.6, y: y - 4))
+            shelfPath.addLine(to: CGPoint(x: x - width * 0.26, y: y + 3))
+            shelfPath.addLine(to: CGPoint(x: x + width * 0.43, y: y + 2))
+            shelfPath.addLine(to: CGPoint(x: x + width * 0.57, y: y - 2))
+            shelfPath.closeSubpath()
+            let shelf = SKShapeNode(path: shelfPath)
+            shelf.fillColor = acid
+                ? SKColor(red: 0.53, green: 0.34, blue: 0.18, alpha: 0.29)
+                : SKColor(red: 0.38, green: 0.48, blue: 0.46, alpha: 0.25)
+            shelf.strokeColor = .clear
+            shelf.zPosition = 0.3
+            interior.addChild(shelf)
+        }
+
+        // A narrow, quiet inner contour suggests depth without outlining the
+        // entire playable section in an artificial hazard warning color.
         let shoreline = SKShapeNode(path: bankPath)
         shoreline.setScale(0.92)
         shoreline.fillColor = .clear
-        shoreline.strokeColor = highlight.withAlphaComponent(0.21)
+        shoreline.strokeColor = highlight.withAlphaComponent(0.12)
         shoreline.lineWidth = 1.3
         shoreline.zPosition = 0.2
         pool.addChild(shoreline)
@@ -1602,10 +1641,12 @@ final class OutpostScene: SKScene {
             displayedAcidActive = acidOn
             for shape in acidVisualNodes {
                 shape.fillColor = acidOn
-                    ? SKColor(red: 0.32, green: 0.88, blue: 0.13, alpha: 0.82)
-                    : SKColor(red: 0.15, green: 0.55, blue: 0.09, alpha: 0.48)
-                shape.strokeColor = acidOn ? .systemRed : .systemYellow
-                shape.glowWidth = acidOn ? 3 : 0
+                    ? SKColor(red: 0.24, green: 0.70, blue: 0.16, alpha: 0.77)
+                    : SKColor(red: 0.19, green: 0.43, blue: 0.13, alpha: 0.66)
+                shape.strokeColor = acidOn
+                    ? SKColor.systemRed.withAlphaComponent(0.91)
+                    : SKColor(red: 0.64, green: 0.72, blue: 0.29, alpha: 0.45)
+                shape.glowWidth = acidOn ? 1.7 : 0
                 shape.childNode(withName: "acidActiveVeins")?.isHidden = !acidOn
             }
         }
