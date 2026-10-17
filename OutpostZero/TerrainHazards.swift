@@ -135,8 +135,14 @@ enum TerrainHazards {
         }
     }
 
-    static func waterSpeed(at point: CGPoint, patches: [Patch]) -> CGFloat {
-        patches.contains { $0.kind == .water && $0.contains(point) } ? 0.62 : 1
+    /// Deep water is a solid terrain boundary, not a slowdown zone. The
+    /// same geometric outline controls collision and the visible shoreline.
+    static func blocksMovement(_ point: CGPoint, patches: [Patch],
+                               radius: CGFloat = 10) -> Bool {
+        patches.contains {
+            ($0.kind == .water || $0.kind == .rubble) &&
+                $0.contains(point, margin: radius)
+        }
     }
 
     /// 2 seconds of visible warning, 3 seconds active, 1 second recovery.
@@ -154,30 +160,72 @@ enum TerrainHazards {
 
     static func hitsObstacle(_ point: CGPoint, patches: [Patch],
                              radius: CGFloat = 10) -> Bool {
-        patches.contains { $0.kind == .rubble && $0.contains(point, margin: radius) }
+        blocksMovement(point, patches: patches, radius: radius)
     }
 
     static func spawnAllowed(_ point: CGPoint, radius: CGFloat,
                              patches: [Patch]) -> Bool {
-        !hitsObstacle(point, patches: patches, radius: radius + 8)
+        !blocksMovement(point, patches: patches, radius: radius + 8)
     }
 
-    /// Sliding collision: try the requested movement, then each axis. A
-    /// blocked direct step must never teleport the pilot through rubble.
+    /// Continuous swept collision checks prevent walking through narrow
+    /// shoreline tips at 2× speed or when the game briefly drops a frame.
+    /// Preserve smooth sliding along the water and rubble boundaries.
     static func resolveMovement(from current: CGPoint, to target: CGPoint,
                                 patches: [Patch], radius: CGFloat = 10) -> CGPoint {
-        if !hitsObstacle(target, patches: patches, radius: radius) { return target }
-        let alongX = CGPoint(x: target.x, y: current.y)
-        let alongY = CGPoint(x: current.x, y: target.y)
-        let dx = abs(target.x - current.x)
-        let dy = abs(target.y - current.y)
-        if dx >= dy {
-            if !hitsObstacle(alongX, patches: patches, radius: radius) { return alongX }
-            if !hitsObstacle(alongY, patches: patches, radius: radius) { return alongY }
-        } else {
-            if !hitsObstacle(alongY, patches: patches, radius: radius) { return alongY }
-            if !hitsObstacle(alongX, patches: patches, radius: radius) { return alongX }
+        let dx = target.x - current.x
+        let dy = target.y - current.y
+        let distance = hypot(dx, dy)
+        if distance < 0.001 { return current }
+
+        // Players who resume a save from the old slowdown implementation
+        // must be able to walk out of water instead of being trapped inside.
+        if let submerged = patches.first(where: {
+            $0.kind == .water && $0.contains(current, margin: radius)
+        }) {
+            let oldDistance = hypot(current.x - submerged.frame.midX,
+                                    current.y - submerged.frame.midY)
+            let newDistance = hypot(target.x - submerged.frame.midX,
+                                    target.y - submerged.frame.midY)
+            if newDistance > oldDistance + 0.001 &&
+                !patches.contains(where: {
+                    $0.kind == .rubble && $0.contains(target, margin: radius)
+                }) {
+                return target
+            }
         }
-        return current
+
+        func advance(from start: CGPoint, to end: CGPoint) -> CGPoint {
+            let span = hypot(end.x - start.x, end.y - start.y)
+            let steps = max(1, Int(ceil(span / max(3, radius * 0.4))))
+            var last = start
+            for index in 1...steps {
+                let t = CGFloat(index) / CGFloat(steps)
+                let p = CGPoint(x: start.x + (end.x - start.x) * t,
+                                y: start.y + (end.y - start.y) * t)
+                if blocksMovement(p, patches: patches, radius: radius) {
+                    break
+                }
+                last = p
+            }
+            return last
+        }
+        let direct = advance(from: current, to: target)
+        if hypot(direct.x - target.x, direct.y - target.y) < 0.001 {
+            return direct
+        }
+        // After reaching the shoreline, spend unused motion sliding along
+        // the longer requested axis rather than freezing at the edge.
+        let remainingX = target.x - direct.x
+        let remainingY = target.y - direct.y
+        let firstX = abs(remainingX) >= abs(remainingY)
+        let first = firstX
+            ? CGPoint(x: target.x, y: direct.y)
+            : CGPoint(x: direct.x, y: target.y)
+        let slid = advance(from: direct, to: first)
+        let second = firstX
+            ? CGPoint(x: slid.x, y: target.y)
+            : CGPoint(x: target.x, y: slid.y)
+        return advance(from: slid, to: second)
     }
 }

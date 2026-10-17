@@ -6,10 +6,15 @@ import Foundation
 struct CampaignPacingTests {
     static func main() {
         precondition(CampaignPacing.targetEnemies(room: 0) == 0)
-        precondition(CampaignPacing.targetEnemies(room: 1) == 7)
-        precondition(CampaignPacing.targetEnemies(room: 5) == 15)
-        precondition(CampaignPacing.targetEnemies(room: 10) == 25)
-        precondition(CampaignPacing.targetEnemies(room: 19) == 40)
+        precondition(CampaignPacing.targetEnemies(room: 1) == 5)
+        precondition(CampaignPacing.targetEnemies(room: 5) == 9)
+        precondition(CampaignPacing.targetEnemies(room: 10) == 19)
+        precondition(CampaignPacing.targetEnemies(room: 19) == 37)
+        precondition(CampaignPacing.incomingDamage(amount: 12, room: 3) == 9)
+        precondition(CampaignPacing.incomingDamage(amount: 12, room: 8) == 11)
+        precondition(CampaignPacing.incomingDamage(amount: 12, room: 19) == 12)
+        precondition(CampaignPacing.hitGracePeriod(room: 2) >
+                     CampaignPacing.hitGracePeriod(room: 17))
         precondition(CampaignPacing.targetEnemies(room: 20) == 1)
         precondition(CampaignPacing.spawnInterval(room: 19) <=
                      CampaignPacing.spawnInterval(room: 6))

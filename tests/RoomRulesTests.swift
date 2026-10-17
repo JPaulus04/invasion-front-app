@@ -61,8 +61,10 @@ struct RoomRulesTests {
             }
             let water = hazards[0]
             let submerged = CGPoint(x: water.frame.midX, y: water.frame.midY)
-            precondition(TerrainHazards.waterSpeed(at: submerged, patches: hazards) == 0.62)
-            precondition(TerrainHazards.waterSpeed(at: entry, patches: hazards) == 1)
+            precondition(TerrainHazards.blocksMovement(submerged, patches: hazards))
+            precondition(!TerrainHazards.blocksMovement(entry, patches: hazards))
+            precondition(!TerrainHazards.spawnAllowed(submerged, radius: 15, patches: hazards),
+                         "Enemies cannot spawn inside impassable floodwater")
             let rubble = hazards[1]
             let center = CGPoint(x: rubble.frame.midX, y: rubble.frame.midY)
             precondition(TerrainHazards.hitsObstacle(center, patches: hazards))
@@ -70,8 +72,8 @@ struct RoomRulesTests {
                 from: entry, to: center, patches: hazards) != center,
                 "Blocked terrain must stop movement")
         }
-        // Flooded sections span substantial room depth; both damage and
-        // slowdown must match the same jagged polygon drawn in SpriteKit.
+        // Flooded sections span substantial room depth. Impassable collision
+        // and the visible polygon must match on every playable device.
         let patches = TerrainHazards.patches(world: 1, room: 12, bounds: reference)
         let watery = patches[0]
         precondition(watery.frame.height >= reference.height * 0.44,
@@ -79,7 +81,7 @@ struct RoomRulesTests {
         precondition(watery.outline.count >= 10)
         let poolCorner = CGPoint(x: watery.frame.maxX - 2, y: watery.frame.maxY - 2)
         precondition(!watery.contains(poolCorner))
-        precondition(TerrainHazards.waterSpeed(at: poolCorner, patches: patches) == 1)
+        precondition(!TerrainHazards.blocksMovement(poolCorner, patches: patches, radius: 0))
         for i in 0...24 {
             for j in 0...24 {
                 let sampled = CGPoint(x: watery.frame.minX + watery.frame.width * CGFloat(i) / 24,
@@ -87,9 +89,23 @@ struct RoomRulesTests {
                 let local = CGPoint(x: sampled.x - watery.frame.midX,
                                     y: sampled.y - watery.frame.midY)
                 precondition(watery.contains(sampled) == watery.outlinePath().contains(local),
-                             "Visible flood polygon and gameplay slowdown must coincide")
+                             "Visible shoreline and movement boundary must coincide")
             }
         }
+        // Crossing from dry land to submerged terrain must stop at the
+        // bank even when a 2× or dropped-frame step jumps over the polygon.
+        let rightDry = CGPoint(x: reference.midX, y: watery.frame.midY)
+        let floodedCenter = CGPoint(x: watery.frame.midX, y: watery.frame.midY)
+        let blockedApproach = TerrainHazards.resolveMovement(
+            from: rightDry, to: floodedCenter, patches: patches, radius: 12)
+        precondition(!watery.contains(blockedApproach, margin: 12),
+                     "Pilot must not walk into water")
+        precondition(blockedApproach != floodedCenter)
+        let crossingStep = CGPoint(x: watery.frame.minX - 14, y: watery.frame.midY)
+        let sweptResult = TerrainHazards.resolveMovement(
+            from: rightDry, to: crossingStep, patches: patches, radius: 12)
+        precondition(!watery.contains(sweptResult, margin: 12),
+                     "Long steps must not tunnel across deep water")
         let blockedCenter = CGPoint(x: patches[1].frame.midX, y: patches[1].frame.midY)
         precondition(!TerrainHazards.spawnAllowed(blockedCenter, radius: 15, patches: patches))
         precondition(TerrainHazards.spawnAllowed(entry, radius: 15, patches: patches))

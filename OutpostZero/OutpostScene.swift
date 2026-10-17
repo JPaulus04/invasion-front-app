@@ -644,10 +644,10 @@ final class OutpostScene: SKScene {
             startWave()
             precondition(roomHazards.count == 3 &&
                          hazardScenery.children.count == 3 &&
-                         TerrainHazards.waterSpeed(
-                             at: CGPoint(x: roomHazards[0].frame.midX,
-                                         y: roomHazards[0].frame.midY),
-                             patches: roomHazards) < 1,
+                         TerrainHazards.blocksMovement(
+                             CGPoint(x: roomHazards[0].frame.midX,
+                                     y: roomHazards[0].frame.midY),
+                             patches: roomHazards),
                          "Preview must render water, acid, and blocked terrain")
             // Stage the terrain without live enemy attacks in the screenshot.
             arena.isPaused = true
@@ -2759,8 +2759,8 @@ final class OutpostScene: SKScene {
             let dy = movementTarget.y - pilot.position.y
             let distanceToTarget = hypot(dx, dy)
             if distanceToTarget > 2 {
-                let slow = TerrainHazards.waterSpeed(at: pilot.position, patches: roomHazards)
-                let step = min(distanceToTarget, pilotSpeed * slow * CGFloat(gameDt))
+                // Water now blocks movement; it no longer reduces speed.
+                let step = min(distanceToTarget, pilotSpeed * CGFloat(gameDt))
                 let requested = CGPoint(
                     x: pilot.position.x + dx / distanceToTarget * step,
                     y: pilot.position.y + dy / distanceToTarget * step)
@@ -2858,10 +2858,9 @@ final class OutpostScene: SKScene {
             let heading = atan2(dy, dx) + weave
             let step = min(length, enemy.speed * CGFloat(gameDt)) * movement
             if enemies[index].shotTarget == nil {
-                let speedScale = TerrainHazards.waterSpeed(at: current, patches: roomHazards)
                 let desiredPosition = RoomRules.clamp(
-                    CGPoint(x: current.x + cos(heading) * step * speedScale,
-                            y: current.y + sin(heading) * step * speedScale),
+                    CGPoint(x: current.x + cos(heading) * step,
+                            y: current.y + sin(heading) * step),
                     to: roomBounds.insetBy(dx: enemy.radius, dy: enemy.radius))
                 enemy.node.position = TerrainHazards.resolveMovement(
                     from: current, to: desiredPosition,
@@ -2899,10 +2898,11 @@ final class OutpostScene: SKScene {
 
     private func damagePilot(_ amount: Int) {
         guard phase == .playing, combatTime >= pilotShieldUntil, health > 0 else { return }
-        let actual = min(health, amount)
+        let actual = min(health, CampaignPacing.incomingDamage(
+            amount: amount, room: wave))
         health -= actual
         progress.recordDamage(actual)
-        pilotShieldUntil = combatTime + 1.1
+        pilotShieldUntil = combatTime + CampaignPacing.hitGracePeriod(room: wave)
         pilotHitCount += 1
         // Combat feedback takes precedence over the one-time control hint.
         controlsHint.removeAllActions()

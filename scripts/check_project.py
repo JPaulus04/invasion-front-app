@@ -121,8 +121,12 @@ if "TerrainHazards.resolveMovement(" not in scene or "updateTerrainHazards()" no
     errors.append("Terrain hazards must control real movement and damage, not just scenery")
 if 'ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot")' not in scene:
     errors.append("Simulator must include a hazardous arena preview")
-if "TerrainHazards.acidTouches(" not in scene or "TerrainHazards.waterSpeed(" not in scene:
-    errors.append("Water slowdown and acid damage must be connected to gameplay")
+if "TerrainHazards.acidTouches(" not in scene or "TerrainHazards.blocksMovement(" not in scene:
+    errors.append("Deep water must physically block movement and acid must remain damaging")
+if "TerrainHazards.waterSpeed(" in scene:
+    errors.append("Do not restore the traversable-water slowdown mechanic")
+if "CampaignPacing.incomingDamage(" not in scene or "CampaignPacing.hitGracePeriod(" not in scene:
+    errors.append("Early room incoming damage and recovery time must use tested pacing")
 if 'decorateLiquidHazard(shape, kind: .water' not in scene or 'decorateLiquidHazard(shape, kind: .acid' not in scene:
     errors.append("Hazard artwork must visually differentiate slow water and pulsing acid")
 if 'let shape = SKShapeNode(path: patch.outlinePath())' not in scene:
