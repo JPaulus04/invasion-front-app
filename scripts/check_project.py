@@ -31,6 +31,8 @@ if '"frontierFloorSurface"' in (root / "OutpostZero" / "BattlefieldArt.swift").r
     errors.append("Do not reintroduce a second forest texture inside the room")
 if "CombatVisuals.rifleTracer(in: arena" not in scene:
     errors.append("Rifle attacks must use layered, short-lived tracer artwork")
+if "CombatVisuals.explosiveBurst(in: arena" not in scene or "CombatVisuals.markBurning(" not in scene or "CombatVisuals.chainArc(in: arena" not in scene:
+    errors.append("Tactical abilities must have unique explosive, burning and chain effects")
 if "facing: pilotFacing" not in scene or "pilotFacing = 1" not in scene:
     errors.append("Pilot combat-facing animation must reset safely between runs")
 if "CharacterMotion.pilot(" not in scene or "CharacterMotion.enemy(" not in scene:

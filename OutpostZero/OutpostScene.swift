@@ -749,7 +749,8 @@ final class OutpostScene: SKScene {
         }
         // CI-only launch flag: capture real combat rather than the world-map menu.
         if ProcessInfo.processInfo.arguments.contains("-captureCombatScreenshot") ||
-           ProcessInfo.processInfo.arguments.contains("-captureCombatFeedbackScreenshot") {
+           ProcessInfo.processInfo.arguments.contains("-captureCombatFeedbackScreenshot") ||
+           ProcessInfo.processInfo.arguments.contains("-captureTacticalFXScreenshot") {
             startWave()
             // The six posed QA enemies comprise the whole displayed test room.
             waveTarget = 6
@@ -780,6 +781,19 @@ final class OutpostScene: SKScene {
                 precondition(arena.children.contains(where: {
                     $0.name == "enemyDefeatEcho"
                 }), "Visual QA requires illustrated enemy destruction")
+            }
+            if ProcessInfo.processInfo.arguments.contains("-captureTacticalFXScreenshot"),
+               enemies.count >= 3 {
+                let point = enemies[0].node.position
+                CombatVisuals.explosiveBurst(in: arena, at: point,
+                                             rank: 3, burning: true)
+                CombatVisuals.markBurning(enemies[0].node, radius: enemies[0].radius)
+                CombatVisuals.chainArc(in: arena, from: point,
+                                       to: enemies[1].node.position, rank: 3)
+                precondition(arena.childNode(withName: "explosiveBurst") != nil &&
+                             arena.childNode(withName: "chainLightningCore") != nil &&
+                             enemies[0].node.childNode(withName: "burnIndicator") != nil,
+                             "Tactical effects must be distinctive and visible")
             }
             // Spawns normally fade in from 28% opacity. For a frozen art-review
             // frame, reveal the finished sprites and hide their warning rings.
@@ -3177,18 +3191,26 @@ final class OutpostScene: SKScene {
         CombatVisuals.rifleTracer(in: arena, origin: pilot.position,
                                  target: target, incendiary: incendiaryLevel > 0,
                                  explosive: explosiveLevel > 0)
+        if explosiveLevel > 0 {
+            CombatVisuals.explosiveBurst(in: arena, at: target,
+                                         rank: explosiveLevel,
+                                         burning: incendiaryLevel > 0)
+        }
         let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus
         impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= totalBulletDamage)
         enemies[index].health -= totalBulletDamage
         EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
         if incendiaryLevel > 0 {
             burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus + gearReactorBonus + permanent.rank("incendiary"), until: combatTime + 2.5, nextTick: combatTime + 0.5)
+            CombatVisuals.markBurning(enemies[index].node, radius: enemies[index].radius)
         }
         if explosiveLevel > 0 {
             for other in enemies.indices where other != index && combatTime >= enemies[other].activeAt && distance(enemies[other].node.position, target) < CGFloat(35 + explosiveLevel * 15 + permanent.rank("explosive") * 5) {
                 enemies[other].health -= max(1, damage * explosiveLevel / 3 + permanent.rank("explosive") + gearReactorBonus)
                 if incendiaryLevel > 0 {
                     burns[ObjectIdentifier(enemies[other].node)] = (damage: incendiaryLevel, until: combatTime + 2.5, nextTick: combatTime + 0.5)
+                    CombatVisuals.markBurning(enemies[other].node,
+                                               radius: enemies[other].radius)
                 }
                 impact(at: enemies[other].node.position, color: .systemOrange,
                        destroyed: enemies[other].health <= 0)
@@ -3215,26 +3237,15 @@ final class OutpostScene: SKScene {
                 .min(by: { distance(enemies[$0].node.position, previous) < distance(enemies[$1].node.position, previous) }) else { break }
             let enemy = enemies[targetIndex]
             let endpoint = enemy.node.position
-            let bolt = SKShapeNode()
-            let path = CGMutablePath()
-            path.move(to: previous)
-            let midpoint = CGPoint(x: (previous.x + endpoint.x) / 2 + CGFloat.random(in: -9...9),
-                                   y: (previous.y + endpoint.y) / 2 + CGFloat.random(in: -9...9))
-            path.addLine(to: midpoint)
-            path.addLine(to: endpoint)
-            bolt.path = path
-            bolt.strokeColor = .systemCyan
-            bolt.lineWidth = 3
-            bolt.glowWidth = 4
-            bolt.zPosition = 12
-            arena.addChild(bolt)
-            bolt.run(.sequence([.fadeOut(withDuration: 0.16), .removeFromParent()]))
+            CombatVisuals.chainArc(in: arena, from: previous,
+                                   to: endpoint, rank: chainLevel)
             let chainDamage = max(1, damage / 2 + permanent.rank("chain") + gearReactorBonus)
             impact(at: endpoint, color: .systemCyan, destroyed: enemy.health <= chainDamage)
             enemies[targetIndex].health -= chainDamage
             EnemyCombatFeedback.hit(enemies[targetIndex].node, from: previous)
             if incendiaryLevel > 0 {
                 burns[ObjectIdentifier(enemy.node)] = (damage: incendiaryLevel, until: combatTime + 2.5, nextTick: combatTime + 0.5)
+                CombatVisuals.markBurning(enemy.node, radius: enemy.radius)
             }
             let fraction = CGFloat(max(0, enemies[targetIndex].health)) / CGFloat(enemies[targetIndex].maxHealth)
             enemies[targetIndex].healthBar.xScale = max(0.001, fraction)
@@ -3301,7 +3312,11 @@ final class OutpostScene: SKScene {
         for index in enemies.indices {
             let key = ObjectIdentifier(enemies[index].node)
             guard var burn = burns[key] else { continue }
-            if combatTime >= burn.until { burns.removeValue(forKey: key); continue }
+            if combatTime >= burn.until {
+                burns.removeValue(forKey: key)
+                enemies[index].node.childNode(withName: "burnIndicator")?.removeFromParent()
+                continue
+            }
             if combatTime >= burn.nextTick {
                 enemies[index].health -= burn.damage
                 burn.nextTick = combatTime + 0.5

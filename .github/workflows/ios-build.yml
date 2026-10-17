@@ -215,6 +215,7 @@ jobs:
           capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
           capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
           capture_scene -captureCombatFeedbackScreenshot screenshots/outpost-zero-combat-feedback.png
+          capture_scene -captureTacticalFXScreenshot screenshots/outpost-zero-tactical-abilities.png
           capture_scene -captureLevelUpScreenshot screenshots/outpost-zero-level-up.png
           capture_scene -captureLevelUpResumeScreenshot screenshots/outpost-zero-level-up-resumed.png
           # The live gameplay launch is especially prone to timing out after
@@ -297,6 +298,8 @@ jobs:
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-loadout.png screenshots/outpost-zero-overgrown-path.png
           test -s screenshots/outpost-zero-simulator.png
           test -s screenshots/outpost-zero-combat-feedback.png
+          test -s screenshots/outpost-zero-tactical-abilities.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-tactical-abilities.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-combat-feedback.png
           test -s screenshots/outpost-zero-gate-open.png
           test -s screenshots/outpost-zero-level-up.png
