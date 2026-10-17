@@ -33,6 +33,9 @@ struct RunSnapshot: Codable {
     let roomXPCredit: Int
     // Old schema-4 saves have no clock; optional field is decode-compatible.
     var timedEncounterElapsed: TimeInterval? = nil
+    // Optional fields keep existing schema-4 saves readable.
+    var timedEncounterSpawned: Int? = nil
+    var timedEncounterLiving: Int? = nil
 
     var isValid: Bool {
         version == Self.schema && (0..<WorldCatalog.playableCount).contains(worldIndex) &&
@@ -49,6 +52,14 @@ struct RunSnapshot: Codable {
         (timedEncounterElapsed == nil ||
          ((timedEncounterElapsed ?? 0).isFinite &&
           (0...120).contains(timedEncounterElapsed ?? 0))) &&
+        (timedEncounterSpawned == nil ||
+         (0...10_000).contains(timedEncounterSpawned ?? -1)) &&
+        (timedEncounterLiving == nil ||
+         (0...SurvivalEncounterRules.maxLivingEnemies(room: room))
+             .contains(timedEncounterLiving ?? -1)) &&
+        (timedEncounterLiving == nil ||
+         (timedEncounterSpawned != nil &&
+          (timedEncounterLiving ?? 0) <= (timedEncounterSpawned ?? -1))) &&
         AbilityLoadout(selected: abilities).isReady && Set(abilities).count == 3
     }
 }

@@ -173,6 +173,11 @@ final class OutpostScene: SKScene {
     // and save recovery are implemented and validated together.
     private var activeEncounter: SurvivalEncounterRules.Kind = .tactical
     private var survivalSpawnPhaseFinished = false
+    // Extraction is not a peaceful tactical gate: remaining enemies can
+    // still fight and pay their ordinary kill rewards until the pilot leaves.
+    private var extractionCombatActive: Bool {
+        phase == .gate && activeEncounter == .survival && roomCleared
+    }
     private var roomBounds: CGRect {
         expandedArenaPreview ? ArenaLayout.bounds(for: size) : RoomRules.bounds(for: size)
     }
@@ -1429,7 +1434,9 @@ final class OutpostScene: SKScene {
             roomXPCredit: max(roomXPRecoveredCredit, roomXPEarned),
             timedEncounterElapsed: activeEncounter == .survival
                 ? min(waveElapsed, SurvivalEncounterRules.duration(
-                    world: worldMapIndex, room: wave)) : nil)
+                    world: worldMapIndex, room: wave)) : nil,
+            timedEncounterSpawned: activeEncounter == .survival ? spawned : nil,
+            timedEncounterLiving: activeEncounter == .survival ? enemies.count : nil)
         _ = recovery.save(snapshot)
     }
 
@@ -1467,6 +1474,18 @@ final class OutpostScene: SKScene {
             waveElapsed = min(snapshot.timedEncounterElapsed ?? 0,
                               SurvivalEncounterRules.duration(
                                   world: worldMapIndex, room: wave))
+            survivalSpawnPhaseFinished = SurvivalEncounterRules.extractionActive(
+                world: worldMapIndex, room: wave, elapsed: waveElapsed)
+            // No refill on resume. Rebuild only the bounded living swarm
+            // recorded at interruption; reward replay credits remain active.
+            if let savedLiving = snapshot.timedEncounterLiving {
+                spawned = snapshot.timedEncounterSpawned ?? savedLiving
+                for index in 0..<savedLiving {
+                    let slot = max(1, spawned - savedLiving + index + 1)
+                    spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(
+                        room: wave, slot: slot))
+                }
+            }
         }
         rebuildOrbitingDefenses()
         if snapshot.location == .clearedGate {
@@ -3139,17 +3158,22 @@ final class OutpostScene: SKScene {
         let gameDt = dt * (fastForward ? 2.0 : 1.0)
         lastUpdate = currentTime
         clock += dt
-        combatClock.advance(gameDt, playing: phase == .playing)
-        // A lethal hazard/contact hit wins over an already-earned XP choice.
-        if phase == .playing && health <= 0 { endGame(); return }
-        if phase == .playing && combatTime >= nextRunSaveAt {
+        combatClock.advance(gameDt, playing: phase == .playing || extractionCombatActive)
+        // Choosing to fight after extraction opens still carries combat risk.
+        if (phase == .playing || extractionCombatActive) && health <= 0 {
+            endGame()
+            return
+        }
+        if (phase == .playing || extractionCombatActive) &&
+           combatTime >= nextRunSaveAt {
             nextRunSaveAt = combatTime + 4.0
             saveRunRecovery()
         }
-        if phase == .playing {
+        if phase == .playing || extractionCombatActive {
             collectXP()
             if progress.pendingChoices > 0 {
-                _ = presentPendingLevelUp(returningTo: .playing)
+                _ = presentPendingLevelUp(
+                    returningTo: extractionCombatActive ? .gate : .playing)
                 return
             }
         }
@@ -3240,8 +3264,10 @@ final class OutpostScene: SKScene {
                 movementOrigin = nil
                 movementTarget = nil
                 startWave()
+                return
             }
-            return
+            // Tactical gates are peaceful; extraction retains live combat.
+            if !isExtracting { return }
         }
         // Scan once per available shot, without allocating an enemy array or
         // rechecking target distance inside the weapon routine.
@@ -3252,19 +3278,23 @@ final class OutpostScene: SKScene {
                 position: { enemies[$0].node.position }) {
             shoot(at: enemies[index].node.position, selectedIndex: index)
         }
-        if presentPendingLevelUp(returningTo: .playing) { return }
+        if phase == .levelUp { return }
+        if presentPendingLevelUp(
+            returningTo: extractionCombatActive ? .gate : .playing) { return }
         updateOrbitingDefenses()
-        if phase != .playing { return }
+        if phase != .playing && !extractionCombatActive { return }
         spawnClock += gameDt
         waveElapsed += gameDt
         updateTerrainHazards()
         if health <= 0 { endGame(); return }
-        if phase != .playing { return }
+        if phase != .playing && !extractionCombatActive { return }
         applyBurns()
-        if presentPendingLevelUp(returningTo: .playing) { return }
+        if phase == .levelUp { return }
+        if presentPendingLevelUp(
+            returningTo: extractionCombatActive ? .gate : .playing) { return }
         if activeEncounter.isTimed {
             let interval = SurvivalEncounterRules.spawnInterval(room: wave)
-            if SurvivalEncounterRules.canSpawn(
+            if !roomCleared && SurvivalEncounterRules.canSpawn(
                 world: worldMapIndex, room: wave, elapsed: waveElapsed,
                 livingEnemies: enemies.count), spawnClock >= interval {
                 spawnClock -= interval
@@ -3276,7 +3306,7 @@ final class OutpostScene: SKScene {
                         room: wave, slot: spawned))
                 }
             }
-            if !survivalSpawnPhaseFinished &&
+            if !roomCleared && !survivalSpawnPhaseFinished &&
                 SurvivalEncounterRules.extractionActive(
                     world: worldMapIndex, room: wave, elapsed: waveElapsed) {
                 survivalSpawnPhaseFinished = true
@@ -3350,7 +3380,8 @@ final class OutpostScene: SKScene {
     }
 
     private func damagePilot(_ amount: Int) {
-        guard phase == .playing, combatTime >= pilotShieldUntil, health > 0 else { return }
+        guard (phase == .playing || extractionCombatActive),
+              combatTime >= pilotShieldUntil, health > 0 else { return }
         let actual = min(health, CampaignPacing.incomingDamage(
             amount: amount, room: wave))
         health -= actual
@@ -3582,7 +3613,8 @@ final class OutpostScene: SKScene {
     }
 
     private func updateOrbitingDefenses() {
-        guard orbitLevel > 0, !orbitalNodes.isEmpty, phase == .playing else { return }
+        guard orbitLevel > 0, !orbitalNodes.isEmpty,
+              (phase == .playing || extractionCombatActive) else { return }
         // All positions derive from the same paused combat clock as hostile
         // projectiles. No free orbital strikes while choosing a level-up.
         for (index, blade) in orbitalNodes.enumerated() {
@@ -3778,9 +3810,11 @@ final class OutpostScene: SKScene {
         if defeatedCount > 0 { saveRunRecovery() }
         // Pause for a level-up as soon as the earned XP crosses a threshold,
         // even when other enemies remain in the current room.
-        if phase == .playing && progress.pendingChoices > 0 {
+        if (phase == .playing || extractionCombatActive) &&
+           progress.pendingChoices > 0 {
+            let destination: Phase = extractionCombatActive ? .gate : .playing
             updateHUD()
-            _ = presentPendingLevelUp(returningTo: .playing)
+            _ = presentPendingLevelUp(returningTo: destination)
         }
     }
 
@@ -4149,8 +4183,10 @@ final class OutpostScene: SKScene {
         passageGate.isHidden = true
         // Spawn within walking distance, but not on top of the pilot, water
         // or rubble. This does not require killing the remaining enemies.
-        extractionPortal.position = TerrainHazards.extractionPosition(
-            near: pilot.position, in: roomBounds, patches: roomHazards)
+        if extractionPortal.isHidden {
+            extractionPortal.position = TerrainHazards.extractionPosition(
+                near: pilot.position, in: roomBounds, patches: roomHazards)
+        }
         extractionPortal.strokeColor = worldMapIndex == 1 ? .systemTeal :
             (worldMapIndex == 2 ? .systemGreen : .systemCyan)
         extractionPortal.childNode(withName: "extractionCore")?.removeAllActions()
