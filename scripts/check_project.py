@@ -25,6 +25,8 @@ if 'ArenaLayout.offset(for: pilot.position' not in scene or 'installArenaPreview
     errors.append("Expanded arenas require bounded camera tracking and moving floor")
 if 'arenaCaptureIdentity' not in scene:
     errors.append("Arena simulator captures must identify the actual camera view")
+if 'zoneBanner.fontSize = 13' not in scene:
+    errors.append("Arena labels must not cover the center of combat")
 for direction in ("Left", "Center", "Right"):
     if f"-captureExpandedArena{direction}Screenshot" not in scene:
         errors.append(f"Missing expanded arena camera screenshot: {direction}")

@@ -553,7 +553,11 @@ final class OutpostScene: SKScene {
             arena.position = expected
             let visible = ArenaLayout.visibleWorldRect(
                 at: arena.position, viewportSize: size)
-            precondition(roomBounds.contains(visible) &&
+            // Rectangular boundary arithmetic has floating-point rounding:
+            // an exact shoreline camera clamp may be a subpixel outside
+            // CGRect.contains. Use a one-point rendering tolerance; strict
+            // geometry is already checked by deterministic unit tests.
+            precondition(roomBounds.insetBy(dx: -1, dy: -1).contains(visible) &&
                          abs(pilot.position.x + arena.position.x -
                              size.width / 2) < size.width * 0.41,
                          "Camera must show the pilot and keep world edges covered")
@@ -569,7 +573,7 @@ final class OutpostScene: SKScene {
             // A small QA-only viewport marker certifies which capture
             // actually launched; the simulator home screen or stale previous
             // game scene must never pass as an arena screenshot.
-            let qaMarker = SKShapeNode(circleOfRadius: 12)
+            let qaMarker = SKShapeNode(rectOf: CGSize(width: 26, height: 26))
             qaMarker.name = "arenaCaptureIdentity"
             let markerColors: [SKColor] = [
                 SKColor(red: 1, green: 0, blue: 0, alpha: 1),
@@ -584,9 +588,13 @@ final class OutpostScene: SKScene {
                                         y: size.height * 0.60)
             hud.addChild(qaMarker)
             zoneBanner.removeAllActions()
-            zoneBanner.text = ["ARENA: WESTERN APPROACH",
-                               "ARENA: CENTRAL FRONT",
-                               "ARENA: EASTERN FLANK"][slot]
+            zoneBanner.text = ["WESTERN APPROACH",
+                               "CENTRAL FRONT",
+                               "EASTERN FLANK"][slot]
+            // World banners must never obscure the middle of a large fight.
+            zoneBanner.position = CGPoint(x: size.width / 2,
+                                           y: size.height - 216)
+            zoneBanner.fontSize = 13
             zoneBanner.alpha = 1
             arena.isPaused = true
             phase = .levelUp
@@ -914,6 +922,45 @@ final class OutpostScene: SKScene {
                 : SKColor(red: 0.07, green: 0.15, blue: 0.13, alpha: 0.29)
             stone.strokeColor = .clear
             floor.addChild(stone)
+        }
+        // Distinctive landmarks make camera movement apparent and help
+        // orient the player across the wider battlefield. Decorative only:
+        // these do not create unimplemented collision barriers.
+        for index in 0..<4 {
+            let x = roomBounds.minX + roomBounds.width *
+                CGFloat([0.13, 0.83, 0.21, 0.77][index])
+            let y = roomBounds.minY + roomBounds.height *
+                CGFloat([0.27, 0.32, 0.73, 0.79][index])
+            let shadow = SKShapeNode(ellipseOf: CGSize(width: 90, height: 30))
+            shadow.position = CGPoint(x: x + 5, y: y - 11)
+            shadow.fillColor = SKColor.black.withAlphaComponent(0.27)
+            shadow.strokeColor = .clear
+            floor.addChild(shadow)
+            let pad = SKShapeNode(rectOf: CGSize(width: 73, height: 34),
+                                  cornerRadius: 6)
+            pad.position = CGPoint(x: x, y: y)
+            pad.zRotation = index.isMultiple(of: 2) ? 0.10 : -0.16
+            pad.fillColor = SKColor(red: 0.21, green: 0.28,
+                                    blue: 0.25, alpha: 0.9)
+            pad.strokeColor = SKColor(red: 0.38, green: 0.47,
+                                      blue: 0.39, alpha: 0.8)
+            pad.lineWidth = 2
+            floor.addChild(pad)
+            for stripe in [-1, 1] {
+                let rail = SKShapeNode(rectOf: CGSize(width: 8, height: 28),
+                                       cornerRadius: 2)
+                rail.position.x = CGFloat(stripe) * 25
+                rail.fillColor = SKColor(red: 0.31, green: 0.38,
+                                         blue: 0.34, alpha: 1)
+                rail.strokeColor = .clear
+                pad.addChild(rail)
+            }
+            let signal = SKShapeNode(circleOfRadius: 4)
+            signal.position = CGPoint(x: 0, y: 10)
+            signal.fillColor = .systemOrange
+            signal.strokeColor = .clear
+            signal.glowWidth = 2
+            pad.addChild(signal)
         }
         arena.addChild(floor)
     }

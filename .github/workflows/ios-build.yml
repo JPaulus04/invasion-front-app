@@ -171,6 +171,10 @@ jobs:
             OUTPUT="$2"
             for ATTEMPT in 1 2 3; do
               run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+              # Give SpringBoard time to remove the previous game's surface
+              # before launching a different QA flag. Without this the
+              # simulator occasionally screenshots the previous scene.
+              sleep 2
               # Cold-booted CoreSimulator can accept the app but not yet
               # serve pixels. Launch/screenshot timeout is retriable too.
               if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
@@ -196,6 +200,11 @@ jobs:
               sleep 4
             done
             echo "::error::Simulator never rendered a usable frame for $FLAG"
+            # Leave a useful reason in CI when the app exits after launch.
+            run_bounded 25 xcrun simctl spawn "$DEVICE" log show \
+              --last 90s --style compact \
+              --predicate 'process == "OutpostZero" AND messageType == error' \
+              2>/dev/null | tail -35 || true
             return 1
           }
           # Prioritize the two new playable worlds, so simulator trouble
