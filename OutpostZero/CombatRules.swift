@@ -181,10 +181,13 @@ enum EncounterDirector {
         // Rooms 1-5 should be readable even in Worlds 2/3. Keep the roll
         // above the ranged threshold and below the armored-heavy threshold.
         if room <= 5 { return 35 + seed % 35 }
+        // Controlled ranged slots avoid accidentally making 50% of late
+        // encounters shooters when the enemy unlock thresholds increase.
+        let supportRoll = room >= 11 ? 55 + seed % 45 : 34 + seed % 66
         switch style(room: room) {
         case .patrol: return 35 + seed % 55
         case .flank:
-            return slot.isMultiple(of: 3) ? 63 + seed % 9 : 33 + seed % 67
+            return slot.isMultiple(of: 3) ? 63 + seed % 9 : supportRoll
         case .crossfire:
             // Reserve one shooter slot for approximately every five enemies.
             // Avoid the earlier lobber thresholds in Flooded/Toxic worlds:
@@ -195,15 +198,15 @@ enum EncounterDirector {
             case 2: shooterRoll = max(25, min(30, 15 + room) + 2)
             default: shooterRoll = 6 + seed % 8
             }
-            return slot.isMultiple(of: 5) ? shooterRoll : 34 + seed % 66
+            return slot.isMultiple(of: 5) ? shooterRoll : supportRoll
         case .siege:
             // One telegraphed lobber in each ~six-enemy group; other slots
             // remain mixed melee so players can dodge through gaps.
-            return slot.isMultiple(of: 6) ? 3 + seed % 9 : 36 + seed % 64
+            return slot.isMultiple(of: 6) ? 3 + seed % 9 : supportRoll
         case .gauntlet:
             if slot % 8 == 0 { return 8 + seed % 7 }
             if slot % 8 == 4 { return 70 + seed % 12 }
-            return 33 + seed % 67
+            return supportRoll
         case .boss: return 50
         }
     }
