@@ -262,6 +262,34 @@ enum AbilitySynergies {
     }
     static let bladeArcCooldown: TimeInterval = 1.45
 
+
+    /// A tactical choice remains visible on early level-ups. When possible,
+    /// prioritize a newly available combo so progression feels meaningful,
+    /// without automatically selecting any upgrade for the player.
+    static func featuredTactical(available: [String], characterLevel: Int,
+                                 chain: Int, explosive: Int,
+                                 incendiary: Int, orbit: Int) -> String? {
+        guard characterLevel <= 8, !available.isEmpty else { return nil }
+        func currentRank(_ choice: String) -> Int {
+            switch choice {
+            case "chain": return chain
+            case "explosive": return explosive
+            case "incendiary": return incendiary
+            case "orbit": return orbit
+            default: return 99
+            }
+        }
+        return available.min {
+            let leftBonus = currentRank($0) == 0 &&
+                preview(ability: $0, chain: chain, explosive: explosive,
+                        incendiary: incendiary, orbit: orbit) != nil
+            let rightBonus = currentRank($1) == 0 &&
+                preview(ability: $1, chain: chain, explosive: explosive,
+                        incendiary: incendiary, orbit: orbit) != nil
+            if leftBonus != rightBonus { return leftBonus }
+            return currentRank($0) < currentRank($1)
+        }
+    }
     static func preview(ability: String, chain: Int, explosive: Int,
                         incendiary: Int, orbit: Int) -> String? {
         switch ability {

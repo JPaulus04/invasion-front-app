@@ -3443,13 +3443,25 @@ final class OutpostScene: SKScene {
         overlayText("CHOOSE ONE FREE UPGRADE", y: 87, fontSize: 15)
         var pool = ["armor"]
         if fireRate < 5 { pool.append("rate") }
-        pool += lockedLoadout.availableTacticalUpgrades(
+        let tacticalOptions = lockedLoadout.availableTacticalUpgrades(
             chain: chainLevel, explosive: explosiveLevel,
             incendiary: incendiaryLevel, orbit: orbitLevel)
+        pool += tacticalOptions
         if health < maximumHealth { pool.append("heal") }
         // All three choices should rotate; damage remains in the pool but is not mandatory.
         pool.append("damage")
-        levelChoices = Array(pool.shuffled().prefix(3))
+        // A tactical card is always offered through the opening levels;
+        // players retain three real choices and can still favor defense.
+        var choices: [String] = []
+        if let featured = AbilitySynergies.featuredTactical(
+            available: tacticalOptions, characterLevel: progress.level,
+            chain: chainLevel, explosive: explosiveLevel,
+            incendiary: incendiaryLevel, orbit: orbitLevel) {
+            choices.append(featured)
+        }
+        choices += pool.filter { !choices.contains($0) }
+            .shuffled().prefix(3 - choices.count)
+        levelChoices = choices.shuffled()
         // Module-style choices use role colors rather than highlighting the
         // first random choice. No rarity tiers are implied by these accents.
         // Tappable rectangles match the full illustrated card exactly.
@@ -3609,6 +3621,13 @@ final class OutpostScene: SKScene {
 
     private func chooseLevelUpgrade(_ choice: String) {
         guard phase == .levelUp, levelChoices.contains(choice), progress.chooseUpgrade() else { return }
+        let isNewTactical = (choice == "chain" && chainLevel == 0) ||
+            (choice == "explosive" && explosiveLevel == 0) ||
+            (choice == "incendiary" && incendiaryLevel == 0) ||
+            (choice == "orbit" && orbitLevel == 0)
+        let unlockedCombo = isNewTactical ? AbilitySynergies.preview(
+            ability: choice, chain: chainLevel, explosive: explosiveLevel,
+            incendiary: incendiaryLevel, orbit: orbitLevel) : nil
         switch choice {
         case "damage": damage += 1
         case "rate": fireRate = min(5, fireRate + 1)
@@ -3620,6 +3639,24 @@ final class OutpostScene: SKScene {
             rebuildOrbitingDefenses()
         case "heal": health = min(maximumHealth, health + 40)
         default: runArmor += 20; health = min(maximumHealth, health + 20)
+        }
+        if let unlockedCombo {
+            let banner = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            banner.name = "abilityComboUnlocked"
+            banner.text = unlockedCombo.replacingOccurrences(
+                of: "COMBO:", with: "NEW COMBO:")
+            banner.fontSize = 17
+            banner.fontColor = .systemCyan
+            banner.position = CGPoint(x: pilot.position.x,
+                                      y: pilot.position.y + 48)
+            banner.zPosition = 19
+            arena.addChild(banner)
+            banner.run(.sequence([
+                .group([.moveBy(x: 0, y: 33, duration: 1.2),
+                        .sequence([.wait(forDuration: 0.6),
+                                   .fadeOut(withDuration: 0.6)])]),
+                .removeFromParent()
+            ]))
         }
         if progress.pendingChoices > 0 {
             saveRunRecovery()

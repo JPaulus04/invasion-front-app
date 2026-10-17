@@ -305,6 +305,23 @@ struct ProgressCombatTests {
         precondition(AbilitySynergies.preview(
             ability: "orbit", chain: 0, explosive: 0,
             incendiary: 0, orbit: 0) == nil)
+        // Early level-up menus guarantee tactical agency, with combos
+        // prioritized when another equipped module already has ranks.
+        precondition(AbilitySynergies.featuredTactical(
+            available: ["chain", "incendiary", "orbit"],
+            characterLevel: 2, chain: 0, explosive: 0,
+            incendiary: 0, orbit: 0) == "chain")
+        precondition(AbilitySynergies.featuredTactical(
+            available: ["chain", "incendiary", "orbit"],
+            characterLevel: 3, chain: 1, explosive: 0,
+            incendiary: 0, orbit: 0) == "incendiary")
+        precondition(AbilitySynergies.featuredTactical(
+            available: ["chain", "explosive"],
+            characterLevel: 9, chain: 0, explosive: 0,
+            incendiary: 0, orbit: 0) == nil)
+        precondition(AbilitySynergies.featuredTactical(
+            available: [], characterLevel: 2, chain: 0,
+            explosive: 0, incendiary: 0, orbit: 0) == nil)
         // A single target scan must select the closest active enemy,
         // ignore spawning/dead enemies and respect the rifle's 260pt range.
         let positions = [

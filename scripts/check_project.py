@@ -37,6 +37,8 @@ if "AbilitySynergies.thermiteBonus(" not in scene or "AbilitySynergies.conductiv
     errors.append("Combined abilities must change damage, not just visuals")
 if "AbilitySynergies.preview(" not in scene:
     errors.append("Level-up cards must identify synergistic upgrade opportunities")
+if "AbilitySynergies.featuredTactical(" not in scene or 'abilityComboUnlocked' not in scene:
+    errors.append("Early level-ups must offer tactical choices and announce new combos")
 if "facing: pilotFacing" not in scene or "pilotFacing = 1" not in scene:
     errors.append("Pilot combat-facing animation must reset safely between runs")
 if "CharacterMotion.pilot(" not in scene or "CharacterMotion.enemy(" not in scene:
