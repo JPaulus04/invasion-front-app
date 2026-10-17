@@ -38,6 +38,39 @@ enum CombatRules {
         return roll >= 60 ? 2 : 0
     }
 
+    /// Role-based enemy movement: distinct tactics but never faster than the
+    /// existing enemy speed stat. Attack telegraphs stay stationary.
+    static func enemySteering(behavior: Int, origin: CGPoint, pilot: CGPoint,
+                              elapsed: TimeInterval, phase: CGFloat,
+                              ranged: Bool, aiming: Bool) -> CGVector {
+        if aiming { return .zero }
+        let dx = pilot.x - origin.x
+        let dy = pilot.y - origin.y
+        let distance = hypot(dx, dy)
+        if distance < 0.01 { return .zero }
+        let fx = dx / distance
+        let fy = dy / distance
+        let forward: CGFloat
+        let lateral: CGFloat
+        if ranged {
+            let hold: CGFloat = behavior == 5 ? 190 : 155
+            forward = distance < hold - 25 ? -0.55 :
+                (distance > hold + 35 ? 0.55 : 0)
+            lateral = (sin(phase) >= 0 ? 1 : -1) *
+                (abs(forward) < 0.1 ? 0.27 : 0.16)
+        } else {
+            forward = behavior == 2 ? 0.83 : 1
+            switch behavior {
+            case 1: lateral = sin(CGFloat(elapsed) * 2.1 + phase) * 0.19
+            case 2: lateral = sin(CGFloat(elapsed) * 1.25 + phase) * 0.52
+            default: lateral = 0
+            }
+        }
+        let scale = max(1, hypot(forward, lateral))
+        return CGVector(dx: (fx * forward - fy * lateral) / scale,
+                        dy: (fy * forward + fx * lateral) / scale)
+    }
+
     /// A screen filled with ranged enemies should not produce an unavoidable
     /// wall of simultaneous projectiles and marked mortars. Difficulty grows
     /// through additional threats, not instant overlapping attacks.

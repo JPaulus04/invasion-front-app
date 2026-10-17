@@ -202,6 +202,31 @@ struct ProgressCombatTests {
         precondition(!CombatRules.mayBeginRangedAttack(room: 19, activeThreats: 3))
         precondition(CombatRules.enemyType(room: 11, roll: 10) == 5)
         precondition(CombatRules.enemyType(room: 11, roll: 30) == 4)
+        // Enemies use independent pursuit and flank patterns; the steering
+        // vector can never increase a role's configured movement speed.
+        let gruntMotion = CombatRules.enemySteering(
+            behavior: 0, origin: .zero, pilot: CGPoint(x: 120, y: 0),
+            elapsed: 2, phase: 1, ranged: false, aiming: false)
+        let raiderMotion = CombatRules.enemySteering(
+            behavior: 2, origin: .zero, pilot: CGPoint(x: 120, y: 0),
+            elapsed: 2, phase: 1, ranged: false, aiming: false)
+        let shooterMotion = CombatRules.enemySteering(
+            behavior: 4, origin: .zero, pilot: CGPoint(x: 120, y: 0),
+            elapsed: 2, phase: 1, ranged: true, aiming: false)
+        precondition(gruntMotion.dx == 1 && gruntMotion.dy == 0)
+        precondition(abs(raiderMotion.dy) > 0.05)
+        precondition(shooterMotion.dx < 0 && abs(shooterMotion.dy) > 0.05)
+        for role in 0...5 {
+            let motion = CombatRules.enemySteering(
+                behavior: role, origin: .zero,
+                pilot: CGPoint(x: 120, y: 0),
+                elapsed: 3, phase: 1.1, ranged: role >= 4,
+                aiming: false)
+            precondition(hypot(motion.dx, motion.dy) <= 1.001)
+        }
+        precondition(CombatRules.enemySteering(
+            behavior: 4, origin: .zero, pilot: CGPoint(x: 120, y: 0),
+            elapsed: 3, phase: 1, ranged: true, aiming: true).dx == 0)
         // A single target scan must select the closest active enemy,
         // ignore spawning/dead enemies and respect the rifle's 260pt range.
         let positions = [

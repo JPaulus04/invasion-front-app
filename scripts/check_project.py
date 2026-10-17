@@ -125,6 +125,8 @@ if "TerrainHazards.acidTouches(" not in scene or "TerrainHazards.blocksMovement(
     errors.append("Deep water must physically block movement and acid must remain damaging")
 if "TerrainHazards.waterSpeed(" in scene:
     errors.append("Do not restore the traversable-water slowdown mechanic")
+if 'CombatRules.enemySteering(' not in scene or 'TerrainHazards.navigationTarget(' not in scene:
+    errors.append("Enemy archetypes must flank and navigate around deep water")
 if "CampaignPacing.incomingDamage(" not in scene or "CampaignPacing.hitGracePeriod(" not in scene:
     errors.append("Early room incoming damage and recovery time must use tested pacing")
 if 'decorateLiquidHazard(shape, kind: .water' not in scene or 'decorateLiquidHazard(shape, kind: .acid' not in scene:

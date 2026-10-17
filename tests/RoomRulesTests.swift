@@ -61,7 +61,21 @@ struct RoomRulesTests {
             }
             let water = hazards[0]
             let submerged = CGPoint(x: water.frame.midX, y: water.frame.midY)
-            precondition(TerrainHazards.blocksMovement(submerged, patches: hazards))
+            // A target across the flood should produce an accessible waypoint,
+        // not a request to walk directly through an impassable lake.
+        let leftSide = CGPoint(x: hazards[0].frame.minX + 7,
+                               y: hazards[0].frame.midY)
+        let drySide = CGPoint(x: reference.midX,
+                              y: hazards[0].frame.midY)
+        let waypoint = TerrainHazards.navigationTarget(
+            from: leftSide, toward: drySide, patches: hazards,
+            bounds: reference, radius: 10)
+        precondition(waypoint != drySide)
+        precondition(!TerrainHazards.blocksMovement(
+            waypoint, patches: hazards, radius: 10))
+        precondition(waypoint.y > hazards[0].frame.maxY ||
+                     waypoint.y < hazards[0].frame.minY)
+        precondition(TerrainHazards.blocksMovement(submerged, patches: hazards))
             precondition(!TerrainHazards.blocksMovement(entry, patches: hazards))
             precondition(!TerrainHazards.spawnAllowed(submerged, radius: 15, patches: hazards),
                          "Enemies cannot spawn inside impassable floodwater")

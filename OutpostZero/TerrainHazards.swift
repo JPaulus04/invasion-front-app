@@ -145,6 +145,51 @@ enum TerrainHazards {
         }
     }
 
+    /// Redirect pursuers around the nearest blocked shoreline instead of
+    /// letting their movement repeatedly collide with the lake or rubble.
+    static func navigationTarget(from current: CGPoint, toward pilot: CGPoint,
+                                 patches: [Patch], bounds: CGRect,
+                                 radius: CGFloat) -> CGPoint {
+        let distance = hypot(pilot.x - current.x, pilot.y - current.y)
+        guard distance > radius else { return pilot }
+        let padding = radius + 9
+        for patch in patches where patch.kind != .acid {
+            let margin = patch.frame.insetBy(dx: -padding, dy: -padding)
+            let corridor = CGRect(x: min(current.x, pilot.x),
+                                  y: min(current.y, pilot.y),
+                                  width: max(1, abs(pilot.x - current.x)),
+                                  height: max(1, abs(pilot.y - current.y)))
+            guard corridor.intersects(margin) else { continue }
+            let samples = min(24, max(4, Int(ceil(distance / 14))))
+            let obstructed = (1..<samples).contains { sample in
+                let t = CGFloat(sample) / CGFloat(samples)
+                let point = CGPoint(x: current.x + (pilot.x - current.x) * t,
+                                    y: current.y + (pilot.y - current.y) * t)
+                return patch.contains(point, margin: padding)
+            }
+            if !obstructed { continue }
+            let accessible = bounds.insetBy(dx: radius + 2, dy: radius + 2)
+            let ends = [patch.frame.maxY + padding + 8,
+                        patch.frame.minY - padding - 8].filter {
+                $0 >= accessible.minY && $0 <= accessible.maxY
+            }
+            guard let around = ends.min(by: {
+                abs($0 - current.y) + abs($0 - pilot.y) <
+                abs($1 - current.y) + abs($1 - pilot.y)
+            }) else { continue }
+            let side = current.x <= patch.frame.midX
+                ? patch.frame.minX - padding - 5
+                : patch.frame.maxX + padding + 5
+            let waypoint = CGPoint(
+                x: max(accessible.minX, min(accessible.maxX, side)),
+                y: around)
+            if !blocksMovement(waypoint, patches: patches, radius: radius) {
+                return waypoint
+            }
+        }
+        return pilot
+    }
+
     /// 2 seconds of visible warning, 3 seconds active, 1 second recovery.
     /// The same game clock controls visuals and damage at 1× and 2× speed.
     static func acidActive(at time: TimeInterval) -> Bool {

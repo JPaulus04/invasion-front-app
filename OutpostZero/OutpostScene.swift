@@ -2845,27 +2845,25 @@ final class OutpostScene: SKScene {
             guard combatTime >= enemy.activeAt else { continue }
             enemy.node.alpha = 1
             enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
-            let dx = pilot.position.x - current.x
-            let dy = pilot.position.y - current.y
-            let length = max(0.001, hypot(dx, dy))
             let ranged = enemy.behavior >= 4 || enemy.node === bossNode
-            if ranged {
-                updateRangedAttack(at: index)
-            }
-            let desiredRange: CGFloat = enemy.behavior == 5 ? 190 : 155
-            let movement: CGFloat = ranged ? (length < desiredRange - 25 ? -0.55 : (length > desiredRange + 35 ? 0.55 : 0)) : 1
-            let weave: CGFloat = enemy.behavior == 2 ? sin(CGFloat(waveElapsed) * 3.2 + enemy.weavePhase) * 0.6 : 0
-            let heading = atan2(dy, dx) + weave
-            let step = min(length, enemy.speed * CGFloat(gameDt)) * movement
-            if enemies[index].shotTarget == nil {
-                let desiredPosition = RoomRules.clamp(
-                    CGPoint(x: current.x + cos(heading) * step,
-                            y: current.y + sin(heading) * step),
-                    to: roomBounds.insetBy(dx: enemy.radius, dy: enemy.radius))
-                enemy.node.position = TerrainHazards.resolveMovement(
-                    from: current, to: desiredPosition,
-                    patches: roomHazards, radius: enemy.radius)
-            }
+            if ranged { updateRangedAttack(at: index) }
+            let waypoint = TerrainHazards.navigationTarget(
+                from: current, toward: pilot.position,
+                patches: roomHazards, bounds: roomBounds,
+                radius: enemy.radius)
+            let intent = CombatRules.enemySteering(
+                behavior: enemy.behavior, origin: current, pilot: waypoint,
+                elapsed: combatTime, phase: enemy.weavePhase,
+                ranged: ranged && waypoint == pilot.position,
+                aiming: enemies[index].shotTarget != nil)
+            let step = enemy.speed * CGFloat(gameDt)
+            let target = RoomRules.clamp(
+                CGPoint(x: current.x + intent.dx * step,
+                        y: current.y + intent.dy * step),
+                to: roomBounds.insetBy(dx: enemy.radius, dy: enemy.radius))
+            enemy.node.position = TerrainHazards.resolveMovement(
+                from: current, to: target, patches: roomHazards,
+                radius: enemy.radius)
             // Different movement silhouettes: heavies lumber, raiders
             // dart, ranged units visibly brace while telegraphing.
             // Only art transforms change; hitboxes and health bars stay fixed.
