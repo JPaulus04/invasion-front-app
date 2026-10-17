@@ -18,6 +18,7 @@ struct CampaignPacingTests {
         precondition(CampaignPacing.targetEnemies(room: 20) == 1)
         precondition(CampaignPacing.spawnInterval(room: 19) <=
                      CampaignPacing.spawnInterval(room: 6))
+        precondition(CampaignPacing.killXP(type: 0, isBoss: false) == 8)
         precondition(CampaignPacing.killXP(type: 3, isBoss: false) == 10)
         precondition(CampaignPacing.killXP(type: 0, isBoss: true) == 60)
         precondition(CampaignPacing.killCoins(type: 1, isBoss: false) == 12)

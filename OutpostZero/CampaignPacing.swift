@@ -29,7 +29,10 @@ enum CampaignPacing {
     }
 
     static func killXP(type: Int, isBoss: Bool) -> Int {
-        isBoss ? 60 : (type >= 3 ? 10 : 6)
+        // With smaller, less punishing waves, every regular kill remains
+        // rewarding. Players still earn upgrades from kills, not a room-clear
+        // choice that bypasses XP leveling.
+        isBoss ? 60 : (type >= 3 ? 10 : 8)
     }
 
     static func killCoins(type: Int, isBoss: Bool) -> Int {
