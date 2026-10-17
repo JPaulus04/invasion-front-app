@@ -137,6 +137,8 @@ if 'caption.text = patch.kind == .water' in scene or 'shape = SKShapeNode(ellips
     errors.append("Do not reintroduce labeled circular hazard markers")
 if 'shape.childNode(withName: "acidActiveVeins")?.isHidden = !acidOn' not in scene:
     errors.append("Acid pulse visuals must update alongside actual damage timing")
+if '-captureAcidActiveScreenshot' not in scene or 'displayedAcidActive == true' not in scene:
+    errors.append("Simulator must exercise and photograph the damaging acid phase")
 if "WorldCatalog.recordVictory(worldMapIndex, stars: stars)" not in scene:
     errors.append("Each world must award its own stars and power cores")
 if "WorldCatalog.enemyType(world: worldMapIndex" not in scene:

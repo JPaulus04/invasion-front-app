@@ -611,6 +611,33 @@ final class OutpostScene: SKScene {
             phase = .levelUp
             updateHUD()
         }
+        // Simulated active acid screenshot: exercise real phase-timed hazard
+        // art and damage boundaries in the same World 3 room as the inactive
+        // capture. This is a deterministic QA-only fixture, never a cheat or
+        // tutorial bypass in regular gameplay.
+        if ProcessInfo.processInfo.arguments.contains("-captureAcidActiveScreenshot") {
+            worldMapIndex = 2
+            wave = 0
+            gateUnlocked = true
+            startWave()
+            precondition(wave == 1 && phase == .playing &&
+                         roomHazards.contains(where: { $0.kind == .acid }) &&
+                         acidVisualNodes.count == 1,
+                         "World 3 acid fixture must use real room terrain")
+            waveElapsed = 2.5
+            updateTerrainHazards()
+            precondition(displayedAcidActive == true &&
+                         acidVisualNodes[0].childNode(
+                            withName: "acidActiveVeins")?.isHidden == false &&
+                         TerrainHazards.acidTouches(
+                            CGPoint(x: roomHazards[0].frame.midX,
+                                    y: roomHazards[0].frame.midY),
+                            patches: roomHazards, at: waveElapsed),
+                         "Active acid must show its damaging-phase warning")
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot") {
             wave = 11
             gateUnlocked = true

@@ -202,6 +202,7 @@ jobs:
           # cannot hide their first actual render behind older art captures.
           capture_scene -captureWorldExpansionScreenshot screenshots/outpost-zero-flooded-outpost.png
           capture_scene -captureWorldTransitionScreenshot screenshots/outpost-zero-toxic-crossing.png
+          capture_scene -captureAcidActiveScreenshot screenshots/outpost-zero-acid-active.png
           capture_scene -captureFloodedBossScreenshot screenshots/outpost-zero-tidal-warden.png
           capture_scene -captureToxicBossScreenshot screenshots/outpost-zero-toxic-sentinel.png
           capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
@@ -277,6 +278,17 @@ jobs:
           test -s screenshots/outpost-zero-toxic-sentinel.png
           test -s screenshots/outpost-zero-flooded-outpost.png
           test -s screenshots/outpost-zero-toxic-crossing.png
+          test -s screenshots/outpost-zero-acid-active.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-acid-active.png
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          resting = Path("screenshots/outpost-zero-toxic-crossing.png").read_bytes()
+          active = Path("screenshots/outpost-zero-acid-active.png").read_bytes()
+          assert sha256(resting).digest() != sha256(active).digest(), (
+              "Active acid presentation must visibly differ from inactive runoff")
+          print("PASS: World 3 acid has distinct active-phase imagery")
+          PY
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-terrain.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-tidal-warden.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-toxic-sentinel.png
