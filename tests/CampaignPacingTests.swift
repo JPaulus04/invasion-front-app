@@ -40,6 +40,24 @@ struct CampaignPacingTests {
                         world: world, room: room, elapsed: duration))
                     precondition(!SurvivalEncounterRules.extractionActive(
                         world: world, room: room, elapsed: duration - 0.01))
+                    precondition(SurvivalEncounterRules.exitRoute(
+                        world: world, room: room) == .extractionPortal)
+                    precondition(!SurvivalEncounterRules.extractionCanOpen(
+                        world: world, room: room, elapsed: duration - 0.01,
+                        livingEnemies: 0))
+                    // The timer opens extraction even if the arena still has
+                    // its maximum active swarm; killing them is optional.
+                    for living in [0, 1, SurvivalEncounterRules.maxLivingEnemies(room: room)] {
+                        precondition(SurvivalEncounterRules.extractionCanOpen(
+                            world: world, room: room, elapsed: duration,
+                            livingEnemies: living))
+                        precondition(!SurvivalEncounterRules.canSpawn(
+                            world: world, room: room, elapsed: duration,
+                            livingEnemies: living))
+                    }
+                    precondition(!SurvivalEncounterRules.extractionCanOpen(
+                        world: world, room: room, elapsed: duration,
+                        livingEnemies: -1))
                     precondition(!SurvivalEncounterRules.canSpawn(
                         world: world, room: room, elapsed: 10,
                         livingEnemies: SurvivalEncounterRules.maxLivingEnemies(
@@ -49,6 +67,11 @@ struct CampaignPacingTests {
                     precondition((1...2).contains(
                         SurvivalEncounterRules.spawnBatch(room: room)))
                 } else {
+                    precondition(SurvivalEncounterRules.exitRoute(
+                        world: world, room: room) == .combatGate)
+                    precondition(!SurvivalEncounterRules.extractionCanOpen(
+                        world: world, room: room, elapsed: 10_000,
+                        livingEnemies: 0))
                     precondition(SurvivalEncounterRules.duration(
                         world: world, room: room) == 0)
                     precondition(!SurvivalEncounterRules.canSpawn(

@@ -127,6 +127,27 @@ enum SurvivalEncounterRules {
         return deadline > 0 && elapsed >= deadline
     }
 
+    enum ExitRoute: Equatable {
+        case combatGate
+        case extractionPortal
+    }
+
+    /// A timed arena must use a distinct extraction structure instead of
+    /// silently converting the ordinary between-room combat gate.
+    static func exitRoute(world: Int, room: Int) -> ExitRoute {
+        kind(world: world, room: room).isTimed ? .extractionPortal : .combatGate
+    }
+
+    /// Survival is won by outlasting the timer, NOT by killing every unit.
+    /// Enemies remaining in the arena can still give ordinary kill XP/coins
+    /// until the pilot exits; they do not block opening the portal.
+    static func extractionCanOpen(world: Int, room: Int,
+                                  elapsed: TimeInterval,
+                                  livingEnemies: Int) -> Bool {
+        livingEnemies >= 0 && exitRoute(world: world, room: room) == .extractionPortal &&
+            extractionActive(world: world, room: room, elapsed: elapsed)
+    }
+
     /// Standard XP and coins remain available from enemies already present.
     /// No new enemies spawn during extraction and there is NO speed bonus.
     /// Mostly ordinary, fragile units. Occasional raiders diversify the
