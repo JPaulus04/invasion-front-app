@@ -51,6 +51,12 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Extraction simulator capture now kills a real live enemy after opening the exit and asserts XP/coins gained, no additional spawns, and portal remains visible. ProgressCombatTests covers valid saved count and impossible swarm values.
 - Final CI and simulator screenshot pass required; next milestone after validation is deeper extraction save/recovery lifecycle QA.
 
+## October 17 — user-confirmed visual corrections
+- Normal campaign exit: large elliptical/circular blue energy portal with in-world metallic mounting, swirling internal energy and visible ENTER prompt. Rectangular gate art removed.
+- Survival timeout: small glowing orb with narrow vertical beacon, preferably at the arena center and repositioned only to a reachable nearby spot when terrain obstructs the direct route. Enemies still award ordinary kill XP/coins and do not respawn after timeout.
+- Remove procedural dangling broadleaf vines and straight survival-arena floor outline. Hide forest room edge strokes.
+- Simulator captures must show actual updated normal portal, survival orb and clean overgrown forest. No generic image substitutions and no TestFlight upload.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

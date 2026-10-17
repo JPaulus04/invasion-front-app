@@ -212,11 +212,16 @@ struct RoomRulesTests {
                             exit, patches: patches, radius: 12))
                         precondition(TerrainHazards.extractionApproachIsClear(
                             from: pilot, to: exit, patches: patches))
-                        precondition(hypot(exit.x - pilot.x, exit.y - pilot.y) <= 126,
-                            "Extraction must stay within a short walk")
+                        precondition(field.contains(exit),
+                            "Extraction orb must remain inside the arena")
                     }
                 }
             }
+            let south = CGPoint(x: field.midX, y: field.minY + 55)
+            precondition(TerrainHazards.extractionPosition(
+                near: south, in: field, patches: []) ==
+                CGPoint(x: field.midX, y: field.midY),
+                "Clear survival arenas must place the extraction orb at center")
             let from = CGPoint(x: field.midX, y: field.midY)
             let blocked = CGPoint(x: field.midX, y: field.midY + 125)
             precondition(!TerrainHazards.extractionApproachIsClear(

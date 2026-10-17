@@ -174,14 +174,14 @@ enum TerrainHazards {
         return true
     }
 
-    /// Always prefer a reachable portal within a short, unobstructed walk.
-    /// Never fall back to the distant arena center behind a water channel.
-    /// If the pilot is boxed in by conflicting terrain, place the portal on
-    /// their current position as a last-resort anti-softlock evacuation.
+    /// Prefer the arena center for survival extraction, then progressively
+    /// offset around blocked ground. A nearby fallback avoids softlocking
+    /// a pilot behind impassable water or rubble.
     static func extractionPosition(
         near pilot: CGPoint, in bounds: CGRect, patches: [Patch]
     ) -> CGPoint {
         let safe = bounds.insetBy(dx: 53, dy: 53)
+        let center = CGPoint(x: bounds.midX, y: bounds.midY)
         let directions: [CGPoint] = [
             CGPoint(x: 0, y: 1),
             CGPoint(x: 1, y: 1),
@@ -192,6 +192,25 @@ enum TerrainHazards {
             CGPoint(x: 0, y: -1),
             CGPoint(x: -1, y: -1)
         ]
+        for radius: CGFloat in [0, 55, 105, 155, 210] {
+            let steps = radius == 0 ? 1 : 16
+            for step in 0..<steps {
+                let angle = CGFloat(step) * 2 * .pi / CGFloat(steps)
+                let desired = CGPoint(x: center.x + cos(angle) * radius,
+                                      y: center.y + sin(angle) * radius)
+                let candidate = CGPoint(
+                    x: min(max(desired.x, safe.minX), safe.maxX),
+                    y: min(max(desired.y, safe.minY), safe.maxY))
+                guard hypot(candidate.x - pilot.x,
+                            candidate.y - pilot.y) >= 43 else { continue }
+                if !blocksMovement(candidate, patches: patches, radius: 14) &&
+                    extractionApproachIsClear(
+                        from: pilot, to: candidate, patches: patches) {
+                    return candidate
+                }
+            }
+        }
+        // Last resort only: preserve short-range evacuation in a blocked maze.
         for distance: CGFloat in [125, 100, 75, 52] {
             for direction in directions {
                 let magnitude = hypot(direction.x, direction.y)
