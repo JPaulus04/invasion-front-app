@@ -200,6 +200,9 @@ jobs:
           }
           # Prioritize the two new playable worlds, so simulator trouble
           # cannot hide their first actual render behind older art captures.
+          capture_scene -captureExpandedArenaLeftScreenshot screenshots/outpost-zero-arena-west.png
+          capture_scene -captureExpandedArenaCenterScreenshot screenshots/outpost-zero-arena-center.png
+          capture_scene -captureExpandedArenaRightScreenshot screenshots/outpost-zero-arena-east.png
           capture_scene -captureWorldExpansionScreenshot screenshots/outpost-zero-flooded-outpost.png
           capture_scene -captureWorldTransitionScreenshot screenshots/outpost-zero-toxic-crossing.png
           capture_scene -captureAcidActiveScreenshot screenshots/outpost-zero-acid-active.png
@@ -266,6 +269,20 @@ jobs:
       - name: Validate simulator screenshot was captured
         run: |
           set -e
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-arena-west.png \
+            screenshots/outpost-zero-arena-center.png \
+            screenshots/outpost-zero-arena-east.png
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          names = ["west", "center", "east"]
+          frames = [Path(f"screenshots/outpost-zero-arena-{n}.png").read_bytes()
+                    for n in names]
+          assert len({sha256(frame).digest() for frame in frames}) == 3, (
+              "Expanded arena camera must produce three different views")
+          print("PASS: expanded arena has distinct west, center, east screenshots")
+          PY
           test -s screenshots/outpost-zero-settings.png
           test -s screenshots/outpost-zero-paused-run.png
           test -s screenshots/outpost-zero-headquarters.png

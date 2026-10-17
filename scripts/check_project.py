@@ -21,6 +21,11 @@ scene = (root / "OutpostZero" / "OutpostScene.swift").read_text(encoding="utf-8"
 for feature in ("spawnEnemy()", "shoot(at:", "completeWave()", "endGame()", "restart()", "actionButton(", "overlayButtons", "impact(at:", "healthBar.xScale", "damageFlash.run", "warning.text", "waveElapsed", "heldTouch = touch", "override func touchesMoved", "chainAttack(from: target", "chainLevel", "progress.earnXP", "showLevelUp()", "updateHostileAttacks", "repairCost", "BattlefieldArt.install"):
     if feature not in scene:
         errors.append(f"Missing gameplay feature: {feature}")
+if 'ArenaLayout.offset(for: pilot.position' not in scene or 'installArenaPreviewGround()' not in scene:
+    errors.append("Expanded arenas require bounded camera tracking and moving floor")
+for direction in ("Left", "Center", "Right"):
+    if f"-captureExpandedArena{direction}Screenshot" not in scene:
+        errors.append(f"Missing expanded arena camera screenshot: {direction}")
 if 'FrontierFloorArt.texture(' not in (root / "OutpostZero" / "BattlefieldArt.swift").read_text(encoding="utf-8"):
     errors.append("Frontier Forest needs a pre-rendered ground-lighting layer")
 if 'child.name != "pilotGroundShadow"' not in scene:

@@ -41,6 +41,47 @@ struct RoomRulesTests {
             let clamped = RoomRules.clamp(CGPoint(x: -100, y: 10000), to: room)
             precondition(clamped.x == room.minX && clamped.y == room.maxY)
         }
+        // Expanded survival arenas must fill the entire visible world region
+        // even when the camera hits every side. The 20-room camera remains
+        // unchanged and UI overlays do not move with the arena node.
+        for screen in [CGSize(width: 320, height: 568),
+                       CGSize(width: 390, height: 844),
+                       CGSize(width: 768, height: 1024)] {
+            let regular = RoomRules.bounds(for: screen)
+            let world = ArenaLayout.bounds(for: screen)
+            precondition(world.width >= regular.width * 1.7)
+            precondition(world.height >= regular.height * 1.6)
+            let samples = [
+                CGPoint(x: world.minX + 15, y: world.minY + 15),
+                CGPoint(x: world.midX, y: world.midY),
+                CGPoint(x: world.maxX - 15, y: world.maxY - 15),
+                CGPoint(x: world.minX + 15, y: world.maxY - 15),
+                CGPoint(x: world.maxX - 15, y: world.minY + 15)
+            ]
+            for pilot in samples {
+                let offset = ArenaLayout.offset(for: pilot, viewportSize: screen)
+                let visible = ArenaLayout.visibleWorldRect(
+                    at: offset, viewportSize: screen)
+                precondition(world.contains(visible),
+                             "Camera must never reveal outside the battlefield")
+                precondition(visible.contains(pilot),
+                             "Pilot must remain inside camera view")
+                for fraction in 0...10 {
+                    let next = ArenaLayout.follow(
+                        current: .zero, target: offset,
+                        frameDelta: Double(fraction) / 600)
+                    precondition(abs(next.x) <= abs(offset.x) + 0.001 &&
+                                 abs(next.y) <= abs(offset.y) + 0.001,
+                                 "Camera smoothing must not overshoot")
+                }
+            }
+            let west = ArenaLayout.offset(
+                for: CGPoint(x: world.minX, y: world.midY), viewportSize: screen)
+            let east = ArenaLayout.offset(
+                for: CGPoint(x: world.maxX, y: world.midY), viewportSize: screen)
+            precondition(west.x > east.x,
+                         "Camera must track from west to east")
+        }
         // Terrain does not change World 1 until balancing is validated.
         let reference = RoomRules.bounds(for: CGSize(width: 393, height: 852))
         let entry = RoomRules.entryPoint(for: CGSize(width: 393, height: 852))

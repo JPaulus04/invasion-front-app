@@ -164,8 +164,17 @@ final class OutpostScene: SKScene {
     private let damageFlash = SKShapeNode()
     private let warning = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let arena = SKNode()
-    private var roomBounds: CGRect { RoomRules.bounds(for: size) }
-    private var entryPoint: CGPoint { RoomRules.entryPoint(for: size) }
+    // First validate three camera positions in isolated simulator captures.
+    // Enabling live survival mode waits for encounter/recovery integration.
+    private var expandedArenaPreview = false
+    private var roomBounds: CGRect {
+        expandedArenaPreview ? ArenaLayout.bounds(for: size) : RoomRules.bounds(for: size)
+    }
+    private var entryPoint: CGPoint {
+        expandedArenaPreview
+            ? CGPoint(x: roomBounds.midX, y: roomBounds.minY + 48)
+            : RoomRules.entryPoint(for: size)
+    }
     private var coreAwardedThisRun = false
     private let title = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let subtitle = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
@@ -516,6 +525,55 @@ final class OutpostScene: SKScene {
                          "Entering a world must lock exactly the selected abilities")
             showLoadout()
         }
+        // Expanded arena camera QA: three independently captured positions.
+        // Not yet a shipped timed-survival encounter. Validate full arena
+        // coverage, HUD anchoring, and distinct scenery in each viewport.
+        let cameraFlags = [
+            "-captureExpandedArenaLeftScreenshot",
+            "-captureExpandedArenaCenterScreenshot",
+            "-captureExpandedArenaRightScreenshot"
+        ]
+        if let slot = cameraFlags.firstIndex(where: {
+            ProcessInfo.processInfo.arguments.contains($0)
+        }) {
+            expandedArenaPreview = true
+            worldMapIndex = 0
+            gateUnlocked = true
+            startWave()
+            precondition(roomBounds.width > RoomRules.bounds(for: size).width &&
+                         roomBounds.height > RoomRules.bounds(for: size).height,
+                         "Survival field must be larger than a traditional room")
+            installArenaPreviewGround()
+            let fractions: [CGFloat] = [0.10, 0.50, 0.90]
+            pilot.position = CGPoint(
+                x: roomBounds.minX + roomBounds.width * fractions[slot],
+                y: roomBounds.minY + roomBounds.height * (slot == 1 ? 0.68 : 0.48))
+            let expected = ArenaLayout.offset(for: pilot.position,
+                                               viewportSize: size)
+            arena.position = expected
+            let visible = ArenaLayout.visibleWorldRect(
+                at: arena.position, viewportSize: size)
+            precondition(roomBounds.contains(visible) &&
+                         abs(pilot.position.x + arena.position.x -
+                             size.width / 2) < size.width * 0.41,
+                         "Camera must show the pilot and keep world edges covered")
+            for kind in [0, 2, 4, 1, 3] {
+                spawnEnemy(artReviewType: kind)
+            }
+            for enemy in enemies {
+                enemy.node.removeAllActions()
+                enemy.node.alpha = 1
+                enemy.node.childNode(withName: "spawnWarning")?.isHidden = true
+            }
+            zoneBanner.removeAllActions()
+            zoneBanner.text = ["ARENA: WESTERN APPROACH",
+                               "ARENA: CENTRAL FRONT",
+                               "ARENA: EASTERN FLANK"][slot]
+            zoneBanner.alpha = 1
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+        }
         // Art review for Rooms 6-10: stage actual forest-overgrowth scenery
         // without changing combat balance or the launch state seen by players.
         // Real SpriteKit boss integration: stage the final room and
@@ -811,14 +869,56 @@ final class OutpostScene: SKScene {
         }
     }
 
+    /// The floor travels with the camera: a static screen backdrop would
+    /// otherwise appear disconnected from moving terrain and enemies.
+    private func installArenaPreviewGround() {
+        arena.childNode(withName: "expandedArenaPreviewGround")?.removeFromParent()
+        let floor = SKShapeNode(rect: roomBounds, cornerRadius: 18)
+        floor.name = "expandedArenaPreviewGround"
+        floor.fillColor = SKColor(red: 0.12, green: 0.22, blue: 0.19, alpha: 1)
+        floor.strokeColor = SKColor(red: 0.30, green: 0.49, blue: 0.40, alpha: 0.65)
+        floor.lineWidth = 7
+        floor.zPosition = -8
+        // Large, irregular material patches establish scale without the
+        // left-to-right grid lines that previously looked artificial.
+        for index in 0..<54 {
+            let x = roomBounds.minX + 35 +
+                CGFloat((index * 137 + 47) % max(1, Int(roomBounds.width - 70)))
+            let y = roomBounds.minY + 35 +
+                CGFloat((index * 89 + 61) % max(1, Int(roomBounds.height - 70)))
+            let stone = SKShapeNode(ellipseOf: CGSize(
+                width: CGFloat(9 + index % 5 * 6),
+                height: CGFloat(3 + index % 4 * 3)))
+            stone.position = CGPoint(x: x, y: y)
+            stone.zRotation = CGFloat(index % 6) * 0.22
+            stone.fillColor = index.isMultiple(of: 3)
+                ? SKColor(red: 0.43, green: 0.50, blue: 0.40, alpha: 0.22)
+                : SKColor(red: 0.07, green: 0.15, blue: 0.13, alpha: 0.29)
+            stone.strokeColor = .clear
+            floor.addChild(stone)
+        }
+        arena.addChild(floor)
+    }
+
+    private func updateArenaCamera(delta: TimeInterval) {
+        guard expandedArenaPreview else {
+            if arena.position != .zero { arena.position = .zero }
+            return
+        }
+        let target = ArenaLayout.offset(for: pilot.position, viewportSize: size)
+        arena.position = ArenaLayout.follow(
+            current: arena.position, target: target, frameDelta: delta)
+    }
+
     override func didChangeSize(_ oldSize: CGSize) { layout() }
 
     private func layout() {
         if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
-        passageGate.position = CGPoint(x: size.width / 2, y: roomBounds.maxY - 24)
+        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 24)
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
+        updateArenaCamera(delta: 1)
         // Compact three-line combat header; the slim XP bar shares its last
         // row with the XP value. All information remains visible, but the
         // arena gains vertical breathing room.
@@ -2801,6 +2901,7 @@ final class OutpostScene: SKScene {
         }
         // Animate the visible sprite, not its parent collision container.
         // An actual displacement check prevents walking-in-place into rubble.
+        updateArenaCamera(delta: dt)
         let isMoving = distance(pilotBeforeMovement, pilot.position) > 0.35
         let pose = CharacterMotion.pilot(
             time: combatTime, moving: isMoving, facing: pilotFacing,

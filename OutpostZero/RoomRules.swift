@@ -49,3 +49,47 @@ enum RoomRules {
         target > 0 && spawned == target && living == 0
     }
 }
+
+
+/// Expanded survival battlefield and constrained camera geometry.
+///
+/// All geometry is expressed in the SAME world space as the existing battle
+/// scene. The HUD and menus stay rooted to SKScene; only the arena node moves.
+/// The feature remains in QA preview until timed-survival rules are complete.
+enum ArenaLayout {
+    static func bounds(for viewportSize: CGSize) -> CGRect {
+        let view = RoomRules.bounds(for: viewportSize)
+        let width = view.width * 1.8
+        let height = view.height * 1.65
+        return CGRect(x: view.midX - width / 2, y: view.midY - height / 2,
+                      width: width, height: height)
+    }
+
+    /// Arena translation that keeps the visible combat viewport covered by
+    /// valid world space. A centered target stops tracking at the boundaries.
+    static func offset(for pilot: CGPoint, viewportSize: CGSize) -> CGPoint {
+        let view = RoomRules.bounds(for: viewportSize)
+        let world = bounds(for: viewportSize)
+        let requestedX = view.midX - pilot.x
+        let requestedY = view.midY - pilot.y
+        let minX = view.maxX - world.maxX
+        let maxX = view.minX - world.minX
+        let minY = view.maxY - world.maxY
+        let maxY = view.minY - world.minY
+        return CGPoint(x: min(max(requestedX, minX), maxX),
+                       y: min(max(requestedY, minY), maxY))
+    }
+
+    static func visibleWorldRect(at offset: CGPoint,
+                                 viewportSize: CGSize) -> CGRect {
+        RoomRules.bounds(for: viewportSize).offsetBy(
+            dx: -offset.x, dy: -offset.y)
+    }
+
+    static func follow(current: CGPoint, target: CGPoint,
+                       frameDelta: TimeInterval) -> CGPoint {
+        let alpha = CGFloat(min(1, max(0, frameDelta) * 7.5))
+        return CGPoint(x: current.x + (target.x - current.x) * alpha,
+                       y: current.y + (target.y - current.y) * alpha)
+    }
+}
