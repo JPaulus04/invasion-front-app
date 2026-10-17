@@ -63,6 +63,15 @@ struct CampaignPacingTests {
         precondition(SurvivalEncounterRules.kind(world: 1, room: 5) == .survival)
         precondition(SurvivalEncounterRules.kind(world: 0, room: 12) == .equipmentDefense)
         precondition(SurvivalEncounterRules.kind(world: 2, room: 15) == .equipmentDefense)
+        for room in 1...20 {
+            for slot in 0..<100 {
+                let unit = SurvivalEncounterRules.swarmType(
+                    room: room, slot: slot)
+                precondition([0, 2, 4].contains(unit))
+                if room < 8 { precondition(unit != 4) }
+                if unit == 4 { precondition(slot > 0 && slot.isMultiple(of: 17)) }
+            }
+        }
         precondition(SurvivalEncounterRules.fastExtractionBonusCoins == 0)
         precondition(SurvivalEncounterRules.fastExtractionBonusXP == 0)
         precondition(SurvivalEncounterRules.fastExtractionBonusSalvage == 0)

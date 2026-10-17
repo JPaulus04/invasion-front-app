@@ -39,6 +39,7 @@ def verify(path: Path) -> None:
         "outpost-zero-arena-center.png": 1,
         "outpost-zero-arena-east.png": 2
     }
+    is_survival = path.name.startswith("outpost-zero-survival-")
     # Ignore static phone notch/home bar; sample the game area.
     # A denser grid catches small, moving sprites in intentionally sparse
     # ranged arenas without treating real gameplay as an unrendered frame.
@@ -68,7 +69,7 @@ def verify(path: Path) -> None:
                 row[i] = (row[i] + predictor) & 255
         elif mode != 0:
             raise ValueError(f"unsupported PNG filter {mode}")
-        if path.name in expected_markers and y == round(height * 0.40):
+        if (path.name in expected_markers or is_survival) and y == round(height * 0.40):
             cx = round(width * 0.90)
             arena_marker = tuple(row[cx * channels:cx * channels + 3])
         if height // 7 < y < height * 13 // 14 and y % y_step == 0:
@@ -92,6 +93,12 @@ def verify(path: Path) -> None:
             raise ValueError(
                 f"missing or incorrect arena game identity marker: "
                 f"expected RGB channel {channel}, sampled {arena_marker}")
+    if is_survival and (
+        arena_marker is None or arena_marker[0] < 170 or
+        arena_marker[1] > 90 or arena_marker[2] < 170
+    ):
+        raise ValueError(
+            f"not a live survival-swarm capture, marker {arena_marker}")
     print(f"PASS: {path} {width}x{height}, {len(colors)} battlefield colors")
 
 if __name__ == "__main__":

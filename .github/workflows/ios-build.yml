@@ -268,6 +268,13 @@ jobs:
           sleep 3
           capture_live_frame screenshots/outpost-zero-motion-3.png
           # Room 11: observe both shooters and lobbers under live AI control.
+          launch_live_scene -captureSurvivalSwarmFrames
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-survival-1.png
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-survival-2.png
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-survival-3.png
           launch_live_scene -captureRangedCombatFrames
           sleep 2
           capture_live_frame screenshots/outpost-zero-ranged-1.png
@@ -351,6 +358,19 @@ jobs:
           hashes = {sha256(frame).digest() for frame in frames}
           assert len(hashes) >= 2, "Live combat snapshots are identical: scene may be frozen"
           print(f"PASS: {len(hashes)} different live combat captures")
+          PY
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-survival-1.png \
+            screenshots/outpost-zero-survival-2.png \
+            screenshots/outpost-zero-survival-3.png
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          data = [Path(f"screenshots/outpost-zero-survival-{i}.png").read_bytes()
+                  for i in (1, 2, 3)]
+          assert len({sha256(frame).digest() for frame in data}) >= 2, (
+              "Survival gameplay frames must change over time")
+          print("PASS: actual changing survival-swarm combat frames")
           PY
           python3 scripts/validate_simulator_screenshots.py \
             screenshots/outpost-zero-ranged-1.png \

@@ -129,6 +129,14 @@ enum SurvivalEncounterRules {
 
     /// Standard XP and coins remain available from enemies already present.
     /// No new enemies spawn during extraction and there is NO speed bonus.
+    /// Mostly ordinary, fragile units. Occasional raiders diversify the
+    /// silhouettes; later arenas gain a sparse shooter every 17 arrivals.
+    static func swarmType(room: Int, slot: Int) -> Int {
+        guard room >= 1 else { return 0 }
+        if room >= 8 && slot > 0 && slot.isMultiple(of: 17) { return 4 }
+        return slot.isMultiple(of: 5) ? 2 : 0
+    }
+
     static let fastExtractionBonusCoins = 0
     static let fastExtractionBonusXP = 0
     static let fastExtractionBonusSalvage = 0

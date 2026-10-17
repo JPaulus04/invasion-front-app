@@ -167,6 +167,11 @@ final class OutpostScene: SKScene {
     // First validate three camera positions in isolated simulator captures.
     // Enabling live survival mode waits for encounter/recovery integration.
     private var expandedArenaPreview = false
+    // Live survival spawning is first exercised through the simulator QA
+    // fixture. Normal campaign progression stays tactical until extraction
+    // and save recovery are implemented and validated together.
+    private var activeEncounter: SurvivalEncounterRules.Kind = .tactical
+    private var survivalSpawnPhaseFinished = false
     private var roomBounds: CGRect {
         expandedArenaPreview ? ArenaLayout.bounds(for: size) : RoomRules.bounds(for: size)
     }
@@ -598,6 +603,53 @@ final class OutpostScene: SKScene {
             zoneBanner.alpha = 1
             arena.isPaused = true
             phase = .levelUp
+            updateHUD()
+        }
+        if ProcessInfo.processInfo.arguments.contains("-captureSurvivalSwarmFrames") {
+            expandedArenaPreview = true
+            worldMapIndex = 0
+            wave = 5
+            gateUnlocked = true
+            startWave()  // Room 6: same encounter entry path as real gameplay.
+            activeEncounter = .survival
+            installArenaPreviewGround()
+            pilot.position = CGPoint(x: roomBounds.midX,
+                                      y: roomBounds.midY - roomBounds.height * 0.13)
+            arena.position = ArenaLayout.offset(for: pilot.position,
+                                                 viewportSize: size)
+            // Prime the battlefield with actual enemy objects before the
+            // continuous spawn loop takes over. No extra art-only sprites.
+            for index in 0..<9 {
+                spawned += 1
+                spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(
+                    room: wave, slot: index))
+                if let enemy = enemies.last {
+                    let x = CGFloat(index % 3 - 1) * 76
+                    let y = CGFloat(index / 3 - 1) * 83
+                    enemy.node.position = CGPoint(
+                        x: pilot.position.x + x,
+                        y: pilot.position.y + y + 130)
+                }
+            }
+            let marker = SKShapeNode(rectOf: CGSize(width: 26, height: 26))
+            marker.name = "survivalQAIdentity"
+            marker.fillColor = SKColor(red: 1, green: 0, blue: 1, alpha: 1)
+            marker.strokeColor = .white
+            marker.lineWidth = 2
+            marker.zPosition = 65
+            marker.position = CGPoint(x: size.width * 0.90,
+                                      y: size.height * 0.60)
+            hud.addChild(marker)
+            pilotShieldUntil = combatTime + 120
+            // Running combat and tracking camera: CI captures actual frames
+            // and verifies changed images instead of a posed static menu.
+            zoneBanner.text = "SWARM ASSAULT"
+            zoneBanner.position = CGPoint(x: size.width / 2,
+                                           y: size.height - 216)
+            zoneBanner.fontSize = 13
+            zoneBanner.alpha = 1
+            phase = .playing
+            arena.isPaused = false
             updateHUD()
         }
         // Art review for Rooms 6-10: stage actual forest-overgrowth scenery
@@ -1043,7 +1095,15 @@ final class OutpostScene: SKScene {
             : (wave > 0 && phase != .ready && phase != .loadout
                ? selectedWorld.title : "OUTPOST ZERO")
         if title.text != titleText { title.text = titleText }
-        let subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
+        let subtitleText: String
+        if activeEncounter.isTimed && phase == .playing {
+            let remaining = max(0, Int(ceil(
+                SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) -
+                    waveElapsed)))
+            subtitleText = "SURVIVE \(remaining)S  •  \(enemies.count) FOES  •  \(coins) COINS"
+        } else {
+            subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
+        }
         if subtitle.text != subtitleText { subtitle.text = subtitleText }
         let infoText = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
         if info.text != infoText { info.text = infoText }
@@ -1972,6 +2032,7 @@ final class OutpostScene: SKScene {
         }
         spawned = 0
         waveTarget = CampaignPacing.targetEnemies(room: wave)
+        survivalSpawnPhaseFinished = false
         // Shorten the empty opening without increasing enemy count or attack damage.
         spawnClock = 0.9
         waveElapsed = 0
@@ -2934,7 +2995,8 @@ final class OutpostScene: SKScene {
         // This launch argument is never used in the shipped game.
         if phase == .playing && (
             ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") ||
-            ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames")
+            ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames") ||
+            ProcessInfo.processInfo.arguments.contains("-captureSurvivalSwarmFrames")
         ) {
             let t = CGFloat(combatTime)
             movementTarget = CGPoint(
@@ -3030,11 +3092,36 @@ final class OutpostScene: SKScene {
         if phase != .playing { return }
         applyBurns()
         if presentPendingLevelUp(returningTo: .playing) { return }
-        let spawnInterval = CampaignPacing.spawnInterval(room: wave)
-        if spawned < waveTarget && spawnClock >= spawnInterval {
-            spawnClock -= spawnInterval
-            spawned += 1
-            spawnEnemy()
+        if activeEncounter.isTimed {
+            let interval = SurvivalEncounterRules.spawnInterval(room: wave)
+            if SurvivalEncounterRules.canSpawn(
+                world: worldMapIndex, room: wave, elapsed: waveElapsed,
+                livingEnemies: enemies.count), spawnClock >= interval {
+                spawnClock -= interval
+                let available = SurvivalEncounterRules.maxLivingEnemies(
+                    room: wave) - enemies.count
+                for _ in 0..<min(available, SurvivalEncounterRules.spawnBatch(room: wave)) {
+                    spawned += 1
+                    spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(
+                        room: wave, slot: spawned))
+                }
+            }
+            if !survivalSpawnPhaseFinished &&
+                SurvivalEncounterRules.extractionActive(
+                    world: worldMapIndex, room: wave, elapsed: waveElapsed) {
+                survivalSpawnPhaseFinished = true
+                // Extraction and encounter completion are separate stage-3
+                // changes. For now ensure the timer truly ends spawning.
+                zoneBanner.text = "SURVIVAL COMPLETE"
+                zoneBanner.alpha = 1
+            }
+        } else {
+            let interval = CampaignPacing.spawnInterval(room: wave)
+            if spawned < waveTarget && spawnClock >= interval {
+                spawnClock -= interval
+                spawned += 1
+                spawnEnemy()
+            }
         }
         for index in enemies.indices.reversed() {
             let current = enemies[index].node.position
@@ -3086,7 +3173,8 @@ final class OutpostScene: SKScene {
         // Level-up can interrupt combat during damage resolution. Do not clear
         // the room while its upgrade selection is still open.
         guard phase == .playing else { return }
-        if RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) {
+        if !activeEncounter.isTimed &&
+           RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) {
             completeWave()
         }
     }
@@ -4131,6 +4219,8 @@ final class OutpostScene: SKScene {
         for enemy in enemies { enemy.node.removeFromParent() }
         enemies.removeAll()
         bossNode = nil
+        activeEncounter = .tactical
+        survivalSpawnPhaseFinished = false
         wave = 0
         progress = RunProgress()
         combatClock = CombatClock()

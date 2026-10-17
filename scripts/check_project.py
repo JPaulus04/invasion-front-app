@@ -41,6 +41,8 @@ if '"frontierFloorSurface"' in (root / "OutpostZero" / "BattlefieldArt.swift").r
 pacing = (root / "OutpostZero" / "CampaignPacing.swift").read_text(encoding="utf-8")
 if "enum SurvivalEncounterRules" not in pacing or "fastExtractionBonusXP = 0" not in pacing:
     errors.append("Timed survival rules must prevent extra spawns and extraction farming")
+if 'activeEncounter.isTimed' not in scene or '-captureSurvivalSwarmFrames' not in scene:
+    errors.append("Timed survival must run the shared live combat spawn loop")
 if "CombatVisuals.rifleTracer(in: arena" not in scene:
     errors.append("Rifle attacks must use layered, short-lived tracer artwork")
 if "CombatVisuals.explosiveBurst(in: arena" not in scene or "CombatVisuals.markBurning(" not in scene or "CombatVisuals.chainArc(in: arena" not in scene:
