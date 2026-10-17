@@ -129,6 +129,8 @@ if "TerrainHazards.waterSpeed(" in scene:
     errors.append("Do not restore the traversable-water slowdown mechanic")
 if 'CombatRules.enemySteering(' not in scene or 'TerrainHazards.navigationTarget(' not in scene:
     errors.append("Enemy archetypes must flank and navigate around deep water")
+if 'EncounterDirector.enemyRoll(' not in scene or 'EncounterDirector.spawnLane(' not in scene:
+    errors.append("Combat rooms must use directed unit compositions and approach lanes")
 if "CampaignPacing.incomingDamage(" not in scene or "CampaignPacing.hitGracePeriod(" not in scene:
     errors.append("Early room incoming damage and recovery time must use tested pacing")
 if 'decorateLiquidHazard(shape, kind: .water' not in scene or 'decorateLiquidHazard(shape, kind: .acid' not in scene:

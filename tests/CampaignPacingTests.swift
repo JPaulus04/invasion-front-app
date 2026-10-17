@@ -40,7 +40,8 @@ struct CampaignPacingTests {
                 for index in 0..<target {
                     let type = WorldCatalog.enemyType(
                         world: world, room: room,
-                        roll: (index * 37 + room * 11) % 100)
+                        roll: EncounterDirector.enemyRoll(
+                            world: world, room: room, slot: index))
                     let boss = room == CampaignPacing.roomsPerWorld
                     let hp = CampaignPacing.enemyHealth(
                         world: world, room: room, type: type)

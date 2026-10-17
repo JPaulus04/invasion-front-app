@@ -1787,14 +1787,18 @@ final class OutpostScene: SKScene {
         rebuildTerrainHazards()
         nextAcidDamageAt = combatTime + 1.0
         enemyAcidDamageAt.removeAll()
-        if wave == 1 || (wave - 1) % 5 == 0 || wave == worldWaveCount {
+        if wave == 1 || (wave - 1) % 5 == 0 || wave == worldWaveCount ||
+           [4, 9, 14, 19].contains(wave) {
             zoneBanner.removeAllActions()
             let labels = worldMapIndex == 0 ? zoneNames :
                 (worldMapIndex == 1
                     ? ["OUTER DOCKS", "FLOODED CHANNEL", "PUMP STATION", "WARDEN PLATFORM"]
                     : ["TOXIC PERIMETER", "CORROSIVE PASS", "WASTE PROCESSING", "SENTINEL CHAMBER"])
             zoneBanner.text = wave == worldWaveCount
-                ? "BOSS: \(selectedWorld.boss)" : labels[activeZone]
+                ? "BOSS: \(selectedWorld.boss)"
+                : ([4, 9, 14, 19].contains(wave)
+                    ? EncounterDirector.title(room: wave)
+                    : labels[activeZone])
             zoneBanner.fontColor = wave == worldWaveCount ? .systemYellow : .white
             zoneBanner.alpha = 1
             zoneBanner.run(.sequence([.wait(forDuration: 1.6), .fadeOut(withDuration: 0.5)]))
@@ -2482,8 +2486,10 @@ final class OutpostScene: SKScene {
     private func spawnEnemy(artReviewType: Int? = nil) {
         let isBoss = wave == worldWaveCount
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
-        let roll = Int.random(in: 0..<100)
-        let type = artReviewType ?? WorldCatalog.enemyType(world: worldMapIndex, room: wave, roll: roll)
+        let roll = EncounterDirector.enemyRoll(
+            world: worldMapIndex, room: wave, slot: spawned)
+        let type = artReviewType ?? WorldCatalog.enemyType(
+            world: worldMapIndex, room: wave, roll: roll)
         let radius: CGFloat = isBoss ? 37 : (type == 1 ? 23 : (type == 2 ? 17 : (type == 3 ? 26 : 14)))
         let node = SKShapeNode(circleOfRadius: radius)
         node.fillColor = type == 1 ? .systemRed : (type == 2 ? .systemPurple : (type == 3 ? .systemGray : .systemOrange))
@@ -2685,8 +2691,17 @@ final class OutpostScene: SKScene {
         // Telegraphed materialization inside the room, never on the pilot.
         let candidateBounds = roomBounds.insetBy(dx: radius + 10, dy: radius + 18)
         let candidates = (0..<32).compactMap { _ -> CGPoint? in
-            let sample = CGPoint(x: CGFloat.random(in: 0...1),
-                                 y: CGFloat.random(in: 0...1))
+            // Orchestrated arrival lanes distinguish flanks, crossfire, and
+            // mortar groups. Every candidate still respects terrain and
+            // the pilot's minimum spawn separation.
+            let lane = EncounterDirector.spawnLane(room: wave, slot: spawned)
+            let x: CGFloat
+            switch lane {
+            case .left: x = CGFloat.random(in: 0.08...0.36)
+            case .right: x = CGFloat.random(in: 0.64...0.92)
+            case .center: x = CGFloat.random(in: 0.34...0.66)
+            }
+            let sample = CGPoint(x: x, y: CGFloat.random(in: 0.48...0.94))
             let location = CGPoint(
                 x: candidateBounds.minX + candidateBounds.width * sample.x,
                 y: candidateBounds.minY + candidateBounds.height * sample.y)

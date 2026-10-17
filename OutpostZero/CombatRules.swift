@@ -133,3 +133,89 @@ enum CombatRules {
         hypot(center.x - pilot.x, center.y - pilot.y) <= radius + 14
     }
 }
+
+
+/// Purposeful room compositions instead of independent random enemy rolls.
+/// A fixed composition per world/room makes balancing reproducible, while the
+/// random valid spawn positions still make each fight feel organic.
+enum EncounterDirector {
+    enum Style: Int {
+        case patrol, flank, crossfire, siege, gauntlet, boss
+    }
+
+    enum Lane { case left, right, center }
+
+    static func style(room: Int) -> Style {
+        if room >= 20 { return .boss }
+        if room <= 3 { return .patrol }
+        if room <= 5 { return .flank }
+        if room <= 10 { return room.isMultiple(of: 3) ? .crossfire : .flank }
+        if room <= 15 {
+            return room.isMultiple(of: 3) ? .siege :
+                (room.isMultiple(of: 2) ? .crossfire : .flank)
+        }
+        switch room % 4 {
+        case 0: return .crossfire
+        case 1: return .flank
+        case 2: return .siege
+        default: return .gauntlet
+        }
+    }
+
+    static func title(room: Int) -> String {
+        switch style(room: room) {
+        case .patrol: return "PATROL"
+        case .flank: return "FLANKING RAID"
+        case .crossfire: return "CROSSFIRE"
+        case .siege: return "MORTAR SUPPORT"
+        case .gauntlet: return "MIXED ASSAULT"
+        case .boss: return "BOSS ENCOUNTER"
+        }
+    }
+
+    /// Give each encounter an intentional unit mixture without overriding
+    /// world-specific enemy unlocks or spawning excessive ranged attackers.
+    static func enemyRoll(world: Int, room: Int, slot: Int) -> Int {
+        let seed = (max(0, slot) * 37 + max(0, room) * 17 +
+                    max(0, world) * 11) % 100
+        // Rooms 1-5 should be readable even in Worlds 2/3. Keep the roll
+        // above the ranged threshold and below the armored-heavy threshold.
+        if room <= 5 { return 35 + seed % 35 }
+        switch style(room: room) {
+        case .patrol: return 35 + seed % 55
+        case .flank:
+            return slot.isMultiple(of: 3) ? 63 + seed % 9 : 33 + seed % 67
+        case .crossfire:
+            // One shooter in each ~five-enemy group, not a shooter wall.
+            return slot.isMultiple(of: 5) ? 6 + seed % 8 : 34 + seed % 66
+        case .siege:
+            // One telegraphed lobber in each ~six-enemy group; other slots
+            // remain mixed melee so players can dodge through gaps.
+            return slot.isMultiple(of: 6) ? 3 + seed % 9 : 36 + seed % 64
+        case .gauntlet:
+            if slot % 8 == 0 { return 8 + seed % 7 }
+            if slot % 8 == 4 { return 70 + seed % 12 }
+            return 33 + seed % 67
+        case .boss: return 50
+        }
+    }
+
+    static func spawnLane(room: Int, slot: Int) -> Lane {
+        switch style(room: room) {
+        case .patrol, .boss: return .center
+        case .flank:
+            // Pairs coming from alternate sides are easier to understand
+            // and more interesting to dodge than a random full-screen mix.
+            return (slot / 2).isMultiple(of: 2) ? .left : .right
+        case .crossfire: return slot.isMultiple(of: 2) ? .left : .right
+        case .siege: return slot.isMultiple(of: 6) ? .center :
+            (slot.isMultiple(of: 2) ? .left : .right)
+        case .gauntlet:
+            switch slot % 3 {
+            case 0: return .center
+            case 1: return .left
+            default: return .right
+            }
+        }
+    }
+}

@@ -227,6 +227,46 @@ struct ProgressCombatTests {
         precondition(CombatRules.enemySteering(
             behavior: 4, origin: .zero, pilot: CGPoint(x: 120, y: 0),
             elapsed: 3, phase: 1, ranged: true, aiming: true).dx == 0)
+        // Balanced encounters must be deterministic and evolve from simple
+        // patrols to flanking groups, separated ranged fire and siege units.
+        precondition(EncounterDirector.style(room: 1) == .patrol)
+        precondition(EncounterDirector.style(room: 4) == .flank)
+        precondition(EncounterDirector.style(room: 6) == .crossfire)
+        precondition(EncounterDirector.style(room: 12) == .siege)
+        precondition(EncounterDirector.style(room: 20) == .boss)
+        precondition(EncounterDirector.spawnLane(room: 4, slot: 0) == .left)
+        precondition(EncounterDirector.spawnLane(room: 4, slot: 2) == .right)
+        precondition(EncounterDirector.spawnLane(room: 6, slot: 0) == .left)
+        precondition(EncounterDirector.spawnLane(room: 6, slot: 1) == .right)
+        for world in 0..<WorldCatalog.playableCount {
+            for room in 1...5 {
+                for slot in 0..<CampaignPacing.targetEnemies(room: room) {
+                    let role = WorldCatalog.enemyType(
+                        world: world, room: room,
+                        roll: EncounterDirector.enemyRoll(
+                            world: world, room: room, slot: slot))
+                    precondition(role < 3, "No armored or ranged unit during tutorial rooms")
+                }
+            }
+            for room in 6...19 {
+                let types = (0..<CampaignPacing.targetEnemies(room: room)).map {
+                    WorldCatalog.enemyType(world: world, room: room,
+                        roll: EncounterDirector.enemyRoll(
+                            world: world, room: room, slot: $0))
+                }
+                let rangedCount = types.filter { $0 >= 4 }.count
+                precondition(rangedCount <= (types.count + 2) / 3,
+                             "Ranged enemies must never dominate an encounter")
+                if EncounterDirector.style(room: room) == .crossfire {
+                    precondition(types.contains(4),
+                                 "Crossfire rooms must contain ranged attackers")
+                }
+                if EncounterDirector.style(room: room) == .siege {
+                    precondition(types.contains(5),
+                                 "Siege rooms must contain telegraphed mortars")
+                }
+            }
+        }
         // A single target scan must select the closest active enemy,
         // ignore spawning/dead enemies and respect the rifle's 260pt range.
         let positions = [
