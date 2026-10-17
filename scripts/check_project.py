@@ -53,6 +53,10 @@ if 'zoneBanner.text = ""' not in scene:
     errors.append("Survival extraction banner must reset on the next room")
 if 'timedEncounterElapsed:' not in scene or 'waveElapsed = min(snapshot.timedEncounterElapsed' not in scene:
     errors.append("Saved survival runs must preserve timer progress")
+if 'timedEncounterLiving:' not in scene or 'timedEncounterSpawned:' not in scene:
+    errors.append("Interrupted swarms must preserve the live count and reinforcement index")
+if 'extractionCombatActive' not in scene or 'foeCountBefore - 1' not in scene:
+    errors.append("Simulator must verify earned kills after extraction with no new spawns")
 if "CombatVisuals.rifleTracer(in: arena" not in scene:
     errors.append("Rifle attacks must use layered, short-lived tracer artwork")
 if "CombatVisuals.explosiveBurst(in: arena" not in scene or "CombatVisuals.markBurning(" not in scene or "CombatVisuals.chainArc(in: arena" not in scene:

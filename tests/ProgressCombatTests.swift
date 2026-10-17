@@ -102,8 +102,22 @@ struct ProgressCombatTests {
         precondition(reopened?.timedEncounterElapsed == nil)
         var timedSave = saved
         timedSave.timedEncounterElapsed = 83.5
+        timedSave.timedEncounterSpawned = 42
+        timedSave.timedEncounterLiving = 14
         precondition(timedSave.isValid && recover.save(timedSave))
         precondition(abs((recover.load()?.timedEncounterElapsed ?? 0) - 83.5) < 0.0001)
+        precondition(recover.load()?.timedEncounterSpawned == 42)
+        precondition(recover.load()?.timedEncounterLiving == 14)
+        timedSave.timedEncounterLiving = 29
+        precondition(!timedSave.isValid && !recover.save(timedSave),
+                     "Survival recovery must reject live swarms above the cap")
+        timedSave.timedEncounterLiving = 43
+        precondition(!timedSave.isValid)
+        timedSave.timedEncounterLiving = 14
+        timedSave.timedEncounterSpawned = 10
+        precondition(!timedSave.isValid,
+                     "Survivor count cannot exceed the total spawned")
+        timedSave.timedEncounterSpawned = 42
         timedSave.timedEncounterElapsed = 121
         precondition(!timedSave.isValid && !recover.save(timedSave))
         precondition(recover.save(saved))

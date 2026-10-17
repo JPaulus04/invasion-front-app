@@ -731,6 +731,25 @@ final class OutpostScene: SKScene {
                              world: worldMapIndex, room: wave,
                              elapsed: waveElapsed, livingEnemies: enemies.count),
                          "Timed extraction must open with living enemies")
+            // Regression for the previous peaceful-gate bug: the player can
+            // still auto-fire to earn legitimate kill XP and coins, without
+            // ever spawning another enemy once extraction is available.
+            enemies[0].health = 1
+            enemies[0].node.position = CGPoint(
+                x: pilot.position.x + 45, y: pilot.position.y + 22)
+            combatClock.advance(2, playing: true)
+            lastShot = combatTime - 1
+            let coinsBefore = coins
+            let xpBefore = progress.xp
+            let foeCountBefore = enemies.count
+            update(1_000)
+            update(1_000.03)
+            precondition(enemies.count == foeCountBefore - 1 &&
+                         coins > coinsBefore &&
+                         (progress.xp != xpBefore || progress.pendingChoices > 0) &&
+                         phase == .gate && !extractionPortal.isHidden &&
+                         survivalSpawnPhaseFinished,
+                         "Timed evacuation must allow earned kills, not new spawns")
             arena.isPaused = true
         }
         // Scene-level end-to-end regression: walk into extraction with live

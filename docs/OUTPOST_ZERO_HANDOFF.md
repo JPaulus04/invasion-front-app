@@ -44,6 +44,13 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Added geometry tests across screen sizes/biomes, live extraction path assertion, and an end-to-end screenshot fixture that starts Room 6, opens the timed portal while four enemies remain, enters it, and asserts Room 7 is tactical with a reset camera and no stale enemies/UI.
 - No TestFlight upload. CI checks and screenshot inspection required before claiming this pass complete.
 
+## October 17 follow-up — extraction combat and recovery
+- Confirmed previous run 39063786781 fully passed simulator and iOS validation and inspected real extraction/Room 7 screenshots; visual cleanup succeeded. Art-sprite production approval remains separate.
+- Fixed active combat after survival timeout: normal kill XP/coins, gunfire, damage and timed save continue while walking toward the portal; new spawns remain forbidden. The standard tactical gate remains peaceful.
+- Survival snapshots now persist optional elapsed, spawned count and living count (schema-4 backward compatible). On resume, only the saved bounded living swarm is reconstructed; retained XP/coin/Salvage replay credits prevent duplicate farming. A missing legacy count is safely accepted.
+- Extraction simulator capture now kills a real live enemy after opening the exit and asserts XP/coins gained, no additional spawns, and portal remains visible. ProgressCombatTests covers valid saved count and impossible swarm values.
+- Final CI and simulator screenshot pass required; next milestone after validation is deeper extraction save/recovery lifecycle QA.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.
