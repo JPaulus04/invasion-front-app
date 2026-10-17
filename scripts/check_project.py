@@ -288,8 +288,8 @@ if "activateLevelUp(at: CGPoint(x: rect.midX, y: rect.midY))" not in qa_scene:
     errors.append("Simulator must trigger the production level-up tap route")
 if "controlsHint.text = \"DRAG TO MOVE  •  AUTO-FIRE\"" not in scene:
     errors.append("First room needs concise touch and auto-fire guidance")
-if "ROOM CLEAR — WALK INTO GATE" not in scene:
-    errors.append("First-room exit must explain physical portal entry")
+if "ROOM CLEAR — ENTER PORTAL" not in scene:
+    errors.append("First-room exit must explain entry into the circular campaign portal")
 # Finished enemy illustrations must not be covered by prototype geometry.
 enemy_section = scene.split("private func spawnEnemy(artReviewType: Int? = nil)", 1)[-1].split("// Telegraphed materialization inside the room", 1)[0]
 for guard in (
