@@ -23,6 +23,8 @@ for feature in ("spawnEnemy()", "shoot(at:", "completeWave()", "endGame()", "res
         errors.append(f"Missing gameplay feature: {feature}")
 if 'ArenaLayout.offset(for: pilot.position' not in scene or 'installArenaPreviewGround()' not in scene:
     errors.append("Expanded arenas require bounded camera tracking and moving floor")
+if 'arenaCaptureIdentity' not in scene:
+    errors.append("Arena simulator captures must identify the actual camera view")
 for direction in ("Left", "Center", "Right"):
     if f"-captureExpandedArena{direction}Screenshot" not in scene:
         errors.append(f"Missing expanded arena camera screenshot: {direction}")

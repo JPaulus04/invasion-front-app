@@ -558,6 +558,7 @@ final class OutpostScene: SKScene {
                              size.width / 2) < size.width * 0.41,
                          "Camera must show the pilot and keep world edges covered")
             for kind in [0, 2, 4, 1, 3] {
+                spawned += 1
                 spawnEnemy(artReviewType: kind)
             }
             for enemy in enemies {
@@ -565,6 +566,23 @@ final class OutpostScene: SKScene {
                 enemy.node.alpha = 1
                 enemy.node.childNode(withName: "spawnWarning")?.isHidden = true
             }
+            // A small QA-only viewport marker certifies which capture
+            // actually launched; the simulator home screen or stale previous
+            // game scene must never pass as an arena screenshot.
+            let qaMarker = SKShapeNode(circleOfRadius: 12)
+            qaMarker.name = "arenaCaptureIdentity"
+            let markerColors: [SKColor] = [
+                SKColor(red: 1, green: 0, blue: 0, alpha: 1),
+                SKColor(red: 0, green: 1, blue: 0, alpha: 1),
+                SKColor(red: 0, green: 0, blue: 1, alpha: 1)
+            ]
+            qaMarker.fillColor = markerColors[slot]
+            qaMarker.strokeColor = .white
+            qaMarker.lineWidth = 2
+            qaMarker.zPosition = 65
+            qaMarker.position = CGPoint(x: size.width * 0.90,
+                                        y: size.height * 0.60)
+            hud.addChild(qaMarker)
             zoneBanner.removeAllActions()
             zoneBanner.text = ["ARENA: WESTERN APPROACH",
                                "ARENA: CENTRAL FRONT",

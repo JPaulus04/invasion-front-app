@@ -33,6 +33,12 @@ def verify(path: Path) -> None:
         raise ValueError("incorrect decoded PNG length")
     previous = bytearray(stride)
     colors = set()
+    arena_marker = None
+    expected_markers = {
+        "outpost-zero-arena-west.png": 0,
+        "outpost-zero-arena-center.png": 1,
+        "outpost-zero-arena-east.png": 2
+    }
     # Ignore static phone notch/home bar; sample the game area.
     # A denser grid catches small, moving sprites in intentionally sparse
     # ranged arenas without treating real gameplay as an unrendered frame.
@@ -62,6 +68,9 @@ def verify(path: Path) -> None:
                 row[i] = (row[i] + predictor) & 255
         elif mode != 0:
             raise ValueError(f"unsupported PNG filter {mode}")
+        if path.name in expected_markers and y == round(height * 0.40):
+            cx = round(width * 0.90)
+            arena_marker = tuple(row[cx * channels:cx * channels + 3])
         if height // 7 < y < height * 13 // 14 and y % y_step == 0:
             colors.update(bytes(row[x * channels:x * channels + 3]) for x in x_positions)
         previous = row
@@ -71,6 +80,18 @@ def verify(path: Path) -> None:
     # legitimately produce fewer colors than dense forest/gate screenshots.
     if len(colors) < 15:
         raise ValueError(f"blank or unrendered simulator capture ({len(colors)} sampled colors)")
+    if path.name in expected_markers:
+        # The simulator sometimes captures the colorful iOS home screen when
+        # the game crashed after a successful simctl launch. It must NEVER
+        # count as a successful arena visual review. A uniquely colored
+        # QA-only HUD marker also rejects stale views from the prior launch.
+        channel = expected_markers[path.name]
+        if arena_marker is None or arena_marker[channel] < 170 or any(
+            arena_marker[other] > 90 for other in range(3) if other != channel
+        ):
+            raise ValueError(
+                f"missing or incorrect arena game identity marker: "
+                f"expected RGB channel {channel}, sampled {arena_marker}")
     print(f"PASS: {path} {width}x{height}, {len(colors)} battlefield colors")
 
 if __name__ == "__main__":
