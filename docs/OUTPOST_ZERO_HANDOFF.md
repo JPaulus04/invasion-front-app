@@ -37,6 +37,13 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Equipment-defense rooms are still ordinary tactical rooms until proper defense objective mechanics arrive.
 - IMPORTANT: confirm CI pass and human visual review before release; no new TestFlight upload was requested.
 
+## October 17 — extraction accessibility and UI acceptance
+- Baseline extraction screenshot from workflow #343 (run 39059362674) passed but revealed overlapping status/portal instructions. Original workflow run: https://github.com/JPaulus04/invasion-front-app/actions/runs/39059362674
+- Corrected extraction UI: position the banner below HUD corner controls, remove the redundant overlaid instruction, and clear banner state on entry to the next room.
+- Added pure collision-safe portal placement that samples the full 12-point-radius walking approach and chooses a nearby accessible position; a trapped pilot evacuates from their current location rather than softlocking.
+- Added geometry tests across screen sizes/biomes, live extraction path assertion, and an end-to-end screenshot fixture that starts Room 6, opens the timed portal while four enemies remain, enters it, and asserts Room 7 is tactical with a reset camera and no stale enemies/UI.
+- No TestFlight upload. CI checks and screenshot inspection required before claiming this pass complete.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

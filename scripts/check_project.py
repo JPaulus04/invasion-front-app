@@ -47,6 +47,10 @@ if 'activeEncounter = SurvivalEncounterRules.kind(' not in scene or 'showExtract
     errors.append("The campaign must route real survival rooms to extraction")
 if '-captureSurvivalExtractionScreenshot' not in scene or 'extractionPortal.isHidden = false' not in scene:
     errors.append("Simulator must capture extraction with enemies alive")
+if '-captureSurvivalTransitionScreenshot' not in scene or 'TerrainHazards.extractionPosition(' not in scene:
+    errors.append("Simulator must verify reachable extraction and tactical-room transition")
+if 'zoneBanner.text = ""' not in scene:
+    errors.append("Survival extraction banner must reset on the next room")
 if 'timedEncounterElapsed:' not in scene or 'waveElapsed = min(snapshot.timedEncounterElapsed' not in scene:
     errors.append("Saved survival runs must preserve timer progress")
 if "CombatVisuals.rifleTracer(in: arena" not in scene:

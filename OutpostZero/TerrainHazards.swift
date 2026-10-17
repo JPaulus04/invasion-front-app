@@ -154,6 +154,65 @@ enum TerrainHazards {
         }
     }
 
+    /// Sample the full straight approach at player collision width; checking
+    /// only the destination can place extraction behind impassable water.
+    static func extractionApproachIsClear(
+        from pilot: CGPoint, to portal: CGPoint,
+        patches: [Patch], collisionRadius: CGFloat = 12
+    ) -> Bool {
+        let length = hypot(portal.x - pilot.x, portal.y - pilot.y)
+        guard length > 0 else { return true }
+        let steps = max(1, Int(ceil(length / 7)))
+        for index in 1...steps {
+            let t = CGFloat(index) / CGFloat(steps)
+            let point = CGPoint(x: pilot.x + (portal.x - pilot.x) * t,
+                                y: pilot.y + (portal.y - pilot.y) * t)
+            if blocksMovement(point, patches: patches, radius: collisionRadius) {
+                return false
+            }
+        }
+        return true
+    }
+
+    /// Always prefer a reachable portal within a short, unobstructed walk.
+    /// Never fall back to the distant arena center behind a water channel.
+    /// If the pilot is boxed in by conflicting terrain, place the portal on
+    /// their current position as a last-resort anti-softlock evacuation.
+    static func extractionPosition(
+        near pilot: CGPoint, in bounds: CGRect, patches: [Patch]
+    ) -> CGPoint {
+        let safe = bounds.insetBy(dx: 53, dy: 53)
+        let directions: [CGPoint] = [
+            CGPoint(x: 0, y: 1),
+            CGPoint(x: 1, y: 1),
+            CGPoint(x: 1, y: 0),
+            CGPoint(x: -1, y: 1),
+            CGPoint(x: -1, y: 0),
+            CGPoint(x: 1, y: -1),
+            CGPoint(x: 0, y: -1),
+            CGPoint(x: -1, y: -1)
+        ]
+        for distance: CGFloat in [125, 100, 75, 52] {
+            for direction in directions {
+                let magnitude = hypot(direction.x, direction.y)
+                let requested = CGPoint(
+                    x: pilot.x + direction.x / magnitude * distance,
+                    y: pilot.y + direction.y / magnitude * distance)
+                let candidate = CGPoint(
+                    x: min(max(requested.x, safe.minX), safe.maxX),
+                    y: min(max(requested.y, safe.minY), safe.maxY))
+                guard hypot(candidate.x - pilot.x,
+                            candidate.y - pilot.y) >= 45 else { continue }
+                if !blocksMovement(candidate, patches: patches, radius: 14) &&
+                    extractionApproachIsClear(
+                        from: pilot, to: candidate, patches: patches) {
+                    return candidate
+                }
+            }
+        }
+        return pilot
+    }
+
     /// Redirect pursuers around the nearest blocked shoreline instead of
     /// letting their movement repeatedly collide with the lake or rubble.
     static func navigationTarget(from current: CGPoint, toward pilot: CGPoint,

@@ -715,6 +715,10 @@ final class OutpostScene: SKScene {
                 world: worldMapIndex, room: wave, elapsed: waveElapsed,
                 livingEnemies: living))
             completeWave()
+            precondition(TerrainHazards.extractionApproachIsClear(
+                         from: pilot.position, to: extractionPortal.position,
+                         patches: roomHazards),
+                         "Production portal must be reachable without crossing water")
             precondition(roomCleared && phase == .gate &&
                          enemies.count == living &&
                          !extractionPortal.isHidden && passageGate.isHidden &&
@@ -723,6 +727,39 @@ final class OutpostScene: SKScene {
                              elapsed: waveElapsed, livingEnemies: enemies.count),
                          "Timed extraction must open with living enemies")
             arena.isPaused = true
+        }
+        // Scene-level end-to-end regression: walk into extraction with live
+        // enemies present, then confirm that Room 7 uses a normal fixed camera
+        // and none of the old survival UI/enemies follow the pilot.
+        if ProcessInfo.processInfo.arguments.contains(
+            "-captureSurvivalTransitionScreenshot") {
+            worldMapIndex = 0
+            wave = 5
+            gateUnlocked = true
+            startWave()
+            precondition(activeEncounter == .survival)
+            for index in 0..<4 {
+                spawned += 1
+                spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(
+                    room: wave, slot: index))
+            }
+            waveElapsed = SurvivalEncounterRules.duration(
+                world: worldMapIndex, room: wave)
+            completeWave()
+            precondition(phase == .gate && !extractionPortal.isHidden &&
+                         enemies.count == 4,
+                         "Extraction must stay open with four active enemies")
+            pilot.position = extractionPortal.position
+            update(1_000)
+            precondition(wave == 7 && activeEncounter == .tactical &&
+                         phase == .playing && !expandedArenaPreview &&
+                         arena.position == .zero && enemies.isEmpty &&
+                         extractionPortal.isHidden && passageGate.isHidden &&
+                         zoneBanner.text != "EXTRACTION OPEN",
+                         "Room 7 must reset camera, enemies and extraction UI")
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
         }
         // Art review for Rooms 6-10: stage actual forest-overgrowth scenery
         // without changing combat balance or the launch state seen by players.
@@ -2087,7 +2124,12 @@ final class OutpostScene: SKScene {
         // its scheduled slots retain the ordinary tactical encounter.
         activeEncounter = SurvivalEncounterRules.kind(
             world: worldMapIndex, room: wave) == .survival ? .survival : .tactical
-        let retainQACamera = isCaptureMode && expandedArenaPreview
+        // Only explicit expanded-arena review fixtures may retain a large
+        // camera in a tactical room; live survival -> tactical must reset it.
+        let retainQACamera = ProcessInfo.processInfo.arguments.contains {
+            $0.hasPrefix("-captureExpandedArena") ||
+                $0 == "-captureSurvivalSwarmFrames"
+        }
         expandedArenaPreview = activeEncounter == .survival || retainQACamera
         arena.childNode(withName: "expandedArenaPreviewGround")?.removeFromParent()
         if expandedArenaPreview { installArenaPreviewGround() }
@@ -2117,6 +2159,11 @@ final class OutpostScene: SKScene {
         warning.removeAllActions()
         warning.isHidden = true
         warning.alpha = 1
+        // Extraction banners must never leak into the next tactical room.
+        zoneBanner.removeAllActions()
+        zoneBanner.text = ""
+        zoneBanner.alpha = 0
+        zoneBanner.position = CGPoint(x: size.width / 2, y: size.height - 216)
         let activeZone = min((wave - 1) / 5, 3)
         backgroundColor = worldColor(for: activeZone)
         updateZoneScenery(activeZone)
@@ -4102,16 +4149,8 @@ final class OutpostScene: SKScene {
         passageGate.isHidden = true
         // Spawn within walking distance, but not on top of the pilot, water
         // or rubble. This does not require killing the remaining enemies.
-        let safe = roomBounds.insetBy(dx: 65, dy: 65)
-        let approaches: [CGPoint] = [
-            CGPoint(x: pilot.position.x, y: pilot.position.y + 125),
-            CGPoint(x: pilot.position.x + 125, y: pilot.position.y),
-            CGPoint(x: pilot.position.x - 125, y: pilot.position.y),
-            CGPoint(x: pilot.position.x, y: pilot.position.y - 125)
-        ].map { RoomRules.clamp($0, to: safe) }
-        extractionPortal.position = approaches.first(where: {
-            !TerrainHazards.blocksMovement($0, patches: roomHazards)
-        }) ?? CGPoint(x: roomBounds.midX, y: roomBounds.midY)
+        extractionPortal.position = TerrainHazards.extractionPosition(
+            near: pilot.position, in: roomBounds, patches: roomHazards)
         extractionPortal.strokeColor = worldMapIndex == 1 ? .systemTeal :
             (worldMapIndex == 2 ? .systemGreen : .systemCyan)
         extractionPortal.childNode(withName: "extractionCore")?.removeAllActions()
@@ -4125,14 +4164,13 @@ final class OutpostScene: SKScene {
         zoneBanner.text = "EXTRACTION OPEN"
         zoneBanner.fontColor = .systemCyan
         zoneBanner.alpha = 1
-        zoneBanner.position = CGPoint(x: size.width / 2, y: size.height - 216)
+        // Keep the status underneath both corner controls, not in their row.
+        zoneBanner.position = CGPoint(x: size.width / 2, y: size.height - 275)
+        zoneBanner.fontSize = 13
+        // Status is already in the HUD and on the illuminated portal. The
+        // previous full-screen instruction obscured the portal itself.
         warning.removeAllActions()
-        warning.text = "SURVIVED — MOVE INTO BLUE PORTAL"
-        warning.fontColor = .systemCyan
-        warning.fontSize = 13
-        warning.position = CGPoint(x: size.width / 2, y: size.height * 0.27)
-        warning.alpha = 1
-        warning.isHidden = false
+        warning.isHidden = true
         controlsHint.isHidden = true
         updateHUD()
         saveRunRecovery()

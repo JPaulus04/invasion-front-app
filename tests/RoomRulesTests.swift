@@ -183,6 +183,57 @@ struct RoomRulesTests {
                              "Acid spill must leave an unobstructed central route")
             }
         }
+        // Actual extraction pathfinding must validate the complete walking
+        // approach, not just a visually clear destination point.
+        for screen in [CGSize(width: 320, height: 568),
+                       CGSize(width: 393, height: 852),
+                       CGSize(width: 768, height: 1024)] {
+            let field = ArenaLayout.bounds(for: screen)
+            let edgeInlet = CGRect(x: field.midX - 65, y: field.midY + 28,
+                                   width: 130, height: 70)
+            let wall = TerrainHazards.Patch(kind: .rubble,
+                                            frame: edgeInlet, outline: [])
+            for world in 0...2 {
+                for room in [5, 6, 8, 10, 14, 17, 18] {
+                    let patches = TerrainHazards.patches(
+                        world: world, room: room, bounds: field)
+                    let pilots = [
+                        CGPoint(x: field.midX, y: field.minY + 55),
+                        CGPoint(x: field.midX, y: field.midY),
+                        CGPoint(x: field.minX + 45, y: field.midY),
+                        CGPoint(x: field.maxX - 45, y: field.midY),
+                        CGPoint(x: field.midX, y: field.maxY - 50)
+                    ]
+                    for pilot in pilots where !TerrainHazards.blocksMovement(
+                        pilot, patches: patches, radius: 12) {
+                        let exit = TerrainHazards.extractionPosition(
+                            near: pilot, in: field, patches: patches)
+                        precondition(!TerrainHazards.blocksMovement(
+                            exit, patches: patches, radius: 12))
+                        precondition(TerrainHazards.extractionApproachIsClear(
+                            from: pilot, to: exit, patches: patches))
+                        precondition(hypot(exit.x - pilot.x, exit.y - pilot.y) <= 126,
+                            "Extraction must stay within a short walk")
+                    }
+                }
+            }
+            let from = CGPoint(x: field.midX, y: field.midY)
+            let blocked = CGPoint(x: field.midX, y: field.midY + 125)
+            precondition(!TerrainHazards.extractionApproachIsClear(
+                from: from, to: blocked, patches: [wall]),
+                "Portal may not appear across an intervening rubble barrier")
+            let alternate = TerrainHazards.extractionPosition(
+                near: from, in: field, patches: [wall])
+            precondition(alternate != blocked)
+            precondition(TerrainHazards.extractionApproachIsClear(
+                from: from, to: alternate, patches: [wall]))
+            // In a fully trapped location, never strand the pilot because
+            // a distant portal is unreachable.
+            let box = TerrainHazards.Patch(kind: .rubble, frame: CGRect(
+                x: from.x - 47, y: from.y - 47, width: 94, height: 94), outline: [])
+            precondition(TerrainHazards.extractionPosition(
+                near: from, in: field, patches: [box]) == from)
+        }
         // Active-state transitions, not every simulation frame, should drive
         // a redraw. Two 6-second cycles contain four visual transitions.
         var priorAcidOn = TerrainHazards.acidActive(at: 0)
