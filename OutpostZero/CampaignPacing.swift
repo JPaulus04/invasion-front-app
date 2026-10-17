@@ -61,3 +61,75 @@ enum CampaignPacing {
     static func clearCoins(room: Int) -> Int { 12 + room * 2 }
     static func healingCost(room: Int) -> Int { 40 + room * 8 }
 }
+
+
+/// Explicit, deliberately varied encounter layouts for playable 20-room worlds.
+/// Rules are authored separately from SpriteKit to make pacing inspectable
+/// before they are wired into movement, hostile spawning and save recovery.
+enum SurvivalEncounterRules {
+    enum Kind: Equatable {
+        case tactical
+        case survival
+        case equipmentDefense
+        case boss
+
+        var isTimed: Bool { self == .survival || self == .equipmentDefense }
+    }
+
+    // These placements vary by world. An equipment-defense mission does not
+    // replace a boss and must never be confused with a survival XP-farm loop.
+    private static let survivalRooms: [[Int]] = [
+        [6, 10, 14, 17], [5, 8, 11, 15, 18], [6, 9, 13, 17]
+    ]
+    private static let defenseRooms: [[Int]] = [
+        [12], [], [15]
+    ]
+
+    static func kind(world: Int, room: Int) -> Kind {
+        guard (1..<CampaignPacing.roomsPerWorld).contains(room) else {
+            return room == CampaignPacing.roomsPerWorld ? .boss : .tactical
+        }
+        guard (0..<survivalRooms.count).contains(world) else { return .tactical }
+        if defenseRooms[world].contains(room) { return .equipmentDefense }
+        return survivalRooms[world].contains(room) ? .survival : .tactical
+    }
+
+    /// Longer battles are deliberate, not room-clear waves. They are
+    /// 90-120 seconds and automatically finish their spawning phase.
+    static func duration(world: Int, room: Int) -> TimeInterval {
+        guard kind(world: world, room: room).isTimed else { return 0 }
+        return TimeInterval(min(120, 90 + max(0, room - 5) * 2))
+    }
+
+    static func spawnInterval(room: Int) -> TimeInterval {
+        // Keep reinforcement cadence moderate to support mobile rendering.
+        max(0.85, 1.35 - Double(max(1, room)) * 0.025)
+    }
+
+    static func maxLivingEnemies(room: Int) -> Int {
+        min(28, 15 + max(0, room - 5))
+    }
+
+    static func spawnBatch(room: Int) -> Int {
+        room <= 8 ? 1 : 2
+    }
+
+    static func canSpawn(world: Int, room: Int, elapsed: TimeInterval,
+                         livingEnemies: Int) -> Bool {
+        let deadline = duration(world: world, room: room)
+        return deadline > 0 && elapsed >= 0 && elapsed < deadline &&
+            livingEnemies < maxLivingEnemies(room: room)
+    }
+
+    static func extractionActive(world: Int, room: Int,
+                                 elapsed: TimeInterval) -> Bool {
+        let deadline = duration(world: world, room: room)
+        return deadline > 0 && elapsed >= deadline
+    }
+
+    /// Standard XP and coins remain available from enemies already present.
+    /// No new enemies spawn during extraction and there is NO speed bonus.
+    static let fastExtractionBonusCoins = 0
+    static let fastExtractionBonusXP = 0
+    static let fastExtractionBonusSalvage = 0
+}

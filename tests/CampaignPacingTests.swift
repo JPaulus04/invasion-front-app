@@ -5,6 +5,68 @@ import Foundation
 @main
 struct CampaignPacingTests {
     static func main() {
+        // Survival and optional defense are deliberately interspersed.
+        // The boss remains Room 20, regardless of encounter density.
+        let expectedSurvival = [4, 5, 4]
+        let expectedDefense = [1, 0, 1]
+        for world in 0..<WorldCatalog.playableCount {
+            var timed = 0
+            var survival = 0
+            var defenses = 0
+            var priorArena = 0
+            for room in 1...CampaignPacing.roomsPerWorld {
+                let kind = SurvivalEncounterRules.kind(world: world, room: room)
+                if room == 20 {
+                    precondition(kind == .boss)
+                    continue
+                }
+                if kind == .survival { survival += 1 }
+                if kind == .equipmentDefense { defenses += 1 }
+                if kind.isTimed {
+                    timed += 1
+                    precondition(room - priorArena >= 2,
+                                 "Survival encounters must not occur back to back")
+                    priorArena = room
+                    let duration = SurvivalEncounterRules.duration(
+                        world: world, room: room)
+                    precondition(duration >= 90 && duration <= 120)
+                    precondition(SurvivalEncounterRules.canSpawn(
+                        world: world, room: room, elapsed: 0,
+                        livingEnemies: 0))
+                    precondition(!SurvivalEncounterRules.canSpawn(
+                        world: world, room: room, elapsed: duration,
+                        livingEnemies: 0), "Extraction must stop all new spawns")
+                    precondition(SurvivalEncounterRules.extractionActive(
+                        world: world, room: room, elapsed: duration))
+                    precondition(!SurvivalEncounterRules.extractionActive(
+                        world: world, room: room, elapsed: duration - 0.01))
+                    precondition(!SurvivalEncounterRules.canSpawn(
+                        world: world, room: room, elapsed: 10,
+                        livingEnemies: SurvivalEncounterRules.maxLivingEnemies(
+                            room: room)), "Active enemy cap must prevent overload")
+                    precondition((15...28).contains(
+                        SurvivalEncounterRules.maxLivingEnemies(room: room)))
+                    precondition((1...2).contains(
+                        SurvivalEncounterRules.spawnBatch(room: room)))
+                } else {
+                    precondition(SurvivalEncounterRules.duration(
+                        world: world, room: room) == 0)
+                    precondition(!SurvivalEncounterRules.canSpawn(
+                        world: world, room: room, elapsed: 10,
+                        livingEnemies: 0))
+                }
+            }
+            precondition(survival == expectedSurvival[world] &&
+                         defenses == expectedDefense[world])
+            precondition(timed == survival + defenses)
+        }
+        precondition(SurvivalEncounterRules.kind(world: 1, room: 5) == .survival)
+        precondition(SurvivalEncounterRules.kind(world: 0, room: 12) == .equipmentDefense)
+        precondition(SurvivalEncounterRules.kind(world: 2, room: 15) == .equipmentDefense)
+        precondition(SurvivalEncounterRules.fastExtractionBonusCoins == 0)
+        precondition(SurvivalEncounterRules.fastExtractionBonusXP == 0)
+        precondition(SurvivalEncounterRules.fastExtractionBonusSalvage == 0)
+
         precondition(CampaignPacing.targetEnemies(room: 0) == 0)
         precondition(CampaignPacing.targetEnemies(room: 1) == 5)
         precondition(CampaignPacing.targetEnemies(room: 5) == 9)

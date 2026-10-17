@@ -38,6 +38,9 @@ if 'forestAmbientBackdrop' not in scene or 'worldMapIndex != 0' not in scene:
     errors.append("Full-screen forest ground must be hidden in the later worlds")
 if '"frontierFloorSurface"' in (root / "OutpostZero" / "BattlefieldArt.swift").read_text(encoding="utf-8"):
     errors.append("Do not reintroduce a second forest texture inside the room")
+pacing = (root / "OutpostZero" / "CampaignPacing.swift").read_text(encoding="utf-8")
+if "enum SurvivalEncounterRules" not in pacing or "fastExtractionBonusXP = 0" not in pacing:
+    errors.append("Timed survival rules must prevent extra spawns and extraction farming")
 if "CombatVisuals.rifleTracer(in: arena" not in scene:
     errors.append("Rifle attacks must use layered, short-lived tracer artwork")
 if "CombatVisuals.explosiveBurst(in: arena" not in scene or "CombatVisuals.markBurning(" not in scene or "CombatVisuals.chainArc(in: arena" not in scene:
