@@ -1377,9 +1377,89 @@ final class OutpostScene: SKScene {
             ? SKColor(red: 0.05, green: 0.29, blue: 0.09, alpha: 1)
             : SKColor(red: 0.025, green: 0.23, blue: 0.36, alpha: 1)
 
-        // A subdued interior shoreline and two uneven, broken reflections.
-        // All details stay well within the ellipsoidal gameplay footprint.
-        let shoreline = SKShapeNode(path: pool.path!)
+        // Clip the interior weathering to precisely the same polygon as
+        // slowdown and damage. One static crop per room section; nothing is
+        // sampled or redrawn during movement/combat frames.
+        guard let bankPath = pool.path else { return }
+        let textureMask = SKShapeNode(path: bankPath)
+        textureMask.fillColor = .white
+        textureMask.strokeColor = .clear
+        let interior = SKCropNode()
+        interior.name = "liquidSurfaceDetail"
+        interior.maskNode = textureMask
+        interior.zPosition = 0.15
+        pool.addChild(interior)
+
+        // Three broken vertical material veins run along each section.
+        // For flooded terrain they are deeper channels and submerged silt;
+        // for acid they are corroded runoff and oxidized chemical residue.
+        for lane in 0..<3 {
+            let laneOffset = CGFloat(lane) - 1
+            let middleX = w * laneOffset * 0.22
+            let broad: CGFloat = lane == 1 ? 0.16 : 0.12
+            let ribbon = CGMutablePath()
+            ribbon.move(to: CGPoint(x: middleX - w * broad / 2 - w * 0.05,
+                                    y: -h * 0.56))
+            ribbon.addLine(to: CGPoint(x: middleX - w * broad / 2,
+                                       y: -h * 0.29))
+            ribbon.addLine(to: CGPoint(x: middleX - w * broad / 2 + w * 0.06,
+                                       y: -h * 0.07))
+            ribbon.addLine(to: CGPoint(x: middleX - w * broad / 2 - w * 0.03,
+                                       y: h * 0.19))
+            ribbon.addLine(to: CGPoint(x: middleX - w * broad / 2 + w * 0.05,
+                                       y: h * 0.53))
+            ribbon.addLine(to: CGPoint(x: middleX + w * broad / 2 + w * 0.05,
+                                       y: h * 0.53))
+            ribbon.addLine(to: CGPoint(x: middleX + w * broad / 2 - w * 0.03,
+                                       y: h * 0.17))
+            ribbon.addLine(to: CGPoint(x: middleX + w * broad / 2 + w * 0.06,
+                                       y: -h * 0.08))
+            ribbon.addLine(to: CGPoint(x: middleX + w * broad / 2,
+                                       y: -h * 0.31))
+            ribbon.addLine(to: CGPoint(x: middleX + w * broad / 2 - w * 0.05,
+                                       y: -h * 0.56))
+            ribbon.closeSubpath()
+            let material = SKShapeNode(path: ribbon)
+            material.fillColor = (acid
+                ? SKColor(red: lane == 1 ? 0.35 : 0.39,
+                          green: 0.28, blue: 0.105, alpha: 0.18)
+                : SKColor(red: 0.05, green: 0.17,
+                          blue: lane == 1 ? 0.31 : 0.27, alpha: 0.23))
+            material.strokeColor = .clear
+            material.zPosition = 0.1
+            interior.addChild(material)
+        }
+
+        // Small irregular mineral chips / submerged grit add texture and
+        // shape without looking like circular debug markers. Deterministic
+        // placement means screenshots are stable across simulator runs.
+        for index in 0..<19 {
+            let nx = CGFloat((index * 17 + 7) % 43) / 43 - 0.5
+            let ny = CGFloat((index * 29 + 11) % 47) / 47 - 0.5
+            let chipX = nx * w * 0.92
+            let chipY = ny * h * 0.93
+            let length = CGFloat(2 + (index % 5)) * (acid ? 1.3 : 1)
+            let stroke = CGMutablePath()
+            stroke.move(to: CGPoint(x: chipX, y: chipY))
+            stroke.addLine(to: CGPoint(x: chipX + length,
+                                       y: chipY + CGFloat(index % 3) - 1))
+            if index.isMultiple(of: 3) {
+                stroke.addLine(to: CGPoint(x: chipX + length * 0.65,
+                                           y: chipY + CGFloat(index % 4) + 2))
+            }
+            let fleck = SKShapeNode(path: stroke)
+            fleck.strokeColor = (acid
+                ? SKColor(red: 0.85, green: 0.65, blue: 0.28, alpha: 0.27)
+                : SKColor(red: 0.56, green: 0.79, blue: 0.78, alpha: 0.18))
+            fleck.lineWidth = index.isMultiple(of: 4) ? 1.4 : 0.8
+            fleck.fillColor = .clear
+            fleck.zPosition = 0.25
+            interior.addChild(fleck)
+        }
+
+        // A narrow inner contour gives the terrain a physical bank instead
+        // of a bright colored floating plane.
+        let shoreline = SKShapeNode(path: bankPath)
         shoreline.setScale(0.92)
         shoreline.fillColor = .clear
         shoreline.strokeColor = highlight.withAlphaComponent(0.21)
