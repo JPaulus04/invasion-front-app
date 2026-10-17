@@ -87,8 +87,9 @@ jobs:
           if-no-files-found: ignore
   simulator-review:
     needs: build
-    runs-on: macos-15
-    timeout-minutes: 28
+    # Newer hosted image avoids the slower first-boot migration seen on macOS 15.
+    runs-on: macos-26
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - name: Download compiled simulator app
@@ -102,7 +103,7 @@ jobs:
           ditto -x -k OutpostZero-simulator-app.zip simulator-app
           test -x simulator-app/OutpostZero.app/OutpostZero
       - name: Capture actual simulator screenshot
-        timeout-minutes: 22
+        timeout-minutes: 28
         run: |
           set -e
           # Every simulator subprocess is bounded so a stalled simctl cannot
@@ -119,14 +120,9 @@ jobs:
               sys.exit(1)
           PY
           }
-          # A cold CoreSimulatorService occasionally hangs in bootstatus.
-          # Do not fail a successfully compiled game because the first device
-          # is wedged: try another installed iPhone simulator on the same runner.
-          # Simulator boot can hang at the service level on hosted Macs.
-          # Reset the daemon once before listing devices; a failed/absent
-          # process is harmless on fresh runners.
-          run_bounded 12 /usr/bin/killall -9 CoreSimulatorService || true
-          sleep 3
+          # Let a fresh service finish first-boot data migration. Killing it
+          # before listing devices made the migrations restart on some hosts.
+          # Fallback to a second available iPhone only after bounded readiness.
           DEVICE=""
           DEVICE_CANDIDATES="$(xcrun simctl list devices available -j | python3 -c '
           import json, sys
@@ -136,19 +132,18 @@ jobs:
               for device in devices:
                   if device.get("isAvailable", True) and device.get("name", "").startswith("iPhone"):
                       found.append(device["udid"])
-          print(chr(10).join(found[:4]))
+          print(chr(10).join(found[:2]))
           ')"
           for CANDIDATE in $DEVICE_CANDIDATES; do
             echo "Preparing simulator $CANDIDATE"
             run_bounded 35 xcrun simctl boot "$CANDIDATE" || true
-            if run_bounded 90 xcrun simctl bootstatus "$CANDIDATE" -b; then
+            # Data migration often needs more than 90 seconds on a cold VM.
+            if run_bounded 200 xcrun simctl bootstatus "$CANDIDATE" -b; then
               DEVICE="$CANDIDATE"
               break
             fi
-            echo "::warning::Simulator $CANDIDATE did not boot; resetting CoreSimulatorService"
+            echo "::warning::Simulator $CANDIDATE failed boot readiness; trying alternate device"
             run_bounded 20 xcrun simctl shutdown "$CANDIDATE" || true
-            run_bounded 12 /usr/bin/killall -9 CoreSimulatorService || true
-            sleep 3
           done
           if [ -z "$DEVICE" ]; then
             echo "::error::No available iPhone simulator reached boot readiness"
@@ -158,12 +153,14 @@ jobs:
           APP="simulator-app/OutpostZero.app"
           # If CoreSimulatorService is cold, allow a generous first install.
           # On failure restart only the simulator rather than recompiling iOS.
-          if ! run_bounded 110 xcrun simctl install "$DEVICE" "$APP"; then
-            echo "::warning::Install stalled; rebooting fresh simulator and retrying"
+          if ! run_bounded 150 xcrun simctl install "$DEVICE" "$APP"; then
+            # A slow initial install may recover after a single service reset.
+            # Do not loop forever on a damaged simulator installation.
+            echo "::warning::Simulator install failed; one bounded reinstall attempt"
             run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
-            run_bounded 45 xcrun simctl boot "$DEVICE" || true
-            run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b
-            run_bounded 120 xcrun simctl install "$DEVICE" "$APP"
+            run_bounded 40 xcrun simctl boot "$DEVICE" || true
+            run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b
+            run_bounded 150 xcrun simctl install "$DEVICE" "$APP"
           fi
           mkdir -p screenshots
           # A cold-booted simulator can show a gray launch screen for several
