@@ -196,7 +196,8 @@ enum EncounterDirector {
             switch world {
             case 1: shooterRoll = 19 + seed % 7
             case 2: shooterRoll = max(25, min(30, 15 + room) + 2)
-            default: shooterRoll = 6 + seed % 8
+            default: shooterRoll = room >= 11
+                ? min(39, 15 + room) : 6 + seed % 8
             }
             return slot.isMultiple(of: 5) ? shooterRoll : supportRoll
         case .siege:
