@@ -1529,6 +1529,113 @@ final class OutpostScene: SKScene {
     }
 
 
+
+    /// Edge-only containment machinery. Decorative shapes carry no physics
+    /// bodies and cannot interfere with environmental hazard telegraphs.
+    private func addToxicEdgeProp(to prop: SKShapeNode, index: Int,
+                                  leftSide: Bool, guardian: Bool) {
+        prop.fillColor = .clear
+        prop.strokeColor = .clear
+        let dark = SKColor(red: 0.15, green: 0.21, blue: 0.20, alpha: 1)
+        let steel = SKColor(red: 0.34, green: 0.40, blue: 0.36, alpha: 1)
+        let light = SKColor(red: 0.52, green: 0.60, blue: 0.46, alpha: 1)
+        let rust = SKColor(red: 0.54, green: 0.30, blue: 0.15, alpha: 1)
+        let shadow = SKShapeNode(ellipseOf: CGSize(width: 45, height: 12))
+        shadow.fillColor = SKColor.black.withAlphaComponent(0.32)
+        shadow.strokeColor = .clear
+        shadow.position = CGPoint(x: 3, y: -17)
+        shadow.zPosition = -0.6
+        prop.addChild(shadow)
+        if index % 3 == 0 {
+            // Faceted containment tank with shaded side and oxidized seam.
+            let tank = SKShapeNode(rectOf: CGSize(width: 29, height: 41),
+                                   cornerRadius: 5)
+            tank.fillColor = steel
+            tank.strokeColor = dark
+            tank.lineWidth = 2
+            tank.zRotation = leftSide ? -0.09 : 0.09
+            tank.zPosition = 0.5
+            prop.addChild(tank)
+            let side = SKShapeNode(rectOf: CGSize(width: 9, height: 34))
+            side.fillColor = dark.withAlphaComponent(0.45)
+            side.strokeColor = .clear
+            side.position.x = 9
+            tank.addChild(side)
+            let cap = SKShapeNode(ellipseOf: CGSize(width: 29, height: 8))
+            cap.fillColor = light
+            cap.strokeColor = dark
+            cap.lineWidth = 1
+            cap.position.y = 19
+            tank.addChild(cap)
+            let seam = SKShapeNode(rectOf: CGSize(width: 29, height: 6))
+            seam.fillColor = rust.withAlphaComponent(0.77)
+            seam.strokeColor = .clear
+            seam.position.y = -8
+            tank.addChild(seam)
+        } else if index % 3 == 1 {
+            // Broken ventilation box with dark grille and corroded lip.
+            let housing = SKShapeNode(rectOf: CGSize(width: 47, height: 29),
+                                      cornerRadius: 3)
+            housing.fillColor = dark
+            housing.strokeColor = light.withAlphaComponent(0.76)
+            housing.lineWidth = 2
+            housing.zPosition = 0.5
+            prop.addChild(housing)
+            let grille = SKShapeNode(rectOf: CGSize(width: 32, height: 17),
+                                     cornerRadius: 2)
+            grille.fillColor = SKColor(red: 0.07, green: 0.13,
+                                      blue: 0.12, alpha: 1)
+            grille.strokeColor = rust.withAlphaComponent(0.65)
+            grille.lineWidth = 1
+            housing.addChild(grille)
+            for slat in -1...1 {
+                let vent = SKShapeNode(rectOf: CGSize(width: 4, height: 13))
+                vent.fillColor = steel
+                vent.strokeColor = .clear
+                vent.position.x = CGFloat(slat) * 9
+                grille.addChild(vent)
+            }
+            let corrosion = SKShapeNode(rectOf: CGSize(width: 26, height: 3))
+            corrosion.fillColor = rust
+            corrosion.strokeColor = .clear
+            corrosion.position = CGPoint(x: leftSide ? -6 : 6, y: 11)
+            housing.addChild(corrosion)
+        } else {
+            // Leaning pipeline fragments, with exposed joint rings.
+            let pipe = SKShapeNode(rectOf: CGSize(width: 51, height: 10),
+                                   cornerRadius: 2)
+            pipe.fillColor = steel
+            pipe.strokeColor = dark
+            pipe.lineWidth = 1.8
+            pipe.zRotation = leftSide ? 0.20 : -0.20
+            pipe.zPosition = 0.5
+            prop.addChild(pipe)
+            let ring = SKShapeNode(rectOf: CGSize(width: 8, height: 17),
+                                   cornerRadius: 1)
+            ring.fillColor = light
+            ring.strokeColor = dark
+            ring.lineWidth = 1
+            ring.position.x = leftSide ? 16 : -16
+            pipe.addChild(ring)
+            let stain = SKShapeNode(rectOf: CGSize(width: 28, height: 3))
+            stain.fillColor = rust.withAlphaComponent(0.87)
+            stain.strokeColor = .clear
+            stain.position = CGPoint(x: 2, y: -2)
+            pipe.addChild(stain)
+        }
+        if guardian {
+            // Existing guardian warning beacon is layered separately.
+            let marking = SKShapeNode(rectOf: CGSize(width: 27, height: 3),
+                                      cornerRadius: 1)
+            marking.fillColor = SKColor(red: 0.73, green: 0.52,
+                                        blue: 0.17, alpha: 0.80)
+            marking.strokeColor = .clear
+            marking.position.y = -18
+            marking.zPosition = 0.8
+            prop.addChild(marking)
+        }
+    }
+
     /// Maritime silhouettes have a low node count and stay at the sides.
     /// No added collision shapes, touch targets or hazard indicators.
     private func addFloodedEdgeProp(to prop: SKShapeNode, index: Int,
@@ -1662,9 +1769,10 @@ final class OutpostScene: SKScene {
         let nonForestWorld = worldMapIndex != 0
         roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = nonForestWorld
         roomArt?.childNode(withName: "floodedAmbientBackdrop")?.isHidden = worldMapIndex != 1
+        roomArt?.childNode(withName: "toxicAmbientBackdrop")?.isHidden = worldMapIndex != 2
         if let floor = roomArt?.childNode(withName: "roomFloor") as? SKShapeNode {
             floor.fillColor = worldMapIndex == 2
-                ? worldColor(for: requestedZone)
+                ? SKColor(red: 0.18, green: 0.22, blue: 0.14, alpha: 0.13)
                 : (worldMapIndex == 1
                     ? SKColor(red: 0.10, green: 0.19, blue: 0.23, alpha: 0.14)
                     : (zone == 1
@@ -1708,7 +1816,8 @@ final class OutpostScene: SKScene {
             }
             prop.strokeColor = .white.withAlphaComponent(0.22)
             prop.lineWidth = 1
-            prop.alpha = zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55)
+            prop.alpha = worldMapIndex == 2 ? 0.94 :
+                (zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55))
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
             if zone == 3 {
@@ -1725,7 +1834,7 @@ final class OutpostScene: SKScene {
                     .fadeAlpha(to: 1, duration: 0.75)
                 ])))
             }
-            if zone == 2 {
+            if zone == 2 && worldMapIndex != 2 {
                 // Weathered ruins: cracked capstone and recessed masonry joint.
                 let cap = SKShapeNode(rectOf: CGSize(width: 30, height: 6), cornerRadius: 1)
                 cap.fillColor = SKColor(red: 0.43, green: 0.47, blue: 0.45, alpha: 1)
@@ -1739,6 +1848,10 @@ final class OutpostScene: SKScene {
                 seam.position = CGPoint(x: -3, y: -5)
                 seam.zPosition = 1
                 prop.addChild(seam)
+            }
+            if worldMapIndex == 2 {
+                addToxicEdgeProp(to: prop, index: index,
+                                 leftSide: leftSide, guardian: zone == 3)
             }
             if zone == 1 && worldMapIndex == 1 {
                 // Flooded Outpost has metal piers, eroded blocks and driftwood,

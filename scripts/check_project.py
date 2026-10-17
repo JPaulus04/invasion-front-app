@@ -258,6 +258,10 @@ if 'flooded.name = "floodedAmbientBackdrop"' not in art:
     errors.append("World 2 must have its own prerendered maritime surface")
 if 'if zone == 1 && worldMapIndex == 1' not in scene:
     errors.append("Flooded Outpost must not reuse forest broadleaf props")
+if 'toxic.name = "toxicAmbientBackdrop"' not in art:
+    errors.append("Toxic Crossing needs a unique ground material")
+if 'addToxicEdgeProp(to: prop' not in scene:
+    errors.append("Toxic Crossing needs unique industrial equipment")
 if 'if worldMapIndex == 0 && zone <= 1' not in scene:
     errors.append("Forest litter must not be painted into flooded rooms")
 forest_floor = scene.split("// Sparse, asymmetrical forest dressing.", 1)[-1].split("// Fern silhouettes", 1)[0]

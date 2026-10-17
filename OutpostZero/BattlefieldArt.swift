@@ -64,6 +64,17 @@ enum BattlefieldArt {
         flooded.isHidden = true
         artwork.addChild(flooded)
 
+        let toxic = SKSpriteNode(texture: FrontierFloorArt.toxicTexture(
+            for: scene.size))
+        toxic.name = "toxicAmbientBackdrop"
+        toxic.position = CGPoint(x: scene.size.width * 0.5,
+                                 y: scene.size.height * 0.5)
+        toxic.size = scene.size
+        toxic.alpha = 1
+        toxic.zPosition = -2
+        toxic.isHidden = true
+        artwork.addChild(toxic)
+
         let floor = SKShapeNode(rect: room, cornerRadius: 18)
         floor.name = "roomFloor"
         // Only a quiet tonal mask marks the permitted movement boundary in

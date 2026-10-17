@@ -348,4 +348,124 @@ enum FrontierFloorArt {
         textures[key] = texture
         return texture
     }
+
+    /// Toxic Crossing corrosion is a single cached background texture, not
+    /// a collection of collidable, frame-updated scenery nodes.
+    static func toxicTexture(for size: CGSize) -> SKTexture {
+        let width = max(128, Int(ceil(size.width)))
+        let height = max(128, Int(ceil(size.height)))
+        let key = "toxic:\(width)x\(height)"
+        if let cached = textures[key] { return cached }
+        let canvas = CGSize(width: width, height: height)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: canvas, format: format)
+        let image = renderer.image { output in
+            let ctx = output.cgContext
+            let space = CGColorSpaceCreateDeviceRGB()
+            ctx.setFillColor(UIColor(red: 0.19, green: 0.22,
+                                     blue: 0.15, alpha: 1).cgColor)
+            ctx.fill(CGRect(origin: .zero, size: canvas))
+            let gradient = CGGradient(colorsSpace: space, colors: [
+                UIColor(red: 0.29, green: 0.30, blue: 0.18, alpha: 0.52).cgColor,
+                UIColor(red: 0.08, green: 0.18, blue: 0.15, alpha: 0.56).cgColor,
+                UIColor(red: 0.23, green: 0.18, blue: 0.12, alpha: 0.35).cgColor
+            ] as CFArray, locations: [0, 0.52, 1])!
+            ctx.drawLinearGradient(gradient,
+                start: CGPoint(x: 0, y: canvas.height * 0.15),
+                end: CGPoint(x: canvas.width, y: canvas.height * 0.92),
+                options: [])
+            var seed: UInt32 = 0x7091C123
+            func random() -> CGFloat {
+                seed = 1_664_525 &* seed &+ 1_013_904_223
+                return CGFloat(seed % 10_000) / 10_000
+            }
+            // Edge-weighted rust and biological corrosion. Irregular
+            // silhouettes avoid uniform grid lines or circular stains.
+            for index in 0..<55 {
+                let left = index.isMultiple(of: 2)
+                let x = canvas.width * (left ? 0.03 + random() * 0.30
+                                               : 0.67 + random() * 0.30)
+                let y = canvas.height * (0.09 + random() * 0.80)
+                let w = 9 + random() * 33
+                let h = 4 + random() * 14
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: x - w * 0.51, y: y))
+                path.addLine(to: CGPoint(x: x - w * 0.23, y: y - h * 0.60))
+                path.addLine(to: CGPoint(x: x + w * 0.15, y: y - h * 0.48))
+                path.addQuadCurve(
+                    to: CGPoint(x: x + w * 0.52, y: y + h * 0.21),
+                    control: CGPoint(x: x + w * 0.65, y: y - h * 0.24))
+                path.addLine(to: CGPoint(x: x + w * 0.12, y: y + h * 0.52))
+                path.addLine(to: CGPoint(x: x - w * 0.36, y: y + h * 0.40))
+                path.closeSubpath()
+                ctx.addPath(path)
+                ctx.setFillColor(UIColor(
+                    red: index.isMultiple(of: 4) ? 0.46 : 0.075,
+                    green: index.isMultiple(of: 4) ? 0.25 : 0.18,
+                    blue: index.isMultiple(of: 4) ? 0.11 : 0.11,
+                    alpha: index.isMultiple(of: 4) ? 0.23 : 0.27).cgColor)
+                ctx.fillPath()
+            }
+            // Scattered fractured plate fragments, with small lit facets.
+            for index in 0..<23 {
+                let x = canvas.width * (index.isMultiple(of: 2)
+                    ? 0.02 + random() * 0.26 : 0.72 + random() * 0.26)
+                let y = canvas.height * (0.11 + random() * 0.78)
+                let w = 4 + random() * 8
+                let h = 3 + random() * 7
+                let p = CGMutablePath()
+                p.move(to: CGPoint(x: x - w, y: y + h * 0.3))
+                p.addLine(to: CGPoint(x: x - w * 0.2, y: y - h))
+                p.addLine(to: CGPoint(x: x + w * 0.85, y: y - h * 0.3))
+                p.addLine(to: CGPoint(x: x + w * 0.48, y: y + h * 0.8))
+                p.closeSubpath()
+                ctx.addPath(p)
+                ctx.setFillColor(UIColor(red: 0.10, green: 0.15,
+                                         blue: 0.13, alpha: 0.38).cgColor)
+                ctx.fillPath()
+                ctx.setLineWidth(0.8)
+                ctx.setStrokeColor(UIColor(red: 0.53, green: 0.57,
+                                           blue: 0.40, alpha: 0.25).cgColor)
+                ctx.move(to: CGPoint(x: x - w, y: y + h * 0.3))
+                ctx.addLine(to: CGPoint(x: x - w * 0.2, y: y - h))
+                ctx.strokePath()
+            }
+            // Broken scuffs instead of directional road bands. They never
+            // indicate or cover acid-hit regions.
+            for index in 0..<78 {
+                let x = canvas.width * (0.05 + random() * 0.90)
+                let y = canvas.height * (0.13 + random() * 0.75)
+                let length = 3 + random() * 9
+                ctx.setLineWidth(index.isMultiple(of: 5) ? 1.2 : 0.7)
+                ctx.setStrokeColor(UIColor(
+                    red: index.isMultiple(of: 4) ? 0.54 : 0.065,
+                    green: index.isMultiple(of: 4) ? 0.49 : 0.13,
+                    blue: 0.17, alpha: 0.08 + random() * 0.14).cgColor)
+                ctx.move(to: CGPoint(x: x, y: y))
+                ctx.addLine(to: CGPoint(
+                    x: x + length * (index.isMultiple(of: 2) ? -1 : 1),
+                    y: y + (random() - 0.5) * 8))
+                ctx.strokePath()
+            }
+            let vignette = CGGradient(colorsSpace: space, colors: [
+                UIColor(white: 0, alpha: 0).cgColor,
+                UIColor(red: 0.035, green: 0.075,
+                        blue: 0.06, alpha: 0.25).cgColor
+            ] as CFArray, locations: [0.48, 1])!
+            ctx.drawRadialGradient(vignette,
+                startCenter: CGPoint(x: canvas.width / 2,
+                                     y: canvas.height / 2),
+                startRadius: 0,
+                endCenter: CGPoint(x: canvas.width / 2,
+                                   y: canvas.height / 2),
+                endRadius: hypot(canvas.width, canvas.height) * 0.56,
+                options: [])
+        }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .linear
+        textures[key] = texture
+        return texture
+    }
 }
