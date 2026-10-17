@@ -32,6 +32,7 @@ final class OutpostScene: SKScene {
     private var wave = 0
     private var gateUnlocked = false
     private let passageGate = SKShapeNode(rectOf: CGSize(width: 100, height: 46), cornerRadius: 12)
+    private let extractionPortal = SKShapeNode(circleOfRadius: 43)
     private let zoneBanner = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let controlsHint = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let zoneScenery = SKNode()
@@ -400,6 +401,46 @@ final class OutpostScene: SKScene {
         gateArrow.position = CGPoint(x: 0, y: -40)
         gateArrow.name = "gateArrow"
         passageGate.addChild(gateArrow)
+        // Round, luminous evacuation pad is intentionally separate from
+        // the metal combat door. Color highlights vary by world.
+        extractionPortal.name = "extractionPortal"
+        extractionPortal.fillColor = SKColor(red: 0.025, green: 0.07, blue: 0.20, alpha: 0.97)
+        extractionPortal.strokeColor = .systemCyan
+        extractionPortal.lineWidth = 7
+        extractionPortal.zPosition = 6
+        extractionPortal.isHidden = true
+        let innerRing = SKShapeNode(circleOfRadius: 29)
+        innerRing.name = "extractionRing"
+        innerRing.fillColor = SKColor(red: 0.06, green: 0.24, blue: 0.44, alpha: 0.90)
+        innerRing.strokeColor = SKColor(red: 0.58, green: 0.91, blue: 1, alpha: 0.88)
+        innerRing.lineWidth = 3
+        extractionPortal.addChild(innerRing)
+        let core = SKShapeNode(circleOfRadius: 14)
+        core.name = "extractionCore"
+        core.fillColor = SKColor(red: 0.10, green: 0.66, blue: 0.98, alpha: 0.85)
+        core.strokeColor = .white
+        core.lineWidth = 1.5
+        core.glowWidth = 4
+        core.zPosition = 2
+        extractionPortal.addChild(core)
+        let exitGlyph = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        exitGlyph.text = "EXIT"
+        exitGlyph.fontColor = .white
+        exitGlyph.fontSize = 12
+        exitGlyph.verticalAlignmentMode = .center
+        exitGlyph.zPosition = 3
+        extractionPortal.addChild(exitGlyph)
+        for index in 0..<4 {
+            let angle = CGFloat(index) * .pi / 2 + .pi / 4
+            let beacon = SKShapeNode(circleOfRadius: 4.5)
+            beacon.position = CGPoint(x: cos(angle) * 36, y: sin(angle) * 36)
+            beacon.fillColor = index.isMultiple(of: 2) ? .systemOrange : .systemCyan
+            beacon.strokeColor = .white
+            beacon.lineWidth = 1
+            beacon.zPosition = 3
+            extractionPortal.addChild(beacon)
+        }
+        arena.addChild(extractionPortal)
         zoneBanner.fontSize = 20
         zoneBanner.fontColor = .white
         zoneBanner.zPosition = 18
@@ -651,6 +692,37 @@ final class OutpostScene: SKScene {
             phase = .playing
             arena.isPaused = false
             updateHUD()
+        }
+        // Fixture exercises actual production entry and timer completion,
+        // rather than a mock drawing of an extraction portal.
+        if ProcessInfo.processInfo.arguments.contains(
+            "-captureSurvivalExtractionScreenshot") {
+            worldMapIndex = 0
+            wave = 5
+            gateUnlocked = true
+            startWave()
+            precondition(activeEncounter == .survival && expandedArenaPreview,
+                         "World 1 Room 6 must launch a playable timed arena")
+            for index in 0..<5 {
+                spawned += 1
+                spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(
+                    room: wave, slot: index))
+            }
+            let living = enemies.count
+            waveElapsed = SurvivalEncounterRules.duration(
+                world: worldMapIndex, room: wave)
+            precondition(SurvivalEncounterRules.extractionCanOpen(
+                world: worldMapIndex, room: wave, elapsed: waveElapsed,
+                livingEnemies: living))
+            completeWave()
+            precondition(roomCleared && phase == .gate &&
+                         enemies.count == living &&
+                         !extractionPortal.isHidden && passageGate.isHidden &&
+                         !SurvivalEncounterRules.canSpawn(
+                             world: worldMapIndex, room: wave,
+                             elapsed: waveElapsed, livingEnemies: enemies.count),
+                         "Timed extraction must open with living enemies")
+            arena.isPaused = true
         }
         // Art review for Rooms 6-10: stage actual forest-overgrowth scenery
         // without changing combat balance or the launch state seen by players.
@@ -1062,7 +1134,8 @@ final class OutpostScene: SKScene {
         xpTrack.position = CGPoint(x: 24, y: size.height - 160)
         xpFill.position = xpTrack.position
         xpLabel.position = CGPoint(x: size.width - 25, y: size.height - 162)
-        checkpointButton.position = CGPoint(x: size.width / 2, y: roomBounds.minY + 25)
+        checkpointButton.position = CGPoint(x: size.width / 2,
+                                            y: RoomRules.bounds(for: size).minY + 25)
         settingsShortcut.position = CGPoint(x: 36, y: size.height - 195)
         updateHUD()
     }
@@ -1096,11 +1169,13 @@ final class OutpostScene: SKScene {
                ? selectedWorld.title : "OUTPOST ZERO")
         if title.text != titleText { title.text = titleText }
         let subtitleText: String
-        if activeEncounter.isTimed && phase == .playing {
+        if activeEncounter == .survival && phase == .playing {
             let remaining = max(0, Int(ceil(
                 SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) -
                     waveElapsed)))
             subtitleText = "SURVIVE \(remaining)S  •  \(enemies.count) FOES  •  \(coins) COINS"
+        } else if activeEncounter == .survival && roomCleared {
+            subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  EXTRACTION READY"
         } else {
             subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
         }
@@ -1314,7 +1389,10 @@ final class OutpostScene: SKScene {
             earnedSalvage: salvageBankedThisRun,
             roomSalvageCredit: max(roomSalvageRecoveredCredit, roomSalvageEarned),
             roomCoinCredit: max(roomCoinsRecoveredCredit, roomCoinsEarned),
-            roomXPCredit: max(roomXPRecoveredCredit, roomXPEarned))
+            roomXPCredit: max(roomXPRecoveredCredit, roomXPEarned),
+            timedEncounterElapsed: activeEncounter == .survival
+                ? min(waveElapsed, SurvivalEncounterRules.duration(
+                    world: worldMapIndex, room: wave)) : nil)
         _ = recovery.save(snapshot)
     }
 
@@ -1347,6 +1425,12 @@ final class OutpostScene: SKScene {
         roomCoinsEarned = 0
         roomXPRecoveredCredit = snapshot.roomXPCredit
         roomXPEarned = 0
+        // Optional schema-4 clock: old TestFlight runs still load.
+        if activeEncounter == .survival {
+            waveElapsed = min(snapshot.timedEncounterElapsed ?? 0,
+                              SurvivalEncounterRules.duration(
+                                  world: worldMapIndex, room: wave))
+        }
         rebuildOrbitingDefenses()
         if snapshot.location == .clearedGate {
             roomCleared = true
@@ -1973,6 +2057,16 @@ final class OutpostScene: SKScene {
         phase = .playing
         arena.isPaused = false
         clearHostileAttacks()
+        // Surviving enemies cannot accompany a departing pilot. Discard
+        // without treating them as kills or paying extra XP/coins.
+        for enemy in enemies { enemy.node.removeFromParent() }
+        enemies.removeAll()
+        for drop in xpDrops { drop.node.removeFromParent() }
+        xpDrops.removeAll()
+        bossNode = nil
+        burns.removeAll()
+        lastOrbitalHit.removeAll()
+        enemyAcidDamageAt.removeAll()
         roomCleared = false
         checkpointUsed = false
         checkpointPresented = false
@@ -1989,6 +2083,21 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
+        // Equipment defense needs a real separate objective. Until added,
+        // its scheduled slots retain the ordinary tactical encounter.
+        activeEncounter = SurvivalEncounterRules.kind(
+            world: worldMapIndex, room: wave) == .survival ? .survival : .tactical
+        let retainQACamera = isCaptureMode && expandedArenaPreview
+        expandedArenaPreview = activeEncounter == .survival || retainQACamera
+        arena.childNode(withName: "expandedArenaPreviewGround")?.removeFromParent()
+        if expandedArenaPreview { installArenaPreviewGround() }
+        pilot.position = entryPoint
+        arena.position = expandedArenaPreview
+            ? ArenaLayout.offset(for: pilot.position, viewportSize: size) : .zero
+        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 24)
+        extractionPortal.isHidden = true
+        checkpointButton.position = CGPoint(
+            x: size.width / 2, y: RoomRules.bounds(for: size).minY + 25)
         if !isCaptureMode {
             _ = WorldCatalog.recordBestRoom(worldMapIndex, room: wave)
         }
@@ -2032,6 +2141,14 @@ final class OutpostScene: SKScene {
         }
         spawned = 0
         waveTarget = CampaignPacing.targetEnemies(room: wave)
+        if activeEncounter == .survival {
+            zoneBanner.text = "SURVIVE • HOLD THE ARENA"
+            zoneBanner.fontColor = .systemCyan
+            zoneBanner.alpha = 1
+            zoneBanner.run(.sequence([
+                .wait(forDuration: 2.0), .fadeOut(withDuration: 0.5)
+            ]))
+        }
         survivalSpawnPhaseFinished = false
         // Shorten the empty opening without increasing enemy count or attack damage.
         spawnClock = 0.9
@@ -3063,8 +3180,14 @@ final class OutpostScene: SKScene {
             ]), .removeFromParent()]))
         }
         if phase == .gate {
-            if RoomRules.enteredGate(pilot: pilot.position, gate: passageGate.position) {
+            let isExtracting = activeEncounter == .survival
+            let exitPosition = isExtracting ? extractionPortal.position : passageGate.position
+            let entered = isExtracting
+                ? distance(pilot.position, exitPosition) <= 34
+                : RoomRules.enteredGate(pilot: pilot.position, gate: exitPosition)
+            if entered {
                 passageGate.isHidden = true
+                extractionPortal.isHidden = true
                 gateUnlocked = true
                 heldTouch = nil
                 movementOrigin = nil
@@ -3110,10 +3233,10 @@ final class OutpostScene: SKScene {
                 SurvivalEncounterRules.extractionActive(
                     world: worldMapIndex, room: wave, elapsed: waveElapsed) {
                 survivalSpawnPhaseFinished = true
-                // Extraction and encounter completion are separate stage-3
-                // changes. For now ensure the timer truly ends spawning.
-                zoneBanner.text = "SURVIVAL COMPLETE"
-                zoneBanner.alpha = 1
+                // Timer expiry opens extraction without killing the swarm.
+                // No additional attack tick or spawn runs afterward.
+                completeWave()
+                return
             }
         } else {
             let interval = CampaignPacing.spawnInterval(room: wave)
@@ -3173,7 +3296,7 @@ final class OutpostScene: SKScene {
         // Level-up can interrupt combat during damage resolution. Do not clear
         // the room while its upgrade selection is still open.
         guard phase == .playing else { return }
-        if !activeEncounter.isTimed &&
+        if activeEncounter != .survival &&
            RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) {
             completeWave()
         }
@@ -3670,9 +3793,12 @@ final class OutpostScene: SKScene {
         roomCleared = true
         clearHostileAttacks()
         bankSalvage(PersistentProgression.roomReward(room: wave))
-        awardRoomCoins(CampaignPacing.clearCoins(room: wave))
-        collectXP(collectAll: true)
-        awardRoomXP(CampaignPacing.clearXP(room: wave))
+        if activeEncounter != .survival {
+            awardRoomCoins(CampaignPacing.clearCoins(room: wave))
+            collectXP(collectAll: true)
+            awardRoomXP(CampaignPacing.clearXP(room: wave))
+        }
+        // Survival grants normal kill rewards, never timed-exit XP or coins.
         let destination: Phase = wave == worldWaveCount ? .worldComplete : .gate
         saveRunRecovery()
         if presentPendingLevelUp(returningTo: destination) { return }
@@ -3920,8 +4046,12 @@ final class OutpostScene: SKScene {
         saveRunRecovery()
         // A final enemy may have died on the same frame as the level-up.
         // Finish that cleared room after the upgrade choice, not before it.
-        if levelUpReturnPhase == .playing &&
-           RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) {
+        if levelUpReturnPhase == .playing && !roomCleared &&
+           (activeEncounter == .survival
+            ? SurvivalEncounterRules.extractionActive(
+                world: worldMapIndex, room: wave, elapsed: waveElapsed)
+            : RoomRules.isCleared(
+                spawned: spawned, target: waveTarget, living: enemies.count)) {
             arena.isPaused = false
             clearOverlay()
             overlayBackdrop.isHidden = true
@@ -3959,7 +4089,60 @@ final class OutpostScene: SKScene {
         saveRunRecovery()
     }
 
+    private func showExtractionPortal() {
+        guard activeEncounter == .survival && roomCleared else { return }
+        phase = .gate
+        arena.isPaused = false
+        clearHostileAttacks()
+        heldTouch = nil
+        movementOrigin = nil
+        movementTarget = nil
+        clearOverlay()
+        overlayBackdrop.isHidden = true
+        passageGate.isHidden = true
+        // Spawn within walking distance, but not on top of the pilot, water
+        // or rubble. This does not require killing the remaining enemies.
+        let safe = roomBounds.insetBy(dx: 65, dy: 65)
+        let approaches: [CGPoint] = [
+            CGPoint(x: pilot.position.x, y: pilot.position.y + 125),
+            CGPoint(x: pilot.position.x + 125, y: pilot.position.y),
+            CGPoint(x: pilot.position.x - 125, y: pilot.position.y),
+            CGPoint(x: pilot.position.x, y: pilot.position.y - 125)
+        ].map { RoomRules.clamp($0, to: safe) }
+        extractionPortal.position = approaches.first(where: {
+            !TerrainHazards.blocksMovement($0, patches: roomHazards)
+        }) ?? CGPoint(x: roomBounds.midX, y: roomBounds.midY)
+        extractionPortal.strokeColor = worldMapIndex == 1 ? .systemTeal :
+            (worldMapIndex == 2 ? .systemGreen : .systemCyan)
+        extractionPortal.childNode(withName: "extractionCore")?.removeAllActions()
+        extractionPortal.childNode(withName: "extractionCore")?.run(
+            .repeatForever(.sequence([
+                .scale(to: 1.22, duration: 0.65),
+                .scale(to: 1, duration: 0.65)
+            ])))
+        extractionPortal.isHidden = false
+        zoneBanner.removeAllActions()
+        zoneBanner.text = "EXTRACTION OPEN"
+        zoneBanner.fontColor = .systemCyan
+        zoneBanner.alpha = 1
+        zoneBanner.position = CGPoint(x: size.width / 2, y: size.height - 216)
+        warning.removeAllActions()
+        warning.text = "SURVIVED — MOVE INTO BLUE PORTAL"
+        warning.fontColor = .systemCyan
+        warning.fontSize = 13
+        warning.position = CGPoint(x: size.width / 2, y: size.height * 0.27)
+        warning.alpha = 1
+        warning.isHidden = false
+        controlsHint.isHidden = true
+        updateHUD()
+        saveRunRecovery()
+    }
+
     private func showZoneGate() {
+        if activeEncounter == .survival {
+            showExtractionPortal()
+            return
+        }
         guard RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) else { return }
         phase = .gate
         arena.isPaused = false
@@ -4221,6 +4404,10 @@ final class OutpostScene: SKScene {
         bossNode = nil
         activeEncounter = .tactical
         survivalSpawnPhaseFinished = false
+        expandedArenaPreview = false
+        arena.position = .zero
+        arena.childNode(withName: "expandedArenaPreviewGround")?.removeFromParent()
+        extractionPortal.isHidden = true
         wave = 0
         progress = RunProgress()
         combatClock = CombatClock()

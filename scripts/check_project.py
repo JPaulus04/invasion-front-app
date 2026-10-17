@@ -43,6 +43,12 @@ if "enum SurvivalEncounterRules" not in pacing or "fastExtractionBonusXP = 0" no
     errors.append("Timed survival rules must prevent extra spawns and extraction farming")
 if 'activeEncounter.isTimed' not in scene or '-captureSurvivalSwarmFrames' not in scene:
     errors.append("Timed survival must run the shared live combat spawn loop")
+if 'activeEncounter = SurvivalEncounterRules.kind(' not in scene or 'showExtractionPortal()' not in scene:
+    errors.append("The campaign must route real survival rooms to extraction")
+if '-captureSurvivalExtractionScreenshot' not in scene or 'extractionPortal.isHidden = false' not in scene:
+    errors.append("Simulator must capture extraction with enemies alive")
+if 'timedEncounterElapsed:' not in scene or 'waveElapsed = min(snapshot.timedEncounterElapsed' not in scene:
+    errors.append("Saved survival runs must preserve timer progress")
 if "CombatVisuals.rifleTracer(in: arena" not in scene:
     errors.append("Rifle attacks must use layered, short-lived tracer artwork")
 if "CombatVisuals.explosiveBurst(in: arena" not in scene or "CombatVisuals.markBurning(" not in scene or "CombatVisuals.chainArc(in: arena" not in scene:

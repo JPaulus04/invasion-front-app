@@ -225,6 +225,7 @@ jobs:
           capture_scene -captureOvergrownScreenshot screenshots/outpost-zero-overgrown-path.png
           capture_scene -captureTerrainHazardsScreenshot screenshots/outpost-zero-terrain.png
           capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
+          capture_scene -captureSurvivalExtractionScreenshot screenshots/outpost-zero-extraction-open.png
           capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
           capture_scene -captureCombatFeedbackScreenshot screenshots/outpost-zero-combat-feedback.png
           capture_scene -captureTacticalFXScreenshot screenshots/outpost-zero-tactical-abilities.png

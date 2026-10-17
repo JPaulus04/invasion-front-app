@@ -29,6 +29,14 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - The currently missing production handoff is **real timed-survival extraction / equipment-defense completion and save/recovery integration**. Do not claim the production timed encounters are enabled.
 - Pure rules explicitly distinguish `combatGate` from `extractionPortal` and verify the latter can open with living enemies at timer expiry (this handoff's extraction contract).
 
+## October 17 continuation — production survival extraction
+- Playable scheduled survival rooms now use expanded arenas, active swarm limits, the combat-clock timer and a distinct round extraction portal. The portal opens when the timer ends even while foes remain; exiting removes un-killed enemies without paying their XP/coins.
+- Survival pays earned kill XP/coins and standard room Salvage, but no timed completion XP/coin bonus. Tactical clear rewards are unchanged.
+- An optional elapsed-time value is encoded in schema-4 run snapshots without invalidating old TestFlight saves. Recovery resumes the timer and reopens cleared extraction portals.
+- CI includes an actual production-path screenshot flag: -captureSurvivalExtractionScreenshot, with live enemies still in the room.
+- Equipment-defense rooms are still ordinary tactical rooms until proper defense objective mechanics arrive.
+- IMPORTANT: confirm CI pass and human visual review before release; no new TestFlight upload was requested.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

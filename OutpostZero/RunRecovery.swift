@@ -31,6 +31,8 @@ struct RunSnapshot: Codable {
     let roomSalvageCredit: Int
     let roomCoinCredit: Int
     let roomXPCredit: Int
+    // Old schema-4 saves have no clock; optional field is decode-compatible.
+    var timedEncounterElapsed: TimeInterval? = nil
 
     var isValid: Bool {
         version == Self.schema && (0..<WorldCatalog.playableCount).contains(worldIndex) &&
@@ -44,6 +46,9 @@ struct RunSnapshot: Codable {
         (0...50).contains(progress.pendingChoices) &&
         earnedSalvage >= 0 && roomSalvageCredit >= 0 &&
         roomCoinCredit >= 0 && roomXPCredit >= 0 &&
+        (timedEncounterElapsed == nil ||
+         ((timedEncounterElapsed ?? 0).isFinite &&
+          (0...120).contains(timedEncounterElapsed ?? 0))) &&
         AbilityLoadout(selected: abilities).isReady && Set(abilities).count == 3
     }
 }

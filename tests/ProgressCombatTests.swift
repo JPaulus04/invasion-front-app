@@ -99,6 +99,14 @@ struct ProgressCombatTests {
                      reopened?.checkpointPresented == false &&
                      reopened?.progress.level == 2 &&
                      reopened?.abilities == ["chain", "incendiary", "orbit"])
+        precondition(reopened?.timedEncounterElapsed == nil)
+        var timedSave = saved
+        timedSave.timedEncounterElapsed = 83.5
+        precondition(timedSave.isValid && recover.save(timedSave))
+        precondition(abs((recover.load()?.timedEncounterElapsed ?? 0) - 83.5) < 0.0001)
+        timedSave.timedEncounterElapsed = 121
+        precondition(!timedSave.isValid && !recover.save(timedSave))
+        precondition(recover.save(saved))
         let bad = RunSnapshot(
             version: 999, worldIndex: 0, room: 12, location: .battle,
             health: 21, coins: 1506, damage: 4, fireRate: 3,
