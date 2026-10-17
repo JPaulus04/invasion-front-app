@@ -125,6 +125,10 @@ if "TerrainHazards.acidTouches(" not in scene or "TerrainHazards.waterSpeed(" no
     errors.append("Water slowdown and acid damage must be connected to gameplay")
 if 'decorateLiquidHazard(shape, kind: .water' not in scene or 'decorateLiquidHazard(shape, kind: .acid' not in scene:
     errors.append("Hazard artwork must visually differentiate slow water and pulsing acid")
+if 'let shape = SKShapeNode(path: patch.outlinePath())' not in scene:
+    errors.append("Hazards must use their physical polygon boundaries for drawing")
+if 'caption.text = patch.kind == .water' in scene or 'shape = SKShapeNode(ellipseOf: patch.frame.size)' in scene:
+    errors.append("Do not reintroduce labeled circular hazard markers")
 if 'shape.childNode(withName: "acidActiveVeins")?.isHidden = !acidOn' not in scene:
     errors.append("Acid pulse visuals must update alongside actual damage timing")
 if "WorldCatalog.recordVictory(worldMapIndex, stars: stars)" not in scene:

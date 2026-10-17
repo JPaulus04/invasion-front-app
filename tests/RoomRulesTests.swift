@@ -70,23 +70,48 @@ struct RoomRulesTests {
                 from: entry, to: center, patches: hazards) != center,
                 "Blocked terrain must stop movement")
         }
-        // Pool physics exactly follows the visible elliptical silhouette.
+        // Flooded sections span substantial room depth; both damage and
+        // slowdown must match the same jagged polygon drawn in SpriteKit.
         let patches = TerrainHazards.patches(world: 1, room: 12, bounds: reference)
         let watery = patches[0]
-        let poolCorner = CGPoint(x: watery.frame.minX + 2, y: watery.frame.minY + 2)
+        precondition(watery.frame.height >= reference.height * 0.44,
+                     "Flooded terrain must be a room section, not a small stamp")
+        precondition(watery.outline.count >= 10)
+        let poolCorner = CGPoint(x: watery.frame.maxX - 2, y: watery.frame.maxY - 2)
         precondition(!watery.contains(poolCorner))
         precondition(TerrainHazards.waterSpeed(at: poolCorner, patches: patches) == 1)
+        for i in 0...24 {
+            for j in 0...24 {
+                let sampled = CGPoint(x: watery.frame.minX + watery.frame.width * CGFloat(i) / 24,
+                                      y: watery.frame.minY + watery.frame.height * CGFloat(j) / 24)
+                let local = CGPoint(x: sampled.x - watery.frame.midX,
+                                    y: sampled.y - watery.frame.midY)
+                precondition(watery.contains(sampled) == watery.outlinePath().contains(local),
+                             "Visible flood polygon and gameplay slowdown must coincide")
+            }
+        }
         let blockedCenter = CGPoint(x: patches[1].frame.midX, y: patches[1].frame.midY)
         precondition(!TerrainHazards.spawnAllowed(blockedCenter, radius: 15, patches: patches))
         precondition(TerrainHazards.spawnAllowed(entry, radius: 15, patches: patches))
         let toxicPatches = TerrainHazards.patches(world: 2, room: 12, bounds: reference)
         precondition(toxicPatches.count == 2)
         precondition(!toxicPatches.contains { $0.kind == .water })
+        precondition(toxicPatches[0].outline.count >= 10)
+        precondition(toxicPatches[0].frame.height >= reference.height * 0.43)
         let toxic = CGPoint(x: toxicPatches[0].frame.midX, y: toxicPatches[0].frame.midY)
         precondition(!TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 1.5))
         precondition(TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 2.5))
         precondition(!TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 5.5))
         precondition(!TerrainHazards.acidTouches(entry, patches: toxicPatches, at: 2.5))
+        for room in 1...20 {
+            let sections = TerrainHazards.patches(world: 2, room: room, bounds: reference)
+            for fraction in 0...20 {
+                let p = CGPoint(x: reference.midX, y: reference.minY +
+                    reference.height * CGFloat(fraction) / 20)
+                precondition(!sections.contains { $0.contains(p, margin: 14) },
+                             "Acid spill must leave an unobstructed central route")
+            }
+        }
         // Active-state transitions, not every simulation frame, should drive
         // a redraw. Two 6-second cycles contain four visual transitions.
         var priorAcidOn = TerrainHazards.acidActive(at: 0)

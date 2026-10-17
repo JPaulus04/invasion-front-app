@@ -1323,7 +1323,9 @@ final class OutpostScene: SKScene {
             world: worldMapIndex, room: wave, bounds: roomBounds,
             preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
         for patch in roomHazards {
-            let shape = SKShapeNode(ellipseOf: patch.frame.size)
+            // Shared polygon outline drives both visuals and physical
+            // slowdown/damage. Only solid rubble retains the block silhouette.
+            let shape = SKShapeNode(path: patch.outlinePath())
             shape.name = "terrain_\(patch.kind.rawValue)"
             shape.position = CGPoint(x: patch.frame.midX, y: patch.frame.midY)
             shape.lineWidth = 2.5
@@ -1355,25 +1357,14 @@ final class OutpostScene: SKScene {
                 decorateRubbleObstacle(shape, size: patch.frame.size)
             }
             hazardScenery.addChild(shape)
-            // Labels remain only where they explain a new movement or damage
-            // mechanic. Solid obstacles are identified by their silhouette.
-            if patch.kind != .rubble {
-                let caption = SKLabelNode(fontNamed: "AvenirNext-Bold")
-                caption.text = patch.kind == .water ? "SLOW WATER" : "ACID"
-                caption.fontSize = 9
-                caption.fontColor = SKColor(white: 0.95, alpha: 0.84)
-                caption.verticalAlignmentMode = .center
-                caption.position.y = -patch.frame.height * 0.19
-                caption.zPosition = 2
-                shape.addChild(caption)
-            }
+            // No permanent WATER/ACID debug text. Coastline materials and
+            // the pulsing hazardous edge communicate the threat in-world.
         }
     }
 
 
-    /// Layered liquid surfaces live entirely inside the existing elliptical
-    /// interaction region. The perimeter remains readable as the exact area
-    /// that slows movement or deals damage; no new physics/collision objects.
+    /// Authored shorelines, shallow bays and reactive industrial runoff use
+    /// the same polygon silhouette as game logic; all details are decorative.
     private func decorateLiquidHazard(_ pool: SKShapeNode,
                                       kind: TerrainHazards.Kind, size: CGSize) {
         let acid = kind == .acid
@@ -1388,26 +1379,33 @@ final class OutpostScene: SKScene {
 
         // A subdued interior shoreline and two uneven, broken reflections.
         // All details stay well within the ellipsoidal gameplay footprint.
-        let shoreline = SKShapeNode(ellipseOf: CGSize(
-            width: w * 0.88, height: h * 0.83))
+        let shoreline = SKShapeNode(path: pool.path!)
+        shoreline.setScale(0.92)
         shoreline.fillColor = .clear
         shoreline.strokeColor = highlight.withAlphaComponent(0.21)
         shoreline.lineWidth = 1.3
         shoreline.zPosition = 0.2
         pool.addChild(shoreline)
 
-        let shadow = SKShapeNode(ellipseOf: CGSize(
-            width: w * 0.55, height: h * 0.33))
-        shadow.fillColor = deep.withAlphaComponent(0.27)
-        shadow.strokeColor = .clear
-        shadow.position = CGPoint(x: -w * 0.09, y: -h * 0.035)
-        shadow.zPosition = 0.1
-        pool.addChild(shadow)
+        // Submerged silt / oily deposit follows the flow direction rather
+        // than appearing as another floating circle.
+        let depositPath = CGMutablePath()
+        depositPath.move(to: CGPoint(x: -w * 0.34, y: -h * 0.32))
+        depositPath.addLine(to: CGPoint(x: -w * 0.11, y: -h * 0.29))
+        depositPath.addLine(to: CGPoint(x: w * 0.17, y: -h * 0.13))
+        depositPath.addLine(to: CGPoint(x: w * 0.07, y: h * 0.06))
+        depositPath.addLine(to: CGPoint(x: -w * 0.23, y: -h * 0.09))
+        depositPath.closeSubpath()
+        let deposit = SKShapeNode(path: depositPath)
+        deposit.fillColor = deep.withAlphaComponent(0.27)
+        deposit.strokeColor = .clear
+        deposit.zPosition = 0.1
+        pool.addChild(deposit)
 
-        for index in 0..<3 {
-            let span = w * (0.19 + CGFloat(index % 2) * 0.075)
-            let centerX = w * (index == 0 ? -0.19 : (index == 1 ? 0.12 : -0.04))
-            let centerY = h * (0.18 - CGFloat(index) * 0.14)
+        for index in 0..<5 {
+            let span = w * (0.11 + CGFloat(index % 2) * 0.055)
+            let centerX = w * (acid ? 0.17 : -0.17)
+            let centerY = h * (0.37 - CGFloat(index) * 0.18)
             let line = CGMutablePath()
             line.move(to: CGPoint(x: centerX - span * 0.52,
                                   y: centerY - 1.7))
@@ -1422,23 +1420,6 @@ final class OutpostScene: SKScene {
             glint.fillColor = .clear
             glint.zPosition = 0.4
             pool.addChild(glint)
-        }
-
-        // Small pockets and liquid bubbles provide depth without dozens of
-        // repeated circles or continuous SpriteKit particle updates.
-        for index in 0..<4 {
-            let radius: CGFloat = acid
-                ? CGFloat(2 + (index % 2))
-                : CGFloat(1.6 + CGFloat(index % 3) * 0.55)
-            let pocket = SKShapeNode(circleOfRadius: radius)
-            pocket.position = CGPoint(
-                x: w * CGFloat([-0.29, -0.12, 0.19, 0.27][index]),
-                y: h * CGFloat([0.06, 0.26, 0.17, -0.10][index]))
-            pocket.fillColor = deep.withAlphaComponent(acid ? 0.28 : 0.15)
-            pocket.strokeColor = highlight.withAlphaComponent(0.48)
-            pocket.lineWidth = 0.85
-            pocket.zPosition = 0.5
-            pool.addChild(pocket)
         }
 
         if acid {
