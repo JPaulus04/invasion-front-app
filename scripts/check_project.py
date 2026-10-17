@@ -137,8 +137,9 @@ if 'aimLineLeft' not in scene or 'aimLineRight' not in scene or "wardenVolleyTar
     errors.append("Tidal Warden fan must warn visibly before firing three shots")
 if "-captureFloodedBossScreenshot" not in scene or "-captureToxicBossScreenshot" not in scene:
     errors.append("Both new worlds must have simulator boss-spawn and attack coverage")
-if "selectedWorld.title : \"OUTPOST ZERO\"" not in scene:
-    errors.append("Combat HUD must identify the selected world")
+if '? selectedWorld.title : "OUTPOST ZERO"' not in scene and 'selectedWorld.title : "OUTPOST ZERO")' not in scene:
+    if 'wave > 0 && phase != .ready && phase != .loadout' not in scene:
+        errors.append("Combat HUD must identify the selected world during upgrades")
 if "WorldCatalog.recordBestRoom(worldMapIndex, room: wave)" not in scene:
     errors.append("Best room must be tracked as each new room begins")
 if "WorldCatalog.recordBestRoom(worldMapIndex, room: worldWaveCount)" not in scene:
@@ -262,6 +263,10 @@ if 'toxic.name = "toxicAmbientBackdrop"' not in art:
     errors.append("Toxic Crossing needs a unique ground material")
 if 'addToxicEdgeProp(to: prop' not in scene:
     errors.append("Toxic Crossing needs unique industrial equipment")
+if '"BLOCKED"' in scene:
+    errors.append("Placeholder BLOCKED UI must not cover rubble obstacles")
+if 'decorateRubbleObstacle(shape, size: patch.frame.size)' not in scene:
+    errors.append("Rubble collision patches must use dimensional artwork")
 if 'if worldMapIndex == 0 && zone <= 1' not in scene:
     errors.append("Forest litter must not be painted into flooded rooms")
 forest_floor = scene.split("// Sparse, asymmetrical forest dressing.", 1)[-1].split("// Fern silhouettes", 1)[0]

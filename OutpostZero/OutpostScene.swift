@@ -829,9 +829,12 @@ final class OutpostScene: SKScene {
         let xpText = "LEVEL \(progress.level)  •  \(progress.xp)/\(progress.nextLevelXP) XP"
         if xpLabel.text != xpText { xpLabel.text = xpText }
         checkpointButton.isHidden = phase != .gate || !wave.isMultiple(of: 5) || checkpointUsed
+        // Preserve the selected world's identity while combat is paused
+        // for upgrades or QA captures. Only pre-run screens use the game title.
         let titleText = wave == worldWaveCount && phase == .playing
-            ? selectedWorld.boss : (phase == .playing || phase == .gate
-                                   ? selectedWorld.title : "OUTPOST ZERO")
+            ? selectedWorld.boss
+            : (wave > 0 && phase != .ready && phase != .loadout
+               ? selectedWorld.title : "OUTPOST ZERO")
         if title.text != titleText { title.text = titleText }
         let subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
         if subtitle.text != subtitleText { subtitle.text = subtitleText }
@@ -1334,23 +1337,103 @@ final class OutpostScene: SKScene {
                 shape.strokeColor = .systemYellow
                 acidVisualNodes.append(shape)
             case .rubble:
+                // The collision patch stays rectangular, but the illustration
+                // reads as a damaged material object instead of a UI warning.
                 shape.path = CGPath(roundedRect: CGRect(
                     x: -patch.frame.width / 2, y: -patch.frame.height / 2,
                     width: patch.frame.width, height: patch.frame.height),
-                    cornerWidth: 7, cornerHeight: 7, transform: nil)
-                shape.fillColor = SKColor(red: 0.25, green: 0.25, blue: 0.29, alpha: 1)
-                shape.strokeColor = .lightGray
+                    cornerWidth: 4, cornerHeight: 4, transform: nil)
+                shape.fillColor = worldMapIndex == 1
+                    ? SKColor(red: 0.20, green: 0.32, blue: 0.35, alpha: 1)
+                    : SKColor(red: 0.30, green: 0.33, blue: 0.29, alpha: 1)
+                shape.strokeColor = worldMapIndex == 1
+                    ? SKColor(red: 0.12, green: 0.23, blue: 0.26, alpha: 1)
+                    : SKColor(red: 0.13, green: 0.19, blue: 0.18, alpha: 1)
+                shape.lineWidth = 2
+                decorateRubbleObstacle(shape, size: patch.frame.size)
             }
             hazardScenery.addChild(shape)
-            let caption = SKLabelNode(fontNamed: "AvenirNext-Bold")
-            caption.text = patch.kind == .water ? "SLOW WATER" :
-                (patch.kind == .acid ? "ACID" : "BLOCKED")
-            caption.fontSize = 10
-            caption.fontColor = .white
-            caption.verticalAlignmentMode = .center
-            caption.zPosition = 2
-            shape.addChild(caption)
+            // Labels remain only where they explain a new movement or damage
+            // mechanic. Solid obstacles are identified by their silhouette.
+            if patch.kind != .rubble {
+                let caption = SKLabelNode(fontNamed: "AvenirNext-Bold")
+                caption.text = patch.kind == .water ? "SLOW WATER" : "ACID"
+                caption.fontSize = 10
+                caption.fontColor = .white
+                caption.verticalAlignmentMode = .center
+                caption.zPosition = 2
+                shape.addChild(caption)
+            }
         }
+    }
+
+    /// Three material facets sit inside the existing rectangular rubble
+    /// footprint. This is artwork only; TerrainHazards still owns collision.
+    private func decorateRubbleObstacle(_ obstacle: SKShapeNode, size: CGSize) {
+        let w = size.width
+        let h = size.height
+        let maritime = worldMapIndex == 1
+        let rim = maritime
+            ? SKColor(red: 0.55, green: 0.66, blue: 0.64, alpha: 1)
+            : SKColor(red: 0.52, green: 0.57, blue: 0.45, alpha: 1)
+        let rust = maritime
+            ? SKColor(red: 0.56, green: 0.38, blue: 0.25, alpha: 1)
+            : SKColor(red: 0.52, green: 0.32, blue: 0.17, alpha: 1)
+        let deep = SKColor(red: 0.09, green: 0.16, blue: 0.17, alpha: 1)
+
+        let upper = CGMutablePath()
+        upper.move(to: CGPoint(x: -w * 0.45, y: h * 0.19))
+        upper.addLine(to: CGPoint(x: -w * 0.35, y: h * 0.39))
+        upper.addLine(to: CGPoint(x: w * 0.28, y: h * 0.39))
+        upper.addLine(to: CGPoint(x: w * 0.44, y: h * 0.20))
+        upper.addLine(to: CGPoint(x: w * 0.34, y: h * 0.08))
+        upper.addLine(to: CGPoint(x: -w * 0.35, y: h * 0.08))
+        upper.closeSubpath()
+        let top = SKShapeNode(path: upper)
+        top.fillColor = rim.withAlphaComponent(0.72)
+        top.strokeColor = .clear
+        top.zPosition = 0.5
+        obstacle.addChild(top)
+
+        let recess = SKShapeNode(rectOf: CGSize(
+            width: w * 0.63, height: h * 0.29), cornerRadius: 3)
+        recess.position = CGPoint(x: 0, y: -h * 0.17)
+        recess.fillColor = deep.withAlphaComponent(0.80)
+        recess.strokeColor = rim.withAlphaComponent(0.35)
+        recess.lineWidth = 1
+        recess.zPosition = 0.6
+        obstacle.addChild(recess)
+
+        // Sloped joints and missing corners give the block a silhouette that
+        // is readable without a bright white outline or debug text.
+        for side: CGFloat in [-1, 1] {
+            let brace = SKShapeNode(rectOf: CGSize(
+                width: max(4, w * 0.085), height: h * 0.64),
+                cornerRadius: 1)
+            brace.position = CGPoint(x: side * w * 0.36, y: -h * 0.04)
+            brace.zRotation = side * 0.11
+            brace.fillColor = rim.withAlphaComponent(side < 0 ? 0.44 : 0.28)
+            brace.strokeColor = .clear
+            brace.zPosition = 0.7
+            obstacle.addChild(brace)
+
+            let bolt = SKShapeNode(circleOfRadius: 2.1)
+            bolt.position = CGPoint(x: side * w * 0.34, y: h * 0.17)
+            bolt.fillColor = rust
+            bolt.strokeColor = deep
+            bolt.lineWidth = 0.7
+            bolt.zPosition = 1
+            obstacle.addChild(bolt)
+        }
+        let fracture = CGMutablePath()
+        fracture.move(to: CGPoint(x: -w * 0.09, y: h * 0.31))
+        fracture.addLine(to: CGPoint(x: -w * 0.02, y: h * 0.16))
+        fracture.addLine(to: CGPoint(x: -w * 0.06, y: h * 0.07))
+        let crack = SKShapeNode(path: fracture)
+        crack.strokeColor = deep.withAlphaComponent(0.65)
+        crack.lineWidth = 1.5
+        crack.zPosition = 0.85
+        obstacle.addChild(crack)
     }
 
     private func updateTerrainHazards() {
