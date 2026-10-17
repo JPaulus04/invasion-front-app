@@ -49,8 +49,10 @@ if '-captureSurvivalExtractionScreenshot' not in scene or 'extractionPortal.isHi
     errors.append("Simulator must capture extraction with enemies alive")
 if '-captureSurvivalTransitionScreenshot' not in scene or 'TerrainHazards.extractionPosition(' not in scene:
     errors.append("Simulator must verify reachable extraction and tactical-room transition")
-if 'campaignCircularPortal' not in scene or 'survivalExtractionOrb' not in scene or 'circleOfRadius: 21' not in scene:
-    errors.append("Campaign must use a large circular portal separate from the survival orb")
+if 'campaignUprightPortal' not in scene or 'survivalExtractionOrb' not in scene or 'circleOfRadius: 21' not in scene:
+    errors.append("Campaign must use a large upright portal separate from the survival orb")
+if 'campaignPortalGroundShadow' not in scene or 'campaignPortalRearRim' not in scene or 'height: 148' not in scene:
+    errors.append("Campaign portal must be standing above a grounded footplate, not a flat floor ellipse")
 if 'for vineIndex in 0..<2' in scene or 'floor.strokeColor = .clear' not in scene:
     errors.append("Stray tree wisps or rectangular survival floor lines remain")
 if 'zoneBanner.text = ""' not in scene:

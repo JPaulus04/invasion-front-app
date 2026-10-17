@@ -63,6 +63,12 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Even without a border stroke, the opaque expanded-arena ground showed a horizontal lower edge. Oversize visual ground far outside collision bounds so its cutoff is never inside the visible gameplay viewport.
 - Require a second genuine screenshot/artifact inspection before final approval.
 
+## October 17 — Upright campaign portal (user confirmed)
+- Previous circular campaign portal in run 39075581821 was too flat; user explicitly requires a **standing, upright ring** rather than an oval laid on the ground.
+- Campaign portal now has a vertically extended elliptical ring with a grounded footplate, rear rim showing depth, side legs, tall blue energy field, vertically distributed swirling currents, and physical entry at the base. Separate small center-area survival extraction orb unchanged.
+- The gate QA fixture checks the actual rendered ring's >140-point standing height, <120-point width, and base/structural elements before screenshot capture.
+- Keep checking the *actual* simulator screenshot instead of judging by source assertions. No TestFlight upload.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.
