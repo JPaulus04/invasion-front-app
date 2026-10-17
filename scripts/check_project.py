@@ -123,6 +123,10 @@ if 'ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot
     errors.append("Simulator must include a hazardous arena preview")
 if "TerrainHazards.acidTouches(" not in scene or "TerrainHazards.waterSpeed(" not in scene:
     errors.append("Water slowdown and acid damage must be connected to gameplay")
+if 'decorateLiquidHazard(shape, kind: .water' not in scene or 'decorateLiquidHazard(shape, kind: .acid' not in scene:
+    errors.append("Hazard artwork must visually differentiate slow water and pulsing acid")
+if 'shape.childNode(withName: "acidActiveVeins")?.isHidden = !acidOn' not in scene:
+    errors.append("Acid pulse visuals must update alongside actual damage timing")
 if "WorldCatalog.recordVictory(worldMapIndex, stars: stars)" not in scene:
     errors.append("Each world must award its own stars and power cores")
 if "WorldCatalog.enemyType(world: worldMapIndex" not in scene:

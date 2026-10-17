@@ -1330,11 +1330,13 @@ final class OutpostScene: SKScene {
             shape.zPosition = 0
             switch patch.kind {
             case .water:
-                shape.fillColor = SKColor(red: 0.08, green: 0.39, blue: 0.63, alpha: 0.72)
-                shape.strokeColor = SKColor(red: 0.44, green: 0.78, blue: 0.97, alpha: 1)
+                shape.fillColor = SKColor(red: 0.08, green: 0.37, blue: 0.53, alpha: 0.74)
+                shape.strokeColor = SKColor(red: 0.44, green: 0.74, blue: 0.79, alpha: 0.88)
+                decorateLiquidHazard(shape, kind: .water, size: patch.frame.size)
             case .acid:
-                shape.fillColor = SKColor(red: 0.15, green: 0.55, blue: 0.09, alpha: 0.48)
-                shape.strokeColor = .systemYellow
+                shape.fillColor = SKColor(red: 0.15, green: 0.48, blue: 0.09, alpha: 0.62)
+                shape.strokeColor = SKColor(red: 0.87, green: 0.78, blue: 0.34, alpha: 1)
+                decorateLiquidHazard(shape, kind: .acid, size: patch.frame.size)
                 acidVisualNodes.append(shape)
             case .rubble:
                 // The collision patch stays rectangular, but the illustration
@@ -1358,12 +1360,108 @@ final class OutpostScene: SKScene {
             if patch.kind != .rubble {
                 let caption = SKLabelNode(fontNamed: "AvenirNext-Bold")
                 caption.text = patch.kind == .water ? "SLOW WATER" : "ACID"
-                caption.fontSize = 10
-                caption.fontColor = .white
+                caption.fontSize = 9
+                caption.fontColor = SKColor(white: 0.95, alpha: 0.84)
                 caption.verticalAlignmentMode = .center
+                caption.position.y = -patch.frame.height * 0.19
                 caption.zPosition = 2
                 shape.addChild(caption)
             }
+        }
+    }
+
+
+    /// Layered liquid surfaces live entirely inside the existing elliptical
+    /// interaction region. The perimeter remains readable as the exact area
+    /// that slows movement or deals damage; no new physics/collision objects.
+    private func decorateLiquidHazard(_ pool: SKShapeNode,
+                                      kind: TerrainHazards.Kind, size: CGSize) {
+        let acid = kind == .acid
+        let w = size.width
+        let h = size.height
+        let highlight = acid
+            ? SKColor(red: 0.65, green: 0.88, blue: 0.29, alpha: 1)
+            : SKColor(red: 0.64, green: 0.88, blue: 0.94, alpha: 1)
+        let deep = acid
+            ? SKColor(red: 0.05, green: 0.29, blue: 0.09, alpha: 1)
+            : SKColor(red: 0.025, green: 0.23, blue: 0.36, alpha: 1)
+
+        // A subdued interior shoreline and two uneven, broken reflections.
+        // All details stay well within the ellipsoidal gameplay footprint.
+        let shoreline = SKShapeNode(ellipseOf: CGSize(
+            width: w * 0.88, height: h * 0.83))
+        shoreline.fillColor = .clear
+        shoreline.strokeColor = highlight.withAlphaComponent(0.21)
+        shoreline.lineWidth = 1.3
+        shoreline.zPosition = 0.2
+        pool.addChild(shoreline)
+
+        let shadow = SKShapeNode(ellipseOf: CGSize(
+            width: w * 0.55, height: h * 0.33))
+        shadow.fillColor = deep.withAlphaComponent(0.27)
+        shadow.strokeColor = .clear
+        shadow.position = CGPoint(x: -w * 0.09, y: -h * 0.035)
+        shadow.zPosition = 0.1
+        pool.addChild(shadow)
+
+        for index in 0..<3 {
+            let span = w * (0.19 + CGFloat(index % 2) * 0.075)
+            let centerX = w * (index == 0 ? -0.19 : (index == 1 ? 0.12 : -0.04))
+            let centerY = h * (0.18 - CGFloat(index) * 0.14)
+            let line = CGMutablePath()
+            line.move(to: CGPoint(x: centerX - span * 0.52,
+                                  y: centerY - 1.7))
+            line.addQuadCurve(
+                to: CGPoint(x: centerX + span * 0.50, y: centerY + 0.2),
+                control: CGPoint(x: centerX - span * 0.07,
+                                 y: centerY + 3.8))
+            let glint = SKShapeNode(path: line)
+            glint.strokeColor = highlight.withAlphaComponent(
+                index == 1 ? 0.42 : 0.25)
+            glint.lineWidth = index == 1 ? 1.7 : 1.1
+            glint.fillColor = .clear
+            glint.zPosition = 0.4
+            pool.addChild(glint)
+        }
+
+        // Small pockets and liquid bubbles provide depth without dozens of
+        // repeated circles or continuous SpriteKit particle updates.
+        for index in 0..<4 {
+            let radius: CGFloat = acid
+                ? CGFloat(2 + (index % 2))
+                : CGFloat(1.6 + CGFloat(index % 3) * 0.55)
+            let pocket = SKShapeNode(circleOfRadius: radius)
+            pocket.position = CGPoint(
+                x: w * CGFloat([-0.29, -0.12, 0.19, 0.27][index]),
+                y: h * CGFloat([0.06, 0.26, 0.17, -0.10][index]))
+            pocket.fillColor = deep.withAlphaComponent(acid ? 0.28 : 0.15)
+            pocket.strokeColor = highlight.withAlphaComponent(0.48)
+            pocket.lineWidth = 0.85
+            pocket.zPosition = 0.5
+            pool.addChild(pocket)
+        }
+
+        if acid {
+            // When the six-second pulse enters its damaging phase these
+            // branched energy lines appear with the existing red warning rim.
+            // Visibility changes only on a phase transition, never each frame.
+            let veinsPath = CGMutablePath()
+            veinsPath.move(to: CGPoint(x: -w * 0.29, y: h * 0.04))
+            veinsPath.addLine(to: CGPoint(x: -w * 0.17, y: h * 0.17))
+            veinsPath.addLine(to: CGPoint(x: -w * 0.04, y: h * 0.07))
+            veinsPath.addLine(to: CGPoint(x: w * 0.12, y: h * 0.24))
+            veinsPath.move(to: CGPoint(x: w * 0.09, y: h * 0.02))
+            veinsPath.addLine(to: CGPoint(x: w * 0.27, y: -h * 0.09))
+            let veins = SKShapeNode(path: veinsPath)
+            veins.name = "acidActiveVeins"
+            veins.strokeColor = SKColor(
+                red: 0.87, green: 0.97, blue: 0.34, alpha: 0.80)
+            veins.lineWidth = 1.8
+            veins.glowWidth = 1.4
+            veins.fillColor = .clear
+            veins.zPosition = 1.3
+            veins.isHidden = true
+            pool.addChild(veins)
         }
     }
 
@@ -1447,6 +1545,7 @@ final class OutpostScene: SKScene {
                     : SKColor(red: 0.15, green: 0.55, blue: 0.09, alpha: 0.48)
                 shape.strokeColor = acidOn ? .systemRed : .systemYellow
                 shape.glowWidth = acidOn ? 3 : 0
+                shape.childNode(withName: "acidActiveVeins")?.isHidden = !acidOn
             }
         }
         guard phase == .playing else { return }
