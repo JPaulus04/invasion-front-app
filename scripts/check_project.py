@@ -227,8 +227,8 @@ kill_section = scene.split("private func removeDefeatedEnemies()", 1)[-1].split(
 choice_section = scene.split("private func chooseLevelUpgrade", 1)[-1].split("private func showCheckpoint", 1)[0]
 if "awardRoomXP(xpAmount)" not in kill_section:
     errors.append("Kills must grant replay-safe XP immediately")
-if "presentPendingLevelUp(returningTo: .playing)" not in kill_section:
-    errors.append("Mid-room kills must trigger pending level-up choices")
+if "presentPendingLevelUp(returningTo: destination)" not in kill_section or "extractionCombatActive ? .gate : .playing" not in kill_section:
+    errors.append("Kills must still trigger level-up choices, returning to combat or extraction")
 if not all(fragment in choice_section for fragment in (
         "RoomRules.isCleared(", "SurvivalEncounterRules.extractionActive(",
         "levelUpReturnPhase == .playing && !roomCleared")):
