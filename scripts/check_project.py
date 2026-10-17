@@ -203,8 +203,8 @@ if "presentPendingLevelUp(returningTo: .playing)" not in kill_section:
     errors.append("Mid-room kills must trigger pending level-up choices")
 if "RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count)" not in choice_section:
     errors.append("Level-up completion must recheck whether the room was cleared")
-if 'levelChoices = Array(pool.shuffled().prefix(3))' not in scene:
-    errors.append("Level-up must offer three rotating upgrade choices")
+if 'levelChoices = choices.shuffled()' not in scene or 'prefix(3 - choices.count)' not in scene:
+    errors.append("Level-up must show three rotating upgrade choices alongside featured tactical options")
 # Ranged attacks must communicate both the selected shot target and
 # the mortar's time-to-impact without changing actual combat damage.
 ranged_attack = scene.split("private func updateRangedAttack(at index: Int)", 1)[-1].split("private func fireProjectile", 1)[0]
