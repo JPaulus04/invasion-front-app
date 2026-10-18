@@ -3516,7 +3516,21 @@ final class OutpostScene: SKScene {
         if phase == .levelUp { return }
         if presentPendingLevelUp(
             returningTo: extractionCombatActive ? .gate : .playing) { return }
-        if activeEncounter.isTimed {
+        if activeEncounter == .equipmentDefense {
+            let deadline = SurvivalEncounterRules.duration(world: worldMapIndex, room: wave)
+            if EquipmentDefenseRules.maySpawn(elapsed: waveElapsed, duration: deadline,
+                integrity: defenseIntegrity, living: enemies.count),
+                spawnClock >= EquipmentDefenseRules.spawnCadence {
+                spawnClock -= EquipmentDefenseRules.spawnCadence
+                spawned += 1
+                spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(room: wave, slot: spawned))
+            }
+            if !roomCleared && EquipmentDefenseRules.succeeds(
+                elapsed: waveElapsed, duration: deadline, integrity: defenseIntegrity) {
+                completeWave()
+                return
+            }
+        } else if activeEncounter.isTimed {
             let interval = SurvivalEncounterRules.spawnInterval(room: wave)
             if !roomCleared && SurvivalEncounterRules.canSpawn(
                 world: worldMapIndex, room: wave, elapsed: waveElapsed,
@@ -3555,14 +3569,17 @@ final class OutpostScene: SKScene {
             enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
             let ranged = enemy.behavior >= 4 || enemy.node === bossNode
             if ranged { updateRangedAttack(at: index) }
+            // Melee foes attack the device. Shooters still target the pilot.
+            let pursuitTarget = activeEncounter == .equipmentDefense &&
+                enemy.behavior < 4 ? defenseDevice.position : pilot.position
             let waypoint = TerrainHazards.navigationTarget(
-                from: current, toward: pilot.position,
+                from: current, toward: pursuitTarget,
                 patches: roomHazards, bounds: roomBounds,
                 radius: enemy.radius)
             let intent = CombatRules.enemySteering(
                 behavior: enemy.behavior, origin: current, pilot: waypoint,
                 elapsed: combatTime, phase: enemy.weavePhase,
-                ranged: ranged && waypoint == pilot.position,
+                ranged: ranged && waypoint == pursuitTarget,
                 aiming: enemies[index].shotTarget != nil)
             let step = enemy.speed * CGFloat(gameDt)
             let target = RoomRules.clamp(
@@ -3588,6 +3605,11 @@ final class OutpostScene: SKScene {
             if let ground = enemy.node.childNode(withName: "enemyGroundShadow") as? SKShapeNode {
                 ground.xScale = enemyPose.shadowScale
             }
+            if activeEncounter == .equipmentDefense && enemy.behavior < 4 &&
+                distance(enemy.node.position, defenseDevice.position) < enemy.radius + 28 {
+                damageDefenseDevice()
+                if phase != .playing { return }
+            }
             if distance(enemy.node.position, pilot.position) < enemy.radius + 14 {
                 damagePilot(enemy.node === bossNode ? 12 : (enemy.behavior == 3 ? 8 : 5))
             }
@@ -3597,7 +3619,7 @@ final class OutpostScene: SKScene {
         // Level-up can interrupt combat during damage resolution. Do not clear
         // the room while its upgrade selection is still open.
         guard phase == .playing else { return }
-        if activeEncounter != .survival &&
+        if activeEncounter == .tactical &&
            RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) {
             completeWave()
         }
