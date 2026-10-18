@@ -66,6 +66,33 @@ enum CampaignPacing {
 /// Explicit, deliberately varied encounter layouts for playable 20-room worlds.
 /// Rules are authored separately from SpriteKit to make pacing inspectable
 /// before they are wired into movement, hostile spawning and save recovery.
+/// A separate mission type: keep a vulnerable field device intact under fire.
+/// The player still earns normal kill rewards, but kills do not end the mission.
+enum EquipmentDefenseRules {
+    static let maximumIntegrity = 150
+    static let hitDamage = 4
+    static let hitCooldown: TimeInterval = 1.2
+    static let enemyCap = 10
+    static let spawnCadence: TimeInterval = 2.0
+
+    static func succeeds(elapsed: TimeInterval, duration: TimeInterval,
+                         integrity: Int) -> Bool {
+        duration > 0 && elapsed >= duration && integrity > 0
+    }
+
+    static func fails(integrity: Int) -> Bool { integrity <= 0 }
+
+    static func maySpawn(elapsed: TimeInterval, duration: TimeInterval,
+                         integrity: Int, living: Int) -> Bool {
+        duration > 0 && elapsed >= 0 && elapsed < duration &&
+            integrity > 0 && living < enemyCap
+    }
+
+    static func applyHit(integrity: Int) -> Int {
+        max(0, integrity - hitDamage)
+    }
+}
+
 enum SurvivalEncounterRules {
     enum Kind: Equatable {
         case tactical
