@@ -151,6 +151,12 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Fixed menu presentation: hide real in-arena pilot on Home and World Selector; explicitly show it when combat starts/recovery resumes; keep staged home pilot separate. Move region caption to open sky above the upright portal. Add animated translucent blue currents to the existing upright circular portal (no rectangular gate or floor circle).
 - Hardened home simulator fixture: asserts physical pilot hidden, staged pilot present, energy currents present, five working dock routes and one primary Start. New CI and screenshots required. The current pass is visual/navigational only, no TestFlight upload.
 
+## October 18 — World 1 Guardian legibility / live-frame illustration pass
+- Actual latest run 39148788312 **all three green**; inspected home and boss captures, confirmed home duplicate-pilot, label overlap and portal fixes. Earlier Guardian QA froze enemy during 0.28-alpha spawning, which misleadingly made boss translucent; fixed fixture to show a materialized fully opaque boss without spawn-warning circle.
+- Replaced World 1 Guardian's generic color-circle/rectangles with a single intentionally composed fully opaque layered forest automaton silhouette built from angular mossy stone, bark roots, glowing green eyes, foliage, separate armor shoulders and a prominent reactor, while keeping existing SpriteKit node hierarchy, gameplay collision radius and phase timing. Increased only the Guardian HP bar's art offset; other-world bosses untouched.
+- Existing phase-2 still breaks named left/right armor and turns nested reactor orange, with telegraphed attacks. Inspect both actual simulator frames before claiming visual acceptance; gameplay screenshots do not substitute for user TestFlight judgment.
+- No TestFlight upload. Continue World 1 only.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

@@ -1074,7 +1074,13 @@ final class OutpostScene: SKScene {
             startWave()
             spawned = waveTarget
             spawnEnemy()
+            // Wait until the spawn materialization would have finished in
+            // live play. The old review froze 28%-opaque silhouettes before
+            // the first active frame and falsely made all the art look ghostly.
+            bossNode?.alpha = 1
+            bossNode?.childNode(withName: "spawnWarning")?.removeFromParent()
             precondition(wave == 20 && enemies.count == 1 && bossNode != nil &&
+                         bossNode?.alpha == 1 &&
                          enemies[0].health == selectedWorld.bossHealth &&
                          bossNode?.childNode(withName: "//guardianCore") != nil &&
                          bossNode?.childNode(withName: "guardianArmorLeft") != nil,
@@ -3656,6 +3662,178 @@ final class OutpostScene: SKScene {
         return SKTexture(image: image)
     }()
 
+    /// The Frontier Guardian's illustrated layers are arranged as one
+    /// deliberate boss silhouette. Fully opaque rock, dark undercuts, curved
+    /// roots and foliage replace the previous stack of see-through rectangles.
+    /// Keeping this visual helper separate preserves combat radius/timers.
+    private func installFrontierGuardianArtwork(on node: SKShapeNode) {
+        let outline = SKColor(red: 0.085, green: 0.17, blue: 0.14, alpha: 1)
+        let shadow = SKColor(red: 0.13, green: 0.25, blue: 0.20, alpha: 1)
+        let bark = SKColor(red: 0.22, green: 0.34, blue: 0.25, alpha: 1)
+        let stone = SKColor(red: 0.38, green: 0.46, blue: 0.35, alpha: 1)
+        let highlight = SKColor(red: 0.57, green: 0.60, blue: 0.40, alpha: 1)
+        let moss = SKColor(red: 0.27, green: 0.55, blue: 0.29, alpha: 1)
+        let darkMoss = SKColor(red: 0.15, green: 0.38, blue: 0.22, alpha: 1)
+        let bronze = SKColor(red: 0.76, green: 0.57, blue: 0.32, alpha: 1)
+
+        func plate(_ vertices: [CGPoint], color: SKColor, edge: SKColor,
+                   width: CGFloat = 2.3, depth: CGFloat = 1) -> SKShapeNode {
+            let contour = CGMutablePath()
+            if let first = vertices.first {
+                contour.move(to: first)
+                for point in vertices.dropFirst() { contour.addLine(to: point) }
+                contour.closeSubpath()
+            }
+            let shape = SKShapeNode(path: contour)
+            shape.fillColor = color
+            shape.strokeColor = edge
+            shape.lineWidth = width
+            shape.lineJoin = .round
+            shape.zPosition = depth
+            node.addChild(shape)
+            return shape
+        }
+        let shadowPad = SKShapeNode(ellipseOf: CGSize(width: 145, height: 25))
+        shadowPad.position = CGPoint(x: 0, y: -75)
+        shadowPad.fillColor = .black.withAlphaComponent(0.38)
+        shadowPad.strokeColor = .clear
+        shadowPad.zPosition = -0.5
+        node.addChild(shadowPad)
+
+        // The broad legs and hooked root-knuckles anchor a heavyweight boss.
+        for side: CGFloat in [-1, 1] {
+            plate([CGPoint(x: side * 10, y: -31),
+                   CGPoint(x: side * 34, y: -28),
+                   CGPoint(x: side * 39, y: -61),
+                   CGPoint(x: side * 27, y: -71),
+                   CGPoint(x: side * 9, y: -66)],
+                  color: shadow, edge: outline, depth: 0.2)
+            plate([CGPoint(x: side * 16, y: -58),
+                   CGPoint(x: side * 36, y: -53),
+                   CGPoint(x: side * 51, y: -72),
+                   CGPoint(x: side * 22, y: -76),
+                   CGPoint(x: side * 9, y: -67)],
+                  color: stone, edge: outline, depth: 1.2)
+            plate([CGPoint(x: side * 31, y: 27),
+                   CGPoint(x: side * 66, y: 24),
+                   CGPoint(x: side * 70, y: -13),
+                   CGPoint(x: side * 55, y: -47),
+                   CGPoint(x: side * 44, y: -41),
+                   CGPoint(x: side * 48, y: 0),
+                   CGPoint(x: side * 24, y: -9)],
+                  color: bark, edge: outline, depth: 0.3)
+            plate([CGPoint(x: side * 53, y: -35),
+                   CGPoint(x: side * 64, y: -33),
+                   CGPoint(x: side * 75, y: -53),
+                   CGPoint(x: side * 69, y: -67),
+                   CGPoint(x: side * 56, y: -56)],
+                  color: stone, edge: outline, depth: 1.1)
+            plate([CGPoint(x: side * 61, y: -54),
+                   CGPoint(x: side * 78, y: -71),
+                   CGPoint(x: side * 66, y: -73)],
+                  color: highlight, edge: outline, width: 1.5, depth: 1.4)
+        }
+        plate([CGPoint(x: -41, y: 42), CGPoint(x: -22, y: 56),
+               CGPoint(x: 19, y: 56), CGPoint(x: 43, y: 34),
+               CGPoint(x: 40, y: -32), CGPoint(x: 19, y: -54),
+               CGPoint(x: -25, y: -51), CGPoint(x: -45, y: -26)],
+              color: shadow, edge: outline, width: 4, depth: 1)
+        plate([CGPoint(x: -33, y: 30), CGPoint(x: -18, y: 47),
+               CGPoint(x: 17, y: 46), CGPoint(x: 35, y: 29),
+               CGPoint(x: 31, y: -26), CGPoint(x: 11, y: -39),
+               CGPoint(x: -14, y: -38), CGPoint(x: -34, y: -19)],
+              color: stone, edge: highlight, width: 3, depth: 2)
+        // Asymmetric cliff-rock shoulder plates read differently from the
+        // normal unit sprites even on small mobile screens.
+        for side: CGFloat in [-1, 1] {
+            let shoulder = plate([
+                CGPoint(x: side * 23, y: 42),
+                CGPoint(x: side * 44, y: 58),
+                CGPoint(x: side * 68, y: 43),
+                CGPoint(x: side * 62, y: 10),
+                CGPoint(x: side * 35, y: -7),
+                CGPoint(x: side * 19, y: 18)],
+                color: stone, edge: outline, width: 3, depth: 3)
+            shoulder.name = side < 0 ? "guardianArmorLeft" : "guardianArmorRight"
+            plate([CGPoint(x: side * 29, y: 36),
+                   CGPoint(x: side * 44, y: 50),
+                   CGPoint(x: side * 58, y: 37),
+                   CGPoint(x: side * 41, y: 26)],
+                  color: highlight, edge: .clear, width: 0, depth: 3.1)
+            // Branch-like crown points give the silhouette a forest identity.
+            plate([CGPoint(x: side * 15, y: 45),
+                   CGPoint(x: side * 24, y: 73),
+                   CGPoint(x: side * 37, y: 87),
+                   CGPoint(x: side * 35, y: 58),
+                   CGPoint(x: side * 44, y: 69),
+                   CGPoint(x: side * 43, y: 39)],
+                  color: bark, edge: outline, width: 3, depth: 1.7)
+        }
+        // A carved face, separated bright eyes, and heavy upper brow.
+        plate([CGPoint(x: -28, y: 42), CGPoint(x: -18, y: 59),
+               CGPoint(x: 17, y: 61), CGPoint(x: 30, y: 41),
+               CGPoint(x: 21, y: 5), CGPoint(x: 0, y: -3),
+               CGPoint(x: -21, y: 8)],
+              color: bark, edge: outline, width: 3, depth: 3.2)
+        plate([CGPoint(x: -30, y: 44), CGPoint(x: -12, y: 54),
+               CGPoint(x: 9, y: 54), CGPoint(x: 28, y: 44),
+               CGPoint(x: 17, y: 37), CGPoint(x: -19, y: 35)],
+              color: stone, edge: outline, depth: 3.5)
+        for side: CGFloat in [-1, 1] {
+            let eye = SKShapeNode(ellipseOf: CGSize(width: 12, height: 9))
+            eye.position = CGPoint(x: side * 13, y: 27)
+            eye.fillColor = .systemGreen
+            eye.strokeColor = SKColor(red: 0.79, green: 1, blue: 0.56, alpha: 1)
+            eye.lineWidth = 1.5
+            eye.glowWidth = 3
+            eye.zPosition = 4
+            node.addChild(eye)
+        }
+        // Varied leaf masses and little growths are foreground silhouette
+        // details, not a flat horizontal decal over the arena.
+        for (index, position) in [
+            CGPoint(x: -48, y: 56), CGPoint(x: -32, y: 72),
+            CGPoint(x: -8, y: 68), CGPoint(x: 16, y: 74),
+            CGPoint(x: 44, y: 58), CGPoint(x: 54, y: 37),
+            CGPoint(x: -55, y: 34)
+        ].enumerated() {
+            let tuft = SKShapeNode(ellipseOf: CGSize(
+                width: index.isMultiple(of: 2) ? 25 : 21,
+                height: index.isMultiple(of: 3) ? 17 : 14))
+            tuft.position = position
+            tuft.zRotation = CGFloat(index - 3) * 0.13
+            tuft.fillColor = index.isMultiple(of: 2) ? moss : darkMoss
+            tuft.strokeColor = SKColor(red: 0.41, green: 0.61,
+                                       blue: 0.32, alpha: 1)
+            tuft.lineWidth = 1.7
+            tuft.zPosition = 5
+            node.addChild(tuft)
+        }
+        // The center reactor is intentionally high-contrast and separately
+        // addressable by the existing armor-break visual transition.
+        let housing = SKShapeNode(circleOfRadius: 24)
+        housing.position = CGPoint(x: 0, y: -14)
+        housing.fillColor = outline
+        housing.strokeColor = bronze
+        housing.lineWidth = 5
+        housing.zPosition = 5.2
+        node.addChild(housing)
+        let reactor = SKShapeNode(circleOfRadius: 16)
+        reactor.name = "guardianCore"
+        reactor.fillColor = SKColor(red: 0.16, green: 0.95, blue: 0.66, alpha: 1)
+        reactor.strokeColor = .white
+        reactor.lineWidth = 2.5
+        reactor.glowWidth = 7
+        reactor.zPosition = 1
+        housing.addChild(reactor)
+        let glint = SKShapeNode(ellipseOf: CGSize(width: 8, height: 15))
+        glint.position = CGPoint(x: -4, y: 5)
+        glint.fillColor = .white.withAlphaComponent(0.62)
+        glint.strokeColor = .clear
+        glint.zPosition = 2
+        reactor.addChild(glint)
+    }
+
     private func spawnEnemy(artReviewType: Int? = nil) {
         let isBoss = wave == worldWaveCount
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
@@ -3670,6 +3848,10 @@ final class OutpostScene: SKScene {
         if type == 5 { node.fillColor = .systemOrange }
         node.strokeColor = type == 1 ? .systemYellow : .white
         node.lineWidth = type == 1 ? 4 : 2
+        if isBoss && worldMapIndex == 0 {
+            node.fillColor = .clear
+            node.strokeColor = .clear
+        }
         let usesIllustratedEnemy = !isBoss && productionImage(named: type == 1 ? "scout_idle" : (type == 2 ? "raider_idle" : (type == 3 ? "heavy_idle" : (type == 4 ? "shooter_idle" : (type == 5 ? "lobber_idle" : "grunt_idle"))))) != nil
         // Textured chassis overlay: preserves collision geometry while changing the visible silhouette.
         if !isBoss {
@@ -3777,8 +3959,10 @@ final class OutpostScene: SKScene {
         core.fillColor = type == 1 ? .darkGray : (type == 2 ? .magenta : .brown)
         core.strokeColor = .clear
         core.zPosition = 1
-        if !usesIllustratedEnemy { node.addChild(core) }
-        if isBoss {
+        if !usesIllustratedEnemy && !(isBoss && worldMapIndex == 0) {
+            node.addChild(core)
+        }
+        if isBoss && worldMapIndex != 0 {
             // A distinct guardian silhouette makes the final encounter recognizable at a glance.
             let crown = SKShapeNode(rectOf: CGSize(width: radius * 1.7, height: 12), cornerRadius: 3)
             crown.fillColor = worldMapIndex == 0 ? .systemOrange :
@@ -3815,74 +3999,7 @@ final class OutpostScene: SKScene {
             node.addChild(reactor)
         }
         if isBoss && worldMapIndex == 0 {
-            // Frontier Forest's guardian is an ancient overgrown machine:
-            // grounded feet, broad oxidized shoulder plating, root-like
-            // outriggers, and one bright central reactor. All geometry is
-            // visual-only and keeps the unchanged combat collision radius.
-            let bark = SKColor(red: 0.16, green: 0.29, blue: 0.24, alpha: 1)
-            let bronze = SKColor(red: 0.64, green: 0.43, blue: 0.23, alpha: 1)
-            for side: CGFloat in [-1, 1] {
-                let root = SKShapeNode()
-                let outline = CGMutablePath()
-                outline.move(to: CGPoint(x: side * 27, y: -18))
-                outline.addLine(to: CGPoint(x: side * 62, y: -41))
-                outline.addLine(to: CGPoint(x: side * 54, y: -47))
-                outline.addLine(to: CGPoint(x: side * 21, y: -31))
-                outline.closeSubpath()
-                root.path = outline
-                root.fillColor = bark
-                root.strokeColor = bronze
-                root.lineWidth = 2
-                root.zPosition = 1.6
-                node.addChild(root)
-                let shoulder = SKShapeNode(rectOf: CGSize(width: 30, height: 39),
-                                           cornerRadius: 8)
-                shoulder.name = side < 0 ? "guardianArmorLeft" : "guardianArmorRight"
-                shoulder.position = CGPoint(x: side * 29, y: 8)
-                shoulder.zRotation = side * -0.22
-                shoulder.fillColor = bark
-                shoulder.strokeColor = bronze
-                shoulder.lineWidth = 3.5
-                shoulder.zPosition = 3.5
-                node.addChild(shoulder)
-                for height in 0..<3 {
-                    let leaf = SKShapeNode(ellipseOf: CGSize(width: 18, height: 9))
-                    leaf.position = CGPoint(x: side * (22 + CGFloat(height) * 12),
-                                            y: 35 + CGFloat(height % 2) * 8)
-                    leaf.zRotation = side * 0.3
-                    leaf.fillColor = SKColor(red: 0.21, green: 0.49,
-                                             blue: 0.25, alpha: 0.96)
-                    leaf.strokeColor = SKColor(red: 0.48, green: 0.67,
-                                               blue: 0.32, alpha: 0.85)
-                    leaf.lineWidth = 1.4
-                    leaf.zPosition = 3.6
-                    node.addChild(leaf)
-                }
-            }
-            let coreHousing = SKShapeNode(circleOfRadius: 20)
-            coreHousing.position = CGPoint(x: 0, y: -9)
-            coreHousing.fillColor = SKColor(red: 0.07, green: 0.18,
-                                            blue: 0.20, alpha: 1)
-            coreHousing.strokeColor = bronze
-            coreHousing.lineWidth = 4
-            coreHousing.zPosition = 4.1
-            node.addChild(coreHousing)
-            let coreLight = SKShapeNode(circleOfRadius: 12)
-            coreLight.name = "guardianCore"
-            coreLight.fillColor = .systemCyan
-            coreLight.strokeColor = .white
-            coreLight.lineWidth = 2.2
-            coreLight.glowWidth = 5
-            coreLight.zPosition = 4.2
-            coreHousing.addChild(coreLight)
-            let crest = SKShapeNode(rectOf: CGSize(width: 47, height: 13),
-                                    cornerRadius: 5)
-            crest.position.y = 33
-            crest.fillColor = bark
-            crest.strokeColor = bronze
-            crest.lineWidth = 2.5
-            crest.zPosition = 3.9
-            node.addChild(crest)
+            installFrontierGuardianArtwork(on: node)
         }
         if type >= 4 && !usesIllustratedEnemy {
             let weapon = SKShapeNode(rectOf: CGSize(width: type == 5 ? 22 : 8, height: 26), cornerRadius: 3)
@@ -3996,8 +4113,8 @@ final class OutpostScene: SKScene {
             ? 70 : CampaignPacing.enemyHealth(world: worldMapIndex, room: wave, type: type)
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         // Keep the track and fill together above the larger illustrated sprite.
-        let healthBarOffset: CGFloat = usesIllustratedEnemy
-            ? radius * 1.39 + 9 : radius + 12
+        let healthBarOffset: CGFloat = isBoss && worldMapIndex == 0
+            ? 104 : (usesIllustratedEnemy ? radius * 1.39 + 9 : radius + 12)
         let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
         healthTrack.strokeColor = .clear
