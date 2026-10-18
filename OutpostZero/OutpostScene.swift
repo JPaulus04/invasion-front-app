@@ -1189,7 +1189,12 @@ final class OutpostScene: SKScene {
         if ProcessInfo.processInfo.arguments.contains("-captureGateScreenshot") {
             startWave()
             spawned = waveTarget
+            // Recreate a stale orb from a previous encounter to prove opening
+            // the normal campaign exit forcibly hides the other structure.
+            extractionPortal.isHidden = false
             showZoneGate()
+            precondition(!passageGate.isHidden && extractionPortal.isHidden,
+                         "Normal campaign exit must never coexist with survival orb")
             // A true upright gate has a much taller silhouette than its
             // footprint, with a base at the physical entry location.
             precondition(passageGate.path?.boundingBox.height ?? 0 > 140 &&
@@ -4777,6 +4782,9 @@ final class OutpostScene: SKScene {
         movementTarget = nil
         clearOverlay()
         overlayBackdrop.isHidden = true
+        // Exactly one exit is visible: tactical and defense rooms use the
+        // upright campaign portal, never the timed-survival rescue orb.
+        extractionPortal.isHidden = true
         passageGate.isHidden = false
         passageGate.fillColor = SKColor(red: 0.045, green: 0.12, blue: 0.25, alpha: 1)
         (passageGate.children.first(where: { $0 is SKLabelNode }) as? SKLabelNode)?.text = "ENTER"
