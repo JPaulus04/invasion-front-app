@@ -108,19 +108,26 @@ struct CampaignPacingTests {
             distanceFromReactor: 0, enemyRadius: 26))
         precondition(EquipmentDefenseRules.safeSpawn(
             distanceFromReactor: separation + 26, enemyRadius: 26))
-        // Spawn placement must protect both player and reactor on compact
-        // and full-size displays without sacrificing walkable approach space.
-        for size in [CGSize(width: 320, height: 568),
-                     CGSize(width: 393, height: 852),
-                     CGSize(width: 768, height: 1024)] {
-            let room = RoomRules.bounds(for: size)
+        // Use the actual room-size formula but avoid importing SpriteKit's
+        // RoomRules into this lightweight, pure-rules Swift test target.
+        // Explicit loops also keep Swift type-checking predictable in CI.
+        for screen in [CGSize(width: 320, height: 568),
+                       CGSize(width: 393, height: 852),
+                       CGSize(width: 768, height: 1024)] {
+            let roomWidth = max(CGFloat(120), screen.width - 56)
+            let roomHeight = max(CGFloat(160), screen.height - 295)
+            let room = CGRect(x: 28, y: 70, width: roomWidth, height: roomHeight)
             let spawnBounds = room.insetBy(dx: 24, dy: 32)
             let reactor = CGPoint(x: room.midX, y: room.midY + room.height * 0.08)
-            let pilot = RoomRules.entryPoint(for: size)
-            let positions = (0...8).flatMap { row in
-                (0...8).map { col in
-                    CGPoint(x: spawnBounds.minX + spawnBounds.width * CGFloat(col) / 8,
-                            y: spawnBounds.minY + spawnBounds.height * CGFloat(row) / 8)
+            let pilot = CGPoint(x: room.midX, y: room.minY + 25)
+            var positions: [CGPoint] = []
+            for row in 0...8 {
+                for col in 0...8 {
+                    let fractionX = CGFloat(col) / 8
+                    let fractionY = CGFloat(row) / 8
+                    let x = spawnBounds.minX + spawnBounds.width * fractionX
+                    let y = spawnBounds.minY + spawnBounds.height * fractionY
+                    positions.append(CGPoint(x: x, y: y))
                 }
             }
             guard let chosen = EquipmentDefenseRules.defenseSpawnPosition(
@@ -128,17 +135,23 @@ struct CampaignPacingTests {
             ) else {
                 preconditionFailure("No safe reactor approach on a supported device")
             }
-            let fromReactor = hypot(chosen.x - reactor.x, chosen.y - reactor.y)
-            let longest = positions.filter {
-                hypot($0.x - pilot.x, $0.y - pilot.y) >= 89
-            }.map { hypot($0.x - reactor.x, $0.y - reactor.y) }.max() ?? 0
-            precondition(hypot(chosen.x - pilot.x, chosen.y - pilot.y) >= 89)
-            precondition(fromReactor + 0.001 >= min(separation + 14, longest))
-            precondition(fromReactor >= 119,
+            let reactorDistance = hypot(chosen.x - reactor.x, chosen.y - reactor.y)
+            var longest: CGFloat = 0
+            for position in positions {
+                let distanceFromPilot = hypot(position.x - pilot.x, position.y - pilot.y)
+                if distanceFromPilot < 89 { continue }
+                let distanceFromReactor = hypot(position.x - reactor.x,
+                                                position.y - reactor.y)
+                longest = max(longest, distanceFromReactor)
+            }
+            let pilotDistance = hypot(chosen.x - pilot.x, chosen.y - pilot.y)
+            precondition(pilotDistance >= 89)
+            precondition(reactorDistance + 0.001 >= min(separation + 14, longest))
+            precondition(reactorDistance >= 119,
                          "Compact defense must give the pilot reaction time")
-            if size.width >= 393 {
+            if screen.width >= 393 {
                 precondition(EquipmentDefenseRules.safeSpawn(
-                    distanceFromReactor: fromReactor, enemyRadius: 14))
+                    distanceFromReactor: reactorDistance, enemyRadius: 14))
             }
         }
         precondition(EquipmentDefenseRules.defenseSpawnPosition(
