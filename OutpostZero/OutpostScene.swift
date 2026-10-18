@@ -2315,6 +2315,72 @@ final class OutpostScene: SKScene {
         }
     }
 
+    private func installDefenseDevice() {
+        let desired = CGPoint(x: roomBounds.midX, y: roomBounds.midY + roomBounds.height * 0.08)
+        defenseDevice.position = TerrainHazards.extractionPosition(
+            near: desired, in: roomBounds, patches: roomHazards)
+        defenseDevice.name = "fieldReactorDefenseObjective"
+        defenseDevice.fillColor = SKColor(red: 0.10, green: 0.19, blue: 0.28, alpha: 1)
+        defenseDevice.strokeColor = .systemCyan
+        defenseDevice.lineWidth = 4
+        defenseDevice.zPosition = 8
+        defenseDevice.removeAllChildren()
+        let core = SKShapeNode(rectOf: CGSize(width: 34, height: 40), cornerRadius: 8)
+        core.name = "fieldReactorCore"
+        core.fillColor = SKColor(red: 0.22, green: 0.72, blue: 0.96, alpha: 1)
+        core.strokeColor = .white
+        core.lineWidth = 2
+        core.glowWidth = 4
+        core.zPosition = 1
+        defenseDevice.addChild(core)
+        let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        label.text = "PROTECT"
+        label.fontSize = 10
+        label.fontColor = .white
+        label.position.y = 46
+        defenseDevice.addChild(label)
+        let track = SKShapeNode(rectOf: CGSize(width: 58, height: 6), cornerRadius: 3)
+        track.fillColor = .black
+        track.strokeColor = .white
+        track.position = CGPoint(x: 0, y: 36)
+        defenseDevice.addChild(track)
+        defenseIntegrityBar.position = track.position
+        defenseIntegrityBar.fillColor = .systemGreen
+        defenseIntegrityBar.strokeColor = .clear
+        defenseIntegrityBar.zPosition = 1
+        defenseDevice.addChild(defenseIntegrityBar)
+        arena.addChild(defenseDevice)
+        updateDefenseDeviceDisplay()
+    }
+
+    private func updateDefenseDeviceDisplay() {
+        let ratio = CGFloat(max(0, defenseIntegrity)) /
+            CGFloat(EquipmentDefenseRules.maximumIntegrity)
+        defenseIntegrityBar.xScale = max(0.001, ratio)
+        defenseIntegrityBar.fillColor = ratio > 0.5 ? .systemGreen :
+            (ratio > 0.25 ? .systemYellow : .systemRed)
+        defenseDevice.childNode(withName: "fieldReactorCore")?.alpha =
+            ratio < 0.3 ? 0.6 : 1
+        updateHUD()
+    }
+
+    private func damageDefenseDevice() {
+        guard phase == .playing && activeEncounter == .equipmentDefense &&
+              combatTime >= nextDefenseHitAt && defenseIntegrity > 0 else { return }
+        nextDefenseHitAt = combatTime + EquipmentDefenseRules.hitCooldown
+        defenseIntegrity = EquipmentDefenseRules.applyHit(integrity: defenseIntegrity)
+        let core = defenseDevice.childNode(withName: "fieldReactorCore")
+        core?.removeAction(forKey: "objectiveHit")
+        core?.run(.sequence([.fadeAlpha(to: 0.2, duration: 0.08),
+                             .fadeAlpha(to: 1, duration: 0.18)]), withKey: "objectiveHit")
+        updateDefenseDeviceDisplay()
+        if EquipmentDefenseRules.fails(integrity: defenseIntegrity) {
+            endGame("DEFENSE OBJECTIVE LOST")
+        } else {
+            saveRunRecovery()
+        }
+    }
+
     private func startWave() {
         hud.isHidden = false
         if wave > 0 && wave < worldWaveCount && !gateUnlocked {
