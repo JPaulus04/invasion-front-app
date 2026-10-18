@@ -76,11 +76,20 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Development commits: `685afbc2`, `ff5e587b`, `de80595f`, `8307ada3` on `outpost-zero`. CI run for final scene QA commit: https://github.com/JPaulus04/invasion-front-app/actions/runs/39096816547 . Unit tests passed as of initial inspection; **full CI and actual simulator screenshots still require verification**.
 - No new TestFlight release. Continue with full simulator and screenshot acceptance; then implement actual equipment-defense mechanics as a separately named change.
 
+## October 17/18 — Equipment Defense first playable implementation (pending full CI and art review)
+- Scheduled 0–1/world equipment-defense missions are activated as **real defend-the-field-reactor objectives**, not renamed tactical rooms: World 1 Room 12, World 3 Room 15. World 2 has none.
+- The ordinary tactical-size battlefield now presents a protected reactor with an on-device integrity meter and a HUD countdown. Melee units pursue the objective; ranged threats continue targeting the pilot. Reactor contact has bounded damage and grace period; reactor destruction ends the run with a distinct "DEFENSE OBJECTIVE LOST" reason. Enemy concurrency and spawn cadence are capped.
+- Holding the reactor to the encounter deadline ends the attack, despawns un-killed enemies **without awarding kill rewards**, pays standard room completion rewards, and opens the normal **upright campaign portal** (never the small survival orb). Previous survival and boss routes remain separate. Equipment defense pauses during level-up and interruption.
+- RunRecovery schema-4 optional `defenseObjectiveIntegrity` saves reactor HP and the timed population/clock; missing fields remain compatible. Survival/defense survivor-only reconstruction permits new legitimate kill payouts without duplicating previously killed enemies.
+- Pure tests verify mode schedule, object integrity/defeat, spawn limits and separate exit routes; progress tests verify persisted integrity validity and backwards compatibility.
+- Added real simulator screenshots for active reactor contact (`outpost-zero-defense-active.png`) and successful defense opening a normal portal (`outpost-zero-defense-cleared.png`); require a simulator identity marker so iOS home-screen captures cannot pass by mistake.
+- **Status:** changes committed on `outpost-zero`; CI validation and actual screenshot/art inspection are **not yet complete**, so no TestFlight upload or release approval. Continue by checking the latest HEAD workflow first, resolving any compile/simulator failures, and inspecting both actual frames before adding new work.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.
 3. **Screenshot review** — capture normal tactical room, timed survival early/mid/late, extraction-open with enemies remaining, transition back to room, one boss, and world-biome comparisons. Review scale, camera, pilot visibility, effects, terrain, UI. Distinguish CI capture from visual art sign-off.
-4. **Equipment defense** — add actual distinct defense objective and verification (0–1/world), not a renamed survival timer.
+4. **Equipment defense validation** — inspect live reactor gameplay, failure and successful normal-portal exit; tune density/HP from evidence.
 5. **Combat feel and performance**, **multi-stage bosses**, **progression/specialization**, **art acceptance** as separately reviewed passes.
 6. Only after all relevant iOS/logic/screenshots pass and user reviews current visuals, prepare next numbered TestFlight bundle.
 
