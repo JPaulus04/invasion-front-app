@@ -2341,6 +2341,7 @@ final class OutpostScene: SKScene {
         phase = .playing
         arena.isPaused = false
         clearHostileAttacks()
+        defenseDevice.removeFromParent()
         // Surviving enemies cannot accompany a departing pilot. Discard
         // without treating them as kills or paying extra XP/coins.
         for enemy in enemies { enemy.node.removeFromParent() }
@@ -2367,10 +2368,9 @@ final class OutpostScene: SKScene {
         clearOverlay()
         overlayBackdrop.isHidden = true
         wave += 1
-        // Equipment defense needs a real separate objective. Until added,
-        // its scheduled slots retain the ordinary tactical encounter.
-        activeEncounter = SurvivalEncounterRules.kind(
-            world: worldMapIndex, room: wave) == .survival ? .survival : .tactical
+        let scheduled = SurvivalEncounterRules.kind(world: worldMapIndex, room: wave)
+        activeEncounter = scheduled == .survival || scheduled == .equipmentDefense
+            ? scheduled : .tactical
         // Only explicit expanded-arena review fixtures may retain a large
         // camera in a tactical room; live survival -> tactical must reset it.
         let retainQACamera = ProcessInfo.processInfo.arguments.contains {
@@ -2415,6 +2415,9 @@ final class OutpostScene: SKScene {
         backgroundColor = worldColor(for: activeZone)
         updateZoneScenery(activeZone)
         rebuildTerrainHazards()
+        defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
+        nextDefenseHitAt = combatTime + 1.5
+        if activeEncounter == .equipmentDefense { installDefenseDevice() }
         nextAcidDamageAt = combatTime + 1.0
         enemyAcidDamageAt.removeAll()
         if wave == 1 || (wave - 1) % 5 == 0 || wave == worldWaveCount ||
@@ -2435,6 +2438,12 @@ final class OutpostScene: SKScene {
         }
         spawned = 0
         waveTarget = CampaignPacing.targetEnemies(room: wave)
+        if activeEncounter == .equipmentDefense {
+            zoneBanner.text = "PROTECT THE FIELD REACTOR"
+            zoneBanner.fontColor = .systemCyan
+            zoneBanner.alpha = 1
+            zoneBanner.run(.sequence([.wait(forDuration: 2), .fadeOut(withDuration: 0.5)]))
+        }
         if activeEncounter == .survival {
             zoneBanner.text = "SURVIVE • HOLD THE ARENA"
             zoneBanner.fontColor = .systemCyan
@@ -4694,6 +4703,9 @@ final class OutpostScene: SKScene {
         for enemy in enemies { enemy.node.removeFromParent() }
         enemies.removeAll()
         bossNode = nil
+        defenseDevice.removeFromParent()
+        defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
+        nextDefenseHitAt = 0
         activeEncounter = .tactical
         survivalSpawnPhaseFinished = false
         expandedArenaPreview = false
