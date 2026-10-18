@@ -4123,6 +4123,14 @@ final class OutpostScene: SKScene {
         }
         clearHostileAttacks()
         bankSalvage(PersistentProgression.roomReward(room: wave))
+        if activeEncounter == .equipmentDefense {
+            // Timer completion, never enemy elimination. Remove remaining foes
+            // without awarding XP, coins or Salvage for unearned kills.
+            for enemy in enemies { enemy.node.removeFromParent() }
+            enemies.removeAll()
+            for drop in xpDrops { drop.node.removeFromParent() }
+            xpDrops.removeAll()
+        }
         if activeEncounter != .survival {
             awardRoomCoins(CampaignPacing.clearCoins(room: wave))
             collectXP(collectAll: true)
@@ -4377,7 +4385,7 @@ final class OutpostScene: SKScene {
         // A final enemy may have died on the same frame as the level-up.
         // Finish that cleared room after the upgrade choice, not before it.
         if levelUpReturnPhase == .playing && !roomCleared &&
-           (activeEncounter == .survival
+           (activeEncounter.isTimed
             ? SurvivalEncounterRules.extractionActive(
                 world: worldMapIndex, room: wave, elapsed: waveElapsed)
             : RoomRules.isCleared(
@@ -4466,7 +4474,8 @@ final class OutpostScene: SKScene {
             showExtractionPortal()
             return
         }
-        guard RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) else { return }
+        guard (activeEncounter == .equipmentDefense && roomCleared) ||
+            RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) else { return }
         phase = .gate
         arena.isPaused = false
         heldTouch = nil
@@ -4699,7 +4708,7 @@ final class OutpostScene: SKScene {
         ]))
     }
 
-    private func endGame() {
+    private func endGame(_ reason: String = "PILOT DEFEATED") {
         recovery.clear()
         phase = .gameOver
         arena.isPaused = true
@@ -4710,7 +4719,7 @@ final class OutpostScene: SKScene {
         lockMenuBriefly()
         clearOverlay()
         let best = WorldCatalog.recordBestRoom(worldMapIndex, room: wave)
-        overlayText("PILOT DEFEATED", y: 97)
+        overlayText(reason, y: 97)
         overlayText(selectedWorld.title, y: 68, fontSize: 14)
         overlayText("ROOM \(wave)  •  WORLD BEST \(best)", y: 42, fontSize: 15)
         overlayText("+\(salvageBankedThisRun) SALVAGE BANKED", y: 14, fontSize: 17)
