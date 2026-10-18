@@ -129,6 +129,14 @@ struct ProgressCombatTests {
         precondition(RunRecoveryStore.incrementalReward(
             earnedOnReplay: 0, previouslyCredited: timedSave.roomCoinCredit,
             reward: 11) == 0)
+        timedSave.defenseObjectiveIntegrity = 88
+        precondition(timedSave.isValid && recover.save(timedSave))
+        precondition(recover.load()?.defenseObjectiveIntegrity == 88)
+        timedSave.defenseObjectiveIntegrity = 0
+        precondition(!timedSave.isValid && !recover.save(timedSave))
+        timedSave.defenseObjectiveIntegrity = EquipmentDefenseRules.maximumIntegrity + 1
+        precondition(!timedSave.isValid)
+        timedSave.defenseObjectiveIntegrity = nil
         timedSave.timedEncounterLiving = 29
         precondition(!timedSave.isValid && !recover.save(timedSave),
                      "Survival recovery must reject live swarms above the cap")
