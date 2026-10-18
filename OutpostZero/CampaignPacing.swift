@@ -83,6 +83,28 @@ enum EquipmentDefenseRules {
         distanceFromReactor >= minimumReactorSpawnDistance + max(0, enemyRadius)
     }
 
+    // The full standoff may not fit a compact phone. Choose the longest
+    // usable approach lane rather than silently spawning against the device.
+    // Inputs must be terrain-approved spawn positions.
+    static func defenseSpawnPosition(candidates: [CGPoint], pilot: CGPoint,
+                                     reactor: CGPoint, enemyRadius: CGFloat) -> CGPoint? {
+        let radius = max(0, enemyRadius)
+        let pilotClear = candidates.filter {
+            hypot($0.x - pilot.x, $0.y - pilot.y) >= radius + 75
+        }
+        guard !pilotClear.isEmpty else { return nil }
+        let longestApproach = pilotClear.map {
+            hypot($0.x - reactor.x, $0.y - reactor.y)
+        }.max() ?? 0
+        // If a room cannot provide even a modest approach lane, skip the
+        // reinforcement instead of materializing in contact damage range.
+        guard longestApproach >= 105 + radius else { return nil }
+        let required = min(minimumReactorSpawnDistance + radius, longestApproach)
+        return pilotClear.first {
+            hypot($0.x - reactor.x, $0.y - reactor.y) + 0.001 >= required
+        }
+    }
+
     static func criticalIntegrity(_ integrity: Int) -> Bool {
         integrity > 0 && integrity * 3 <= maximumIntegrity
     }

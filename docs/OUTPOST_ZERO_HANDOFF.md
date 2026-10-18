@@ -105,6 +105,11 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Confirmed survival `showExtractionPortal()` already hides the campaign gate. Hardened ordinary `showZoneGate()` so it explicitly hides the extraction orb before revealing the upright campaign portal (also used after successful equipment defense).
 - The actual iOS campaign gate fixture now deliberately exposes a stale orb first and asserts that normal portal activation hides it, preventing this state leak from regressing. Commit `6f797ee0` on `outpost-zero`; CI run https://github.com/JPaulus04/invasion-front-app/actions/runs/39130079392 pending at edit time. No TestFlight upload.
 
+## October 18 — Reactor defense spawn safety on smaller screens
+- Spawn review identified a fallback defect: random lane samples could all fail the reactor standoff rule, after which ordinary room fallback ignored the reactor entirely. Compact displays are especially vulnerable.
+- Defender enemies now use a 9×9 deterministic safety search in addition to broader upper/lower random arrival lanes. Search filters terrain, keeps the pilot's 75pt + radius clearance, and prefers the full 155pt + radius reactor standoff when the geometry permits. On very compact rooms it chooses the furthest feasible approach, never closer than 105pt + radius; no valid location means deferring the reinforcement rather than spawning on the reactor.
+- Normal tactical/survival spawns are unchanged. Pure regression tests cover 320×568, 393×852, 768×1024, and an impossible spawn. CI + physical frame review required; no TestFlight upload.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

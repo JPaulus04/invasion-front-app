@@ -3619,22 +3619,43 @@ final class OutpostScene: SKScene {
             case .right: x = CGFloat.random(in: 0.64...0.92)
             case .center: x = CGFloat.random(in: 0.34...0.66)
             }
-            let sample = CGPoint(x: x, y: CGFloat.random(in: 0.48...0.94))
+            let vertical: ClosedRange<CGFloat> = activeEncounter == .equipmentDefense
+                ? 0.06...0.94 : 0.48...0.94
+            let sample = CGPoint(x: x, y: CGFloat.random(in: vertical))
             let location = CGPoint(
                 x: candidateBounds.minX + candidateBounds.width * sample.x,
                 y: candidateBounds.minY + candidateBounds.height * sample.y)
             guard TerrainHazards.spawnAllowed(location, radius: radius,
                                               patches: roomHazards) else { return nil }
-            // Defense attackers must visibly approach the objective. Without
-            // this guard a ranged spawn lane can materialize on the reactor.
-            if activeEncounter == .equipmentDefense &&
-               !EquipmentDefenseRules.safeSpawn(
-                   distanceFromReactor: distance(location, defenseDevice.position),
-                   enemyRadius: radius) { return nil }
             return sample
         }
-        node.position = RoomRules.spawnPoint(in: roomBounds, radius: radius,
-                                            pilot: pilot.position, candidates: candidates)
+        if activeEncounter == .equipmentDefense {
+            // Random lanes are often too short on compact phones. Sample
+            // the entire terrain-approved field, including its safe edges.
+            let grid = (0...8).flatMap { row in
+                (0...8).map { col in
+                    CGPoint(x: CGFloat(col) / 8, y: CGFloat(row) / 8)
+                }
+            }
+            let positions = (candidates + grid).map {
+                CGPoint(x: candidateBounds.minX + candidateBounds.width * $0.x,
+                        y: candidateBounds.minY + candidateBounds.height * $0.y)
+            }.filter {
+                TerrainHazards.spawnAllowed($0, radius: radius, patches: roomHazards)
+            }
+            guard let placement = EquipmentDefenseRules.defenseSpawnPosition(
+                candidates: positions, pilot: pilot.position,
+                reactor: defenseDevice.position, enemyRadius: radius) else {
+                // Retry later; an impossible spawn must not count as an arrival.
+                spawned = max(0, spawned - 1)
+                return
+            }
+            node.position = placement
+        } else {
+            node.position = RoomRules.spawnPoint(
+                in: roomBounds, radius: radius,
+                pilot: pilot.position, candidates: candidates)
+        }
         node.alpha = 0.28
         let spawnRing = SKShapeNode(circleOfRadius: radius + 9)
         spawnRing.name = "spawnWarning"

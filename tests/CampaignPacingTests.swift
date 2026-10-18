@@ -108,6 +108,47 @@ struct CampaignPacingTests {
             distanceFromReactor: 0, enemyRadius: 26))
         precondition(EquipmentDefenseRules.safeSpawn(
             distanceFromReactor: separation + 26, enemyRadius: 26))
+        // Spawn placement must protect both player and reactor on compact
+        // and full-size displays without sacrificing walkable approach space.
+        for size in [CGSize(width: 320, height: 568),
+                     CGSize(width: 393, height: 852),
+                     CGSize(width: 768, height: 1024)] {
+            let room = RoomRules.bounds(for: size)
+            let spawnBounds = room.insetBy(dx: 24, dy: 32)
+            let reactor = CGPoint(x: room.midX, y: room.midY + room.height * 0.08)
+            let pilot = RoomRules.entryPoint(for: size)
+            let positions = (0...8).flatMap { row in
+                (0...8).map { col in
+                    CGPoint(x: spawnBounds.minX + spawnBounds.width * CGFloat(col) / 8,
+                            y: spawnBounds.minY + spawnBounds.height * CGFloat(row) / 8)
+                }
+            }
+            guard let chosen = EquipmentDefenseRules.defenseSpawnPosition(
+                candidates: positions, pilot: pilot, reactor: reactor, enemyRadius: 14
+            ) else {
+                preconditionFailure("No safe reactor approach on a supported device")
+            }
+            let fromReactor = hypot(chosen.x - reactor.x, chosen.y - reactor.y)
+            let longest = positions.filter {
+                hypot($0.x - pilot.x, $0.y - pilot.y) >= 89
+            }.map { hypot($0.x - reactor.x, $0.y - reactor.y) }.max() ?? 0
+            precondition(hypot(chosen.x - pilot.x, chosen.y - pilot.y) >= 89)
+            precondition(fromReactor + 0.001 >= min(separation + 14, longest))
+            precondition(fromReactor >= 119,
+                         "Compact defense must give the pilot reaction time")
+            if size.width >= 393 {
+                precondition(EquipmentDefenseRules.safeSpawn(
+                    distanceFromReactor: fromReactor, enemyRadius: 14))
+            }
+        }
+        precondition(EquipmentDefenseRules.defenseSpawnPosition(
+            candidates: [], pilot: .zero, reactor: .zero,
+            enemyRadius: 14) == nil)
+        precondition(EquipmentDefenseRules.defenseSpawnPosition(
+            candidates: [CGPoint(x: 40, y: 40)],
+            pilot: CGPoint(x: 0, y: 300), reactor: .zero,
+            enemyRadius: 14) == nil,
+            "An impossible lane must not force a reactor-adjacent spawn")
         precondition(!EquipmentDefenseRules.criticalIntegrity(
             EquipmentDefenseRules.maximumIntegrity))
         precondition(!EquipmentDefenseRules.criticalIntegrity(0))
