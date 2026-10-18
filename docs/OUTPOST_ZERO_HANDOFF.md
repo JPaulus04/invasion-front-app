@@ -100,6 +100,11 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Regression tests now assert exclusion boundaries and critical health threshold. **Latest combat-fairness CI after the pass must still be checked**, and active screenshot must show fair attacker positioning.
 - Branch `outpost-zero`, latest TestFlight 317; **do not upload a new TestFlight build per subtask**. User review and performance/difficulty remain necessary before next release.
 
+## October 18 — User-approved exclusive exit visuals
+- User approves the current upright campaign portal and small survival extraction orb appearance, but asks that **they never appear together in the same gameplay room**. Composite comparisons are acceptable for review only; future screenshots should be large/readable and show one encounter at a time.
+- Confirmed survival `showExtractionPortal()` already hides the campaign gate. Hardened ordinary `showZoneGate()` so it explicitly hides the extraction orb before revealing the upright campaign portal (also used after successful equipment defense).
+- The actual iOS campaign gate fixture now deliberately exposes a stale orb first and asserts that normal portal activation hides it, preventing this state leak from regressing. Commit `6f797ee0` on `outpost-zero`; CI run https://github.com/JPaulus04/invasion-front-app/actions/runs/39130079392 pending at edit time. No TestFlight upload.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.
