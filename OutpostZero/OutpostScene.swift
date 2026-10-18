@@ -1572,9 +1572,20 @@ final class OutpostScene: SKScene {
         checkpointPresented = snapshot.checkpointPresented
         roomSalvageRecoveredCredit = snapshot.roomSalvageCredit
         roomSalvageEarned = 0
-        roomCoinsRecoveredCredit = snapshot.roomCoinCredit
+        // Modern survival recovery recreates only the *living* foes. Their
+        // previous kills already remain in snapshot.coins/progress, and no
+        // defeated enemy is recreated. Never withhold the next legitimate
+        // kill reward behind credits for absent enemies. Older tactical and
+        // legacy full-room replay snapshots retain anti-duplication credits.
+        let onlyLivingFoesRestored = activeEncounter == .survival &&
+            snapshot.timedEncounterLiving != nil
+        roomCoinsRecoveredCredit = RunRecoveryStore.recoveredKillCredit(
+            previouslyCredited: snapshot.roomCoinCredit,
+            restoredOnlyLivingEnemies: onlyLivingFoesRestored)
         roomCoinsEarned = 0
-        roomXPRecoveredCredit = snapshot.roomXPCredit
+        roomXPRecoveredCredit = RunRecoveryStore.recoveredKillCredit(
+            previouslyCredited: snapshot.roomXPCredit,
+            restoredOnlyLivingEnemies: onlyLivingFoesRestored)
         roomXPEarned = 0
         // Optional schema-4 clock: old TestFlight runs still load.
         if activeEncounter == .survival {
@@ -1587,8 +1598,8 @@ final class OutpostScene: SKScene {
             survivalSpawnPhaseFinished = snapshot.location == .clearedGate &&
                 SurvivalEncounterRules.extractionActive(
                     world: worldMapIndex, room: wave, elapsed: waveElapsed)
-            // No refill on resume. Rebuild only the bounded living swarm
-            // recorded at interruption; reward replay credits remain active.
+            // No refill on resume. Only the still-living swarm is rebuilt;
+            // previously defeated foes cannot be killed or rewarded again.
             if let savedLiving = snapshot.timedEncounterLiving {
                 spawned = snapshot.timedEncounterSpawned ?? savedLiving
                 for index in 0..<savedLiving {
