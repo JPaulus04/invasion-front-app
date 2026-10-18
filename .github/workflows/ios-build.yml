@@ -366,6 +366,8 @@ jobs:
           capture_scene -captureWorldExpansionScreenshot screenshots/outpost-zero-flooded-outpost.png
           capture_scene -captureWorldTransitionScreenshot screenshots/outpost-zero-toxic-crossing.png
           capture_scene -captureAcidActiveScreenshot screenshots/outpost-zero-acid-active.png
+          capture_scene -captureFrontierGuardianScreenshot screenshots/outpost-zero-frontier-guardian-armored.png
+          capture_scene -captureFrontierGuardianExposedScreenshot screenshots/outpost-zero-frontier-guardian-exposed.png
           capture_scene -captureFloodedBossScreenshot screenshots/outpost-zero-tidal-warden.png
           capture_scene -captureToxicBossScreenshot screenshots/outpost-zero-toxic-sentinel.png
           capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
@@ -464,6 +466,12 @@ jobs:
           test -s screenshots/outpost-zero-loadout.png
           test -s screenshots/outpost-zero-overgrown-path.png
           test -s screenshots/outpost-zero-terrain.png
+          test -s screenshots/outpost-zero-frontier-guardian-armored.png
+          test -s screenshots/outpost-zero-frontier-guardian-exposed.png
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-frontier-guardian-armored.png \
+            screenshots/outpost-zero-frontier-guardian-exposed.png
+          test "$(shasum -a 256 screenshots/outpost-zero-frontier-guardian-armored.png | cut -d ' ' -f 1)" != "$(shasum -a 256 screenshots/outpost-zero-frontier-guardian-exposed.png | cut -d ' ' -f 1)"
           test -s screenshots/outpost-zero-tidal-warden.png
           test -s screenshots/outpost-zero-toxic-sentinel.png
           test -s screenshots/outpost-zero-flooded-outpost.png

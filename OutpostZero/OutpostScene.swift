@@ -1041,6 +1041,47 @@ final class OutpostScene: SKScene {
         }
         // Art review for Rooms 6-10: stage actual forest-overgrowth scenery
         // without changing combat balance or the launch state seen by players.
+        // Capture both states of the live World 1 Guardian before art approval.
+        let guardianBase = ProcessInfo.processInfo.arguments.contains(
+            "-captureFrontierGuardianScreenshot")
+        let guardianExposed = ProcessInfo.processInfo.arguments.contains(
+            "-captureFrontierGuardianExposedScreenshot")
+        if guardianBase || guardianExposed {
+            worldMapIndex = 0
+            wave = 19
+            gateUnlocked = true
+            startWave()
+            spawned = waveTarget
+            spawnEnemy()
+            precondition(wave == 20 && enemies.count == 1 && bossNode != nil &&
+                         enemies[0].health == selectedWorld.bossHealth &&
+                         bossNode?.childNode(withName: "//guardianCore") != nil &&
+                         bossNode?.childNode(withName: "guardianArmorLeft") != nil,
+                         "World 1 boss must use overgrown Guardian art")
+            if guardianExposed {
+                enemies[0].health = FrontierGuardianRules.armorBreakHealth(
+                    maxHealth: enemies[0].maxHealth)
+                updateFrontierGuardianPhase()
+                precondition(guardianArmorBroken && lobs.count == 1 &&
+                             enemies[0].health == enemies[0].maxHealth / 2 &&
+                             guardianTransitionUntil > combatTime,
+                             "Guardian must expose its core and telegraph phase two")
+            } else {
+                precondition(!guardianArmorBroken && lobs.isEmpty,
+                             "New Guardian begins with intact armor")
+            }
+            let marker = SKShapeNode(rectOf: CGSize(width: 12, height: 12))
+            marker.name = guardianExposed ? "guardianExposedIdentity" :
+                "guardianArmoredIdentity"
+            marker.fillColor = guardianExposed ? .yellow : .cyan
+            marker.strokeColor = .clear
+            marker.position = CGPoint(x: size.width * 0.90, y: size.height * 0.60)
+            marker.zPosition = 65
+            hud.addChild(marker)
+            arena.isPaused = true
+            holdDefenseQAScreenshot = true
+            updateHUD()
+        }
         // Real SpriteKit boss integration: stage the final room and
         // confirm each world's attack behavior, health and telegraphs.
         if ProcessInfo.processInfo.arguments.contains("-captureFloodedBossScreenshot") {
@@ -3906,10 +3947,11 @@ final class OutpostScene: SKScene {
             let deadline = SurvivalEncounterRules.duration(world: worldMapIndex, room: wave)
             if EquipmentDefenseRules.maySpawn(elapsed: waveElapsed, duration: deadline,
                 integrity: defenseIntegrity, living: enemies.count),
-                spawnClock >= EquipmentDefenseRules.spawnCadence {
-                spawnClock -= EquipmentDefenseRules.spawnCadence
+                spawnClock >= EquipmentDefenseRules.spawnCadence(world: worldMapIndex) {
+                spawnClock -= EquipmentDefenseRules.spawnCadence(world: worldMapIndex)
                 spawned += 1
-                spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(room: wave, slot: spawned))
+                spawnEnemy(artReviewType: EquipmentDefenseRules.attackerType(
+                    world: worldMapIndex, room: wave, slot: spawned))
             }
             if !roomCleared && EquipmentDefenseRules.succeeds(
                 elapsed: waveElapsed, duration: deadline, integrity: defenseIntegrity) {

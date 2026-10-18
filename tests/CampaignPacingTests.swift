@@ -105,6 +105,13 @@ struct CampaignPacingTests {
         precondition(EquipmentDefenseRules.hitDamage > 0 &&
                      EquipmentDefenseRules.hitCooldown >= 1.0)
         precondition(EquipmentDefenseRules.enemyCap <= 12)
+        precondition(EquipmentDefenseRules.spawnCadence(world: 0) <
+                     EquipmentDefenseRules.spawnCadence(world: 1))
+        precondition(EquipmentDefenseRules.attackerType(
+            world: 0, room: 12, slot: 8) == 3)
+        precondition(EquipmentDefenseRules.attackerType(
+            world: 2, room: 15, slot: 8) ==
+            SurvivalEncounterRules.swarmType(room: 15, slot: 8))
         // Spawn exclusion applies independently of whether a hostile can
         // pathfind; reactor attackers must never appear at striking distance.
         let separation = EquipmentDefenseRules.minimumReactorSpawnDistance

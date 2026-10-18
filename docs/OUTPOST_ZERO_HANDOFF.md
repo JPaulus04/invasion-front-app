@@ -121,6 +121,11 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - World 1 stars are now 3 at <=75 damage, 2 at <=180, otherwise 1 (112 damage => 2 stars). Other worlds retain original scoring. WorldCoreRewards still awards only the difference against historical best stars, max 3 per world, so previous 3/3 scores cannot be farmed.
 - Tests assert Guardian phase rules, World 1 scoring and unchanged star-based anti-duplication. This is a code update; actual simulator screenshot and real iPhone gameplay acceptance pending. No TestFlight upload.
 
+## October 18 — World 1 reactor pressure and live Guardian QA
+- Room 12 defense uses 1.75-second reinforcement cadence (rather than 2 seconds) and a durable armored melee every eighth attacker. World 2 and 3 defense values unchanged. Must test with starter gear before declaring balance.
+- Real Room 20 simulator QA now captures armored Guardian and glowing exposed-core states separately. Each scene asserts its own gameplay state and has a distinct screenshot identity marker; screenshot workflow validates both frames differ. Final screenshot inspection remains necessary.
+- No TestFlight upload; check latest branch CI before judging this update.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

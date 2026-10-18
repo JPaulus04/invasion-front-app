@@ -89,6 +89,15 @@ enum EquipmentDefenseRules {
     static let hitCooldown: TimeInterval = 1.2
     static let enemyCap = 10
     static let spawnCadence: TimeInterval = 2.0
+    static func spawnCadence(world: Int) -> TimeInterval {
+        // Slightly more defensive pressure only in Frontier Forest.
+        world == 0 ? 1.75 : spawnCadence
+    }
+    static func attackerType(world: Int, room: Int, slot: Int) -> Int {
+        // Armored melee reinforcement occasionally tests target priorities.
+        if world == 0 && slot > 0 && slot.isMultiple(of: 8) { return 3 }
+        return SurvivalEncounterRules.swarmType(room: room, slot: slot)
+    }
     // Attackers must advance toward the protected device rather than spawn
     // in striking range. Keep the margin outside their collision radius.
     static let minimumReactorSpawnDistance: CGFloat = 155
