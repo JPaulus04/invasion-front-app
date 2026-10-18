@@ -910,9 +910,15 @@ final class OutpostScene: SKScene {
                              !roomCleared && passageGate.isHidden,
                              "Live enemy contact must damage equipment, not complete room")
             }
-            let identity = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
-            identity.fillColor = SKColor(red: 1, green: 0, blue: 1, alpha: 1)
-            identity.strokeColor = .white
+            // State-specific, screenshot-only identity. A stale survival or
+            // prior defense screenshot must fail verification rather than
+            // masquerade as another test's result.
+            let identity = SKShapeNode(rectOf: CGSize(width: 12, height: 12))
+            identity.name = defenseInProgress ? "defenseActiveIdentity" :
+                (defenseWon ? "defenseSecuredIdentity" : "defenseFailedIdentity")
+            identity.fillColor = defenseInProgress ? .red :
+                (defenseWon ? .green : .blue)
+            identity.strokeColor = .clear
             identity.position = CGPoint(x: size.width * 0.90,
                                         y: size.height * 0.60)
             identity.zPosition = 65
@@ -2506,6 +2512,9 @@ final class OutpostScene: SKScene {
         defenseIntegrityBar.zPosition = 8
         defenseIntegrityBar.fillColor = .systemGreen
         defenseIntegrityBar.strokeColor = .clear
+        // A prior secured defense hides this reused node; a new mission
+        // must always expose its integrity indicator again.
+        defenseIntegrityBar.isHidden = false
         defenseIntegrityBar.path = CGPath(
             roundedRect: CGRect(x: -37, y: -3, width: 74, height: 6),
             cornerWidth: 3, cornerHeight: 3, transform: nil)
