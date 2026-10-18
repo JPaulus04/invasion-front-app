@@ -37,13 +37,16 @@ def verify(path: Path) -> None:
     expected_markers = {
         "outpost-zero-arena-west.png": 0,
         "outpost-zero-arena-center.png": 1,
-        "outpost-zero-arena-east.png": 2
+        "outpost-zero-arena-east.png": 2,
+        # Each defense state receives a DIFFERENT one-hot color. The old
+        # shared magenta marker allowed a stale survival frame to pass as
+        # a live reactor screenshot, despite the scene being incorrect.
+        "outpost-zero-defense-active.png": 0,
+        "outpost-zero-defense-cleared.png": 1,
+        "outpost-zero-defense-failed.png": 2
     }
     is_survival = (path.name.startswith("outpost-zero-survival-") or
-                   path.name == "outpost-zero-extraction-open.png" or
-                   path.name in ("outpost-zero-defense-active.png",
-                                 "outpost-zero-defense-cleared.png",
-                                 "outpost-zero-defense-failed.png"))
+                   path.name == "outpost-zero-extraction-open.png")
     # Ignore static phone notch/home bar; sample the game area.
     # A denser grid catches small, moving sprites in intentionally sparse
     # ranged arenas without treating real gameplay as an unrendered frame.
@@ -88,8 +91,8 @@ def verify(path: Path) -> None:
     if path.name in expected_markers:
         # The simulator sometimes captures the colorful iOS home screen when
         # the game crashed after a successful simctl launch. It must NEVER
-        # count as a successful arena visual review. A uniquely colored
-        # QA-only HUD marker also rejects stale views from the prior launch.
+        # count as a successful arena visual review. The distinct RGB marker
+        # also rejects an unrelated or stale survival/extraction frame.
         channel = expected_markers[path.name]
         if arena_marker is None or arena_marker[channel] < 170 or any(
             arena_marker[other] > 90 for other in range(3) if other != channel
