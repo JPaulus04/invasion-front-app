@@ -852,6 +852,60 @@ final class OutpostScene: SKScene {
             arena.isPaused = false
             updateHUD()
         }
+        // Real campaign equipment-defense fixtures: a damaged reactor and
+        // a timed victory that opens the normal upright campaign portal.
+        let defenseInProgress = ProcessInfo.processInfo.arguments.contains(
+            "-captureEquipmentDefenseScreenshot")
+        let defenseWon = ProcessInfo.processInfo.arguments.contains(
+            "-captureEquipmentDefenseClearScreenshot")
+        if defenseInProgress || defenseWon {
+            worldMapIndex = 0
+            wave = 11
+            gateUnlocked = true
+            startWave()
+            precondition(activeEncounter == .equipmentDefense &&
+                         defenseDevice.parent === arena &&
+                         defenseIntegrity == EquipmentDefenseRules.maximumIntegrity,
+                         "Room 12 must load a real reactor protection objective")
+            for slot in 0..<4 {
+                spawned += 1
+                spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(
+                    room: wave, slot: slot))
+            }
+            precondition(enemies.count == 4)
+            if defenseWon {
+                waveElapsed = SurvivalEncounterRules.duration(world: 0, room: wave)
+                update(1_000)
+                update(1_000.04)
+                precondition(roomCleared && phase == .gate &&
+                             !passageGate.isHidden && extractionPortal.isHidden &&
+                             enemies.isEmpty && defenseIntegrity > 0,
+                             "Protecting reactor until deadline must open standard portal")
+            } else {
+                combatClock.advance(2, playing: true)
+                nextDefenseHitAt = combatTime
+                enemies[0].node.position = CGPoint(
+                    x: defenseDevice.position.x + 12,
+                    y: defenseDevice.position.y + 9)
+                pilotShieldUntil = combatTime + 120
+                let before = defenseIntegrity
+                update(1_000)
+                update(1_000.04)
+                precondition(phase == .playing &&
+                             defenseIntegrity == before - EquipmentDefenseRules.hitDamage &&
+                             !roomCleared && passageGate.isHidden,
+                             "Live enemy contact must damage equipment, not complete room")
+            }
+            let identity = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
+            identity.fillColor = SKColor(red: 1, green: 0, blue: 1, alpha: 1)
+            identity.strokeColor = .white
+            identity.position = CGPoint(x: size.width * 0.90,
+                                        y: size.height * 0.60)
+            identity.zPosition = 65
+            hud.addChild(identity)
+            arena.isPaused = true
+            updateHUD()
+        }
         // Fixture exercises actual production entry and timer completion,
         // rather than a mock drawing of an extraction portal.
         if ProcessInfo.processInfo.arguments.contains(
