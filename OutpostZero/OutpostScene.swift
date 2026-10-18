@@ -40,6 +40,8 @@ final class OutpostScene: SKScene {
     private let defenseIntegrityBar = SKShapeNode(rectOf: CGSize(width: 55, height: 6), cornerRadius: 3)
     private var defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
     private var nextDefenseHitAt: TimeInterval = 0
+    // Capture-only: hold the exact asserted combat frame stable until screenshot.
+    private var holdDefenseQAScreenshot = false
     private let zoneBanner = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let controlsHint = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let zoneScenery = SKNode()
@@ -858,7 +860,9 @@ final class OutpostScene: SKScene {
             "-captureEquipmentDefenseScreenshot")
         let defenseWon = ProcessInfo.processInfo.arguments.contains(
             "-captureEquipmentDefenseClearScreenshot")
-        if defenseInProgress || defenseWon {
+        let defenseFailed = ProcessInfo.processInfo.arguments.contains(
+            "-captureEquipmentDefenseFailureScreenshot")
+        if defenseInProgress || defenseWon || defenseFailed {
             worldMapIndex = 0
             wave = 11
             gateUnlocked = true
@@ -873,7 +877,17 @@ final class OutpostScene: SKScene {
                     room: wave, slot: slot))
             }
             precondition(enemies.count == 4)
-            if defenseWon {
+            if defenseFailed {
+                for _ in 0..<38 {
+                    combatClock.advance(EquipmentDefenseRules.hitCooldown + 0.1,
+                                        playing: true)
+                    nextDefenseHitAt = combatTime
+                    damageDefenseDevice()
+                }
+                precondition(phase == .gameOver && defenseIntegrity == 0 &&
+                             passageGate.isHidden && recovery.load() == nil,
+                             "Destroyed reactor must end the run, not unlock the exit")
+            } else if defenseWon {
                 waveElapsed = SurvivalEncounterRules.duration(world: 0, room: wave)
                 update(1_000)
                 update(1_000.04)
@@ -904,6 +918,9 @@ final class OutpostScene: SKScene {
             identity.zPosition = 65
             hud.addChild(identity)
             arena.isPaused = true
+            // SKScene.update runs even if arena actions are paused. Freeze this
+            // QA-only frame after assertions so screenshots are deterministic.
+            holdDefenseQAScreenshot = true
             updateHUD()
         }
         // Fixture exercises actual production entry and timer completion,
@@ -2372,41 +2389,144 @@ final class OutpostScene: SKScene {
     }
 
     private func installDefenseDevice() {
-        let desired = CGPoint(x: roomBounds.midX, y: roomBounds.midY + roomBounds.height * 0.08)
+        // A readable field-power reactor, not a flat blue prototype tile.
+        // All parts are visual children of the unchanged objective hit target.
+        let desired = CGPoint(x: roomBounds.midX,
+                              y: roomBounds.midY + roomBounds.height * 0.08)
         defenseDevice.position = TerrainHazards.extractionPosition(
             near: desired, in: roomBounds, patches: roomHazards)
         defenseDevice.name = "fieldReactorDefenseObjective"
-        defenseDevice.fillColor = SKColor(red: 0.10, green: 0.19, blue: 0.28, alpha: 1)
-        defenseDevice.strokeColor = .systemCyan
-        defenseDevice.lineWidth = 4
+        defenseDevice.fillColor = .clear
+        defenseDevice.strokeColor = .clear
+        defenseDevice.lineWidth = 0
         defenseDevice.zPosition = 8
         defenseDevice.removeAllChildren()
-        let core = SKShapeNode(rectOf: CGSize(width: 34, height: 40), cornerRadius: 8)
+
+        let shadow = SKShapeNode(ellipseOf: CGSize(width: 110, height: 27))
+        shadow.name = "reactorGroundContact"
+        shadow.position = CGPoint(x: 6, y: -46)
+        shadow.fillColor = .black.withAlphaComponent(0.50)
+        shadow.strokeColor = .clear
+        shadow.zPosition = -2
+        defenseDevice.addChild(shadow)
+
+        let footplate = SKShapeNode(rectOf: CGSize(width: 96, height: 23), cornerRadius: 7)
+        footplate.position.y = -37
+        footplate.fillColor = SKColor(red: 0.17, green: 0.26, blue: 0.29, alpha: 1)
+        footplate.strokeColor = SKColor(red: 0.41, green: 0.59, blue: 0.63, alpha: 1)
+        footplate.lineWidth = 2
+        footplate.zPosition = -1
+        defenseDevice.addChild(footplate)
+
+        let chassis = SKShapeNode(rectOf: CGSize(width: 67, height: 77), cornerRadius: 12)
+        chassis.name = "reactorArmorChassis"
+        chassis.fillColor = SKColor(red: 0.13, green: 0.20, blue: 0.25, alpha: 1)
+        chassis.strokeColor = SKColor(red: 0.40, green: 0.57, blue: 0.62, alpha: 1)
+        chassis.lineWidth = 3
+        chassis.zPosition = 1
+        defenseDevice.addChild(chassis)
+
+        let upperCap = SKShapeNode(rectOf: CGSize(width: 53, height: 12), cornerRadius: 4)
+        upperCap.position = CGPoint(x: 0, y: 30)
+        upperCap.fillColor = SKColor(red: 0.50, green: 0.66, blue: 0.69, alpha: 1)
+        upperCap.strokeColor = .clear
+        upperCap.zPosition = 2
+        defenseDevice.addChild(upperCap)
+
+        for side: CGFloat in [-1, 1] {
+            let armor = SKShapeNode(rectOf: CGSize(width: 16, height: 61), cornerRadius: 4)
+            armor.position = CGPoint(x: side * 34, y: -4)
+            armor.zRotation = side * 0.08
+            armor.fillColor = SKColor(red: 0.28, green: 0.39, blue: 0.44, alpha: 1)
+            armor.strokeColor = SKColor(red: 0.52, green: 0.64, blue: 0.66, alpha: 1)
+            armor.lineWidth = 1.5
+            armor.zPosition = 3
+            defenseDevice.addChild(armor)
+
+            for index in 0..<3 {
+                let vent = SKShapeNode(rectOf: CGSize(width: 8, height: 3), cornerRadius: 1)
+                vent.position = CGPoint(x: side * 34, y: CGFloat(index * 11) - 17)
+                vent.fillColor = SKColor(red: 0.05, green: 0.12, blue: 0.16, alpha: 1)
+                vent.strokeColor = .clear
+                vent.zPosition = 4
+                defenseDevice.addChild(vent)
+            }
+            let bolt = SKShapeNode(circleOfRadius: 3)
+            bolt.position = CGPoint(x: side * 28, y: 31)
+            bolt.fillColor = .systemYellow
+            bolt.strokeColor = .black
+            bolt.lineWidth = 1
+            bolt.zPosition = 5
+            defenseDevice.addChild(bolt)
+        }
+
+        let socket = SKShapeNode(circleOfRadius: 24)
+        socket.fillColor = SKColor(red: 0.025, green: 0.10, blue: 0.16, alpha: 1)
+        socket.strokeColor = SKColor(red: 0.45, green: 0.75, blue: 0.80, alpha: 1)
+        socket.lineWidth = 4
+        socket.zPosition = 4
+        defenseDevice.addChild(socket)
+
+        let core = SKShapeNode(circleOfRadius: 15)
         core.name = "fieldReactorCore"
-        core.fillColor = SKColor(red: 0.22, green: 0.72, blue: 0.96, alpha: 1)
-        core.strokeColor = .white
+        core.fillColor = SKColor(red: 0.18, green: 0.80, blue: 0.96, alpha: 1)
+        core.strokeColor = .white.withAlphaComponent(0.90)
         core.lineWidth = 2
-        core.glowWidth = 4
-        core.zPosition = 1
+        core.glowWidth = 5
+        core.zPosition = 5
         defenseDevice.addChild(core)
+        core.run(.repeatForever(.sequence([
+            .fadeAlpha(to: 0.65, duration: 0.65),
+            .fadeAlpha(to: 1, duration: 0.65)
+        ])), withKey: "reactorEnergyPulse")
+
+        let lens = SKShapeNode(circleOfRadius: 6)
+        lens.fillColor = .white.withAlphaComponent(0.80)
+        lens.strokeColor = .clear
+        core.addChild(lens)
+
         let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        label.text = "PROTECT"
-        label.fontSize = 10
+        label.name = "fieldReactorLabel"
+        label.text = "DEFEND"
+        label.fontSize = 11
         label.fontColor = .white
-        label.position.y = 46
+        label.position.y = 65
+        label.zPosition = 7
         defenseDevice.addChild(label)
-        let track = SKShapeNode(rectOf: CGSize(width: 58, height: 6), cornerRadius: 3)
-        track.fillColor = .black
-        track.strokeColor = .white
-        track.position = CGPoint(x: 0, y: 36)
+
+        let track = SKShapeNode(rectOf: CGSize(width: 76, height: 8), cornerRadius: 4)
+        track.name = "fieldReactorIntegrityTrack"
+        track.fillColor = .black.withAlphaComponent(0.85)
+        track.strokeColor = SKColor(white: 0.63, alpha: 1)
+        track.lineWidth = 1.5
+        track.position = CGPoint(x: 0, y: 50)
+        track.zPosition = 7
         defenseDevice.addChild(track)
         defenseIntegrityBar.position = track.position
+        defenseIntegrityBar.zPosition = 8
         defenseIntegrityBar.fillColor = .systemGreen
         defenseIntegrityBar.strokeColor = .clear
-        defenseIntegrityBar.zPosition = 1
+        defenseIntegrityBar.path = CGPath(
+            roundedRect: CGRect(x: -37, y: -3, width: 74, height: 6),
+            cornerWidth: 3, cornerHeight: 3, transform: nil)
         defenseDevice.addChild(defenseIntegrityBar)
         arena.addChild(defenseDevice)
         updateDefenseDeviceDisplay()
+    }
+
+    private func markDefenseDeviceSecured() {
+        guard activeEncounter == .equipmentDefense else { return }
+        let core = defenseDevice.childNode(withName: "fieldReactorCore") as? SKShapeNode
+        core?.removeAction(forKey: "reactorEnergyPulse")
+        core?.fillColor = SKColor(red: 0.25, green: 0.78, blue: 0.53, alpha: 1)
+        core?.strokeColor = .systemGreen
+        core?.alpha = 1
+        (defenseDevice.childNode(withName: "fieldReactorLabel") as? SKLabelNode)?
+            .text = "SECURED"
+        (defenseDevice.childNode(withName: "fieldReactorLabel") as? SKLabelNode)?
+            .fontColor = .systemGreen
+        defenseDevice.childNode(withName: "fieldReactorIntegrityTrack")?.isHidden = true
+        defenseIntegrityBar.isHidden = true
     }
 
     private func updateDefenseDeviceDisplay() {
@@ -3499,6 +3619,7 @@ final class OutpostScene: SKScene {
     }
 
     override func update(_ currentTime: TimeInterval) {
+        if holdDefenseQAScreenshot { return }
         if lastUpdate == 0 { lastUpdate = currentTime; clock = currentTime }
         let dt = min(0.05, max(0, currentTime - lastUpdate))
         let gameDt = dt * (fastForward ? 2.0 : 1.0)
@@ -4246,6 +4367,7 @@ final class OutpostScene: SKScene {
         clearHostileAttacks()
         bankSalvage(PersistentProgression.roomReward(room: wave))
         if activeEncounter == .equipmentDefense {
+            markDefenseDeviceSecured()
             // Timer completion, never enemy elimination. Remove remaining foes
             // without awarding XP, coins or Salvage for unearned kills.
             for enemy in enemies { enemy.node.removeFromParent() }
@@ -4604,6 +4726,7 @@ final class OutpostScene: SKScene {
         }
         guard (activeEncounter == .equipmentDefense && roomCleared) ||
             RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) else { return }
+        if activeEncounter == .equipmentDefense { markDefenseDeviceSecured() }
         phase = .gate
         arena.isPaused = false
         heldTouch = nil
