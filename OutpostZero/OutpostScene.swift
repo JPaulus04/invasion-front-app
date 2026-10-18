@@ -576,6 +576,96 @@ final class OutpostScene: SKScene {
                          phase == .interrupted && health == 24,
                          "Resume must reopen the actual world, not the selected map card")
             recovery.clear()
+            // Run the *real* recovery path through all three survival
+            // interruption states, not just the serializable snapshot type.
+            // Simulator capture mode skips periodic saving, so these fixtures
+            // explicitly write snapshots and never touch a player's save.
+            func resumeSurvivalFixture(elapsed: TimeInterval,
+                                       location: RunSnapshot.Location,
+                                       pendingUpgrade: Bool) {
+                var savedProgress = RunProgress()
+                if pendingUpgrade {
+                    savedProgress.earnXP(savedProgress.nextLevelXP)
+                    precondition(savedProgress.pendingChoices == 1)
+                }
+                var survivorSave = RunSnapshot(
+                    version: RunSnapshot.schema, worldIndex: 0,
+                    room: 6, location: location,
+                    health: 75, coins: 175, damage: 3, fireRate: 2,
+                    chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
+                    orbitLevel: 1, runArmor: 10, checkpointUsed: false,
+                    checkpointPresented: false,
+                    progress: savedProgress,
+                    abilities: ["chain", "orbit", "incendiary"],
+                    earnedSalvage: 110, roomSalvageCredit: 0,
+                    roomCoinCredit: 63, roomXPCredit: 55)
+                survivorSave.timedEncounterElapsed = elapsed
+                survivorSave.timedEncounterSpawned = 7
+                survivorSave.timedEncounterLiving = 3
+                precondition(recovery.save(survivorSave))
+                worldMapIndex = 2 // Resume must select the saved world.
+                showReady()
+                recoverSavedRun()
+                precondition(worldMapIndex == 0 && wave == 6 &&
+                             activeEncounter == .survival &&
+                             abs(waveElapsed - elapsed) < 0.001 &&
+                             spawned >= 7 && enemies.count == 3 &&
+                             coins == 175 && health == 75 &&
+                             roomCoinsRecoveredCredit == 0 &&
+                             roomXPRecoveredCredit == 0,
+                             "Survival recovery must keep only the live swarm and pay new kills")
+                if pendingUpgrade {
+                    precondition(phase == .levelUp && arena.isPaused &&
+                                 progress.pendingChoices == 1 &&
+                                 levelUpReturnPhase == .playing &&
+                                 !levelChoices.isEmpty,
+                                 "Interrupted level-up must return with its choice intact")
+                    chooseLevelUpgrade(levelChoices[0])
+                    precondition(phase == .playing &&
+                                 progress.pendingChoices == 0 &&
+                                 abs(waveElapsed - elapsed) < 0.001,
+                                 "Choosing recovered upgrade must resume the same timer")
+                } else {
+                    precondition(phase == .interrupted && arena.isPaused,
+                                 "Recovery must wait for explicit player resume")
+                    resumeInterruptedRun()
+                    if location == .clearedGate {
+                        precondition(phase == .gate && roomCleared &&
+                                     !extractionPortal.isHidden &&
+                                     enemies.count == 3 &&
+                                     survivalSpawnPhaseFinished,
+                                     "Saved timeout must restore open orb with live enemies")
+                    } else if SurvivalEncounterRules.extractionActive(
+                        world: worldMapIndex, room: wave, elapsed: elapsed) {
+                        // Legacy battle-state interruption exactly on timeout.
+                        update(2_000)
+                        update(2_000.03)
+                        precondition(phase == .gate && roomCleared &&
+                                     !extractionPortal.isHidden &&
+                                     enemies.count == 3,
+                                     "Expired battle snapshot must open evacuation on resume")
+                    } else {
+                        let beforeCoins = coins
+                        let beforeXP = progress.xp
+                        precondition(phase == .playing && !roomCleared &&
+                                     awardRoomCoins(11) == 11 &&
+                                     awardRoomXP(9) == 9 &&
+                                     coins == beforeCoins + 11 &&
+                                     progress.xp == beforeXP + 9,
+                                     "Surviving enemy rewards cannot be withheld after resume")
+                    }
+                }
+                recovery.clear()
+            }
+            resumeSurvivalFixture(elapsed: 43, location: .battle,
+                                  pendingUpgrade: false)
+            let deadline = SurvivalEncounterRules.duration(world: 0, room: 6)
+            resumeSurvivalFixture(elapsed: deadline, location: .battle,
+                                  pendingUpgrade: false)
+            resumeSurvivalFixture(elapsed: deadline, location: .clearedGate,
+                                  pendingUpgrade: false)
+            resumeSurvivalFixture(elapsed: 41, location: .battle,
+                                  pendingUpgrade: true)
             showReady()
         }
         if ProcessInfo.processInfo.arguments.contains("-captureHeadquartersScreenshot") {
