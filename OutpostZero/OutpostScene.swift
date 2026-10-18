@@ -1473,6 +1473,8 @@ final class OutpostScene: SKScene {
             subtitleText = "SURVIVE \(remaining)S  •  \(enemies.count) FOES  •  \(coins) COINS"
         } else if activeEncounter == .survival && roomCleared {
             subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  EXTRACTION READY"
+        } else if activeEncounter == .equipmentDefense && roomCleared {
+            subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  REACTOR SECURED"
         } else if activeEncounter == .equipmentDefense && !roomCleared {
             let remaining = max(0, Int(ceil(
                 SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
@@ -4505,11 +4507,17 @@ final class OutpostScene: SKScene {
         // A final enemy may have died on the same frame as the level-up.
         // Finish that cleared room after the upgrade choice, not before it.
         if levelUpReturnPhase == .playing && !roomCleared &&
-           (activeEncounter.isTimed
+           (activeEncounter == .survival
             ? SurvivalEncounterRules.extractionActive(
                 world: worldMapIndex, room: wave, elapsed: waveElapsed)
-            : RoomRules.isCleared(
-                spawned: spawned, target: waveTarget, living: enemies.count)) {
+            : (activeEncounter == .equipmentDefense
+                ? EquipmentDefenseRules.succeeds(
+                    elapsed: waveElapsed,
+                    duration: SurvivalEncounterRules.duration(
+                        world: worldMapIndex, room: wave),
+                    integrity: defenseIntegrity)
+                : RoomRules.isCleared(
+                    spawned: spawned, target: waveTarget, living: enemies.count))) {
             arena.isPaused = false
             clearOverlay()
             overlayBackdrop.isHidden = true
@@ -4619,7 +4627,9 @@ final class OutpostScene: SKScene {
             .fadeAlpha(to: 0.35, duration: 0.65),
             .fadeAlpha(to: 0.88, duration: 0.65)
         ])))
-        warning.text = wave == 1 ? "ROOM CLEAR — ENTER PORTAL" : "ROOM CLEAR — PORTAL OPEN"
+        warning.text = activeEncounter == .equipmentDefense
+            ? "REACTOR SECURED — ENTER PORTAL"
+            : (wave == 1 ? "ROOM CLEAR — ENTER PORTAL" : "ROOM CLEAR — PORTAL OPEN")
         controlsHint.isHidden = true
         warning.fontColor = .systemGreen
         warning.fontSize = 13
