@@ -2574,7 +2574,7 @@ final class OutpostScene: SKScene {
         // Make each earned hit conspicuous without flashing the entire screen
         // or altering the reactor's gameplay collision area.
         let hitLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        hitLabel.text = "-\\(EquipmentDefenseRules.hitDamage)"
+        hitLabel.text = "-\(EquipmentDefenseRules.hitDamage)"
         hitLabel.fontColor = .systemOrange
         hitLabel.fontSize = 16
         hitLabel.position = CGPoint(x: 28, y: 69)
