@@ -73,6 +73,15 @@ final class RunRecoveryStore {
         return max(0, updated - previous)
     }
 
+    /// With a modern survival snapshot we rebuild only enemies still alive.
+    /// The already rewarded kills cannot be replayed, so future kills must
+    /// receive their full XP/coin payout. Legacy/tactical room replays still
+    /// need the credit to prevent farming the same enemies twice.
+    static func recoveredKillCredit(previouslyCredited: Int,
+                                    restoredOnlyLivingEnemies: Bool) -> Int {
+        restoredOnlyLivingEnemies ? 0 : previouslyCredited
+    }
+
     private let storage: UserDefaults
     private let key = "outpostZeroRunSnapshotV1"
     init(storage: UserDefaults = .standard) { self.storage = storage }
