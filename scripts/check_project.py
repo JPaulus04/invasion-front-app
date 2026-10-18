@@ -110,8 +110,22 @@ if "-captureCombatFeedbackScreenshot" not in scene:
 pilot_visual = scene.split("private func refreshPilotAppearance()", 1)[-1].split("private func drawRestorationRobot()", 1)[0]
 if 'productionImage(named: "pilot_idle") != nil' not in pilot_visual or "pilot.strokeColor = .clear" not in pilot_visual:
     errors.append("Illustrated pilot must never restore the prototype white outline")
-if 'case (.ready, "start") where WorldCatalog.unlocked(worldMapIndex) && recovery.load() == nil:' not in scene:
-    errors.append("World entry must first open loadout selection")
+# Home and the separate World Selector both route Start through the same
+# guarded loadout screen. Do not require the retired single-panel syntax.
+start_route = scene.split('case (.ready, "start"), (.worldSelect, "start")', 1)
+if (len(start_route) != 2 or
+        "WorldCatalog.unlocked(worldMapIndex)" not in start_route[1][:320] or
+        "recovery.load() == nil" not in start_route[1][:320] or
+        "showLoadout()" not in start_route[1][:320]):
+    errors.append("Home/world entry must first open guarded loadout selection")
+if ('case (.ready, "worlds"): showWorldSelector()' not in scene or
+        'case (.worldSelect, "home"): showReady()' not in scene or
+        'case (.ready, "gear_bay"): showGearBay()' not in scene or
+        'case (.ready, "ability_lab"): showAbilityLab()' not in scene):
+    errors.append("Home dock and world selector must have live navigation handlers")
+if ("-captureHomeNavigationScreenshot" not in scene or
+        "-captureWorldSelectorScreenshot" not in scene):
+    errors.append("Home and world chooser need independent simulator reviews")
 if "case (.loadout, \"lock_loadout\") where draftLoadout.isReady:" not in scene:
     errors.append("Cannot enter a world without three committed tactical abilities")
 if "lockedLoadout.availableTacticalUpgrades(" not in scene:
