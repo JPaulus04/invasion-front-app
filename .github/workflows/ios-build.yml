@@ -229,6 +229,7 @@ jobs:
           capture_scene -captureSurvivalTransitionScreenshot screenshots/outpost-zero-after-extraction.png
           capture_scene -captureEquipmentDefenseScreenshot screenshots/outpost-zero-defense-active.png
           capture_scene -captureEquipmentDefenseClearScreenshot screenshots/outpost-zero-defense-cleared.png
+          capture_scene -captureEquipmentDefenseFailureScreenshot screenshots/outpost-zero-defense-failed.png
           capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
           capture_scene -captureCombatFeedbackScreenshot screenshots/outpost-zero-combat-feedback.png
           capture_scene -captureTacticalFXScreenshot screenshots/outpost-zero-tactical-abilities.png
@@ -341,7 +342,8 @@ jobs:
           test -s screenshots/outpost-zero-gate-open.png
           test -s screenshots/outpost-zero-defense-active.png
           test -s screenshots/outpost-zero-defense-cleared.png
-          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-defense-active.png screenshots/outpost-zero-defense-cleared.png
+          test -s screenshots/outpost-zero-defense-failed.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-defense-active.png screenshots/outpost-zero-defense-cleared.png screenshots/outpost-zero-defense-failed.png
           test -s screenshots/outpost-zero-level-up.png
           test -s screenshots/outpost-zero-level-up-resumed.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-simulator.png screenshots/outpost-zero-gate-open.png
