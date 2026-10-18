@@ -85,6 +85,157 @@ jobs:
           name: ios-build-log
           path: xcodebuild.log
           if-no-files-found: ignore
+  defense-visual-review:
+    # Small parallel image pass for rapid visual correction of this mission.
+    # Full campaign screenshots remain in the separate simulator-review job.
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download compiled simulator app
+        uses: actions/download-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+      - name: Restore executable app bundle
+        run: |
+          set -e
+          mkdir -p simulator-app
+          ditto -x -k OutpostZero-simulator-app.zip simulator-app
+          test -x simulator-app/OutpostZero.app/OutpostZero
+      - name: Capture three equipment-defense gameplay states
+        timeout-minutes: 14
+        run: |
+          set -e
+          # Every simulator subprocess is bounded so a stalled simctl cannot
+          # pin the macOS runner until the whole job times out.
+          run_bounded() {
+            LIMIT="$1"; shift
+            python3 - "$LIMIT" "$@" <<'PY'
+          import subprocess
+          import sys
+          try:
+              subprocess.run(sys.argv[2:], check=True, timeout=int(sys.argv[1]))
+          except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
+              print(f"Simulator command unavailable: {error}", file=sys.stderr)
+              sys.exit(1)
+          PY
+          }
+          # Let a fresh service finish first-boot data migration. Killing it
+          # before listing devices made the migrations restart on some hosts.
+          # Fallback to a second available iPhone only after bounded readiness.
+          DEVICE=""
+          DEVICE_CANDIDATES="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data=json.load(sys.stdin)["devices"]
+          found=[]
+          for runtime, devices in sorted(data.items(), reverse=True):
+              for device in devices:
+                  if device.get("isAvailable", True) and device.get("name", "").startswith("iPhone"):
+                      found.append(device["udid"])
+          print(chr(10).join(found[:2]))
+          ')"
+          for CANDIDATE in $DEVICE_CANDIDATES; do
+            echo "Preparing simulator $CANDIDATE"
+            run_bounded 35 xcrun simctl boot "$CANDIDATE" || true
+            # Data migration often needs more than 90 seconds on a cold VM.
+            if run_bounded 200 xcrun simctl bootstatus "$CANDIDATE" -b; then
+              DEVICE="$CANDIDATE"
+              break
+            fi
+            echo "::warning::Simulator $CANDIDATE failed boot readiness; trying alternate device"
+            run_bounded 20 xcrun simctl shutdown "$CANDIDATE" || true
+          done
+          if [ -z "$DEVICE" ]; then
+            echo "::error::No available iPhone simulator reached boot readiness"
+            exit 1
+          fi
+          echo "Simulator ready: $DEVICE"
+          APP="simulator-app/OutpostZero.app"
+          # If CoreSimulatorService is cold, allow a generous first install.
+          # On failure restart only the simulator rather than recompiling iOS.
+          if ! run_bounded 150 xcrun simctl install "$DEVICE" "$APP"; then
+            # A slow initial install may recover after a single service reset.
+            # Do not loop forever on a damaged simulator installation.
+            echo "::warning::Simulator install failed; one bounded reinstall attempt"
+            run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
+            run_bounded 40 xcrun simctl boot "$DEVICE" || true
+            run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b
+            run_bounded 150 xcrun simctl install "$DEVICE" "$APP"
+          fi
+          mkdir -p screenshots
+          # A cold-booted simulator can show a gray launch screen for several
+          # seconds while still returning success from 'simctl launch'.
+          # Retry until a decoded screenshot contains actual rendered colors.
+          capture_scene() {
+            FLAG="$1"
+            OUTPUT="$2"
+            for ATTEMPT in 1 2 3; do
+              run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+              # Give SpringBoard time to remove the previous game's surface
+              # before launching a different QA flag. Without this the
+              # simulator occasionally screenshots the previous scene.
+              sleep 2
+              # Cold-booted CoreSimulator can accept the app but not yet
+              # serve pixels. Launch/screenshot timeout is retriable too.
+              if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+                echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
+                if [ "$ATTEMPT" != 3 ]; then
+                  # A cold CoreSimulatorService can become unresponsive even
+                  # after installation. Reboot the simulator before retrying
+                  # rather than issuing launch to the same wedged instance.
+                  run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
+                  run_bounded 45 xcrun simctl boot "$DEVICE" || true
+                  run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b || true
+                  run_bounded 65 xcrun simctl install "$DEVICE" "$APP" || true
+                fi
+                sleep 4
+                continue
+              fi
+              sleep 8
+              if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT" &&
+                 python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
+                return 0
+              fi
+              echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT); retrying"
+              sleep 4
+            done
+            echo "::error::Simulator never rendered a usable frame for $FLAG"
+            # Leave a useful reason in CI when the app exits after launch.
+            run_bounded 25 xcrun simctl spawn "$DEVICE" log show \
+              --last 90s --style compact \
+              --predicate 'process == "OutpostZero" AND messageType == error' \
+              2>/dev/null | tail -35 || true
+            return 1
+          }
+          capture_scene -captureEquipmentDefenseScreenshot screenshots/outpost-zero-defense-active.png
+          capture_scene -captureEquipmentDefenseClearScreenshot screenshots/outpost-zero-defense-cleared.png
+          capture_scene -captureEquipmentDefenseFailureScreenshot screenshots/outpost-zero-defense-failed.png
+      - name: Validate independent equipment-defense frames
+        run: |
+          set -e
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-defense-active.png \
+            screenshots/outpost-zero-defense-cleared.png \
+            screenshots/outpost-zero-defense-failed.png
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          names = ["active", "cleared", "failed"]
+          images = [Path(f"screenshots/outpost-zero-defense-{name}.png").read_bytes()
+                    for name in names]
+          assert len(set(sha256(image).digest() for image in images)) == 3, (
+              "Active, secured, and failed defense must render independently")
+          print("PASS: three distinct reactor mission visuals with state markers")
+          PY
+      - name: Upload focused equipment-defense screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-defense-visual-review
+          path: screenshots/outpost-zero-defense-*.png
+          if-no-files-found: ignore
+          retention-days: 7
   simulator-review:
     needs: build
     # Newer hosted image avoids the slower first-boot migration seen on macOS 15.
