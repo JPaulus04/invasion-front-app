@@ -108,6 +108,27 @@ struct ProgressCombatTests {
         precondition(abs((recover.load()?.timedEncounterElapsed ?? 0) - 83.5) < 0.0001)
         precondition(recover.load()?.timedEncounterSpawned == 42)
         precondition(recover.load()?.timedEncounterLiving == 14)
+        // Restoring only surviving enemies must not suppress rewards from
+        // their *first* death. Tactical/legacy full-room replays keep credits.
+        let survivingOnlyCoinCredit = RunRecoveryStore.recoveredKillCredit(
+            previouslyCredited: timedSave.roomCoinCredit,
+            restoredOnlyLivingEnemies: true)
+        let survivingOnlyXPCredit = RunRecoveryStore.recoveredKillCredit(
+            previouslyCredited: timedSave.roomXPCredit,
+            restoredOnlyLivingEnemies: true)
+        precondition(survivingOnlyCoinCredit == 0 && survivingOnlyXPCredit == 0)
+        precondition(RunRecoveryStore.incrementalReward(
+            earnedOnReplay: 0, previouslyCredited: survivingOnlyCoinCredit,
+            reward: 11) == 11)
+        precondition(RunRecoveryStore.incrementalReward(
+            earnedOnReplay: 0, previouslyCredited: survivingOnlyXPCredit,
+            reward: 9) == 9)
+        precondition(RunRecoveryStore.recoveredKillCredit(
+            previouslyCredited: timedSave.roomCoinCredit,
+            restoredOnlyLivingEnemies: false) == timedSave.roomCoinCredit)
+        precondition(RunRecoveryStore.incrementalReward(
+            earnedOnReplay: 0, previouslyCredited: timedSave.roomCoinCredit,
+            reward: 11) == 0)
         timedSave.timedEncounterLiving = 29
         precondition(!timedSave.isValid && !recover.save(timedSave),
                      "Survival recovery must reject live swarms above the cap")
