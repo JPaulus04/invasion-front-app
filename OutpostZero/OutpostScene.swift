@@ -36,6 +36,10 @@ final class OutpostScene: SKScene {
     private let passageGate = SKShapeNode(path: CGPath(ellipseIn: CGRect(
         x: -52, y: 8, width: 104, height: 148), transform: nil))
     private let extractionPortal = SKShapeNode(circleOfRadius: 21)
+    private let defenseDevice = SKShapeNode(rectOf: CGSize(width: 58, height: 66), cornerRadius: 12)
+    private let defenseIntegrityBar = SKShapeNode(rectOf: CGSize(width: 55, height: 6), cornerRadius: 3)
+    private var defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
+    private var nextDefenseHitAt: TimeInterval = 0
     private let zoneBanner = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let controlsHint = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let zoneScenery = SKNode()
@@ -1415,6 +1419,10 @@ final class OutpostScene: SKScene {
             subtitleText = "SURVIVE \(remaining)S  •  \(enemies.count) FOES  •  \(coins) COINS"
         } else if activeEncounter == .survival && roomCleared {
             subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  EXTRACTION READY"
+        } else if activeEncounter == .equipmentDefense && !roomCleared {
+            let remaining = max(0, Int(ceil(
+                SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
+            subtitleText = "DEFEND \(remaining)S  •  REACTOR \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
         } else {
             subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
         }
@@ -1629,11 +1637,13 @@ final class OutpostScene: SKScene {
             roomSalvageCredit: max(roomSalvageRecoveredCredit, roomSalvageEarned),
             roomCoinCredit: max(roomCoinsRecoveredCredit, roomCoinsEarned),
             roomXPCredit: max(roomXPRecoveredCredit, roomXPEarned),
-            timedEncounterElapsed: activeEncounter == .survival
+            timedEncounterElapsed: activeEncounter.isTimed
                 ? min(waveElapsed, SurvivalEncounterRules.duration(
                     world: worldMapIndex, room: wave)) : nil,
-            timedEncounterSpawned: activeEncounter == .survival ? spawned : nil,
-            timedEncounterLiving: activeEncounter == .survival ? enemies.count : nil)
+            timedEncounterSpawned: activeEncounter.isTimed ? spawned : nil,
+            timedEncounterLiving: activeEncounter.isTimed ? enemies.count : nil,
+            defenseObjectiveIntegrity: activeEncounter == .equipmentDefense
+                ? defenseIntegrity : nil)
         _ = recovery.save(snapshot)
     }
 
@@ -1667,7 +1677,7 @@ final class OutpostScene: SKScene {
         // defeated enemy is recreated. Never withhold the next legitimate
         // kill reward behind credits for absent enemies. Older tactical and
         // legacy full-room replay snapshots retain anti-duplication credits.
-        let onlyLivingFoesRestored = activeEncounter == .survival &&
+        let onlyLivingFoesRestored = activeEncounter.isTimed &&
             snapshot.timedEncounterLiving != nil
         roomCoinsRecoveredCredit = RunRecoveryStore.recoveredKillCredit(
             previouslyCredited: snapshot.roomCoinCredit,
@@ -1678,16 +1688,22 @@ final class OutpostScene: SKScene {
             restoredOnlyLivingEnemies: onlyLivingFoesRestored)
         roomXPEarned = 0
         // Optional schema-4 clock: old TestFlight runs still load.
-        if activeEncounter == .survival {
+        if activeEncounter.isTimed {
             waveElapsed = min(snapshot.timedEncounterElapsed ?? 0,
                               SurvivalEncounterRules.duration(
                                   world: worldMapIndex, room: wave))
             // A snapshot written after timeout but before portal completion
             // can still be .battle. Do not suppress its completion trigger:
             // the first resumed combat frame must open extraction.
-            survivalSpawnPhaseFinished = snapshot.location == .clearedGate &&
+            survivalSpawnPhaseFinished = activeEncounter == .survival &&
+                snapshot.location == .clearedGate &&
                 SurvivalEncounterRules.extractionActive(
                     world: worldMapIndex, room: wave, elapsed: waveElapsed)
+            if activeEncounter == .equipmentDefense {
+                defenseIntegrity = snapshot.defenseObjectiveIntegrity ??
+                    EquipmentDefenseRules.maximumIntegrity
+                updateDefenseDeviceDisplay()
+            }
             // No refill on resume. Only the still-living swarm is rebuilt;
             // previously defeated foes cannot be killed or rewarded again.
             if let savedLiving = snapshot.timedEncounterLiving {
