@@ -681,10 +681,10 @@ final class OutpostScene: SKScene {
                 enemy.node.alpha = 1
                 enemy.node.childNode(withName: "spawnWarning")?.isHidden = true
             }
-            // A small QA-only viewport marker certifies which capture
+            // A tiny QA-only identity pixel cluster certifies which capture
             // actually launched; the simulator home screen or stale previous
             // game scene must never pass as an arena screenshot.
-            let qaMarker = SKShapeNode(rectOf: CGSize(width: 26, height: 26))
+            let qaMarker = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
             qaMarker.name = "arenaCaptureIdentity"
             let markerColors: [SKColor] = [
                 SKColor(red: 1, green: 0, blue: 0, alpha: 1),
@@ -693,7 +693,7 @@ final class OutpostScene: SKScene {
             ]
             qaMarker.fillColor = markerColors[slot]
             qaMarker.strokeColor = .white
-            qaMarker.lineWidth = 2
+            qaMarker.lineWidth = 1
             qaMarker.zPosition = 65
             qaMarker.position = CGPoint(x: size.width * 0.90,
                                         y: size.height * 0.60)
@@ -737,11 +737,11 @@ final class OutpostScene: SKScene {
                         y: pilot.position.y + y + 130)
                 }
             }
-            let marker = SKShapeNode(rectOf: CGSize(width: 26, height: 26))
+            let marker = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
             marker.name = "survivalQAIdentity"
             marker.fillColor = SKColor(red: 1, green: 0, blue: 1, alpha: 1)
             marker.strokeColor = .white
-            marker.lineWidth = 2
+            marker.lineWidth = 1
             marker.zPosition = 65
             marker.position = CGPoint(x: size.width * 0.90,
                                       y: size.height * 0.60)
@@ -817,11 +817,11 @@ final class OutpostScene: SKScene {
                          survivalSpawnPhaseFinished,
                          "Timed evacuation must allow earned kills, not new spawns")
             // Reject screenshots of the iOS home screen or a crashed process.
-            // Test-only magenta identity marker is absent from shipped play.
-            let identity = SKShapeNode(rectOf: CGSize(width: 26, height: 26))
+            // Tiny test-only identity pixel cluster is absent from shipped play.
+            let identity = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
             identity.fillColor = SKColor(red: 1, green: 0, blue: 1, alpha: 1)
             identity.strokeColor = .white
-            identity.lineWidth = 2
+            identity.lineWidth = 1
             identity.zPosition = 65
             identity.position = CGPoint(x: size.width * 0.90,
                                         y: size.height * 0.60)
