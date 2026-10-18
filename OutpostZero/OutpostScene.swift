@@ -155,6 +155,8 @@ final class OutpostScene: SKScene {
     private var incendiaryLevel = 0
     private var burns: [ObjectIdentifier: (damage: Int, until: TimeInterval, nextTick: TimeInterval)] = [:]
     private var bossNode: SKShapeNode?
+    private var guardianArmorBroken = false
+    private var guardianTransitionUntil: TimeInterval = 0
     private let worldWaveCount = CampaignPacing.roomsPerWorld
     private let coreBranches = ["WEAPONS", "REACTOR", "ARMOR", "MOBILITY", "SYSTEMS"]
     private var availableCores: Int { UserDefaults.standard.integer(forKey: "powerCoresAvailable") }
@@ -2632,6 +2634,8 @@ final class OutpostScene: SKScene {
         for drop in xpDrops { drop.node.removeFromParent() }
         xpDrops.removeAll()
         bossNode = nil
+        guardianArmorBroken = false
+        guardianTransitionUntil = 0
         burns.removeAll()
         lastOrbitalHit.removeAll()
         enemyAcidDamageAt.removeAll()
@@ -3559,6 +3563,76 @@ final class OutpostScene: SKScene {
             reactor.zPosition = 4
             node.addChild(reactor)
         }
+        if isBoss && worldMapIndex == 0 {
+            // Frontier Forest's guardian is an ancient overgrown machine:
+            // grounded feet, broad oxidized shoulder plating, root-like
+            // outriggers, and one bright central reactor. All geometry is
+            // visual-only and keeps the unchanged combat collision radius.
+            let bark = SKColor(red: 0.16, green: 0.29, blue: 0.24, alpha: 1)
+            let bronze = SKColor(red: 0.64, green: 0.43, blue: 0.23, alpha: 1)
+            for side: CGFloat in [-1, 1] {
+                let root = SKShapeNode()
+                let outline = CGMutablePath()
+                outline.move(to: CGPoint(x: side * 27, y: -18))
+                outline.addLine(to: CGPoint(x: side * 62, y: -41))
+                outline.addLine(to: CGPoint(x: side * 54, y: -47))
+                outline.addLine(to: CGPoint(x: side * 21, y: -31))
+                outline.closeSubpath()
+                root.path = outline
+                root.fillColor = bark
+                root.strokeColor = bronze
+                root.lineWidth = 2
+                root.zPosition = 1.6
+                node.addChild(root)
+                let shoulder = SKShapeNode(rectOf: CGSize(width: 30, height: 39),
+                                           cornerRadius: 8)
+                shoulder.name = side < 0 ? "guardianArmorLeft" : "guardianArmorRight"
+                shoulder.position = CGPoint(x: side * 29, y: 8)
+                shoulder.zRotation = side * -0.22
+                shoulder.fillColor = bark
+                shoulder.strokeColor = bronze
+                shoulder.lineWidth = 3.5
+                shoulder.zPosition = 3.5
+                node.addChild(shoulder)
+                for height in 0..<3 {
+                    let leaf = SKShapeNode(ellipseOf: CGSize(width: 18, height: 9))
+                    leaf.position = CGPoint(x: side * (22 + CGFloat(height) * 12),
+                                            y: 35 + CGFloat(height % 2) * 8)
+                    leaf.zRotation = side * 0.3
+                    leaf.fillColor = SKColor(red: 0.21, green: 0.49,
+                                             blue: 0.25, alpha: 0.96)
+                    leaf.strokeColor = SKColor(red: 0.48, green: 0.67,
+                                               blue: 0.32, alpha: 0.85)
+                    leaf.lineWidth = 1.4
+                    leaf.zPosition = 3.6
+                    node.addChild(leaf)
+                }
+            }
+            let coreHousing = SKShapeNode(circleOfRadius: 20)
+            coreHousing.position = CGPoint(x: 0, y: -9)
+            coreHousing.fillColor = SKColor(red: 0.07, green: 0.18,
+                                            blue: 0.20, alpha: 1)
+            coreHousing.strokeColor = bronze
+            coreHousing.lineWidth = 4
+            coreHousing.zPosition = 4.1
+            node.addChild(coreHousing)
+            let coreLight = SKShapeNode(circleOfRadius: 12)
+            coreLight.name = "guardianCore"
+            coreLight.fillColor = .systemCyan
+            coreLight.strokeColor = .white
+            coreLight.lineWidth = 2.2
+            coreLight.glowWidth = 5
+            coreLight.zPosition = 4.2
+            coreHousing.addChild(coreLight)
+            let crest = SKShapeNode(rectOf: CGSize(width: 47, height: 13),
+                                    cornerRadius: 5)
+            crest.position.y = 33
+            crest.fillColor = bark
+            crest.strokeColor = bronze
+            crest.lineWidth = 2.5
+            crest.zPosition = 3.9
+            node.addChild(crest)
+        }
         if type >= 4 && !usesIllustratedEnemy {
             let weapon = SKShapeNode(rectOf: CGSize(width: type == 5 ? 22 : 8, height: 26), cornerRadius: 3)
             weapon.fillColor = type == 5 ? .systemYellow : .systemCyan
@@ -4050,6 +4124,17 @@ final class OutpostScene: SKScene {
                 ])))
                 if enemy.node === bossNode && selectedWorld.bossStyle == 0 {
                     launchLob(from: enemy.node.position, target: pilot.position)
+                    if worldMapIndex == 0 && guardianArmorBroken {
+                        // The exposed guardian sends a second, separately
+                        // telegraphed blast down one flank. A lateral dodge
+                        // remains possible; there is no instant area damage.
+                        let direction: CGFloat = pilot.position.x > roomBounds.midX ? -1 : 1
+                        let secondary = CGPoint(
+                            x: min(max(pilot.position.x + direction * 86,
+                                       roomBounds.minX + 43), roomBounds.maxX - 43),
+                            y: pilot.position.y)
+                        launchLob(from: enemy.node.position, target: secondary)
+                    }
                 }
             }
         }
@@ -4327,7 +4412,58 @@ final class OutpostScene: SKScene {
         }
     }
 
+    private func updateFrontierGuardianPhase() {
+        guard worldMapIndex == 0, wave == worldWaveCount, !roomCleared,
+              let bossNode,
+              let index = enemies.firstIndex(where: { $0.node === bossNode }) else { return }
+        let threshold = FrontierGuardianRules.armorBreakHealth(
+            maxHealth: enemies[index].maxHealth)
+        if FrontierGuardianRules.shouldBreakArmor(
+            health: enemies[index].health, maxHealth: enemies[index].maxHealth,
+            alreadyBroken: guardianArmorBroken) {
+            guardianArmorBroken = true
+            guardianTransitionUntil = combatTime + FrontierGuardianRules.transitionSeconds
+            enemies[index].health = threshold
+            for name in ["guardianArmorLeft", "guardianArmorRight"] {
+                if let armor = bossNode.childNode(withName: name) as? SKShapeNode {
+                    armor.fillColor = .darkGray
+                    armor.strokeColor = .systemOrange
+                    armor.run(.sequence([.rotate(byAngle: name == "guardianArmorLeft"
+                        ? 0.22 : -0.22, duration: 0.30)]))
+                }
+            }
+            if let core = bossNode.childNode(withName: "//guardianCore") as? SKShapeNode {
+                core.fillColor = .systemOrange
+                core.strokeColor = .systemYellow
+                core.glowWidth = 10
+            }
+            let alert = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            alert.name = "guardianCoreAwakened"
+            alert.text = "CORE EXPOSED"
+            alert.fontColor = .systemYellow
+            alert.fontSize = 16
+            alert.position.y = 86
+            alert.zPosition = 17
+            bossNode.addChild(alert)
+            alert.run(.sequence([
+                .wait(forDuration: 1.8),
+                .fadeOut(withDuration: 0.30),
+                .removeFromParent()
+            ]))
+            // Warn the player before the phase-two attack resolves.
+            launchLob(from: bossNode.position, target: pilot.position)
+        }
+        // The visible armor-break transition cannot be skipped by a heavily
+        // upgraded weapon or lingering burns. The boss is vulnerable again
+        // immediately afterward, with no inflated global boss health pool.
+        if guardianArmorBroken && combatTime < guardianTransitionUntil {
+            enemies[index].health = max(threshold, enemies[index].health)
+        }
+        updateEnemyHealthBar(at: index)
+    }
+
     private func removeDefeatedEnemies() {
+        updateFrontierGuardianPhase()
         var defeatedCount = 0
         for index in enemies.indices.reversed() where enemies[index].health <= 0 {
             defeatedCount += 1
@@ -4872,7 +5008,7 @@ final class OutpostScene: SKScene {
         if !isCaptureMode {
             _ = WorldCatalog.recordBestRoom(worldMapIndex, room: worldWaveCount)
         }
-        awardWorldCompletionCores(stars: progress.stars)
+        awardWorldCompletionCores(stars: progress.stars(forWorld: worldMapIndex))
         // A completed-world bonus is not replayed enemy/room income.
         // In particular, resuming a cleared final boss room must receive the
         // full bonus, independent of its recorded roomSalvageCredit.
@@ -4887,7 +5023,7 @@ final class OutpostScene: SKScene {
         ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
         clearOverlay()
-        let stars = progress.stars
+        let stars = progress.stars(forWorld: worldMapIndex)
         overlayText("\(selectedWorld.title) CLEARED", y: 85, fontSize: 18)
         overlayText("LEVEL \(progress.level)  •  \(progress.damageTaken) DAMAGE TAKEN", y: 40, fontSize: 16)
         // A prominent star display makes the permanent world reward legible.

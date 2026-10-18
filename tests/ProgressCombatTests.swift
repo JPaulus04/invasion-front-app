@@ -223,8 +223,19 @@ struct ProgressCombatTests {
         precondition(burst.xp == xpBefore)
         run.recordDamage(11)
         precondition(run.stars == 2)
+        precondition(run.stars(forWorld: 0) == 3)
         run.recordDamage(40)
         precondition(run.stars == 1 && run.damageTaken == 51)
+        precondition(run.stars(forWorld: 0) == 3)
+        var firstWorldClear = RunProgress()
+        firstWorldClear.recordDamage(112)
+        precondition(firstWorldClear.stars(forWorld: 0) == 2)
+        precondition(firstWorldClear.stars(forWorld: 1) == 1,
+                     "Unrevised worlds must retain their original thresholds")
+        firstWorldClear.recordDamage(69)
+        precondition(firstWorldClear.stars(forWorld: 0) == 1)
+        precondition(WorldCoreRewards.newlyEarned(
+            previousBest: 3, completedStars: firstWorldClear.stars(forWorld: 0)) == 0)
         // Healing changes health in the scene; it cannot subtract damage from this record.
         run.recordDamage(-51)
         precondition(run.damageTaken == 51)

@@ -93,6 +93,14 @@ struct CampaignPacingTests {
         precondition(SurvivalEncounterRules.kind(world: 1, room: 5) == .survival)
         precondition(SurvivalEncounterRules.kind(world: 0, room: 12) == .equipmentDefense)
         // Equipment defense is distinct from combat waves and extraction.
+        precondition(FrontierGuardianRules.armorBreakHealth(maxHealth: 180) == 90)
+        precondition(!FrontierGuardianRules.shouldBreakArmor(
+            health: 91, maxHealth: 180, alreadyBroken: false))
+        precondition(FrontierGuardianRules.shouldBreakArmor(
+            health: 90, maxHealth: 180, alreadyBroken: false))
+        precondition(!FrontierGuardianRules.shouldBreakArmor(
+            health: 0, maxHealth: 180, alreadyBroken: true))
+        precondition(FrontierGuardianRules.transitionSeconds >= 1.0)
         precondition(EquipmentDefenseRules.maximumIntegrity >= 100)
         precondition(EquipmentDefenseRules.hitDamage > 0 &&
                      EquipmentDefenseRules.hitCooldown >= 1.0)

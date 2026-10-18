@@ -68,6 +68,21 @@ enum CampaignPacing {
 /// before they are wired into movement, hostile spawning and save recovery.
 /// A separate mission type: keep a vulnerable field device intact under fire.
 /// The player still earns normal kill rewards, but kills do not end the mission.
+/// World 1 boss phases are visible combat events, not a hidden HP multiplier.
+/// The armor breaks at half health; the player receives a dodgeable attack
+/// during a short core-exposure animation. Later-world bosses stay unchanged.
+enum FrontierGuardianRules {
+    static let transitionSeconds: TimeInterval = 1.45
+    static func armorBreakHealth(maxHealth: Int) -> Int {
+        max(1, maxHealth / 2)
+    }
+    static func shouldBreakArmor(health: Int, maxHealth: Int,
+                                 alreadyBroken: Bool) -> Bool {
+        !alreadyBroken && maxHealth > 1 &&
+            health <= armorBreakHealth(maxHealth: maxHealth)
+    }
+}
+
 enum EquipmentDefenseRules {
     static let maximumIntegrity = 150
     static let hitDamage = 4

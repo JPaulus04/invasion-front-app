@@ -7,7 +7,17 @@ struct RunProgress: Codable {
     private(set) var pendingChoices = 0
     private(set) var damageTaken = 0
     var nextLevelXP: Int { 60 + level * 22 + level * level * 5 }
+    // Legacy thresholds remain intact for unrevised worlds.
     var stars: Int { damageTaken <= 10 ? 3 : (damageTaken <= 50 ? 2 : 1) }
+    func stars(forWorld world: Int) -> Int {
+        // Twenty-room Frontier Forest includes four survival arenas and a
+        // reactor defense. A good clear with 112 damage should earn two
+        // stars; three still requires consistently skillful dodging.
+        if world == 0 {
+            return damageTaken <= 75 ? 3 : (damageTaken <= 180 ? 2 : 1)
+        }
+        return stars
+    }
 
     mutating func earnXP(_ amount: Int) {
         xp += max(0, amount)
