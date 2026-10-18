@@ -85,6 +85,29 @@ struct CampaignPacingTests {
         }
         precondition(SurvivalEncounterRules.kind(world: 1, room: 5) == .survival)
         precondition(SurvivalEncounterRules.kind(world: 0, room: 12) == .equipmentDefense)
+        // Equipment defense is distinct from combat waves and extraction.
+        precondition(EquipmentDefenseRules.maximumIntegrity >= 100)
+        precondition(EquipmentDefenseRules.hitDamage > 0 &&
+                     EquipmentDefenseRules.hitCooldown >= 1.0)
+        precondition(EquipmentDefenseRules.enemyCap <= 12)
+        let deadline = SurvivalEncounterRules.duration(world: 0, room: 12)
+        precondition(EquipmentDefenseRules.maySpawn(
+            elapsed: 0, duration: deadline, integrity: 150, living: 0))
+        precondition(!EquipmentDefenseRules.maySpawn(
+            elapsed: 12, duration: deadline, integrity: 150,
+            living: EquipmentDefenseRules.enemyCap))
+        precondition(!EquipmentDefenseRules.maySpawn(
+            elapsed: deadline, duration: deadline, integrity: 150, living: 0))
+        precondition(!EquipmentDefenseRules.maySpawn(
+            elapsed: 10, duration: deadline, integrity: 0, living: 0))
+        precondition(EquipmentDefenseRules.applyHit(integrity: 3) == 0)
+        precondition(EquipmentDefenseRules.fails(integrity: 0))
+        precondition(!EquipmentDefenseRules.succeeds(
+            elapsed: deadline, duration: deadline, integrity: 0))
+        precondition(EquipmentDefenseRules.succeeds(
+            elapsed: deadline, duration: deadline, integrity: 1))
+        precondition(!EquipmentDefenseRules.succeeds(
+            elapsed: deadline - 0.01, duration: deadline, integrity: 150))
         precondition(SurvivalEncounterRules.kind(world: 2, room: 15) == .equipmentDefense)
         for room in 1...20 {
             for slot in 0..<100 {
