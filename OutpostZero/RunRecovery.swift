@@ -36,6 +36,8 @@ struct RunSnapshot: Codable {
     // Optional fields keep existing schema-4 saves readable.
     var timedEncounterSpawned: Int? = nil
     var timedEncounterLiving: Int? = nil
+    /// Optional so existing schema-4 saves remain compatible.
+    var defenseObjectiveIntegrity: Int? = nil
 
     var isValid: Bool {
         version == Self.schema && (0..<WorldCatalog.playableCount).contains(worldIndex) &&
@@ -60,6 +62,9 @@ struct RunSnapshot: Codable {
         (timedEncounterLiving == nil ||
          (timedEncounterSpawned != nil &&
           (timedEncounterLiving ?? 0) <= (timedEncounterSpawned ?? -1))) &&
+        (defenseObjectiveIntegrity == nil ||
+         (1...EquipmentDefenseRules.maximumIntegrity).contains(
+             defenseObjectiveIntegrity ?? 0)) &&
         AbilityLoadout(selected: abilities).isReady && Set(abilities).count == 3
     }
 }
