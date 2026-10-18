@@ -43,8 +43,25 @@ if "enum SurvivalEncounterRules" not in pacing or "fastExtractionBonusXP = 0" no
     errors.append("Timed survival rules must prevent extra spawns and extraction farming")
 if 'activeEncounter.isTimed' not in scene or '-captureSurvivalSwarmFrames' not in scene:
     errors.append("Timed survival must run the shared live combat spawn loop")
-if 'activeEncounter = SurvivalEncounterRules.kind(' not in scene or 'showExtractionPortal()' not in scene:
-    errors.append("The campaign must route real survival rooms to extraction")
+# Survival and equipment defense now share a schedule but not an exit:
+# survival uses a small orb; defense uses a normal upright campaign portal.
+if not all(fragment in scene for fragment in (
+        "let scheduled = SurvivalEncounterRules.kind(",
+        "scheduled == .survival || scheduled == .equipmentDefense",
+        "showExtractionPortal()",
+        "activeEncounter == .survival",
+        "activeEncounter == .equipmentDefense",
+        "EquipmentDefenseRules.succeeds(",
+        "defenseDevice.removeFromParent()")):
+    errors.append("Campaign must route playable survival and device defense independently")
+if not all(fragment in scene for fragment in (
+        "private func installDefenseDevice()",
+        "private func damageDefenseDevice()",
+        'endGame("DEFENSE OBJECTIVE LOST")',
+        "defenseObjectiveIntegrity:",
+        "-captureEquipmentDefenseScreenshot",
+        "-captureEquipmentDefenseClearScreenshot")):
+    errors.append("Equipment defense must have a damaged objective, recovery and simulator captures")
 if '-captureSurvivalExtractionScreenshot' not in scene or 'extractionPortal.isHidden = false' not in scene:
     errors.append("Simulator must capture extraction with enemies alive")
 if '-captureSurvivalTransitionScreenshot' not in scene or 'TerrainHazards.extractionPosition(' not in scene:
