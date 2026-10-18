@@ -877,6 +877,11 @@ final class OutpostScene: SKScene {
                     room: wave, slot: slot))
             }
             precondition(enemies.count == 4)
+            precondition(enemies.allSatisfy {
+                EquipmentDefenseRules.safeSpawn(
+                    distanceFromReactor: distance($0.node.position, defenseDevice.position),
+                    enemyRadius: $0.radius)
+            }, "Enemy reinforcements must not materialize directly on the reactor")
             if defenseFailed {
                 for _ in 0..<38 {
                     combatClock.advance(EquipmentDefenseRules.hitCooldown + 0.1,
@@ -2544,8 +2549,16 @@ final class OutpostScene: SKScene {
         defenseIntegrityBar.xScale = max(0.001, ratio)
         defenseIntegrityBar.fillColor = ratio > 0.5 ? .systemGreen :
             (ratio > 0.25 ? .systemYellow : .systemRed)
-        defenseDevice.childNode(withName: "fieldReactorCore")?.alpha =
-            ratio < 0.3 ? 0.6 : 1
+        let critical = EquipmentDefenseRules.criticalIntegrity(defenseIntegrity)
+        if let label = defenseDevice.childNode(withName: "fieldReactorLabel") as? SKLabelNode {
+            label.text = critical ? "REACTOR CRITICAL" : "DEFEND"
+            label.fontColor = critical ? .systemRed : .white
+        }
+        if let core = defenseDevice.childNode(withName: "fieldReactorCore") as? SKShapeNode {
+            core.fillColor = critical ? .systemOrange :
+                SKColor(red: 0.18, green: 0.80, blue: 0.96, alpha: 1)
+            core.alpha = critical ? 0.85 : 1
+        }
         updateHUD()
     }
 
@@ -2558,6 +2571,20 @@ final class OutpostScene: SKScene {
         core?.removeAction(forKey: "objectiveHit")
         core?.run(.sequence([.fadeAlpha(to: 0.2, duration: 0.08),
                              .fadeAlpha(to: 1, duration: 0.18)]), withKey: "objectiveHit")
+        // Make each earned hit conspicuous without flashing the entire screen
+        // or altering the reactor's gameplay collision area.
+        let hitLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        hitLabel.text = "-\\(EquipmentDefenseRules.hitDamage)"
+        hitLabel.fontColor = .systemOrange
+        hitLabel.fontSize = 16
+        hitLabel.position = CGPoint(x: 28, y: 69)
+        hitLabel.zPosition = 12
+        defenseDevice.addChild(hitLabel)
+        hitLabel.run(.sequence([
+            .group([.moveBy(x: 9, y: 24, duration: 0.56),
+                    .fadeOut(withDuration: 0.56)]),
+            .removeFromParent()
+        ]))
         updateDefenseDeviceDisplay()
         if EquipmentDefenseRules.fails(integrity: defenseIntegrity) {
             endGame("DEFENSE OBJECTIVE LOST")
@@ -3591,8 +3618,15 @@ final class OutpostScene: SKScene {
             let location = CGPoint(
                 x: candidateBounds.minX + candidateBounds.width * sample.x,
                 y: candidateBounds.minY + candidateBounds.height * sample.y)
-            return TerrainHazards.spawnAllowed(location, radius: radius,
-                                               patches: roomHazards) ? sample : nil
+            guard TerrainHazards.spawnAllowed(location, radius: radius,
+                                              patches: roomHazards) else { return nil }
+            // Defense attackers must visibly approach the objective. Without
+            // this guard a ranged spawn lane can materialize on the reactor.
+            if activeEncounter == .equipmentDefense &&
+               !EquipmentDefenseRules.safeSpawn(
+                   distanceFromReactor: distance(location, defenseDevice.position),
+                   enemyRadius: radius) { return nil }
+            return sample
         }
         node.position = RoomRules.spawnPoint(in: roomBounds, radius: radius,
                                             pilot: pilot.position, candidates: candidates)
