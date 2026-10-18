@@ -543,12 +543,14 @@ final class OutpostScene: SKScene {
         if ProcessInfo.processInfo.arguments.contains("-captureHomeNavigationScreenshot") {
             let keys = ["worlds", "gear_bay", "headquarters",
                         "ability_lab", "restore"]
-            precondition(phase == .ready &&
+            precondition(phase == .ready && pilot.isHidden &&
                          keys.allSatisfy({ overlayButtons[$0] != nil }) &&
                          overlay.childNode(withName: "homeUprightPortal") != nil &&
+                         overlay.childNode(withName: "//homePortalCurrent") != nil &&
                          overlay.childNode(withName: "homeResourceBar") != nil &&
+                         overlay.childNode(withName: "homePilotPreview") != nil &&
                          overlayButtons["start"] != nil,
-                         "Home must show an interactive campaign and navigation dock")
+                         "Home must render one pilot, animated portal and working dock")
         }
         if ProcessInfo.processInfo.arguments.contains("-captureWorldSelectorScreenshot") {
             showWorldSelector()
@@ -1688,6 +1690,10 @@ final class OutpostScene: SKScene {
         discardRunArmed = false
         hud.isHidden = true
         phase = .ready
+        // The physical combat pilot remains underneath menu overlays and
+        // looked like a second character below the dock in real screenshots.
+        // Only the larger staged illustration should appear on the home.
+        pilot.isHidden = true
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
         overlayBackdrop.isHidden = true
@@ -1771,6 +1777,31 @@ final class OutpostScene: SKScene {
         energy.lineWidth = 2.2
         energy.zPosition = 1
         portal.addChild(energy)
+        // Four curved, translucent currents create a liquid-energy surface,
+        // without flattening the ring or obscuring the pilot's silhouette.
+        for index in 0..<4 {
+            let offset = CGFloat(index) * 17 * scale
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: -19 * scale, y: -43 * scale + offset))
+            path.addCurve(
+                to: CGPoint(x: 18 * scale, y: -23 * scale + offset),
+                control1: CGPoint(x: 25 * scale, y: -37 * scale + offset),
+                control2: CGPoint(x: -23 * scale, y: -20 * scale + offset))
+            let current = SKShapeNode(path: path)
+            current.name = "homePortalCurrent"
+            current.strokeColor = index.isMultiple(of: 2)
+                ? SKColor(red: 0.66, green: 0.93, blue: 1, alpha: 0.77)
+                : SKColor(red: 0.13, green: 0.37, blue: 0.94, alpha: 0.86)
+            current.lineWidth = 3.2 * scale
+            current.lineCap = .round
+            current.glowWidth = 1.8
+            current.zPosition = 2
+            energy.addChild(current)
+            current.run(.repeatForever(.sequence([
+                .fadeAlpha(to: 0.38, duration: 0.6 + Double(index) * 0.11),
+                .fadeAlpha(to: 0.94, duration: 0.7 + Double(index) * 0.10)
+            ])))
+        }
         let pilotPreview = SKSpriteNode(texture: productionTexture(
             named: "pilot_idle", fallback: pilotArmorTexture))
         pilotPreview.name = "homePilotPreview"
@@ -1778,8 +1809,10 @@ final class OutpostScene: SKScene {
         pilotPreview.position = CGPoint(x: 67 * scale, y: -67 * scale)
         pilotPreview.zPosition = 3
         overlay.addChild(pilotPreview)
+        // The region label belongs in the open sky, not across the green
+        // oval platform outline at the bottom of the world preview.
         overlayText(world.region.uppercased(),
-                    y: -107 * scale, fontSize: 11 * scale)
+                    y: 88 * scale, fontSize: 11 * scale)
 
         if let saved {
             actionButton("RESUME  •  ROOM \(saved.room)", key: "recover_run",
@@ -1802,6 +1835,7 @@ final class OutpostScene: SKScene {
     private func showWorldSelector() {
         discardRunArmed = false
         hud.isHidden = true
+        pilot.isHidden = true
         phase = .worldSelect
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
@@ -2816,6 +2850,9 @@ final class OutpostScene: SKScene {
 
     private func startWave() {
         hud.isHidden = false
+        // Returning from Home/World Map must restore the actual playable
+        // pilot, not just the home preview art.
+        pilot.isHidden = false
         if wave > 0 && wave < worldWaveCount && !gateUnlocked {
             showZoneGate()
             return
