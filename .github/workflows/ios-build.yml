@@ -370,6 +370,8 @@ jobs:
           capture_scene -captureFrontierGuardianExposedScreenshot screenshots/outpost-zero-frontier-guardian-exposed.png
           capture_scene -captureFloodedBossScreenshot screenshots/outpost-zero-tidal-warden.png
           capture_scene -captureToxicBossScreenshot screenshots/outpost-zero-toxic-sentinel.png
+          capture_scene -captureHomeNavigationScreenshot screenshots/outpost-zero-home-navigation.png
+          capture_scene -captureWorldSelectorScreenshot screenshots/outpost-zero-world-selector.png
           capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
           capture_scene -captureRecoveryScreenshot screenshots/outpost-zero-recovery.png
           capture_scene -capturePausedRunScreenshot screenshots/outpost-zero-paused-run.png
@@ -459,6 +461,11 @@ jobs:
           PY
           test -s screenshots/outpost-zero-settings.png
           test -s screenshots/outpost-zero-paused-run.png
+          test -s screenshots/outpost-zero-home-navigation.png
+          test -s screenshots/outpost-zero-world-selector.png
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-home-navigation.png \
+            screenshots/outpost-zero-world-selector.png
           test -s screenshots/outpost-zero-headquarters.png
           test -s screenshots/outpost-zero-recovery.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-headquarters.png

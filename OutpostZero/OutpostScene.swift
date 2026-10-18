@@ -1,7 +1,7 @@
 import SpriteKit
 
 final class OutpostScene: SKScene {
-    private enum Phase { case ready, headquarters, gearBay, abilityLab, loadout, playing, levelUp, checkpoint, gate, settings, interrupted, worldComplete, restoration, gameOver }
+    private enum Phase { case ready, worldSelect, headquarters, gearBay, abilityLab, loadout, playing, levelUp, checkpoint, gate, settings, interrupted, worldComplete, restoration, gameOver }
     private struct Enemy {
         let node: SKShapeNode
         var health: Int
@@ -538,6 +538,25 @@ final class OutpostScene: SKScene {
         health = maximumHealth
         layout()
         showReady()
+        // Validate real navigation keys and stage geometry in a simulator,
+        // rather than accepting a static presentation-board illustration.
+        if ProcessInfo.processInfo.arguments.contains("-captureHomeNavigationScreenshot") {
+            let keys = ["worlds", "gear_bay", "headquarters",
+                        "ability_lab", "restore"]
+            precondition(phase == .ready &&
+                         keys.allSatisfy({ overlayButtons[$0] != nil }) &&
+                         overlay.childNode(withName: "homeUprightPortal") != nil &&
+                         overlay.childNode(withName: "homeResourceBar") != nil &&
+                         overlayButtons["start"] != nil,
+                         "Home must show an interactive campaign and navigation dock")
+        }
+        if ProcessInfo.processInfo.arguments.contains("-captureWorldSelectorScreenshot") {
+            showWorldSelector()
+            precondition(phase == .worldSelect &&
+                         overlayButtons["world_next"] != nil &&
+                         overlayButtons["home"] != nil,
+                         "World map must support selection and return to home")
+        }
         // CI-only settings and lifecycle integration: a call must pause
         // hostile attacks, and resuming must require deliberate input.
         if ProcessInfo.processInfo.arguments.contains("-captureRecoveryScreenshot") {
@@ -1521,9 +1540,11 @@ final class OutpostScene: SKScene {
         settingsShortcut.isHidden = ![Phase.ready, .loadout, .playing, .gate].contains(phase)
         // Player controls sit below the compact header.
         speedButton.position = CGPoint(x: size.width - 56, y: size.height - 195)
-        if phase == .ready || phase == .loadout {
-            // In menus, keep the gear inside the panel rather than
-            // floating over its top-left border.
+        if phase == .ready {
+            let homeScale = min(1, size.height / 780)
+            settingsShortcut.position = CGPoint(
+                x: size.width - 39, y: overlay.position.y + 255 * homeScale)
+        } else if phase == .loadout {
             settingsShortcut.position = CGPoint(
                 x: size.width - 52, y: overlay.position.y + 155)
         } else {
@@ -1625,14 +1646,166 @@ final class OutpostScene: SKScene {
         movementTarget = nil
     }
 
+    /// Five large, thumb-reachable tabs expose the existing functional screens.
+    /// Hit rectangles live in the same local coordinates as overlay touches.
+    private func homeTab(_ caption: String, symbol: String, key: String,
+                         index: Int, scale: CGFloat) {
+        let width = min((size.width - 24) / 5, 74)
+        let x = CGFloat(index - 2) * width
+        let y = -294 * scale
+        let rect = CGRect(x: x - width / 2 + 2, y: y - 30 * scale,
+                          width: width - 4, height: 64 * scale)
+        let tile = SKShapeNode(rect: rect, cornerRadius: 10 * scale)
+        tile.name = "homeNav_\(key)"
+        tile.fillColor = SKColor(red: 0.07, green: 0.16, blue: 0.23, alpha: 0.95)
+        tile.strokeColor = .systemTeal.withAlphaComponent(0.72)
+        tile.lineWidth = 1.3
+        tile.zPosition = 4
+        overlay.addChild(tile)
+        let icon = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        icon.text = symbol
+        icon.fontColor = .systemCyan
+        icon.fontSize = 24 * scale
+        icon.verticalAlignmentMode = .center
+        icon.position = CGPoint(x: x, y: y + 9 * scale)
+        icon.zPosition = 5
+        overlay.addChild(icon)
+        let label = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+        label.text = caption
+        label.fontColor = .white
+        label.fontSize = 9 * scale
+        label.verticalAlignmentMode = .center
+        label.position = CGPoint(x: x, y: y - 18 * scale)
+        label.zPosition = 5
+        overlay.addChild(label)
+        overlayButtons[key] = rect
+    }
+
+    /// Distinct home screen: concise resources, one highlighted world and a
+    /// single primary Play/Resume action. No marketing notifications or fake
+    /// currencies copied from the visual navigation benchmark.
     private func showReady() {
         discardRunArmed = false
         hud.isHidden = true
         phase = .ready
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
-        // The previous panel clipped WORLD MAP at its top and left the
-        // power-core counter outside its bottom. Keep both inside the card.
+        overlayBackdrop.isHidden = true
+        let scale = min(1, size.height / 780)
+        let world = selectedWorld
+        let playable = worldMapIndex < WorldCatalog.playableCount
+        let unlocked = playable && WorldCatalog.unlocked(worldMapIndex)
+        let saved = recovery.load()
+
+        overlayText("OUTPOST ZERO", y: 255 * scale, fontSize: 24 * scale)
+        let stripWidth = min(size.width - 30, 362)
+        let strip = SKShapeNode(rect: CGRect(
+            x: -stripWidth / 2, y: 185 * scale,
+            width: stripWidth, height: 46 * scale), cornerRadius: 12 * scale)
+        strip.name = "homeResourceBar"
+        strip.fillColor = SKColor(red: 0.06, green: 0.16, blue: 0.22, alpha: 0.95)
+        strip.strokeColor = .systemTeal.withAlphaComponent(0.7)
+        strip.lineWidth = 1.2
+        strip.zPosition = 1
+        overlay.addChild(strip)
+        overlayText("\(permanent.salvage) SALVAGE    •    \(availableCores) CORES",
+                    y: 199 * scale, fontSize: 12 * scale)
+        overlayText("WORLD \(worldMapIndex + 1)  •  \(world.title)",
+                    y: 151 * scale, fontSize: 17 * scale)
+        overlayText(unlocked
+            ? "\(WorldCatalog.stars(worldMapIndex))/3 STARS   •   BEST ROOM \(WorldCatalog.bestRoom(worldMapIndex))/20"
+            : (playable ? "LOCKED  •  CLEAR PREVIOUS WORLD" : "COMING LATER"),
+            y: 127 * scale, fontSize: 11 * scale)
+
+        let stageWidth = min(size.width - 36, 352)
+        let stage = SKShapeNode(rect: CGRect(
+            x: -stageWidth / 2, y: -120 * scale,
+            width: stageWidth, height: 230 * scale),
+            cornerRadius: 20 * scale)
+        stage.name = "homeWorldPreview"
+        stage.fillColor = worldMapIndex == 0
+            ? SKColor(red: 0.09, green: 0.24, blue: 0.18, alpha: 0.97)
+            : (worldMapIndex == 1
+                ? SKColor(red: 0.06, green: 0.21, blue: 0.31, alpha: 0.97)
+                : SKColor(red: 0.20, green: 0.18, blue: 0.22, alpha: 0.97))
+        stage.strokeColor = .systemTeal.withAlphaComponent(0.72)
+        stage.lineWidth = 2
+        overlay.addChild(stage)
+        let island = SKShapeNode(ellipseOf: CGSize(width: stageWidth * 0.8,
+                                                    height: 59 * scale))
+        island.position = CGPoint(x: 0, y: -78 * scale)
+        island.fillColor = SKColor(red: 0.26, green: 0.42, blue: 0.32, alpha: 1)
+        island.strokeColor = .systemTeal.withAlphaComponent(0.72)
+        island.lineWidth = 2
+        island.zPosition = 0.5
+        overlay.addChild(island)
+        for (i, horizontal) in [CGFloat(-0.38), -0.25, 0.28, 0.4].enumerated() {
+            let tree = SKSpriteNode(texture: productionTexture(
+                named: i.isMultiple(of: 2) ? "forest_pine" : "forest_broadleaf",
+                fallback: forestPineTexture))
+            tree.size = CGSize(width: 53 * scale, height: 88 * scale)
+            tree.position = CGPoint(x: stageWidth * horizontal,
+                                    y: CGFloat(-21 + (i % 2) * 13) * scale)
+            tree.zPosition = 1
+            overlay.addChild(tree)
+        }
+        // The same upright ring language as our campaign exit, never a
+        // rectangular gate or a floor circle.
+        let portal = SKShapeNode(ellipseOf: CGSize(width: 96 * scale,
+                                                    height: 138 * scale))
+        portal.name = "homeUprightPortal"
+        portal.position = CGPoint(x: 0, y: -4 * scale)
+        portal.fillColor = SKColor(red: 0.035, green: 0.29,
+                                   blue: 0.59, alpha: 1)
+        portal.strokeColor = SKColor(red: 0.53, green: 0.81,
+                                     blue: 0.85, alpha: 1)
+        portal.lineWidth = 9 * scale
+        portal.glowWidth = 3
+        portal.zPosition = 2
+        overlay.addChild(portal)
+        let energy = SKShapeNode(ellipseOf: CGSize(width: 70 * scale,
+                                                    height: 113 * scale))
+        energy.fillColor = SKColor(red: 0.07, green: 0.52,
+                                   blue: 0.83, alpha: 1)
+        energy.strokeColor = .systemCyan
+        energy.lineWidth = 2.2
+        energy.zPosition = 1
+        portal.addChild(energy)
+        let pilotPreview = SKSpriteNode(texture: productionTexture(
+            named: "pilot_idle", fallback: pilotArmorTexture))
+        pilotPreview.name = "homePilotPreview"
+        pilotPreview.size = CGSize(width: 58 * scale, height: 69 * scale)
+        pilotPreview.position = CGPoint(x: 67 * scale, y: -67 * scale)
+        pilotPreview.zPosition = 3
+        overlay.addChild(pilotPreview)
+        overlayText(world.region.uppercased(),
+                    y: -107 * scale, fontSize: 11 * scale)
+
+        if let saved {
+            actionButton("RESUME  •  ROOM \(saved.room)", key: "recover_run",
+                         y: -187 * scale, tint: .systemOrange)
+        } else {
+            actionButton(unlocked ? "START CAMPAIGN" : "WORLD LOCKED",
+                         key: "start", y: -187 * scale, tint: .systemOrange,
+                         enabled: unlocked)
+        }
+        overlayText("CHOOSE A WORLD OR UPGRADE BEFORE DEPLOYING",
+                    y: -233 * scale, fontSize: 10 * scale)
+        homeTab("WORLDS", symbol: "◎", key: "worlds", index: 0, scale: scale)
+        homeTab("GEAR", symbol: "◆", key: "gear_bay", index: 1, scale: scale)
+        homeTab("HQ", symbol: "⌂", key: "headquarters", index: 2, scale: scale)
+        homeTab("ABILITIES", symbol: "✦", key: "ability_lab", index: 3, scale: scale)
+        homeTab("RESTORE", symbol: "⬡", key: "restore", index: 4, scale: scale)
+        updateHUD()
+    }
+
+    private func showWorldSelector() {
+        discardRunArmed = false
+        hud.isHidden = true
+        phase = .worldSelect
+        ArcadeMusic.shared.play(.headquarters)
+        clearOverlay()
+        // The world chooser retains swipe navigation and previews.
         overlayBackdrop.path = CGPath(roundedRect: CGRect(
             x: -min(size.width - 28, 390) / 2, y: -293,
             width: min(size.width - 28, 390), height: 489),
@@ -1706,7 +1879,7 @@ final class OutpostScene: SKScene {
         } else if unlocked {
             actionButton("PREPARE LOADOUT", key: "start", y: -181, tint: .systemTeal)
         }
-        actionButton("HEADQUARTERS & UPGRADES", key: "headquarters", y: -232, tint: .systemIndigo)
+        actionButton("BACK TO HOME", key: "home", y: -232, tint: .systemIndigo)
         overlayText("POWER CORES: \(availableCores)", y: -272, fontSize: 12)
         updateHUD()
     }
@@ -5338,7 +5511,7 @@ final class OutpostScene: SKScene {
             return
         }
         if clock < menuUnlockTime || awaitingMenuRelease { return }
-        if phase == .ready {
+        if phase == .worldSelect {
             worldMapSwipeStart = point
             worldMapSwipeMoved = false
         }
@@ -5354,7 +5527,12 @@ final class OutpostScene: SKScene {
             showSettings()
         case (.settings, "close_settings"): closeSettings()
         case (.interrupted, "resume_run"): resumeInterruptedRun()
-        case (.ready, "recover_run"): recoverSavedRun()
+        case (.ready, "recover_run"), (.worldSelect, "recover_run"):
+            recoverSavedRun()
+        case (.ready, "worlds"): showWorldSelector()
+        case (.worldSelect, "home"): showReady()
+        case (.ready, "gear_bay"): showGearBay()
+        case (.ready, "ability_lab"): showAbilityLab()
         case (.ready, "headquarters"): showHeadquarters()
         case (.headquarters, "discard_run"): discardSavedRun()
         case (.gameOver, "headquarters"), (.worldComplete, "headquarters"):
@@ -5371,7 +5549,9 @@ final class OutpostScene: SKScene {
             purchasePermanentUpgrade(String(key.dropFirst(4)))
         case (.abilityLab, let key?) where key.hasPrefix("buy_"):
             purchasePermanentUpgrade(String(key.dropFirst(4)))
-        case (.ready, "start") where WorldCatalog.unlocked(worldMapIndex) && recovery.load() == nil:
+        case (.ready, "start"), (.worldSelect, "start")
+            where WorldCatalog.unlocked(worldMapIndex) &&
+                  worldMapIndex < WorldCatalog.playableCount && recovery.load() == nil:
             draftLoadout = AbilityLoadout()
             showLoadout()
         case (.loadout, "back_loadout"): showReady()
@@ -5379,12 +5559,12 @@ final class OutpostScene: SKScene {
             if draftLoadout.toggle(String(key.dropFirst(5))) { showLoadout() }
         case (.loadout, "lock_loadout") where draftLoadout.isReady:
             _ = enterSelectedWorld()
-        case (.ready, "world_prev"):
+        case (.worldSelect, "world_prev"):
             worldMapIndex = max(0, worldMapIndex - 1)
-            showReady()
-        case (.ready, "world_next"):
+            showWorldSelector()
+        case (.worldSelect, "world_next"):
             worldMapIndex = min(WorldCatalog.worlds.count - 1, worldMapIndex + 1)
-            showReady()
+            showWorldSelector()
         case (.ready, "restore"), (.worldComplete, "restore"): showRestoration()
         case (.restoration, "back"):
             if restorationReturnPhase == .worldComplete { showWorldCompleteSummary() }
@@ -5406,7 +5586,7 @@ final class OutpostScene: SKScene {
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if phase == .ready, let start = worldMapSwipeStart, let touch = touches.first {
+        if phase == .worldSelect, let start = worldMapSwipeStart, let touch = touches.first {
             if abs(touch.location(in: self).x - start.x) > 30 { worldMapSwipeMoved = true }
         }
         if (phase == .playing || phase == .gate), let heldTouch, touches.contains(heldTouch) {
@@ -5425,11 +5605,11 @@ final class OutpostScene: SKScene {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if phase == .ready, let start = worldMapSwipeStart, let touch = touches.first {
+        if phase == .worldSelect, let start = worldMapSwipeStart, let touch = touches.first {
             let dx = touch.location(in: self).x - start.x
             if abs(dx) > 65 {
                 worldMapIndex = min(WorldCatalog.worlds.count - 1, max(0, worldMapIndex + (dx < 0 ? 1 : -1)))
-                showReady()
+                showWorldSelector()
             }
         }
         worldMapSwipeStart = nil
