@@ -69,6 +69,13 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - The gate QA fixture checks the actual rendered ring's >140-point standing height, <120-point width, and base/structural elements before screenshot capture.
 - Keep checking the *actual* simulator screenshot instead of judging by source assertions. No TestFlight upload.
 
+## October 17/18 — survivor-only recovery rewards and lifecycle QA
+- In modern survival saves, only still-living foes are recreated on resume. Previously earned coins and XP remain in the snapshot, and previously killed enemies never return. Their old kill reward credits **must not** suppress XP/coins from first-time kills of surviving enemies. Clear only XP/coin replay credits when an explicit saved living population is restored; retain Salvage credit and original replay protection for ordinary tactical and legacy saves.
+- Added pure progression regression checks for full payouts of newly defeated survivors and tactical anti-duplication behavior.
+- Expanded the existing **actual iOS simulator recovery fixture** to cover mid-timer interruption, an expired clock saved as battle state, a saved open extraction with live enemies remaining, and recovery with a pending level-up. It asserts timer, population, coins, XP, UI phase and portal recovery, without user save changes.
+- Development commits: `685afbc2`, `ff5e587b`, `de80595f`, `8307ada3` on `outpost-zero`. CI run for final scene QA commit: https://github.com/JPaulus04/invasion-front-app/actions/runs/39096816547 . Unit tests passed as of initial inspection; **full CI and actual simulator screenshots still require verification**.
+- No new TestFlight release. Continue with full simulator and screenshot acceptance; then implement actual equipment-defense mechanics as a separately named change.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.
