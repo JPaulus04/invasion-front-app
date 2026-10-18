@@ -74,6 +74,18 @@ enum EquipmentDefenseRules {
     static let hitCooldown: TimeInterval = 1.2
     static let enemyCap = 10
     static let spawnCadence: TimeInterval = 2.0
+    // Attackers must advance toward the protected device rather than spawn
+    // in striking range. Keep the margin outside their collision radius.
+    static let minimumReactorSpawnDistance: CGFloat = 155
+
+    static func safeSpawn(distanceFromReactor: CGFloat,
+                          enemyRadius: CGFloat) -> Bool {
+        distanceFromReactor >= minimumReactorSpawnDistance + max(0, enemyRadius)
+    }
+
+    static func criticalIntegrity(_ integrity: Int) -> Bool {
+        integrity > 0 && integrity * 3 <= maximumIntegrity
+    }
 
     static func succeeds(elapsed: TimeInterval, duration: TimeInterval,
                          integrity: Int) -> Bool {
