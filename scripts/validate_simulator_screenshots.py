@@ -42,7 +42,8 @@ def verify(path: Path) -> None:
     is_survival = (path.name.startswith("outpost-zero-survival-") or
                    path.name == "outpost-zero-extraction-open.png" or
                    path.name in ("outpost-zero-defense-active.png",
-                                 "outpost-zero-defense-cleared.png"))
+                                 "outpost-zero-defense-cleared.png",
+                                 "outpost-zero-defense-failed.png"))
     # Ignore static phone notch/home bar; sample the game area.
     # A denser grid catches small, moving sprites in intentionally sparse
     # ranged arenas without treating real gameplay as an unrendered frame.
