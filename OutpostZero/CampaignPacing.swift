@@ -144,14 +144,16 @@ enum SurvivalEncounterRules {
     static func canSpawn(world: Int, room: Int, elapsed: TimeInterval,
                          livingEnemies: Int) -> Bool {
         let deadline = duration(world: world, room: room)
-        return deadline > 0 && elapsed >= 0 && elapsed < deadline &&
+        return kind(world: world, room: room) == .survival &&
+            deadline > 0 && elapsed >= 0 && elapsed < deadline &&
             livingEnemies < maxLivingEnemies(room: room)
     }
 
     static func extractionActive(world: Int, room: Int,
                                  elapsed: TimeInterval) -> Bool {
         let deadline = duration(world: world, room: room)
-        return deadline > 0 && elapsed >= deadline
+        return kind(world: world, room: room) == .survival &&
+            deadline > 0 && elapsed >= deadline
     }
 
     enum ExitRoute: Equatable {
@@ -162,7 +164,7 @@ enum SurvivalEncounterRules {
     /// A timed arena must use a distinct extraction structure instead of
     /// silently converting the ordinary between-room combat gate.
     static func exitRoute(world: Int, room: Int) -> ExitRoute {
-        kind(world: world, room: room).isTimed ? .extractionPortal : .combatGate
+        kind(world: world, room: room) == .survival ? .extractionPortal : .combatGate
     }
 
     /// Survival is won by outlasting the timer, NOT by killing every unit.
