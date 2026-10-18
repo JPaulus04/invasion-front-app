@@ -30,42 +30,49 @@ struct CampaignPacingTests {
                     let duration = SurvivalEncounterRules.duration(
                         world: world, room: room)
                     precondition(duration >= 90 && duration <= 120)
-                    precondition(SurvivalEncounterRules.canSpawn(
-                        world: world, room: room, elapsed: 0,
-                        livingEnemies: 0))
-                    precondition(!SurvivalEncounterRules.canSpawn(
-                        world: world, room: room, elapsed: duration,
-                        livingEnemies: 0), "Extraction must stop all new spawns")
-                    precondition(SurvivalEncounterRules.extractionActive(
-                        world: world, room: room, elapsed: duration))
-                    precondition(!SurvivalEncounterRules.extractionActive(
-                        world: world, room: room, elapsed: duration - 0.01))
-                    precondition(SurvivalEncounterRules.exitRoute(
-                        world: world, room: room) == .extractionPortal)
-                    precondition(!SurvivalEncounterRules.extractionCanOpen(
-                        world: world, room: room, elapsed: duration - 0.01,
-                        livingEnemies: 0))
-                    // The timer opens extraction even if the arena still has
-                    // its maximum active swarm; killing them is optional.
-                    for living in [0, 1, SurvivalEncounterRules.maxLivingEnemies(room: room)] {
-                        precondition(SurvivalEncounterRules.extractionCanOpen(
-                            world: world, room: room, elapsed: duration,
-                            livingEnemies: living))
+                    if kind == .survival {
+                        precondition(SurvivalEncounterRules.canSpawn(
+                            world: world, room: room, elapsed: 0, livingEnemies: 0))
                         precondition(!SurvivalEncounterRules.canSpawn(
+                            world: world, room: room, elapsed: duration, livingEnemies: 0))
+                        precondition(SurvivalEncounterRules.extractionActive(
+                            world: world, room: room, elapsed: duration))
+                        precondition(!SurvivalEncounterRules.extractionActive(
+                            world: world, room: room, elapsed: duration - 0.01))
+                        precondition(SurvivalEncounterRules.exitRoute(
+                            world: world, room: room) == .extractionPortal)
+                        for living in [0, 1, SurvivalEncounterRules.maxLivingEnemies(room: room)] {
+                            precondition(SurvivalEncounterRules.extractionCanOpen(
+                                world: world, room: room, elapsed: duration,
+                                livingEnemies: living))
+                            precondition(!SurvivalEncounterRules.canSpawn(
+                                world: world, room: room, elapsed: duration, livingEnemies: living))
+                        }
+                        precondition(!SurvivalEncounterRules.extractionCanOpen(
+                            world: world, room: room, elapsed: duration, livingEnemies: -1))
+                        precondition(!SurvivalEncounterRules.canSpawn(
+                            world: world, room: room, elapsed: 10,
+                            livingEnemies: SurvivalEncounterRules.maxLivingEnemies(room: room)))
+                        precondition((15...28).contains(
+                            SurvivalEncounterRules.maxLivingEnemies(room: room)))
+                        precondition((1...2).contains(SurvivalEncounterRules.spawnBatch(room: room)))
+                    } else {
+                        // Device defense has its own enemy and integrity rules;
+                        // it is not an extraction-orb survival encounter.
+                        precondition(kind == .equipmentDefense)
+                        precondition(SurvivalEncounterRules.exitRoute(
+                            world: world, room: room) == .combatGate)
+                        precondition(!SurvivalEncounterRules.extractionCanOpen(
                             world: world, room: room, elapsed: duration,
-                            livingEnemies: living))
+                            livingEnemies: 0))
+                        precondition(!SurvivalEncounterRules.canSpawn(
+                            world: world, room: room, elapsed: 0, livingEnemies: 0))
+                        precondition(EquipmentDefenseRules.maySpawn(
+                            elapsed: 0, duration: duration,
+                            integrity: EquipmentDefenseRules.maximumIntegrity, living: 0))
+                        precondition(EquipmentDefenseRules.succeeds(
+                            elapsed: duration, duration: duration, integrity: 1))
                     }
-                    precondition(!SurvivalEncounterRules.extractionCanOpen(
-                        world: world, room: room, elapsed: duration,
-                        livingEnemies: -1))
-                    precondition(!SurvivalEncounterRules.canSpawn(
-                        world: world, room: room, elapsed: 10,
-                        livingEnemies: SurvivalEncounterRules.maxLivingEnemies(
-                            room: room)), "Active enemy cap must prevent overload")
-                    precondition((15...28).contains(
-                        SurvivalEncounterRules.maxLivingEnemies(room: room)))
-                    precondition((1...2).contains(
-                        SurvivalEncounterRules.spawnBatch(room: room)))
                 } else {
                     precondition(SurvivalEncounterRules.exitRoute(
                         world: world, room: room) == .combatGate)
