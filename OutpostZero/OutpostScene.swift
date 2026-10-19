@@ -5203,6 +5203,8 @@ final class OutpostScene: SKScene {
         let choiceLevel = progress.level - progress.pendingChoices + 1
         overlayText("LEVEL \(choiceLevel)!", y: 125, fontSize: 28)
         overlayText("RANDOM DRAW • CHOOSE ONE", y: 87, fontSize: 15)
+        overlayText("TACTICAL \(lockedLoadout.selected.count)/\(playerMastery.capacity)   •   MASTERY \(playerMastery.level)",
+                    y: 67, fontSize: 10)
         var pool = ["armor"]
         if fireRate < 5 { pool.append("rate") }
         let tacticalOptions = lockedLoadout.availableTacticalUpgrades(
