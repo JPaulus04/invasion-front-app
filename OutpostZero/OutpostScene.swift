@@ -57,7 +57,8 @@ final class OutpostScene: SKScene {
         SKColor(red: 0.17, green: 0.29, blue: 0.23, alpha: 1),
         SKColor(red: 0.20, green: 0.31, blue: 0.17, alpha: 1),
         SKColor(red: 0.15, green: 0.17, blue: 0.22, alpha: 1),
-        SKColor(red: 0.22, green: 0.12, blue: 0.13, alpha: 1)
+        // Guardian Clearing stays shadowed but recognizably forest green.
+        SKColor(red: 0.14, green: 0.23, blue: 0.19, alpha: 1)
     ]
     private var lastRestoredBranch = 0
     private let zoneNames = ["FOREST EDGE", "OVERGROWN PATH", "RUINED OUTPOST", "GUARDIAN CLEARING"]
