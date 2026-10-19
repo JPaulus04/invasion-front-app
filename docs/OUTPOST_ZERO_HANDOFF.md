@@ -176,6 +176,12 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - CI now captures and image-validates separate intact / warnings active / warning impacts resolved screenshots, asserting each differs. Pure Swift pacing test confirms a safe lane even on the compact 320px room.
 - Do not treat passing screenshots as a substitute for player-led TestFlight fun/difficulty acceptance. No TestFlight upload in mini-steps. Keep further content to World 1.
 
+## October 19 — TestFlight build 319 successfully uploaded
+- User explicitly authorized next internal TestFlight release. GitHub Actions **TestFlight Release** workflow run 39240125855 completed **success**, including the signing/export/identity and **Upload to App Store Connect** step; uploader log: `UPLOAD SUCCEEDED with no errors`.
+- Signed IPA verified `com.paulus.laststandcommand` with `CFBundleVersion=319` and nine required production sprites. Code pinned to latest fully validated World 1 source `b11c3e8514e6315da1693ca286983f95a1695b29` (all three iOS CI jobs green at workflow 39204717870).
+- Prior signed build **318** had been uploaded in run 39133359063, so **319** is the correct new build number. Allow Apple processing time before declaring the build visible to testers; upload succeeded, processing status not yet verified.
+- GitHub Actions integration did not expose manual workflow dispatch; a narrow single-use push trigger in `.github/workflows/testflight.yml` launched the validated release, and **is restored to its manual-only original state after success**. No additional auto-release trigger should remain.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.
