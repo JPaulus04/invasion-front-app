@@ -366,7 +366,11 @@ if '"BLOCKED"' in scene:
     errors.append("Placeholder BLOCKED UI must not cover rubble obstacles")
 if 'decorateRubbleObstacle(shape, size: patch.frame.size)' not in scene:
     errors.append("Rubble collision patches must use dimensional artwork")
-if 'if worldMapIndex == 0 && zone <= 1' not in scene:
+# Forest Edge, Overgrown Path and the World 1 Guardian Clearing all
+# carry forest litter. The explicit world guard still excludes flooded/toxic
+# maps even when their zone index also equals 3.
+if ('if worldMapIndex == 0 && zone <= 1' not in scene and
+        'if worldMapIndex == 0 && (zone <= 1 || zone == 3)' not in scene):
     errors.append("Forest litter must not be painted into flooded rooms")
 forest_floor = scene.split("// Sparse, asymmetrical forest dressing.", 1)[-1].split("// Fern silhouettes", 1)[0]
 if "BattlefieldArt.terrainShape(" not in forest_floor:
