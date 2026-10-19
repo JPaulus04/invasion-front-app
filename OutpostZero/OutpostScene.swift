@@ -3344,8 +3344,11 @@ final class OutpostScene: SKScene {
             }
             prop.strokeColor = .white.withAlphaComponent(0.22)
             prop.lineWidth = 1
-            prop.alpha = worldMapIndex == 2 ? 0.94 :
-                (zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55))
+            // The old guardian-zone props were intentionally ghostly red
+            // beacons; their illustrated tree replacements must be opaque.
+            prop.alpha = worldMapIndex == 0 && zone == 3 ? 0.94 :
+                (worldMapIndex == 2 ? 0.94 :
+                    (zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55)))
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
             if zone == 3 && worldMapIndex == 0 {
