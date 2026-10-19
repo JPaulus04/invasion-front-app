@@ -21,12 +21,12 @@ struct CampaignPacingTests {
         precondition(FlankSwarmRules.arrivalCount(room: 5, remaining: 1) == 1)
         precondition(FlankSwarmRules.arrivalCount(room: 14, remaining: 7) == 3)
         precondition(FlankSwarmRules.warningSeconds >= 1.5)
-        let pilot = CGPoint(x: bounds.minX + 25, y: bounds.midY)
+        let flankPilot = CGPoint(x: bounds.minX + 25, y: bounds.midY)
         for index in 0..<3 {
             let entry = FlankSwarmRules.entry(
-                bounds: bounds, warnedPilot: pilot, index: index)
+                bounds: bounds, warnedPilot: flankPilot, index: index)
             precondition(bounds.contains(entry))
-            precondition(hypot(entry.x - pilot.x, entry.y - pilot.y) >= 95)
+            precondition(hypot(entry.x - flankPilot.x, entry.y - flankPilot.y) >= 95)
         }
         let expectedSurvival = [4, 5, 4]
         let expectedDefense = [1, 0, 1]
