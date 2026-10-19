@@ -80,6 +80,10 @@ if 'timedEncounterLiving:' not in scene or 'timedEncounterSpawned:' not in scene
     errors.append("Interrupted swarms must preserve the live count and reinforcement index")
 if 'extractionCombatActive' not in scene or 'foeCountBefore - 1' not in scene:
     errors.append("Simulator must verify earned kills after extraction with no new spawns")
+if "FlankSwarmRules.shouldWarn(" not in scene or "scheduleFlankSwarm(count:" not in scene or "deployFlankSwarm()" not in scene:
+    errors.append("World 1 tactical swarms must show warning lanes before arrival")
+if "-captureFlankWarningScreenshot" not in scene or "-captureFlankArrivalScreenshot" not in scene:
+    errors.append("Flank swarms must have separate live simulator warning/arrival scenes")
 if "CombatVisuals.rifleTracer(in: arena" not in scene:
     errors.append("Rifle attacks must use layered, short-lived tracer artwork")
 if "CombatVisuals.explosiveBurst(in: arena" not in scene or "CombatVisuals.markBurning(" not in scene or "CombatVisuals.chainArc(in: arena" not in scene:

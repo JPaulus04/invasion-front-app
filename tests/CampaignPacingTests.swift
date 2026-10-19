@@ -7,6 +7,27 @@ struct CampaignPacingTests {
     static func main() {
         // Survival and optional defense are deliberately interspersed.
         // The boss remains Room 20, regardless of encounter density.
+        let bounds = CGRect(x: 26, y: 70, width: 264, height: 300)
+        precondition(!FlankSwarmRules.shouldWarn(
+            world: 0, room: 1, nextSlot: 4))
+        precondition(FlankSwarmRules.shouldWarn(
+            world: 0, room: 5, nextSlot: 4))
+        precondition(!FlankSwarmRules.shouldWarn(
+            world: 0, room: 6, nextSlot: 4))
+        precondition(!FlankSwarmRules.shouldWarn(
+            world: 1, room: 5, nextSlot: 4))
+        precondition(FlankSwarmRules.shouldWarn(
+            world: 0, room: 13, nextSlot: 13))
+        precondition(FlankSwarmRules.arrivalCount(room: 5, remaining: 1) == 1)
+        precondition(FlankSwarmRules.arrivalCount(room: 14, remaining: 7) == 3)
+        precondition(FlankSwarmRules.warningSeconds >= 1.5)
+        let pilot = CGPoint(x: bounds.minX + 25, y: bounds.midY)
+        for index in 0..<3 {
+            let entry = FlankSwarmRules.entry(
+                bounds: bounds, warnedPilot: pilot, index: index)
+            precondition(bounds.contains(entry))
+            precondition(hypot(entry.x - pilot.x, entry.y - pilot.y) >= 95)
+        }
         let expectedSurvival = [4, 5, 4]
         let expectedDefense = [1, 0, 1]
         for world in 0..<WorldCatalog.playableCount {

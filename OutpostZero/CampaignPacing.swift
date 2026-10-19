@@ -262,3 +262,37 @@ enum SurvivalEncounterRules {
     static let fastExtractionBonusXP = 0
     static let fastExtractionBonusSalvage = 0
 }
+
+
+/// Short, telegraphed flank bursts in World 1 tactical rooms only. Times are
+/// real presentation seconds, so the warning remains fair at 2x game speed.
+enum FlankSwarmRules {
+    static let warningSeconds: TimeInterval = 1.65
+    static let speedMultiplier: CGFloat = 1.28
+
+    static func shouldWarn(world: Int, room: Int, nextSlot: Int) -> Bool {
+        world == 0 && room >= 5 && room < 20 &&
+        SurvivalEncounterRules.kind(world: world, room: room) == .tactical &&
+        (nextSlot == 4 || (room >= 13 && nextSlot == 13))
+    }
+
+    static func arrivalCount(room: Int, remaining: Int) -> Int {
+        min(max(0, remaining), room >= 11 ? 3 : 2)
+    }
+
+    /// Side arrival positions are staggered above and below where the pilot
+    /// was when warned. Never materialize a raider on top of the pilot.
+    static func entry(bounds: CGRect, warnedPilot: CGPoint,
+                      index: Int) -> CGPoint {
+        let left = index.isMultiple(of: 2)
+        let firstX = left ? bounds.minX + 28 : bounds.maxX - 28
+        let offsets: [CGFloat] = [50, -38, -58]
+        let y = min(max(warnedPilot.y + offsets[index % offsets.count],
+                        bounds.minY + 44), bounds.maxY - 44)
+        var x = firstX
+        if hypot(x - warnedPilot.x, y - warnedPilot.y) < 95 {
+            x = left ? bounds.maxX - 28 : bounds.minX + 28
+        }
+        return CGPoint(x: x, y: y)
+    }
+}

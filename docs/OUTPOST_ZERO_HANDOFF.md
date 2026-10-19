@@ -193,6 +193,12 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Once-per-room-per-run mastery XP credits on genuine room completion and uses backward-compatible snapshot tracking. Existing persistent Gear Bay remains unchanged. Next focus World 1 warned high-speed flanking swarms with visual validation.
 - Must pass full current-head iOS and simulator checks; no TestFlight upload until user approves.
 
+## October 19 — Phase 3: World 1 warned flanking raiders
+- Added actual World 1 tactical-room flank bursts starting at Room 5, excluding timed survival and defense rooms and all other worlds. Up to two raiders early, three later; at most two selected burst points per late room, drawn from normal remaining room enemy counts rather than extra hidden population.
+- Orange side indicators and a FLANK ATTACK banner warn for 1.65 **real presentation seconds**, including at 2x gameplay speed; arena pause also freezes their countdown. Raider positions are staggered left/right around the warned pilot location with >=95px spawn clearance; fast raiders move ~28% quicker after entry, encouraging player repositioning instead of stationary auto-fire. Existing contact damage and room clear counts unchanged.
+- World 1 actual SpriteKit screenshots now include separate pre-arrival warning and post-arrival enemies with assertions, plus tests for encounter exclusions and safe compact-device spawn geometry. Current-head CI and screenshot review required before playtest readiness.
+- User-facing Build 319 stays unchanged. No new TestFlight upload without user approval.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

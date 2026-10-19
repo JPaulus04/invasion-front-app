@@ -11,7 +11,7 @@ final class OutpostScene: SKScene {
         let reward: Int
         let behavior: Int
         let radius: CGFloat
-        let activeAt: TimeInterval
+        var activeAt: TimeInterval
         let weavePhase: CGFloat
         var nextAttack: TimeInterval
         var shotTarget: CGPoint? = nil
@@ -66,6 +66,12 @@ final class OutpostScene: SKScene {
     private var spawned = 0
     private var waveTarget = 0
     private var spawnClock: TimeInterval = 0
+    private struct PendingFlankSwarm {
+        let room: Int
+        let warnedPilot: CGPoint
+        let count: Int
+    }
+    private var pendingFlankSwarm: PendingFlankSwarm?
     private var lastUpdate: TimeInterval = 0
     private var coins = 0
     private let permanent = PersistentProgression()
@@ -1143,6 +1149,41 @@ final class OutpostScene: SKScene {
             hud.addChild(marker)
             arena.isPaused = true
             holdDefenseQAScreenshot = true
+            updateHUD()
+        }
+        // World 1 flank warning and live arrival are separate genuine
+        // simulator states, proving there is a pause before fast raiders.
+        let flankWarningQA = ProcessInfo.processInfo.arguments.contains(
+            "-captureFlankWarningScreenshot")
+        let flankArrivalQA = ProcessInfo.processInfo.arguments.contains(
+            "-captureFlankArrivalScreenshot")
+        if flankWarningQA || flankArrivalQA {
+            worldMapIndex = 0
+            wave = 4
+            gateUnlocked = true
+            startWave()
+            spawned = 3
+            precondition(FlankSwarmRules.shouldWarn(
+                world: worldMapIndex, room: wave, nextSlot: spawned + 1))
+            scheduleFlankSwarm(count: 2)
+            precondition(pendingFlankSwarm != nil &&
+                         arena.childNode(withName: "flankSwarmWarning") != nil &&
+                         arena.childNode(withName: "//flankIncomingArrow") != nil,
+                         "Approaching raiders must display actual flank warnings")
+            if flankArrivalQA {
+                deployFlankSwarm()
+                precondition(pendingFlankSwarm == nil &&
+                             enemies.count == 2 &&
+                             enemies.allSatisfy { $0.node.name == "flankRaider" },
+                             "Two flank raiders must enter after the warning")
+                for enemy in enemies {
+                    enemy.node.alpha = 1
+                    enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
+                }
+                arena.childNode(withName: "flankSwarmWarning")?.removeFromParent()
+            }
+            holdDefenseQAScreenshot = true
+            arena.isPaused = true
             updateHUD()
         }
         // Real SpriteKit boss integration: stage the final room and
@@ -2928,6 +2969,9 @@ final class OutpostScene: SKScene {
         bossNode = nil
         guardianArmorBroken = false
         guardianTransitionUntil = 0
+        pendingFlankSwarm = nil
+        arena.children.filter { $0.name == "flankSwarmWarning" }
+            .forEach { $0.removeFromParent() }
         burns.removeAll()
         lastOrbitalHit.removeAll()
         enemyAcidDamageAt.removeAll()
@@ -3911,6 +3955,71 @@ final class OutpostScene: SKScene {
         reactor.addChild(glint)
     }
 
+    /// Visible directional warnings precede fast angled raiders. The SKAction
+    /// waits in wall-clock time, and pauses with the arena on interruptions.
+    private func scheduleFlankSwarm(count: Int) {
+        guard pendingFlankSwarm == nil, count > 0,
+              activeEncounter == .tactical, phase == .playing else { return }
+        let pending = PendingFlankSwarm(
+            room: wave, warnedPilot: pilot.position, count: count)
+        pendingFlankSwarm = pending
+        let notice = SKNode()
+        notice.name = "flankSwarmWarning"
+        notice.zPosition = 16
+        for index in 0..<count {
+            let entry = FlankSwarmRules.entry(bounds: roomBounds,
+                warnedPilot: pending.warnedPilot, index: index)
+            let fromLeft = entry.x < roomBounds.midX
+            let arrow = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            arrow.name = "flankIncomingArrow"
+            arrow.text = fromLeft ? "➤" : "◀"
+            arrow.fontSize = 32
+            arrow.fontColor = .systemOrange
+            arrow.position = CGPoint(x: entry.x, y: entry.y + 4)
+            arrow.zPosition = 2
+            notice.addChild(arrow)
+            let beam = SKShapeNode(rectOf: CGSize(width: 7, height: 45),
+                                   cornerRadius: 3)
+            beam.position = CGPoint(x: entry.x, y: entry.y)
+            beam.fillColor = .systemOrange.withAlphaComponent(0.52)
+            beam.strokeColor = .systemYellow
+            beam.lineWidth = 1.4
+            notice.addChild(beam)
+        }
+        let alert = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        alert.name = "flankSwarmAlert"
+        alert.text = "FLANK ATTACK!"
+        alert.fontSize = 17
+        alert.fontColor = .systemOrange
+        alert.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 58)
+        notice.addChild(alert)
+        arena.addChild(notice)
+        notice.run(.sequence([
+            .wait(forDuration: FlankSwarmRules.warningSeconds),
+            .run { [weak self] in self?.deployFlankSwarm() },
+            .removeFromParent()
+        ]))
+    }
+
+    private func deployFlankSwarm() {
+        guard let pending = pendingFlankSwarm else { return }
+        pendingFlankSwarm = nil
+        guard wave == pending.room, phase == .playing,
+              activeEncounter == .tactical, !roomCleared else { return }
+        for index in 0..<min(pending.count, max(0, waveTarget - spawned)) {
+            spawned += 1
+            let before = enemies.count
+            spawnEnemy(artReviewType: 2)
+            guard enemies.count > before else { continue }
+            let target = FlankSwarmRules.entry(bounds: roomBounds,
+                warnedPilot: pending.warnedPilot, index: index)
+            enemies[enemies.count - 1].node.position = target
+            enemies[enemies.count - 1].node.name = "flankRaider"
+            enemies[enemies.count - 1].activeAt = combatTime + 0.35
+        }
+        spawnClock = 0
+    }
+
     private func spawnEnemy(artReviewType: Int? = nil) {
         let isBoss = wave == worldWaveCount
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
@@ -4411,10 +4520,19 @@ final class OutpostScene: SKScene {
             }
         } else {
             let interval = CampaignPacing.spawnInterval(room: wave)
-            if spawned < waveTarget && spawnClock >= interval {
+            if pendingFlankSwarm == nil &&
+               spawned < waveTarget && spawnClock >= interval {
                 spawnClock -= interval
-                spawned += 1
-                spawnEnemy()
+                if FlankSwarmRules.shouldWarn(
+                    world: worldMapIndex, room: wave,
+                    nextSlot: spawned + 1) {
+                    let count = FlankSwarmRules.arrivalCount(
+                        room: wave, remaining: waveTarget - spawned)
+                    scheduleFlankSwarm(count: count)
+                } else {
+                    spawned += 1
+                    spawnEnemy()
+                }
             }
         }
         for index in enemies.indices.reversed() {
@@ -4437,7 +4555,9 @@ final class OutpostScene: SKScene {
                 elapsed: combatTime, phase: enemy.weavePhase,
                 ranged: ranged && waypoint == pursuitTarget,
                 aiming: enemies[index].shotTarget != nil)
-            let step = enemy.speed * CGFloat(gameDt)
+            let step = enemy.speed * CGFloat(gameDt) *
+                (enemy.node.name == "flankRaider"
+                    ? FlankSwarmRules.speedMultiplier : 1)
             let target = RoomRules.clamp(
                 CGPoint(x: current.x + intent.dx * step,
                         y: current.y + intent.dy * step),
@@ -5678,6 +5798,9 @@ final class OutpostScene: SKScene {
         xpDrops.removeAll()
         for enemy in enemies { enemy.node.removeFromParent() }
         enemies.removeAll()
+        pendingFlankSwarm = nil
+        arena.children.filter { $0.name == "flankSwarmWarning" }
+            .forEach { $0.removeFromParent() }
         bossNode = nil
         defenseDevice.removeFromParent()
         defenseIntegrity = EquipmentDefenseRules.maximumIntegrity

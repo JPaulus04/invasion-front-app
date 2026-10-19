@@ -389,6 +389,8 @@ jobs:
           capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
           capture_scene -captureCombatFeedbackScreenshot screenshots/outpost-zero-combat-feedback.png
           capture_scene -captureTacticalFXScreenshot screenshots/outpost-zero-tactical-abilities.png
+          capture_scene -captureFlankWarningScreenshot screenshots/outpost-zero-flank-warning.png
+          capture_scene -captureFlankArrivalScreenshot screenshots/outpost-zero-flank-arrival.png
           capture_scene -captureLevelUpScreenshot screenshots/outpost-zero-level-up.png
           capture_scene -captureLevelUpResumeScreenshot screenshots/outpost-zero-level-up-resumed.png
           # The live gameplay launch is especially prone to timing out after
@@ -514,6 +516,12 @@ jobs:
           test -s screenshots/outpost-zero-defense-cleared.png
           test -s screenshots/outpost-zero-defense-failed.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-defense-active.png screenshots/outpost-zero-defense-cleared.png screenshots/outpost-zero-defense-failed.png
+          test -s screenshots/outpost-zero-flank-warning.png
+          test -s screenshots/outpost-zero-flank-arrival.png
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-flank-warning.png \
+            screenshots/outpost-zero-flank-arrival.png
+          test "$(shasum -a 256 screenshots/outpost-zero-flank-warning.png | cut -d ' ' -f 1)" != "$(shasum -a 256 screenshots/outpost-zero-flank-arrival.png | cut -d ' ' -f 1)"
           test -s screenshots/outpost-zero-level-up.png
           test -s screenshots/outpost-zero-level-up-resumed.png
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-simulator.png screenshots/outpost-zero-gate-open.png
