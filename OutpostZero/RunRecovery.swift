@@ -65,7 +65,11 @@ struct RunSnapshot: Codable {
         (defenseObjectiveIntegrity == nil ||
          (1...EquipmentDefenseRules.maximumIntegrity).contains(
              defenseObjectiveIntegrity ?? 0)) &&
-        AbilityLoadout(selected: abilities).isReady && Set(abilities).count == 3
+        // Support older 3-skill saves and new 0-2 skill in-run drafts.
+        AbilityLoadout(selected: abilities).selected.count == abilities.count &&
+        abilities.count <= AbilityLoadout.maximumSlots &&
+        Set(abilities).count == abilities.count &&
+        (progress.masteryCreditedRooms ?? []).allSatisfy { (1...20).contains($0) }
     }
 }
 

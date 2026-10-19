@@ -110,14 +110,13 @@ if "-captureCombatFeedbackScreenshot" not in scene:
 pilot_visual = scene.split("private func refreshPilotAppearance()", 1)[-1].split("private func drawRestorationRobot()", 1)[0]
 if 'productionImage(named: "pilot_idle") != nil' not in pilot_visual or "pilot.strokeColor = .clear" not in pilot_visual:
     errors.append("Illustrated pilot must never restore the prototype white outline")
-# Home and the separate World Selector both route Start through the same
-# guarded loadout screen. Do not require the retired single-panel syntax.
+# Home and World Selector now deploy directly, with no ability selection.
 start_route = scene.split('case (.ready, "start"), (.worldSelect, "start")', 1)
 if (len(start_route) != 2 or
         "WorldCatalog.unlocked(worldMapIndex)" not in start_route[1][:320] or
         "recovery.load() == nil" not in start_route[1][:320] or
-        "showLoadout()" not in start_route[1][:320]):
-    errors.append("Home/world entry must first open guarded loadout selection")
+        "_ = enterSelectedWorld()" not in start_route[1][:320]):
+    errors.append("Home/world must enter directly without tactical preselection")
 if ('case (.ready, "worlds"): showWorldSelector()' not in scene or
         'case (.worldSelect, "home"): showReady()' not in scene or
         'case (.ready, "gear_bay"): showGearBay()' not in scene or
@@ -126,10 +125,10 @@ if ('case (.ready, "worlds"): showWorldSelector()' not in scene or
 if ("-captureHomeNavigationScreenshot" not in scene or
         "-captureWorldSelectorScreenshot" not in scene):
     errors.append("Home and world chooser need independent simulator reviews")
-if "case (.loadout, \"lock_loadout\") where draftLoadout.isReady:" not in scene:
-    errors.append("Cannot enter a world without three committed tactical abilities")
+if "lockedLoadout.acquire(choice, capacity: playerMastery.capacity)" not in scene:
+    errors.append("Random tactical draws must commit newly selected abilities")
 if "lockedLoadout.availableTacticalUpgrades(" not in scene:
-    errors.append("XP choices must be restricted to committed abilities")
+    errors.append("XP choices must include eligible new and existing abilities")
 if "private func updateOrbitingDefenses()" not in scene:
     errors.append("Orbital blade must have a real contact damage effect")
 if "private func showSettings()" not in scene or "key: \"toggle_music\"" not in scene:
@@ -157,9 +156,9 @@ if "CombatRules.orbitalBladeHits(" not in scene:
 if 'ProcessInfo.processInfo.arguments.contains("-captureOvergrownScreenshot")' not in scene:
     errors.append("Overgrown Path must have a simulator art-review scene")
 if 'ProcessInfo.processInfo.arguments.contains("-captureLoadoutScreenshot")' not in scene:
-    errors.append("Build 315 must capture the actual pre-world loadout selection")
+    errors.append("Simulator must verify in-game draws without pre-run selection")
 if "private func enterSelectedWorld() -> Bool" not in scene or "_ = enterSelectedWorld()" not in scene:
-    errors.append("Loadout simulator QA and touch route must share a lock action")
+    errors.append("World entry must use the guarded no-loadout route")
 if "bankSalvage(PersistentProgression.roomReward(room: wave))" not in scene:
     errors.append("Each cleared room must bank permanent Salvage immediately")
 if "salvageBankedThisRun += permanent.bank(PersistentProgression.worldCompletionBonus)" not in scene:
@@ -270,8 +269,8 @@ if not all(fragment in choice_section for fragment in (
         "RoomRules.isCleared(", "SurvivalEncounterRules.extractionActive(",
         "levelUpReturnPhase == .playing && !roomCleared")):
     errors.append("Level-up completion must recheck tactical clear AND timed extraction")
-if 'levelChoices = choices.shuffled()' not in scene or 'prefix(3 - choices.count)' not in scene:
-    errors.append("Level-up must show three rotating upgrade choices alongside featured tactical options")
+if 'levelChoices = choices.shuffled()' not in scene or 'TacticalDraftRules.pick(' not in scene:
+    errors.append("Level-up must use three weighted, nonduplicate random options")
 # Ranged attacks must communicate both the selected shot target and
 # the mortar's time-to-impact without changing actual combat damage.
 ranged_attack = scene.split("private func updateRangedAttack(at index: Int)", 1)[-1].split("private func fireProjectile", 1)[0]

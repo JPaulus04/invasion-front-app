@@ -187,6 +187,12 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - New rule layer includes `AbilityLoadout.acquire(... capacity:)`, weighted pick, 15 fixed-rarity roadmap entries, and separately persisted `PlayerMastery` with 8-ish full World 1 runs' worth of XP to reach rank 20. Only 4 actual effects are presently implemented; never draw nonexistent skills. `RunProgress.masteryCreditedRooms` is optional for backward-compatible saves.
 - World 1 combat UI integration and timed warned flanking swarms follow as separate changes with CI validation. **Never upload to TestFlight until user explicitly approves next build** (current tested build 319).
 
+## October 19 — Phase 2: playable direct entry and rarity-weighted in-run drafts
+- Home/World Selector START now enters Room 1 directly with no preselected abilities. New game/next-world/retry starts reset tactical choices. Old three-skill TestFlight saves remain valid. Legacy loadout screen code still exists but is not on any normal gameplay route; QA's former pre-run screenshot now captures real in-game Level 2 random cards.
+- Level-up: three unique, weighted random options; common Incendiary > rare Explosive/Orbit > epic Chain, plus stat/healing choices which never consume tactical slots. New abilities commit on selection to first two beginner slots; existing abilities may upgrade to rank 3, third new ability becomes eligible after persistent mastery level 20. The other 11 of planned 15 abilities are NOT randomly offered until their effects are implemented.
+- Once-per-room-per-run mastery XP credits on genuine room completion and uses backward-compatible snapshot tracking. Existing persistent Gear Bay remains unchanged. Next focus World 1 warned high-speed flanking swarms with visual validation.
+- Must pass full current-head iOS and simulator checks; no TestFlight upload until user approves.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

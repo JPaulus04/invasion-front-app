@@ -93,6 +93,7 @@ final class OutpostScene: SKScene {
     private var levelUpReturnPhase: Phase = .playing
     private var levelChoices: [String] = []
     private var draftLoadout = AbilityLoadout()
+    private let playerMastery = PlayerMastery()
     // Simulator QA scenes bypass menus, so their deterministic default uses
     // only existing skills. Normal gameplay locks the user's exact selection.
     private var lockedLoadout = AbilityLoadout.simulatorDefault
@@ -744,17 +745,14 @@ final class OutpostScene: SKScene {
         // Capture the new world-entry loadout and verify the real lock route.
         // Screenshots show a complete selection, not empty prototype buttons.
         if ProcessInfo.processInfo.arguments.contains("-captureLoadoutScreenshot") {
-            draftLoadout = AbilityLoadout(selected: ["chain", "incendiary", "orbit"])
-            showLoadout()
-            precondition(draftLoadout.isReady &&
-                         overlayButtons["pick_explosive"] == nil &&
-                         overlayButtons["lock_loadout"] != nil,
-                         "Three selected abilities must unlock entry and disable a fourth")
+            showReady()
             precondition(enterSelectedWorld() && wave == 1 &&
-                         lockedLoadout.contains("orbit") &&
-                         !lockedLoadout.contains("explosive"),
-                         "Entering a world must lock exactly the selected abilities")
-            showLoadout()
+                         lockedLoadout.selected.isEmpty && phase == .playing,
+                         "World 1 must enter without a pre-run ability menu")
+            progress.earnXP(progress.nextLevelXP)
+            precondition(presentPendingLevelUp(returningTo: .playing) &&
+                         phase == .levelUp && levelChoices.count == 3,
+                         "First ability choice must be an in-game XP draw")
         }
         // Expanded arena camera QA: three independently captured positions.
         // Not yet a shipped timed-survival encounter. Validate full arena
@@ -1199,9 +1197,8 @@ final class OutpostScene: SKScene {
             showReady()
             precondition(WorldCatalog.unlocked(1) && overlayButtons["start"] != nil,
                          "Clearing World 1 must unlock Flooded Outpost")
-            draftLoadout = AbilityLoadout(selected: ["chain", "explosive", "orbit"])
-            showLoadout()
             precondition(enterSelectedWorld() && wave == 1 &&
+                         lockedLoadout.selected.isEmpty &&
                          roomHazards.contains(where: { $0.kind == .water }) &&
                          !roomHazards.contains(where: { $0.kind == .acid }),
                          "World 2 must launch with water and distinct terrain")
@@ -1215,9 +1212,9 @@ final class OutpostScene: SKScene {
             // run XP and equipment while retaining the unlocked destination.
             UserDefaults.standard.set(true, forKey: "frontierForestComplete")
             worldMapIndex = 1
-            draftLoadout = AbilityLoadout(selected: ["chain", "explosive", "orbit"])
-            showLoadout()
-            precondition(enterSelectedWorld() && wave == 1)
+            showReady()
+            precondition(enterSelectedWorld() && wave == 1 &&
+                         lockedLoadout.selected.isEmpty)
             // The integration route is deliberately fast-forwarded to the
             // reward screen; no artificial enemy kills or user-side rewards.
             progress = RunProgress()
@@ -1228,15 +1225,13 @@ final class OutpostScene: SKScene {
                          WorldCatalog.completed(1),
                          "Defeating World 2 must unlock a next-world button")
             advanceToNextWorld()
-            precondition(worldMapIndex == 2 && wave == 0 &&
-                         phase == .loadout && draftLoadout.selected.isEmpty,
-                         "Next World must reset the run and open World 3 loadout")
-            draftLoadout = AbilityLoadout(selected: ["chain", "incendiary", "orbit"])
-            showLoadout()
-            precondition(enterSelectedWorld() && wave == 1 &&
+            precondition(worldMapIndex == 2 && wave == 1 &&
+                         phase == .playing && lockedLoadout.selected.isEmpty &&
                          roomHazards.contains(where: { $0.kind == .acid }) &&
                          !roomHazards.contains(where: { $0.kind == .water }),
-                         "Toxic Crossing must start with only acid and rubble")
+                         "Next world must enter Room 1 with fresh empty abilities")
+            precondition(roomHazards.contains(where: { $0.kind == .acid }),
+                         "Toxic Crossing must start with active acid")
             arena.isPaused = true
             phase = .levelUp
             updateHUD()
@@ -2321,10 +2316,12 @@ final class OutpostScene: SKScene {
 
     @discardableResult
     private func enterSelectedWorld() -> Bool {
-        guard phase == .loadout, draftLoadout.isReady,
+        guard phase == .ready || phase == .worldSelect,
               WorldCatalog.unlocked(worldMapIndex),
+              worldMapIndex < WorldCatalog.playableCount,
               recovery.load() == nil else { return false }
-        lockedLoadout = draftLoadout
+        lockedLoadout = AbilityLoadout()
+        draftLoadout = AbilityLoadout()
         recovery.clear()
         // Ensure newly purchased armor is active from the first room.
         health = maximumHealth
@@ -5062,6 +5059,9 @@ final class OutpostScene: SKScene {
         }
         // Survival grants normal kill rewards, never timed-exit XP or coins.
         let destination: Phase = wave == worldWaveCount ? .worldComplete : .gate
+        if !isCaptureMode && progress.claimMastery(room: wave) {
+            _ = playerMastery.awardClearedRoom(wave)
+        }
         saveRunRecovery()
         if presentPendingLevelUp(returningTo: destination) { return }
         if destination == .worldComplete { completeWorld() } else { showZoneGate() }
@@ -5082,27 +5082,26 @@ final class OutpostScene: SKScene {
         clearOverlay()
         let choiceLevel = progress.level - progress.pendingChoices + 1
         overlayText("LEVEL \(choiceLevel)!", y: 125, fontSize: 28)
-        overlayText("CHOOSE ONE FREE UPGRADE", y: 87, fontSize: 15)
+        overlayText("RANDOM DRAW • CHOOSE ONE", y: 87, fontSize: 15)
         var pool = ["armor"]
         if fireRate < 5 { pool.append("rate") }
         let tacticalOptions = lockedLoadout.availableTacticalUpgrades(
             chain: chainLevel, explosive: explosiveLevel,
-            incendiary: incendiaryLevel, orbit: orbitLevel)
+            incendiary: incendiaryLevel, orbit: orbitLevel,
+            capacity: playerMastery.capacity)
         pool += tacticalOptions
         if health < maximumHealth { pool.append("heal") }
-        // All three choices should rotate; damage remains in the pool but is not mandatory.
         pool.append("damage")
-        // A tactical card is always offered through the opening levels;
-        // players retain three real choices and can still favor defense.
+        // Three weighted nonduplicate cards. Rare/Epic traits are never
+        // guaranteed; stat picks remain useful when waiting for a trait.
         var choices: [String] = []
-        if let featured = AbilitySynergies.featuredTactical(
-            available: tacticalOptions, characterLevel: progress.level,
-            chain: chainLevel, explosive: explosiveLevel,
-            incendiary: incendiaryLevel, orbit: orbitLevel) {
-            choices.append(featured)
+        var available = pool
+        while choices.count < 3 && !available.isEmpty {
+            guard let next = TacticalDraftRules.pick(
+                from: available, roll: Int.random(in: 0..<100_000)) else { break }
+            choices.append(next)
+            available.removeAll { $0 == next }
         }
-        choices += pool.filter { !choices.contains($0) }
-            .shuffled().prefix(3 - choices.count)
         levelChoices = choices.shuffled()
         // Module-style choices use role colors rather than highlighting the
         // first random choice. No rarity tiers are implied by these accents.
@@ -5127,7 +5126,7 @@ final class OutpostScene: SKScene {
                 symbol = "SPD"
                 tint = SKColor(red: 1, green: 0.67, blue: 0.29, alpha: 1)
             case "chain":
-                label = "CHAIN LIGHTNING  LV \(chainLevel + 1)"
+                label = "EPIC • CHAIN LIGHTNING  LV \(chainLevel + 1)"
                 detail = AbilitySynergies.preview(
                     ability: "chain", chain: chainLevel,
                     explosive: explosiveLevel, incendiary: incendiaryLevel,
@@ -5136,7 +5135,7 @@ final class OutpostScene: SKScene {
                 symbol = "ARC"
                 tint = SKColor(red: 0.51, green: 0.74, blue: 1, alpha: 1)
             case "explosive":
-                label = "EXPLOSIVE ROUNDS  LV \(explosiveLevel + 1)"
+                label = "RARE • EXPLOSIVE ROUNDS  LV \(explosiveLevel + 1)"
                 detail = AbilitySynergies.preview(
                     ability: "explosive", chain: chainLevel,
                     explosive: explosiveLevel, incendiary: incendiaryLevel,
@@ -5145,7 +5144,7 @@ final class OutpostScene: SKScene {
                 symbol = "AOE"
                 tint = SKColor(red: 1, green: 0.57, blue: 0.38, alpha: 1)
             case "incendiary":
-                label = "INCENDIARY ROUNDS  LV \(incendiaryLevel + 1)"
+                label = "COMMON • INCENDIARY  LV \(incendiaryLevel + 1)"
                 detail = AbilitySynergies.preview(
                     ability: "incendiary", chain: chainLevel,
                     explosive: explosiveLevel, incendiary: incendiaryLevel,
@@ -5154,7 +5153,7 @@ final class OutpostScene: SKScene {
                 symbol = "HOT"
                 tint = SKColor(red: 1, green: 0.57, blue: 0.38, alpha: 1)
             case "orbit":
-                label = "ORBITAL BLADES  LV \(orbitLevel + 1)"
+                label = "RARE • ORBITAL BLADES  LV \(orbitLevel + 1)"
                 detail = AbilitySynergies.preview(
                     ability: "orbit", chain: chainLevel,
                     explosive: explosiveLevel, incendiary: incendiaryLevel,
@@ -5262,7 +5261,16 @@ final class OutpostScene: SKScene {
     }
 
     private func chooseLevelUpgrade(_ choice: String) {
-        guard phase == .levelUp, levelChoices.contains(choice), progress.chooseUpgrade() else { return }
+        guard phase == .levelUp, levelChoices.contains(choice),
+              progress.pendingChoices > 0 else { return }
+        // New abilities permanently occupy one of two beginner slots.
+        // Existing skills can be ranked without consuming another slot.
+        if AbilityLoadout.catalog.contains(choice),
+           !lockedLoadout.contains(choice),
+           !lockedLoadout.acquire(choice, capacity: playerMastery.capacity) {
+            return
+        }
+        guard progress.chooseUpgrade() else { return }
         let isNewTactical = (choice == "chain" && chainLevel == 0) ||
             (choice == "explosive" && explosiveLevel == 0) ||
             (choice == "incendiary" && incendiaryLevel == 0) ||
@@ -5473,6 +5481,7 @@ final class OutpostScene: SKScene {
               recovery.load() == nil else { return }
         worldMapIndex += 1
         restart()
+        _ = enterSelectedWorld()
     }
 
     private func completeWorld() {
@@ -5745,7 +5754,8 @@ final class OutpostScene: SKScene {
         streak = 0
         updateHUD()
         draftLoadout = AbilityLoadout()
-        showLoadout()
+        lockedLoadout = AbilityLoadout()
+        showReady()
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -5812,12 +5822,6 @@ final class OutpostScene: SKScene {
         case (.ready, "start"), (.worldSelect, "start")
             where WorldCatalog.unlocked(worldMapIndex) &&
                   worldMapIndex < WorldCatalog.playableCount && recovery.load() == nil:
-            draftLoadout = AbilityLoadout()
-            showLoadout()
-        case (.loadout, "back_loadout"): showReady()
-        case (.loadout, let key?) where key.hasPrefix("pick_"):
-            if draftLoadout.toggle(String(key.dropFirst(5))) { showLoadout() }
-        case (.loadout, "lock_loadout") where draftLoadout.isReady:
             _ = enterSelectedWorld()
         case (.worldSelect, "world_prev"):
             worldMapIndex = max(0, worldMapIndex - 1)
@@ -5833,7 +5837,9 @@ final class OutpostScene: SKScene {
         case (.restoration, let key?) where key.hasPrefix("branch_"):
             if let index = Int(key.dropFirst(7)) { investCore(index) }
         case (.worldComplete, "next_world"): advanceToNextWorld()
-        case (.gameOver, "restart"), (.worldComplete, "restart"): restart()
+        case (.gameOver, "restart"), (.worldComplete, "restart"):
+            restart()
+            _ = enterSelectedWorld()
         case (.levelUp, _): _ = activateLevelUp(at: local)
         case (.checkpoint, "heal") where !checkpointUsed && health < maximumHealth && coins >= repairCost:
             coins -= repairCost
