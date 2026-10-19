@@ -1092,10 +1092,14 @@ final class OutpostScene: SKScene {
                 enemies[0].health = FrontierGuardianRules.armorBreakHealth(
                     maxHealth: enemies[0].maxHealth)
                 updateFrontierGuardianPhase()
-                precondition(guardianArmorBroken && lobs.count == 1 &&
+                precondition(guardianArmorBroken && lobs.count == 2 &&
                              enemies[0].health == enemies[0].maxHealth / 2 &&
-                             guardianTransitionUntil > combatTime,
-                             "Guardian must expose its core and telegraph phase two")
+                             guardianTransitionUntil > combatTime &&
+                             lobs[0].marker.childNode(withName: "mortarCountdown") != nil &&
+                             lobs[1].marker.childNode(withName: "mortarCountdown") != nil &&
+                             hypot(lobs[0].target.x - lobs[1].target.x,
+                                   lobs[0].target.y - lobs[1].target.y) >= 70,
+                             "Guardian must warn in two distinct phase-two impact zones")
             } else {
                 precondition(!guardianArmorBroken && lobs.isEmpty,
                              "New Guardian begins with intact armor")
@@ -4566,11 +4570,8 @@ final class OutpostScene: SKScene {
                         // The exposed guardian sends a second, separately
                         // telegraphed blast down one flank. A lateral dodge
                         // remains possible; there is no instant area damage.
-                        let direction: CGFloat = pilot.position.x > roomBounds.midX ? -1 : 1
-                        let secondary = CGPoint(
-                            x: min(max(pilot.position.x + direction * 86,
-                                       roomBounds.minX + 43), roomBounds.maxX - 43),
-                            y: pilot.position.y)
+                        let secondary = FrontierGuardianRules.flankTarget(
+                            pilot: pilot.position, bounds: roomBounds)
                         launchLob(from: enemy.node.position, target: secondary)
                     }
                 }
@@ -4888,12 +4889,17 @@ final class OutpostScene: SKScene {
                 .fadeOut(withDuration: 0.30),
                 .removeFromParent()
             ]))
-            // Warn the player before the phase-two attack resolves.
-            launchLob(from: bossNode.position, target: pilot.position)
+            // Break open two clearly warned, independent impact zones.
+            // Neither marker chases the player after the positions lock.
+            let primary = pilot.position
+            let secondary = FrontierGuardianRules.flankTarget(
+                pilot: primary, bounds: roomBounds)
+            launchLob(from: bossNode.position, target: primary)
+            launchLob(from: bossNode.position, target: secondary)
         }
-        // The visible armor-break transition cannot be skipped by a heavily
-        // upgraded weapon or lingering burns. The boss is vulnerable again
-        // immediately afterward, with no inflated global boss health pool.
+        // Even a heavily upgraded weapon cannot skip the first phase-two
+        // impact. The short safeguard uses the existing paused combat clock,
+        // and ends without creating another hidden boss-health pool.
         if guardianArmorBroken && combatTime < guardianTransitionUntil {
             enemies[index].health = max(threshold, enemies[index].health)
         }

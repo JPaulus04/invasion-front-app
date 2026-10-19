@@ -164,6 +164,12 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - World 1 Guardian gains a clearer wide boss health meter and named identifier above its art, leaving other bosses' meters unchanged. Screenshot fixtures assert stage art and boss identifier. Latest build/simulator screenshots must pass before any readiness claims.
 - Do not upload TestFlight on this pass; next hands-on real-device round after visual acceptance.
 
+## October 19 — World 1 Guardian phase-two dodgeable attack review
+- Last World 1 presentation commit `df56a817` had all three GitHub CI jobs green (workflow 39185104069). Reviewed actual simulator frames: Guardian silhouette, colored core, forest environment and new health bar read correctly; home navigation remains intact.
+- This pass targets boss gameplay, not cosmetic expansion. At half health the Guardian transitions to its exposed core for **2.95 combat-clock seconds** instead of 1.45, so an over-geared pilot cannot erase it before the telegraphed phase-two volley resolves. This is **not** an arbitrary HP inflation and remains paused in menus.
+- Its first exposed-core warning places two fixed orange countdown impact circles, at the pilot's locked position and 92px laterally (clamped to room bounds). Ordinary follow-up exposed-core attacks use the same flank placement. The player can evade both by moving once the signals appear. Enemy/boss timing in other worlds unchanged.
+- Simulator fixture validates that both actual mortars warn at distinct locations. Pure Swift tests validate left/right offset within compact iPhone bounds and finite phase transition. Inspect new phase-two screen and re-evaluate actual boss difficulty in a later real-device TestFlight playtest; no upload in this mini-step.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

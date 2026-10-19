@@ -72,7 +72,20 @@ enum CampaignPacing {
 /// The armor breaks at half health; the player receives a dodgeable attack
 /// during a short core-exposure animation. Later-world bosses stay unchanged.
 enum FrontierGuardianRules {
-    static let transitionSeconds: TimeInterval = 1.45
+    // Keep the exposed-core opening alive long enough for its warned
+    // volley to actually resolve even with a maxed rifle; no hidden HP pool.
+    static let transitionSeconds: TimeInterval = 2.95
+    static let flankSeparation: CGFloat = 92
+    static func flankTarget(pilot: CGPoint, bounds: CGRect) -> CGPoint {
+        // Warn one spot beside the pilot's locked position, reversing
+        // direction on the right half. Markers do not track movement.
+        let direction: CGFloat = pilot.x > bounds.midX ? -1 : 1
+        let margin: CGFloat = 45
+        return CGPoint(
+            x: min(max(pilot.x + direction * flankSeparation,
+                       bounds.minX + margin), bounds.maxX - margin),
+            y: pilot.y)
+    }
     static func armorBreakHealth(maxHealth: Int) -> Int {
         max(1, maxHealth / 2)
     }

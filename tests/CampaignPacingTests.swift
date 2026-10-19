@@ -100,7 +100,21 @@ struct CampaignPacingTests {
             health: 90, maxHealth: 180, alreadyBroken: false))
         precondition(!FrontierGuardianRules.shouldBreakArmor(
             health: 0, maxHealth: 180, alreadyBroken: true))
-        precondition(FrontierGuardianRules.transitionSeconds >= 1.0)
+        precondition(FrontierGuardianRules.transitionSeconds >= 2.8)
+        precondition(FrontierGuardianRules.transitionSeconds <= 3.5)
+        let compactArena = CGRect(x: 28, y: 70, width: 264, height: 273)
+        let leftPilot = CGPoint(x: 100, y: 180)
+        let rightPilot = CGPoint(x: 220, y: 180)
+        let leftFlank = FrontierGuardianRules.flankTarget(
+            pilot: leftPilot, bounds: compactArena)
+        let rightFlank = FrontierGuardianRules.flankTarget(
+            pilot: rightPilot, bounds: compactArena)
+        precondition(leftFlank.y == leftPilot.y &&
+                     leftFlank.x - leftPilot.x >= 70)
+        precondition(rightFlank.y == rightPilot.y &&
+                     rightPilot.x - rightFlank.x >= 70)
+        precondition(compactArena.contains(leftFlank) &&
+                     compactArena.contains(rightFlank))
         precondition(EquipmentDefenseRules.maximumIntegrity >= 100)
         precondition(EquipmentDefenseRules.hitDamage > 0 &&
                      EquipmentDefenseRules.hitCooldown >= 1.0)
