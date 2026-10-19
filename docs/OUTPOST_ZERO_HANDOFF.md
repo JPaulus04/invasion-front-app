@@ -182,6 +182,11 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Prior signed build **318** had been uploaded in run 39133359063, so **319** is the correct new build number. Allow Apple processing time before declaring the build visible to testers; upload succeeded, processing status not yet verified.
 - GitHub Actions integration did not expose manual workflow dispatch; a narrow single-use push trigger in `.github/workflows/testflight.yml` launched the validated release, and **is restored to its manual-only original state after success**. No additional auto-release trigger should remain.
 
+## October 19 — Ability and mastery rule foundation (no new TestFlight)
+- Approved direction: stats (damage/fire-rate/HP/heal) do not consume tactical slots. Start each world without preselected abilities; discover random fixed-rarity traits during combat. Rarity weights must make Common more attainable than Rare/Epic/Legendary, and players may choose stats to wait for better abilities. Slots begin at 2; Mastery Level 20 permanently unlocks slot 3; ranks cap at 3; acquired skills cannot be swapped during a run.
+- New rule layer includes `AbilityLoadout.acquire(... capacity:)`, weighted pick, 15 fixed-rarity roadmap entries, and separately persisted `PlayerMastery` with 8-ish full World 1 runs' worth of XP to reach rank 20. Only 4 actual effects are presently implemented; never draw nonexistent skills. `RunProgress.masteryCreditedRooms` is optional for backward-compatible saves.
+- World 1 combat UI integration and timed warned flanking swarms follow as separate changes with CI validation. **Never upload to TestFlight until user explicitly approves next build** (current tested build 319).
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

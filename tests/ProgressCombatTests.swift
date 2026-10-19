@@ -12,28 +12,46 @@ struct ProgressCombatTests {
         precondition(WorldCoreRewards.newlyEarned(previousBest: 0, completedStars: 9) == 3)
         precondition(WorldCoreRewards.bestStars(previousBest: 3, completedStars: 1) == 3)
         precondition(WorldCoreRewards.bestStars(previousBest: 1, completedStars: 3) == 3)
-        // Locked loadouts constrain tactical upgrades in every level-up menu.
+        // Rarity-weighted in-run selection: common early choices are more
+        // accessible, and a committed ability occupies a beginner slot.
         var loadout = AbilityLoadout()
-        precondition(!loadout.isReady)
-        precondition(!loadout.toggle("invalid"))
-        precondition(loadout.toggle("chain"))
-        precondition(loadout.toggle("explosive"))
-        precondition(loadout.toggle("orbit"))
-        precondition(loadout.isReady)
-        precondition(!loadout.toggle("incendiary"))
-        precondition(loadout.selected == ["chain", "explosive", "orbit"])
+        precondition(loadout.selected.isEmpty)
+        precondition(!loadout.acquire("invalid", capacity: 2))
+        precondition(loadout.acquire("incendiary", capacity: 2))
+        precondition(loadout.acquire("explosive", capacity: 2))
+        precondition(!loadout.acquire("chain", capacity: 2))
+        precondition(loadout.selected == ["incendiary", "explosive"])
         precondition(loadout.availableTacticalUpgrades(
-            chain: 0, explosive: 0, incendiary: 0, orbit: 0
-        ) == ["chain", "explosive", "orbit"])
+            chain: 0, explosive: 1, incendiary: 2, orbit: 0, capacity: 2
+        ) == ["explosive", "incendiary"])
         precondition(loadout.availableTacticalUpgrades(
-            chain: 3, explosive: 2, incendiary: 0, orbit: 3
-        ) == ["explosive"])
-        precondition(loadout.toggle("explosive"))
-        precondition(!loadout.isReady)
-        precondition(loadout.toggle("incendiary"))
-        precondition(loadout.selected == ["chain", "orbit", "incendiary"])
+            chain: 0, explosive: 3, incendiary: 3, orbit: 0, capacity: 2
+        ).isEmpty)
         precondition(AbilityLoadout(selected: ["orbit", "orbit", "invalid", "chain"])
                      .selected == ["orbit", "chain"])
+        precondition(TacticalDraftRules.futureCatalog.count == 15)
+        precondition(TacticalDraftRules.rarity(for: "incendiary") == .common)
+        precondition(TacticalDraftRules.rarity(for: "chain") == .epic)
+        precondition(TacticalDraftRules.rarity(for: "drone") == .legendary)
+        precondition(TacticalDraftRules.weight(for: "incendiary") >
+                     TacticalDraftRules.weight(for: "chain"))
+        precondition(TacticalDraftRules.pick(
+            from: ["incendiary", "chain"], roll: 0) == "incendiary")
+        precondition(TacticalDraftRules.pick(
+            from: ["incendiary", "chain"], roll: 19) == "chain")
+        var earnedRun = RunProgress()
+        precondition(earnedRun.claimMastery(room: 1))
+        precondition(!earnedRun.claimMastery(room: 1))
+        precondition(!earnedRun.claimMastery(room: 25))
+        let suiteMastery = "outpost.zero.mastery.test"
+        let masteryStore = UserDefaults(suiteName: suiteMastery)!
+        masteryStore.removePersistentDomain(forName: suiteMastery)
+        let mastery = PlayerMastery(storage: masteryStore)
+        precondition(mastery.level == 1 && mastery.capacity == 2)
+        for _ in 0..<8 {
+            for room in 1...20 { _ = mastery.awardClearedRoom(room) }
+        }
+        precondition(mastery.level >= 20 && mastery.capacity == 3)
         // Salvage survives failed attempts, and purchase benefits are
         // independent of run XP and exclusive world-core currency.
         let suite = "outpost.zero.progression.test"

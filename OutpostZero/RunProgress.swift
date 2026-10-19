@@ -6,6 +6,15 @@ struct RunProgress: Codable {
     private(set) var xp = 0
     private(set) var pendingChoices = 0
     private(set) var damageTaken = 0
+    // Optional so older Build 319 snapshots decode without changing schema.
+    private(set) var masteryCreditedRooms: [Int]? = nil
+
+    mutating func claimMastery(room: Int) -> Bool {
+        guard (1...20).contains(room),
+              !(masteryCreditedRooms ?? []).contains(room) else { return false }
+        masteryCreditedRooms = (masteryCreditedRooms ?? []) + [room]
+        return true
+    }
     var nextLevelXP: Int { 60 + level * 22 + level * level * 5 }
     // Legacy thresholds remain intact for unrevised worlds.
     var stars: Int { damageTaken <= 10 ? 3 : (damageTaken <= 50 ? 2 : 1) }
