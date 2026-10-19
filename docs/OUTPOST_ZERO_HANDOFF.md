@@ -157,6 +157,13 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Existing phase-2 still breaks named left/right armor and turns nested reactor orange, with telegraphed attacks. Inspect both actual simulator frames before claiming visual acceptance; gameplay screenshots do not substitute for user TestFlight judgment.
 - No TestFlight upload. Continue World 1 only.
 
+## October 18 — Guardian Clearing arena and boss readability
+- Workflow 39163122128 **all three jobs passed**. Inspected actual screenshot archive: Frontier Guardian is now an opaque, recognizable forest automaton, and both armor/core phases render distinctly; home fixes look clean.
+- Actual Room 20 screenshot exposed remaining issue: boss looked small relative to sparse brown scene with repetitive red posts (also noted in user's World 1 playtest). Focused follow-up: enlarge only World 1 Guardian artwork 14% via separate visual-only art node; preserve collision and behavior. Move phase armor lookup to named descendant nodes.
+- Room 16–20 World 1 Guardian Clearing props changed from red posts to illustrated forest pines/broadleaf trees on arena perimeter with stone/soft mint highlights and subtle foliage scatter. No collision/hazard changes; other-world marker visuals unchanged.
+- World 1 Guardian gains a clearer wide boss health meter and named identifier above its art, leaving other bosses' meters unchanged. Screenshot fixtures assert stage art and boss identifier. Latest build/simulator screenshots must pass before any readiness claims.
+- Do not upload TestFlight on this pass; next hands-on real-device round after visual acceptance.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

@@ -1083,8 +1083,10 @@ final class OutpostScene: SKScene {
                          bossNode?.alpha == 1 &&
                          enemies[0].health == selectedWorld.bossHealth &&
                          bossNode?.childNode(withName: "//guardianCore") != nil &&
-                         bossNode?.childNode(withName: "guardianArmorLeft") != nil,
-                         "World 1 boss must use overgrown Guardian art")
+                         bossNode?.childNode(withName: "//guardianArmorLeft") != nil &&
+                         bossNode?.childNode(withName: "guardianArt") != nil &&
+                         bossNode?.childNode(withName: "guardianBossNameplate") != nil,
+                         "World 1 boss must show enlarged illustrated Guardian and nameplate")
             if guardianExposed {
                 enemies[0].health = FrontierGuardianRules.armorBreakHealth(
                     maxHealth: enemies[0].maxHealth)
@@ -3331,9 +3333,14 @@ final class OutpostScene: SKScene {
             case 2: // Ruined concrete blocks.
                 prop = SKShapeNode(rectOf: CGSize(width: 27, height: 21), cornerRadius: 2)
                 prop.fillColor = .darkGray
-            default: // Red guardian markers.
-                prop = SKShapeNode(rectOf: CGSize(width: 12, height: 34), cornerRadius: 3)
-                prop.fillColor = .systemRed
+            default: // Guardian Clearing is still a forest, not red industrial posts.
+                if worldMapIndex == 0 {
+                    prop = SKShapeNode(ellipseOf: CGSize(width: 24, height: 10))
+                    prop.fillColor = .clear
+                } else {
+                    prop = SKShapeNode(rectOf: CGSize(width: 12, height: 34), cornerRadius: 3)
+                    prop.fillColor = .systemRed
+                }
             }
             prop.strokeColor = .white.withAlphaComponent(0.22)
             prop.lineWidth = 1
@@ -3341,8 +3348,40 @@ final class OutpostScene: SKScene {
                 (zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55))
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
-            if zone == 3 {
-                // Guardian clearing markers emit a slow warning beacon.
+            if zone == 3 && worldMapIndex == 0 {
+                // Organic side framing leaves the pilot's central travel lane
+                // clear and restores recognizable Frontier Forest identity
+                // throughout the final five rooms. Nothing here blocks movement.
+                prop.fillColor = .clear
+                prop.strokeColor = .clear
+                let tree = SKSpriteNode(texture: productionTexture(
+                    named: index.isMultiple(of: 3) ? "forest_broadleaf" : "forest_pine",
+                    fallback: forestPineTexture))
+                tree.name = "guardianClearingTree"
+                tree.size = CGSize(width: 59 + CGFloat(index % 3) * 7,
+                                   height: 80 + CGFloat(index % 2) * 13)
+                tree.position.y = 6
+                tree.zPosition = 0.8
+                prop.addChild(tree)
+                let stone = SKShapeNode(path: BattlefieldArt.terrainShape(
+                    width: 32, height: 12, variation: index + wave))
+                stone.fillColor = SKColor(red: 0.35, green: 0.39,
+                                          blue: 0.29, alpha: 0.92)
+                stone.strokeColor = .clear
+                stone.position.y = -35
+                stone.zPosition = 0.9
+                prop.addChild(stone)
+                if index.isMultiple(of: 3) {
+                    let glow = SKShapeNode(circleOfRadius: 4)
+                    glow.position = CGPoint(x: leftSide ? 15 : -15, y: -29)
+                    glow.fillColor = .systemMint
+                    glow.strokeColor = .clear
+                    glow.glowWidth = 3
+                    glow.zPosition = 1.3
+                    prop.addChild(glow)
+                }
+            } else if zone == 3 {
+                // Existing later-world industrial guardian markers remain.
                 let beacon = SKShapeNode(circleOfRadius: 5)
                 beacon.position.y = 15
                 beacon.fillColor = .systemOrange
@@ -3472,8 +3511,10 @@ final class OutpostScene: SKScene {
         }
         // Sparse, asymmetrical forest dressing. Avoid evenly spaced ellipses:
         // they created obvious rows and dark round spots in the simulator.
-        if worldMapIndex == 0 && zone <= 1 {
-            for index in 0..<17 {
+        if worldMapIndex == 0 && (zone <= 1 || zone == 3) {
+            // Final clearing is greener, but less busy so telegraphed
+            // boss attacks remain legible beneath the player and enemy.
+            for index in 0..<(zone == 3 ? 10 : 17) {
                 let fx = CGFloat((index * 37 + wave * 17 + 11) % 97) / 97
                 let fy = CGFloat((index * 53 + wave * 29 + 7) % 89) / 89
                 let x = roomBounds.minX + 21 + (roomBounds.width - 42) * fx
@@ -3999,7 +4040,14 @@ final class OutpostScene: SKScene {
             node.addChild(reactor)
         }
         if isBoss && worldMapIndex == 0 {
-            installFrontierGuardianArtwork(on: node)
+            // Scale only illustration children. Enemy's combat location,
+            // radius, attack timing and movement remain unchanged.
+            let art = SKShapeNode()
+            art.name = "guardianArt"
+            art.zPosition = 1
+            art.setScale(1.14)
+            installFrontierGuardianArtwork(on: art)
+            node.addChild(art)
         }
         if type >= 4 && !usesIllustratedEnemy {
             let weapon = SKShapeNode(rectOf: CGSize(width: type == 5 ? 22 : 8, height: 26), cornerRadius: 3)
@@ -4113,19 +4161,36 @@ final class OutpostScene: SKScene {
             ? 70 : CampaignPacing.enemyHealth(world: worldMapIndex, room: wave, type: type)
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         // Keep the track and fill together above the larger illustrated sprite.
-        let healthBarOffset: CGFloat = isBoss && worldMapIndex == 0
-            ? 104 : (usesIllustratedEnemy ? radius * 1.39 + 9 : radius + 12)
-        let healthTrack = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
+        let guardianBoss = isBoss && worldMapIndex == 0
+        let healthBarOffset: CGFloat = guardianBoss
+            ? 127 : (usesIllustratedEnemy ? radius * 1.39 + 9 : radius + 12)
+        let barWidth: CGFloat = guardianBoss ? 148 : radius * 2.2
+        let barHeight: CGFloat = guardianBoss ? 8 : 5
+        let healthTrack = SKShapeNode(rectOf: CGSize(
+            width: barWidth, height: barHeight), cornerRadius: barHeight / 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
         healthTrack.strokeColor = .clear
         healthTrack.position.y = healthBarOffset
         node.addChild(healthTrack)
-        let healthBar = SKShapeNode(rectOf: CGSize(width: radius * 2.2, height: 5), cornerRadius: 2)
+        let healthBar = SKShapeNode(rectOf: CGSize(
+            width: barWidth, height: barHeight), cornerRadius: barHeight / 2)
         healthBar.fillColor = .systemGreen
         healthBar.strokeColor = .clear
         healthBar.position.y = healthBarOffset
-        healthBar.zPosition = 1
+        healthBar.zPosition = 2
         node.addChild(healthBar)
+        if guardianBoss {
+            // The named boss bar is legible at iPhone scale, unlike the same
+            // tiny anonymous bar used for grunts.
+            let nameplate = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            nameplate.name = "guardianBossNameplate"
+            nameplate.text = "FOREST GUARDIAN"
+            nameplate.fontSize = 11
+            nameplate.fontColor = .systemYellow
+            nameplate.position.y = healthBarOffset + 13
+            nameplate.zPosition = 2
+            node.addChild(nameplate)
+        }
         enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi)), nextAttack: combatTime + 1.7))
     }
 
@@ -4794,7 +4859,7 @@ final class OutpostScene: SKScene {
             guardianTransitionUntil = combatTime + FrontierGuardianRules.transitionSeconds
             enemies[index].health = threshold
             for name in ["guardianArmorLeft", "guardianArmorRight"] {
-                if let armor = bossNode.childNode(withName: name) as? SKShapeNode {
+                if let armor = bossNode.childNode(withName: "//\(name)") as? SKShapeNode {
                     armor.fillColor = .darkGray
                     armor.strokeColor = .systemOrange
                     armor.run(.sequence([.rotate(byAngle: name == "guardianArmorLeft"
