@@ -368,6 +368,7 @@ jobs:
           capture_scene -captureAcidActiveScreenshot screenshots/outpost-zero-acid-active.png
           capture_scene -captureFrontierGuardianScreenshot screenshots/outpost-zero-frontier-guardian-armored.png
           capture_scene -captureFrontierGuardianExposedScreenshot screenshots/outpost-zero-frontier-guardian-exposed.png
+          capture_scene -captureFrontierGuardianResolvedScreenshot screenshots/outpost-zero-frontier-guardian-resolved.png
           capture_scene -captureFloodedBossScreenshot screenshots/outpost-zero-tidal-warden.png
           capture_scene -captureToxicBossScreenshot screenshots/outpost-zero-toxic-sentinel.png
           capture_scene -captureHomeNavigationScreenshot screenshots/outpost-zero-home-navigation.png
@@ -475,10 +476,13 @@ jobs:
           test -s screenshots/outpost-zero-terrain.png
           test -s screenshots/outpost-zero-frontier-guardian-armored.png
           test -s screenshots/outpost-zero-frontier-guardian-exposed.png
+          test -s screenshots/outpost-zero-frontier-guardian-resolved.png
           python3 scripts/validate_simulator_screenshots.py \
             screenshots/outpost-zero-frontier-guardian-armored.png \
-            screenshots/outpost-zero-frontier-guardian-exposed.png
+            screenshots/outpost-zero-frontier-guardian-exposed.png \
+            screenshots/outpost-zero-frontier-guardian-resolved.png
           test "$(shasum -a 256 screenshots/outpost-zero-frontier-guardian-armored.png | cut -d ' ' -f 1)" != "$(shasum -a 256 screenshots/outpost-zero-frontier-guardian-exposed.png | cut -d ' ' -f 1)"
+          test "$(shasum -a 256 screenshots/outpost-zero-frontier-guardian-exposed.png | cut -d ' ' -f 1)" != "$(shasum -a 256 screenshots/outpost-zero-frontier-guardian-resolved.png | cut -d ' ' -f 1)"
           test -s screenshots/outpost-zero-tidal-warden.png
           test -s screenshots/outpost-zero-toxic-sentinel.png
           test -s screenshots/outpost-zero-flooded-outpost.png

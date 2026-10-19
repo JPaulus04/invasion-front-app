@@ -115,6 +115,16 @@ struct CampaignPacingTests {
                      rightPilot.x - rightFlank.x >= 70)
         precondition(compactArena.contains(leftFlank) &&
                      compactArena.contains(rightFlank))
+        // At the compact arena's lower-center spawn, the opposite-side dodge
+        // lane must avoid BOTH marked impact zones (blast + pilot hit radius).
+        let marked = [CGPoint(x: compactArena.midX, y: 110),
+                      FrontierGuardianRules.flankTarget(
+                          pilot: CGPoint(x: compactArena.midX, y: 110),
+                          bounds: compactArena)]
+        let dodgeLane = CGPoint(x: compactArena.minX + 42, y: 110)
+        precondition(marked.allSatisfy {
+            hypot(dodgeLane.x - $0.x, dodgeLane.y - $0.y) > 43 + 14
+        }, "A normal iPhone arena must leave a fair exit lane")
         precondition(EquipmentDefenseRules.maximumIntegrity >= 100)
         precondition(EquipmentDefenseRules.hitDamage > 0 &&
                      EquipmentDefenseRules.hitCooldown >= 1.0)

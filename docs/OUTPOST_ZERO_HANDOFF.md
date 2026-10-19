@@ -170,6 +170,12 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Its first exposed-core warning places two fixed orange countdown impact circles, at the pilot's locked position and 92px laterally (clamped to room bounds). Ordinary follow-up exposed-core attacks use the same flank placement. The player can evade both by moving once the signals appear. Enemy/boss timing in other worlds unchanged.
 - Simulator fixture validates that both actual mortars warn at distinct locations. Pure Swift tests validate left/right offset within compact iPhone bounds and finite phase transition. Inspect new phase-two screen and re-evaluate actual boss difficulty in a later real-device TestFlight playtest; no upload in this mini-step.
 
+## October 19 — World 1 Guardian fully resolved attack QA
+- The previous World 1 commit `5eb22afd` / workflow 39202729760 passed all three CI jobs and actual simulator review: intact and exposed-core Guardian frames show legible 2-zone warned attacks, no home regression.
+- Added a **third genuine SpriteKit Room 20 QA state** `-captureFrontierGuardianResolvedScreenshot`: after triggering armor break and confirming both live countdown circles, move the pilot into a safe lateral dodge lane, advance the existing paused combat clock past both impacts and the 2.95s protection, process actual lobs, confirm both are gone and pilot HP unchanged, then apply damage below the half-health threshold and confirm Guardian remains vulnerable (no unintended immunity). This does not run in normal builds.
+- CI now captures and image-validates separate intact / warnings active / warning impacts resolved screenshots, asserting each differs. Pure Swift pacing test confirms a safe lane even on the compact 320px room.
+- Do not treat passing screenshots as a substitute for player-led TestFlight fun/difficulty acceptance. No TestFlight upload in mini-steps. Keep further content to World 1.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

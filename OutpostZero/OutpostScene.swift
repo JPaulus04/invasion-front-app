@@ -1068,7 +1068,9 @@ final class OutpostScene: SKScene {
             "-captureFrontierGuardianScreenshot")
         let guardianExposed = ProcessInfo.processInfo.arguments.contains(
             "-captureFrontierGuardianExposedScreenshot")
-        if guardianBase || guardianExposed {
+        let guardianResolved = ProcessInfo.processInfo.arguments.contains(
+            "-captureFrontierGuardianResolvedScreenshot")
+        if guardianBase || guardianExposed || guardianResolved {
             worldMapIndex = 0
             wave = 19
             gateUnlocked = true
@@ -1088,7 +1090,7 @@ final class OutpostScene: SKScene {
                          bossNode?.childNode(withName: "guardianArt") != nil &&
                          bossNode?.childNode(withName: "guardianBossNameplate") != nil,
                          "World 1 boss must show enlarged illustrated Guardian and nameplate")
-            if guardianExposed {
+            if guardianExposed || guardianResolved {
                 enemies[0].health = FrontierGuardianRules.armorBreakHealth(
                     maxHealth: enemies[0].maxHealth)
                 updateFrontierGuardianPhase()
@@ -1100,14 +1102,43 @@ final class OutpostScene: SKScene {
                              hypot(lobs[0].target.x - lobs[1].target.x,
                                    lobs[0].target.y - lobs[1].target.y) >= 70,
                              "Guardian must warn in two distinct phase-two impact zones")
+                if guardianResolved {
+                    // QA proves the attacks resolve on the active combat clock,
+                    // both indicators clean up, and a pilot who actually dodges
+                    // avoids damage. This is a state transition, not a mock image.
+                    let initialHealth = health
+                    let safePoint = CGPoint(
+                        x: roomBounds.minX + 42,
+                        y: pilot.position.y)
+                    precondition(lobs.allSatisfy {
+                        hypot(safePoint.x - $0.target.x,
+                              safePoint.y - $0.target.y) > $0.radius + 14
+                    }, "The World 1 boss must leave a reachable dodge lane")
+                    pilot.position = safePoint
+                    combatClock.advance(
+                        FrontierGuardianRules.transitionSeconds + 0.1,
+                        playing: true)
+                    updateHostileAttacks(delta: 0)
+                    precondition(lobs.isEmpty && health == initialHealth &&
+                                 guardianArmorBroken &&
+                                 combatTime > guardianTransitionUntil,
+                                 "Both warnings must resolve harmlessly after a dodge")
+                    let vulnerableHealth = enemies[0].maxHealth / 2 - 8
+                    enemies[0].health = vulnerableHealth
+                    updateFrontierGuardianPhase()
+                    precondition(enemies[0].health == vulnerableHealth,
+                                 "The Guardian must be damageable after phase two")
+                }
             } else {
                 precondition(!guardianArmorBroken && lobs.isEmpty,
                              "New Guardian begins with intact armor")
             }
             let marker = SKShapeNode(rectOf: CGSize(width: 12, height: 12))
-            marker.name = guardianExposed ? "guardianExposedIdentity" :
-                "guardianArmoredIdentity"
-            marker.fillColor = guardianExposed ? .yellow : .cyan
+            marker.name = guardianResolved ? "guardianResolvedIdentity" :
+                (guardianExposed ? "guardianExposedIdentity" :
+                    "guardianArmoredIdentity")
+            marker.fillColor = guardianResolved ? .green :
+                (guardianExposed ? .yellow : .cyan)
             marker.strokeColor = .clear
             marker.position = CGPoint(x: size.width * 0.90, y: size.height * 0.60)
             marker.zPosition = 65
