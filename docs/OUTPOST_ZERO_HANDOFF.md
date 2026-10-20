@@ -224,3 +224,10 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - On each "Continue": inspect branch HEAD, make *one coherent named-area improvement*, run relevant tests/CI, report what changed, pass/fail, remaining blocker, whether the user must act, and current TestFlight readiness grounded in evidence.
 - Do not label mini-steps as numeric builds. Reserve iOS build numbers for TestFlight uploads.
 - When context gets long, update this document; in a fresh project chat user can say: "Continue Outpost Zero from `docs/OUTPOST_ZERO_HANDOFF.md` on `outpost-zero`."
+
+## October 19 — Approved survival-format direction
+- User approved **both** formats: occasional timed encounters in regular 20-room campaign worlds, plus **optional dedicated endurance missions** unlocked through campaign progression. Dedicated missions must not replace campaign worlds or disrupt the 50+ level restoration progression.
+- **Campaign target: 2–3 timed survival encounters per 20-room world**, 90–120 seconds each, spaced to avoid repetitive back-to-back endurance. Existing timed extraction contract remains: no new spawns after expiry, small central orb, immediate exit even with surviving enemies, and only earned kill XP/coins.
+- **Dedicated endurance target: 4–5 minutes**, escalating waves, meaningful in-mission upgrades, and a distinct optional entry point and rewards. Design/implement as a separate reviewed feature; do not silently convert campaign rooms or upload to TestFlight.
+- **Immediate next work:** inspect the real `SurvivalEncounterRules.kind(world:room:)` scheduling, especially World 2 (Flooded Outpost), audit all 20 rooms in every playable world, implement a maximum 3 well-spaced campaign survival encounters, and add deterministic per-world schedule tests. Then design the optional endurance mode separately, with screenshots and validation. Continue playable tactical abilities as an independent development sequence.
+- This section records the approved design only; **the encounter schedule and dedicated mode are not yet implemented or validated by this note**.
