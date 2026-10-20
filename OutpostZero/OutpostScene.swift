@@ -154,7 +154,11 @@ final class OutpostScene: SKScene {
     private var nextFootstepAt: TimeInterval = 0
     private var movementOrigin: CGPoint?
     private var movementTarget: CGPoint?
-    private var pilotSpeed: CGFloat { 144 + CGFloat(branchLevel(3) * 3) }
+    // A small in-run positioning bonus, distinct from tactical abilities.
+    private var mobilityRank = 0
+    private var pilotSpeed: CGFloat {
+        144 + CGFloat(branchLevel(3) * 3 + mobilityRank * 6)
+    }
     private let autoFireRange: CGFloat = 260
     private var pilotShieldUntil: TimeInterval = 0
     private var pilotHitCount = 0
@@ -2096,7 +2100,8 @@ final class OutpostScene: SKScene {
             timedEncounterLiving: activeEncounter.isTimed ? enemies.count : nil,
             defenseObjectiveIntegrity: activeEncounter == .equipmentDefense
                 ? defenseIntegrity : nil,
-            frostLevel: frostLevel)
+            frostLevel: frostLevel,
+            mobilityRank: mobilityRank)
         _ = recovery.save(snapshot)
     }
 
@@ -2117,6 +2122,7 @@ final class OutpostScene: SKScene {
         explosiveLevel = snapshot.explosiveLevel
         incendiaryLevel = snapshot.incendiaryLevel
         frostLevel = snapshot.frostLevel ?? 0
+        mobilityRank = snapshot.mobilityRank ?? 0
         orbitLevel = snapshot.orbitLevel
         salvageBankedThisRun = snapshot.earnedSalvage
         wave = snapshot.room - 1
@@ -4006,11 +4012,23 @@ final class OutpostScene: SKScene {
             let entry = FlankSwarmRules.entry(bounds: roomBounds,
                 warnedPilot: pending.warnedPilot, index: index)
             let fromLeft = entry.x < roomBounds.midX
-            let arrow = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            // Use vector paths, not text glyphs: the left/right symbols
+            // previously rendered as mismatched orange and blue emoji on iOS.
+            let arrowPath = CGMutablePath()
+            let direction: CGFloat = fromLeft ? 1 : -1
+            arrowPath.move(to: CGPoint(x: -20 * direction, y: -5))
+            arrowPath.addLine(to: CGPoint(x: -4 * direction, y: -5))
+            arrowPath.addLine(to: CGPoint(x: -4 * direction, y: -12))
+            arrowPath.addLine(to: CGPoint(x: 19 * direction, y: 0))
+            arrowPath.addLine(to: CGPoint(x: -4 * direction, y: 12))
+            arrowPath.addLine(to: CGPoint(x: -4 * direction, y: 5))
+            arrowPath.addLine(to: CGPoint(x: -20 * direction, y: 5))
+            arrowPath.closeSubpath()
+            let arrow = SKShapeNode(path: arrowPath)
             arrow.name = "flankIncomingArrow"
-            arrow.text = fromLeft ? "➤" : "◀"
-            arrow.fontSize = 32
-            arrow.fontColor = .systemOrange
+            arrow.fillColor = .systemOrange
+            arrow.strokeColor = .systemYellow
+            arrow.lineWidth = 1.5
             arrow.position = CGPoint(x: entry.x, y: entry.y + 4)
             arrow.zPosition = 2
             notice.addChild(arrow)
@@ -5277,15 +5295,17 @@ final class OutpostScene: SKScene {
         overlayText("RANDOM DRAW • CHOOSE ONE", y: 87, fontSize: 15)
         overlayText("TACTICAL \(lockedLoadout.selected.count)/\(playerMastery.capacity)   •   MASTERY \(playerMastery.level)",
                     y: 67, fontSize: 10)
-        var pool = ["armor"]
+        // Always offer at least three meaningful *stat* choices even
+        // when all tactical ranks and rate/mobility caps are reached.
+        var pool = TacticalDraftRules.baseStatChoices
         if fireRate < 5 { pool.append("rate") }
+        if mobilityRank < 5 { pool.append("mobility") }
         let tacticalOptions = lockedLoadout.availableTacticalUpgrades(
             chain: chainLevel, explosive: explosiveLevel,
             incendiary: incendiaryLevel, orbit: orbitLevel,
             frost: frostLevel, capacity: playerMastery.capacity)
         pool += tacticalOptions
         if health < maximumHealth { pool.append("heal") }
-        pool.append("damage")
         // Three weighted nonduplicate cards. Rare/Epic traits are never
         // guaranteed; stat picks remain useful when waiting for a trait.
         var choices: [String] = []
@@ -5319,6 +5339,18 @@ final class OutpostScene: SKScene {
                 category = "WEAPON"
                 symbol = "SPD"
                 tint = SKColor(red: 1, green: 0.67, blue: 0.29, alpha: 1)
+            case "mobility":
+                label = "MOBILITY \(mobilityRank) → \(mobilityRank + 1)"
+                detail = "Move slightly faster when dodging"
+                category = "MOVEMENT"
+                symbol = "MOV"
+                tint = SKColor(red: 0.36, green: 0.83, blue: 0.87, alpha: 1)
+            case "supplies":
+                label = "SUPPLY CACHE +40 COINS"
+                detail = "Bank coins for repairs during this run"
+                category = "SUPPLIES"
+                symbol = "CR"
+                tint = SKColor(red: 0.81, green: 0.74, blue: 0.38, alpha: 1)
             case "chain":
                 label = "EPIC • CHAIN LIGHTNING  LV \(chainLevel + 1)"
                 detail = AbilitySynergies.preview(
@@ -5382,7 +5414,17 @@ final class OutpostScene: SKScene {
             card.name = "upgradeModuleCard"
             card.fillColor = SKColor(
                 red: 0.08, green: 0.14, blue: 0.20, alpha: 0.94)
-            card.strokeColor = tint.withAlphaComponent(0.74)
+            // Card rim always signals rarity for abilities; its interior
+            // icon retains the effect-specific color.
+            let rimTint: SKColor
+            switch TacticalDraftRules.rarity(for: choice) {
+            case .common: rimTint = SKColor(white: 0.78, alpha: 1)
+            case .rare: rimTint = SKColor(red: 0.32, green: 0.62, blue: 1, alpha: 1)
+            case .epic: rimTint = SKColor(red: 0.73, green: 0.44, blue: 1, alpha: 1)
+            case .legendary: rimTint = SKColor(red: 1, green: 0.74, blue: 0.25, alpha: 1)
+            case nil: rimTint = tint
+            }
+            card.strokeColor = rimTint.withAlphaComponent(0.86)
             card.lineWidth = 1.8
             card.zPosition = 1
             overlay.addChild(card)
@@ -5392,7 +5434,7 @@ final class OutpostScene: SKScene {
             let lowerEdge = SKShapeNode(rect: CGRect(
                 x: -cardWidth / 2 + 13, y: cardCenterY - 33,
                 width: cardWidth - 26, height: 2), cornerRadius: 1)
-            lowerEdge.fillColor = tint.withAlphaComponent(0.22)
+            lowerEdge.fillColor = rimTint.withAlphaComponent(0.30)
             lowerEdge.strokeColor = .clear
             lowerEdge.zPosition = 2
             overlay.addChild(lowerEdge)
@@ -5434,7 +5476,7 @@ final class OutpostScene: SKScene {
             let categoryLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
             categoryLabel.text = category
             categoryLabel.fontSize = 8
-            categoryLabel.fontColor = tint
+            categoryLabel.fontColor = rimTint
             categoryLabel.horizontalAlignmentMode = .right
             categoryLabel.position = CGPoint(
                 x: cardWidth / 2 - 14, y: cardCenterY + 24)
@@ -5481,6 +5523,8 @@ final class OutpostScene: SKScene {
         switch choice {
         case "damage": damage += 1
         case "rate": fireRate = min(5, fireRate + 1)
+        case "mobility": mobilityRank = min(5, mobilityRank + 1)
+        case "supplies": coins += 40
         case "chain": chainLevel = min(3, chainLevel + 1)
         case "explosive": explosiveLevel = min(3, explosiveLevel + 1)
         case "incendiary": incendiaryLevel = min(3, incendiaryLevel + 1)
@@ -5944,6 +5988,7 @@ final class OutpostScene: SKScene {
         health = maximumHealth
         damage = 1
         fireRate = 1
+        mobilityRank = 0
         chainLevel = 0
         explosiveLevel = 0
         incendiaryLevel = 0

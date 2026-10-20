@@ -80,6 +80,10 @@ if 'timedEncounterLiving:' not in scene or 'timedEncounterSpawned:' not in scene
     errors.append("Interrupted swarms must preserve the live count and reinforcement index")
 if 'extractionCombatActive' not in scene or 'foeCountBefore - 1' not in scene:
     errors.append("Simulator must verify earned kills after extraction with no new spawns")
+if "flankIncomingArrow" not in scene or "SKShapeNode(path: arrowPath)" not in scene:
+    errors.append("Flank warnings must use consistent vector arrows, never system emoji")
+if "TacticalDraftRules.baseStatChoices" not in scene or 'case "mobility"' not in scene or 'case "supplies"' not in scene:
+    errors.append("Late-game draws must retain three useful non-tactical stat choices")
 if "FlankSwarmRules.shouldWarn(" not in scene or "scheduleFlankSwarm(count:" not in scene or "deployFlankSwarm()" not in scene:
     errors.append("World 1 tactical swarms must show warning lanes before arrival")
 if "-captureFrostRoundsScreenshot" not in scene or "applyFrost(to:" not in scene:

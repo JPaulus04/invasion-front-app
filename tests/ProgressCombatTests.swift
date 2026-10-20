@@ -30,6 +30,12 @@ struct ProgressCombatTests {
         precondition(AbilityLoadout(selected: ["orbit", "orbit", "invalid", "chain"])
                      .selected == ["orbit", "chain"])
         precondition(TacticalDraftRules.futureCatalog.count == 15)
+        precondition(TacticalDraftRules.baseStatChoices.count == 3)
+        precondition(TacticalDraftRules.baseStatChoices.allSatisfy {
+            TacticalDraftRules.weight(for: $0) > 0
+        })
+        precondition(TacticalDraftRules.weight(for: "mobility") > 0)
+        precondition(TacticalDraftRules.weight(for: "supplies") > 0)
         precondition(TacticalDraftRules.rarity(for: "incendiary") == .common)
         precondition(AbilityLoadout.catalog.contains("frost"))
         precondition(TacticalDraftRules.rarity(for: "frost") == .common)

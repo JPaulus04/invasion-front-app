@@ -205,6 +205,13 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - Frost rank is optional in schema-4 saved snapshots to preserve old TestFlight recovery, and status timers use the combat clock (pause-safe); expiry, room changes, defeat, and retry clear temporary effects. Added unit tests, a genuine live SpriteKit Frost screenshot fixture, and screenshot validation in CI.
 - Still *no TestFlight upload*: user wants chat screenshot review before release. Next: inspect new frost imagery and test fairness of rarity/late-run option count, then select next skill to implement.
 
+## October 19 — UI consistency and late-run stat choice polish
+- Review found flank-warning arrow asymmetry: iOS rendered the old right-arrow glyph as a blue emoji while the left was orange. Both now use orange/yellow vector SKShapeNode arrows pointing inward with identical dimensions. This changes no collision, warning time, or enemy count.
+- Random ability draw cards now display **rarity-colored rims** (Common silver / Rare blue / Epic purple / Legendary gold). The center icon keeps its effect color; stat cards keep their original functional category colors.
+- Added a small capped **Mobility** stat option (+6 movement units per rank, max 5) and an always-available **Supply Cache** stat option (+40 in-run coins for healing/checkpoint costs). Together with damage and armor, these ensure at least three meaningful stat choices at late run levels even after two tactical abilities and regular fire-rate upgrades hit caps. No new tactical ability slots, no large DPS power increase.
+- Mobility rank is optional in schema-4 run recovery (pre-existing saves load as 0), persists between rooms, and resets between runs; rank bounds tested. Unmodified existing TestFlight upload **319**. Review iOS CI/screenshots again before further work.
+- Balance note: supply pick spends a full level-up choice for limited in-run cash, preserving the tradeoff between combat power and recovery. Frost remains a common control ability, not more damage.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.

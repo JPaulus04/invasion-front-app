@@ -85,6 +85,8 @@ enum TacticalDraftRules {
         case nil:
             switch id {
             case "damage": return 15
+            case "mobility": return 11
+            case "supplies": return 6
             case "rate": return 12
             case "armor": return 14
             case "heal": return 10
@@ -92,6 +94,8 @@ enum TacticalDraftRules {
             }
         }
     }
+    static let baseStatChoices = ["armor", "damage", "supplies"]
+
     static func pick(from offered: [String], roll: Int) -> String? {
         let weighted = offered.map { max(0, weight(for: $0)) }
         let total = weighted.reduce(0, +)
