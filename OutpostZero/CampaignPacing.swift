@@ -176,8 +176,10 @@ enum SurvivalEncounterRules {
 
     // These placements vary by world. An equipment-defense mission does not
     // replace a boss and must never be confused with a survival XP-farm loop.
+    // Three spaced endurance interruptions per 20-room campaign world.
+    // Dedicated optional endurance missions use a separate progression path.
     private static let survivalRooms: [[Int]] = [
-        [6, 10, 14, 17], [5, 8, 11, 15, 18], [6, 9, 13, 17]
+        [6, 10, 17], [5, 11, 17], [6, 12, 18]
     ]
     private static let defenseRooms: [[Int]] = [
         [12], [], [15]
