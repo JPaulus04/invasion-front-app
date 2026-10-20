@@ -5061,7 +5061,12 @@ final class OutpostScene: SKScene {
                                          burning: incendiaryLevel > 0)
         }
         let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus
-        impact(at: target, color: .systemYellow, destroyed: enemies[index].health <= totalBulletDamage)
+        // Elemental hits must read differently from ordinary kinetic shots.
+        let hitColor: SKColor = explosiveLevel > 0 ? .systemOrange :
+            (incendiaryLevel > 0 ? .systemRed :
+             (chainLevel > 0 ? .systemCyan : .systemYellow))
+        impact(at: target, color: hitColor,
+               destroyed: enemies[index].health <= totalBulletDamage)
         enemies[index].health -= totalBulletDamage
         EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
         if incendiaryLevel > 0 {
