@@ -4892,12 +4892,12 @@ final class OutpostScene: SKScene {
         for blade in orbitalNodes { blade.removeFromParent() }
         orbitalNodes.removeAll()
         for index in 0..<orbitLevel {
-            let blade = SKShapeNode(rectOf: CGSize(width: 10, height: 23), cornerRadius: 3)
-            blade.name = "orbitalBlade"
+            let blade = SKShapeNode(circleOfRadius: 10)
+            blade.name = "energyOrbit"
             blade.fillColor = SKColor(red: 0.22, green: 0.88, blue: 0.95, alpha: 1)
             blade.strokeColor = .systemCyan
             blade.lineWidth = 1.5
-            blade.glowWidth = 2
+            blade.glowWidth = 7
             blade.zPosition = 11
             arena.addChild(blade)
             orbitalNodes.append(blade)
@@ -4906,15 +4906,15 @@ final class OutpostScene: SKScene {
 
     private func updateOrbitingDefenses() {
         guard orbitLevel > 0, !orbitalNodes.isEmpty,
-              (phase == .playing || extractionCombatActive) else { return }
+              (phase == .playing || extractionCombatActive || roomCleared) else { return }
         // All positions derive from the same paused combat clock as hostile
         // projectiles. No free orbital strikes while choosing a level-up.
         for (index, blade) in orbitalNodes.enumerated() {
             let angle = CGFloat(combatTime) * 2.65 +
                 CGFloat(index) * (2 * .pi / CGFloat(orbitalNodes.count))
             blade.position = CGPoint(
-                x: pilot.position.x + cos(angle) * 46,
-                y: pilot.position.y + sin(angle) * 46
+                x: pilot.position.x + cos(angle) * 82,
+                y: pilot.position.y + sin(angle) * 82
             )
             blade.zRotation = angle + .pi / 2
             for enemyIndex in enemies.indices {
