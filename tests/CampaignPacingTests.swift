@@ -28,7 +28,7 @@ struct CampaignPacingTests {
             precondition(bounds.contains(entry))
             precondition(hypot(entry.x - flankPilot.x, entry.y - flankPilot.y) >= 95)
         }
-        let expectedSurvival = [4, 5, 4]
+        let expectedSurvival = [3, 3, 3]
         let expectedDefense = [1, 0, 1]
         for world in 0..<WorldCatalog.playableCount {
             var timed = 0
@@ -45,8 +45,8 @@ struct CampaignPacingTests {
                 if kind == .equipmentDefense { defenses += 1 }
                 if kind.isTimed {
                     timed += 1
-                    precondition(room - priorArena >= 2,
-                                 "Survival encounters must not occur back to back")
+                    precondition(room - priorArena >= 3,
+                                 "Timed encounters need at least two ordinary rooms between them")
                     priorArena = room
                     let duration = SurvivalEncounterRules.duration(
                         world: world, room: room)
@@ -107,6 +107,7 @@ struct CampaignPacingTests {
                         livingEnemies: 0))
                 }
             }
+            precondition((2...3).contains(survival), "Campaign survival frequency exceeds approved limit")
             precondition(survival == expectedSurvival[world] &&
                          defenses == expectedDefense[world])
             precondition(timed == survival + defenses)
