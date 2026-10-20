@@ -154,6 +154,8 @@ final class OutpostScene: SKScene {
     private var pilotHeading: CGFloat = -.pi / 2
     private var pilotAimHeading: CGFloat? = nil
     private var pilotVisualDirection = 6
+    private var pilotTraveling = false
+    private var pilotShotHeading: CGFloat = -.pi / 2
     private lazy var pilotDirectionalTextures: [SKTexture] = {
         CharacterMotion.pilotDirections.map {
             productionTexture(named: "pilot_" + $0, fallback: pilotArmorTexture)
@@ -4550,6 +4552,7 @@ final class OutpostScene: SKScene {
         let movementDX = pilot.position.x - pilotBeforeMovement.x
         let movementDY = pilot.position.y - pilotBeforeMovement.y
         let isMoving = hypot(movementDX, movementDY) > 0.35
+        pilotTraveling = isMoving
         // Travel direction takes priority during movement; firing direction is
         // used only when stationary. Keep the collision node unrotated.
         if isMoving {
@@ -4802,7 +4805,7 @@ final class OutpostScene: SKScene {
         // Authored views must never be mirrored. Recoil follows the actual
         // firing heading while feet and collision stay in world coordinates.
         let kick = CGFloat(max(0, 1 - max(0, combatTime - lastShot) / 0.17))
-        let recoilHeading = pilotAimHeading ?? pilotHeading
+        let recoilHeading = pilotShotHeading
         art.position = CGPoint(x: -cos(recoilHeading) * kick * 1.5,
                                y: pose.verticalOffset - sin(recoilHeading) * kick * 1.5)
         art.xScale = abs(pose.widthScale)
@@ -5118,7 +5121,8 @@ final class OutpostScene: SKScene {
         lastShot = combatTime
         let target = enemies[index].node.position
         let shotAngle = atan2(target.y - pilot.position.y, target.x - pilot.position.x)
-        if distance(pilot.position, movementTarget ?? pilot.position) < 3 {
+        pilotShotHeading = shotAngle
+        if !pilotTraveling {
             pilotAimHeading = shotAngle
         }
         if abs(target.x - pilot.position.x) > 10 {
@@ -6118,6 +6122,8 @@ final class OutpostScene: SKScene {
         pilotHitCount = 0
         pilot.alpha = 1
         pilotFacing = 1
+        pilotTraveling = false
+        pilotShotHeading = -.pi / 2
         pilotHeading = -.pi / 2
         pilotAimHeading = nil
         pilotVisualDirection = 6
