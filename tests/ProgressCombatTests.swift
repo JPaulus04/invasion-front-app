@@ -31,6 +31,21 @@ struct ProgressCombatTests {
                      .selected == ["orbit", "chain"])
         precondition(TacticalDraftRules.futureCatalog.count == 15)
         precondition(TacticalDraftRules.rarity(for: "incendiary") == .common)
+        precondition(AbilityLoadout.catalog.contains("frost"))
+        precondition(TacticalDraftRules.rarity(for: "frost") == .common)
+        precondition(FrostRoundsRules.speedMultiplier(rank: 0) == 1)
+        precondition(FrostRoundsRules.speedMultiplier(rank: 1) < 1)
+        precondition(FrostRoundsRules.speedMultiplier(rank: 3) <
+                     FrostRoundsRules.speedMultiplier(rank: 1))
+        precondition(FrostRoundsRules.duration(rank: 3) >
+                     FrostRoundsRules.duration(rank: 1))
+        var frostBuild = AbilityLoadout()
+        precondition(frostBuild.acquire("frost", capacity: 2))
+        precondition(frostBuild.availableTacticalUpgrades(
+            chain: 0, explosive: 0, incendiary: 0, orbit: 0, frost: 1,
+            capacity: 1
+        ) == ["frost"])
+        precondition(!frostBuild.acquire("chain", capacity: 1))
         precondition(TacticalDraftRules.rarity(for: "chain") == .epic)
         precondition(TacticalDraftRules.rarity(for: "drone") == .legendary)
         precondition(TacticalDraftRules.weight(for: "incendiary") >

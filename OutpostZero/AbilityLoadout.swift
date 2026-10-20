@@ -4,7 +4,7 @@ import Foundation
 /// abilities until capacity is reached; leveling a known trait is slot-free.
 struct AbilityLoadout {
     static let maximumSlots = 3
-    static let catalog = ["chain", "explosive", "incendiary", "orbit"]
+    static let catalog = ["chain", "explosive", "incendiary", "orbit", "frost"]
     static let simulatorDefault = AbilityLoadout(selected: ["chain", "explosive", "incendiary"])
     private(set) var selected: [String]
 
@@ -40,7 +40,7 @@ struct AbilityLoadout {
     }
 
     func availableTacticalUpgrades(chain: Int, explosive: Int,
-                                   incendiary: Int, orbit: Int,
+                                   incendiary: Int, orbit: Int, frost: Int = 0,
                                    capacity: Int = maximumSlots) -> [String] {
         Self.catalog.filter { id in
             let rank: Int
@@ -49,6 +49,7 @@ struct AbilityLoadout {
             case "explosive": rank = explosive
             case "incendiary": rank = incendiary
             case "orbit": rank = orbit
+            case "frost": rank = frost
             default: return false
             }
             return rank < 3 && (contains(id) || selected.count < capacity)
@@ -127,5 +128,22 @@ final class PlayerMastery {
         storage.set(min(1_000_000, totalXP + amount),
                     forKey: "outpostPlayerMasteryXP")
         return amount
+    }
+}
+
+/// Frost Rounds offer control, not extra damage. Normal foes remain mobile;
+/// even a fully ranked Frost shot is only a moderate temporary slowdown.
+/// The Forest Guardian is immune to slows to preserve its telegraphed phases.
+enum FrostRoundsRules {
+    static func speedMultiplier(rank: Int) -> Double {
+        switch rank {
+        case 1: return 0.78
+        case 2: return 0.69
+        case 3...: return 0.58
+        default: return 1
+        }
+    }
+    static func duration(rank: Int) -> TimeInterval {
+        rank > 0 ? 0.85 + TimeInterval(min(3, rank)) * 0.35 : 0
     }
 }

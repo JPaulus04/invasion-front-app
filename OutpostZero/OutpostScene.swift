@@ -161,6 +161,8 @@ final class OutpostScene: SKScene {
     private var chainLevel = 0
     private var explosiveLevel = 0
     private var incendiaryLevel = 0
+    private var frostLevel = 0
+    private var chilledUntil: [ObjectIdentifier: TimeInterval] = [:]
     private var burns: [ObjectIdentifier: (damage: Int, until: TimeInterval, nextTick: TimeInterval)] = [:]
     private var bossNode: SKShapeNode?
     private var guardianArmorBroken = false
@@ -1186,6 +1188,34 @@ final class OutpostScene: SKScene {
             arena.isPaused = true
             updateHUD()
         }
+        // New real combat trait: an illustrated frozen raider and genuine
+        // movement speed rule, not merely a mock preview card.
+        if ProcessInfo.processInfo.arguments.contains("-captureFrostRoundsScreenshot") {
+            worldMapIndex = 0
+            wave = 7
+            gateUnlocked = true
+            lockedLoadout = AbilityLoadout(selected: ["frost"])
+            frostLevel = 2
+            startWave()
+            spawned = waveTarget
+            spawnEnemy(artReviewType: 2)
+            guard let target = enemies.indices.first else {
+                preconditionFailure("Frost QA raider missing")
+            }
+            enemies[target].node.position = CGPoint(
+                x: roomBounds.midX + 48, y: roomBounds.midY + 75)
+            applyFrost(to: target)
+            enemies[target].node.alpha = 1
+            enemies[target].node.childNode(withName: "spawnWarning")?.removeFromParent()
+            precondition(lockedLoadout.contains("frost") &&
+                         enemies[target].node.childNode(withName: "frostIndicator") != nil &&
+                         (chilledUntil[ObjectIdentifier(enemies[target].node)] ?? 0) > combatTime &&
+                         FrostRoundsRules.speedMultiplier(rank: frostLevel) < 1,
+                         "Frost rounds must apply readable real slow debuff")
+            holdDefenseQAScreenshot = true
+            arena.isPaused = true
+            updateHUD()
+        }
         // Real SpriteKit boss integration: stage the final room and
         // confirm each world's attack behavior, health and telegraphs.
         if ProcessInfo.processInfo.arguments.contains("-captureFloodedBossScreenshot") {
@@ -1385,6 +1415,9 @@ final class OutpostScene: SKScene {
         let qaLevelUp = ProcessInfo.processInfo.arguments.contains("-captureLevelUpScreenshot")
         let qaLevelUpResume = ProcessInfo.processInfo.arguments.contains("-captureLevelUpResumeScreenshot")
         if qaLevelUp || qaLevelUpResume {
+            // Exercise genuine new-run draws with zero preselected skills,
+            // not the old simulator-default 3-skill loadout (3/2 slots).
+            lockedLoadout = AbilityLoadout()
             startWave()
             waveTarget = 3
             spawned = 3
@@ -2062,7 +2095,8 @@ final class OutpostScene: SKScene {
             timedEncounterSpawned: activeEncounter.isTimed ? spawned : nil,
             timedEncounterLiving: activeEncounter.isTimed ? enemies.count : nil,
             defenseObjectiveIntegrity: activeEncounter == .equipmentDefense
-                ? defenseIntegrity : nil)
+                ? defenseIntegrity : nil,
+            frostLevel: frostLevel)
         _ = recovery.save(snapshot)
     }
 
@@ -2082,6 +2116,7 @@ final class OutpostScene: SKScene {
         chainLevel = snapshot.chainLevel
         explosiveLevel = snapshot.explosiveLevel
         incendiaryLevel = snapshot.incendiaryLevel
+        frostLevel = snapshot.frostLevel ?? 0
         orbitLevel = snapshot.orbitLevel
         salvageBankedThisRun = snapshot.earnedSalvage
         wave = snapshot.room - 1
@@ -2973,6 +3008,7 @@ final class OutpostScene: SKScene {
         arena.children.filter { $0.name == "flankSwarmWarning" }
             .forEach { $0.removeFromParent() }
         burns.removeAll()
+        chilledUntil.removeAll()
         lastOrbitalHit.removeAll()
         enemyAcidDamageAt.removeAll()
         roomCleared = false
@@ -4555,9 +4591,17 @@ final class OutpostScene: SKScene {
                 elapsed: combatTime, phase: enemy.weavePhase,
                 ranged: ranged && waypoint == pursuitTarget,
                 aiming: enemies[index].shotTarget != nil)
+            let chillKey = ObjectIdentifier(enemy.node)
+            let chillExpires = chilledUntil[chillKey] ?? 0
+            if chillExpires > 0 && chillExpires <= combatTime {
+                chilledUntil.removeValue(forKey: chillKey)
+                enemy.node.childNode(withName: "frostIndicator")?.removeFromParent()
+            }
+            let chillMultiplier: CGFloat = chillExpires > combatTime
+                ? CGFloat(FrostRoundsRules.speedMultiplier(rank: frostLevel)) : 1
             let step = enemy.speed * CGFloat(gameDt) *
                 (enemy.node.name == "flankRaider"
-                    ? FlankSwarmRules.speedMultiplier : 1)
+                    ? FlankSwarmRules.speedMultiplier : 1) * chillMultiplier
             let target = RoomRules.clamp(
                 CGPoint(x: current.x + intent.dx * step,
                         y: current.y + intent.dy * step),
@@ -4903,6 +4947,32 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
+    private func applyFrost(to index: Int) {
+        guard frostLevel > 0, enemies.indices.contains(index),
+              enemies[index].health > 0, enemies[index].node !== bossNode else {
+            return
+        }
+        let foe = enemies[index]
+        let key = ObjectIdentifier(foe.node)
+        chilledUntil[key] = combatTime + FrostRoundsRules.duration(rank: frostLevel)
+        let indicator: SKShapeNode
+        if let old = foe.node.childNode(withName: "frostIndicator") as? SKShapeNode {
+            indicator = old
+        } else {
+            indicator = SKShapeNode(circleOfRadius: foe.radius + 5)
+            indicator.name = "frostIndicator"
+            indicator.fillColor = .systemCyan.withAlphaComponent(0.12)
+            indicator.strokeColor = SKColor(red: 0.60, green: 0.92,
+                                            blue: 1.00, alpha: 0.94)
+            indicator.lineWidth = 2.2
+            indicator.glowWidth = 2.5
+            indicator.zPosition = 4
+            foe.node.addChild(indicator)
+        }
+        indicator.alpha = 1
+        impact(at: foe.node.position, color: .systemCyan, destroyed: false)
+    }
+
     private func shoot(at point: CGPoint, selectedIndex index: Int) {
         guard combatTime - lastShot >= 0.42 / Double(fireRate + permanentRateBonus) else { return }
         guard enemies.indices.contains(index), enemies[index].health > 0,
@@ -4933,6 +5003,7 @@ final class OutpostScene: SKScene {
                 nextTick: combatTime + 0.5)
             CombatVisuals.markBurning(enemies[index].node, radius: enemies[index].radius)
         }
+        if frostLevel > 0 { applyFrost(to: index) }
         if explosiveLevel > 0 {
             for other in enemies.indices where other != index && combatTime >= enemies[other].activeAt && distance(enemies[other].node.position, target) < CGFloat(35 + explosiveLevel * 15 + permanent.rank("explosive") * 5) {
                 let alreadyBurning = (burns[ObjectIdentifier(enemies[other].node)]?.until ?? 0) > combatTime
@@ -5080,6 +5151,7 @@ final class OutpostScene: SKScene {
                 .removeFromParent()
             ]))
             burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
+            chilledUntil.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             lastOrbitalHit.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             enemyAcidDamageAt.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             let defeatedBoss = enemies[index].node === bossNode
@@ -5210,7 +5282,7 @@ final class OutpostScene: SKScene {
         let tacticalOptions = lockedLoadout.availableTacticalUpgrades(
             chain: chainLevel, explosive: explosiveLevel,
             incendiary: incendiaryLevel, orbit: orbitLevel,
-            capacity: playerMastery.capacity)
+            frost: frostLevel, capacity: playerMastery.capacity)
         pool += tacticalOptions
         if health < maximumHealth { pool.append("heal") }
         pool.append("damage")
@@ -5274,6 +5346,12 @@ final class OutpostScene: SKScene {
                 category = "ORDNANCE"
                 symbol = "HOT"
                 tint = SKColor(red: 1, green: 0.57, blue: 0.38, alpha: 1)
+            case "frost":
+                label = "COMMON • FROST ROUNDS  LV \(frostLevel + 1)"
+                detail = "Chill targets to slow their approach"
+                category = "CONTROL"
+                symbol = "ICE"
+                tint = SKColor(red: 0.46, green: 0.84, blue: 1, alpha: 1)
             case "orbit":
                 label = "RARE • ORBITAL BLADES  LV \(orbitLevel + 1)"
                 detail = AbilitySynergies.preview(
@@ -5406,6 +5484,7 @@ final class OutpostScene: SKScene {
         case "chain": chainLevel = min(3, chainLevel + 1)
         case "explosive": explosiveLevel = min(3, explosiveLevel + 1)
         case "incendiary": incendiaryLevel = min(3, incendiaryLevel + 1)
+        case "frost": frostLevel = min(3, frostLevel + 1)
         case "orbit":
             orbitLevel = min(3, orbitLevel + 1)
             rebuildOrbitingDefenses()
@@ -5868,11 +5947,14 @@ final class OutpostScene: SKScene {
         chainLevel = 0
         explosiveLevel = 0
         incendiaryLevel = 0
+        frostLevel = 0
         orbitLevel = 0
+        chilledUntil.removeAll()
         lastOrbitalHit.removeAll()
         nextBladeArcAt = 0
         rebuildOrbitingDefenses()
         burns.removeAll()
+        chilledUntil.removeAll()
         heldTouch = nil
         aimPoint = nil
         lastShot = -100

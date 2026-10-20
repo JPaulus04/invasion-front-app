@@ -38,6 +38,8 @@ struct RunSnapshot: Codable {
     var timedEncounterLiving: Int? = nil
     /// Optional so existing schema-4 saves remain compatible.
     var defenseObjectiveIntegrity: Int? = nil
+    /// Optional for backward compatibility with pre-Frost TestFlight saves.
+    var frostLevel: Int? = nil
 
     var isValid: Bool {
         version == Self.schema && (0..<WorldCatalog.playableCount).contains(worldIndex) &&
@@ -46,6 +48,7 @@ struct RunSnapshot: Codable {
         (1...100).contains(damage) && (1...5).contains(fireRate) &&
         (0...3).contains(chainLevel) && (0...3).contains(explosiveLevel) &&
         (0...3).contains(incendiaryLevel) && (0...3).contains(orbitLevel) &&
+        (0...3).contains(frostLevel ?? 0) &&
         (0...1_000).contains(runArmor) && (1...100).contains(progress.level) &&
         progress.xp >= 0 && progress.xp < progress.nextLevelXP &&
         (0...50).contains(progress.pendingChoices) &&

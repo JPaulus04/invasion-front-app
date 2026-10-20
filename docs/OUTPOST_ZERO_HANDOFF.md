@@ -199,6 +199,12 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 - World 1 actual SpriteKit screenshots now include separate pre-arrival warning and post-arrival enemies with assertions, plus tests for encounter exclusions and safe compact-device spawn geometry. Current-head CI and screenshot review required before playtest readiness.
 - User-facing Build 319 stays unchanged. No new TestFlight upload without user approval.
 
+## October 19 — Phase 4: first new implemented tactical skill, Common Frost Rounds
+- Following screenshot review of fully green combined branch `ada8423c`, the ordinary Home->Room1 and fresh level-up screenshots looked good, as did distinct warned/flank-raider arrivals. Old Level 2 QA fixture erroneously showed TACTICAL 3/2; it now starts with empty ability selection, matching the real gameplay.
+- Implemented **Common Frost Rounds** as a fifth *real* ability, not a concept-only card. Its three ranks slow non-boss enemy movement to 78% / 69% / 58% briefly, with an independent visible icy ring and cyan hit effect. Does not stack extra damage or stun the Forest Guardian. Continues through the run once chosen, occupies one tactical slot, and rerolls at Common weight for rank upgrades.
+- Frost rank is optional in schema-4 saved snapshots to preserve old TestFlight recovery, and status timers use the combat clock (pause-safe); expiry, room changes, defeat, and retry clear temporary effects. Added unit tests, a genuine live SpriteKit Frost screenshot fixture, and screenshot validation in CI.
+- Still *no TestFlight upload*: user wants chat screenshot review before release. Next: inspect new frost imagery and test fairness of rarity/late-run option count, then select next skill to implement.
+
 ## Next development sequence (no TestFlight upload per mini-step)
 1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
 2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.
