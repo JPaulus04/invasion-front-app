@@ -151,6 +151,8 @@ final class OutpostScene: SKScene {
     private let pilot = SKShapeNode(rectOf: CGSize(width: 28, height: 34), cornerRadius: 7)
     private let pilotGun = SKShapeNode(rectOf: CGSize(width: 9, height: 23), cornerRadius: 3)
     private var pilotFacing: CGFloat = 1
+    private var pilotHeading: CGFloat = -.pi / 2
+    private var pilotAimHeading: CGFloat? = nil
     private var nextFootstepAt: TimeInterval = 0
     private var movementOrigin: CGPoint?
     private var movementTarget: CGPoint?
@@ -4502,7 +4504,17 @@ final class OutpostScene: SKScene {
         // Animate the visible sprite, not its parent collision container.
         // An actual displacement check prevents walking-in-place into rubble.
         updateArenaCamera(delta: dt)
-        let isMoving = distance(pilotBeforeMovement, pilot.position) > 0.35
+        let movementDX = pilot.position.x - pilotBeforeMovement.x
+        let movementDY = pilot.position.y - pilotBeforeMovement.y
+        let isMoving = hypot(movementDX, movementDY) > 0.35
+        // Travel direction takes priority during movement; firing direction is
+        // used only when stationary. Keep the collision node unrotated.
+        if isMoving {
+            pilotHeading = atan2(movementDY, movementDX)
+            pilotAimHeading = nil
+        } else if let aimHeading = pilotAimHeading {
+            pilotHeading = aimHeading
+        }
         let pose = CharacterMotion.pilot(
             time: combatTime, moving: isMoving, facing: pilotFacing,
             timeSinceShot: combatTime - lastShot)
@@ -4511,8 +4523,18 @@ final class OutpostScene: SKScene {
         if let pilotArt = pilot.childNode(withName: "pilotArt") as? SKSpriteNode {
             pilotArt.position.y = pose.verticalOffset
             pilotArt.zRotation = pose.lean
-            pilotArt.xScale = pose.widthScale
-            pilotArt.yScale = pose.heightScale
+            // This directional presentation is a transitional fallback until
+            // authored front/side/back textures are supplied. Avoid spinning
+            // the flat illustration like a top-down paper cutout.
+            let facingCamera = -sin(pilotHeading)
+            let sideOn = abs(cos(pilotHeading))
+            pilotArt.xScale = pose.widthScale * (0.82 + 0.18 * abs(facingCamera))
+            pilotArt.yScale = pose.heightScale * (0.96 + 0.04 * sideOn)
+            pilotArt.color = facingCamera < -0.25
+                ? SKColor(red: 0.72, green: 0.82, blue: 0.94, alpha: 1)
+                : .white
+            pilotArt.colorBlendFactor = facingCamera < -0.25 ? 0.20 : 0
+            pilotArt.zRotation = pose.lean + (cos(pilotHeading) * 0.055)
         }
         if let ground = pilot.childNode(withName: "pilotGroundShadow") as? SKShapeNode {
             ground.xScale = pose.shadowScale
@@ -5048,6 +5070,9 @@ final class OutpostScene: SKScene {
         lastShot = combatTime
         let target = enemies[index].node.position
         let shotAngle = atan2(target.y - pilot.position.y, target.x - pilot.position.x)
+        if distance(pilot.position, movementTarget ?? pilot.position) < 3 {
+            pilotAimHeading = shotAngle
+        }
         if abs(target.x - pilot.position.x) > 10 {
             pilotFacing = target.x < pilot.position.x ? -1 : 1
         }
@@ -6045,6 +6070,8 @@ final class OutpostScene: SKScene {
         pilotHitCount = 0
         pilot.alpha = 1
         pilotFacing = 1
+        pilotHeading = -.pi / 2
+        pilotAimHeading = nil
         nextFootstepAt = 0
         pilot.removeAction(forKey: "hitFlash")
         pilot.childNode(withName: "pilotArt")?.xScale = 1
