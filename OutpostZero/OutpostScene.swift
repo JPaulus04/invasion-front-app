@@ -5342,8 +5342,32 @@ final class OutpostScene: SKScene {
         let choiceLevel = progress.level - progress.pendingChoices + 1
         overlayText("LEVEL \(choiceLevel)!", y: 125, fontSize: 28)
         overlayText("RANDOM DRAW • CHOOSE ONE", y: 87, fontSize: 15)
-        overlayText("TACTICAL \(lockedLoadout.selected.count)/\(playerMastery.capacity)   •   MASTERY \(playerMastery.level)",
-                    y: 67, fontSize: 10)
+        overlayText("MASTERY \(playerMastery.level)", y: 67, fontSize: 10)
+        // Each filled circle represents an equipped tactical ability, not a
+        // stat upgrade. A third slot appears only when mastery permits it.
+        let slotIcons = ["chain": "ARC", "explosive": "AOE",
+                         "incendiary": "HOT", "orbit": "ORB", "frost": "ICE"]
+        let slots = max(2, playerMastery.capacity)
+        for index in 0..<slots {
+            let circle = SKShapeNode(circleOfRadius: 16)
+            circle.name = "tacticalSlot\(index)"
+            circle.position = CGPoint(x: -min(size.width / 2 - 23, 175),
+                                      y: CGFloat(26 - index * 43))
+            circle.fillColor = index < lockedLoadout.selected.count
+                ? SKColor(red: 0.12, green: 0.42, blue: 0.61, alpha: 0.95)
+                : SKColor(red: 0.10, green: 0.14, blue: 0.20, alpha: 0.85)
+            circle.strokeColor = index < lockedLoadout.selected.count
+                ? .systemCyan : SKColor(white: 0.65, alpha: 0.8)
+            circle.lineWidth = 2
+            let icon = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            icon.fontSize = 9
+            icon.fontColor = .white
+            icon.verticalAlignmentMode = .center
+            icon.text = index < lockedLoadout.selected.count
+                ? (slotIcons[lockedLoadout.selected[index]] ?? "●") : "+"
+            circle.addChild(icon)
+            overlay.addChild(circle)
+        }
         // Always offer at least three meaningful *stat* choices even
         // when all tactical ranks and rate/mobility caps are reached.
         var pool = TacticalDraftRules.baseStatChoices
