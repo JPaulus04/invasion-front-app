@@ -4508,8 +4508,14 @@ final class OutpostScene: SKScene {
                 startWave()
                 return
             }
-            // Tactical gates are peaceful; extraction retains live combat.
-            if !isExtracting { return }
+            // Continue orbiting the moving pilot during peaceful gate approach.
+            // The combat clock is intentionally paused here, so advance the visual
+            // angle from the live scene clock rather than leaving the orbs frozen.
+            if !isExtracting {
+                updateOrbitingDefenses()
+                return
+            }
+            // Survival extraction continues combat and normal orbit damage.
         }
         // Scan once per available shot, without allocating an enemy array or
         // rechecking target distance inside the weapon routine.
@@ -4910,7 +4916,7 @@ final class OutpostScene: SKScene {
         // All positions derive from the same paused combat clock as hostile
         // projectiles. No free orbital strikes while choosing a level-up.
         for (index, blade) in orbitalNodes.enumerated() {
-            let angle = CGFloat(combatTime) * 2.65 +
+            let angle = CGFloat(phase == .gate && !extractionCombatActive ? clock : combatTime) * 2.65 +
                 CGFloat(index) * (2 * .pi / CGFloat(orbitalNodes.count))
             blade.position = CGPoint(
                 x: pilot.position.x + cos(angle) * 82,
