@@ -1651,7 +1651,7 @@ final class OutpostScene: SKScene {
             width: max(1, size.width - 24), height: 96),
             cornerWidth: 13, cornerHeight: 13, transform: nil)
         floorNumber.position = CGPoint(x: 27, y: size.height - 121)
-        survivalClock.position = CGPoint(x: size.width / 2, y: size.height - 199)
+        survivalClock.position = CGPoint(x: size.width / 2, y: size.height - 246)
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         subtitle.position = CGPoint(x: size.width / 2, y: size.height - 121)
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
@@ -1688,7 +1688,7 @@ final class OutpostScene: SKScene {
                 SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
             survivalClock.text = roomCleared ? "EXTRACTION READY" :
                 String(format: "%02d:%02d", seconds / 60, seconds % 60)
-            survivalClock.fontSize = roomCleared ? 20 : 32
+            survivalClock.fontSize = roomCleared ? 19 : 32
             survivalClock.fontColor = seconds <= 10 ? .systemOrange : .systemYellow
         }
         pilotHealthFill.xScale = max(0.001, min(1,
@@ -1729,17 +1729,17 @@ final class OutpostScene: SKScene {
             let remaining = max(0, Int(ceil(
                 SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) -
                     waveElapsed)))
-            subtitleText = "SURVIVE \(remaining)S  •  \(enemies.count) FOES  •  \(coins) COINS"
+            subtitleText = "\(enemies.count) FOES  •  \(coins) COINS"
         } else if activeEncounter == .survival && roomCleared {
-            subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  EXTRACTION READY"
+            subtitleText = "EXTRACTION READY"
         } else if activeEncounter == .equipmentDefense && roomCleared {
-            subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  REACTOR SECURED"
+            subtitleText = "REACTOR SECURED"
         } else if activeEncounter == .equipmentDefense && !roomCleared {
             let remaining = max(0, Int(ceil(
                 SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
             subtitleText = "DEFEND \(remaining)S  •  REACTOR \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
         } else {
-            subtitleText = "ROOM \(wave)/\(worldWaveCount)  •  \(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
+            subtitleText = "\(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
         }
         if subtitle.text != subtitleText { subtitle.text = subtitleText }
         let infoText = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
@@ -5356,8 +5356,9 @@ final class OutpostScene: SKScene {
         for index in 0..<slots {
             let circle = SKShapeNode(circleOfRadius: 16)
             circle.name = "tacticalSlot\(index)"
-            circle.position = CGPoint(x: -min(size.width / 2 - 23, 175),
-                                      y: CGFloat(26 - index * 43))
+            circle.position = CGPoint(
+                x: CGFloat(index) * 43 - CGFloat(slots - 1) * 21.5,
+                y: -220)
             circle.fillColor = index < lockedLoadout.selected.count
                 ? SKColor(red: 0.12, green: 0.42, blue: 0.61, alpha: 0.95)
                 : SKColor(red: 0.10, green: 0.14, blue: 0.20, alpha: 0.85)
