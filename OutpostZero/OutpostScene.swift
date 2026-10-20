@@ -215,12 +215,36 @@ final class OutpostScene: SKScene {
     private let title = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let subtitle = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
     private let info = SKLabelNode(fontNamed: "AvenirNext-Bold")
+    private let floorNumber = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+    private let survivalClock = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+    private let pilotHealthTrack = SKShapeNode(rectOf: CGSize(width: 42, height: 6), cornerRadius: 3)
+    private let pilotHealthFill = SKShapeNode(rectOf: CGSize(width: 42, height: 6), cornerRadius: 3)
+
 
     override func didMove(to view: SKView) {
         scaleMode = .resizeFill
         backgroundColor = SKColor(red: 0.07, green: 0.15, blue: 0.21, alpha: 1)
         addChild(arena)
         addChild(hud)
+        floorNumber.fontSize = 35
+        floorNumber.fontColor = .white
+        floorNumber.horizontalAlignmentMode = .left
+        floorNumber.zPosition = 4
+        hud.addChild(floorNumber)
+        survivalClock.fontSize = 32
+        survivalClock.fontColor = .systemYellow
+        survivalClock.zPosition = 4
+        hud.addChild(survivalClock)
+        pilotHealthTrack.fillColor = SKColor.black.withAlphaComponent(0.8)
+        pilotHealthTrack.strokeColor = .white.withAlphaComponent(0.5)
+        pilotHealthTrack.position = CGPoint(x: 0, y: 44)
+        pilotHealthTrack.zPosition = 15
+        pilot.addChild(pilotHealthTrack)
+        pilotHealthFill.fillColor = .systemGreen
+        pilotHealthFill.strokeColor = .clear
+        pilotHealthFill.position = .zero
+        pilotHealthTrack.addChild(pilotHealthFill)
+
         hud.zPosition = 30
         speedButton.fillColor = .systemBlue
         speedButton.strokeColor = .white
@@ -1626,6 +1650,8 @@ final class OutpostScene: SKScene {
             x: 12, y: size.height - 171,
             width: max(1, size.width - 24), height: 96),
             cornerWidth: 13, cornerHeight: 13, transform: nil)
+        floorNumber.position = CGPoint(x: 27, y: size.height - 121)
+        survivalClock.position = CGPoint(x: size.width / 2, y: size.height - 199)
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         subtitle.position = CGPoint(x: size.width / 2, y: size.height - 121)
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
@@ -1652,6 +1678,23 @@ final class OutpostScene: SKScene {
     }
 
     private func updateHUD() {
+        floorNumber.text = wave > 0 ? "\(wave)" : ""
+        floorNumber.isHidden = wave <= 0 || phase == .ready || phase == .loadout
+        let survivalActive = activeEncounter == .survival &&
+            (phase == .playing || phase == .gate)
+        survivalClock.isHidden = !survivalActive
+        if survivalActive {
+            let seconds = max(0, Int(ceil(
+                SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
+            survivalClock.text = roomCleared ? "EXTRACTION READY" :
+                String(format: "%02d:%02d", seconds / 60, seconds % 60)
+            survivalClock.fontSize = roomCleared ? 20 : 32
+            survivalClock.fontColor = seconds <= 10 ? .systemOrange : .systemYellow
+        }
+        pilotHealthFill.xScale = max(0.001, min(1,
+            CGFloat(health) / CGFloat(max(1, maximumHealth))))
+        pilotHealthFill.fillColor = health <= maximumHealth / 3 ? .systemRed : .systemGreen
+        pilotHealthTrack.isHidden = phase == .ready || phase == .loadout
         let speedText = fastForward ? "2× SPEED" : "1× SPEED"
         if speedLabel.text != speedText { speedLabel.text = speedText }
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
@@ -5391,11 +5434,11 @@ final class OutpostScene: SKScene {
                 symbol = "ICE"
                 tint = SKColor(red: 0.46, green: 0.84, blue: 1, alpha: 1)
             case "orbit":
-                label = "RARE • ORBITAL BLADES  LV \(orbitLevel + 1)"
+                label = "RARE • ENERGY ORBIT  LV \(orbitLevel + 1)"
                 detail = AbilitySynergies.preview(
                     ability: "orbit", chain: chainLevel,
                     explosive: explosiveLevel, incendiary: incendiaryLevel,
-                    orbit: orbitLevel) ?? "Spinning blades strike nearby foes"
+                    orbit: orbitLevel) ?? "Wide energy orbs strike nearby foes"
                 category = "TACTICAL"
                 symbol = "ORB"
                 tint = SKColor(red: 0.63, green: 0.70, blue: 1, alpha: 1)
