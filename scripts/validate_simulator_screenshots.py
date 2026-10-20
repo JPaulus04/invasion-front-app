@@ -35,6 +35,7 @@ def verify(path: Path) -> None:
     colors = set()
     arena_marker = None
     expected_markers = {
+        "outpost-zero-pilot-directions.png": 2,
         "outpost-zero-arena-west.png": 0,
         "outpost-zero-arena-center.png": 1,
         "outpost-zero-arena-east.png": 2,

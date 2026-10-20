@@ -19,6 +19,23 @@ struct EnemyVisualPose {
 }
 
 enum CharacterMotion {
+    /// Counterclockwise sectors in SpriteKit world coordinates, east first.
+    static let pilotDirections = ["e", "ne", "n", "nw", "w", "sw", "s", "se"]
+
+    static func pilotDirection(heading: CGFloat, previous: Int? = nil) -> Int {
+        guard heading.isFinite else { return previous ?? 6 }
+        let full = CGFloat.pi * 2
+        let angle = (heading.truncatingRemainder(dividingBy: full) + full)
+            .truncatingRemainder(dividingBy: full)
+        // A 6-degree dead band prevents flicker at diagonal boundaries.
+        if let previous, (0..<8).contains(previous) {
+            let center = CGFloat(previous) * .pi / 4
+            let difference = atan2(sin(angle - center), cos(angle - center))
+            if abs(difference) < .pi / 8 + .pi / 30 { return previous }
+        }
+        return Int((angle / (.pi / 4)).rounded()) % 8
+    }
+
     static func pilot(time: TimeInterval, moving: Bool, facing: CGFloat,
                       timeSinceShot: TimeInterval) -> PilotVisualPose {
         let t = CGFloat(time)

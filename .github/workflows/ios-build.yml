@@ -57,7 +57,7 @@ jobs:
           set -e
           APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           test -d "$APP"
-          for ASSET in pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
+          for ASSET in pilot_e.png pilot_ne.png pilot_n.png pilot_nw.png pilot_w.png pilot_sw.png pilot_s.png pilot_se.png pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
             FOUND="$(find "$APP" -type f -name "$ASSET" -print -quit)"
             if [ -z "$FOUND" ]; then
               echo "::error::$ASSET is missing from the compiled iOS app bundle"
@@ -360,6 +360,7 @@ jobs:
           }
           # Prioritize the two new playable worlds, so simulator trouble
           # cannot hide their first actual render behind older art captures.
+          capture_scene -capturePilotDirectionsScreenshot screenshots/outpost-zero-pilot-directions.png
           capture_scene -captureExpandedArenaLeftScreenshot screenshots/outpost-zero-arena-west.png
           capture_scene -captureExpandedArenaCenterScreenshot screenshots/outpost-zero-arena-center.png
           capture_scene -captureExpandedArenaRightScreenshot screenshots/outpost-zero-arena-east.png

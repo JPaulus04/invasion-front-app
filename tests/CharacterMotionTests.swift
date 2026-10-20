@@ -4,6 +4,14 @@ import CoreGraphics
 @main
 struct CharacterMotionTests {
     static func main() {
+        for direction in 0..<8 {
+            let angle = CGFloat(direction) * .pi / 4
+            precondition(CharacterMotion.pilotDirection(heading: angle) == direction)
+            precondition(CharacterMotion.pilotDirection(heading: angle - 2 * .pi) == direction)
+        }
+        precondition(CharacterMotion.pilotDirection(heading: .pi / 8 + 0.02, previous: 0) == 0)
+        precondition(CharacterMotion.pilotDirection(heading: .pi / 4, previous: 0) == 1)
+        precondition(CharacterMotion.pilotDirection(heading: -.pi / 2) == 6)
         let idle = CharacterMotion.pilot(
             time: 0, moving: false, facing: 1, timeSinceShot: 2)
         let running = CharacterMotion.pilot(

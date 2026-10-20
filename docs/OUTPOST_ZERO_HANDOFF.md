@@ -249,3 +249,11 @@ First implementation commit `88e8c8e9703e0e77bd7a4e256e06238a0b4ef6b4` changes o
 - `f18dea8f`: draws 2 (or mastery-unlocked 3) circular tactical-slot indicators on level-up overlay, showing selected ability icons; stats don't consume slots.
 - `8969858c`: projectile impact tint distinguishes normal/chain/incendiary/explosive.
 All changes require fresh CI build and actual simulator screenshot review on latest SHA. Inspect header spacing, slot circles/card overlap, HP bar positioning/scale, survival timer overlapping controls, orbit animation in peaceful gate. No TestFlight upload until user approves. Note earlier CI on previous commits was cancelled by newer commits.
+
+
+## October 20 — Build 321 eight-direction pilot integration
+- Added eight generated transparent 256px pilot views (`pilot_e/ne/n/nw/w/sw/s/se.png`) with consistent blue armor/orange visor and registered feet. Runtime textures are cached; no per-frame image loading. Built-in image generation prompt: same armored pilot, fixed elevated orthographic camera, eight compass headings, consistent scale/light, transparent background, no labels/floor.
+- Actual displacement selects travel heading; existing stationary target heading selects firing view. Removed horizontal flipping and fake back-view tint; directional recoil and existing bounded stride/breath motion affect artwork only. Joystick, collision, speed and combat rules unchanged. Six-degree sector hysteresis reduces boundary flicker.
+- Added compass/wraparound/hysteresis tests and simulator-only `-capturePilotDirectionsScreenshot` showing all eight production views in-world. CI validates a blue identity marker and requires all eight PNGs in compiled bundle.
+- Local source/PNG checks pass. **iOS CI and simulator artifacts not yet reviewed at this checkpoint.** No TestFlight upload. Existing motion is procedural bob/lean/recoil, not an authored multi-frame walk cycle; judge it in motion before claiming final animation acceptance.
+- Next: inspect current-head CI, directional simulator frame plus live gameplay sequence, HUD, orbit, survival orb and upright campaign portal. Build 321 remains held for user approval.

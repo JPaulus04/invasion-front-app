@@ -153,6 +153,12 @@ final class OutpostScene: SKScene {
     private var pilotFacing: CGFloat = 1
     private var pilotHeading: CGFloat = -.pi / 2
     private var pilotAimHeading: CGFloat? = nil
+    private var pilotVisualDirection = 6
+    private lazy var pilotDirectionalTextures: [SKTexture] = {
+        CharacterMotion.pilotDirections.map {
+            productionTexture(named: "pilot_" + $0, fallback: pilotArmorTexture)
+        }
+    }()
     private var nextFootstepAt: TimeInterval = 0
     private var movementOrigin: CGPoint?
     private var movementTarget: CGPoint?
@@ -317,11 +323,11 @@ final class OutpostScene: SKScene {
         pilot.lineWidth = 3
         pilot.zPosition = 9
         // Illustrated armor plate covers the original collision body without changing gameplay.
-        let pilotArmor = SKSpriteNode(texture: productionTexture(named: "pilot_idle", fallback: pilotArmorTexture))
+        let pilotArmor = SKSpriteNode(texture: pilotDirectionalTextures[6])
         // Visual scale only: give the hero enough screen presence to read
         // its face, shoulder plates and reactor at normal phone size.
         // The 28x34 collision container and movement physics do not change.
-        pilotArmor.size = CGSize(width: 53, height: 63)
+        pilotArmor.size = CGSize(width: 63, height: 63)
         pilotArmor.zPosition = 0.5
         pilotArmor.name = "pilotArt"
         pilot.addChild(pilotArmor)
@@ -1246,6 +1252,43 @@ final class OutpostScene: SKScene {
             arena.isPaused = true
             updateHUD()
         }
+        #if targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-capturePilotDirectionsScreenshot") {
+            worldMapIndex = 0
+            wave = 0
+            startWave()
+            for name in CharacterMotion.pilotDirections {
+                precondition(productionImage(named: "pilot_" + name) != nil,
+                             "Missing directional pilot texture")
+            }
+            for direction in 0..<8 {
+                pilotHeading = CGFloat(direction) * .pi / 4
+                updatePilotPresentation(pose: CharacterMotion.pilot(
+                    time: 0, moving: false, facing: 1, timeSinceShot: 2))
+                precondition(pilotVisualDirection == direction)
+                let sample = pilot.copy() as! SKShapeNode
+                sample.position = CGPoint(
+                    x: roomBounds.minX + roomBounds.width * CGFloat(direction % 2 + 1) / 3,
+                    y: roomBounds.minY + roomBounds.height * CGFloat(direction / 2 + 1) / 5)
+                arena.addChild(sample)
+                let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
+                label.text = CharacterMotion.pilotDirections[direction].uppercased()
+                label.fontSize = 12
+                label.position = CGPoint(x: 0, y: -42)
+                sample.addChild(label)
+            }
+            pilot.isHidden = true
+            let identity = SKShapeNode(rectOf: CGSize(width: 12, height: 12))
+            identity.fillColor = .blue
+            identity.strokeColor = .clear
+            identity.position = CGPoint(x: size.width * 0.90, y: size.height * 0.60)
+            identity.zPosition = 65
+            hud.addChild(identity)
+            holdDefenseQAScreenshot = true
+            arena.isPaused = true
+            updateHUD()
+        }
+        #endif
         // Real SpriteKit boss integration: stage the final room and
         // confirm each world's attack behavior, health and telegraphs.
         if ProcessInfo.processInfo.arguments.contains("-captureFloodedBossScreenshot") {
@@ -4520,22 +4563,7 @@ final class OutpostScene: SKScene {
             timeSinceShot: combatTime - lastShot)
         pilot.zRotation = 0
         pilot.yScale = 1
-        if let pilotArt = pilot.childNode(withName: "pilotArt") as? SKSpriteNode {
-            pilotArt.position.y = pose.verticalOffset
-            pilotArt.zRotation = pose.lean
-            // This directional presentation is a transitional fallback until
-            // authored front/side/back textures are supplied. Avoid spinning
-            // the flat illustration like a top-down paper cutout.
-            let facingCamera = -sin(pilotHeading)
-            let sideOn = abs(cos(pilotHeading))
-            pilotArt.xScale = pose.widthScale * (0.82 + 0.18 * abs(facingCamera))
-            pilotArt.yScale = pose.heightScale * (0.96 + 0.04 * sideOn)
-            pilotArt.color = facingCamera < -0.25
-                ? SKColor(red: 0.72, green: 0.82, blue: 0.94, alpha: 1)
-                : .white
-            pilotArt.colorBlendFactor = facingCamera < -0.25 ? 0.20 : 0
-            pilotArt.zRotation = pose.lean + (cos(pilotHeading) * 0.055)
-        }
+        updatePilotPresentation(pose: pose)
         if let ground = pilot.childNode(withName: "pilotGroundShadow") as? SKShapeNode {
             ground.xScale = pose.shadowScale
         }
@@ -4761,6 +4789,26 @@ final class OutpostScene: SKScene {
         warning.isHidden = false
         warning.run(.sequence([.wait(forDuration: 0.45), .fadeOut(withDuration: 0.4)]))
         updateHUD()
+    }
+
+    private func updatePilotPresentation(pose: PilotVisualPose) {
+        guard let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode else { return }
+        let direction = CharacterMotion.pilotDirection(
+            heading: pilotHeading, previous: pilotVisualDirection)
+        if direction != pilotVisualDirection {
+            pilotVisualDirection = direction
+            art.texture = pilotDirectionalTextures[direction]
+        }
+        // Authored views must never be mirrored. Recoil follows the actual
+        // firing heading while feet and collision stay in world coordinates.
+        let kick = CGFloat(max(0, 1 - max(0, combatTime - lastShot) / 0.17))
+        let recoilHeading = pilotAimHeading ?? pilotHeading
+        art.position = CGPoint(x: -cos(recoilHeading) * kick * 1.5,
+                               y: pose.verticalOffset - sin(recoilHeading) * kick * 1.5)
+        art.xScale = abs(pose.widthScale)
+        art.yScale = pose.heightScale
+        art.zRotation = pose.lean
+        art.colorBlendFactor = 0
     }
 
     private func updateRangedAttack(at index: Int) {
@@ -6072,6 +6120,10 @@ final class OutpostScene: SKScene {
         pilotFacing = 1
         pilotHeading = -.pi / 2
         pilotAimHeading = nil
+        pilotVisualDirection = 6
+        if let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode {
+            art.texture = pilotDirectionalTextures[6]
+        }
         nextFootstepAt = 0
         pilot.removeAction(forKey: "hitFlash")
         pilot.childNode(withName: "pilotArt")?.xScale = 1
