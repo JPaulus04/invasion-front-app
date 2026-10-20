@@ -104,7 +104,7 @@ if "facing: pilotFacing" not in scene or "pilotFacing = 1" not in scene:
     errors.append("Pilot combat-facing animation must reset safely between runs")
 if "CharacterMotion.pilot(" not in scene or "CharacterMotion.enemy(" not in scene:
     errors.append("Character motion must use shared art-only pose timing")
-if "let isMoving = distance(pilotBeforeMovement, pilot.position) > 0.35" not in scene:
+if "let isMoving = hypot(movementDX, movementDY) > 0.35" not in scene:
     errors.append("Pilot must not show a walking animation when blocked by rubble")
 if 'childNode(withName: "pilotGroundShadow")' not in scene:
     errors.append("The pilot shadow must stay grounded during sprite motion")
