@@ -156,6 +156,8 @@ final class OutpostScene: SKScene {
     private var pilotVisualDirection = 6
     private var pilotTraveling = false
     private var pilotShotHeading: CGFloat = -.pi / 2
+    private var pilotAnimationTime: TimeInterval = 0
+    private var pilotLastVisualShot: TimeInterval = -10
     private lazy var pilotDirectionalTextures: [SKTexture] = {
         CharacterMotion.pilotDirections.map {
             productionTexture(named: "pilot_" + $0, fallback: pilotArmorTexture)
@@ -247,7 +249,7 @@ final class OutpostScene: SKScene {
         hud.addChild(survivalClock)
         pilotHealthTrack.fillColor = SKColor.black.withAlphaComponent(0.8)
         pilotHealthTrack.strokeColor = .white.withAlphaComponent(0.5)
-        pilotHealthTrack.position = CGPoint(x: 0, y: 44)
+        pilotHealthTrack.position = CGPoint(x: 0, y: 36)
         pilotHealthTrack.zPosition = 15
         pilot.addChild(pilotHealthTrack)
         pilotHealthFill.fillColor = .systemGreen
@@ -1456,6 +1458,25 @@ final class OutpostScene: SKScene {
             passageGate.removeAllActions()
             passageGate.alpha = 1
             passageGate.childNode(withName: "gateArrow")?.removeAllActions()
+            // Exercise the real orbit updater after combat has stopped.
+            roomCleared = true
+            orbitLevel = 2
+            rebuildOrbitingDefenses()
+            updateOrbitingDefenses()
+            let firstOrbPosition = orbitalNodes[0].position
+            let savedClock = clock
+            clock += 0.25
+            pilot.position.x += 12
+            updateOrbitingDefenses()
+            precondition(distance(firstOrbPosition, orbitalNodes[0].position) > 10,
+                         "Energy Orbit must keep moving at the peaceful portal")
+            for orb in orbitalNodes {
+                precondition(abs(distance(orb.position, pilot.position) - 82) < 0.1,
+                             "Energy Orbit must follow the pilot at its wider radius")
+            }
+            clock = savedClock
+            pilot.position.x -= 12
+            updateOrbitingDefenses()
         }
         // CI-only motion review: run real combat and movement instead of
         // freezing an art-review frame. This never executes in normal play.
@@ -1772,13 +1793,8 @@ final class OutpostScene: SKScene {
                ? selectedWorld.title : "OUTPOST ZERO")
         if title.text != titleText { title.text = titleText }
         let subtitleText: String
-        if activeEncounter == .survival && phase == .playing {
-            let remaining = max(0, Int(ceil(
-                SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) -
-                    waveElapsed)))
+        if activeEncounter == .survival && (phase == .playing || roomCleared) {
             subtitleText = "\(enemies.count) FOES  •  \(coins) COINS"
-        } else if activeEncounter == .survival && roomCleared {
-            subtitleText = "EXTRACTION READY"
         } else if activeEncounter == .equipmentDefense && roomCleared {
             subtitleText = "REACTOR SECURED"
         } else if activeEncounter == .equipmentDefense && !roomCleared {
@@ -4510,6 +4526,9 @@ final class OutpostScene: SKScene {
             }
         }
         guard phase == .playing || phase == .gate else { return }
+        // Presentation continues through a peaceful exit, while combat damage
+        // timers remain stopped. Menus return above and freeze this clock.
+        pilotAnimationTime += dt
         // QA-only guided movement sweeps across the combat lane so consecutive
         // simulator frames show actual locomotion, dodging and automatic fire.
         // This launch argument is never used in the shipped game.
@@ -4562,8 +4581,8 @@ final class OutpostScene: SKScene {
             pilotHeading = aimHeading
         }
         let pose = CharacterMotion.pilot(
-            time: combatTime, moving: isMoving, facing: pilotFacing,
-            timeSinceShot: combatTime - lastShot)
+            time: pilotAnimationTime, moving: isMoving, facing: pilotFacing,
+            timeSinceShot: pilotAnimationTime - pilotLastVisualShot)
         pilot.zRotation = 0
         pilot.yScale = 1
         updatePilotPresentation(pose: pose)
@@ -4804,7 +4823,7 @@ final class OutpostScene: SKScene {
         }
         // Authored views must never be mirrored. Recoil follows the actual
         // firing heading while feet and collision stay in world coordinates.
-        let kick = CGFloat(max(0, 1 - max(0, combatTime - lastShot) / 0.17))
+        let kick = CGFloat(max(0, 1 - max(0, pilotAnimationTime - pilotLastVisualShot) / 0.17))
         let recoilHeading = pilotShotHeading
         art.position = CGPoint(x: -cos(recoilHeading) * kick * 1.5,
                                y: pose.verticalOffset - sin(recoilHeading) * kick * 1.5)
@@ -5119,6 +5138,7 @@ final class OutpostScene: SKScene {
               combatTime >= enemies[index].activeAt,
               distance(enemies[index].node.position, point) < 45 else { return }
         lastShot = combatTime
+        pilotLastVisualShot = pilotAnimationTime
         let target = enemies[index].node.position
         let shotAngle = atan2(target.y - pilot.position.y, target.x - pilot.position.x)
         pilotShotHeading = shotAngle
@@ -5421,6 +5441,12 @@ final class OutpostScene: SKScene {
         arena.isPaused = true
         lockMenuBriefly()
         clearOverlay()
+        // Reserve separate rows for tactical slots and the resume hint.
+        // The old footer crossed the circles at y=-220 on real devices.
+        overlayBackdrop.path = CGPath(roundedRect: CGRect(
+            x: -min(size.width - 28, 390) / 2, y: -278,
+            width: min(size.width - 28, 390), height: 463),
+            cornerWidth: 18, cornerHeight: 18, transform: nil)
         let choiceLevel = progress.level - progress.pendingChoices + 1
         overlayText("LEVEL \(choiceLevel)!", y: 125, fontSize: 28)
         overlayText("RANDOM DRAW • CHOOSE ONE", y: 87, fontSize: 15)
@@ -5640,7 +5666,18 @@ final class OutpostScene: SKScene {
             overlay.addChild(categoryLabel)
             overlayButtons[choice] = frame
         }
-        overlayText("COMBAT PAUSED  •  SELECT TO RESUME", y: -214, fontSize: 11)
+        overlayText("COMBAT PAUSED  •  SELECT TO RESUME", y: -262,
+                    fontSize: 11, name: "levelUpFooter")
+        #if targetEnvironment(simulator)
+        if let footer = overlay.childNode(withName: "levelUpFooter") {
+            for index in 0..<slots {
+                if let slot = overlay.childNode(withName: "tacticalSlot\(index)") {
+                    precondition(!slot.calculateAccumulatedFrame().intersects(footer.frame),
+                                 "Tactical slots must not overlap the level-up footer")
+                }
+            }
+        }
+        #endif
         updateHUD()
     }
 
@@ -6123,6 +6160,8 @@ final class OutpostScene: SKScene {
         pilot.alpha = 1
         pilotFacing = 1
         pilotTraveling = false
+        pilotAnimationTime = 0
+        pilotLastVisualShot = -10
         pilotShotHeading = -.pi / 2
         pilotHeading = -.pi / 2
         pilotAimHeading = nil
