@@ -158,6 +158,9 @@ final class OutpostScene: SKScene {
     private var pilotShotHeading: CGFloat = -.pi / 2
     private var pilotAnimationTime: TimeInterval = 0
     private var pilotLastVisualShot: TimeInterval = -10
+    private var pilotRenderedHeading: CGFloat = -.pi / 2
+    private var pilotStridePhase: CGFloat = 0
+    private var pilotWalkBlend: CGFloat = 0
     private lazy var pilotDirectionalTextures: [SKTexture] = {
         CharacterMotion.pilotDirections.map {
             productionTexture(named: "pilot_" + $0, fallback: pilotArmorTexture)
@@ -1267,6 +1270,7 @@ final class OutpostScene: SKScene {
             }
             for direction in 0..<8 {
                 pilotHeading = CGFloat(direction) * .pi / 4
+                pilotRenderedHeading = pilotHeading
                 updatePilotPresentation(pose: CharacterMotion.pilot(
                     time: 0, moving: false, facing: 1, timeSinceShot: 2))
                 precondition(pilotVisualDirection == direction)
@@ -4532,12 +4536,15 @@ final class OutpostScene: SKScene {
         // QA-only guided movement sweeps across the combat lane so consecutive
         // simulator frames show actual locomotion, dodging and automatic fire.
         // This launch argument is never used in the shipped game.
-        if phase == .playing && (
-            ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") ||
+        let capturePilotMotion = ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames")
+        if (capturePilotMotion && (phase == .playing || phase == .gate)) ||
+            (phase == .playing && (
             ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames") ||
             ProcessInfo.processInfo.arguments.contains("-captureSurvivalSwarmFrames")
-        ) {
-            let t = CGFloat(combatTime)
+        )) {
+            // Keep the real movement path running after room clear so the
+            // later frames exercise portal-approach animation as well.
+            let t = CGFloat(capturePilotMotion ? pilotAnimationTime : combatTime)
             movementTarget = CGPoint(
                 x: roomBounds.midX + sin(t * 0.86) * roomBounds.width * 0.25,
                 y: roomBounds.minY + roomBounds.height * (0.28 + 0.11 * sin(t * 0.49))
@@ -4580,9 +4587,20 @@ final class OutpostScene: SKScene {
         } else if let aimHeading = pilotAimHeading {
             pilotHeading = aimHeading
         }
+        pilotRenderedHeading = CharacterMotion.turnHeading(
+            from: pilotRenderedHeading, toward: pilotHeading, delta: dt)
+        // Distance drives stride, so faster travel animates faster while
+        // pushing against blocked terrain never advances the walk cycle.
+        if isMoving {
+            pilotStridePhase = (pilotStridePhase + hypot(movementDX, movementDY) *
+                (2 * .pi / 70)).truncatingRemainder(dividingBy: 4 * .pi)
+        }
+        let walkTarget: CGFloat = isMoving ? 1 : 0
+        pilotWalkBlend += (walkTarget - pilotWalkBlend) * CGFloat(1 - exp(-18 * dt))
         let pose = CharacterMotion.pilot(
             time: pilotAnimationTime, moving: isMoving, facing: pilotFacing,
-            timeSinceShot: pilotAnimationTime - pilotLastVisualShot)
+            timeSinceShot: pilotAnimationTime - pilotLastVisualShot,
+            stridePhase: pilotStridePhase, movementBlend: pilotWalkBlend)
         pilot.zRotation = 0
         pilot.yScale = 1
         updatePilotPresentation(pose: pose)
@@ -4816,7 +4834,7 @@ final class OutpostScene: SKScene {
     private func updatePilotPresentation(pose: PilotVisualPose) {
         guard let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode else { return }
         let direction = CharacterMotion.pilotDirection(
-            heading: pilotHeading, previous: pilotVisualDirection)
+            heading: pilotRenderedHeading, previous: pilotVisualDirection)
         if direction != pilotVisualDirection {
             pilotVisualDirection = direction
             art.texture = pilotDirectionalTextures[direction]
@@ -6162,6 +6180,9 @@ final class OutpostScene: SKScene {
         pilotTraveling = false
         pilotAnimationTime = 0
         pilotLastVisualShot = -10
+        pilotRenderedHeading = -.pi / 2
+        pilotStridePhase = 0
+        pilotWalkBlend = 0
         pilotShotHeading = -.pi / 2
         pilotHeading = -.pi / 2
         pilotAimHeading = nil

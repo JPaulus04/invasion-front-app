@@ -12,6 +12,34 @@ struct CharacterMotionTests {
         precondition(CharacterMotion.pilotDirection(heading: .pi / 8 + 0.02, previous: 0) == 0)
         precondition(CharacterMotion.pilotDirection(heading: .pi / 4, previous: 0) == 1)
         precondition(CharacterMotion.pilotDirection(heading: -.pi / 2) == 6)
+        let boundaryTurn = CharacterMotion.turnHeading(
+            from: .pi - 0.05, toward: -.pi + 0.05, delta: 0.01)
+        precondition(abs(boundaryTurn - (-CGFloat.pi + 0.05)) < 0.0001,
+                     "Crossing the angle seam must take the short arc")
+        precondition(CharacterMotion.turnHeading(from: 0, toward: 2, delta: 0) == 0)
+        precondition(abs(CharacterMotion.turnHeading(from: 0, toward: 0.1,
+                                                     delta: 1) - 0.1) < 0.0001)
+        var slowFrames: CGFloat = 0
+        var fastFrames: CGFloat = 0
+        for _ in 0..<3 {
+            slowFrames = CharacterMotion.turnHeading(from: slowFrames, toward: .pi,
+                                                     delta: 1.0 / 30)
+        }
+        for _ in 0..<12 {
+            fastFrames = CharacterMotion.turnHeading(from: fastFrames, toward: .pi,
+                                                     delta: 1.0 / 120)
+        }
+        precondition(abs(slowFrames - fastFrames) < 0.0001,
+                     "Turning must be consistent at 30 and 120 FPS")
+        let walkStart = CharacterMotion.pilot(time: 1, moving: true, facing: 1,
+            timeSinceShot: 2, stridePhase: .pi, movementBlend: 1)
+        let walkSettling = CharacterMotion.pilot(time: 1, moving: false, facing: 1,
+            timeSinceShot: 2, stridePhase: .pi, movementBlend: 0.5)
+        let walkStopped = CharacterMotion.pilot(time: 1, moving: false, facing: 1,
+            timeSinceShot: 2, stridePhase: .pi, movementBlend: 0)
+        precondition(walkStart.verticalOffset > walkSettling.verticalOffset &&
+                     walkSettling.verticalOffset > walkStopped.verticalOffset,
+                     "Stopping must settle between the walking and idle poses")
         let idle = CharacterMotion.pilot(
             time: 0, moving: false, facing: 1, timeSinceShot: 2)
         let running = CharacterMotion.pilot(
