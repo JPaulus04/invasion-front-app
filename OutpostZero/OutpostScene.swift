@@ -2029,10 +2029,9 @@ final class OutpostScene: SKScene {
                 .fadeAlpha(to: 0.94, duration: 0.7 + Double(index) * 0.10)
             ])))
         }
-        let pilotPreview = SKSpriteNode(texture: productionTexture(
-            named: "pilot_idle", fallback: pilotArmorTexture))
+        let pilotPreview = SKSpriteNode(texture: pilotDirectionalTextures[5])
         pilotPreview.name = "homePilotPreview"
-        pilotPreview.size = CGSize(width: 58 * scale, height: 69 * scale)
+        pilotPreview.size = CGSize(width: 69 * scale, height: 69 * scale)
         pilotPreview.position = CGPoint(x: 67 * scale, y: -67 * scale)
         pilotPreview.zPosition = 3
         overlay.addChild(pilotPreview)
