@@ -58,29 +58,21 @@ enum CombatVisuals {
         ]), .removeFromParent()]))
     }
 
-    /// Explosive rounds draw a brief angular shock and glowing shrapnel,
+    /// Explosive rounds draw a brief open shock ring and glowing shrapnel,
     /// visually distinct from ordinary hits but with no independent damage.
     static func explosiveBurst(in parent: SKNode, at point: CGPoint,
                                rank: Int, burning: Bool) {
-        let reach = CGFloat(min(63, 29 + rank * 9))
-        let color: SKColor = burning ? .systemOrange : .systemCyan
-        let path = CGMutablePath()
-        for i in 0..<12 {
-            let angle = CGFloat(i) * .pi / 6
-            let radius = reach * (i.isMultiple(of: 2) ? 1 : 0.48)
-            let p = CGPoint(x: cos(angle) * radius, y: sin(angle) * radius)
-            if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
-        }
-        path.closeSubpath()
-        let blast = SKShapeNode(path: path)
+        let reach = CGFloat(min(40, 22 + rank * 4))
+        let color: SKColor = burning ? .systemOrange : .systemYellow
+        let blast = SKShapeNode(circleOfRadius: reach)
         blast.name = "explosiveBurst"
         blast.position = point
-        blast.fillColor = color.withAlphaComponent(0.21)
-        blast.strokeColor = color
-        blast.lineWidth = 2.4
-        blast.glowWidth = 2.0
+        blast.fillColor = .clear
+        blast.strokeColor = color.withAlphaComponent(0.75)
+        blast.lineWidth = 1.5
+        blast.glowWidth = 0.8
         blast.setScale(0.34)
-        blast.zPosition = 11.5
+        blast.zPosition = 8.6
         parent.addChild(blast)
         blast.run(.sequence([
             .group([.scale(to: 1, duration: 0.23),
@@ -150,8 +142,8 @@ enum CombatVisuals {
             let bolt = SKShapeNode(path: path)
             bolt.name = layer == 0 ? "chainLightningHalo" : "chainLightningCore"
             bolt.strokeColor = layer == 0 ? .systemCyan : .white
-            bolt.lineWidth = layer == 0 ? 6 : 1.8
-            bolt.glowWidth = layer == 0 ? 3 : 0.6
+            bolt.lineWidth = layer == 0 ? 3.5 : 1.2
+            bolt.glowWidth = layer == 0 ? 1.5 : 0.4
             bolt.zPosition = 12 + CGFloat(layer) * 0.1
             parent.addChild(bolt)
             bolt.run(.sequence([.fadeOut(withDuration: 0.18),

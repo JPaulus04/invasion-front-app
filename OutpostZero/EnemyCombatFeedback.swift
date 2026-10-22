@@ -26,22 +26,22 @@ enum EnemyCombatFeedback {
 
     static func impact(in parent: SKNode, at position: CGPoint,
                        color: SKColor, destroyed: Bool) {
-        let ring = SKShapeNode(circleOfRadius: destroyed ? 13 : 7)
+        let ring = SKShapeNode(circleOfRadius: destroyed ? 10 : 5)
         ring.position = position
         ring.strokeColor = color.withAlphaComponent(0.9)
         ring.fillColor = .clear
-        ring.lineWidth = destroyed ? 3 : 2
-        ring.glowWidth = destroyed ? 3 : 1
+        ring.lineWidth = destroyed ? 2 : 1.3
+        ring.glowWidth = destroyed ? 1.5 : 0.6
         ring.zPosition = 11
         parent.addChild(ring)
         ring.run(.sequence([
-            .group([.scale(to: destroyed ? 2.6 : 1.75, duration: 0.22),
+            .group([.scale(to: destroyed ? 1.8 : 1.4, duration: 0.22),
                     .fadeOut(withDuration: 0.22)]), .removeFromParent()
         ]))
-        let flash = SKShapeNode(circleOfRadius: destroyed ? 14 : 8)
+        let flash = SKShapeNode(circleOfRadius: destroyed ? 8 : 4)
         flash.position = position
-        flash.fillColor = color.withAlphaComponent(destroyed ? 0.55 : 0.32)
-        flash.strokeColor = .white.withAlphaComponent(0.55)
+        flash.fillColor = color.withAlphaComponent(destroyed ? 0.35 : 0.22)
+        flash.strokeColor = .clear
         flash.lineWidth = 1
         flash.zPosition = 11.2
         parent.addChild(flash)

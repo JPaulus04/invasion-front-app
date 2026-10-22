@@ -4326,6 +4326,13 @@ final class OutpostScene: SKScene {
             if (0...5).contains(type) && hasProductionArt {
                 armor.size.width = armor.size.height
             }
+            if type == 4 && hasProductionArt {
+                // The long railgun and antennae leave a narrow body inside
+                // the square canvas. Enlarge only its visible illustration.
+                armor.size.width *= 1.12
+                armor.size.height *= 1.12
+                armor.position.y = radius * 0.14
+            }
             armor.color = (type == 1 || type == 2) ? .systemRed : (type == 3 ? .gray : (type == 4 ? .systemBlue : .orange))
             armor.colorBlendFactor = hasProductionArt ? 0 : 0.72
             armor.zPosition = 0.8
@@ -5422,6 +5429,7 @@ final class OutpostScene: SKScene {
     private func removeDefeatedEnemies() {
         updateFrontierGuardianPhase()
         var defeatedCount = 0
+        var paidXPTotal = 0
         for index in enemies.indices.reversed() where enemies[index].health <= 0 {
             defeatedCount += 1
             streak += 1
@@ -5433,17 +5441,7 @@ final class OutpostScene: SKScene {
                 type: enemies[index].behavior, isBoss: enemies[index].node === bossNode)
             // XP belongs to the kill immediately; it must not wait for a pickup or room clear.
             let paidXP = awardRoomXP(xpAmount)
-            let xpLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-            xpLabel.text = paidXP > 0 ? "+\(paidXP) XP" : "XP RECOVERED"
-            xpLabel.fontSize = 13
-            xpLabel.fontColor = .cyan
-            xpLabel.position = enemies[index].node.position
-            xpLabel.zPosition = 14
-            arena.addChild(xpLabel)
-            xpLabel.run(.sequence([
-                .group([.moveBy(x: 0, y: 25, duration: 0.55), .fadeOut(withDuration: 0.55)]),
-                .removeFromParent()
-            ]))
+            paidXPTotal += paidXP
             burns.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             chilledUntil.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             lastOrbitalHit.removeValue(forKey: ObjectIdentifier(enemies[index].node))
@@ -5459,6 +5457,29 @@ final class OutpostScene: SKScene {
         }
         // Save all kill rewards together to align permanent Salvage
         // with the replay-safe XP and coin credits.
+        if paidXPTotal > 0 {
+            // One accumulating toast per kill burst keeps XP feedback out
+            // of enemy silhouettes. Rewards above are still paid per kill.
+            let existing = arena.childNode(withName: "combatXPSummary") as? SKLabelNode
+            let toast = existing ?? SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+            let total = (toast.userData?["amount"] as? Int ?? 0) + paidXPTotal
+            toast.userData = NSMutableDictionary(dictionary: ["amount": total])
+            toast.name = "combatXPSummary"
+            toast.text = "+\(total) XP"
+            toast.fontSize = 11
+            toast.fontColor = .systemCyan
+            toast.position = CGPoint(x: pilot.position.x, y: pilot.position.y + 57)
+            toast.zPosition = 14
+            toast.alpha = 1
+            toast.removeAction(forKey: "xpToast")
+            if existing == nil { arena.addChild(toast) }
+            toast.run(.sequence([
+                .wait(forDuration: 0.25),
+                .group([.moveBy(x: 0, y: 12, duration: 0.35),
+                        .fadeOut(withDuration: 0.35)]),
+                .removeFromParent()
+            ]), withKey: "xpToast")
+        }
         if defeatedCount > 0 { saveRunRecovery() }
         // Pause for a level-up as soon as the earned XP crosses a threshold,
         // even when other enemies remain in the current room.
