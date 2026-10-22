@@ -1019,6 +1019,13 @@ final class OutpostScene: SKScene {
                              !roomCleared && passageGate.isHidden,
                              "Live enemy contact must damage equipment, not complete room")
             }
+            // Capture the previously unpictured overlap case as well as checking
+            // it numerically: active defense shows rear occlusion, secured front.
+            if !defenseFailed {
+                pilot.position = CGPoint(x: base.midX + 20,
+                    y: defenseInProgress ? base.maxY + 20 : base.minY - 28)
+                updateReactorOcclusion()
+            }
             // State-specific, screenshot-only identity. A stale survival or
             // prior defense screenshot must fail verification rather than
             // masquerade as another test's result.
@@ -2007,7 +2014,7 @@ final class OutpostScene: SKScene {
             let tree = SKSpriteNode(texture: productionTexture(
                 named: i.isMultiple(of: 2) ? "forest_pine" : "forest_broadleaf",
                 fallback: forestPineTexture))
-            tree.size = CGSize(width: 53 * scale, height: 88 * scale)
+            tree.size = CGSize(width: 88 * scale, height: 88 * scale)
             tree.position = CGPoint(x: stageWidth * horizontal,
                                     y: CGFloat(-21 + (i % 2) * 13) * scale)
             tree.zPosition = 1
@@ -3665,7 +3672,7 @@ final class OutpostScene: SKScene {
                     named: index.isMultiple(of: 3) ? "forest_broadleaf" : "forest_pine",
                     fallback: forestPineTexture))
                 tree.name = "guardianClearingTree"
-                tree.size = CGSize(width: 59 + CGFloat(index % 3) * 7,
+                tree.size = CGSize(width: 80 + CGFloat(index % 2) * 13,
                                    height: 80 + CGFloat(index % 2) * 13)
                 tree.position.y = 6
                 tree.zPosition = 0.8
@@ -3742,9 +3749,10 @@ final class OutpostScene: SKScene {
                     prop.addChild(shadow)
                     let tree = SKSpriteNode(texture: productionTexture(
                         named: "forest_broadleaf", fallback: forestPineTexture))
-                    tree.size = CGSize(width: 70, height: 94)
+                    tree.size = CGSize(width: 94, height: 94)
                     tree.position = CGPoint(x: leftSide ? -5 : 5, y: 8)
-                    tree.xScale = leftSide ? 1 : -1
+                    // Mirroring reverses the authored upper-left lighting.
+                    tree.xScale = 1
                     tree.zRotation = CGFloat((index + wave) % 5 - 2) * 0.025
                     tree.zPosition = 0.8
                     prop.addChild(tree)
@@ -3791,10 +3799,10 @@ final class OutpostScene: SKScene {
                 let hasTreeArt = productionImage(named: treeAsset) != nil
                 let tree = SKSpriteNode(texture: productionTexture(named: treeAsset, fallback: forestPineTexture))
                 tree.size = CGSize(
-                    width: 43 + CGFloat((index * 7 + wave) % 5) * 6,
+                    width: 59 + CGFloat((index * 3 + wave) % 5) * 8,
                     height: 59 + CGFloat((index * 3 + wave) % 5) * 8
                 )
-                tree.xScale = (index + wave).isMultiple(of: 3) ? -1 : 1
+                tree.xScale = 1
                 tree.zRotation = CGFloat(((index * 7 + wave * 3) % 9) - 4) * 0.018
                 tree.position = CGPoint(x: isBroadleaf ? (leftSide ? 5 : -5) : 0, y: 5)
                 tree.zPosition = 1
@@ -3931,6 +3939,12 @@ final class OutpostScene: SKScene {
     // XcodeGen can copy ArtAssets either to the bundle root or into an ArtAssets folder.
     // Resolve both layouts so a successful bundle check also means the game can display the PNG.
     private func productionImage(named name: String) -> UIImage? {
+        // Authored assets stay separate so CI generators cannot overwrite them.
+        let authored = ["grunt_idle": "grunt_polished",
+                        "forest_pine": "forest_pine_polished",
+                        "forest_broadleaf": "forest_broadleaf_polished"]
+        if let replacement = authored[name],
+           let image = productionImage(named: replacement) { return image }
         if let image = UIImage(named: name) { return image }
         for subdirectory in [nil, "ArtAssets"] as [String?] {
             if let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: subdirectory),
@@ -4294,6 +4308,9 @@ final class OutpostScene: SKScene {
             armor.size = CGSize(
                 width: radius * (hasProductionArt ? 2.48 : 2.3),
                 height: radius * (hasProductionArt ? 2.74 : 2.55))
+            if type == 0 && hasProductionArt {
+                armor.size.width = armor.size.height
+            }
             armor.color = (type == 1 || type == 2) ? .systemRed : (type == 3 ? .gray : (type == 4 ? .systemBlue : .orange))
             armor.colorBlendFactor = hasProductionArt ? 0 : 0.72
             armor.zPosition = 0.8
