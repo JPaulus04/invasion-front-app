@@ -1,5 +1,11 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 22 — Scout art pass
+- e7681fd passed all three jobs in run 39819920774. Reviewed the actual tactical-abilities capture: variable-size tree shadows now meet the roots rather than floating away from small trees.
+- Added `OutpostZero/ArtAssets/scout_polished.png` through authored-asset precedence, preserving the generated fallback. Square rendering preserves proportions; bundle validation requires the new sprite. No changes to enemy radius, speed, damage, AI or progression.
+- Built-in image-generation prompt: one transparent full-body red scout, narrow agile frame, slim legs, two swept-back antennae, angular amber visor and small amber chest core, charcoal joints, rounded glossy scarlet armor, elevated orthographic camera, upper-left light matching grunt_polished and pilot_s references; centered ready stance slightly toward viewer left, no weapon/text/floor/shadow. Normalized to 256px RGBA with content fitting 224px. This is a production candidate pending new simulator review at gameplay scale.
+- Remaining enemies to review individually: violet raider, heavy, shooter, lobber, then bosses. Sixteen player directions and walking frames remain pending. No Build 322 upload.
+
 ## October 22 — First production art consistency pass
 - Actual simulator review of f661b00: all three jobs passed in run 39779680124. Inspected home, overgrown path, defense active/cleared, tactical abilities, extraction and pilot directions. Grunt/trees have improved dimensional shading; reactor rear transparency/front depth and pilot health visibility are visible in the captures. Collision assertions passed; screenshots alone do not establish movement feel.
 - Found floating tree roots: fixed legacy shadow offsets did not track the new variable-size sprites. Shadows now follow each tree's rotated root; ordinary forest shadows also scale with the sprite. This correction needs its own CI and screenshot review.

@@ -3951,6 +3951,7 @@ final class OutpostScene: SKScene {
     private func productionImage(named name: String) -> UIImage? {
         // Authored assets stay separate so CI generators cannot overwrite them.
         let authored = ["grunt_idle": "grunt_polished",
+                        "scout_idle": "scout_polished",
                         "forest_pine": "forest_pine_polished",
                         "forest_broadleaf": "forest_broadleaf_polished"]
         if let replacement = authored[name],
@@ -4318,7 +4319,7 @@ final class OutpostScene: SKScene {
             armor.size = CGSize(
                 width: radius * (hasProductionArt ? 2.48 : 2.3),
                 height: radius * (hasProductionArt ? 2.74 : 2.55))
-            if type == 0 && hasProductionArt {
+            if (type == 0 || type == 1) && hasProductionArt {
                 armor.size.width = armor.size.height
             }
             armor.color = (type == 1 || type == 2) ? .systemRed : (type == 3 ? .gray : (type == 4 ? .systemBlue : .orange))
