@@ -3756,6 +3756,10 @@ final class OutpostScene: SKScene {
                     tree.zRotation = CGFloat((index + wave) % 5 - 2) * 0.025
                     tree.zPosition = 0.8
                     prop.addChild(tree)
+                    // Authored sprites have a 16px transparent border in a
+                    // 256px canvas. Ground the shadow at the rotated root.
+                    let root = tree.convert(CGPoint(x: 0, y: -tree.size.height * 0.4375), to: prop)
+                    shadow.position = CGPoint(x: root.x + tree.size.width * 0.06, y: root.y)
                     // Remove disconnected vine strokes; illustrated canopy stays.
                 } else {
                     let underbrush = SKShapeNode(path: BattlefieldArt.terrainShape(
@@ -3807,6 +3811,12 @@ final class OutpostScene: SKScene {
                 tree.position = CGPoint(x: isBroadleaf ? (leftSide ? 5 : -5) : 0, y: 5)
                 tree.zPosition = 1
                 prop.addChild(tree)
+                // Follow the visible root, including sprite size and rotation;
+                // a fixed y offset makes the smaller authored trees float.
+                let root = tree.convert(CGPoint(x: 0, y: -tree.size.height * 0.4375), to: prop)
+                shadow.position = CGPoint(x: root.x + tree.size.width * 0.06, y: root.y)
+                shadow.xScale = tree.size.width * 0.48 / 43
+                shadow.yScale = tree.size.height * 0.14 / 14
                 // Layered pine foliage and trunk add depth without blocking movement.
                 let trunk = SKShapeNode(rectOf: CGSize(width: 6, height: 17), cornerRadius: 2)
                 trunk.fillColor = .brown
