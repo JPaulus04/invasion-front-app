@@ -3953,6 +3953,9 @@ final class OutpostScene: SKScene {
         let authored = ["grunt_idle": "grunt_polished",
                         "scout_idle": "scout_polished",
                         "raider_idle": "raider_polished",
+                        "heavy_idle": "heavy_polished",
+                        "shooter_idle": "shooter_polished",
+                        "lobber_idle": "lobber_polished",
                         "forest_pine": "forest_pine_polished",
                         "forest_broadleaf": "forest_broadleaf_polished"]
         if let replacement = authored[name],
@@ -4320,7 +4323,7 @@ final class OutpostScene: SKScene {
             armor.size = CGSize(
                 width: radius * (hasProductionArt ? 2.48 : 2.3),
                 height: radius * (hasProductionArt ? 2.74 : 2.55))
-            if (0...2).contains(type) && hasProductionArt {
+            if (0...5).contains(type) && hasProductionArt {
                 armor.size.width = armor.size.height
             }
             armor.color = (type == 1 || type == 2) ? .systemRed : (type == 3 ? .gray : (type == 4 ? .systemBlue : .orange))

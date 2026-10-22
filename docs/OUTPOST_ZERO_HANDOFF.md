@@ -1,5 +1,12 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 22 — Complete standard enemy artwork candidates
+- Added `OutpostZero/ArtAssets/heavy_polished.png`, `shooter_polished.png` and `lobber_polished.png`, normalized to 256px RGBA with content fitting 224px. Authored asset precedence protects them from procedural regeneration; all six standard enemy illustrations now use proportional square rendering. CI requires the new files in the compiled bundle. Collision radius, AI, damage, speed and progression are unchanged.
+- Built-in image-generation prompts used existing polished enemies as camera/material/upper-left-light references. Heavy: squat broad charcoal/red chassis, inset amber visor, thick legs, large shoulder plates/gauntlets, orange-red core; no fins/antennae/weapons. Shooter: slim steel-blue/teal chassis, cyan visor/core, sensor antennae and a long right-forearm cyan railgun ending near the feet. Lobber: stout ochre/orange chassis, bronze inset helmet, amber core and one tall rear mortar with visible dark bore above viewer-right shoulder. Each: full body, slightly viewer-left facing, transparent square canvas, no floor/shadow/text, rounded glossy cartoon armor matching grunt/scout.
+- All three candidates were inspected at normalized resolution and local source/sprite checks passed. Their own actual simulator review is still required; do not treat generated previews as gameplay evidence.
+- Scout/raider run 39853589678 completed with all three jobs passing. Downloaded artifact 12459094691 and inspected tactical-abilities, combat-feedback and extraction-open frames, plus the separate active-defense capture. Scout antennae/red armor and raider fins/violet armor remain distinct and consistent with the pilot/grunt at gameplay size. No clipping or stretched proportions observed. Large hit-star and XP overlays still obscure characters during clustered combat; effects cleanup remains open. Reactor behind-player transparency and health visibility are present. Allowed this run to finish before publishing these three new candidates.
+- Standard enemy artwork candidates are complete; boss art, environment props, effects, 16-direction pilot views and authored walking frames remain open. No Build 322 upload or character reset.
+
 ## October 22 — Violet raider art pass
 - Added `OutpostZero/ArtAssets/raider_polished.png` via authored-asset precedence with square rendering and a required bundle check. Retains violet visor/core and swept shoulder fins to distinguish it from the red antenna scout and olive grunt. No combat or progression changes.
 - Built-in image-generation prompt: one transparent full-body violet raider using scout_polished and grunt_polished as finish/camera/light references; rounded glossy purple armor, charcoal joints, narrow lilac visor, violet circular core, medium agile frame, swept shoulder fins, compact helmet without antennae, aggressive ready stance slightly toward viewer left, no weapon/floor/shadow/text. Normalized to 256px RGBA with content fitting 224px. Candidate requires its own actual simulator review.
@@ -33,8 +40,7 @@ ChatGPT project discussions have become extremely long. Open this file and inspe
 ## Repository / release
 - GitHub: `JPaulus04/invasion-front-app`
 - Active implementation branch: `outpost-zero` (do **not** edit `main` for gameplay).
-- Latest user-reported uploaded TestFlight release: **317**.
-- Work after that upload exists on the development branch. **Do not reuse build number 317 for the next upload.** Choose the next release number after confirming App Store Connect.
+- Latest verified TestFlight upload: **321**, successful release workflow 39678421057. Current work targets Build 322; no upload approval has been given.
 - Baseline examined here: `596dcf201f697f272d2ae6cc177665075460ad82`, workflow 341: compile tests **pass**, iOS simulator compile **pass**, and simulator capture validation **pass**. Workflow: https://github.com/JPaulus04/invasion-front-app/actions/runs/39053735827
 - QA is automated screenshot/content/freshness checking, **not** human artwork approval. Inspect real frames against the artistic reference before releasing.
 
