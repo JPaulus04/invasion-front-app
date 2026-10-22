@@ -1,5 +1,11 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 22 — Violet raider art pass
+- Added `OutpostZero/ArtAssets/raider_polished.png` via authored-asset precedence with square rendering and a required bundle check. Retains violet visor/core and swept shoulder fins to distinguish it from the red antenna scout and olive grunt. No combat or progression changes.
+- Built-in image-generation prompt: one transparent full-body violet raider using scout_polished and grunt_polished as finish/camera/light references; rounded glossy purple armor, charcoal joints, narrow lilac visor, violet circular core, medium agile frame, swept shoulder fins, compact helmet without antennae, aggressive ready stance slightly toward viewer left, no weapon/floor/shadow/text. Normalized to 256px RGBA with content fitting 224px. Candidate requires its own actual simulator review.
+- Scout run 39852863644: iOS build passed; simulator jobs were still running when this pass began. Do not infer visual approval from compile success.
+- Next individual enemies: heavy, shooter and lobber; bosses, environment props, 16 player directions and authored walking frames remain pending. Build 322 is development only.
+
 ## October 22 — Scout art pass
 - e7681fd passed all three jobs in run 39819920774. Reviewed the actual tactical-abilities capture: variable-size tree shadows now meet the roots rather than floating away from small trees.
 - Added `OutpostZero/ArtAssets/scout_polished.png` through authored-asset precedence, preserving the generated fallback. Square rendering preserves proportions; bundle validation requires the new sprite. No changes to enemy radius, speed, damage, AI or progression.
