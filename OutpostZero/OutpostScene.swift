@@ -944,6 +944,37 @@ final class OutpostScene: SKScene {
                          defenseDevice.parent === arena &&
                          defenseIntegrity == EquipmentDefenseRules.maximumIntegrity,
                          "Room 12 must load a real reactor protection objective")
+            let base = reactorMovementPatch!.frame
+            for direction in [CGPoint(x: 1, y: 0), CGPoint(x: -1, y: 0),
+                              CGPoint(x: 0, y: 1), CGPoint(x: 0, y: -1)] {
+                let start = CGPoint(x: base.midX + direction.x * 90,
+                                    y: base.midY + direction.y * 90)
+                let end = CGPoint(x: base.midX - direction.x * 90,
+                                  y: base.midY - direction.y * 90)
+                let stopped = resolvePilotMovement(from: start, to: end)
+                precondition(distance(stopped, end) > 30 &&
+                             !reactorMovementPatch!.contains(stopped, margin: 12),
+                             "Pilot must not tunnel through any side of reactor base")
+            }
+            let savedPilot = pilot.position
+            pilot.position = CGPoint(x: base.midX, y: base.maxY + 20)
+            updateReactorOcclusion()
+            precondition(defenseDevice.zPosition > pilot.zPosition &&
+                         defenseDevice.alpha < 1 &&
+                         pilot.zPosition + pilotHealthTrack.zPosition >
+                            defenseDevice.zPosition + 1,
+                         "Reactor must fade over a rear pilot and preserve health visibility")
+            pilot.position.y = base.minY - 20
+            updateReactorOcclusion()
+            precondition(defenseDevice.zPosition + 0.5 < pilot.zPosition &&
+                         defenseDevice.alpha == 1,
+                         "Front pilot must render over the entire reactor")
+            let recovered = resolvePilotMovement(
+                from: CGPoint(x: base.midX, y: base.midY), to: savedPilot)
+            precondition(!reactorMovementPatch!.contains(recovered, margin: 12),
+                         "Legacy overlapping saves must escape the reactor")
+            pilot.position = savedPilot
+            updateReactorOcclusion()
             for slot in 0..<4 {
                 spawned += 1
                 spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(
@@ -2886,6 +2917,41 @@ final class OutpostScene: SKScene {
         }
     }
 
+    private var reactorMovementPatch: TerrainHazards.Patch?
+
+    private func resolvePilotMovement(from current: CGPoint, to target: CGPoint) -> CGPoint {
+        var patches = roomHazards
+        if defenseDevice.parent === arena, let footprint = reactorMovementPatch {
+            patches.append(footprint)
+            // Old saves allowed standing inside the reactor. Recover to the
+            // nearest clear edge before applying ordinary swept movement.
+            if footprint.contains(current, margin: 12) {
+                let edge = footprint.frame.insetBy(dx: -13, dy: -13)
+                let exits = [CGPoint(x: edge.minX, y: current.y),
+                             CGPoint(x: edge.maxX, y: current.y),
+                             CGPoint(x: current.x, y: edge.minY),
+                             CGPoint(x: current.x, y: edge.maxY)]
+                if let exit = exits.filter({ roomBounds.contains($0) &&
+                    !TerrainHazards.blocksMovement($0, patches: patches, radius: 12)
+                }).min(by: { distance($0, current) < distance($1, current) }) {
+                    return exit
+                }
+            }
+        }
+        return TerrainHazards.resolveMovement(from: current, to: target,
+                                               patches: patches, radius: 12)
+    }
+
+    private func updateReactorOcclusion() {
+        guard defenseDevice.parent === arena else { return }
+        // Feet are 27 points below the pilot origin; the reactor base is -37.
+        let behind = pilot.position.y - 27 > defenseDevice.position.y - 37
+        defenseDevice.zPosition = behind ? 10 : 8
+        let overlaps = abs(pilot.position.x - defenseDevice.position.x) < 65 &&
+            pilot.position.y < defenseDevice.position.y + 65
+        defenseDevice.alpha = behind && overlaps ? 0.55 : 1
+    }
+
     private func installDefenseDevice() {
         // A readable field-power reactor, not a flat blue prototype tile.
         // All parts are visual children of the unchanged objective hit target.
@@ -2893,6 +2959,12 @@ final class OutpostScene: SKScene {
                               y: roomBounds.midY + roomBounds.height * 0.08)
         defenseDevice.position = TerrainHazards.extractionPosition(
             near: desired, in: roomBounds, patches: roomHazards)
+        // Collision in pilot-origin coordinates: the visible feet sit at -27.
+        // Only the grounded base blocks walking, not the tall illustration.
+        reactorMovementPatch = TerrainHazards.Patch(kind: .rubble,
+            frame: CGRect(x: defenseDevice.position.x - 48,
+                          y: defenseDevice.position.y - 24,
+                          width: 96, height: 28), outline: [])
         defenseDevice.name = "fieldReactorDefenseObjective"
         defenseDevice.fillColor = .clear
         defenseDevice.strokeColor = .clear
@@ -3011,7 +3083,11 @@ final class OutpostScene: SKScene {
             roundedRect: CGRect(x: -37, y: -3, width: 74, height: 6),
             cornerWidth: 3, cornerHeight: 3, transform: nil)
         defenseDevice.addChild(defenseIntegrityBar)
+        // Keep the whole chassis in one depth band relative to pilot artwork.
+        // Child z values otherwise cross the pilot even when the parent is behind.
+        for child in defenseDevice.children { child.zPosition *= 0.01 }
         arena.addChild(defenseDevice)
+        updateReactorOcclusion()
         updateDefenseDeviceDisplay()
     }
 
@@ -4567,8 +4643,7 @@ final class OutpostScene: SKScene {
                 let requested = CGPoint(
                     x: pilot.position.x + dx / distanceToTarget * step,
                     y: pilot.position.y + dy / distanceToTarget * step)
-                pilot.position = TerrainHazards.resolveMovement(
-                    from: pilot.position, to: requested, patches: roomHazards, radius: 12)
+                pilot.position = resolvePilotMovement(from: pilot.position, to: requested)
             }
         }
         // Animate the visible sprite, not its parent collision container.
@@ -4603,6 +4678,7 @@ final class OutpostScene: SKScene {
         pilot.zRotation = 0
         pilot.yScale = 1
         updatePilotPresentation(pose: pose)
+        updateReactorOcclusion()
         if let ground = pilot.childNode(withName: "pilotGroundShadow") as? SKShapeNode {
             ground.xScale = pose.shadowScale
         }

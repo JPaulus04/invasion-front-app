@@ -1,5 +1,11 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 22 — Build 322 reactor physical presence (validation pending)
+- Build 321 TestFlight workflow 39678421057 completed successfully, including upload to App Store Connect. User supplied device recordings; current character has max Level 5 gear/abilities and unusually high core investment. Do not increase baseline difficulty based on these recordings. Preserve progress; a separate fresh test profile is planned, not implemented.
+- Device review confirmed the player can overlap the reactor. Added a player-only grounded-base collision footprint using the existing swept/sliding terrain resolver, front/back artwork depth, and transparency when the reactor hides the pilot. Player health remains above the reactor. Legacy overlapping positions recover to the nearest clear edge. Enemy objective attacks and balance remain unchanged.
+- Existing defense simulator fixtures assert four-sided collision, depth/occlusion, health visibility and legacy recovery. Local source validation passes; fresh CI and screenshot inspection are still required.
+- Remaining art plan: individually review enemies and forest props against the blue pilot; generated grunt/forest scene is concept-only. Sixteen genuine player directions plus authored walking frames are proposed, not yet integrated. Orb definition/hit feedback and extraction distinction also remain planned. No Build 322 upload authorized.
+
 ## Why this file exists
 ChatGPT project discussions have become extremely long. Open this file and inspect the live `outpost-zero` branch before coding in a new conversation. Never assume the last conversation's build number or green status is current.
 
