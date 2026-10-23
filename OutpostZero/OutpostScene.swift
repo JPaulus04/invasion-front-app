@@ -161,6 +161,17 @@ final class OutpostScene: SKScene {
     private var pilotRenderedHeading: CGFloat = -.pi / 2
     private var pilotStridePhase: CGFloat = 0
     private var pilotWalkBlend: CGFloat = 0
+    // The front cycle is an art candidate, available only in simulator QA.
+    private var previewPilotWalk: Bool {
+        #if targetEnvironment(simulator)
+        return ProcessInfo.processInfo.arguments.contains("-previewPilotWalk")
+        #else
+        return false
+        #endif
+    }
+    private lazy var pilotWalkPrototypeTextures: [SKTexture] = {
+        (0..<4).map { productionTexture(named: "pilot_walk_s_\($0)", fallback: pilotArmorTexture) }
+    }()
     private lazy var pilotDirectionalTextures: [SKTexture] = {
         CharacterMotion.pilotDirections.map {
             productionTexture(named: "pilot_" + $0, fallback: pilotArmorTexture)
@@ -1540,6 +1551,34 @@ final class OutpostScene: SKScene {
         if ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") {
             startWave()
         }
+        if previewPilotWalk {
+            for frame in 0..<4 {
+                precondition(productionImage(named: "pilot_walk_s_\(frame)") != nil,
+                             "Walk review requires all four authored frames")
+            }
+            startWave()
+            phase = .gate
+            roomCleared = true
+            passageGate.isHidden = true
+            pilot.position = CGPoint(x: roomBounds.midX,
+                                     y: roomBounds.minY + roomBounds.height * 0.65)
+            pilotHeading = -.pi / 2
+            pilotRenderedHeading = pilotHeading
+            pilotAnimationTime = 0
+            pilotStridePhase = 0
+            let caption = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            caption.text = "WALK PROTOTYPE • SIMULATOR ONLY"
+            caption.fontSize = 12
+            caption.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 30)
+            caption.zPosition = 65
+            hud.addChild(caption)
+            let marker = SKShapeNode(rectOf: CGSize(width: 12, height: 12))
+            marker.fillColor = .blue
+            marker.strokeColor = .clear
+            marker.position = CGPoint(x: size.width * 0.9, y: size.height * 0.6)
+            marker.zPosition = 65
+            hud.addChild(marker)
+        }
         // CI-only ranged combat review: jump directly to the first room
         // featuring both shooters and lobbers. These enemies have extra
         // health only for observation; shipped combat stats are unchanged.
@@ -2231,7 +2270,7 @@ final class OutpostScene: SKScene {
     }
 
     private var isCaptureMode: Bool {
-        ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-capture") }
+        previewPilotWalk || ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-capture") }
     }
 
     private func saveRunRecovery() {
@@ -4745,6 +4784,18 @@ final class OutpostScene: SKScene {
             let length = hypot(dx, dy)
             movementTarget = length > 9 ? CGPoint(x: min(max(pilot.position.x + dx / length * 90, roomBounds.minX), roomBounds.maxX), y: min(max(pilot.position.y + dy / length * 90, roomBounds.minY), roomBounds.maxY)) : nil
         }
+        if previewPilotWalk {
+            // Two seconds of real southward locomotion, then two seconds of
+            // idle. Reposition between passes, before measuring displacement.
+            let lap = pilotAnimationTime.truncatingRemainder(dividingBy: 4)
+            if lap < dt {
+                pilot.position = CGPoint(x: roomBounds.midX,
+                    y: roomBounds.minY + roomBounds.height * 0.65)
+                pilotStridePhase = 0
+            }
+            movementTarget = lap < 2 ? CGPoint(x: roomBounds.midX,
+                y: roomBounds.minY + roomBounds.height * 0.25) : nil
+        }
         let pilotBeforeMovement = pilot.position
         if let movementTarget {
             let dx = movementTarget.x - pilot.position.x
@@ -5023,8 +5074,14 @@ final class OutpostScene: SKScene {
         guard let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode else { return }
         let direction = CharacterMotion.pilotDirection(
             heading: pilotRenderedHeading, previous: pilotVisualDirection)
-        if direction != pilotVisualDirection {
-            pilotVisualDirection = direction
+        pilotVisualDirection = direction
+        let walkFrame = previewPilotWalk && direction == CharacterMotion.pilotSouthDirection
+            ? CharacterMotion.pilotWalkFrame(stridePhase: pilotStridePhase,
+                                             moving: pilotTraveling) : nil
+        if let walkFrame {
+            art.texture = pilotWalkPrototypeTextures[walkFrame]
+        } else {
+            // Also restore idle when a walk stops without changing direction.
             art.texture = pilotDirectionalTextures[direction]
         }
         // Authored views must never be mirrored. Recoil follows the actual

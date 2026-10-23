@@ -24,6 +24,16 @@ enum CharacterMotion {
                                   "w", "wsw", "sw", "ssw", "s", "sse", "se", "ese"]
     static let pilotSouthDirection = 12
 
+    /// Four authored poses span the same 140-point, two-step stride as the
+    /// displacement-driven presentation. Idle must restore its directional art.
+    static func pilotWalkFrame(stridePhase: CGFloat, moving: Bool) -> Int? {
+        guard moving, stridePhase.isFinite else { return nil }
+        let cycle = CGFloat.pi * 4
+        let phase = (stridePhase.truncatingRemainder(dividingBy: cycle) + cycle)
+            .truncatingRemainder(dividingBy: cycle)
+        return min(3, Int(phase / .pi))
+    }
+
     /// Rotate artwork along the shortest arc without delaying joystick motion.
     /// A full reversal settles in about 0.16 seconds at any frame rate.
     static func turnHeading(from current: CGFloat, toward target: CGFloat,

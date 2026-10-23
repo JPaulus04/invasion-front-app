@@ -4,6 +4,22 @@ import CoreGraphics
 @main
 struct CharacterMotionTests {
     static func main() {
+        for frame in 0..<4 {
+            let phase = (CGFloat(frame) + 0.25) * .pi
+            precondition(CharacterMotion.pilotWalkFrame(stridePhase: phase, moving: true) == frame)
+            precondition(CharacterMotion.pilotWalkFrame(stridePhase: phase + 4 * .pi, moving: true) == frame)
+        }
+        precondition(CharacterMotion.pilotWalkFrame(stridePhase: 4 * .pi, moving: true) == 0)
+        precondition(CharacterMotion.pilotWalkFrame(stridePhase: -.pi / 2, moving: true) == 3)
+        precondition(CharacterMotion.pilotWalkFrame(stridePhase: .nan, moving: true) == nil)
+        precondition(CharacterMotion.pilotWalkFrame(stridePhase: .pi, moving: false) == nil)
+        // Equal distance, independent of the number of render updates.
+        let oneStep = CGFloat(35) * (2 * .pi / 70)
+        let manySteps = (0..<10).reduce(CGFloat.zero) { phase, _ in
+            phase + CGFloat(3.5) * (2 * .pi / 70)
+        }
+        precondition(CharacterMotion.pilotWalkFrame(stridePhase: oneStep + 0.01, moving: true) ==
+                     CharacterMotion.pilotWalkFrame(stridePhase: manySteps + 0.01, moving: true))
         precondition(CharacterMotion.pilotDirections.count == 16)
         for direction in CharacterMotion.pilotDirections.indices {
             let angle = CGFloat(direction) * .pi / 8

@@ -57,6 +57,9 @@ jobs:
           set -e
           APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           test -d "$APP"
+          for FRAME in 0 1 2 3; do
+            test -n "$(find "$APP" -type f -name "pilot_walk_s_$FRAME.png" -print -quit)"
+          done
           for ASSET in pilot_ene.png pilot_nne.png pilot_nnw.png pilot_wnw.png pilot_wsw.png pilot_ssw.png pilot_sse.png pilot_ese.png forest_undergrowth_polished.png field_reactor_polished.png shooter_polished.png lobber_polished.png heavy_polished.png raider_polished.png scout_polished.png grunt_polished.png forest_pine_polished.png forest_broadleaf_polished.png pilot_e.png pilot_ne.png pilot_n.png pilot_nw.png pilot_w.png pilot_sw.png pilot_s.png pilot_se.png pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
             FOUND="$(find "$APP" -type f -name "$ASSET" -print -quit)"
             if [ -z "$FOUND" ]; then
@@ -103,7 +106,7 @@ jobs:
           mkdir -p simulator-app
           ditto -x -k OutpostZero-simulator-app.zip simulator-app
           test -x simulator-app/OutpostZero.app/OutpostZero
-      - name: Capture three equipment-defense gameplay states
+      - name: Capture equipment-defense states and live walk prototype
         timeout-minutes: 14
         run: |
           set -e
@@ -211,6 +214,29 @@ jobs:
           capture_scene -captureEquipmentDefenseScreenshot screenshots/outpost-zero-defense-active.png
           capture_scene -captureEquipmentDefenseClearScreenshot screenshots/outpost-zero-defense-cleared.png
           capture_scene -captureEquipmentDefenseFailureScreenshot screenshots/outpost-zero-defense-failed.png
+          # The authored front walk is gated to simulator QA. Sample a live
+          # sequence spanning walking and idle instead of freezing one pose.
+          capture_scene -previewPilotWalk screenshots/outpost-zero-walk-preview-01.png
+          for INDEX in $(seq -w 2 16); do
+            sleep 0.15
+            run_bounded 55 xcrun simctl io "$DEVICE" screenshot "screenshots/outpost-zero-walk-preview-$INDEX.png"
+          done
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-walk-preview-*.png
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          frames = sorted(Path("screenshots").glob("outpost-zero-walk-preview-*.png"))
+          assert len(frames) == 16, "Walk review requires a complete sequence"
+          assert len({sha256(p.read_bytes()).digest() for p in frames}) >= 4, "Walk preview appears frozen"
+          print("PASS: live walk/idle preview rendered 16 independent samples")
+          PY
+      - name: Upload live pilot walk preview
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-walk-preview
+          path: screenshots/outpost-zero-walk-preview-*.png
+          if-no-files-found: ignore
       - name: Validate independent equipment-defense frames
         run: |
           set -e

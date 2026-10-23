@@ -46,6 +46,8 @@ def verify(path: Path) -> None:
         "outpost-zero-defense-cleared.png": 1,
         "outpost-zero-defense-failed.png": 2
     }
+    if path.name.startswith("outpost-zero-walk-preview-"):
+        expected_markers[path.name] = 2
     is_survival = (path.name.startswith("outpost-zero-survival-") or
                    path.name == "outpost-zero-extraction-open.png")
     # Ignore static phone notch/home bar; sample the game area.
