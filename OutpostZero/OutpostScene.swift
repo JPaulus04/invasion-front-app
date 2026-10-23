@@ -3044,8 +3044,24 @@ final class OutpostScene: SKScene {
         socket.zPosition = 4
         defenseDevice.addChild(socket)
 
+        let housingImage = productionImage(named: "field_reactor_polished")
+        if let image = housingImage {
+            // Keep the old chassis as a fallback, but render the authored
+            // housing as one proportional image in the same depth band.
+            for child in defenseDevice.children where child !== shadow {
+                child.isHidden = true
+            }
+            let housing = SKSpriteNode(texture: SKTexture(image: image))
+            housing.name = "fieldReactorHousingArt"
+            housing.size = CGSize(width: 112, height: 112)
+            // Visible base meets the existing grounded movement footprint.
+            housing.position.y = -8
+            housing.zPosition = 4
+            defenseDevice.addChild(housing)
+        }
         let core = SKShapeNode(circleOfRadius: 15)
         core.name = "fieldReactorCore"
+        core.position.y = housingImage == nil ? 0 : -10
         core.fillColor = SKColor(red: 0.18, green: 0.80, blue: 0.96, alpha: 1)
         core.strokeColor = .white.withAlphaComponent(0.90)
         core.lineWidth = 2
