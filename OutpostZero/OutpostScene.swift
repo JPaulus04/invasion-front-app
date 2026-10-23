@@ -5088,11 +5088,16 @@ final class OutpostScene: SKScene {
         // firing heading while feet and collision stay in world coordinates.
         let kick = CGFloat(max(0, 1 - max(0, pilotAnimationTime - pilotLastVisualShot) / 0.17))
         let recoilHeading = pilotShotHeading
+        // Authored steps already contain leg and body motion. Do not stack the
+        // static-pose squash, bob and lean on top of them. Keep the same neutral
+        // transform on preview idle so stopping cannot introduce a scale jump.
+        let authoredPreview = previewPilotWalk
         art.position = CGPoint(x: -cos(recoilHeading) * kick * 1.5,
-                               y: pose.verticalOffset - sin(recoilHeading) * kick * 1.5)
-        art.xScale = abs(pose.widthScale)
-        art.yScale = pose.heightScale
-        art.zRotation = pose.lean
+                               y: (authoredPreview ? 0 : pose.verticalOffset) -
+                                  sin(recoilHeading) * kick * 1.5)
+        art.xScale = authoredPreview ? 1 : abs(pose.widthScale)
+        art.yScale = authoredPreview ? 1 : pose.heightScale
+        art.zRotation = authoredPreview ? 0 : pose.lean
         art.colorBlendFactor = 0
     }
 
