@@ -153,7 +153,7 @@ final class OutpostScene: SKScene {
     private var pilotFacing: CGFloat = 1
     private var pilotHeading: CGFloat = -.pi / 2
     private var pilotAimHeading: CGFloat? = nil
-    private var pilotVisualDirection = 6
+    private var pilotVisualDirection = CharacterMotion.pilotSouthDirection
     private var pilotTraveling = false
     private var pilotShotHeading: CGFloat = -.pi / 2
     private var pilotAnimationTime: TimeInterval = 0
@@ -330,7 +330,7 @@ final class OutpostScene: SKScene {
         pilot.lineWidth = 3
         pilot.zPosition = 9
         // Illustrated armor plate covers the original collision body without changing gameplay.
-        let pilotArmor = SKSpriteNode(texture: pilotDirectionalTextures[6])
+        let pilotArmor = SKSpriteNode(texture: pilotDirectionalTextures[CharacterMotion.pilotSouthDirection])
         // Visual scale only: give the hero enough screen presence to read
         // its face, shoulder plates and reactor at normal phone size.
         // The 28x34 collision container and movement physics do not change.
@@ -1321,16 +1321,16 @@ final class OutpostScene: SKScene {
                 precondition(productionImage(named: "pilot_" + name) != nil,
                              "Missing directional pilot texture")
             }
-            for direction in 0..<8 {
-                pilotHeading = CGFloat(direction) * .pi / 4
+            for direction in CharacterMotion.pilotDirections.indices {
+                pilotHeading = CGFloat(direction) * .pi / 8
                 pilotRenderedHeading = pilotHeading
                 updatePilotPresentation(pose: CharacterMotion.pilot(
                     time: 0, moving: false, facing: 1, timeSinceShot: 2))
                 precondition(pilotVisualDirection == direction)
                 let sample = pilot.copy() as! SKShapeNode
                 sample.position = CGPoint(
-                    x: roomBounds.minX + roomBounds.width * CGFloat(direction % 2 + 1) / 3,
-                    y: roomBounds.minY + roomBounds.height * CGFloat(direction / 2 + 1) / 5)
+                    x: roomBounds.minX + roomBounds.width * CGFloat(direction % 4 + 1) / 5,
+                    y: roomBounds.minY + roomBounds.height * CGFloat(direction / 4 + 1) / 5)
                 arena.addChild(sample)
                 let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
                 label.text = CharacterMotion.pilotDirections[direction].uppercased()
@@ -2082,7 +2082,7 @@ final class OutpostScene: SKScene {
                 .fadeAlpha(to: 0.94, duration: 0.7 + Double(index) * 0.10)
             ])))
         }
-        let pilotPreview = SKSpriteNode(texture: pilotDirectionalTextures[5])
+        let pilotPreview = SKSpriteNode(texture: pilotDirectionalTextures[10])
         pilotPreview.name = "homePilotPreview"
         pilotPreview.size = CGSize(width: 69 * scale, height: 69 * scale)
         pilotPreview.position = CGPoint(x: 67 * scale, y: -67 * scale)
@@ -6418,9 +6418,9 @@ final class OutpostScene: SKScene {
         pilotShotHeading = -.pi / 2
         pilotHeading = -.pi / 2
         pilotAimHeading = nil
-        pilotVisualDirection = 6
+        pilotVisualDirection = CharacterMotion.pilotSouthDirection
         if let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode {
-            art.texture = pilotDirectionalTextures[6]
+            art.texture = pilotDirectionalTextures[CharacterMotion.pilotSouthDirection]
         }
         nextFootstepAt = 0
         pilot.removeAction(forKey: "hitFlash")

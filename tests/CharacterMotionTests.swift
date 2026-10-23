@@ -4,14 +4,21 @@ import CoreGraphics
 @main
 struct CharacterMotionTests {
     static func main() {
-        for direction in 0..<8 {
-            let angle = CGFloat(direction) * .pi / 4
+        precondition(CharacterMotion.pilotDirections.count == 16)
+        for direction in CharacterMotion.pilotDirections.indices {
+            let angle = CGFloat(direction) * .pi / 8
             precondition(CharacterMotion.pilotDirection(heading: angle) == direction)
             precondition(CharacterMotion.pilotDirection(heading: angle - 2 * .pi) == direction)
         }
-        precondition(CharacterMotion.pilotDirection(heading: .pi / 8 + 0.02, previous: 0) == 0)
-        precondition(CharacterMotion.pilotDirection(heading: .pi / 4, previous: 0) == 1)
-        precondition(CharacterMotion.pilotDirection(heading: -.pi / 2) == 6)
+        precondition(CharacterMotion.pilotDirection(heading: .pi / 16 + 0.02, previous: 0) == 0)
+        precondition(CharacterMotion.pilotDirection(heading: .pi / 16 + 0.08, previous: 0) == 1)
+        precondition(CharacterMotion.pilotDirection(heading: .pi / 8, previous: 0) == 1)
+        precondition(CharacterMotion.pilotDirection(heading: .pi / 2) == 4)
+        precondition(CharacterMotion.pilotDirection(heading: .pi) == 8)
+        precondition(CharacterMotion.pilotDirection(heading: -.pi / 2) == 12)
+        precondition(CharacterMotion.pilotDirection(heading: -.pi / 16 - 0.02, previous: 0) == 0)
+        precondition(CharacterMotion.pilotDirection(heading: -.pi / 16 - 0.08, previous: 0) == 15)
+        precondition(CharacterMotion.pilotDirection(heading: .nan) == 12)
         let boundaryTurn = CharacterMotion.turnHeading(
             from: .pi - 0.05, toward: -.pi + 0.05, delta: 0.01)
         precondition(abs(boundaryTurn - (-CGFloat.pi + 0.05)) < 0.0001,

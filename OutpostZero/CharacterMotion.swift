@@ -20,7 +20,9 @@ struct EnemyVisualPose {
 
 enum CharacterMotion {
     /// Counterclockwise sectors in SpriteKit world coordinates, east first.
-    static let pilotDirections = ["e", "ne", "n", "nw", "w", "sw", "s", "se"]
+    static let pilotDirections = ["e", "ene", "ne", "nne", "n", "nnw", "nw", "wnw",
+                                  "w", "wsw", "sw", "ssw", "s", "sse", "se", "ese"]
+    static let pilotSouthDirection = 12
 
     /// Rotate artwork along the shortest arc without delaying joystick motion.
     /// A full reversal settles in about 0.16 seconds at any frame rate.
@@ -34,17 +36,18 @@ enum CharacterMotion {
     }
 
     static func pilotDirection(heading: CGFloat, previous: Int? = nil) -> Int {
-        guard heading.isFinite else { return previous ?? 6 }
+        guard heading.isFinite else { return previous ?? pilotSouthDirection }
         let full = CGFloat.pi * 2
         let angle = (heading.truncatingRemainder(dividingBy: full) + full)
             .truncatingRemainder(dividingBy: full)
-        // A 6-degree dead band prevents flicker at diagonal boundaries.
-        if let previous, (0..<8).contains(previous) {
-            let center = CGFloat(previous) * .pi / 4
+        let sector = full / CGFloat(pilotDirections.count)
+        // Three degrees of hysteresis stabilize the narrower 22.5° sectors.
+        if let previous, pilotDirections.indices.contains(previous) {
+            let center = CGFloat(previous) * sector
             let difference = atan2(sin(angle - center), cos(angle - center))
-            if abs(difference) < .pi / 8 + .pi / 30 { return previous }
+            if abs(difference) < sector / 2 + .pi / 60 { return previous }
         }
-        return Int((angle / (.pi / 4)).rounded()) % 8
+        return Int((angle / sector).rounded()) % pilotDirections.count
     }
 
     static func pilot(time: TimeInterval, moving: Bool, facing: CGFloat,
