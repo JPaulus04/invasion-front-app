@@ -3804,7 +3804,7 @@ final class OutpostScene: SKScene {
                     let root = tree.convert(CGPoint(x: 0, y: -tree.size.height * 0.4375), to: prop)
                     shadow.position = CGPoint(x: root.x + tree.size.width * 0.06, y: root.y)
                     // Remove disconnected vine strokes; illustrated canopy stays.
-                } else {
+                } else if !addForestUndergrowth(to: prop, width: 70) {
                     let underbrush = SKShapeNode(path: BattlefieldArt.terrainShape(
                         width: 53, height: 17, variation: index + wave))
                     underbrush.fillColor = SKColor(red: 0.08, green: 0.21, blue: 0.14, alpha: 0.9)
@@ -3966,6 +3966,10 @@ final class OutpostScene: SKScene {
                 let fern = SKNode()
                 fern.position = CGPoint(x: x, y: y)
                 fern.zPosition = -0.45
+                if addForestUndergrowth(to: fern, width: 42 + CGFloat(index % 3) * 6) {
+                    zoneScenery.addChild(fern)
+                    continue
+                }
                 let stem = SKShapeNode(rectOf: CGSize(width: 2, height: 19), cornerRadius: 1)
                 stem.fillColor = SKColor(red: 0.13, green: 0.34, blue: 0.18, alpha: 0.8)
                 stem.strokeColor = .clear
@@ -3985,6 +3989,32 @@ final class OutpostScene: SKScene {
             }
         }
         // No uniformly spaced horizontal accent dashes: the forest is not a grid.
+    }
+
+    /// Decorative only: keep undergrowth outside collision and combat logic.
+    /// Authored highlights always face upper-left; never mirror the texture.
+    @discardableResult
+    private func addForestUndergrowth(to parent: SKNode, width: CGFloat) -> Bool {
+        guard worldMapIndex == 0,
+              let image = productionImage(named: "forest_undergrowth_polished") else {
+            return false
+        }
+        let shadow = SKShapeNode(ellipseOf: CGSize(width: width * 0.70,
+                                                  height: width * 0.13))
+        shadow.name = "forestUndergrowthContact"
+        shadow.position = CGPoint(x: width * 0.035, y: 0)
+        shadow.fillColor = .black.withAlphaComponent(0.22)
+        shadow.strokeColor = .clear
+        shadow.zPosition = -0.1
+        parent.addChild(shadow)
+        let shrub = SKSpriteNode(texture: SKTexture(image: image))
+        shrub.name = "forestUndergrowthArt"
+        shrub.size = CGSize(width: width, height: width)
+        // The normalized 256px canvas has a 57px lower transparent margin.
+        shrub.anchorPoint = CGPoint(x: 0.5, y: 57.0 / 256.0)
+        shrub.zPosition = 0.2
+        parent.addChild(shrub)
+        return true
     }
 
     // Production art takes precedence when a validated PNG is bundled in the app.
