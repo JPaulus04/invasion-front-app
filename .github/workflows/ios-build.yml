@@ -100,6 +100,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: outpost-zero-simulator-app
+      - name: Install native PNG decoder
+        run: python3 -m pip install --user Pillow
       - name: Restore executable app bundle
         run: |
           set -e
@@ -217,10 +219,6 @@ jobs:
           # The authored front walk is gated to simulator QA. Sample a live
           # sequence spanning walking and idle instead of freezing one pose.
           capture_scene -previewPilotWalk screenshots/outpost-zero-walk-preview-01.png
-          for INDEX in $(seq -w 2 16); do
-            sleep 0.15
-            run_bounded 55 xcrun simctl io "$DEVICE" screenshot "screenshots/outpost-zero-walk-preview-$INDEX.png"
-          done
           # Record continuous motion as well as stills: screenshot command
           # latency can repeatedly sample the same two poses. Bound startup,
           # recording and finalization so a stuck recorder cannot pin CI.
@@ -253,6 +251,10 @@ jobs:
                       recorder.kill()
                       recorder.wait(timeout=5)
           PY
+          for INDEX in $(seq -w 2 16); do
+            sleep 0.15
+            run_bounded 55 xcrun simctl io "$DEVICE" screenshot "screenshots/outpost-zero-walk-preview-$INDEX.png"
+          done
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-walk-preview-*.png
           python3 - <<'PY'
           from hashlib import sha256
@@ -308,6 +310,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: outpost-zero-simulator-app
+      - name: Install native PNG decoder
+        run: python3 -m pip install --user Pillow
       - name: Restore executable app bundle
         run: |
           set -e

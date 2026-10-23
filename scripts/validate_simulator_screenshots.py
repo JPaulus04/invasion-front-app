@@ -5,6 +5,11 @@ import struct
 import sys
 import zlib
 
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
 PNG = b"\x89PNG\r\n\x1a\n"
 
 def verify(path: Path) -> None:
@@ -27,8 +32,17 @@ def verify(path: Path) -> None:
         position += 12 + length
         if tag == b"IEND":
             break
-    raw = zlib.decompress(compressed)
     stride = width * channels
+    if Image is not None:
+        # Native PNG unfiltering avoids millions of Python byte operations.
+        # Keep the dependency-free decoder below as a local fallback.
+        with Image.open(path) as image:
+            image.load()
+            pixels = image.convert("RGBA" if channels == 4 else "RGB").tobytes()
+        raw = b"".join(b"\0" + pixels[y * stride:(y + 1) * stride]
+                       for y in range(height))
+    else:
+        raw = zlib.decompress(compressed)
     if len(raw) != (stride + 1) * height:
         raise ValueError("incorrect decoded PNG length")
     previous = bytearray(stride)

@@ -1,5 +1,12 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 23 — Walk review capture reliability
+- Commit `74e8bcc` compiled successfully, but run 40018776951 did not pass: defense screenshot command timed out during the walk sequence, and the broad campaign capture exceeded its 28-minute step limit. Only three walk stills were available; no new continuous video. Do not describe this run as green.
+- Compared original south idle and front walk frame 0 directly: both 256px RGBA, alpha bounds (41,16,214,240) and (41,16,215,243). Helmet registration is close. Earlier strong claims of a major proportion mismatch were overstated; undistorted continuous evidence is needed. Authored preview retains neutral transforms from 74e8bcc.
+- Added optional Pillow native PNG decoding, retaining the dependency-free fallback and identical sampling/scene-marker rules. Both visual CI jobs install Pillow. Local real-capture results match exactly (355 colors), native path 0.096s versus fallback 2.578s; both reject blank and incorrect scene-marker fixtures.
+- Move bounded continuous video recording immediately after the first validated walk still, before the 15 repeated screenshot subprocesses. A later still timeout must not prevent motion evidence from being recorded.
+- Next: review fresh continuous preview; refine art only against actual evidence, then expand authored walking to other directions. Normal gameplay still uses directional idle poses. Build 322 remains development-only, no upload or character reset.
+
 ## October 23 — Front walk preview, development only
 - Sixteen-direction commit `73762d0` passed build, defense and full simulator jobs in run **39998812646**. Inspected actual compass grid plus motion-1/motion-3 from artifact **12522596564**. Armor identity and gameplay readability hold; adjacent NW/WNW views are too similar for final turn acceptance. Static captures do not establish smooth animation.
 - User liked the four-pose front walk prototype from review commit `16192bf`. Copied its registered RGBA frames into production resources as `pilot_walk_s_0...3.png`, but selection is gated by simulator-only `-previewPilotWalk`. Normal gameplay retains the sixteen directional poses. No new generated art in this pass.
