@@ -1,5 +1,10 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 22 — Close-contact firing visibility
+- Optional reactor correction 7b6893e passed all three jobs in run 39895038418. Inspected failed-defense artifact 12476548019: living player, BONUS LOST state, open normal campaign portal, no defeat menu. Reward and zero-integrity recovery tests passed. Found a floating -4 overlapping the resolved reactor label; resolving the reactor now removes its transient hit labels and hit-flash action.
+- Rifle visuals now start 28 points away from pilot center, use a smaller flash without the white outline, thinner/shorter tracers, and replace the previous tracer/flash on each shot. Targets within 30 points use existing hit feedback without a muzzle cue overlapping the player. This affects only rendering; instant-hit damage, range, cooldown, aiming and impact processing are unchanged.
+- Local source/PNG checks pass. New actual extraction-combat and motion captures must establish whether this resolves the large close-contact flashes; do not claim visual acceptance in advance. Pilot still uses eight static direction views; sixteen views/authored walk frames, bosses and environment/portal art remain pending. No Build 322 upload.
+
 ## October 22 — Optional reactor failure correction
 - Reactor loss now resolves the room to the normal campaign portal instead of Game Over. Existing foes/hostile attacks are discarded without kill rewards; player health and previously earned rewards are retained. Normal room coins/XP still pay; the existing defense-room Salvage payout is the forfeited objective bonus. Successful-defense payouts are unchanged; no new bonus amount was introduced.
 - Failed reactor displays a dark/orange core, BONUS LOST label and matching exit instruction instead of SECURED. Zero-integrity saves are valid; recovery preserves a failed cleared gate, and a zero-integrity battle snapshot resolves to that gate. Existing schema-4 saves remain compatible.

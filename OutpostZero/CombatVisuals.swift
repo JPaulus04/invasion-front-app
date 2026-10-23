@@ -7,54 +7,63 @@ enum CombatVisuals {
     static func rifleTracer(in parent: SKNode, origin: CGPoint,
                             target: CGPoint, incendiary: Bool,
                             explosive: Bool) {
+        // Rapid retargeting must not leave a fan of flashes across the pilot.
+        for name in ["pilotTracerHalo", "pilotTracerCore", "pilotMuzzleFlash"] {
+            parent.childNode(withName: name)?.removeFromParent()
+        }
+        let dx = target.x - origin.x, dy = target.y - origin.y
+        let distance = hypot(dx, dy)
+        // Close-contact hits still receive their ordinary impact feedback.
+        // A muzzle placed inside that overlap would hide the pilot itself.
+        guard distance > 30 else { return }
+        let angle = atan2(dy, dx)
+        let muzzle = CGPoint(x: origin.x + cos(angle) * 28,
+                             y: origin.y + sin(angle) * 28)
         let color: SKColor = incendiary ? .systemOrange :
             (explosive ? .systemCyan : .systemYellow)
         let path = CGMutablePath()
-        path.move(to: origin)
+        path.move(to: muzzle)
         path.addLine(to: target)
 
-        // Wide, translucent bloom behind a thin bright center is readable
-        // on a phone without turning the whole room into a laser screen.
+        // A thin, brief tracer preserves sight of enemies and their warnings.
         let halo = SKShapeNode(path: path)
-        halo.strokeColor = color.withAlphaComponent(0.36)
-        halo.lineWidth = 6
-        halo.glowWidth = 3
+        halo.name = "pilotTracerHalo"
+        halo.strokeColor = color.withAlphaComponent(0.25)
+        halo.lineWidth = 3
+        halo.glowWidth = 1
         halo.lineCap = .round
         halo.zPosition = 7.9
         parent.addChild(halo)
-        halo.run(.sequence([.fadeOut(withDuration: 0.15), .removeFromParent()]))
+        halo.run(.sequence([.fadeOut(withDuration: 0.09), .removeFromParent()]))
 
         let core = SKShapeNode(path: path)
-        core.strokeColor = SKColor.white.withAlphaComponent(0.9)
-        core.lineWidth = 1.7
+        core.name = "pilotTracerCore"
+        core.strokeColor = SKColor.white.withAlphaComponent(0.8)
+        core.lineWidth = 1.1
         core.lineCap = .round
         core.zPosition = 8
         parent.addChild(core)
-        core.run(.sequence([.fadeOut(withDuration: 0.095), .removeFromParent()]))
+        core.run(.sequence([.fadeOut(withDuration: 0.06), .removeFromParent()]))
 
-        // Brief hot muzzle flash adds direction even when the full pilot PNG
-        // faces forward. It fades fast enough not to hide enemy warnings.
-        let angle = atan2(target.y - origin.y, target.x - origin.x)
+        // A small muzzle cue sits outside the illustrated body.
         let flash = SKShapeNode()
+        flash.name = "pilotMuzzleFlash"
         let silhouette = CGMutablePath()
-        silhouette.move(to: CGPoint(x: -5, y: -4))
-        silhouette.addLine(to: CGPoint(x: 17, y: 0))
-        silhouette.addLine(to: CGPoint(x: -5, y: 4))
+        silhouette.move(to: CGPoint(x: -2, y: -2.2))
+        silhouette.addLine(to: CGPoint(x: 8, y: 0))
+        silhouette.addLine(to: CGPoint(x: -2, y: 2.2))
         silhouette.closeSubpath()
         flash.path = silhouette
-        flash.position = CGPoint(
-            x: origin.x + cos(angle) * 15,
-            y: origin.y + sin(angle) * 15)
+        flash.position = muzzle
         flash.zRotation = angle
         flash.fillColor = color.withAlphaComponent(0.92)
-        flash.strokeColor = .white.withAlphaComponent(0.8)
-        flash.lineWidth = 1
-        flash.glowWidth = 1.2
+        flash.strokeColor = .clear
+        flash.glowWidth = 0.4
         flash.zPosition = 12
         parent.addChild(flash)
         flash.run(.sequence([.group([
-            .scale(to: 1.25, duration: 0.085),
-            .fadeOut(withDuration: 0.085)
+            .scale(to: 1.1, duration: 0.045),
+            .fadeOut(withDuration: 0.045)
         ]), .removeFromParent()]))
     }
 

@@ -3137,9 +3137,12 @@ final class OutpostScene: SKScene {
 
     private func markDefenseDeviceResolved() {
         guard activeEncounter == .equipmentDefense else { return }
+        defenseDevice.children.filter { $0.name == "fieldReactorHitLabel" }
+            .forEach { $0.removeFromParent() }
         let secured = defenseIntegrity > 0
         let core = defenseDevice.childNode(withName: "fieldReactorCore") as? SKShapeNode
         core?.removeAction(forKey: "reactorEnergyPulse")
+        core?.removeAction(forKey: "objectiveHit")
         core?.fillColor = secured ? SKColor(red: 0.25, green: 0.78, blue: 0.53, alpha: 1)
             : SKColor(red: 0.25, green: 0.10, blue: 0.08, alpha: 1)
         core?.strokeColor = secured ? .systemGreen : .systemOrange
@@ -3183,6 +3186,7 @@ final class OutpostScene: SKScene {
         // Make each earned hit conspicuous without flashing the entire screen
         // or altering the reactor's gameplay collision area.
         let hitLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        hitLabel.name = "fieldReactorHitLabel"
         hitLabel.text = "-\(EquipmentDefenseRules.hitDamage)"
         hitLabel.fontColor = .systemOrange
         hitLabel.fontSize = 16
