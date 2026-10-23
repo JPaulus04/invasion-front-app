@@ -1,5 +1,12 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 23 — East-facing walk candidate
+- Rear-cycle revision c2efd50 passed all three jobs in run 40037101410. Inspected north video from artifact 12537728150 at 8fps with aspect-preserving crops: alternating steps, steady backpack and return to north idle. Small scale difference remains a final continuity-review item, not a reason to expand this into full production acceptance.
+- Generated east-facing 2x2 sheet using pilot_e.png reference. First sheet repeated the same leading leg in both extended poses; rejected that lower half and requested targeted bottom-row leg reversal. Revised source exec-399f5700-228d-4902-884d-86617fb5fc3d.png. Four extracted 256px RGBA resources pilot_walk_e_0...3.png use common 43% scale and helmet top/center registration; PNGs remain unclipped.
+- New simulator-only -previewPilotWalkEast moves horizontally from 30% to 70% room width through normal collision/movement, then idles. North/south previews share start/target helpers. Ordinary gameplay still does not use authored walk cycles.
+- CI asserts all 12 walk resources in the bundle, then captures separate east still and bounded continuous MP4 alongside south/north. Source brace, YAML, all three recorder Python blocks and PNG alpha/bounds checks pass locally; iOS compilation and east visual acceptance pending.
+- Next inspect east foot contact, cadence, upper-body scale and stop transition before generating west. No TestFlight upload or character reset; Build 322 development only.
+
 ## October 23 — Rear-facing authored walk candidate
 - Run 40029607674 passed all jobs. Downloaded walk artifact 12533958891 and inspected 8fps samples from the neutral-transform continuous video at preserved aspect ratio. South cycle has visible alternating legs, stable upper body and return to idle; this supports extending the prototype, not final all-direction animation acceptance.
 - Generated four north-facing walk poses with the built-in image-generation tool using current pilot_n.png as identity reference. Extracted 627px sheet cells to 256px RGBA canvases at a common 45% scale, registered helmet top/center, no independent per-frame scaling. Output resources: pilot_walk_n_0...3.png. Sheet source exec-81ea011c-3dc1-48aa-9f95-1cd7313425c5.png.

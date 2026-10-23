@@ -60,6 +60,7 @@ jobs:
           for FRAME in 0 1 2 3; do
             test -n "$(find "$APP" -type f -name "pilot_walk_s_$FRAME.png" -print -quit)"
             test -n "$(find "$APP" -type f -name "pilot_walk_n_$FRAME.png" -print -quit)"
+            test -n "$(find "$APP" -type f -name "pilot_walk_e_$FRAME.png" -print -quit)"
           done
           for ASSET in pilot_ene.png pilot_nne.png pilot_nnw.png pilot_wnw.png pilot_wsw.png pilot_ssw.png pilot_sse.png pilot_ese.png forest_undergrowth_polished.png field_reactor_polished.png shooter_polished.png lobber_polished.png heavy_polished.png raider_polished.png scout_polished.png grunt_polished.png forest_pine_polished.png forest_broadleaf_polished.png pilot_e.png pilot_ne.png pilot_n.png pilot_nw.png pilot_w.png pilot_sw.png pilot_s.png pilot_se.png pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
             FOUND="$(find "$APP" -type f -name "$ASSET" -print -quit)"
@@ -302,6 +303,39 @@ jobs:
                       recorder.kill()
                       recorder.wait(timeout=5)
           PY
+          capture_scene -previewPilotWalkEast screenshots/outpost-zero-walk-preview-east.png
+          # Record continuous motion as well as stills: screenshot command
+          # latency can repeatedly sample the same two poses. Bound startup,
+          # recording and finalization so a stuck recorder cannot pin CI.
+          python3 - "$DEVICE" <<'PY'
+          import pathlib
+          import signal
+          import subprocess
+          import sys
+          import time
+          output = pathlib.Path("screenshots/outpost-zero-walk-preview-east.mp4")
+          log = pathlib.Path("screenshots/outpost-zero-walk-east-video.log")
+          with log.open("w") as diagnostics:
+              recorder = subprocess.Popen(
+                  ["xcrun", "simctl", "io", sys.argv[1], "recordVideo",
+                   "--codec=h264", "--force", str(output)],
+                  stdout=diagnostics, stderr=subprocess.STDOUT)
+              try:
+                  time.sleep(12)  # Three complete movement/idle passes.
+                  if recorder.poll() is not None:
+                      raise RuntimeError("Video recorder exited before review completed")
+                  recorder.send_signal(signal.SIGINT)
+                  recorder.wait(timeout=25)
+                  if recorder.returncode not in (0, -signal.SIGINT):
+                      raise RuntimeError(f"Video recorder failed: {recorder.returncode}")
+                  if not output.exists() or output.stat().st_size < 16384:
+                      raise RuntimeError("Walk review video is missing or empty")
+                  print(f"PASS: continuous walk review video ({output.stat().st_size} bytes)")
+              finally:
+                  if recorder.poll() is None:
+                      recorder.kill()
+                      recorder.wait(timeout=5)
+          PY
       - name: Upload live pilot walk preview
         if: always()
         uses: actions/upload-artifact@v4
@@ -311,6 +345,7 @@ jobs:
             screenshots/outpost-zero-walk-preview-*.png
             screenshots/outpost-zero-walk-preview*.mp4
             screenshots/outpost-zero-walk-preview-north.png
+            screenshots/outpost-zero-walk-preview-east.png
             screenshots/outpost-zero-walk*video.log
           if-no-files-found: ignore
       - name: Validate independent equipment-defense frames
