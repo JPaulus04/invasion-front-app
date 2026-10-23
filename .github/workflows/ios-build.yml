@@ -101,7 +101,11 @@ jobs:
         with:
           name: outpost-zero-simulator-app
       - name: Install native PNG decoder
-        run: python3 -m pip install --user Pillow
+        run: |
+          python3 -m venv "$RUNNER_TEMP/visual-review-python"
+          "$RUNNER_TEMP/visual-review-python/bin/python" -m pip install Pillow
+          "$RUNNER_TEMP/visual-review-python/bin/python" -c "from PIL import Image; print('Native PNG decoder ready')"
+          echo "$RUNNER_TEMP/visual-review-python/bin" >> "$GITHUB_PATH"
       - name: Restore executable app bundle
         run: |
           set -e
@@ -311,7 +315,11 @@ jobs:
         with:
           name: outpost-zero-simulator-app
       - name: Install native PNG decoder
-        run: python3 -m pip install --user Pillow
+        run: |
+          python3 -m venv "$RUNNER_TEMP/visual-review-python"
+          "$RUNNER_TEMP/visual-review-python/bin/python" -m pip install Pillow
+          "$RUNNER_TEMP/visual-review-python/bin/python" -c "from PIL import Image; print('Native PNG decoder ready')"
+          echo "$RUNNER_TEMP/visual-review-python/bin" >> "$GITHUB_PATH"
       - name: Restore executable app bundle
         run: |
           set -e
