@@ -172,6 +172,10 @@ struct ProgressCombatTests {
         precondition(timedSave.isValid && recover.save(timedSave))
         precondition(recover.load()?.defenseObjectiveIntegrity == 88)
         timedSave.defenseObjectiveIntegrity = 0
+        precondition(timedSave.isValid && recover.save(timedSave))
+        precondition(recover.load()?.defenseObjectiveIntegrity == 0,
+                     "A failed optional defense must remain recoverable")
+        timedSave.defenseObjectiveIntegrity = -1
         precondition(!timedSave.isValid && !recover.save(timedSave))
         timedSave.defenseObjectiveIntegrity = EquipmentDefenseRules.maximumIntegrity + 1
         precondition(!timedSave.isValid)

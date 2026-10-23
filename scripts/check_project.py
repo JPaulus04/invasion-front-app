@@ -57,7 +57,8 @@ if not all(fragment in scene for fragment in (
 if not all(fragment in scene for fragment in (
         "private func installDefenseDevice()",
         "private func damageDefenseDevice()",
-        'endGame("DEFENSE OBJECTIVE LOST")',
+        "private func markDefenseDeviceResolved()",
+        "EquipmentDefenseRules.completionSalvage(room: wave, integrity: defenseIntegrity)",
         "defenseObjectiveIntegrity:",
         "-captureEquipmentDefenseScreenshot",
         "-captureEquipmentDefenseClearScreenshot")):
@@ -169,8 +170,10 @@ if 'ProcessInfo.processInfo.arguments.contains("-captureLoadoutScreenshot")' not
     errors.append("Simulator must verify in-game draws without pre-run selection")
 if "private func enterSelectedWorld() -> Bool" not in scene or "_ = enterSelectedWorld()" not in scene:
     errors.append("World entry must use the guarded no-loadout route")
-if "bankSalvage(PersistentProgression.roomReward(room: wave))" not in scene:
-    errors.append("Each cleared room must bank permanent Salvage immediately")
+if "bankSalvage(completionSalvage)" not in scene or "PersistentProgression.roomReward(room: wave)" not in scene:
+    errors.append("Cleared rooms must bank Salvage, respecting optional defense outcome")
+if 'endGame("DEFENSE OBJECTIVE LOST")' in scene:
+    errors.append("Optional reactor loss must not end the campaign run")
 if "salvageBankedThisRun += permanent.bank(PersistentProgression.worldCompletionBonus)" not in scene:
     errors.append("World-completion Salvage must bypass recovered-room reward caps")
 if "bankSalvage(PersistentProgression.enemyReward(" not in scene:

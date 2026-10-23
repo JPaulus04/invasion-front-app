@@ -240,6 +240,10 @@ struct CampaignPacingTests {
             elapsed: 10, duration: deadline, integrity: 0, living: 0))
         precondition(EquipmentDefenseRules.applyHit(integrity: 3) == 0)
         precondition(EquipmentDefenseRules.fails(integrity: 0))
+        precondition(EquipmentDefenseRules.completionSalvage(room: 12, integrity: 0) == 0)
+        precondition(EquipmentDefenseRules.completionSalvage(room: 12, integrity: 1) ==
+                     PersistentProgression.roomReward(room: 12),
+                     "Successful defense must retain its existing payout")
         precondition(!EquipmentDefenseRules.succeeds(
             elapsed: deadline, duration: deadline, integrity: 0))
         precondition(EquipmentDefenseRules.succeeds(

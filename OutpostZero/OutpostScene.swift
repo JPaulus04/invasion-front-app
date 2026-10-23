@@ -987,15 +987,30 @@ final class OutpostScene: SKScene {
                     enemyRadius: $0.radius)
             }, "Enemy reinforcements must not materialize directly on the reactor")
             if defenseFailed {
+                // Prior earned rewards survive the optional objective loss.
+                awardRoomCoins(9)
+                bankSalvage(2)
+                _ = awardRoomXP(9)
+                let healthBefore = health
+                let salvageBefore = salvageBankedThisRun
+                let coinsBefore = coins
+                let xpBefore = progress.xp
                 for _ in 0..<38 {
                     combatClock.advance(EquipmentDefenseRules.hitCooldown + 0.1,
                                         playing: true)
                     nextDefenseHitAt = combatTime
                     damageDefenseDevice()
                 }
-                precondition(phase == .gameOver && defenseIntegrity == 0 &&
-                             passageGate.isHidden && recovery.load() == nil,
-                             "Destroyed reactor must end the run, not unlock the exit")
+                precondition(phase == .gate && roomCleared && defenseIntegrity == 0 &&
+                             !passageGate.isHidden && extractionPortal.isHidden &&
+                             enemies.isEmpty && health == healthBefore &&
+                             salvageBankedThisRun == salvageBefore &&
+                             coins == coinsBefore + CampaignPacing.clearCoins(room: wave) &&
+                             progress.xp == xpBefore + CampaignPacing.clearXP(room: wave),
+                             "Lost reactor must open campaign exit without its Salvage bonus")
+                precondition((defenseDevice.childNode(withName: "fieldReactorLabel")
+                              as? SKLabelNode)?.text == "BONUS LOST",
+                             "Failed defense must not masquerade as a secured reactor")
             } else if defenseWon {
                 waveElapsed = SurvivalEncounterRules.duration(world: 0, room: wave)
                 update(1_000)
@@ -1838,7 +1853,7 @@ final class OutpostScene: SKScene {
         if activeEncounter == .survival && (phase == .playing || roomCleared) {
             subtitleText = "\(enemies.count) FOES  •  \(coins) COINS"
         } else if activeEncounter == .equipmentDefense && roomCleared {
-            subtitleText = "REACTOR SECURED"
+            subtitleText = defenseIntegrity > 0 ? "REACTOR SECURED" : "REACTOR LOST • BONUS LOST"
         } else if activeEncounter == .equipmentDefense && !roomCleared {
             let remaining = max(0, Int(ceil(
                 SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
@@ -2329,6 +2344,12 @@ final class OutpostScene: SKScene {
             if wave < worldWaveCount { showZoneGate() }
         }
         isRestoringRun = false
+        if activeEncounter == .equipmentDefense && defenseIntegrity == 0 && !roomCleared {
+            // A zero-integrity battle snapshot must resolve to a traversable
+            // gate, including interruption during the final objective hit.
+            completeWave()
+            return
+        }
         if progress.pendingChoices > 0 {
             let destination: Phase = snapshot.location == .clearedGate
                 ? (wave == worldWaveCount ? .worldComplete : .gate)
@@ -3114,17 +3135,19 @@ final class OutpostScene: SKScene {
         updateDefenseDeviceDisplay()
     }
 
-    private func markDefenseDeviceSecured() {
+    private func markDefenseDeviceResolved() {
         guard activeEncounter == .equipmentDefense else { return }
+        let secured = defenseIntegrity > 0
         let core = defenseDevice.childNode(withName: "fieldReactorCore") as? SKShapeNode
         core?.removeAction(forKey: "reactorEnergyPulse")
-        core?.fillColor = SKColor(red: 0.25, green: 0.78, blue: 0.53, alpha: 1)
-        core?.strokeColor = .systemGreen
+        core?.fillColor = secured ? SKColor(red: 0.25, green: 0.78, blue: 0.53, alpha: 1)
+            : SKColor(red: 0.25, green: 0.10, blue: 0.08, alpha: 1)
+        core?.strokeColor = secured ? .systemGreen : .systemOrange
         core?.alpha = 1
         (defenseDevice.childNode(withName: "fieldReactorLabel") as? SKLabelNode)?
-            .text = "SECURED"
+            .text = secured ? "SECURED" : "BONUS LOST"
         (defenseDevice.childNode(withName: "fieldReactorLabel") as? SKLabelNode)?
-            .fontColor = .systemGreen
+            .fontColor = secured ? .systemGreen : .systemOrange
         defenseDevice.childNode(withName: "fieldReactorIntegrityTrack")?.isHidden = true
         defenseIntegrityBar.isHidden = true
     }
@@ -3173,7 +3196,7 @@ final class OutpostScene: SKScene {
         ]))
         updateDefenseDeviceDisplay()
         if EquipmentDefenseRules.fails(integrity: defenseIntegrity) {
-            endGame("DEFENSE OBJECTIVE LOST")
+            completeWave()
         } else {
             saveRunRecovery()
         }
@@ -5590,9 +5613,12 @@ final class OutpostScene: SKScene {
             survivalSpawnPhaseFinished = true
         }
         clearHostileAttacks()
-        bankSalvage(PersistentProgression.roomReward(room: wave))
+        let completionSalvage = activeEncounter == .equipmentDefense
+            ? EquipmentDefenseRules.completionSalvage(room: wave, integrity: defenseIntegrity)
+            : PersistentProgression.roomReward(room: wave)
+        bankSalvage(completionSalvage)
         if activeEncounter == .equipmentDefense {
-            markDefenseDeviceSecured()
+            markDefenseDeviceResolved()
             // Timer completion, never enemy elimination. Remove remaining foes
             // without awarding XP, coins or Salvage for unearned kills.
             for enemy in enemies { enemy.node.removeFromParent() }
@@ -6039,7 +6065,7 @@ final class OutpostScene: SKScene {
         }
         guard (activeEncounter == .equipmentDefense && roomCleared) ||
             RoomRules.isCleared(spawned: spawned, target: waveTarget, living: enemies.count) else { return }
-        if activeEncounter == .equipmentDefense { markDefenseDeviceSecured() }
+        if activeEncounter == .equipmentDefense { markDefenseDeviceResolved() }
         phase = .gate
         arena.isPaused = false
         heldTouch = nil
@@ -6067,10 +6093,12 @@ final class OutpostScene: SKScene {
             .fadeAlpha(to: 0.88, duration: 0.65)
         ])))
         warning.text = activeEncounter == .equipmentDefense
-            ? "REACTOR SECURED — ENTER PORTAL"
+            ? (defenseIntegrity > 0 ? "REACTOR SECURED — ENTER PORTAL"
+                : "BONUS LOST — ENTER PORTAL")
             : (wave == 1 ? "ROOM CLEAR — ENTER PORTAL" : "ROOM CLEAR — PORTAL OPEN")
         controlsHint.isHidden = true
-        warning.fontColor = .systemGreen
+        warning.fontColor = activeEncounter == .equipmentDefense && defenseIntegrity == 0
+            ? .systemOrange : .systemGreen
         warning.fontSize = 13
         warning.position = CGPoint(x: passageGate.position.x, y: passageGate.position.y - 52)
         warning.removeAllActions()

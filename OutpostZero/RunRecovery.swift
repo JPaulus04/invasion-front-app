@@ -69,7 +69,7 @@ struct RunSnapshot: Codable {
          (timedEncounterSpawned != nil &&
           (timedEncounterLiving ?? 0) <= (timedEncounterSpawned ?? -1))) &&
         (defenseObjectiveIntegrity == nil ||
-         (1...EquipmentDefenseRules.maximumIntegrity).contains(
+         (0...EquipmentDefenseRules.maximumIntegrity).contains(
              defenseObjectiveIntegrity ?? 0)) &&
         // Support older 3-skill saves and new 0-2 skill in-run drafts.
         AbilityLoadout(selected: abilities).selected.count == abilities.count &&
