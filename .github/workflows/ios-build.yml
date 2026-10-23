@@ -221,6 +221,38 @@ jobs:
             sleep 0.15
             run_bounded 55 xcrun simctl io "$DEVICE" screenshot "screenshots/outpost-zero-walk-preview-$INDEX.png"
           done
+          # Record continuous motion as well as stills: screenshot command
+          # latency can repeatedly sample the same two poses. Bound startup,
+          # recording and finalization so a stuck recorder cannot pin CI.
+          python3 - "$DEVICE" <<'PY'
+          import pathlib
+          import signal
+          import subprocess
+          import sys
+          import time
+          output = pathlib.Path("screenshots/outpost-zero-walk-preview.mp4")
+          log = pathlib.Path("screenshots/outpost-zero-walk-video.log")
+          with log.open("w") as diagnostics:
+              recorder = subprocess.Popen(
+                  ["xcrun", "simctl", "io", sys.argv[1], "recordVideo",
+                   "--codec=h264", "--force", str(output)],
+                  stdout=diagnostics, stderr=subprocess.STDOUT)
+              try:
+                  time.sleep(12)  # Three complete movement/idle passes.
+                  if recorder.poll() is not None:
+                      raise RuntimeError("Video recorder exited before review completed")
+                  recorder.send_signal(signal.SIGINT)
+                  recorder.wait(timeout=25)
+                  if recorder.returncode not in (0, -signal.SIGINT):
+                      raise RuntimeError(f"Video recorder failed: {recorder.returncode}")
+                  if not output.exists() or output.stat().st_size < 16384:
+                      raise RuntimeError("Walk review video is missing or empty")
+                  print(f"PASS: continuous walk review video ({output.stat().st_size} bytes)")
+              finally:
+                  if recorder.poll() is None:
+                      recorder.kill()
+                      recorder.wait(timeout=5)
+          PY
           python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-walk-preview-*.png
           python3 - <<'PY'
           from hashlib import sha256
@@ -235,7 +267,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: outpost-zero-walk-preview
-          path: screenshots/outpost-zero-walk-preview-*.png
+          path: |
+            screenshots/outpost-zero-walk-preview-*.png
+            screenshots/outpost-zero-walk-preview.mp4
+            screenshots/outpost-zero-walk-video.log
           if-no-files-found: ignore
       - name: Validate independent equipment-defense frames
         run: |
