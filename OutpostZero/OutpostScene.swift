@@ -535,7 +535,7 @@ final class OutpostScene: SKScene {
         extractionPortal.fillColor = SKColor(red: 0.08, green: 0.51, blue: 0.82, alpha: 0.95)
         extractionPortal.strokeColor = SKColor(red: 0.73, green: 0.99, blue: 1, alpha: 1)
         extractionPortal.lineWidth = 3
-        extractionPortal.glowWidth = 9
+        extractionPortal.glowWidth = 4
         extractionPortal.zPosition = 7
         extractionPortal.isHidden = true
         let base = SKShapeNode(ellipseOf: CGSize(width: 53, height: 17))
@@ -558,12 +558,12 @@ final class OutpostScene: SKScene {
             .fadeAlpha(to: 0.36, duration: 0.85),
             .fadeAlpha(to: 0.90, duration: 0.95)
         ])))
-        let core = SKShapeNode(circleOfRadius: 10)
+        let core = SKShapeNode(circleOfRadius: 7)
         core.name = "extractionCore"
         core.fillColor = SKColor(red: 0.69, green: 0.97, blue: 1, alpha: 1)
         core.strokeColor = .white
         core.lineWidth = 1
-        core.glowWidth = 5
+        core.glowWidth = 2
         core.zPosition = 2
         extractionPortal.addChild(core)
         arena.addChild(extractionPortal)
@@ -5164,14 +5164,39 @@ final class OutpostScene: SKScene {
     private func rebuildOrbitingDefenses() {
         for blade in orbitalNodes { blade.removeFromParent() }
         orbitalNodes.removeAll()
-        for index in 0..<orbitLevel {
+        for _ in 0..<orbitLevel {
             let blade = SKShapeNode(circleOfRadius: 10)
             blade.name = "energyOrbit"
-            blade.fillColor = SKColor(red: 0.22, green: 0.88, blue: 0.95, alpha: 1)
-            blade.strokeColor = .systemCyan
-            blade.lineWidth = 1.5
-            blade.glowWidth = 7
+            blade.fillColor = SKColor(red: 0.04, green: 0.43, blue: 0.64, alpha: 1)
+            blade.strokeColor = SKColor(red: 0.23, green: 0.89, blue: 1, alpha: 0.9)
+            blade.lineWidth = 1.2
+            blade.glowWidth = 2.5
             blade.zPosition = 11
+            let core = SKShapeNode(circleOfRadius: 5)
+            core.name = "energyOrbitCore"
+            core.fillColor = SKColor(red: 0.72, green: 0.99, blue: 1, alpha: 1)
+            core.strokeColor = .clear
+            core.glowWidth = 1.5
+            core.zPosition = 0.2
+            blade.addChild(core)
+            let glint = SKShapeNode(circleOfRadius: 1.8)
+            glint.position = CGPoint(x: -2.5, y: 2.5)
+            glint.fillColor = .white
+            glint.strokeColor = .clear
+            glint.zPosition = 0.3
+            blade.addChild(glint)
+            // Local +x follows the tangent set by the orbit updater. A short
+            // dotted wake shows travel without painting a persistent ring.
+            for index in 0..<3 {
+                let wake = SKShapeNode(circleOfRadius: 2.4 - CGFloat(index) * 0.55)
+                wake.name = "energyOrbitWake"
+                wake.position = CGPoint(x: -13 - CGFloat(index) * 6,
+                                        y: CGFloat(index * index))
+                wake.fillColor = SKColor.cyan.withAlphaComponent(0.42 - CGFloat(index) * 0.11)
+                wake.strokeColor = .clear
+                wake.zPosition = -0.1
+                blade.addChild(wake)
+            }
             arena.addChild(blade)
             orbitalNodes.append(blade)
         }

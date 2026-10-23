@@ -1,5 +1,11 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 22 — Energy Orbit definition and extraction polish
+- Run 39872665362 for 0c54874 passed all three jobs. Downloaded artifact 12467364798 and inspected tactical-abilities, combat-feedback and extraction-open captures. Lightning is narrower, shooter detail remains visible, and extraction combat shows one +27 XP summary above the player rather than labels over each enemy. Kinetic tracer/muzzle effects still need further review; this does not establish final animation acceptance.
+- Energy Orbit now has a dark teal shell, crisp pale core, small glint and three short fading wake dots. Reduced broad bloom preserves orb edges. Wake follows the existing tangential orientation. Orb count, orbit radius (82), speed, damage, contact geometry, paused clock and portal-follow behavior remain unchanged.
+- Extraction keeps its distinct ground base and vertical rescue beacon; reduced orb/core bloom and a smaller bright center improve edge definition. Reachability and interaction geometry remain unchanged. These native SpriteKit visual edits need new actual gate/extraction screenshots before acceptance.
+- Local source and PNG checks pass. No Build 322 upload, character reset or balance changes. Remaining large art items: bosses, reactor/portal/environment props and 16-direction player views plus authored walk frames.
+
 ## October 22 — Standard roster review and combat readability
 - Run 39857498702 for 86f63fa passed all three jobs. Downloaded screenshot artifact 12460259900 and inspected tactical-abilities and live ranged-1/ranged-3 captures. All six standard enemies now share dimensional shading. Heavy's broad shape and lobber's mortar remain readable; shooter body was too thin at phone scale, so its illustration is enlarged 12% with an upward foot-registration adjustment. Collision/AI remain unchanged.
 - Replaced large filled explosive stars with smaller open warm-colored shock rings, reduced generic impact rings/flashes and narrowed chain-lightning bloom. Colors remain differentiated. These are visual sizes only; damage radii and timing are unchanged.
