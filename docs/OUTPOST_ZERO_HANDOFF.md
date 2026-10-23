@@ -1,5 +1,13 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 23 — Rear-facing authored walk candidate
+- Run 40029607674 passed all jobs. Downloaded walk artifact 12533958891 and inspected 8fps samples from the neutral-transform continuous video at preserved aspect ratio. South cycle has visible alternating legs, stable upper body and return to idle; this supports extending the prototype, not final all-direction animation acceptance.
+- Generated four north-facing walk poses with the built-in image-generation tool using current pilot_n.png as identity reference. Extracted 627px sheet cells to 256px RGBA canvases at a common 45% scale, registered helmet top/center, no independent per-frame scaling. Output resources: pilot_walk_n_0...3.png. Sheet source exec-81ea011c-3dc1-48aa-9f95-1cd7313425c5.png.
+- Added simulator-only -previewPilotWalkNorth. It travels north through normal movement/collision code, uses displacement-driven frames and returns to directional idle. Existing south preview remains separate. All eight resources are asserted and checked in the compiled bundle.
+- Focused CI now records a separate rear-facing still and bounded MP4 after the south review. Both use existing blue identity markers and save suppression. Normal gameplay remains unchanged; other directions do not have authored walks yet.
+- Local PNG bounds/transparency, workflow YAML and embedded recorder Python checks passed. iOS compile and rear-cycle gameplay acceptance remain pending for this revision. Next inspect helmet/backpack stability, alternating soles, ground contact and stop transition.
+- Build 322 remains development-only; no TestFlight upload and no reset.
+
 ## October 23 — Walk review capture reliability
 - Commit `74e8bcc` compiled successfully, but run 40018776951 did not pass: defense screenshot command timed out during the walk sequence, and the broad campaign capture exceeded its 28-minute step limit. Only three walk stills were available; no new continuous video. Do not describe this run as green.
 - Compared original south idle and front walk frame 0 directly: both 256px RGBA, alpha bounds (41,16,214,240) and (41,16,215,243). Helmet registration is close. Earlier strong claims of a major proportion mismatch were overstated; undistorted continuous evidence is needed. Authored preview retains neutral transforms from 74e8bcc.

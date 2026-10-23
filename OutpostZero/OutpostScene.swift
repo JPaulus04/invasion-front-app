@@ -161,16 +161,23 @@ final class OutpostScene: SKScene {
     private var pilotRenderedHeading: CGFloat = -.pi / 2
     private var pilotStridePhase: CGFloat = 0
     private var pilotWalkBlend: CGFloat = 0
-    // The front cycle is an art candidate, available only in simulator QA.
+    // Authored walk cycles are candidates, available only in simulator QA.
     private var previewPilotWalk: Bool {
         #if targetEnvironment(simulator)
-        return ProcessInfo.processInfo.arguments.contains("-previewPilotWalk")
+        return ProcessInfo.processInfo.arguments.contains("-previewPilotWalk") ||
+            ProcessInfo.processInfo.arguments.contains("-previewPilotWalkNorth")
         #else
         return false
         #endif
     }
     private lazy var pilotWalkPrototypeTextures: [SKTexture] = {
         (0..<4).map { productionTexture(named: "pilot_walk_s_\($0)", fallback: pilotArmorTexture) }
+    }()
+    private var previewPilotWalkNorth: Bool {
+        previewPilotWalk && ProcessInfo.processInfo.arguments.contains("-previewPilotWalkNorth")
+    }
+    private lazy var pilotWalkNorthTextures: [SKTexture] = {
+        (0..<4).map { productionTexture(named: "pilot_walk_n_\($0)", fallback: pilotArmorTexture) }
     }()
     private lazy var pilotDirectionalTextures: [SKTexture] = {
         CharacterMotion.pilotDirections.map {
@@ -1552,22 +1559,24 @@ final class OutpostScene: SKScene {
             startWave()
         }
         if previewPilotWalk {
-            for frame in 0..<4 {
-                precondition(productionImage(named: "pilot_walk_s_\(frame)") != nil,
-                             "Walk review requires all four authored frames")
+            for facing in ["s", "n"] {
+                for frame in 0..<4 {
+                    precondition(productionImage(named: "pilot_walk_\(facing)_\(frame)") != nil,
+                                 "Walk review requires all authored frames")
+                }
             }
             startWave()
             phase = .gate
             roomCleared = true
             passageGate.isHidden = true
             pilot.position = CGPoint(x: roomBounds.midX,
-                                     y: roomBounds.minY + roomBounds.height * 0.65)
-            pilotHeading = -.pi / 2
+                                     y: roomBounds.minY + roomBounds.height * (previewPilotWalkNorth ? 0.25 : 0.65))
+            pilotHeading = previewPilotWalkNorth ? .pi / 2 : -.pi / 2
             pilotRenderedHeading = pilotHeading
             pilotAnimationTime = 0
             pilotStridePhase = 0
             let caption = SKLabelNode(fontNamed: "AvenirNext-Bold")
-            caption.text = "WALK PROTOTYPE • SIMULATOR ONLY"
+            caption.text = previewPilotWalkNorth ? "NORTH WALK • SIMULATOR ONLY" : "SOUTH WALK • SIMULATOR ONLY"
             caption.fontSize = 12
             caption.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 30)
             caption.zPosition = 65
@@ -4785,16 +4794,16 @@ final class OutpostScene: SKScene {
             movementTarget = length > 9 ? CGPoint(x: min(max(pilot.position.x + dx / length * 90, roomBounds.minX), roomBounds.maxX), y: min(max(pilot.position.y + dy / length * 90, roomBounds.minY), roomBounds.maxY)) : nil
         }
         if previewPilotWalk {
-            // Two seconds of real southward locomotion, then two seconds of
-            // idle. Reposition between passes, before measuring displacement.
+            // Two seconds of real locomotion, then two seconds of idle.
+            // Review north and south separately, using the same collision path.
             let lap = pilotAnimationTime.truncatingRemainder(dividingBy: 4)
             if lap < dt {
                 pilot.position = CGPoint(x: roomBounds.midX,
-                    y: roomBounds.minY + roomBounds.height * 0.65)
+                    y: roomBounds.minY + roomBounds.height * (previewPilotWalkNorth ? 0.25 : 0.65))
                 pilotStridePhase = 0
             }
             movementTarget = lap < 2 ? CGPoint(x: roomBounds.midX,
-                y: roomBounds.minY + roomBounds.height * 0.25) : nil
+                y: roomBounds.minY + roomBounds.height * (previewPilotWalkNorth ? 0.65 : 0.25)) : nil
         }
         let pilotBeforeMovement = pilot.position
         if let movementTarget {
@@ -5075,11 +5084,13 @@ final class OutpostScene: SKScene {
         let direction = CharacterMotion.pilotDirection(
             heading: pilotRenderedHeading, previous: pilotVisualDirection)
         pilotVisualDirection = direction
-        let walkFrame = previewPilotWalk && direction == CharacterMotion.pilotSouthDirection
+        let walkFrame = previewPilotWalk && (direction == CharacterMotion.pilotSouthDirection ||
+                                             direction == 4)
             ? CharacterMotion.pilotWalkFrame(stridePhase: pilotStridePhase,
                                              moving: pilotTraveling) : nil
         if let walkFrame {
-            art.texture = pilotWalkPrototypeTextures[walkFrame]
+            art.texture = direction == 4 ? pilotWalkNorthTextures[walkFrame] :
+                pilotWalkPrototypeTextures[walkFrame]
         } else {
             // Also restore idle when a walk stops without changing direction.
             art.texture = pilotDirectionalTextures[direction]
