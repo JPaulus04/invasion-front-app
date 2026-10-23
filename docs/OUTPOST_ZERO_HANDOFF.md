@@ -1,5 +1,10 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 23 — Undergrowth review and tree-root registration
+- a87dee3 passed all three jobs in run 39990848062. Downloaded artifact 12518996878 and inspected tactical-abilities and overgrown-path captures. Shaded shrubs fit the tree style, remain low along the perimeter and leave the central movement lane clear. No new shrub collision was introduced.
+- Actual frames exposed a remaining gap between some tree roots and their shadows. The prior assumed 16px lower padding included nearly transparent edge pixels. Measured visible alpha bounds in the 256px sprites: broadleaf bottom near pixel 229, pine near 235. Updated root depths to 0.395 and 0.42 of sprite height respectively; rotation/size-aware shadow placement remains intact. Overgrown broadleaf shadows use the same visible-root depth.
+- Local source/PNG validation passes; a fresh simulator frame must confirm tree contact. Player work still requires genuine intermediate directions for a 16-view system and authored walking frames; these have not been implemented. Remaining environment/portal and boss art is still pending. No Build 322 upload.
+
 ## October 23 — Dimensional forest undergrowth
 - ab38aff passed all three jobs in run 39897785410. Inspected extraction-open and motion-2 in artifact 12478785203: the close-contact star-like muzzle flash no longer covers the pilot, and the XP summary remains readable above combat. This is screenshot evidence, not a final device-animation assessment.
 - Added `OutpostZero/ArtAssets/forest_undergrowth_polished.png`, required in the compiled bundle. Replaces flat fern leaf shapes along the forest approach and oval thickets on Overgrown Path when available; original geometry remains fallback. Varied small sizes, stable upper-left highlights, rooted anchors and contact shadows preserve grounding. Decoration only; no new collision or movement changes.
