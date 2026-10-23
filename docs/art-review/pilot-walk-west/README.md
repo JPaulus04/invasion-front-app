@@ -1,0 +1,17 @@
+# West walk-cycle candidate
+
+Production resources: OutpostZero/ArtAssets/pilot_walk_w_0.png through pilot_walk_w_3.png.
+Simulator-only flag: -previewPilotWalkWest. Ordinary gameplay does not select these frames.
+
+Built-in image generation with pilot_w.png reference and transparent output. No mirroring.
+
+Initial prompt:
+Use case: stylized-concept. Asset type: Outpost Zero west-facing walk sprite sheet. Attached pilot_w.png is exact identity, armor, camera, gun, and lighting reference. Create one genuinely transparent square sprite sheet with FOUR equal cells in 2x2 grid. Four chronological frames of this exact blue armored pilot walking screen LEFT, same elevated orthographic camera throughout, NO turning. Upper body, helmet, visor, shoulders, backpack and pistol must be identical size and at identical local pixel coordinates in all cells. Pistol stays pointing left held steady; preserve original hand placement, short barrel length, white helmet trim, orange lights, blue armor and upper-left lighting. Animate only legs below the hips: Top-left near leg forward toward LEFT with near boot LEFT of hip and far leg rearward RIGHT. Top-right near leg passes beneath hip while far foot remains planted. Bottom-left MUST be the opposite extended pose: NEAR leg visibly stretches BACKWARD toward RIGHT with its boot RIGHT of hip, FAR leg extends FORWARD toward LEFT with far boot LEFT of hip. Bottom-right near knee bends backward/right with near boot lifted RIGHT behind body, far foot planted below/left of hip. Make all four poses distinct, with alternating knee and boot silhouettes; do NOT repeat the same leading leg in both extended poses. Full-body same-scale characters with generous transparent margins, steady head, no clipping, no ground shadow, floor, labels, grid lines, borders, text or background. Match polished rounded dimensional cartoon 3D reference exactly.
+
+Revision prompt:
+Edit ONLY bottom-row legs of this transparent 2x2 west-facing pilot sheet. Keep top row and ALL four upper bodies pixel-consistent: helmet, torso, backpack, arms and gun untouched. Bottom row currently incorrectly repeats top row gait. Reverse the bottom-row NEAR leg so the large foreground knee is on the RIGHT side behind the hip, not forward to the left. Bottom-left: foreground/NEAR thigh extends backward to screen RIGHT, near knee and near boot both RIGHT of hip. Background/FAR leg extends forward LEFT, its boot LEFT of hip, partly occluded by foreground thigh. Bottom-right: foreground near knee bent BACKWARD to screen RIGHT, near boot lifted behind body on RIGHT; far foot planted below/slightly left of hip. Same pilot faces screen LEFT throughout; do not mirror or turn upper body. Preserve canvas, four equal cells, transparency, lighting and scale. No text, lines, floor or background. Opposite leg phase is essential.
+
+Revised sheet exec-9e75d2dc-6dfb-4a25-836c-a2792c36c6b6.png, 1254px RGBA.
+Four 627px cells extracted at common 43% scale onto 256px canvases; helmet center x136.5 and top y16 registered against pilot_w.png. Alpha noise below 20 removed. No per-frame independent scaling. Original rejected sheet exec-b5882983-9db8-410f-be0e-6a7a85ea4b0b.png.
+
+Local alpha/bounds and source/workflow checks pass. Compilation and in-game west-cycle acceptance pending. Review weapon stability, foot contact, knee phase, idle continuity and scale. This branch preserves the ongoing east validation rather than interrupting it.

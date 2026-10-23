@@ -1,5 +1,13 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 23 — West walk prepared on review branch
+- East candidate 9dab9de passed iOS build in run 40041043342; focused and broad simulator captures still running at this checkpoint. East continuous motion has NOT yet been visually accepted.
+- Prepared four west-facing authored poses from pilot_w.png with built-in image generation, never mirroring east artwork. First sheet repeated the leading leg; targeted bottom-row edit reverses near/far leg phase. Revised source exec-9e75d2dc-6dfb-4a25-836c-a2792c36c6b6.png.
+- Extracted 256px RGBA frames pilot_walk_w_0...3.png at common 43% scale with helmet registration to original west view. All alpha bounds stay inside canvas.
+- Added isolated simulator-only -previewPilotWalkWest, moving from 70% to 30% room width and returning to west idle. Bundle checks cover all sixteen cardinal walk PNGs. Focused workflow captures a west still/video after east.
+- Local alpha/bounds, source brace, YAML and four embedded recorder Python checks pass. West source has not compiled or rendered yet. Saved off the main development branch to avoid cancelling east captures. Before advancing outpost-zero, review east and check whether head has moved.
+- Next: review east footage, then integrate west candidate for CI and actual in-game review. Diagonal/intermediate cycles remain unfinished. Ordinary gameplay uses directional idle art; no upload or reset.
+
 ## October 23 — East-facing walk candidate
 - Rear-cycle revision c2efd50 passed all three jobs in run 40037101410. Inspected north video from artifact 12537728150 at 8fps with aspect-preserving crops: alternating steps, steady backpack and return to north idle. Small scale difference remains a final continuity-review item, not a reason to expand this into full production acceptance.
 - Generated east-facing 2x2 sheet using pilot_e.png reference. First sheet repeated the same leading leg in both extended poses; rejected that lower half and requested targeted bottom-row leg reversal. Revised source exec-399f5700-228d-4902-884d-86617fb5fc3d.png. Four extracted 256px RGBA resources pilot_walk_e_0...3.png use common 43% scale and helmet top/center registration; PNGs remain unclipped.
