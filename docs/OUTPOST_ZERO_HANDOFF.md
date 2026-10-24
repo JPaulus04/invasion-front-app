@@ -1,5 +1,13 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 24 — SE/SW replacement motion review: do not integrate
+- Review run 40105303609 (1fb6863) passed build and focused capture; full campaign skipped. Downloaded artifact 12565070844, sampled SE/SW videos at 4fps using 250px square crops resized uniformly to 150px. Inspected repeated walking/idle passes.
+- SE candidate still visibly crouches/shortens during stride, particularly extended leg poses. SW walking silhouette remains narrower than idle, with feet appearing detached from the ground shadow. Candidate assets from 396d0bf are not accepted and were NOT copied to outpost-zero.
+- Main stays on corrected NW asset acc51b9; NW run 40094649889 passed and prior recorded review confirmed the new side-view boot.
+- Repeated whole-character generation is not reliably preserving torso/leg registration. Next prototype: preserve the original upper body and use separately articulated/generated leg poses, with explicit hip and planted-foot registration. Keep this isolated to simulator QA, compare one direction first, then expand only if it improves continuity. Do not keep regenerating complete sheets without addressing this cause.
+- Review-only documentation update; no repeated CI, upload or reset.
+
+
 ## October 24 — Northwest boot correction
 - Replaced only pilot_walk_nw_2.png with a targeted built-in image edit: bottom-left sheet cell's lower-right boot now has a left-pointing toe, right heel and narrow outsole edge instead of a broad sole facing the camera. Source exec-3e0c62b0-1a73-45e9-a6c0-84c2d3117967.png. Preserved 44% extraction scale and idle helmet registration. Other three NW frames unchanged.
 - Inspected 256px output; RGBA bounds (37,16,218,237), no clipping. Static pose improves the reported foot-angle defect. Continuous motion acceptance remains pending focused CI.
