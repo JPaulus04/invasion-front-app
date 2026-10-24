@@ -102,13 +102,14 @@ final class PilotLegRigPreview: SKNode {
         // Reuse displacement-driven acceleration/deceleration from the scene.
         // At rest the pieces return to their exact original pixel registration.
         let blend = min(1, max(0, movementBlend))
-        let cycle = sin(stridePhase / 2)
-        farLeg.zRotation = cycle * 0.13 * blend
-        nearLeg.zRotation = -cycle * 0.13 * blend
+        // Three compact gait cycles per 140pt source stride (about 47pt each).
+        let cycle = sin(stridePhase * 1.5)
+        farLeg.zRotation = cycle * 0.22 * blend
+        nearLeg.zRotation = -cycle * 0.22 * blend
         // Flex only the advancing knee. Counter-rotate each boot so its sole
         // remains level rather than kicking toward the camera.
-        farShin.zRotation = -max(0, cycle) * 0.28 * blend
-        nearShin.zRotation = -max(0, -cycle) * 0.28 * blend
+        farShin.zRotation = -max(0, cycle) * 0.38 * blend
+        nearShin.zRotation = -max(0, -cycle) * 0.38 * blend
         farBoot.zRotation = -(farLeg.zRotation + farShin.zRotation)
         nearBoot.zRotation = -(nearLeg.zRotation + nearShin.zRotation)
         farLeg.position = farOrigin

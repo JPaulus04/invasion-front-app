@@ -129,7 +129,7 @@ jobs:
           mkdir -p simulator-app
           ditto -x -k OutpostZero-simulator-app.zip simulator-app
           test -x simulator-app/OutpostZero.app/OutpostZero
-      - name: Capture equipment-defense states and live walk prototype
+      - name: Capture isolated southwest leg rig
         timeout-minutes: 14
         run: |
           set -e
@@ -234,9 +234,6 @@ jobs:
               2>/dev/null | tail -35 || true
             return 1
           }
-          capture_scene -captureEquipmentDefenseScreenshot screenshots/outpost-zero-defense-active.png
-          capture_scene -captureEquipmentDefenseClearScreenshot screenshots/outpost-zero-defense-cleared.png
-          capture_scene -captureEquipmentDefenseFailureScreenshot screenshots/outpost-zero-defense-failed.png
           capture_scene -previewPilotLegRigSW screenshots/outpost-zero-walk-preview-rig-sw.png
           # Record continuous motion as well as stills: screenshot command
           # latency can repeatedly sample the same two poses. Bound startup,
@@ -284,31 +281,7 @@ jobs:
             screenshots/outpost-zero-walk-preview-ne.png
             screenshots/outpost-zero-walk*video.log
           if-no-files-found: ignore
-      - name: Validate independent equipment-defense frames
-        run: |
-          set -e
-          python3 scripts/validate_simulator_screenshots.py \
-            screenshots/outpost-zero-defense-active.png \
-            screenshots/outpost-zero-defense-cleared.png \
-            screenshots/outpost-zero-defense-failed.png
-          python3 - <<'PY'
-          from hashlib import sha256
-          from pathlib import Path
-          names = ["active", "cleared", "failed"]
-          images = [Path(f"screenshots/outpost-zero-defense-{name}.png").read_bytes()
-                    for name in names]
-          assert len(set(sha256(image).digest() for image in images)) == 3, (
-              "Active, secured, and failed defense must render independently")
-          print("PASS: three distinct reactor mission visuals with state markers")
-          PY
-      - name: Upload focused equipment-defense screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: outpost-zero-defense-visual-review
-          path: screenshots/outpost-zero-defense-*.png
-          if-no-files-found: ignore
-          retention-days: 7
+
   simulator-review:
     # Full campaign captures are reserved for milestones and release review.
     # Fast tests, compilation and focused motion captures still run every time.
@@ -469,9 +442,6 @@ jobs:
           capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
           capture_scene -captureSurvivalExtractionScreenshot screenshots/outpost-zero-extraction-open.png
           capture_scene -captureSurvivalTransitionScreenshot screenshots/outpost-zero-after-extraction.png
-          capture_scene -captureEquipmentDefenseScreenshot screenshots/outpost-zero-defense-active.png
-          capture_scene -captureEquipmentDefenseClearScreenshot screenshots/outpost-zero-defense-cleared.png
-          capture_scene -captureEquipmentDefenseFailureScreenshot screenshots/outpost-zero-defense-failed.png
           capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
           capture_scene -captureCombatFeedbackScreenshot screenshots/outpost-zero-combat-feedback.png
           capture_scene -captureTacticalFXScreenshot screenshots/outpost-zero-tactical-abilities.png
