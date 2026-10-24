@@ -1,5 +1,13 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 23 — Northeast simulator integration
+- Integrated candidate frames from review commit 5ca1a9d as pilot_walk_ne_0...3.png. Original generated assets and prompt notes remain under docs/art-review/pilot-walk-ne.
+- Added simulator-only -previewPilotWalkNE with initial heading pi/4, NE direction sector 2, displacement-selected authored frames, neutral preview transforms and normal idle restoration. Route uses equal world-space X/Y displacements (not unequal fractions of a portrait room), through existing movement/collision code.
+- Compiled-bundle assertions cover all 20 authored preview images. Focused CI captures a dedicated northeast still and bounded MP4 alongside the four cardinal previews. Ordinary gameplay still does not select authored walk frames.
+- Local YAML, five embedded recorder Python scripts, brace check and 45-degree in-bounds route checks for portrait/landscape dimensions pass. Swift compilation and actual northeast motion review remain pending.
+- West revision c093984 passed all jobs in run 40043302955; its continuous video was reviewed in the previous work session. Next review NE foot contact, facing stability, weapon registration and idle transition. Other diagonals/intermediate cycles and cardinal scale polish remain open.
+- Build 322 stays development-only; no TestFlight upload or reset.
+
 ## October 23 — West candidate integrated for validation
 - East revision 9dab9de passed all three jobs in run 40041043342. Downloaded walk artifact 12539776791 and inspected east MP4 at 8fps, preserving aspect ratio and a fixed vertical crop. Four poses appear during horizontal movement; the weapon stays steady and stopping returns to east idle. A small walk-to-idle scale difference remains a polish item. Do not treat all-direction animation as accepted.
 - User approved the west-facing design. Integrated review commit 044ab3b (four west RGBA frames, west-only simulator fixture, bundle assertions and bounded west MP4 capture) without resetting progression or enabling authored walking in ordinary gameplay.

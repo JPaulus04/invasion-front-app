@@ -167,7 +167,8 @@ final class OutpostScene: SKScene {
         return ProcessInfo.processInfo.arguments.contains("-previewPilotWalk") ||
             ProcessInfo.processInfo.arguments.contains("-previewPilotWalkNorth") ||
             ProcessInfo.processInfo.arguments.contains("-previewPilotWalkEast") ||
-            ProcessInfo.processInfo.arguments.contains("-previewPilotWalkWest")
+            ProcessInfo.processInfo.arguments.contains("-previewPilotWalkWest") ||
+            ProcessInfo.processInfo.arguments.contains("-previewPilotWalkNE")
         #else
         return false
         #endif
@@ -187,7 +188,14 @@ final class OutpostScene: SKScene {
     private var previewPilotWalkWest: Bool {
         previewPilotWalk && ProcessInfo.processInfo.arguments.contains("-previewPilotWalkWest")
     }
+    private var previewPilotWalkNE: Bool {
+        previewPilotWalk && ProcessInfo.processInfo.arguments.contains("-previewPilotWalkNE")
+    }
     private var previewWalkStart: CGPoint {
+        if previewPilotWalkNE {
+            let offset = min(roomBounds.width, roomBounds.height) * 0.2
+            return CGPoint(x: roomBounds.midX - offset, y: roomBounds.midY - offset)
+        }
         if previewPilotWalkEast || previewPilotWalkWest {
             return CGPoint(x: roomBounds.minX + roomBounds.width * (previewPilotWalkWest ? 0.7 : 0.3),
                            y: roomBounds.midY)
@@ -196,6 +204,10 @@ final class OutpostScene: SKScene {
                        y: roomBounds.minY + roomBounds.height * (previewPilotWalkNorth ? 0.25 : 0.65))
     }
     private var previewWalkTarget: CGPoint {
+        if previewPilotWalkNE {
+            let offset = min(roomBounds.width, roomBounds.height) * 0.2
+            return CGPoint(x: roomBounds.midX + offset, y: roomBounds.midY + offset)
+        }
         if previewPilotWalkEast || previewPilotWalkWest {
             return CGPoint(x: roomBounds.minX + roomBounds.width * (previewPilotWalkWest ? 0.3 : 0.7),
                            y: roomBounds.midY)
@@ -208,6 +220,9 @@ final class OutpostScene: SKScene {
     }()
     private lazy var pilotWalkWestTextures: [SKTexture] = {
         (0..<4).map { productionTexture(named: "pilot_walk_w_\($0)", fallback: pilotArmorTexture) }
+    }()
+    private lazy var pilotWalkNETextures: [SKTexture] = {
+        (0..<4).map { productionTexture(named: "pilot_walk_ne_\($0)", fallback: pilotArmorTexture) }
     }()
     private lazy var pilotDirectionalTextures: [SKTexture] = {
         CharacterMotion.pilotDirections.map {
@@ -1589,7 +1604,7 @@ final class OutpostScene: SKScene {
             startWave()
         }
         if previewPilotWalk {
-            for facing in ["s", "n", "e", "w"] {
+            for facing in ["s", "n", "e", "w", "ne"] {
                 for frame in 0..<4 {
                     precondition(productionImage(named: "pilot_walk_\(facing)_\(frame)") != nil,
                                  "Walk review requires all authored frames")
@@ -1600,14 +1615,16 @@ final class OutpostScene: SKScene {
             roomCleared = true
             passageGate.isHidden = true
             pilot.position = previewWalkStart
-            pilotHeading = previewPilotWalkWest ? .pi :
-                (previewPilotWalkEast ? 0 : (previewPilotWalkNorth ? .pi / 2 : -.pi / 2))
+            pilotHeading = previewPilotWalkNE ? .pi / 4 :
+                (previewPilotWalkWest ? .pi :
+                 (previewPilotWalkEast ? 0 : (previewPilotWalkNorth ? .pi / 2 : -.pi / 2)))
             pilotRenderedHeading = pilotHeading
             pilotAnimationTime = 0
             pilotStridePhase = 0
             let caption = SKLabelNode(fontNamed: "AvenirNext-Bold")
-            let facingName = previewPilotWalkWest ? "WEST" :
-                (previewPilotWalkEast ? "EAST" : (previewPilotWalkNorth ? "NORTH" : "SOUTH"))
+            let facingName = previewPilotWalkNE ? "NORTHEAST" :
+                (previewPilotWalkWest ? "WEST" :
+                 (previewPilotWalkEast ? "EAST" : (previewPilotWalkNorth ? "NORTH" : "SOUTH")))
             caption.text = "\(facingName) WALK • SIMULATOR ONLY"
             caption.fontSize = 12
             caption.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 30)
@@ -5115,11 +5132,13 @@ final class OutpostScene: SKScene {
             heading: pilotRenderedHeading, previous: pilotVisualDirection)
         pilotVisualDirection = direction
         let walkFrame = previewPilotWalk && (direction == CharacterMotion.pilotSouthDirection ||
-                                             direction == 4 || direction == 0 || direction == 8)
+                                             direction == 4 || direction == 0 || direction == 8 || direction == 2)
             ? CharacterMotion.pilotWalkFrame(stridePhase: pilotStridePhase,
                                              moving: pilotTraveling) : nil
         if let walkFrame {
-            if direction == 0 {
+            if direction == 2 {
+                art.texture = pilotWalkNETextures[walkFrame]
+            } else if direction == 0 {
                 art.texture = pilotWalkEastTextures[walkFrame]
             } else if direction == 8 {
                 art.texture = pilotWalkWestTextures[walkFrame]
