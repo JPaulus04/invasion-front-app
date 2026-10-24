@@ -1,5 +1,12 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 24 — Northwest boot correction
+- Replaced only pilot_walk_nw_2.png with a targeted built-in image edit: bottom-left sheet cell's lower-right boot now has a left-pointing toe, right heel and narrow outsole edge instead of a broad sole facing the camera. Source exec-3e0c62b0-1a73-45e9-a6c0-84c2d3117967.png. Preserved 44% extraction scale and idle helmet registration. Other three NW frames unchanged.
+- Inspected 256px output; RGBA bounds (37,16,218,237), no clipping. Static pose improves the reported foot-angle defect. Continuous motion acceptance remains pending focused CI.
+- Generated SE/SW proportion revisions and an initial NW edit were rejected: they did not convincingly resolve the identified defects. No SE/SW replacement integrated. Walk/idle proportion continuity remains open and is next priority.
+- Simulator-only animation remains in effect. No TestFlight upload or reset.
+
+
 ## October 24 — Diagonal batch motion review
 - Revision 5b50708 passed build and focused visual jobs in run 40061393479; broad campaign capture correctly skipped. Downloaded walk artifact 12548390074 and reviewed NW, SE and SW MP4 samples at 4fps, using square crops and uniform resizing.
 - All three show changing leg poses while moving, consistent facing/weapon side, and restoration of the matching idle pose. This establishes working preview selection, not final animation quality.
