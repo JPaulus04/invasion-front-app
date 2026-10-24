@@ -1,5 +1,11 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 23 — West candidate integrated for validation
+- East revision 9dab9de passed all three jobs in run 40041043342. Downloaded walk artifact 12539776791 and inspected east MP4 at 8fps, preserving aspect ratio and a fixed vertical crop. Four poses appear during horizontal movement; the weapon stays steady and stopping returns to east idle. A small walk-to-idle scale difference remains a polish item. Do not treat all-direction animation as accepted.
+- User approved the west-facing design. Integrated review commit 044ab3b (four west RGBA frames, west-only simulator fixture, bundle assertions and bounded west MP4 capture) without resetting progression or enabling authored walking in ordinary gameplay.
+- West source compilation and gameplay visuals still pending. Next review the west cycle, then refine cardinal continuity and add diagonals/intermediate views. Cardinal candidate coverage is four directions; sixteen-direction authored animation remains incomplete.
+- Build 322 remains development-only; no TestFlight upload.
+
 ## October 23 — West walk prepared on review branch
 - East candidate 9dab9de passed iOS build in run 40041043342; focused and broad simulator captures still running at this checkpoint. East continuous motion has NOT yet been visually accepted.
 - Prepared four west-facing authored poses from pilot_w.png with built-in image generation, never mirroring east artwork. First sheet repeated the leading leg; targeted bottom-row edit reverses near/far leg phase. Revised source exec-9e75d2dc-6dfb-4a25-836c-a2792c36c6b6.png.
