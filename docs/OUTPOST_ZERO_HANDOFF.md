@@ -1,5 +1,13 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 24 — Diagonal batch motion review
+- Revision 5b50708 passed build and focused visual jobs in run 40061393479; broad campaign capture correctly skipped. Downloaded walk artifact 12548390074 and reviewed NW, SE and SW MP4 samples at 4fps, using square crops and uniform resizing.
+- All three show changing leg poses while moving, consistent facing/weapon side, and restoration of the matching idle pose. This establishes working preview selection, not final animation quality.
+- Remaining visible defects: SW has a noticeably narrower walking silhouette than its idle pose and a pronounced raised-foot pose; SE changes helmet/torso proportions at the idle transition; NW's lifted sole reads strongly toward camera and needs comparison with the intended rear-facing foot angle. Do not mark these cycles production-ready or extend the same defects to intermediate headings.
+- Next batch should polish primary-direction walk/idle proportions and foot contact before authoring the remaining eight intermediate cycles. Keep authored selection simulator-only until motion acceptance.
+- Review-only checkpoint; no new runtime code or assets and no repeat CI needed. No TestFlight upload or progression reset.
+
+
 ## October 23 — Batched remaining diagonal walk candidates
 - Verified scoped workflow run 40046564065: build and defense-visual-review passed; broad simulator-review skipped as intended. Earlier full NE run 40045774250 passed all jobs.
 - Prepared NW, SE and SW together: twelve authored RGBA frames, independent original-direction references, targeted leg-phase corrections, common scale per direction and helmet registration. Prompt/provenance and limitations are in docs/art-review/pilot-walk-diagonals/README.md.
