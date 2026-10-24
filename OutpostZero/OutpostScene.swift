@@ -5216,7 +5216,7 @@ final class OutpostScene: SKScene {
         art.yScale = authoredPreview ? 1 : pose.heightScale
         art.zRotation = authoredPreview ? 0 : pose.lean
         art.colorBlendFactor = 0
-        if previewPilotLegRigSW && direction == 10 && pilotTraveling {
+        if previewPilotLegRigSW && direction == 10 && (pilotTraveling || pilotWalkBlend > 0.01) {
             if pilotLegRigPreview == nil || pilotLegRigPreview?.parent == nil {
                 let rig = PilotLegRigPreview(texture: pilotDirectionalTextures[10], size: art.size)
                 rig.zPosition = art.zPosition
@@ -5225,7 +5225,7 @@ final class OutpostScene: SKScene {
             }
             pilotLegRigPreview?.position = art.position
             pilotLegRigPreview?.isHidden = false
-            pilotLegRigPreview?.update(stridePhase: pilotStridePhase)
+            pilotLegRigPreview?.update(stridePhase: pilotStridePhase, movementBlend: pilotWalkBlend)
             art.isHidden = true
         } else {
             pilotLegRigPreview?.isHidden = true

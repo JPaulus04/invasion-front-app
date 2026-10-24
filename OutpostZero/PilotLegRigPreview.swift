@@ -56,9 +56,12 @@ final class PilotLegRigPreview: SKNode {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func update(stridePhase: CGFloat) {
+    func update(stridePhase: CGFloat, movementBlend: CGFloat) {
         // Two opposed swings per full authored four-frame stride.
-        let swing = sin(stridePhase / 2)
+        // Reuse displacement-driven acceleration/deceleration from the scene.
+        // At rest the pieces return to their exact original pixel registration.
+        let blend = min(1, max(0, movementBlend))
+        let swing = sin(stridePhase / 2) * blend
         farLeg.zRotation = swing * 0.10
         nearLeg.zRotation = -swing * 0.10
         farLeg.position = CGPoint(x: farOrigin.x - swing * 4 * unit,

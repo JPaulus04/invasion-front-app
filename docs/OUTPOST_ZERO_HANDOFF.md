@@ -1,5 +1,12 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 24 — Rig motion review and settling refinement
+- Run 40118187753 passed compilation and focused captures; broad campaign skipped. Inspected artifact 12569848209, rig-sw still and 4fps samples of its recorded movement/idle passes with square aspect-preserving crops.
+- Fixed upper body holds its silhouette through movement without the earlier generated-sheet narrowing. No conspicuous torso cut was visible at sampled gameplay scale. Leg motion remains a restrained shuffle; this is not final walk acceptance, and subtle seams/sliding still need close review.
+- Refined prototype start/stop: scale leg swing by the existing displacement-driven pilotWalkBlend and retain the rig until blend falls below 0.01. Legs now converge to original pixel registration before restoring the intact idle sprite, rather than switching immediately at arbitrary stride phase. No new timing source or collision changes.
+- New settling refinement requires fresh focused compilation/capture. Next review settling, then improve knee/ankle articulation and planted-foot behavior before expanding directions. No upload/reset.
+
+
 ## October 24 — Fixed-upper-body southwest rig prototype
 - Added isolated simulator flag -previewPilotLegRigSW, using existing SW route, displacement-driven stride and save suppression. Ordinary gameplay and existing authored preview flags are unchanged.
 - New PilotLegRigPreview.swift partitions the original 256px southwest idle texture into masked torso and two leg pieces. Torso/helmet/weapon pixels remain fixed; each leg rotates/translates around a registered hip. Original idle sprite returns when stopping. No new raster generation or mirrored art.
