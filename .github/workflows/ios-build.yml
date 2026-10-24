@@ -3,9 +3,19 @@ on:
   push:
     branches: [outpost-zero]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      validation_scope:
+        description: "Choose focused development checks or the full pre-release review"
+        required: true
+        type: choice
+        default: focused
+        options:
+          - focused
+          - full
 # Avoid wasting macOS runners on obsolete revisions during rapid iteration.
 concurrency:
-  group: ios-build-${{ github.workflow }}-${{ github.ref }}
+  group: ios-build-${{ github.workflow }}-${{ github.ref }}-${{ (github.event_name == 'pull_request' || inputs.validation_scope == 'full' || contains(github.event.head_commit.message, '[full-review]')) && 'full' || 'focused' }}
   cancel-in-progress: true
 jobs:
   build:
@@ -444,6 +454,12 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
   simulator-review:
+    # Full campaign captures are reserved for milestones and release review.
+    # Fast tests, compilation and focused motion captures still run every time.
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[full-review]'))
     needs: build
     # Newer hosted image avoids the slower first-boot migration seen on macOS 15.
     runs-on: macos-26

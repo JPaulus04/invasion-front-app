@@ -1,5 +1,12 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 23 — Validation scoped to development milestones
+- User approved reducing repeated full validation. Normal pushes now run fast source/gameplay tests, iOS compilation, resource checks and focused reactor/motion captures. The broad simulator-review campaign sweep is skipped.
+- Full campaign review runs on pull requests, workflow_dispatch with validation_scope=full, or push commits containing [full-review]. Manual scope defaults to focused. Full and focused runs have separate concurrency groups, so a focused update does not cancel a full milestone review. Existing active NE review is allowed to finish.
+- A green focused run is not full release acceptance. Before TestFlight, run full validation on the intended source revision and inspect its visual evidence. No upload is authorized by this workflow change.
+- Batch remaining authored animation directions into coherent groups before CI; run local asset checks while preparing them. Keep gameplay tests on every compile because their cost is small.
+- Scope YAML and trigger cases checked locally. Hosted execution of new scoped workflow pending. NE revision f3fc1a1 compiled successfully; its focused and broad captures were still running at this checkpoint.
+
 ## October 23 — Northeast simulator integration
 - Integrated candidate frames from review commit 5ca1a9d as pilot_walk_ne_0...3.png. Original generated assets and prompt notes remain under docs/art-review/pilot-walk-ne.
 - Added simulator-only -previewPilotWalkNE with initial heading pi/4, NE direction sector 2, displacement-selected authored frames, neutral preview transforms and normal idle restoration. Route uses equal world-space X/Y displacements (not unequal fractions of a portrait room), through existing movement/collision code.
