@@ -1,5 +1,13 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 23 — Batched remaining diagonal walk candidates
+- Verified scoped workflow run 40046564065: build and defense-visual-review passed; broad simulator-review skipped as intended. Earlier full NE run 40045774250 passed all jobs.
+- Prepared NW, SE and SW together: twelve authored RGBA frames, independent original-direction references, targeted leg-phase corrections, common scale per direction and helmet registration. Prompt/provenance and limitations are in docs/art-review/pilot-walk-diagonals/README.md.
+- Added simulator-only NW/SE/SW fixtures, sectors 6/14/10, equal-axis routes with heading derived from displacement, bundle checks and continuous captures. All eight primary directions now have preview candidates; intermediate eight directions remain static.
+- Local PNG transparency/bounds, YAML/embedded Python and diagonal route checks pass. New batch iOS compilation and in-game motion acceptance pending. Ordinary gameplay does not select authored cycles.
+- Next inspect new footage and polish foot contact and walk/idle size continuity. Keep development validation focused; full campaign review at milestones/pre-release. No TestFlight upload or reset.
+
+
 ## October 23 — Validation scoped to development milestones
 - User approved reducing repeated full validation. Normal pushes now run fast source/gameplay tests, iOS compilation, resource checks and focused reactor/motion captures. The broad simulator-review campaign sweep is skipped.
 - Full campaign review runs on pull requests, workflow_dispatch with validation_scope=full, or push commits containing [full-review]. Manual scope defaults to focused. Full and focused runs have separate concurrency groups, so a focused update does not cancel a full milestone review. Existing active NE review is allowed to finish.
