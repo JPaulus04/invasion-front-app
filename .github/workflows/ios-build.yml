@@ -1,7 +1,7 @@
 name: iOS Compile Check
 on:
   push:
-    branches: [outpost-zero]
+    branches: [outpost-zero, outpost-zero-diagonal-proportion-review]
   pull_request:
   workflow_dispatch:
     inputs:
