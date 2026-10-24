@@ -171,7 +171,8 @@ final class OutpostScene: SKScene {
             ProcessInfo.processInfo.arguments.contains("-previewPilotWalkNE") ||
             ProcessInfo.processInfo.arguments.contains("-previewPilotWalkNW") ||
             ProcessInfo.processInfo.arguments.contains("-previewPilotWalkSE") ||
-            ProcessInfo.processInfo.arguments.contains("-previewPilotWalkSW")
+            ProcessInfo.processInfo.arguments.contains("-previewPilotWalkSW") ||
+            ProcessInfo.processInfo.arguments.contains("-previewPilotLegRigSW")
         #else
         return false
         #endif
@@ -200,8 +201,16 @@ final class OutpostScene: SKScene {
     private var previewPilotWalkSE: Bool {
         previewPilotWalk && ProcessInfo.processInfo.arguments.contains("-previewPilotWalkSE")
     }
+    private var previewPilotLegRigSW: Bool {
+        #if targetEnvironment(simulator)
+        return ProcessInfo.processInfo.arguments.contains("-previewPilotLegRigSW")
+        #else
+        return false
+        #endif
+    }
+    private var pilotLegRigPreview: PilotLegRigPreview?
     private var previewPilotWalkSW: Bool {
-        previewPilotWalk && ProcessInfo.processInfo.arguments.contains("-previewPilotWalkSW")
+        previewPilotWalk && (ProcessInfo.processInfo.arguments.contains("-previewPilotWalkSW") || previewPilotLegRigSW)
     }
     private var previewWalkDiagonal: CGVector? {
         if previewPilotWalkNE { return CGVector(dx: 1, dy: 1) }
@@ -1659,7 +1668,7 @@ final class OutpostScene: SKScene {
             else if previewPilotWalkEast { facingName = "EAST" }
             else if previewPilotWalkNorth { facingName = "NORTH" }
             else { facingName = "SOUTH" }
-            caption.text = "\(facingName) WALK • SIMULATOR ONLY"
+            caption.text = previewPilotLegRigSW ? "SOUTHWEST LEG RIG • SIMULATOR ONLY" : "\(facingName) WALK • SIMULATOR ONLY"
             caption.fontSize = 12
             caption.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 30)
             caption.zPosition = 65
@@ -5207,6 +5216,21 @@ final class OutpostScene: SKScene {
         art.yScale = authoredPreview ? 1 : pose.heightScale
         art.zRotation = authoredPreview ? 0 : pose.lean
         art.colorBlendFactor = 0
+        if previewPilotLegRigSW && direction == 10 && pilotTraveling {
+            if pilotLegRigPreview == nil || pilotLegRigPreview?.parent == nil {
+                let rig = PilotLegRigPreview(texture: pilotDirectionalTextures[10], size: art.size)
+                rig.zPosition = art.zPosition
+                pilot.addChild(rig)
+                pilotLegRigPreview = rig
+            }
+            pilotLegRigPreview?.position = art.position
+            pilotLegRigPreview?.isHidden = false
+            pilotLegRigPreview?.update(stridePhase: pilotStridePhase)
+            art.isHidden = true
+        } else {
+            pilotLegRigPreview?.isHidden = true
+            art.isHidden = false
+        }
     }
 
     private func updateRangedAttack(at index: Int) {

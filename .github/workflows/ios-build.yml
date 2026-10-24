@@ -516,6 +516,39 @@ jobs:
                       recorder.kill()
                       recorder.wait(timeout=5)
           PY
+          capture_scene -previewPilotLegRigSW screenshots/outpost-zero-walk-preview-rig-sw.png
+          # Record continuous motion as well as stills: screenshot command
+          # latency can repeatedly sample the same two poses. Bound startup,
+          # recording and finalization so a stuck recorder cannot pin CI.
+          python3 - "$DEVICE" <<'PY'
+          import pathlib
+          import signal
+          import subprocess
+          import sys
+          import time
+          output = pathlib.Path("screenshots/outpost-zero-walk-preview-rig-sw.mp4")
+          log = pathlib.Path("screenshots/outpost-zero-walk-rig-sw-video.log")
+          with log.open("w") as diagnostics:
+              recorder = subprocess.Popen(
+                  ["xcrun", "simctl", "io", sys.argv[1], "recordVideo",
+                   "--codec=h264", "--force", str(output)],
+                  stdout=diagnostics, stderr=subprocess.STDOUT)
+              try:
+                  time.sleep(12)  # Three complete movement/idle passes.
+                  if recorder.poll() is not None:
+                      raise RuntimeError("Video recorder exited before review completed")
+                  recorder.send_signal(signal.SIGINT)
+                  recorder.wait(timeout=25)
+                  if recorder.returncode not in (0, -signal.SIGINT):
+                      raise RuntimeError(f"Video recorder failed: {recorder.returncode}")
+                  if not output.exists() or output.stat().st_size < 16384:
+                      raise RuntimeError("Walk review video is missing or empty")
+                  print(f"PASS: continuous walk review video ({output.stat().st_size} bytes)")
+              finally:
+                  if recorder.poll() is None:
+                      recorder.kill()
+                      recorder.wait(timeout=5)
+          PY
       - name: Upload live pilot walk preview
         if: always()
         uses: actions/upload-artifact@v4

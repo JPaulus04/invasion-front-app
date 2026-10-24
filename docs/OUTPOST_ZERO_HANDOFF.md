@@ -1,5 +1,13 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 24 — Fixed-upper-body southwest rig prototype
+- Added isolated simulator flag -previewPilotLegRigSW, using existing SW route, displacement-driven stride and save suppression. Ordinary gameplay and existing authored preview flags are unchanged.
+- New PilotLegRigPreview.swift partitions the original 256px southwest idle texture into masked torso and two leg pieces. Torso/helmet/weapon pixels remain fixed; each leg rotates/translates around a registered hip. Original idle sprite returns when stopping. No new raster generation or mirrored art.
+- This is a technical prototype, not accepted animation: inspect hip seams, rigid boot motion, foot sliding and idle transitions. Swing amplitudes are intentionally small. Mask boundaries are hand-positioned and require actual visual review.
+- Focused workflow adds a distinct rig-sw still and bounded MP4 alongside existing eight directions. Local YAML/embedded Python and source delimiter checks passed; Swift compile and simulator footage pending.
+- No TestFlight upload or reset. Next decide whether this articulation approach improves stability before adding directions or detailed knee/ankle joints.
+
+
 ## October 24 — SE/SW replacement motion review: do not integrate
 - Review run 40105303609 (1fb6863) passed build and focused capture; full campaign skipped. Downloaded artifact 12565070844, sampled SE/SW videos at 4fps using 250px square crops resized uniformly to 150px. Inspected repeated walking/idle passes.
 - SE candidate still visibly crouches/shortens during stride, particularly extended leg poses. SW walking silhouette remains narrower than idle, with feet appearing detached from the ground shadow. Candidate assets from 396d0bf are not accepted and were NOT copied to outpost-zero.
