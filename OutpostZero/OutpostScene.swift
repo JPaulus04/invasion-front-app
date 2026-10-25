@@ -2593,7 +2593,7 @@ final class OutpostScene: SKScene {
         overlay.addChild(statusBar)
         overlayText("HEADQUARTERS", y: 156, fontSize: 24)
         overlayText("\(permanent.salvage) SALVAGE  •  \(availableCores) CORES", y: 117, fontSize: 15)
-        overlayText("UPGRADE YOUR OUTPOST BETWEEN RUNS", y: 88, fontSize: 12)
+        overlayText("OUTPOST SYSTEMS  •  PERMANENT PROGRESSION", y: 88, fontSize: 11)
         actionButton("GEAR BAY", key: "gear_bay", y: 35, tint: .systemTeal)
         actionButton("ABILITY LAB", key: "ability_lab", y: -23, tint: .systemIndigo)
         actionButton("CHARACTER RESTORATION", key: "restore", y: -81, tint: .systemPurple)
@@ -5077,8 +5077,23 @@ final class OutpostScene: SKScene {
         arena.addChild(node)
         if isBoss { bossNode = node }
         let scaling = max(0, wave - 1)
+        // World pacing: a fresh pilot gets breathing room early, while
+        // late rooms demand more from upgraded loadouts. Boss health and
+        // screenshot capture fixtures retain their established values.
+        let baseEnemyHP = CampaignPacing.enemyHealth(
+            world: worldMapIndex, room: wave, type: type)
+        let healthFactor: Double
+        if isBoss {
+            healthFactor = 1
+        } else if worldMapIndex == 0 {
+            healthFactor = wave <= 5 ? 0.92 : (wave >= 16 ? 1.12 : 1)
+        } else if worldMapIndex == 1 {
+            healthFactor = wave <= 5 ? 0.95 : (wave >= 16 ? 1.15 : 1)
+        } else {
+            healthFactor = 1
+        }
         let enemyHP = ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames")
-            ? 70 : CampaignPacing.enemyHealth(world: worldMapIndex, room: wave, type: type)
+            ? 70 : max(1, Int((Double(baseEnemyHP) * healthFactor).rounded()))
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         // Keep the track and fill together above the larger illustrated sprite.
         let guardianBoss = isBoss && worldMapIndex == 0
