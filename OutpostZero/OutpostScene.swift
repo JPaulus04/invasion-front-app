@@ -134,6 +134,7 @@ final class OutpostScene: SKScene {
     private let overlay = SKNode()
     private let settingsShortcut = SKShapeNode(rectOf: CGSize(width: 44, height: 42), cornerRadius: 10)
     private var settingsReturnPhase: Phase = .ready
+    private var endRunConfirmationVisible = false
     private var interruptedReturnPhase: Phase = .playing
     private let overlayBackdrop = SKShapeNode()
     private var overlayButtons: [String: CGRect] = [:]
@@ -2632,6 +2633,7 @@ final class OutpostScene: SKScene {
     private func showSettings() {
         guard phase != .settings || settingsReturnPhase != .settings else { return }
         if phase != .settings {
+            endRunConfirmationVisible = false
             saveRunRecovery()
             settingsReturnPhase = phase
         }
@@ -2646,14 +2648,37 @@ final class OutpostScene: SKScene {
                      key: "toggle_music", y: 42, tint: .systemTeal)
         actionButton(fastForward ? "GAME SPEED: 2×" : "GAME SPEED: 1×",
                      key: "toggle_speed", y: -16, tint: .systemIndigo)
-        overlayText("PREFERENCES SAVED AUTOMATICALLY", y: -83, fontSize: 11)
-        actionButton(settingsReturnPhase == .playing || settingsReturnPhase == .gate
-                     ? "RESUME GAME" : "BACK",
-                     key: "close_settings", y: -143, tint: .systemBlue)
+        let activeRun = settingsReturnPhase == .playing || settingsReturnPhase == .gate
+        if endRunConfirmationVisible && activeRun {
+            overlayText("END THIS RUN?", y: -73, fontSize: 17)
+            overlayText("BANKED SALVAGE IS SAFE", y: -100, fontSize: 11)
+            actionButton("CONFIRM END RUN", key: "confirm_end_run", y: -144, tint: .systemRed)
+            actionButton("CANCEL", key: "cancel_end_run", y: -202, tint: .systemBlue)
+        } else {
+            overlayText("PREFERENCES SAVED AUTOMATICALLY", y: -83, fontSize: 11)
+            if activeRun {
+                actionButton("END RUN", key: "end_run", y: -137, tint: .systemRed)
+            }
+            actionButton(activeRun ? "RESUME GAME" : "BACK",
+                         key: "close_settings", y: activeRun ? -203 : -143, tint: .systemBlue)
+        }
         updateHUD()
     }
 
+    private func confirmEndRun() {
+        guard phase == .settings, endRunConfirmationVisible,
+              settingsReturnPhase == .playing || settingsReturnPhase == .gate else { return }
+        // Rewards are credited to permanent progression when earned.
+        // Do not bank them again here. Remove the recovery snapshot so an
+        // abandoned run cannot be resumed and credited a second time.
+        recovery.clear()
+        endRunConfirmationVisible = false
+        restart()
+        showHeadquarters()
+    }
+
     private func closeSettings() {
+        endRunConfirmationVisible = false
         guard phase == .settings else { return }
         let destination = settingsReturnPhase
         switch destination {
@@ -6697,6 +6722,13 @@ final class OutpostScene: SKScene {
         case (.settings, "toggle_speed"):
             toggleSpeedPreference()
             showSettings()
+        case (.settings, "end_run") where settingsReturnPhase == .playing || settingsReturnPhase == .gate:
+            endRunConfirmationVisible = true
+            showSettings()
+        case (.settings, "cancel_end_run"):
+            endRunConfirmationVisible = false
+            showSettings()
+        case (.settings, "confirm_end_run"): confirmEndRun()
         case (.settings, "close_settings"): closeSettings()
         case (.interrupted, "resume_run"): resumeInterruptedRun()
         case (.ready, "recover_run"), (.worldSelect, "recover_run"):
