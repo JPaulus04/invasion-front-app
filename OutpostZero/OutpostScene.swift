@@ -287,6 +287,7 @@ final class OutpostScene: SKScene {
     private var bossNode: SKShapeNode?
     private var guardianArmorBroken = false
     private var guardianSupportDeployed = false
+    private var scrapyardWardenEnraged = false
     private var guardianTransitionUntil: TimeInterval = 0
     private let worldWaveCount = CampaignPacing.roomsPerWorld
     private let coreBranches = ["WEAPONS", "REACTOR", "ARMOR", "MOBILITY", "SYSTEMS"]
@@ -3475,6 +3476,7 @@ final class OutpostScene: SKScene {
         bossNode = nil
         guardianArmorBroken = false
         guardianSupportDeployed = false
+        scrapyardWardenEnraged = false
         guardianTransitionUntil = 0
         pendingFlankSwarm = nil
         arena.children.filter { $0.name == "flankSwarmWarning" }
@@ -5945,8 +5947,36 @@ final class OutpostScene: SKScene {
         updateEnemyHealthBar(at: index)
     }
 
+    private func updateScrapyardWardenPhase() {
+        guard worldMapIndex == 1, wave == worldWaveCount,
+              !scrapyardWardenEnraged, !roomCleared,
+              let bossNode,
+              let enemy = enemies.first(where: { $0.node === bossNode }),
+              enemy.health > 0, enemy.health * 2 <= enemy.maxHealth else { return }
+        scrapyardWardenEnraged = true
+        if let furnace = bossNode.childNode(withName: "scrapyardWardenFurnace") as? SKShapeNode {
+            furnace.fillColor = .systemRed
+            furnace.strokeColor = .systemYellow
+            furnace.glowWidth = 12
+        }
+        let alert = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        alert.name = "scrapyardOverdriveWarning"
+        alert.text = "OVERDRIVE"
+        alert.fontSize = 15
+        alert.fontColor = .systemOrange
+        alert.position.y = 98
+        alert.zPosition = 16
+        bossNode.addChild(alert)
+        alert.run(.sequence([
+            .wait(forDuration: 1.7),
+            .fadeOut(withDuration: 0.3),
+            .removeFromParent()
+        ]))
+    }
+
     private func removeDefeatedEnemies() {
         updateFrontierGuardianPhase()
+        updateScrapyardWardenPhase()
         var defeatedCount = 0
         var paidXPTotal = 0
         for index in enemies.indices.reversed() where enemies[index].health <= 0 {
@@ -6792,6 +6822,7 @@ final class OutpostScene: SKScene {
         bossNode = nil
         guardianArmorBroken = false
         guardianSupportDeployed = false
+        scrapyardWardenEnraged = false
         guardianTransitionUntil = 0
         defenseDevice.removeFromParent()
         defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
