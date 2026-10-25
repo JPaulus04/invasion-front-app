@@ -88,6 +88,36 @@ enum TacticalDraftRules {
     }
     static let baseStatChoices = ["armor", "damage", "supplies"]
 
+    /// An evolution is a late-game reward, not a free fourth tactical slot.
+    /// All prerequisites must be met before it may replace the base effect.
+    static func canEvolve(_ id: String, rank: Int, masteryLevel: Int,
+                          world: Int, synergyRank: Int) -> Bool {
+        guard rank >= 3, masteryLevel >= 20, world >= 3,
+              synergyRank >= 2 else { return false }
+        switch id {
+        case "orbit", "chain", "explosive", "incendiary", "frost":
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Evolutions require a separate in-run choice; reaching the
+    /// prerequisites alone never activates an evolved combat effect.
+    static func evolutionChoices(for loadout: AbilityLoadout,
+                                 ranks: [String: Int],
+                                 masteryLevel: Int, world: Int,
+                                 synergyRanks: [String: Int],
+                                 alreadyEvolved: Set<String>) -> [String] {
+        loadout.selected.filter { id in
+            !alreadyEvolved.contains(id) &&
+            canEvolve(id, rank: ranks[id] ?? 0,
+                      masteryLevel: masteryLevel, world: world,
+                      synergyRank: synergyRanks[id] ?? 0)
+        }
+    }
+
+
     /// Only implemented abilities are eligible for a live tactical draft.
     /// Design-only entries in futureCatalog must never enter playable rolls.
     static func playablePool(for loadout: AbilityLoadout, capacity: Int,
