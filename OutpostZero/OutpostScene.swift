@@ -86,6 +86,7 @@ final class OutpostScene: SKScene {
     private var isRestoringRun = false
     private var nextRunSaveAt: TimeInterval = 0
     private var discardRunArmed = false
+    private var profileSwitchArmed = false
     private var health = 100
     private var damage = 1
     private var fireRate = 1
@@ -2526,6 +2527,33 @@ final class OutpostScene: SKScene {
         showHeadquarters()
     }
 
+    private func switchPilotProfile() {
+        // Preserve the complete original progression in a separate local slot.
+        // The snapshot uses property-list compatible values already in UserDefaults.
+        let defaults = UserDefaults.standard
+        let fresh = defaults.bool(forKey: "ozFreshPilotActive")
+        let keys = defaults.dictionaryRepresentation().keys.filter {
+            $0.hasPrefix("outpost") || $0.hasPrefix("frontierForest")
+        }
+        let current = Dictionary(uniqueKeysWithValues: keys.compactMap { key -> (String, Any)? in
+            guard let value = defaults.object(forKey: key) else { return nil }
+            return (key, value)
+        })
+        let slot = fresh ? "ozFreshPilotSnapshot" : "ozOriginalPilotSnapshot"
+        defaults.set(current, forKey: slot)
+        for key in keys { defaults.removeObject(forKey: key) }
+        let destination = fresh ? "ozOriginalPilotSnapshot" : "ozFreshPilotSnapshot"
+        if let saved = defaults.dictionary(forKey: destination) {
+            for (key, value) in saved { defaults.set(value, forKey: key) }
+        }
+        defaults.set(!fresh, forKey: "ozFreshPilotActive")
+        recovery.clear()
+        profileSwitchArmed = false
+        restart()
+        worldMapIndex = 0
+        showHeadquarters()
+    }
+
     private func showHeadquarters() {
         phase = .headquarters
         hud.isHidden = true
@@ -2615,7 +2643,16 @@ final class OutpostScene: SKScene {
             actionButton(discardRunArmed ? "CONFIRM DISCARD RUN" : "DISCARD SAVED RUN",
                          key: "discard_run", y: -128, tint: .systemRed)
         }
-        actionButton("BACK TO HOME", key: "hq_back", y: -182, tint: .systemBlue)
+        let fresh = UserDefaults.standard.bool(forKey: "ozFreshPilotActive")
+        actionButton(fresh ? "RETURN TO ORIGINAL PILOT" : "START FRESH PILOT",
+                     key: "switch_pilot", y: -140, tint: .systemOrange)
+        if profileSwitchArmed {
+            overlayText("SWITCH PILOT? CURRENT RUN WILL END", y: -103, fontSize: 10)
+            actionButton("CONFIRM PILOT SWITCH", key: "confirm_pilot_switch", y: -185, tint: .systemRed)
+            actionButton("CANCEL", key: "cancel_pilot_switch", y: -232, tint: .systemBlue)
+        } else {
+            actionButton("BACK TO HOME", key: "hq_back", y: -201, tint: .systemBlue)
+        }
         updateHUD()
     }
 
@@ -7093,6 +7130,14 @@ final class OutpostScene: SKScene {
         case (.ready, "ability_lab"): showAbilityLab()
         case (.ready, "headquarters"): showHeadquarters()
         case (.headquarters, "discard_run"): discardSavedRun()
+        case (.headquarters, "switch_pilot"):
+            profileSwitchArmed = true
+            showHeadquarters()
+        case (.headquarters, "cancel_pilot_switch"):
+            profileSwitchArmed = false
+            showHeadquarters()
+        case (.headquarters, "confirm_pilot_switch") where profileSwitchArmed:
+            switchPilotProfile()
         case (.gameOver, "headquarters"), (.worldComplete, "headquarters"):
             // Failed/completed runs must reset before choosing another world.
             // The already-banked Salvage and purchased gear persist.
