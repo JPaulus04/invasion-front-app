@@ -129,6 +129,20 @@ enum CombatRules {
         hypot(blade.x - enemy.x, blade.y - enemy.y) < enemyRadius + 13
     }
 
+    /// Continuous Energy Wheel collision: unlike discrete orbiting blades,
+    /// a foe must intersect the annular sweep around the pilot. Keeping the
+    /// center hollow preserves a meaningful close-range vulnerability.
+    static func energyWheelHits(pilot: CGPoint, enemy: CGPoint,
+                                enemyRadius: CGFloat, wheelRadius: CGFloat,
+                                bandWidth: CGFloat) -> Bool {
+        guard enemyRadius >= 0, wheelRadius > 0, bandWidth > 0 else { return false }
+        let distance = hypot(enemy.x - pilot.x, enemy.y - pilot.y)
+        let halfBand = bandWidth * 0.5
+        let inner = max(0, wheelRadius - halfBand - enemyRadius)
+        let outer = wheelRadius + halfBand + enemyRadius
+        return distance >= inner && distance <= outer
+    }
+
     static func blastHits(center: CGPoint, pilot: CGPoint, radius: CGFloat) -> Bool {
         hypot(center.x - pilot.x, center.y - pilot.y) <= radius + 14
     }
