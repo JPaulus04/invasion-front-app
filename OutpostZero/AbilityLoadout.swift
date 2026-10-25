@@ -102,6 +102,20 @@ enum TacticalDraftRules {
         }
     }
 
+    /// Present a distinct evolution choice only after all prerequisites are
+    /// satisfied. This does not silently change the combat effect or grant a
+    /// free upgrade when a rank milestone is crossed.
+    static func evolutionLabel(for id: String) -> String? {
+        switch id {
+        case "orbit": return "Energy Wheel"
+        case "chain": return "Storm Network"
+        case "explosive": return "Cluster Barrage"
+        case "incendiary": return "Inferno Rounds"
+        case "frost": return "Glacial Rounds"
+        default: return nil
+        }
+    }
+
     /// Evolutions require a separate in-run choice; reaching the
     /// prerequisites alone never activates an evolved combat effect.
     static func evolutionChoices(for loadout: AbilityLoadout,
