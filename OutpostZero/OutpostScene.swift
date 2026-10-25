@@ -3895,6 +3895,41 @@ final class OutpostScene: SKScene {
                 : .clear
         }
         roomArt?.childNode(withName: "roomContactEdge")?.alpha = nonForestWorld ? 0.32 : 0
+        // Scrapyard floors need a separate visual identity from the forest.
+        // Faded plate seams and scattered bolt heads are purely atmospheric;
+        // they do not modify water hazard geometry or movement collision.
+        if worldMapIndex == 1 {
+            let floorDetail = SKNode()
+            floorDetail.name = "scrapyardFloorDetail"
+            floorDetail.zPosition = -0.75
+            zoneScenery.addChild(floorDetail)
+            for index in 0..<17 {
+                let seed = index * 41 + wave * 23
+                let fx = CGFloat((seed * 31 + 7) % 101) / 101
+                let fy = CGFloat((seed * 17 + 11) % 97) / 97
+                let mark = SKShapeNode(rectOf: CGSize(
+                    width: CGFloat(13 + seed % 13), height: 4),
+                    cornerRadius: 1)
+                mark.name = "scrapyardFloorSeam"
+                mark.position = CGPoint(
+                    x: roomBounds.minX + 38 + (roomBounds.width - 76) * fx,
+                    y: roomBounds.minY + 40 + (roomBounds.height - 80) * fy)
+                mark.zRotation = CGFloat(seed % 5 - 2) * 0.27
+                mark.fillColor = SKColor(red: 0.38, green: 0.42,
+                                         blue: 0.43, alpha: 0.19)
+                mark.strokeColor = .clear
+                floorDetail.addChild(mark)
+                if index.isMultiple(of: 3) {
+                    let bolt = SKShapeNode(circleOfRadius: 2)
+                    bolt.name = "scrapyardFloorBolt"
+                    bolt.position = CGPoint(x: 7, y: 0)
+                    bolt.fillColor = SKColor(red: 0.59, green: 0.48,
+                                             blue: 0.32, alpha: 0.4)
+                    bolt.strokeColor = .clear
+                    mark.addChild(bolt)
+                }
+            }
+        }
         // Forest floor: low-contrast, deterministic leaf litter and worn
         // earth marks break up the flat ground without hiding projectiles.
         // Ground marks are strictly decorative and never alter collision.
