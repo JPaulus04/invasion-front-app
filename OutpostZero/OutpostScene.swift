@@ -5493,8 +5493,14 @@ final class OutpostScene: SKScene {
                                         y: pilot.position.y - enemy.node.position.y))
                 aim.path = path
                 aim.name = "aimLine"
-                aim.strokeColor = .systemPink.withAlphaComponent(0.85)
-                aim.lineWidth = 3
+                // The scrapyard boss has a distinct orange warning language.
+                // Keep all three volley lanes visible for the full wind-up.
+                let wardenOverdrive = enemy.node === bossNode &&
+                    worldMapIndex == 1 && scrapyardWardenEnraged
+                aim.strokeColor = wardenOverdrive
+                    ? .systemOrange.withAlphaComponent(0.95)
+                    : .systemPink.withAlphaComponent(0.85)
+                aim.lineWidth = wardenOverdrive ? 3.5 : 3
                 aim.zPosition = 6
                 enemy.node.addChild(aim)
                 if enemy.node === bossNode && selectedWorld.bossStyle == 1 {
@@ -5509,7 +5515,9 @@ final class OutpostScene: SKScene {
                             y: direction.y - enemy.node.position.y))
                         side.path = sidePath
                         side.name = index == 0 ? "aimLineLeft" : "aimLineRight"
-                        side.strokeColor = .systemCyan.withAlphaComponent(0.78)
+                        side.strokeColor = wardenOverdrive
+                            ? .systemOrange.withAlphaComponent(0.9)
+                            : .systemCyan.withAlphaComponent(0.78)
                         side.lineWidth = 2.5
                         side.zPosition = 6
                         enemy.node.addChild(side)
