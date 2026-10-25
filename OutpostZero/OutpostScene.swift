@@ -4709,6 +4709,26 @@ final class OutpostScene: SKScene {
                 node.addChild(mortar)
             }
         }
+        // Salvage raiders wear mismatched scrap plates in World 2.
+        // Overlay-only detail keeps enemy behavior and collision unchanged.
+        if worldMapIndex == 1 && !isBoss {
+            let shoulder = SKShapeNode(rectOf: CGSize(
+                width: radius * 1.7, height: radius * 0.42), cornerRadius: 2)
+            shoulder.name = "scrapyardEnemyArmor"
+            shoulder.fillColor = SKColor(red: 0.40, green: 0.37,
+                                         blue: 0.31, alpha: 0.95)
+            shoulder.strokeColor = .systemOrange.withAlphaComponent(0.8)
+            shoulder.lineWidth = 1
+            shoulder.zPosition = 2.2
+            shoulder.position.y = radius * 0.48
+            shoulder.zRotation = type.isMultiple(of: 2) ? 0.08 : -0.08
+            node.addChild(shoulder)
+            let rivet = SKShapeNode(circleOfRadius: 2)
+            rivet.fillColor = .lightGray
+            rivet.strokeColor = .clear
+            rivet.position.x = radius * 0.55
+            shoulder.addChild(rivet)
+        }
         // Layered armor plates and glowing eyes make silhouettes readable at phone scale.
         if !isBoss && !usesIllustratedEnemy {
             let shoulderWidth = radius * (type == 3 ? 1.5 : 1.25)
@@ -4733,6 +4753,37 @@ final class OutpostScene: SKScene {
         core.zPosition = 1
         if !usesIllustratedEnemy && !(isBoss && worldMapIndex == 0) {
             node.addChild(core)
+        }
+        if isBoss && worldMapIndex == 1 {
+            // The World 2 warden is a salvaged industrial machine, not a
+            // recolored forest guardian. All additions are visual only.
+            let chassis = SKShapeNode(rectOf: CGSize(width: 92, height: 53),
+                                       cornerRadius: 9)
+            chassis.name = "scrapyardWardenChassis"
+            chassis.fillColor = SKColor(red: 0.24, green: 0.30,
+                                        blue: 0.35, alpha: 1)
+            chassis.strokeColor = .systemOrange
+            chassis.lineWidth = 3
+            chassis.zPosition = 1.5
+            node.addChild(chassis)
+            for side: CGFloat in [-1, 1] {
+                let piston = SKShapeNode(rectOf: CGSize(width: 16, height: 43),
+                                         cornerRadius: 3)
+                piston.fillColor = .darkGray
+                piston.strokeColor = .lightGray
+                piston.lineWidth = 2
+                piston.position = CGPoint(x: side * 43, y: -9)
+                piston.zPosition = 1.7
+                node.addChild(piston)
+            }
+            let furnace = SKShapeNode(circleOfRadius: 13)
+            furnace.name = "scrapyardWardenFurnace"
+            furnace.fillColor = .systemOrange
+            furnace.strokeColor = .systemYellow
+            furnace.lineWidth = 3
+            furnace.glowWidth = 5
+            furnace.zPosition = 2.5
+            node.addChild(furnace)
         }
         if isBoss && worldMapIndex != 0 {
             // A distinct guardian silhouette makes the final encounter recognizable at a glance.
