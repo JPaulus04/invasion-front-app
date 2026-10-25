@@ -17,7 +17,13 @@ enum CampaignPacing {
 
     static func spawnInterval(room: Int) -> TimeInterval {
         let established = max(0.42, 1.20 - Double(max(1, room)) * 0.032)
-        return established + (room <= 10 ? 0.08 : 0)
+        // Preserve an approachable opening and tighten the gaps between
+        // reinforcements near the end of a world. Boss cadence is irrelevant:
+        // the final room spawns its boss as a single encounter.
+        if room <= 5 { return established + 0.18 }
+        if room <= 10 { return established + 0.08 }
+        if room >= 16 && room < roomsPerWorld { return max(0.40, established - 0.06) }
+        return established
     }
 
     static func enemyHealth(world: Int, room: Int, type: Int) -> Int {
