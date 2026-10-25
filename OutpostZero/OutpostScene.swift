@@ -2547,7 +2547,7 @@ final class OutpostScene: SKScene {
             for (key, value) in saved { defaults.set(value, forKey: key) }
         }
         defaults.set(!fresh, forKey: "ozFreshPilotActive")
-        recovery.clear()
+        // Each profile keeps its own recoverable run in its saved slot.
         profileSwitchArmed = false
         restart()
         worldMapIndex = 0
@@ -2639,18 +2639,14 @@ final class OutpostScene: SKScene {
         actionButton("GEAR BAY", key: "gear_bay", y: 35, tint: .systemTeal)
         actionButton("ABILITY LAB", key: "ability_lab", y: -23, tint: .systemIndigo)
         actionButton("CHARACTER RESTORATION", key: "restore", y: -81, tint: .systemPurple)
-        if recovery.load() != nil {
-            actionButton(discardRunArmed ? "CONFIRM DISCARD RUN" : "DISCARD SAVED RUN",
-                         key: "discard_run", y: -128, tint: .systemRed)
-        }
         let fresh = UserDefaults.standard.bool(forKey: "ozFreshPilotActive")
-        actionButton(fresh ? "RETURN TO ORIGINAL PILOT" : "START FRESH PILOT",
-                     key: "switch_pilot", y: -140, tint: .systemOrange)
         if profileSwitchArmed {
-            overlayText("SWITCH PILOT? CURRENT RUN WILL END", y: -103, fontSize: 10)
-            actionButton("CONFIRM PILOT SWITCH", key: "confirm_pilot_switch", y: -185, tint: .systemRed)
-            actionButton("CANCEL", key: "cancel_pilot_switch", y: -232, tint: .systemBlue)
+            overlayText("SAVE CURRENT PROGRESS AND SWITCH?", y: -123, fontSize: 10)
+            actionButton("CONFIRM PILOT SWITCH", key: "confirm_pilot_switch", y: -164, tint: .systemRed)
+            actionButton("CANCEL", key: "cancel_pilot_switch", y: -218, tint: .systemBlue)
         } else {
+            actionButton(fresh ? "RETURN TO ORIGINAL PILOT" : "START FRESH PILOT",
+                         key: "switch_pilot", y: -143, tint: .systemOrange)
             actionButton("BACK TO HOME", key: "hq_back", y: -201, tint: .systemBlue)
         }
         updateHUD()
