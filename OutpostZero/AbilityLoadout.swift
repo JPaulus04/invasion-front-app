@@ -52,7 +52,7 @@ struct AbilityLoadout {
             case "frost": rank = frost
             default: return false
             }
-            return rank < 3 && (contains(id) || selected.count < capacity)
+            return rank < 3 && (contains(id) || selected.count < min(Self.maximumSlots, max(0, capacity)))
         }
     }
 }
@@ -95,6 +95,17 @@ enum TacticalDraftRules {
         }
     }
     static let baseStatChoices = ["armor", "damage", "supplies"]
+
+    /// Only implemented abilities are eligible for a live tactical draft.
+    /// Design-only entries in futureCatalog must never enter playable rolls.
+    static func playablePool(for loadout: AbilityLoadout, capacity: Int,
+                             ranks: [String: Int]) -> [String] {
+        let slots = min(AbilityLoadout.maximumSlots, max(0, capacity))
+        return AbilityLoadout.catalog.filter { id in
+            let rank = max(0, ranks[id] ?? 0)
+            return rank < 3 && (loadout.contains(id) || loadout.selected.count < slots)
+        }
+    }
 
     static func pick(from offered: [String], roll: Int) -> String? {
         let weighted = offered.map { max(0, weight(for: $0)) }
