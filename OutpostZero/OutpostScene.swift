@@ -2533,7 +2533,9 @@ final class OutpostScene: SKScene {
         let defaults = UserDefaults.standard
         let fresh = defaults.bool(forKey: "ozFreshPilotActive")
         let keys = defaults.dictionaryRepresentation().keys.filter {
-            $0.hasPrefix("outpost") || $0.hasPrefix("frontierForest")
+            $0.hasPrefix("outpost") || $0.hasPrefix("frontierForest") ||
+            $0.hasPrefix("coreBranch_") || $0 == "powerCoresAvailable" ||
+            $0 == "bestWave"
         }
         let current = Dictionary(uniqueKeysWithValues: keys.compactMap { key -> (String, Any)? in
             guard let value = defaults.object(forKey: key) else { return nil }
