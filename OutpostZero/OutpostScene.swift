@@ -5460,7 +5460,15 @@ final class OutpostScene: SKScene {
                 fireProjectile(from: enemy.node.position, toward: target)
             }
             enemies[index].shotTarget = nil
-            enemies[index].nextAttack = combatTime + CombatRules.shooterCooldown(room: wave)
+            // The scrapyard warden accelerates its already-telegraphed
+            // three-lane volley once its armor is badly damaged. This
+            // changes attack cadence, not projectile speed or warning time.
+            let damagedWarden = enemy.node === bossNode &&
+                worldMapIndex == 1 && selectedWorld.bossStyle == 1 &&
+                enemy.health * 2 <= enemy.maxHealth
+            let baseCooldown = CombatRules.shooterCooldown(room: wave)
+            enemies[index].nextAttack = combatTime +
+                (damagedWarden ? max(1.4, baseCooldown * 0.78) : baseCooldown)
         } else if combatTime >= enemy.nextAttack {
             // Aim markers, shots in flight and mortar warnings all count
             // toward the same readable combat-pressure budget.
