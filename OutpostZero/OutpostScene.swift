@@ -2047,7 +2047,10 @@ final class OutpostScene: SKScene {
         overlay.addChild(button)
         let text = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
         text.text = label
-        text.fontSize = 17
+        // Fit long labels inside the touch target on narrow screens.
+        let estimatedWidth = CGFloat(label.count) * 9.1
+        text.fontSize = estimatedWidth > width - 22
+            ? max(11, 17 * (width - 22) / estimatedWidth) : 17
         text.fontColor = enabled ? .white : .lightGray
         text.verticalAlignmentMode = .center
         text.position = CGPoint(x: 0, y: y)
