@@ -5094,8 +5094,7 @@ final class OutpostScene: SKScene {
         // World pacing: a fresh pilot gets breathing room early, while
         // late rooms demand more from upgraded loadouts. Boss health and
         // screenshot capture fixtures retain their established values.
-        let baseEnemyHP = CampaignPacing.enemyHealth(
-            world: worldMapIndex, room: wave, type: type)
+        let baseEnemyHP = CampaignPacing.enemyHealth(world: worldMapIndex, room: wave, type: type)
         let healthFactor: Double
         if isBoss {
             healthFactor = 1
