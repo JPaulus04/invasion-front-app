@@ -5502,7 +5502,7 @@ final class OutpostScene: SKScene {
             // changes attack cadence, not projectile speed or warning time.
             let damagedWarden = enemy.node === bossNode &&
                 worldMapIndex == 1 && selectedWorld.bossStyle == 1 &&
-                enemy.health * 2 <= enemy.maxHealth
+                scrapyardWardenEnraged
             let baseCooldown = CombatRules.shooterCooldown(room: wave)
             enemies[index].nextAttack = combatTime +
                 (damagedWarden ? max(1.4, baseCooldown * 0.78) : baseCooldown)
@@ -5997,6 +5997,9 @@ final class OutpostScene: SKScene {
               let enemy = enemies.first(where: { $0.node === bossNode }),
               enemy.health > 0, enemy.health * 2 <= enemy.maxHealth else { return }
         scrapyardWardenEnraged = true
+        // The overdrive phase is authoritative for both the visual warning
+        // and the faster volley cadence. Avoid a silent speed-up before the
+        // player has received the phase-change cue.
         if let furnace = bossNode.childNode(withName: "scrapyardWardenFurnace") as? SKShapeNode {
             furnace.fillColor = .systemRed
             furnace.strokeColor = .systemYellow
