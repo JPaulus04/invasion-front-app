@@ -298,9 +298,9 @@ final class OutpostScene: SKScene {
     }
     private var permanentDamageBonus: Int { branchLevel(0) / 3 }
     private var permanentArmorBonus: Int { branchLevel(2) * 2 }
-    private var gearWeaponBonus: Int { permanent.rank("weapon") }
-    private var gearReactorBonus: Int { permanent.rank("reactor") }
-    private var maximumHealth: Int { 100 + permanentArmorBonus + permanent.rank("armor") * 15 + runArmor }
+    private var gearWeaponBonus: Int { min(5, permanent.rank("weapon")) + max(0, permanent.rank("weapon") - 5) / 3 }
+    private var gearReactorBonus: Int { min(5, permanent.rank("reactor")) + max(0, permanent.rank("reactor") - 5) / 3 }
+    private var maximumHealth: Int { 100 + permanentArmorBonus + (min(5, permanent.rank("armor")) * 15 + max(0, permanent.rank("armor") - 5) * 5) + runArmor }
     private var permanentRateBonus: Int { branchLevel(3) / 4 }
     private var permanentReactorBonus: Int { branchLevel(1) / 3 }
     private var permanentSystemsBonus: Int { branchLevel(4) / 4 }
@@ -2683,11 +2683,11 @@ final class OutpostScene: SKScene {
         for (index, id) in PersistentProgression.gear.enumerated() {
             let level = permanent.rank(id)
             let price = permanent.cost(id)
-            let label = level == 5 ? "\(labels[index])  LV 5  •  MAX" :
-                "\(labels[index])  LV \(level)  •  \(price) SALVAGE"
+            let label = level == PersistentProgression.maximumRank ? "\(labels[index])  LV \(level)  •  MAX" :
+                "\(labels[index])  LV \(level)  \(PersistentProgression.rarity(at: level))  •  \(price) SALVAGE"
             actionButton(label, key: "buy_\(id)", y: CGFloat(50 - index * 63),
                          tint: index == 0 ? .systemOrange : (index == 1 ? .systemTeal : .systemIndigo),
-                         enabled: level < 5 && permanent.salvage >= price)
+                         enabled: level < PersistentProgression.maximumRank && permanent.salvage >= price)
         }
         overlayText("WEAPON: +1 DMG / LV", y: -133, fontSize: 11)
         overlayText("ARMOR: +15 HP / LV  •  REACTOR: ABILITY POWER", y: -155, fontSize: 10)
@@ -2707,11 +2707,11 @@ final class OutpostScene: SKScene {
         for (index, id) in PersistentProgression.abilities.enumerated() {
             let level = permanent.rank(id)
             let price = permanent.cost(id)
-            let label = level == 5 ? "\(labels[index])  LV 5 MAX" :
-                "\(labels[index])  LV \(level)  •  \(price)"
+            let label = level == PersistentProgression.maximumRank ? "\(labels[index])  LV \(level) MAX" :
+                "\(labels[index])  LV \(level)  \(PersistentProgression.rarity(at: level))  •  \(price)"
             actionButton(label, key: "buy_\(id)", y: CGFloat(61 - index * 56),
                          tint: index.isMultiple(of: 2) ? .systemTeal : .systemIndigo,
-                         enabled: level < 5 && permanent.salvage >= price)
+                         enabled: level < PersistentProgression.maximumRank && permanent.salvage >= price)
         }
         overlayText("SELECT 3 ABILITIES BEFORE EACH WORLD", y: -158, fontSize: 11)
         actionButton("BACK TO HEADQUARTERS", key: "hq_back", y: -209, tint: .systemBlue)
