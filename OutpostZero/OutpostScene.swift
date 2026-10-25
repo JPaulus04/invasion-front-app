@@ -4925,36 +4925,34 @@ final class OutpostScene: SKScene {
             node.addChild(furnace)
         }
         if isBoss && worldMapIndex == 2 {
-            // Toxic-world guardian retains its separate armor language makes the final encounter recognizable at a glance.
+            // Toxic-world guardian retains its separate armor language,
+            // keeping its silhouette distinct from the scrapyard machine.
             let crown = SKShapeNode(rectOf: CGSize(width: radius * 1.7, height: 12), cornerRadius: 3)
-            crown.fillColor = worldMapIndex == 0 ? .systemOrange :
-                (worldMapIndex == 1 ? .systemBlue : .systemGreen)
+            crown.fillColor = .systemGreen
             crown.strokeColor = .white
             crown.lineWidth = 2
             crown.position.y = radius * 0.8
             crown.zPosition = 2
             node.addChild(crown)
             let eye = SKShapeNode(rectOf: CGSize(width: radius * 0.9, height: 10), cornerRadius: 3)
-            eye.fillColor = worldMapIndex == 2 ? .systemGreen : .systemCyan
+            eye.fillColor = .systemGreen
             eye.strokeColor = .white
             eye.position.y = radius * 0.14
             eye.zPosition = 3
             node.addChild(eye)
-            // Guardian side armor and reactor make the World 1 boss stand out.
+            // Toxic guardian side armor reinforces its chemical identity.
             for side: CGFloat in [-1, 1] {
                 let guardPlate = SKShapeNode(rectOf: CGSize(width: 18, height: 28), cornerRadius: 5)
                 guardPlate.position = CGPoint(x: side * radius * 0.83, y: -5)
-                guardPlate.fillColor = worldMapIndex == 0 ? .systemRed :
-                    (worldMapIndex == 1 ? .systemBlue : .systemGreen)
-                guardPlate.strokeColor = worldMapIndex == 2 ? .systemYellow : .white
+                guardPlate.fillColor = .systemGreen
+                guardPlate.strokeColor = .systemYellow
                 guardPlate.lineWidth = 2
                 guardPlate.zPosition = 2
                 node.addChild(guardPlate)
             }
             let reactor = SKShapeNode(circleOfRadius: 9)
             reactor.position = CGPoint(x: 0, y: -radius * 0.42)
-            reactor.fillColor = worldMapIndex == 0 ? .systemOrange :
-                (worldMapIndex == 1 ? .systemCyan : .systemGreen)
+            reactor.fillColor = .systemGreen
             reactor.strokeColor = .white
             reactor.glowWidth = 5
             reactor.zPosition = 4
