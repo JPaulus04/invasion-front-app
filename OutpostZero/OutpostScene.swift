@@ -2168,11 +2168,12 @@ final class OutpostScene: SKScene {
         let island = SKShapeNode(ellipseOf: CGSize(width: stageWidth * 0.8,
                                                     height: 59 * scale))
         island.position = CGPoint(x: 0, y: -78 * scale)
-        island.fillColor = SKColor(red: 0.26, green: 0.42, blue: 0.32, alpha: 1)
-        island.strokeColor = .systemTeal.withAlphaComponent(0.72)
+        island.fillColor = unlocked ? SKColor(red: 0.26, green: 0.42, blue: 0.32, alpha: 1) : SKColor(red: 0.18, green: 0.22, blue: 0.27, alpha: 1)
+        island.strokeColor = unlocked ? .systemTeal.withAlphaComponent(0.72) : .gray.withAlphaComponent(0.5)
         island.lineWidth = 2
         island.zPosition = 0.5
         overlay.addChild(island)
+        if unlocked {
         for (i, horizontal) in [CGFloat(-0.38), -0.25, 0.28, 0.4].enumerated() {
             let tree = SKSpriteNode(texture: productionTexture(
                 named: i.isMultiple(of: 2) ? "forest_pine" : "forest_broadleaf",
@@ -2182,6 +2183,7 @@ final class OutpostScene: SKScene {
                                     y: CGFloat(-21 + (i % 2) * 13) * scale)
             tree.zPosition = 1
             overlay.addChild(tree)
+        }
         }
         if !unlocked {
             for index in 0..<6 {
@@ -2196,6 +2198,7 @@ final class OutpostScene: SKScene {
                 overlay.addChild(cloud)
             }
         }
+        if unlocked {
         // The same upright ring language as our campaign exit, never a
         // rectangular gate or a floor circle.
         let portal = SKShapeNode(ellipseOf: CGSize(width: 96 * scale,
@@ -2249,6 +2252,7 @@ final class OutpostScene: SKScene {
         pilotPreview.position = CGPoint(x: 67 * scale, y: -67 * scale)
         pilotPreview.zPosition = 3
         overlay.addChild(pilotPreview)
+        }
         // The region label belongs in the open sky, not across the green
         // oval platform outline at the bottom of the world preview.
         overlayText(unlocked ? world.region.uppercased() : "UNEXPLORED",
@@ -7110,13 +7114,13 @@ final class OutpostScene: SKScene {
             return
         }
         if clock < menuUnlockTime || awaitingMenuRelease { return }
-        if phase == .worldSelect || phase == .ready {
+        let local = touch.location(in: overlay)
+        let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
+        if (phase == .worldSelect || phase == .ready), tapped == nil {
             worldMapSwipeStart = point
             worldMapSwipeMoved = false
         }
         menuNeedsFreshTouch = false
-        let local = touch.location(in: overlay)
-        let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
         switch (phase, tapped) {
         case (.settings, "toggle_music"):
             ArcadeMusic.shared.toggle()
