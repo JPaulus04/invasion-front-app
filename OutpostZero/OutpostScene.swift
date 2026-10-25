@@ -2048,6 +2048,7 @@ final class OutpostScene: SKScene {
         let text = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
         text.text = label
         // Fit long labels inside the touch target on narrow screens.
+        // This sizing is shared by headquarters, upgrades and mission menus.
         let estimatedWidth = CGFloat(label.count) * 9.1
         text.fontSize = estimatedWidth > width - 22
             ? max(11, 17 * (width - 22) / estimatedWidth) : 17
