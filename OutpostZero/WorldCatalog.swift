@@ -99,7 +99,7 @@ enum WorldCatalog {
 
     static func unlocked(_ index: Int, storage: UserDefaults = .standard) -> Bool {
         guard (0..<playableCount).contains(index) else { return false }
-        return index == 0 || completed(index - 1, storage: storage)
+        return index == 0 || stars(index - 1, storage: storage) >= 1
     }
 
     /// Award incremental stars only. Existing World 1 saves retain the
