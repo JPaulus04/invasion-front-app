@@ -3966,6 +3966,44 @@ final class OutpostScene: SKScene {
                 addToxicEdgeProp(to: prop, index: index,
                                  leftSide: leftSide, guardian: zone == 3)
             }
+            if worldMapIndex == 1 && index.isMultiple(of: 2) {
+                // World 2 scrapyard identity: layered salvaged plating and
+                // riveted beams frame the flooded industrial arena. Decorative
+                // only: the existing water hazard owns collision and slowdown.
+                let scrap = SKShapeNode(rectOf: CGSize(
+                    width: CGFloat(26 + index % 3 * 7), height: 15),
+                    cornerRadius: 2)
+                scrap.name = "scrapyardPlating"
+                scrap.fillColor = SKColor(red: 0.31, green: 0.36,
+                                         blue: 0.39, alpha: 0.96)
+                scrap.strokeColor = SKColor(red: 0.56, green: 0.43,
+                                           blue: 0.27, alpha: 0.9)
+                scrap.lineWidth = 2
+                scrap.zRotation = CGFloat(index % 3 - 1) * 0.18
+                scrap.position = CGPoint(x: leftSide ? 8 : -8, y: -13)
+                scrap.zPosition = 1.4
+                prop.addChild(scrap)
+                for side: CGFloat in [-1, 1] {
+                    let rivet = SKShapeNode(circleOfRadius: 1.8)
+                    rivet.fillColor = .lightGray
+                    rivet.strokeColor = .clear
+                    rivet.position = CGPoint(x: side * 9, y: 0)
+                    scrap.addChild(rivet)
+                }
+                if index.isMultiple(of: 4) {
+                    let beam = SKShapeNode(rectOf: CGSize(width: 9, height: 40),
+                                           cornerRadius: 2)
+                    beam.name = "scrapyardBeam"
+                    beam.fillColor = SKColor(red: 0.28, green: 0.30,
+                                             blue: 0.31, alpha: 1)
+                    beam.strokeColor = .systemOrange.withAlphaComponent(0.7)
+                    beam.lineWidth = 1.5
+                    beam.zRotation = leftSide ? -0.12 : 0.12
+                    beam.position.y = 11
+                    beam.zPosition = 1.2
+                    prop.addChild(beam)
+                }
+            }
             if zone == 1 && worldMapIndex == 1 {
                 // Flooded Outpost has metal piers, eroded blocks and driftwood,
                 // not broadleaf trees borrowed from the forest. These are
