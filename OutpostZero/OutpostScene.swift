@@ -286,6 +286,7 @@ final class OutpostScene: SKScene {
     private var burns: [ObjectIdentifier: (damage: Int, until: TimeInterval, nextTick: TimeInterval)] = [:]
     private var bossNode: SKShapeNode?
     private var guardianArmorBroken = false
+    private var guardianSupportDeployed = false
     private var guardianTransitionUntil: TimeInterval = 0
     private let worldWaveCount = CampaignPacing.roomsPerWorld
     private let coreBranches = ["WEAPONS", "REACTOR", "ARMOR", "MOBILITY", "SYSTEMS"]
@@ -3438,6 +3439,7 @@ final class OutpostScene: SKScene {
         xpDrops.removeAll()
         bossNode = nil
         guardianArmorBroken = false
+        guardianSupportDeployed = false
         guardianTransitionUntil = 0
         pendingFlankSwarm = nil
         arena.children.filter { $0.name == "flankSwarmWarning" }
@@ -4557,7 +4559,7 @@ final class OutpostScene: SKScene {
     }
 
     private func spawnEnemy(artReviewType: Int? = nil) {
-        let isBoss = wave == worldWaveCount
+        let isBoss = wave == worldWaveCount && artReviewType == nil
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
         let roll = EncounterDirector.enemyRoll(
             world: worldMapIndex, room: wave, slot: spawned)
@@ -5728,6 +5730,14 @@ final class OutpostScene: SKScene {
             health: enemies[index].health, maxHealth: enemies[index].maxHealth,
             alreadyBroken: guardianArmorBroken) {
             guardianArmorBroken = true
+            // One bounded reinforcement wave at the phase transition.
+            // These are ordinary enemies, never duplicate boss entities.
+            if !guardianSupportDeployed && !isCaptureMode {
+                guardianSupportDeployed = true
+                for role in [0, 2, 0] {
+                    spawnEnemy(artReviewType: role)
+                }
+            }
             guardianTransitionUntil = combatTime + FrontierGuardianRules.transitionSeconds
             enemies[index].health = threshold
             for name in ["guardianArmorLeft", "guardianArmorRight"] {
