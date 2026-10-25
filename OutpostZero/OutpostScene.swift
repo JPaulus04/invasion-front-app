@@ -3856,6 +3856,34 @@ final class OutpostScene: SKScene {
                 : .clear
         }
         roomArt?.childNode(withName: "roomContactEdge")?.alpha = nonForestWorld ? 0.32 : 0
+        // Forest floor: low-contrast, deterministic leaf litter and worn
+        // earth marks break up the flat ground without hiding projectiles.
+        // Ground marks are strictly decorative and never alter collision.
+        if worldMapIndex == 0 {
+            let floorDetail = SKNode()
+            floorDetail.name = "forestFloorDetail"
+            floorDetail.zPosition = -0.8
+            zoneScenery.addChild(floorDetail)
+            for index in 0..<24 {
+                let seed = index * 37 + wave * 19
+                let fx = CGFloat((seed * 53) % 97) / 97
+                let fy = CGFloat((seed * 29 + 13) % 89) / 89
+                let point = CGPoint(
+                    x: roomBounds.minX + 32 + (roomBounds.width - 64) * fx,
+                    y: roomBounds.minY + 35 + (roomBounds.height - 70) * fy)
+                let mark = SKShapeNode(ellipseOf: CGSize(
+                    width: CGFloat(7 + seed % 8),
+                    height: CGFloat(3 + seed % 4)))
+                mark.name = "forestFloorMark"
+                mark.position = point
+                mark.zRotation = CGFloat(seed % 7 - 3) * 0.19
+                mark.fillColor = index.isMultiple(of: 3)
+                    ? SKColor(red: 0.48, green: 0.39, blue: 0.24, alpha: 0.21)
+                    : SKColor(red: 0.16, green: 0.29, blue: 0.17, alpha: 0.23)
+                mark.strokeColor = .clear
+                floorDetail.addChild(mark)
+            }
+        }
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
         let count = worldMapIndex == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3))
         let roomVariant = (wave - 1) % 4
