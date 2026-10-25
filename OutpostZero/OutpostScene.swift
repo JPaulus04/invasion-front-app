@@ -2594,6 +2594,16 @@ final class OutpostScene: SKScene {
         overlayText("HEADQUARTERS", y: 156, fontSize: 24)
         overlayText("\(permanent.salvage) SALVAGE  •  \(availableCores) CORES", y: 117, fontSize: 15)
         overlayText("OUTPOST SYSTEMS  •  PERMANENT PROGRESSION", y: 88, fontSize: 11)
+        // A narrow console accent separates the resource header from the
+        // three permanent upgrade destinations without obscuring controls.
+        let sectionRule = SKShapeNode(rectOf: CGSize(
+            width: min(size.width - 110, 280), height: 2), cornerRadius: 1)
+        sectionRule.name = "headquartersUpgradeDivider"
+        sectionRule.position.y = 70
+        sectionRule.fillColor = .systemTeal.withAlphaComponent(0.55)
+        sectionRule.strokeColor = .clear
+        sectionRule.zPosition = 0
+        overlay.addChild(sectionRule)
         actionButton("GEAR BAY", key: "gear_bay", y: 35, tint: .systemTeal)
         actionButton("ABILITY LAB", key: "ability_lab", y: -23, tint: .systemIndigo)
         actionButton("CHARACTER RESTORATION", key: "restore", y: -81, tint: .systemPurple)
@@ -5097,10 +5107,12 @@ final class OutpostScene: SKScene {
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         // Keep the track and fill together above the larger illustrated sprite.
         let guardianBoss = isBoss && worldMapIndex == 0
-        let healthBarOffset: CGFloat = guardianBoss
-            ? 127 : (usesIllustratedEnemy ? radius * 1.39 + 9 : radius + 12)
-        let barWidth: CGFloat = guardianBoss ? 148 : radius * 2.2
-        let barHeight: CGFloat = guardianBoss ? 8 : 5
+        let wardenBoss = isBoss && worldMapIndex == 1
+        // The Warden's tall mechanical head must not overlap its health bar.
+        let healthBarOffset: CGFloat = guardianBoss ? 127 :
+            (wardenBoss ? 79 : (usesIllustratedEnemy ? radius * 1.39 + 9 : radius + 12))
+        let barWidth: CGFloat = (guardianBoss || wardenBoss) ? 148 : radius * 2.2
+        let barHeight: CGFloat = (guardianBoss || wardenBoss) ? 8 : 5
         let healthTrack = SKShapeNode(rectOf: CGSize(
             width: barWidth, height: barHeight), cornerRadius: barHeight / 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
