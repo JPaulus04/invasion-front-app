@@ -2523,8 +2523,37 @@ final class OutpostScene: SKScene {
     private func showHeadquarters() {
         phase = .headquarters
         hud.isHidden = true
+        pilot.isHidden = true
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
+        // The headquarters is a dedicated interface, not a transparent
+        // card laid over the active forest arena.
+        overlayBackdrop.isHidden = true
+        let wall = SKShapeNode(rect: CGRect(
+            x: -size.width / 2, y: -size.height / 2,
+            width: size.width, height: size.height))
+        wall.name = "headquartersInterior"
+        wall.fillColor = SKColor(red: 0.045, green: 0.085, blue: 0.13, alpha: 1)
+        wall.strokeColor = .clear
+        wall.zPosition = -5
+        overlay.addChild(wall)
+        let console = SKShapeNode(rect: CGRect(
+            x: -min(size.width - 30, 370) / 2, y: -238,
+            width: min(size.width - 30, 370), height: 438),
+            cornerRadius: 22)
+        console.name = "headquartersConsole"
+        console.fillColor = SKColor(red: 0.09, green: 0.17, blue: 0.23, alpha: 1)
+        console.strokeColor = SKColor.systemTeal.withAlphaComponent(0.65)
+        console.lineWidth = 2
+        console.zPosition = -2
+        overlay.addChild(console)
+        let statusBar = SKShapeNode(rect: CGRect(
+            x: -min(size.width - 74, 320) / 2, y: 187,
+            width: min(size.width - 74, 320), height: 5), cornerRadius: 2)
+        statusBar.fillColor = .systemTeal
+        statusBar.strokeColor = .clear
+        statusBar.zPosition = 0
+        overlay.addChild(statusBar)
         overlayText("HEADQUARTERS", y: 156, fontSize: 24)
         overlayText("\(permanent.salvage) SALVAGE  •  \(availableCores) CORES", y: 117, fontSize: 15)
         overlayText("PERMANENT UPGRADES BETWEEN RUNS", y: 88, fontSize: 12)
