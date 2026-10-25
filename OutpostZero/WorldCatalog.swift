@@ -17,8 +17,8 @@ enum WorldCatalog {
     static let worlds: [WorldInfo] = [
         WorldInfo(title: "FRONTIER FOREST", region: "FRONTIER", boss: "FOREST GUARDIAN",
                   brief: "Learn the movement and combat basics", biome: 0, bossStyle: 0, bossHealth: 180, enemyHealthBonus: 0),
-        WorldInfo(title: "FLOODED OUTPOST", region: "FRONTIER", boss: "TIDAL WARDEN",
-                  brief: "Deep water blocks movement; use dry paths to flank enemies", biome: 1, bossStyle: 1, bossHealth: 235, enemyHealthBonus: 1),
+        WorldInfo(title: "FLOODED OUTPOST", region: "FRONTIER", boss: "SCRAPYARD WARDEN",
+                  brief: "Flooded scrapyard: use dry paths to outmaneuver machines", biome: 1, bossStyle: 1, bossHealth: 235, enemyHealthBonus: 1),
         WorldInfo(title: "TOXIC CROSSING", region: "FRONTIER", boss: "TOXIC SENTINEL",
                   brief: "Pulsing acid demands careful positioning", biome: 2, bossStyle: 2, bossHealth: 275, enemyHealthBonus: 2),
         WorldInfo(title: "RUINED BASTION", region: "FRONTIER", boss: "BASTION KEEPER",
