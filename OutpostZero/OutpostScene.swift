@@ -3533,7 +3533,9 @@ final class OutpostScene: SKScene {
             zoneBanner.run(.sequence([.wait(forDuration: 1.6), .fadeOut(withDuration: 0.5)]))
         }
         spawned = 0
-        waveTarget = CampaignPacing.targetEnemies(room: wave)
+        // Boss rooms contain exactly one boss. Phase-two escorts are
+        // spawned explicitly and must not be counted as extra bosses.
+        waveTarget = wave == worldWaveCount ? 1 : CampaignPacing.targetEnemies(room: wave)
         if activeEncounter == .equipmentDefense {
             zoneBanner.text = "PROTECT THE FIELD REACTOR"
             zoneBanner.fontColor = .systemCyan
@@ -6745,6 +6747,9 @@ final class OutpostScene: SKScene {
         arena.children.filter { $0.name == "flankSwarmWarning" }
             .forEach { $0.removeFromParent() }
         bossNode = nil
+        guardianArmorBroken = false
+        guardianSupportDeployed = false
+        guardianTransitionUntil = 0
         defenseDevice.removeFromParent()
         defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
         nextDefenseHitAt = 0
