@@ -2593,7 +2593,7 @@ final class OutpostScene: SKScene {
         overlay.addChild(statusBar)
         overlayText("HEADQUARTERS", y: 156, fontSize: 24)
         overlayText("\(permanent.salvage) SALVAGE  •  \(availableCores) CORES", y: 117, fontSize: 15)
-        overlayText("PERMANENT UPGRADES BETWEEN RUNS", y: 88, fontSize: 12)
+        overlayText("UPGRADE YOUR OUTPOST BETWEEN RUNS", y: 88, fontSize: 12)
         actionButton("GEAR BAY", key: "gear_bay", y: 35, tint: .systemTeal)
         actionButton("ABILITY LAB", key: "ability_lab", y: -23, tint: .systemIndigo)
         actionButton("CHARACTER RESTORATION", key: "restore", y: -81, tint: .systemPurple)
@@ -2601,7 +2601,7 @@ final class OutpostScene: SKScene {
             actionButton(discardRunArmed ? "CONFIRM DISCARD RUN" : "DISCARD SAVED RUN",
                          key: "discard_run", y: -128, tint: .systemRed)
         }
-        actionButton("BACK TO WORLD MAP", key: "hq_back", y: -182, tint: .systemBlue)
+        actionButton("BACK TO HOME", key: "hq_back", y: -182, tint: .systemBlue)
         updateHUD()
     }
 
