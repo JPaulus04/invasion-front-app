@@ -42,18 +42,10 @@ struct AbilityLoadout {
     func availableTacticalUpgrades(chain: Int, explosive: Int,
                                    incendiary: Int, orbit: Int, frost: Int = 0,
                                    capacity: Int = maximumSlots) -> [String] {
-        Self.catalog.filter { id in
-            let rank: Int
-            switch id {
-            case "chain": rank = chain
-            case "explosive": rank = explosive
-            case "incendiary": rank = incendiary
-            case "orbit": rank = orbit
-            case "frost": rank = frost
-            default: return false
-            }
-            return rank < 3 && (contains(id) || selected.count < min(Self.maximumSlots, max(0, capacity)))
-        }
+        TacticalDraftRules.playablePool(for: self, capacity: capacity, ranks: [
+            "chain": chain, "explosive": explosive, "incendiary": incendiary,
+            "orbit": orbit, "frost": frost
+        ])
     }
 }
 
@@ -61,8 +53,8 @@ enum TacticalRarity: Int {
     case common = 0, rare, epic, legendary
 }
 
-/// Fixed-rarity design pool. Only the four catalog entries with actual combat
-/// behavior can appear in live draws; other entries are future design hooks.
+/// Fixed-rarity design pool. Only the five implemented tactical abilities
+/// can appear in live draws; other entries are future design hooks.
 enum TacticalDraftRules {
     static let futureCatalog: [(id: String, rarity: TacticalRarity)] = [
         ("incendiary", .common), ("frost", .common),
