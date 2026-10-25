@@ -106,6 +106,10 @@ final class OutpostScene: SKScene {
     private var lockedLoadout = AbilityLoadout.simulatorDefault
     private var orbitLevel = 0
     private var orbitalNodes: [SKShapeNode] = []
+    private var energyWheelEvolved = false
+    private var energyWheelNode: SKShapeNode?
+    private var lastEnergyWheelHit: [ObjectIdentifier: TimeInterval] = [:]
+
     private var lastOrbitalHit: [ObjectIdentifier: TimeInterval] = [:]
     private var nextBladeArcAt: TimeInterval = 0
     private var checkpointUsed = false
@@ -5806,9 +5810,63 @@ final class OutpostScene: SKScene {
         }
     }
 
+    /// Called only after a separately selected, eligible evolution. Existing
+    /// Orbit players retain discrete blades until that selection occurs.
+    private func activateEnergyWheel(masteryLevel: Int, world: Int,
+                                     synergyRank: Int) -> Bool {
+        guard !energyWheelEvolved,
+              TacticalDraftRules.canEvolve("orbit", rank: orbitLevel,
+                                          masteryLevel: masteryLevel,
+                                          world: world,
+                                          synergyRank: synergyRank) else { return false }
+        energyWheelEvolved = true
+        for blade in orbitalNodes { blade.isHidden = true }
+        let wheel = SKShapeNode(circleOfRadius: 82)
+        wheel.name = "energyWheel"
+        wheel.fillColor = .clear
+        wheel.strokeColor = SKColor(red: 0.20, green: 0.88, blue: 1, alpha: 0.85)
+        wheel.lineWidth = 14
+        wheel.glowWidth = 5
+        wheel.zPosition = 11
+        wheel.position = pilot.position
+        arena.addChild(wheel)
+        energyWheelNode = wheel
+        lastEnergyWheelHit.removeAll()
+        return true
+    }
+
+    private func updateEnergyWheel() {
+        guard energyWheelEvolved, let wheel = energyWheelNode else { return }
+        wheel.position = pilot.position
+        wheel.zRotation = CGFloat(combatTime * 2.65)
+        for index in enemies.indices {
+            let enemy = enemies[index]
+            guard enemy.health > 0, combatTime >= enemy.activeAt,
+                  CombatRules.energyWheelHits(pilot: pilot.position,
+                                              enemy: enemy.node.position,
+                                              enemyRadius: enemy.radius,
+                                              wheelRadius: 82, bandWidth: 14) else { continue }
+            let key = ObjectIdentifier(enemy.node)
+            guard combatTime - (lastEnergyWheelHit[key] ?? -100) >= 0.50 else { continue }
+            lastEnergyWheelHit[key] = combatTime
+            enemies[index].health -= 1 + orbitLevel +
+                permanent.rank("orbit") + gearReactorBonus
+            impact(at: enemy.node.position, color: .systemCyan,
+                   destroyed: enemies[index].health <= 0)
+            EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
+            updateEnemyHealthBar(at: index)
+        }
+        removeDefeatedEnemies()
+        updateHUD()
+    }
+
     private func updateOrbitingDefenses() {
         guard orbitLevel > 0, !orbitalNodes.isEmpty,
               (phase == .playing || extractionCombatActive || roomCleared) else { return }
+        if energyWheelEvolved {
+            updateEnergyWheel()
+            return
+        }
         // All positions derive from the same paused combat clock as hostile
         // projectiles. No free orbital strikes while choosing a level-up.
         for (index, blade) in orbitalNodes.enumerated() {
