@@ -4868,6 +4868,43 @@ final class OutpostScene: SKScene {
             chassis.lineWidth = 3
             chassis.zPosition = 1.5
             node.addChild(chassis)
+            // Wide demolition arms establish a readable silhouette.
+            for side: CGFloat in [-1, 1] {
+                let arm = SKShapeNode(rectOf: CGSize(width: 24, height: 48),
+                                      cornerRadius: 7)
+                arm.name = "scrapyardWardenDemolitionArm"
+                arm.position = CGPoint(x: side * 57, y: -5)
+                arm.fillColor = SKColor(red: 0.34, green: 0.36, blue: 0.36, alpha: 1)
+                arm.strokeColor = .systemOrange
+                arm.lineWidth = 2
+                arm.zPosition = 1.8
+                node.addChild(arm)
+                let claw = SKShapeNode(rectOf: CGSize(width: 31, height: 17),
+                                        cornerRadius: 4)
+                claw.position = CGPoint(x: side * 57, y: -32)
+                claw.fillColor = .darkGray
+                claw.strokeColor = .lightGray
+                claw.lineWidth = 2
+                claw.zPosition = 2
+                node.addChild(claw)
+            }
+            let head = SKShapeNode(rectOf: CGSize(width: 54, height: 23),
+                                    cornerRadius: 6)
+            head.name = "scrapyardWardenHead"
+            head.position.y = 35
+            head.fillColor = SKColor(red: 0.16, green: 0.23, blue: 0.30, alpha: 1)
+            head.strokeColor = .systemBlue
+            head.lineWidth = 2
+            head.zPosition = 2.3
+            node.addChild(head)
+            let visor = SKShapeNode(rectOf: CGSize(width: 34, height: 7),
+                                     cornerRadius: 3)
+            visor.position.y = 35
+            visor.fillColor = .systemCyan
+            visor.strokeColor = .clear
+            visor.glowWidth = 3
+            visor.zPosition = 2.6
+            node.addChild(visor)
             for side: CGFloat in [-1, 1] {
                 let piston = SKShapeNode(rectOf: CGSize(width: 16, height: 43),
                                          cornerRadius: 3)
@@ -4887,8 +4924,8 @@ final class OutpostScene: SKScene {
             furnace.zPosition = 2.5
             node.addChild(furnace)
         }
-        if isBoss && worldMapIndex != 0 {
-            // A distinct guardian silhouette makes the final encounter recognizable at a glance.
+        if isBoss && worldMapIndex == 2 {
+            // Toxic-world guardian retains its separate armor language makes the final encounter recognizable at a glance.
             let crown = SKShapeNode(rectOf: CGSize(width: radius * 1.7, height: 12), cornerRadius: 3)
             crown.fillColor = worldMapIndex == 0 ? .systemOrange :
                 (worldMapIndex == 1 ? .systemBlue : .systemGreen)
