@@ -2538,6 +2538,41 @@ final class OutpostScene: SKScene {
         wall.strokeColor = .clear
         wall.zPosition = -5
         overlay.addChild(wall)
+        // A distinct command-room silhouette behind the interface: raised
+        // observation window, side machinery and a lit central reactor.
+        // All elements stay behind interactive controls.
+        let window = SKShapeNode(rect: CGRect(
+            x: -min(size.width - 62, 328) / 2, y: 209,
+            width: min(size.width - 62, 328), height: 93),
+            cornerRadius: 12)
+        window.name = "headquartersObservationWindow"
+        window.fillColor = SKColor(red: 0.055, green: 0.20,
+                                   blue: 0.27, alpha: 1)
+        window.strokeColor = .systemTeal.withAlphaComponent(0.65)
+        window.lineWidth = 2
+        window.zPosition = -4
+        overlay.addChild(window)
+        for side: CGFloat in [-1, 1] {
+            let support = SKShapeNode(rectOf: CGSize(width: 17, height: 125),
+                                      cornerRadius: 3)
+            support.name = "headquartersSupport"
+            support.fillColor = SKColor(red: 0.20, green: 0.29,
+                                        blue: 0.34, alpha: 1)
+            support.strokeColor = .black.withAlphaComponent(0.5)
+            support.position = CGPoint(
+                x: side * (min(size.width - 62, 328) / 2 - 16), y: 208)
+            support.zPosition = -3
+            overlay.addChild(support)
+        }
+        let reactor = SKShapeNode(circleOfRadius: 22)
+        reactor.name = "headquartersReactor"
+        reactor.position = CGPoint(x: 0, y: 252)
+        reactor.fillColor = .systemCyan.withAlphaComponent(0.32)
+        reactor.strokeColor = .systemTeal
+        reactor.lineWidth = 4
+        reactor.glowWidth = 5
+        reactor.zPosition = -3
+        overlay.addChild(reactor)
         let console = SKShapeNode(rect: CGRect(
             x: -min(size.width - 30, 370) / 2, y: -238,
             width: min(size.width - 30, 370), height: 438),
