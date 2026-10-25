@@ -6369,6 +6369,13 @@ final class OutpostScene: SKScene {
             incendiary: incendiaryLevel, orbit: orbitLevel,
             frost: frostLevel, capacity: playerMastery.capacity)
         pool += tacticalOptions
+        let orbitEvolutionAvailable = TacticalDraftRules.evolutionChoices(
+            for: lockedLoadout, ranks: ["orbit": orbitLevel],
+            masteryLevel: playerMastery.level, world: worldMapIndex + 1,
+            synergyRanks: ["orbit": min(chainLevel, orbitLevel)],
+            alreadyEvolved: energyWheelEvolved ? Set(["orbit"]) : Set<String>()
+        ).contains("orbit")
+        if orbitEvolutionAvailable { pool.append("evolveOrbit") }
         if health < maximumHealth { pool.append("heal") }
         // Three weighted nonduplicate cards. Rare/Epic traits are never
         // guaranteed; stat picks remain useful when waiting for a trait.
@@ -6448,6 +6455,12 @@ final class OutpostScene: SKScene {
                 category = "CONTROL"
                 symbol = "ICE"
                 tint = SKColor(red: 0.46, green: 0.84, blue: 1, alpha: 1)
+            case "evolveOrbit":
+                label = "LEGENDARY • ENERGY WHEEL"
+                detail = "Evolve orbiting spheres into a continuous ring"
+                category = "EVOLUTION"
+                symbol = "WHEEL"
+                tint = SKColor(red: 0.40, green: 0.94, blue: 1, alpha: 1)
             case "orbit":
                 label = "RARE • ENERGY ORBIT  LV \(orbitLevel + 1)"
                 detail = AbilitySynergies.preview(
@@ -6607,6 +6620,10 @@ final class OutpostScene: SKScene {
         case "orbit":
             orbitLevel = min(3, orbitLevel + 1)
             rebuildOrbitingDefenses()
+        case "evolveOrbit":
+            _ = activateEnergyWheel(masteryLevel: playerMastery.level,
+                                    world: worldMapIndex + 1,
+                                    synergyRank: min(chainLevel, orbitLevel))
         case "heal": health = min(maximumHealth, health + 40)
         default: runArmor += 20; health = min(maximumHealth, health + 20)
         }
@@ -7091,6 +7108,10 @@ final class OutpostScene: SKScene {
         incendiaryLevel = 0
         frostLevel = 0
         orbitLevel = 0
+        energyWheelEvolved = false
+        energyWheelNode?.removeFromParent()
+        energyWheelNode = nil
+        lastEnergyWheelHit.removeAll()
         chilledUntil.removeAll()
         lastOrbitalHit.removeAll()
         nextBladeArcAt = 0
