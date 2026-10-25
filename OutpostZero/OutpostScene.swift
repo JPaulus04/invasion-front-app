@@ -698,7 +698,7 @@ final class OutpostScene: SKScene {
         // Validate real navigation keys and stage geometry in a simulator,
         // rather than accepting a static presentation-board illustration.
         if ProcessInfo.processInfo.arguments.contains("-captureHomeNavigationScreenshot") {
-            let keys = ["worlds", "gear_bay", "headquarters",
+            let keys = ["gear_bay", "headquarters",
                         "ability_lab", "restore"]
             precondition(phase == .ready && pilot.isHidden &&
                          keys.allSatisfy({ overlayButtons[$0] != nil }) &&
@@ -2147,7 +2147,7 @@ final class OutpostScene: SKScene {
         overlayText(unlocked ? "WORLD \(worldMapIndex + 1)  •  \(world.title)" : "WORLD \(worldMapIndex + 1)  •  UNKNOWN",
                     y: 151 * scale, fontSize: 17 * scale)
         overlayText(unlocked
-            ? "\(WorldCatalog.stars(worldMapIndex))/3 STARS   •   BEST ROOM \(WorldCatalog.bestRoom(worldMapIndex))/20"
+            ? "\(String(repeating: "★", count: WorldCatalog.stars(worldMapIndex)))\(String(repeating: "☆", count: 3 - WorldCatalog.stars(worldMapIndex)))   •   BEST ROOM \(WorldCatalog.bestRoom(worldMapIndex))/20"
             : (playable ? "LOCKED  •  EARN 1 STAR IN PREVIOUS WORLD" : "UNKNOWN  •  EXPLORE LATER"),
             y: 127 * scale, fontSize: 11 * scale)
 
