@@ -156,8 +156,8 @@ if 'ProcessInfo.processInfo.arguments.contains("-captureSettingsScreenshot")' no
     errors.append("Simulator must verify settings and interruption recovery")
 if 'ProcessInfo.processInfo.arguments.contains("-capturePausedRunScreenshot")' not in scene:
     errors.append("Simulator must validate the focused pause card")
-if 'y: -293,' not in scene or 'y: -272, fontSize: 12)' not in scene:
-    errors.append("World map must fit power-core status inside its panel")
+if 'homeResourceBar' not in scene or 'validateHubNavigation()' not in scene:
+    errors.append("World selection needs resource status and simulator-checked navigation bounds")
 if "COMBAT FROZEN UNTIL YOU RESUME" not in scene:
     errors.append("Pause message must not promise unsaved progress protection")
 if "settingsShortcut.position = CGPoint(" not in scene or "y: overlay.position.y + 155" not in scene:
@@ -182,7 +182,7 @@ if '(.gameOver, "headquarters")' not in scene or 'restart()\n            showHea
     errors.append("Defeated players must reach upgrade headquarters")
 if 'private func showGearBay()' not in scene or 'private func showAbilityLab()' not in scene:
     errors.append("Permanent gear and ability masteries need usable menus")
-if "gearWeaponBonus" not in scene or 'permanent.rank("armor") * 15' not in scene:
+if "gearWeaponBonus" not in scene or 'min(5, permanent.rank("armor")) * 15' not in scene or 'max(0, permanent.rank("armor") - 5) * 5' not in scene:
     errors.append("Purchased gear must affect next-run combat stats")
 if 'ProcessInfo.processInfo.arguments.contains("-captureHeadquartersScreenshot")' not in scene:
     errors.append("Simulator must capture the headquarters upgrade menu")
@@ -253,7 +253,7 @@ if "WorldCatalog.recordBestRoom(worldMapIndex, room: wave)" not in scene:
     errors.append("Best room must be tracked as each new room begins")
 if "WorldCatalog.recordBestRoom(worldMapIndex, room: worldWaveCount)" not in scene:
     errors.append("Completed worlds must record Room 20 as their best result")
-if '"RESUME WORLD \\(storedRun.worldIndex + 1)' not in scene:
+if '"RESUME WORLD \\(saved.worldIndex + 1)' not in scene:
     errors.append("Saved runs from later worlds must be directly resumable on the default world map")
 if "CampaignPacing.targetEnemies(room: wave)" not in scene or "CampaignPacing.enemyHealth(world: worldMapIndex" not in scene:
     errors.append("20-room QA tests must use the same enemy pacing as actual gameplay")

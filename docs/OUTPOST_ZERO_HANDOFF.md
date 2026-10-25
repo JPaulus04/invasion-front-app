@@ -1,5 +1,17 @@
 # Outpost Zero — Current handoff (October 17, 2026)
 
+## October 25 — Benchmark-led home and world navigation foundation
+- Based on remote `5d2ce5f` (Build 325 economy/rarity), isolated branch `home-world-redesign`. Do not merge the stale local `deb8190` Build 323 branch wholesale: newer remote work supersedes it.
+- User approved brighter Archero-inspired organization, distinct destination previews, richer room layouts, and eventual progression/ability depth. This checkpoint implements navigation foundation only; it is not final art acceptance or the complete requested milestone.
+- Shared opaque sky/outpost shell across Home, Gear, Abilities, Pilot, restoration and loadout. Four labeled SF Symbol tabs with selected-state highlight. Pilot contains restoration/profile switching; gear and mastery purchase logic and saved progress retained. Secondary pages scale on short screens; overlay scale/background reset before combat menus.
+- Home and world selection use one destination presentation, arrows plus swiping, explicit saved world/room resume label, existing unlock concealment and star/core rules. Flooded and toxic destinations use distinct industrial props rather than forest trees. Destination artwork is still procedural and needs actual simulator review before polish acceptance.
+- Updated misleading gear descriptions for existing tapered post-rank-five bonuses. Updated stale source assertions that assumed the old armor formula and old world panel coordinates.
+- Added real simulator navigation bounds/overlap assertions and separate Gear/Ability screenshot captures to the milestone workflow.
+- Local source checks, 61 PNG asset checks and diff whitespace pass. No local Swift/Xcode toolchain; iOS compilation, gameplay tests, and simulator visual review remain pending. Do not call this validated or upload to TestFlight.
+- Earlier automatic review rejected publication to the repository. This checkpoint is local only; require explicit permission to push this prepared redesign to `JPaulus04/invasion-front-app`, `outpost-zero`, before publishing or triggering hosted validation. Do not retry via another tool.
+- Remaining: item-card/equipment presentation, illustrated home art, brighter arena/room variety, W2 boss art and encounter, ability evolutions and milestone economics review; follow with full current-revision simulator validation and actual image inspection. Preserve fresh-vs-overpowered balancing distinction.
+
+
 ## October 24 — Rig motion review and settling refinement
 - Run 40118187753 passed compilation and focused captures; broad campaign skipped. Inspected artifact 12569848209, rig-sw still and 4fps samples of its recorded movement/idle passes with square aspect-preserving crops.
 - Fixed upper body holds its silhouette through movement without the earlier generated-sheet narrowing. No conspicuous torso cut was visible at sampled gameplay scale. Leg motion remains a restrained shuffle; this is not final walk acceptance, and subtle seams/sliding still need close review.

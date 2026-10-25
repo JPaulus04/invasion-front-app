@@ -739,6 +739,8 @@ jobs:
           capture_scene -captureHomeNavigationScreenshot screenshots/outpost-zero-home-navigation.png
           capture_scene -captureWorldSelectorScreenshot screenshots/outpost-zero-world-selector.png
           capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
+          capture_scene -captureGearBayScreenshot screenshots/outpost-zero-gear-bay.png
+          capture_scene -captureAbilityLabScreenshot screenshots/outpost-zero-ability-lab.png
           capture_scene -captureRecoveryScreenshot screenshots/outpost-zero-recovery.png
           capture_scene -capturePausedRunScreenshot screenshots/outpost-zero-paused-run.png
           capture_scene -captureSettingsScreenshot screenshots/outpost-zero-settings.png
