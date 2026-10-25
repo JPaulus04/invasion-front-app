@@ -4712,7 +4712,7 @@ final class OutpostScene: SKScene {
         if type == 5 { node.fillColor = .systemOrange }
         node.strokeColor = type == 1 ? .systemYellow : .white
         node.lineWidth = type == 1 ? 4 : 2
-        if isBoss && worldMapIndex == 0 {
+        if isBoss && (worldMapIndex == 0 || worldMapIndex == 1) {
             node.fillColor = .clear
             node.strokeColor = .clear
         }
@@ -4853,7 +4853,7 @@ final class OutpostScene: SKScene {
         core.fillColor = type == 1 ? .darkGray : (type == 2 ? .magenta : .brown)
         core.strokeColor = .clear
         core.zPosition = 1
-        if !usesIllustratedEnemy && !(isBoss && worldMapIndex == 0) {
+        if !usesIllustratedEnemy && !isBoss {
             node.addChild(core)
         }
         if isBoss && worldMapIndex == 1 {
@@ -4968,7 +4968,7 @@ final class OutpostScene: SKScene {
             installFrontierGuardianArtwork(on: art)
             node.addChild(art)
         }
-        if type >= 4 && !usesIllustratedEnemy {
+        if type >= 4 && !usesIllustratedEnemy && !isBoss {
             let weapon = SKShapeNode(rectOf: CGSize(width: type == 5 ? 22 : 8, height: 26), cornerRadius: 3)
             weapon.fillColor = type == 5 ? .systemYellow : .systemCyan
             weapon.strokeColor = .white
@@ -4976,7 +4976,7 @@ final class OutpostScene: SKScene {
             node.addChild(weapon)
         }
         // Distinct silhouettes help players recognize ranged threats before they attack.
-        if type == 4 && !usesIllustratedEnemy {
+        if type == 4 && !usesIllustratedEnemy && !isBoss {
             let visor = SKShapeNode(rectOf: CGSize(width: radius * 1.55, height: 5), cornerRadius: 2)
             visor.fillColor = .systemCyan
             visor.strokeColor = .white
@@ -4989,7 +4989,7 @@ final class OutpostScene: SKScene {
             barrel.position = CGPoint(x: radius * 0.9, y: 0)
             barrel.zPosition = 2
             node.addChild(barrel)
-        } else if type == 5 && !usesIllustratedEnemy {
+        } else if type == 5 && !usesIllustratedEnemy && !isBoss {
             let mortar = SKShapeNode(circleOfRadius: radius * 0.5)
             mortar.fillColor = .systemYellow
             mortar.strokeColor = .white
@@ -5003,13 +5003,13 @@ final class OutpostScene: SKScene {
             base.position.y = -radius * 0.65
             node.addChild(base)
         }
-        if type == 1 && !usesIllustratedEnemy {
+        if type == 1 && !usesIllustratedEnemy && !isBoss {
             let armor = SKShapeNode(rectOf: CGSize(width: radius * 1.5, height: 7), cornerRadius: 3)
             armor.fillColor = .systemYellow
             armor.strokeColor = .clear
             armor.position.y = radius * 0.52
             node.addChild(armor)
-        } else if type == 2 && !usesIllustratedEnemy {
+        } else if type == 2 && !usesIllustratedEnemy && !isBoss {
             let wing = SKShapeNode(rectOf: CGSize(width: radius * 2.5, height: 5), cornerRadius: 2)
             wing.fillColor = .systemPurple
             wing.strokeColor = .white
