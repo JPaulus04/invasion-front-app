@@ -4899,6 +4899,7 @@ final class OutpostScene: SKScene {
             node.addChild(head)
             let visor = SKShapeNode(rectOf: CGSize(width: 34, height: 7),
                                      cornerRadius: 3)
+            visor.name = "scrapyardWardenVisor"
             visor.position.y = 35
             visor.fillColor = .systemCyan
             visor.strokeColor = .clear
@@ -6039,6 +6040,13 @@ final class OutpostScene: SKScene {
             furnace.fillColor = .systemRed
             furnace.strokeColor = .systemYellow
             furnace.glowWidth = 12
+        }
+        if let visor = bossNode.childNode(withName: "scrapyardWardenVisor") as? SKShapeNode {
+            visor.fillColor = .systemOrange
+            visor.glowWidth = 7
+        }
+        if let chassis = bossNode.childNode(withName: "scrapyardWardenChassis") as? SKShapeNode {
+            chassis.strokeColor = .systemRed
         }
         let alert = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         alert.name = "scrapyardOverdriveWarning"
