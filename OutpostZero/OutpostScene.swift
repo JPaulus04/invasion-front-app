@@ -2144,11 +2144,11 @@ final class OutpostScene: SKScene {
         overlay.addChild(strip)
         overlayText("\(permanent.salvage) SALVAGE    •    \(availableCores) CORES",
                     y: 199 * scale, fontSize: 12 * scale)
-        overlayText("WORLD \(worldMapIndex + 1)  •  \(world.title)",
+        overlayText(unlocked ? "WORLD \(worldMapIndex + 1)  •  \(world.title)" : "WORLD \(worldMapIndex + 1)  •  UNKNOWN",
                     y: 151 * scale, fontSize: 17 * scale)
         overlayText(unlocked
             ? "\(WorldCatalog.stars(worldMapIndex))/3 STARS   •   BEST ROOM \(WorldCatalog.bestRoom(worldMapIndex))/20"
-            : (playable ? "LOCKED  •  CLEAR PREVIOUS WORLD" : "COMING LATER"),
+            : (playable ? "LOCKED  •  EARN 1 STAR IN PREVIOUS WORLD" : "UNKNOWN  •  EXPLORE LATER"),
             y: 127 * scale, fontSize: 11 * scale)
 
         let stageWidth = min(size.width - 36, 352)
@@ -2157,7 +2157,7 @@ final class OutpostScene: SKScene {
             width: stageWidth, height: 230 * scale),
             cornerRadius: 20 * scale)
         stage.name = "homeWorldPreview"
-        stage.fillColor = worldMapIndex == 0
+        stage.fillColor = !unlocked ? SKColor(red: 0.13, green: 0.17, blue: 0.23, alpha: 1) : worldMapIndex == 0
             ? SKColor(red: 0.09, green: 0.24, blue: 0.18, alpha: 0.97)
             : (worldMapIndex == 1
                 ? SKColor(red: 0.06, green: 0.21, blue: 0.31, alpha: 0.97)
@@ -2182,6 +2182,19 @@ final class OutpostScene: SKScene {
                                     y: CGFloat(-21 + (i % 2) * 13) * scale)
             tree.zPosition = 1
             overlay.addChild(tree)
+        }
+        if !unlocked {
+            for index in 0..<6 {
+                let cloud = SKShapeNode(ellipseOf: CGSize(width: CGFloat(100 + index % 3 * 34) * scale,
+                                                            height: CGFloat(38 + index % 2 * 19) * scale))
+                cloud.name = "homeUnknownCloud"
+                cloud.position = CGPoint(x: CGFloat((index % 3 - 1) * 92) * scale,
+                                         y: CGFloat(-74 + index / 3 * 76) * scale)
+                cloud.fillColor = SKColor(red: 0.39, green: 0.46, blue: 0.53, alpha: 0.97)
+                cloud.strokeColor = .white.withAlphaComponent(0.12)
+                cloud.zPosition = 5
+                overlay.addChild(cloud)
+            }
         }
         // The same upright ring language as our campaign exit, never a
         // rectangular gate or a floor circle.
@@ -2238,7 +2251,7 @@ final class OutpostScene: SKScene {
         overlay.addChild(pilotPreview)
         // The region label belongs in the open sky, not across the green
         // oval platform outline at the bottom of the world preview.
-        overlayText(world.region.uppercased(),
+        overlayText(unlocked ? world.region.uppercased() : "UNEXPLORED",
                     y: 88 * scale, fontSize: 11 * scale)
 
         if let saved {
@@ -2249,9 +2262,9 @@ final class OutpostScene: SKScene {
                          key: "start", y: -187 * scale, tint: .systemOrange,
                          enabled: unlocked)
         }
-        overlayText("CHOOSE A WORLD OR UPGRADE BEFORE DEPLOYING",
+        overlayText("SWIPE LEFT OR RIGHT TO EXPLORE WORLDS",
                     y: -233 * scale, fontSize: 10 * scale)
-        homeTab("WORLDS", symbol: "◎", key: "worlds", index: 0, scale: scale)
+        homeTab("PILOT", symbol: "◎", key: "headquarters", index: 0, scale: scale)
         homeTab("GEAR", symbol: "◆", key: "gear_bay", index: 1, scale: scale)
         homeTab("HQ", symbol: "⌂", key: "headquarters", index: 2, scale: scale)
         homeTab("ABILITIES", symbol: "✦", key: "ability_lab", index: 3, scale: scale)
@@ -7097,7 +7110,7 @@ final class OutpostScene: SKScene {
             return
         }
         if clock < menuUnlockTime || awaitingMenuRelease { return }
-        if phase == .worldSelect {
+        if phase == .worldSelect || phase == .ready {
             worldMapSwipeStart = point
             worldMapSwipeMoved = false
         }
@@ -7183,7 +7196,7 @@ final class OutpostScene: SKScene {
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if phase == .worldSelect, let start = worldMapSwipeStart, let touch = touches.first {
+        if (phase == .worldSelect || phase == .ready), let start = worldMapSwipeStart, let touch = touches.first {
             if abs(touch.location(in: self).x - start.x) > 30 { worldMapSwipeMoved = true }
         }
         if (phase == .playing || phase == .gate), let heldTouch, touches.contains(heldTouch) {
@@ -7202,11 +7215,11 @@ final class OutpostScene: SKScene {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if phase == .worldSelect, let start = worldMapSwipeStart, let touch = touches.first {
+        if (phase == .worldSelect || phase == .ready), let start = worldMapSwipeStart, let touch = touches.first {
             let dx = touch.location(in: self).x - start.x
             if abs(dx) > 65 {
                 worldMapIndex = min(WorldCatalog.worlds.count - 1, max(0, worldMapIndex + (dx < 0 ? 1 : -1)))
-                showWorldSelector()
+                if phase == .ready { showReady() } else { showWorldSelector() }
             }
         }
         worldMapSwipeStart = nil
