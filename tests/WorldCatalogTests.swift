@@ -71,7 +71,7 @@ struct WorldCatalogTests {
         precondition(WorldCatalog.enemyType(world: 1, room: 6, roll: 10) == 4)
         precondition(WorldCatalog.enemyType(world: 1, room: 9, roll: 10) == 5)
         precondition(WorldCatalog.enemyType(world: 2, room: 8, roll: 10) == 5)
-        precondition(WorldCatalog.info(1).boss == "TIDAL WARDEN")
+        precondition(WorldCatalog.info(1).boss == "SCRAPYARD WARDEN")
         precondition(WorldCatalog.info(2).boss == "TOXIC SENTINEL")
         precondition(WorldCatalog.info(1).bossStyle == 1)
         precondition(WorldCatalog.info(2).bossStyle == 2)
