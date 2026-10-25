@@ -7,6 +7,15 @@ final class PersistentProgression {
     static let gear = ["weapon", "armor", "reactor"]
     static let abilities = ["chain", "explosive", "incendiary", "orbit"]
     static let all = gear + abilities
+    static let maximumRank = 12
+    static func rarity(at rank: Int) -> String {
+        switch rank {
+        case 0..<3: return "COMMON"
+        case 3..<6: return "RARE"
+        case 6..<9: return "EPIC"
+        default: return "LEGENDARY"
+        }
+    }
     private let storage: UserDefaults
 
     init(storage: UserDefaults = .standard) { self.storage = storage }
@@ -14,15 +23,15 @@ final class PersistentProgression {
     var salvage: Int { max(0, storage.integer(forKey: "outpostSalvage")) }
     func rank(_ id: String) -> Int {
         guard Self.all.contains(id) else { return 0 }
-        return max(0, min(5, storage.integer(forKey: "outpostRank_\(id)")))
+        return max(0, min(Self.maximumRank, storage.integer(forKey: "outpostRank_\(id)")))
     }
 
     static func cost(_ id: String, at rank: Int) -> Int {
-        guard all.contains(id), rank >= 0, rank < 5 else { return Int.max }
-        if id == "armor" { return 45 + rank * 45 }
-        if id == "weapon" { return 65 + rank * 65 }
-        if id == "reactor" { return 75 + rank * 65 }
-        return 55 + rank * 55
+        guard all.contains(id), rank >= 0, rank < maximumRank else { return Int.max }
+        let base = id == "armor" ? 95 : (id == "weapon" ? 135 : (id == "reactor" ? 155 : 120))
+        let step = rank + 1
+        let rarityMultiplier = rank >= 9 ? 5 : (rank >= 6 ? 3 : (rank >= 3 ? 2 : 1))
+        return base * step * step * rarityMultiplier
     }
 
     func cost(_ id: String) -> Int { Self.cost(id, at: rank(id)) }
@@ -38,7 +47,7 @@ final class PersistentProgression {
 
     @discardableResult
     func purchase(_ id: String) -> Bool {
-        guard Self.all.contains(id), rank(id) < 5 else { return false }
+        guard Self.all.contains(id), rank(id) < Self.maximumRank else { return false }
         let price = cost(id)
         guard salvage >= price else { return false }
         storage.set(salvage - price, forKey: "outpostSalvage")
@@ -47,10 +56,10 @@ final class PersistentProgression {
     }
 
     static func enemyReward(isHeavy: Bool, isBoss: Bool) -> Int {
-        isBoss ? 28 : (isHeavy ? 3 : 2)
+        isBoss ? 18 : (isHeavy ? 2 : 1)
     }
     static func roomReward(room: Int) -> Int {
-        8 + max(1, min(20, room)) * 3
+        3 + max(1, min(20, room))
     }
-    static let worldCompletionBonus = 100
+    static let worldCompletionBonus = 45
 }
