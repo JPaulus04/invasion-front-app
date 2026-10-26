@@ -1589,6 +1589,28 @@ final class OutpostScene: SKScene {
         }
         // Deterministic real-game captures for reviewing each new biome.
         // These are the actual gameplay scenes, not concept mockups.
+        // Real simulator captures for each approved World 1 landscape.
+        // These exercise the same scene and authored-art lookup as gameplay.
+        let worldOneCaptures: [(String, Int)] = [
+            ("-captureWorldOneOutpostScreenshot", 1),
+            ("-captureWorldOneSwampScreenshot", 4),
+            ("-captureWorldOneCavesScreenshot", 9),
+            ("-captureWorldOneBossScreenshot", 20)
+        ]
+        if let selection = worldOneCaptures.first(where: {
+            ProcessInfo.processInfo.arguments.contains($0.0)
+        }) {
+            worldMapIndex = 0
+            wave = selection.1 - 1
+            gateUnlocked = true
+            startWave()
+            zoneBanner.removeAllActions()
+            zoneBanner.alpha = 0
+            controlsHint.removeAllActions()
+            controlsHint.isHidden = true
+            arena.isPaused = true
+            updateHUD()
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureToxicTerrainScreenshot") ||
            ProcessInfo.processInfo.arguments.contains("-captureIronTerrainScreenshot") ||
            ProcessInfo.processInfo.arguments.contains("-captureFrostTerrainScreenshot") {
