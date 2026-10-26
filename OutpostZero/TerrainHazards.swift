@@ -82,7 +82,7 @@ enum TerrainHazards {
                           width: 0.39, height: 0.47,
                           bounds: bounds, alternate: alternate)
         let acid = patch(.acid, x: 0.855, y: 0.535,
-                         width: 0.37, height: 0.45,
+                         width: 0.22, height: 0.20,
                          bounds: bounds, alternate: alternate)
         let barrier = patch(.rubble, x: alternate ? 0.18 : 0.21,
                             y: 0.79, width: 0.24, height: 0.11,
