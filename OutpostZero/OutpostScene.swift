@@ -2858,11 +2858,11 @@ final class OutpostScene: SKScene {
             shape.zPosition = 0
             switch patch.kind {
             case .water:
-                shape.fillColor = SKColor(red: 0.065, green: 0.29, blue: 0.43, alpha: 0.66)
+                shape.fillColor = SKColor(red: 0.035, green: 0.17, blue: 0.25, alpha: 0.96)
                 shape.strokeColor = SKColor(red: 0.36, green: 0.66, blue: 0.72, alpha: 0.43)
                 decorateLiquidHazard(shape, kind: .water, size: patch.frame.size)
             case .acid:
-                shape.fillColor = SKColor(red: 0.19, green: 0.43, blue: 0.13, alpha: 0.66)
+                shape.fillColor = SKColor(red: 0.10, green: 0.25, blue: 0.07, alpha: 0.96)
                 shape.strokeColor = SKColor(red: 0.64, green: 0.72, blue: 0.29, alpha: 0.45)
                 decorateLiquidHazard(shape, kind: .acid, size: patch.frame.size)
                 acidVisualNodes.append(shape)
