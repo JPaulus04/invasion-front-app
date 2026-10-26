@@ -122,6 +122,14 @@ enum WorldCatalog {
         return additional
     }
 
+    /// Diagnostic snapshot for the world-select UI and progression tests.
+    /// A victory must persist before the next world can be offered.
+    static func progressionState(_ index: Int, storage: UserDefaults = .standard) -> (completed: Bool, stars: Int, nextUnlocked: Bool) {
+        let next = index + 1
+        return (completed(index, storage: storage), stars(index, storage: storage),
+                unlocked(next, storage: storage))
+    }
+
     static func enemyType(world: Int, room: Int, roll: Int) -> Int {
         if room == 20 { return 1 }
         if world == 0 { return CombatRules.enemyType(room: room, roll: roll) }
