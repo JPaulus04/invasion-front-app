@@ -4189,10 +4189,25 @@ final class OutpostScene: SKScene {
         let roomVariant = (wave - 1) % 4
         for index in 0..<count {
             let leftSide = (index + roomVariant).isMultiple(of: 2)
-            let side: CGFloat = zone == 0 ? (leftSide ? 0.12 : 0.88) :
-                (zone == 1 ? (leftSide ? 0.16 : 0.84) : (leftSide ? 0.09 : 0.91))
+            // World 1 gets genuinely different perimeter compositions:
+            // alternating ruins, staggered clearings, and paired alcoves.
+            // All props remain outside the central combat/movement lane.
+            let worldOneSide: CGFloat
+            switch roomVariant {
+            case 0: worldOneSide = leftSide ? 0.10 : 0.90
+            case 1: worldOneSide = leftSide ? 0.17 : 0.83
+            case 2: worldOneSide = leftSide ? 0.07 : 0.93
+            default: worldOneSide = leftSide ? 0.14 : 0.86
+            }
+            let side: CGFloat = worldMapIndex == 0 ? worldOneSide :
+                (zone == 0 ? (leftSide ? 0.12 : 0.88) :
+                    (zone == 1 ? (leftSide ? 0.16 : 0.84) : (leftSide ? 0.09 : 0.91)))
             let x = size.width * side + CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8
-            let y = roomBounds.minY + 55 + CGFloat(index) * max(25, (roomBounds.height - 100) / CGFloat(count)) + CGFloat(((index * 11 + wave * 7) % 19) - 9)
+            let spacing = max(25, (roomBounds.height - 100) / CGFloat(count))
+            let layoutShift = worldMapIndex == 0
+                ? CGFloat(((index * (roomVariant + 3) * 13 + wave * 7) % 31) - 15)
+                : CGFloat(((index * 11 + wave * 7) % 19) - 9)
+            let y = roomBounds.minY + 55 + CGFloat(index) * spacing + layoutShift
             let prop: SKShapeNode
             switch zone {
             case 0: // Tall pines along the forest approach.
