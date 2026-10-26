@@ -4946,6 +4946,35 @@ final class OutpostScene: SKScene {
                 piston.zPosition = 1.7
                 node.addChild(piston)
             }
+            // Layered shoulder housings and hazard stripes make the
+            // industrial silhouette legible at normal gameplay zoom.
+            for side: CGFloat in [-1, 1] {
+                let shoulder = SKShapeNode(rectOf: CGSize(width: 30, height: 23),
+                                           cornerRadius: 5)
+                shoulder.position = CGPoint(x: side * 40, y: 22)
+                shoulder.fillColor = SKColor(red: 0.47, green: 0.51,
+                                             blue: 0.53, alpha: 1)
+                shoulder.strokeColor = .black
+                shoulder.lineWidth = 2
+                shoulder.zPosition = 2.35
+                node.addChild(shoulder)
+                let stripe = SKShapeNode(rectOf: CGSize(width: 18, height: 5),
+                                         cornerRadius: 1)
+                stripe.position = CGPoint(x: side * 40, y: 23)
+                stripe.zRotation = side * .pi / 6
+                stripe.fillColor = .systemYellow
+                stripe.strokeColor = .clear
+                stripe.zPosition = 2.4
+                node.addChild(stripe)
+                let exhaust = SKShapeNode(rectOf: CGSize(width: 13, height: 24),
+                                          cornerRadius: 3)
+                exhaust.position = CGPoint(x: side * 25, y: 51)
+                exhaust.fillColor = .darkGray
+                exhaust.strokeColor = .systemOrange
+                exhaust.lineWidth = 2
+                exhaust.zPosition = 1.9
+                node.addChild(exhaust)
+            }
             let furnace = SKShapeNode(circleOfRadius: 13)
             furnace.name = "scrapyardWardenFurnace"
             furnace.fillColor = .systemOrange
