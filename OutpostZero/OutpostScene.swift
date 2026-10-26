@@ -2529,9 +2529,11 @@ final class OutpostScene: SKScene {
         }
         rebuildOrbitingDefenses()
         if snapshot.energyWheelEvolved == true {
+            // RunSnapshot.isValid has already verified this earned evolution.
             _ = activateEnergyWheel(masteryLevel: playerMastery.level,
                                     world: worldMapIndex + 1,
-                                    synergyRank: min(chainLevel, orbitLevel))
+                                    synergyRank: min(chainLevel, orbitLevel),
+                                    restoringSavedEvolution: true)
         }
         if snapshot.location == .clearedGate {
             roomCleared = true
@@ -5848,12 +5850,15 @@ final class OutpostScene: SKScene {
     /// Called only after a separately selected, eligible evolution. Existing
     /// Orbit players retain discrete blades until that selection occurs.
     private func activateEnergyWheel(masteryLevel: Int, world: Int,
-                                     synergyRank: Int) -> Bool {
+                                     synergyRank: Int,
+                                     restoringSavedEvolution: Bool = false) -> Bool {
         guard !energyWheelEvolved,
-              TacticalDraftRules.canEvolve("orbit", rank: orbitLevel,
-                                          masteryLevel: masteryLevel,
-                                          world: world,
-                                          synergyRank: synergyRank) else { return false }
+              (restoringSavedEvolution
+                ? (orbitLevel >= 3 && chainLevel >= 2 && world >= 3)
+                : TacticalDraftRules.canEvolve("orbit", rank: orbitLevel,
+                                               masteryLevel: masteryLevel,
+                                               world: world,
+                                               synergyRank: synergyRank)) else { return false }
         energyWheelEvolved = true
         for blade in orbitalNodes { blade.isHidden = true }
         let wheel = SKShapeNode(circleOfRadius: 82)
