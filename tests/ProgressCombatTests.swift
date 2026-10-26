@@ -60,6 +60,27 @@ struct ProgressCombatTests {
             from: ["incendiary", "chain"], roll: 0) == "incendiary")
         precondition(TacticalDraftRules.pick(
             from: ["incendiary", "chain"], roll: 19) == "chain")
+        // Energy Wheel is a deliberate late-world evolution, not an early
+        // free upgrade. Its card must carry a nonzero draft weight.
+        precondition(TacticalDraftRules.weight(for: "evolveOrbit") > 0)
+        precondition(!TacticalDraftRules.canEvolve(
+            "orbit", rank: 2, masteryLevel: 20, world: 3, synergyRank: 2))
+        precondition(!TacticalDraftRules.canEvolve(
+            "orbit", rank: 3, masteryLevel: 19, world: 3, synergyRank: 2))
+        precondition(!TacticalDraftRules.canEvolve(
+            "orbit", rank: 3, masteryLevel: 20, world: 2, synergyRank: 2))
+        precondition(TacticalDraftRules.canEvolve(
+            "orbit", rank: 3, masteryLevel: 20, world: 3, synergyRank: 2))
+        let evolutionLoadout = AbilityLoadout(selected: ["orbit", "chain"])
+        precondition(TacticalDraftRules.evolutionChoices(
+            for: evolutionLoadout, ranks: ["orbit": 3, "chain": 2],
+            masteryLevel: 20, world: 3, synergyRanks: ["orbit": 2],
+            alreadyEvolved: []).contains("orbit"))
+        precondition(!TacticalDraftRules.evolutionChoices(
+            for: evolutionLoadout, ranks: ["orbit": 3, "chain": 2],
+            masteryLevel: 20, world: 3, synergyRanks: ["orbit": 2],
+            alreadyEvolved: ["orbit"]).contains("orbit"))
+        CombatEvolutionGeometryTests.verifyEnergyWheelGeometry()
         var earnedRun = RunProgress()
         precondition(earnedRun.claimMastery(room: 1))
         precondition(!earnedRun.claimMastery(room: 1))
