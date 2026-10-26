@@ -24,3 +24,9 @@ Status: scoped, not implemented. Baseline: outpost-zero at 5457b6d. No release o
 
 ## Release blockers
 Any broken navigation, inaccessible unlock, corrupted save, duplicate currency, reactor pass-through, portal/extraction softlock, missing boss asset, or failed iOS CI blocks release.
+
+## Consolidated validation checkpoint — 2026-10-25
+- Prior iOS Compile Check run 40196414464 failed in the combat test executable at ProgressCombatTests.swift:88 after source, art, room and motion checks passed.
+- The legacy economy assertions have been aligned to current upgrade pricing and completion rewards; the new evolution geometry test file is now included in the Swift compilation command.
+- Run one full-review CI on this consolidated branch revision. Treat any red step as a release blocker and inspect its exact log before further feature development.
+- A passing workflow is not a substitute for inspecting simulator artwork and actual gameplay. Do not submit to TestFlight automatically.
