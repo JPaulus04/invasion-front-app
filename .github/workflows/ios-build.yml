@@ -36,7 +36,7 @@ jobs:
           "$RUNNER_TEMP/motion-tests"
       - name: Test XP and combat rules
         run: |
-          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/CampaignPacing.swift OutpostZero/AbilityLoadout.swift OutpostZero/PersistentProgression.swift OutpostZero/RunRecovery.swift tests/ProgressCombatTests.swift -o "$RUNNER_TEMP/combat-tests"
+          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/CampaignPacing.swift OutpostZero/AbilityLoadout.swift OutpostZero/PersistentProgression.swift OutpostZero/RunRecovery.swift tests/CombatEvolutionGeometryTests.swift tests/ProgressCombatTests.swift -o "$RUNNER_TEMP/combat-tests"
           "$RUNNER_TEMP/combat-tests"
       - name: Test full twenty-room campaign pacing
         run: |
