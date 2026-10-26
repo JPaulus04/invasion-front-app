@@ -79,7 +79,7 @@ enum TerrainHazards {
         // leave the center corridor clear at every supported screen size.
         let alternate = room.isMultiple(of: 2)
         let water = patch(.water, x: 0.145, y: 0.425,
-                          width: 0.39, height: 0.47,
+                          width: 0.24, height: 0.22,
                           bounds: bounds, alternate: alternate)
         let acid = patch(.acid, x: 0.855, y: 0.535,
                          width: 0.22, height: 0.20,
