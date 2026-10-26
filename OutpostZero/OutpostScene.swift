@@ -2453,7 +2453,7 @@ final class OutpostScene: SKScene {
             defenseObjectiveIntegrity: activeEncounter == .equipmentDefense
                 ? defenseIntegrity : nil,
             frostLevel: frostLevel,
-            mobilityRank: mobilityRank)
+            mobilityRank: mobilityRank, energyWheelEvolved: energyWheelEvolved)
         _ = recovery.save(snapshot)
     }
 
@@ -2528,6 +2528,11 @@ final class OutpostScene: SKScene {
             }
         }
         rebuildOrbitingDefenses()
+        if snapshot.energyWheelEvolved == true {
+            _ = activateEnergyWheel(masteryLevel: playerMastery.level,
+                                    world: worldMapIndex + 1,
+                                    synergyRank: min(chainLevel, orbitLevel))
+        }
         if snapshot.location == .clearedGate {
             roomCleared = true
             spawned = waveTarget
