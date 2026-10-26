@@ -4159,7 +4159,7 @@ final class OutpostScene: SKScene {
         // Forest floor: low-contrast, deterministic leaf litter and worn
         // earth marks break up the flat ground without hiding projectiles.
         // Ground marks are strictly decorative and never alter collision.
-        if worldMapIndex == 0 {
+        if worldMapIndex == 0 && roomArt?.childNode(withName: "world1AuthoredFloor") == nil {
             let floorDetail = SKNode()
             floorDetail.name = "forestFloorDetail"
             floorDetail.zPosition = -0.8
@@ -4229,6 +4229,39 @@ final class OutpostScene: SKScene {
                     (zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55)))
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
+            // Production World 1 scenery is composed from individually
+            // illustrated transparent sprites. Keep gameplay geometry and
+            // placement independent of the image artwork.
+            if worldMapIndex == 0 {
+                let landscape: String
+                switch wave {
+                case 4...5, 11...13: landscape = "swamp_basin"
+                case 9...10, 14...15: landscape = "toxic_caves"
+                case 16...19:
+                    landscape = ["ruined_outpost", "swamp_basin", "toxic_caves"][(wave - 16) % 3]
+                case 20: landscape = "boss_arena"
+                default: landscape = "ruined_outpost"
+                }
+                let propKinds = ["wall", "boulder", "vegetation", "debris", "lantern", "crate"]
+                let kind = propKinds[(index + wave) % propKinds.count]
+                let assetName = "world1_\(landscape)_\(kind)"
+                if let art = productionImage(named: assetName) {
+                    let texture = SKTexture(image: art)
+                    texture.filteringMode = .linear
+                    let sprite = SKSpriteNode(texture: texture)
+                    sprite.name = "world1AuthoredProp"
+                    let height: CGFloat = kind == "wall" ? 78 : (kind == "vegetation" ? 62 : 48)
+                    let ratio = max(0.45, min(1.9, art.size.width / max(1, art.size.height)))
+                    sprite.size = CGSize(width: height * ratio, height: height)
+                    sprite.position.y = height * 0.27
+                    sprite.zPosition = 0.8
+                    prop.fillColor = .clear
+                    prop.strokeColor = .clear
+                    prop.alpha = 1
+                    prop.addChild(sprite)
+                    continue
+                }
+            }
             if selectedWorld.biome == 4 {
                 prop.fillColor = .clear
                 prop.strokeColor = .clear
