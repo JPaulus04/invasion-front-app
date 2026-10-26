@@ -2947,11 +2947,14 @@ final class OutpostScene: SKScene {
         illuminatedRim.zPosition = 0.12
         pool.addChild(illuminatedRim)
 
-        // Directional terrain masonry: broad, overlapping rock slabs sit
-        // above the cut edge and cast their own offset shadows. Unlike a
-        // concentric outline, these have visible top faces and vertical sides.
-        for index in 0..<8 {
-            let angle = CGFloat(index) * .pi / 4 + (acid ? 0.18 : 0.04)
+        // Small detached pools need fewer shoreline slabs: eight full-sized
+        // slabs overwhelm a pocket and conceal the liquid surface.
+        let compactPocket = min(w, h) < 75
+        let slabCount = compactPocket ? 5 : 8
+        // Directional terrain masonry: raised top faces and shaded sides.
+        for index in 0..<slabCount {
+            let angle = CGFloat(index) * (2 * .pi / CGFloat(slabCount))
+                + (acid ? 0.18 : 0.04)
             let x = cos(angle) * w * 0.43
             let y = sin(angle) * h * 0.43
             let slabWidth = max(7, min(w, h) * (index.isMultiple(of: 3) ? 0.19 : 0.14))
