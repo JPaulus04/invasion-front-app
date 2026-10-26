@@ -42,6 +42,8 @@ struct RunSnapshot: Codable {
     var frostLevel: Int? = nil
     /// Optional zero-defaulted run stat keeps all Build 319 saves valid.
     var mobilityRank: Int? = nil
+    /// Optional to preserve existing schema-4 snapshots.
+    var energyWheelEvolved: Bool? = nil
 
     var isValid: Bool {
         version == Self.schema && (0..<WorldCatalog.playableCount).contains(worldIndex) &&
@@ -52,6 +54,7 @@ struct RunSnapshot: Codable {
         (0...3).contains(incendiaryLevel) && (0...3).contains(orbitLevel) &&
         (0...3).contains(frostLevel ?? 0) &&
         (0...5).contains(mobilityRank ?? 0) &&
+        (energyWheelEvolved != true || (orbitLevel >= 3 && chainLevel >= 2 && worldIndex >= 2 && abilities.contains("orbit"))) &&
         (0...1_000).contains(runArmor) && (1...100).contains(progress.level) &&
         progress.xp >= 0 && progress.xp < progress.nextLevelXP &&
         (0...50).contains(progress.pendingChoices) &&
