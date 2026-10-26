@@ -1601,8 +1601,9 @@ final class OutpostScene: SKScene {
             precondition(roomHazards.count == 3 &&
                          hazardScenery.children.count == 3,
                          "Biome screenshot must contain both pockets and rubble")
+            // Keep the playable HUD visible in the captured frame, rather
+            // than showing a level-up screen over the terrain.
             arena.isPaused = true
-            phase = .levelUp
             updateHUD()
         }
         if ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot") {
