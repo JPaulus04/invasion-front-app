@@ -5833,6 +5833,19 @@ final class OutpostScene: SKScene {
         wheel.strokeColor = SKColor(red: 0.20, green: 0.88, blue: 1, alpha: 0.85)
         wheel.lineWidth = 14
         wheel.glowWidth = 5
+        // A perfect circle looks stationary when rotated. Four bright
+        // segments give the evolved wheel an unmistakable spinning motion.
+        for index in 0..<4 {
+            let accent = SKShapeNode(arcOfRadius: 82,
+                                     startAngle: CGFloat(index) * .pi / 2,
+                                     endAngle: CGFloat(index) * .pi / 2 + .pi / 5,
+                                     clockwise: false)
+            accent.strokeColor = SKColor(red: 0.88, green: 1, blue: 1, alpha: 1)
+            accent.lineWidth = 17
+            accent.glowWidth = 7
+            accent.zPosition = 1
+            wheel.addChild(accent)
+        }
         wheel.zPosition = 11
         wheel.position = pilot.position
         arena.addChild(wheel)
@@ -5867,12 +5880,13 @@ final class OutpostScene: SKScene {
     }
 
     private func updateOrbitingDefenses() {
-        guard orbitLevel > 0, !orbitalNodes.isEmpty,
+        guard orbitLevel > 0,
               (phase == .playing || extractionCombatActive || roomCleared) else { return }
         if energyWheelEvolved {
             updateEnergyWheel()
             return
         }
+        guard !orbitalNodes.isEmpty else { return }
         // All positions derive from the same paused combat clock as hostile
         // projectiles. No free orbital strikes while choosing a level-up.
         for (index, blade) in orbitalNodes.enumerated() {
