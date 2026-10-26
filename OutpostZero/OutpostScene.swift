@@ -4125,9 +4125,13 @@ final class OutpostScene: SKScene {
             case 20: landscape = "boss_arena"
             default: landscape = "ruined_outpost"
             }
-            let artName = "world1_\(landscape)_floor_\(max(0, wave - 1) % 3)"
+            let artName = "world1_\(landscape)_floor_\((max(0, wave - 1) % 3) + 1)"
             let prior = roomArt?.childNode(withName: "world1AuthoredFloor")
             prior?.removeFromParent()
+            if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
+               productionImage(named: artName) == nil {
+                preconditionFailure("Missing authored World 1 floor: \(artName)")
+            }
             if let image = productionImage(named: artName) {
                 let texture = SKTexture(image: image)
                 texture.filteringMode = .linear
