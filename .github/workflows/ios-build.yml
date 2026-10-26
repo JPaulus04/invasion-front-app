@@ -744,6 +744,10 @@ jobs:
           capture_scene -captureHomeNavigationScreenshot screenshots/outpost-zero-home-navigation.png
           # Prioritize the requested actual gameplay terrain previews before
           # the lengthy menu/combat capture sequence. Upload remains always().
+          capture_scene -captureWorldOneOutpostScreenshot screenshots/outpost-zero-world1-outpost.png
+          capture_scene -captureWorldOneSwampScreenshot screenshots/outpost-zero-world1-swamp.png
+          capture_scene -captureWorldOneCavesScreenshot screenshots/outpost-zero-world1-caves.png
+          capture_scene -captureWorldOneBossScreenshot screenshots/outpost-zero-world1-boss.png
           capture_scene -captureToxicTerrainScreenshot screenshots/outpost-zero-terrain-toxic.png
           capture_scene -captureIronTerrainScreenshot screenshots/outpost-zero-terrain-iron.png
           capture_scene -captureFrostTerrainScreenshot screenshots/outpost-zero-terrain-frost.png
