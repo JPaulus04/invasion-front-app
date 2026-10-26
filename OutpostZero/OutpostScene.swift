@@ -4075,7 +4075,37 @@ final class OutpostScene: SKScene {
             frost.zPosition = -19
             zoneScenery.addChild(frost)
         }
-        roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = nonForestWorld
+        // World 1 art direction: three authored landscape families, rotated
+        // through the campaign. An illustration must be shipped before this
+        // path replaces the legacy backdrop; never substitute a placeholder.
+        if worldMapIndex == 0 {
+            let landscape: String
+            switch wave {
+            case 1...3, 6...8: landscape = "ruined_outpost"
+            case 4...5, 11...13: landscape = "swamp_basin"
+            case 9...10, 14...15: landscape = "toxic_caves"
+            case 16...19:
+                landscape = ["ruined_outpost", "swamp_basin", "toxic_caves"][(wave - 16) % 3]
+            case 20: landscape = "boss_arena"
+            default: landscape = "ruined_outpost"
+            }
+            let artName = "world1_\(landscape)_floor_\(max(0, wave - 1) % 3)"
+            let prior = roomArt?.childNode(withName: "world1AuthoredFloor")
+            prior?.removeFromParent()
+            if let image = productionImage(named: artName) {
+                let texture = SKTexture(image: image)
+                texture.filteringMode = .linear
+                let floorArt = SKSpriteNode(texture: texture)
+                floorArt.name = "world1AuthoredFloor"
+                floorArt.size = size
+                floorArt.position = CGPoint(x: size.width / 2, y: size.height / 2)
+                floorArt.zPosition = -18.5
+                roomArt?.addChild(floorArt)
+            }
+            roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden =
+                roomArt?.childNode(withName: "world1AuthoredFloor") != nil
+        }
+        roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = nonForestWorld || roomArt?.childNode(withName: "world1AuthoredFloor") != nil
         roomArt?.childNode(withName: "floodedAmbientBackdrop")?.isHidden = selectedWorld.biome != 1
         roomArt?.childNode(withName: "toxicAmbientBackdrop")?.isHidden = selectedWorld.biome != 2
         if let floor = roomArt?.childNode(withName: "roomFloor") as? SKShapeNode {
