@@ -89,7 +89,7 @@ struct RoomRulesTests {
         precondition(TerrainHazards.patches(world: 0, room: 18, bounds: reference).isEmpty)
         for room in 1...20 {
             let hazards = TerrainHazards.patches(world: 2, room: room, bounds: reference)
-            precondition(hazards.count == 2)
+            precondition(hazards.count == 3)
             precondition(!hazards.contains { $0.kind == .acid })
             precondition(!hazards.contains { $0.contains(entry, margin: 16) })
             precondition(!hazards.contains { $0.contains(exit, margin: 16) })
@@ -120,7 +120,7 @@ struct RoomRulesTests {
             precondition(!TerrainHazards.blocksMovement(entry, patches: hazards))
             precondition(!TerrainHazards.spawnAllowed(submerged, radius: 15, patches: hazards),
                          "Enemies cannot spawn inside impassable floodwater")
-            let rubble = hazards[1]
+            let rubble = hazards[2]
             let center = CGPoint(x: rubble.frame.midX, y: rubble.frame.midY)
             precondition(TerrainHazards.hitsObstacle(center, patches: hazards))
             precondition(TerrainHazards.resolveMovement(
@@ -131,8 +131,8 @@ struct RoomRulesTests {
         // and the visible polygon must match on every playable device.
         let patches = TerrainHazards.patches(world: 2, room: 12, bounds: reference)
         let watery = patches[0]
-        precondition(watery.frame.height >= reference.height * 0.44,
-                     "Flooded terrain must be a room section, not a small stamp")
+        precondition(watery.frame.height <= reference.height * 0.25,
+                     "Flooded terrain must remain a localized tactical obstacle")
         precondition(watery.outline.count >= 10)
         let poolCorner = CGPoint(x: watery.frame.maxX - 2, y: watery.frame.maxY - 2)
         precondition(!watery.contains(poolCorner))
@@ -161,14 +161,17 @@ struct RoomRulesTests {
             from: rightDry, to: crossingStep, patches: patches, radius: 12)
         precondition(!watery.contains(sweptResult, margin: 12),
                      "Long steps must not tunnel across deep water")
-        let blockedCenter = CGPoint(x: patches[1].frame.midX, y: patches[1].frame.midY)
+        let blockedCenter = CGPoint(x: patches[2].frame.midX, y: patches[2].frame.midY)
         precondition(!TerrainHazards.spawnAllowed(blockedCenter, radius: 15, patches: patches))
         precondition(TerrainHazards.spawnAllowed(entry, radius: 15, patches: patches))
         let toxicPatches = TerrainHazards.patches(world: 1, room: 12, bounds: reference)
-        precondition(toxicPatches.count == 2)
+        precondition(toxicPatches.count == 3)
         precondition(!toxicPatches.contains { $0.kind == .water })
         precondition(toxicPatches[0].outline.count >= 10)
-        precondition(toxicPatches[0].frame.height >= reference.height * 0.43)
+        precondition(toxicPatches.filter { $0.kind == .acid }.count == 2)
+        precondition(toxicPatches[0].frame.intersection(toxicPatches[1].frame).isNull,
+                     "Acid pockets should remain separate, not form one oversized pool")
+        precondition(toxicPatches[0].frame.height <= reference.height * 0.25)
         let toxic = CGPoint(x: toxicPatches[0].frame.midX, y: toxicPatches[0].frame.midY)
         precondition(!TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 1.5))
         precondition(TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 2.5))
