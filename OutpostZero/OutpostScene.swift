@@ -3278,6 +3278,19 @@ final class OutpostScene: SKScene {
         if displayedAcidActive != acidOn {
             displayedAcidActive = acidOn
             for shape in acidVisualNodes {
+                // Illustrated pools must remain transparent above their
+                // authored texture when the hazard toggles on/off.
+                if let illustration = shape.childNode(withName: "illustratedTerrain")
+                    as? SKSpriteNode {
+                    shape.fillColor = .clear
+                    shape.strokeColor = .clear
+                    shape.glowWidth = 0
+                    illustration.color = acidOn
+                        ? SKColor(red: 0.72, green: 1.0, blue: 0.62, alpha: 1)
+                        : .white
+                    illustration.colorBlendFactor = acidOn ? 0.22 : 0
+                    continue
+                }
                 shape.fillColor = acidOn
                     ? SKColor(red: 0.24, green: 0.70, blue: 0.16, alpha: 0.77)
                     : SKColor(red: 0.19, green: 0.43, blue: 0.13, alpha: 0.66)
