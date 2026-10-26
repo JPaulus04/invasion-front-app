@@ -2848,7 +2848,7 @@ final class OutpostScene: SKScene {
         roomHazards = TerrainHazards.patches(
             world: worldMapIndex, room: wave, bounds: roomBounds,
             preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
-        for patch in roomHazards {
+        for (hazardIndex, patch) in roomHazards.enumerated() {
             // Shared polygon outline drives both visuals and physical
             // slowdown/damage. Only solid rubble retains the block silhouette.
             let shape = SKShapeNode(path: patch.outlinePath())
@@ -2889,9 +2889,7 @@ final class OutpostScene: SKScene {
                 let material = patch.kind == .acid ? "acid" : "water"
                 let biome = worldMapIndex == 1 ? "toxic"
                     : (worldMapIndex == 2 ? "industrial" : "frost")
-                let assetName = "terrain_\(biome)_\(material)_\(roomHazards.firstIndex(where: {
-                    $0.frame == patch.frame && $0.kind == patch.kind
-                }) ?? 0)"
+                let assetName = "terrain_\(biome)_\(material)_\(hazardIndex)"
                 if let illustration = productionImage(named: assetName) {
                     let texture = SKTexture(image: illustration)
                     texture.filteringMode = .linear
