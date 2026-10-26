@@ -1587,6 +1587,24 @@ final class OutpostScene: SKScene {
             phase = .levelUp
             updateHUD()
         }
+        // Deterministic real-game captures for reviewing each new biome.
+        // These are the actual gameplay scenes, not concept mockups.
+        if ProcessInfo.processInfo.arguments.contains("-captureToxicTerrainScreenshot") ||
+           ProcessInfo.processInfo.arguments.contains("-captureIronTerrainScreenshot") ||
+           ProcessInfo.processInfo.arguments.contains("-captureFrostTerrainScreenshot") {
+            let arguments = ProcessInfo.processInfo.arguments
+            worldMapIndex = arguments.contains("-captureToxicTerrainScreenshot") ? 1
+                : (arguments.contains("-captureIronTerrainScreenshot") ? 2 : 3)
+            wave = 0
+            gateUnlocked = true
+            startWave()
+            precondition(roomHazards.count == 3 &&
+                         hazardScenery.children.count == 3,
+                         "Biome screenshot must contain both pockets and rubble")
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot") {
             wave = 11
             gateUnlocked = true
