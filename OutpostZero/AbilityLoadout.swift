@@ -69,6 +69,7 @@ enum TacticalDraftRules {
         futureCatalog.first(where: { $0.id == id })?.rarity
     }
     static func weight(for id: String) -> Int {
+        if id == "evolveOrbit" { return 8 }
         switch rarity(for: id) {
         case .common: return 17
         case .rare: return 9
