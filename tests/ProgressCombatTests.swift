@@ -165,6 +165,26 @@ struct ProgressCombatTests {
                      reopened?.progress.level == 2 &&
                      reopened?.abilities == ["chain", "incendiary", "orbit"])
         precondition(reopened?.timedEncounterElapsed == nil)
+        // Legacy schema-4 saves omit the evolution field and must decode.
+        precondition(reopened?.energyWheelEvolved == nil)
+        var evolvedSave = saved
+        evolvedSave.energyWheelEvolved = true
+        // A World 1 save with insufficient synergy cannot claim evolution.
+        precondition(!evolvedSave.isValid)
+        evolvedSave = RunSnapshot(
+            version: RunSnapshot.schema, worldIndex: 2, room: 12,
+            location: .battle, health: 75, coins: 200, damage: 4, fireRate: 3,
+            chainLevel: 2, explosiveLevel: 0, incendiaryLevel: 0,
+            orbitLevel: 3, runArmor: 0, checkpointUsed: false,
+            checkpointPresented: false, progress: restoredProgress,
+            abilities: ["orbit", "chain"], earnedSalvage: 0,
+            roomSalvageCredit: 0, roomCoinCredit: 0, roomXPCredit: 0)
+        evolvedSave.energyWheelEvolved = true
+        precondition(evolvedSave.isValid && recover.save(evolvedSave))
+        precondition(recover.load()?.energyWheelEvolved == true)
+        // Restore the baseline save before testing timed-room recovery.
+        precondition(recover.save(saved))
+
         var timedSave = saved
         timedSave.timedEncounterElapsed = 83.5
         timedSave.timedEncounterSpawned = 42
