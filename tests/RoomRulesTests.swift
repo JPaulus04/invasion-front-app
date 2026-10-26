@@ -172,6 +172,19 @@ struct RoomRulesTests {
         precondition(toxicPatches[0].frame.intersection(toxicPatches[1].frame).isNull,
                      "Acid pockets should remain separate, not form one oversized pool")
         precondition(toxicPatches[0].frame.height <= reference.height * 0.25)
+        // Separate pockets must retain real damage and collision behavior.
+        let secondaryAcid = CGPoint(x: toxicPatches[1].frame.midX,
+                                    y: toxicPatches[1].frame.midY)
+        precondition(TerrainHazards.acidTouches(
+            secondaryAcid, patches: toxicPatches, at: 2.5))
+        precondition(!TerrainHazards.acidTouches(
+            secondaryAcid, patches: toxicPatches, at: 5.5))
+        let secondWater = CGPoint(x: patches[1].frame.midX,
+                                  y: patches[1].frame.midY)
+        precondition(TerrainHazards.blocksMovement(
+            secondWater, patches: patches),
+            "Second water pocket must block movement")
+
         let toxic = CGPoint(x: toxicPatches[0].frame.midX, y: toxicPatches[0].frame.midY)
         precondition(!TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 1.5))
         precondition(TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 2.5))
