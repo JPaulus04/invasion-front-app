@@ -1893,11 +1893,25 @@ final class OutpostScene: SKScene {
         // Distinctive landmarks make camera movement apparent and help
         // orient the player across the wider battlefield. Decorative only:
         // these do not create unimplemented collision barriers.
-        for index in 0..<4 {
-            let x = roomBounds.minX + roomBounds.width *
-                CGFloat([0.13, 0.83, 0.21, 0.77][index])
-            let y = roomBounds.minY + roomBounds.height *
-                CGFloat([0.27, 0.32, 0.73, 0.79][index])
+        // Three open survival compositions, selected deterministically per
+        // world and wave. Landmarks remain decorative and close to the edge:
+        // none can obstruct movement or create invisible collision.
+        let survivalLayout = (max(0, wave - 1) + worldMapIndex) % 3
+        let landmarkPositions: [(CGFloat, CGFloat)]
+        switch survivalLayout {
+        case 0: // Ruined perimeter: asymmetric corners.
+            landmarkPositions = [(0.11, 0.24), (0.88, 0.34),
+                                 (0.18, 0.75), (0.84, 0.86)]
+        case 1: // Staggered edges: alternate approaches remain open.
+            landmarkPositions = [(0.14, 0.16), (0.83, 0.48),
+                                 (0.12, 0.65), (0.87, 0.91)]
+        default: // Open clearing: landmarks grouped near far corners.
+            landmarkPositions = [(0.10, 0.13), (0.89, 0.16),
+                                 (0.11, 0.87), (0.90, 0.89)]
+        }
+        for index in landmarkPositions.indices {
+            let x = roomBounds.minX + roomBounds.width * landmarkPositions[index].0
+            let y = roomBounds.minY + roomBounds.height * landmarkPositions[index].1
             let shadow = SKShapeNode(ellipseOf: CGSize(width: 90, height: 30))
             shadow.position = CGPoint(x: x + 5, y: y - 11)
             shadow.fillColor = SKColor.black.withAlphaComponent(0.27)
