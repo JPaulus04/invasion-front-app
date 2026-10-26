@@ -2922,6 +2922,20 @@ final class OutpostScene: SKScene {
         recessedWall.zPosition = -0.25
         pool.addChild(recessedWall)
 
+        // A dark inset shelf reads as the vertical cut beneath the rim,
+        // rather than a second flat outline on the arena floor.
+        let innerShelf = SKShapeNode(path: bankPath)
+        innerShelf.name = "terrainInnerShelf"
+        innerShelf.setScale(0.94)
+        innerShelf.position = CGPoint(x: 0, y: -1.8)
+        innerShelf.fillColor = .clear
+        innerShelf.strokeColor = acid
+            ? SKColor(red: 0.10, green: 0.20, blue: 0.07, alpha: 0.80)
+            : SKColor(red: 0.04, green: 0.19, blue: 0.25, alpha: 0.76)
+        innerShelf.lineWidth = 4
+        innerShelf.zPosition = 0.08
+        pool.addChild(innerShelf)
+
         let illuminatedRim = SKShapeNode(path: bankPath)
         illuminatedRim.name = "terrainCutEdge"
         illuminatedRim.position = CGPoint(x: 0, y: 1.6)
