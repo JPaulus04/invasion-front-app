@@ -4296,6 +4296,11 @@ final class OutpostScene: SKScene {
                 let propKinds = ["wall", "boulder", "vegetation", "debris", "lantern", "crate"]
                 let kind = propKinds[(index + wave) % propKinds.count]
                 let assetName = "world1_\(landscape)_\(kind)"
+                // Strict visual captures must not silently accept placeholder props.
+                if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
+                   productionImage(named: assetName) == nil {
+                    preconditionFailure("Missing authored World 1 prop: \(assetName)")
+                }
                 if let art = productionImage(named: assetName) {
                     let texture = SKTexture(image: art)
                     texture.filteringMode = .linear
