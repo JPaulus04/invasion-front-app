@@ -1,7 +1,7 @@
 name: iOS Compile Check
 on:
   push:
-    branches: [outpost-zero]
+    branches: [outpost-zero, build-327]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -77,7 +77,7 @@ jobs:
             test -n "$(find "$APP" -type f -name "pilot_walk_se_$FRAME.png" -print -quit)"
             test -n "$(find "$APP" -type f -name "pilot_walk_sw_$FRAME.png" -print -quit)"
           done
-          for ASSET in pilot_ene.png pilot_nne.png pilot_nnw.png pilot_wnw.png pilot_wsw.png pilot_ssw.png pilot_sse.png pilot_ese.png forest_undergrowth_polished.png field_reactor_polished.png shooter_polished.png lobber_polished.png heavy_polished.png raider_polished.png scout_polished.png grunt_polished.png forest_pine_polished.png forest_broadleaf_polished.png pilot_e.png pilot_ne.png pilot_n.png pilot_nw.png pilot_w.png pilot_sw.png pilot_s.png pilot_se.png pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
+          for ASSET in boss_root_lord.png boss_toxic_matriarch.png boss_warforge.png boss_frost_wraith.png pilot_ene.png pilot_nne.png pilot_nnw.png pilot_wnw.png pilot_wsw.png pilot_ssw.png pilot_sse.png pilot_ese.png forest_undergrowth_polished.png field_reactor_polished.png shooter_polished.png lobber_polished.png heavy_polished.png raider_polished.png scout_polished.png grunt_polished.png forest_pine_polished.png forest_broadleaf_polished.png pilot_e.png pilot_ne.png pilot_n.png pilot_nw.png pilot_w.png pilot_sw.png pilot_s.png pilot_se.png pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
             FOUND="$(find "$APP" -type f -name "$ASSET" -print -quit)"
             if [ -z "$FOUND" ]; then
               echo "::error::$ASSET is missing from the compiled iOS app bundle"
@@ -724,6 +724,11 @@ jobs:
           }
           # Prioritize the two new playable worlds, so simulator trouble
           # cannot hide their first actual render behind older art captures.
+          capture_scene -captureFourthWorldTransitionScreenshot screenshots/build327-frost-expanse.png
+          capture_scene -captureRootLordScreenshot screenshots/build327-root-lord.png
+          capture_scene -captureToxicMatriarchScreenshot screenshots/build327-toxic-matriarch.png
+          capture_scene -captureWarforgeScreenshot screenshots/build327-warforge.png
+          capture_scene -captureFrostWraithScreenshot screenshots/build327-frost-wraith.png
           capture_scene -capturePilotDirectionsScreenshot screenshots/outpost-zero-pilot-directions.png
           capture_scene -captureExpandedArenaLeftScreenshot screenshots/outpost-zero-arena-west.png
           capture_scene -captureExpandedArenaCenterScreenshot screenshots/outpost-zero-arena-center.png
@@ -734,8 +739,8 @@ jobs:
           capture_scene -captureFrontierGuardianScreenshot screenshots/outpost-zero-frontier-guardian-armored.png
           capture_scene -captureFrontierGuardianExposedScreenshot screenshots/outpost-zero-frontier-guardian-exposed.png
           capture_scene -captureFrontierGuardianResolvedScreenshot screenshots/outpost-zero-frontier-guardian-resolved.png
-          capture_scene -captureFloodedBossScreenshot screenshots/outpost-zero-tidal-warden.png
-          capture_scene -captureToxicBossScreenshot screenshots/outpost-zero-toxic-sentinel.png
+          capture_scene -captureWarforgeScreenshot screenshots/outpost-zero-tidal-warden.png
+          capture_scene -captureToxicMatriarchScreenshot screenshots/outpost-zero-toxic-sentinel.png
           capture_scene -captureHomeNavigationScreenshot screenshots/outpost-zero-home-navigation.png
           capture_scene -captureWorldSelectorScreenshot screenshots/outpost-zero-world-selector.png
           capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
@@ -862,7 +867,7 @@ jobs:
           python3 - <<'PY'
           from hashlib import sha256
           from pathlib import Path
-          resting = Path("screenshots/outpost-zero-toxic-crossing.png").read_bytes()
+          resting = Path("screenshots/outpost-zero-flooded-outpost.png").read_bytes()
           active = Path("screenshots/outpost-zero-acid-active.png").read_bytes()
           assert sha256(resting).digest() != sha256(active).digest(), (
               "Active acid presentation must visibly differ from inactive runoff")

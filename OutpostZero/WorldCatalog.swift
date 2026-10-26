@@ -1,6 +1,6 @@
 import Foundation
 
-/// Twenty destinations arranged into five regions. The first three worlds are
+/// Twenty destinations arranged into five regions. The first four worlds are
 /// playable in this milestone; later world cards remain visible but unreleased.
 struct WorldInfo {
     let title: String
@@ -15,14 +15,14 @@ struct WorldInfo {
 
 enum WorldCatalog {
     static let worlds: [WorldInfo] = [
-        WorldInfo(title: "FRONTIER FOREST", region: "FRONTIER", boss: "FOREST GUARDIAN",
+        WorldInfo(title: "FRONTIER FOREST", region: "FRONTIER", boss: "ROOT LORD",
                   brief: "Learn the movement and combat basics", biome: 0, bossStyle: 0, bossHealth: 180, enemyHealthBonus: 0),
-        WorldInfo(title: "FLOODED OUTPOST", region: "FRONTIER", boss: "SCRAPYARD WARDEN",
-                  brief: "Flooded scrapyard: use dry paths to outmaneuver machines", biome: 1, bossStyle: 1, bossHealth: 235, enemyHealthBonus: 1),
-        WorldInfo(title: "TOXIC CROSSING", region: "FRONTIER", boss: "TOXIC SENTINEL",
-                  brief: "Pulsing acid demands careful positioning", biome: 2, bossStyle: 2, bossHealth: 275, enemyHealthBonus: 2),
-        WorldInfo(title: "RUINED BASTION", region: "FRONTIER", boss: "BASTION KEEPER",
-                  brief: "Future world", biome: 0, bossStyle: 0, bossHealth: 300, enemyHealthBonus: 3),
+        WorldInfo(title: "TOXIC CROSSING", region: "FRONTIER", boss: "TOXIC MATRIARCH",
+                  brief: "Poisoned ruins: dodge acid volleys and mutant swarms", biome: 2, bossStyle: 2, bossHealth: 235, enemyHealthBonus: 1),
+        WorldInfo(title: "IRON WASTES", region: "FRONTIER", boss: "WARFORGE",
+                  brief: "Industrial stronghold: read volleys and dodge machines", biome: 1, bossStyle: 1, bossHealth: 275, enemyHealthBonus: 2),
+        WorldInfo(title: "FROST EXPANSE", region: "FRONTIER", boss: "FROST WRAITH",
+                  brief: "Frozen frontier: find safe lanes between ice volleys", biome: 4, bossStyle: 3, bossHealth: 300, enemyHealthBonus: 3),
         WorldInfo(title: "ASHEN APPROACH", region: "ASHEN WASTES", boss: "ASH STALKER",
                   brief: "Future world", biome: 3, bossStyle: 0, bossHealth: 330, enemyHealthBonus: 4),
         WorldInfo(title: "FURNACE CHANNEL", region: "ASHEN WASTES", boss: "FURNACE CORE",
@@ -57,7 +57,7 @@ enum WorldCatalog {
                   brief: "Future world", biome: 6, bossStyle: 0, bossHealth: 720, enemyHealthBonus: 20)
     ]
 
-    static let playableCount = 3
+    static let playableCount = 4
     static func info(_ index: Int) -> WorldInfo { worlds[max(0, min(worlds.count - 1, index))] }
 
     private static func starsKey(_ index: Int) -> String { "outpostZero.world.\(index).stars" }
@@ -99,7 +99,7 @@ enum WorldCatalog {
 
     static func unlocked(_ index: Int, storage: UserDefaults = .standard) -> Bool {
         guard (0..<playableCount).contains(index) else { return false }
-        return index == 0 || stars(index - 1, storage: storage) >= 1
+        return index == 0 || completed(index - 1, storage: storage) || stars(index - 1, storage: storage) >= 1
     }
 
     /// Award incremental stars only. Existing World 1 saves retain the

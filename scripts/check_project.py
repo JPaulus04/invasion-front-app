@@ -244,7 +244,7 @@ if "private func advanceToNextWorld()" not in scene:
     errors.append("World-completion buttons must use a guarded next-world transition")
 if 'aimLineLeft' not in scene or 'aimLineRight' not in scene or "wardenVolleyTargets(" not in scene:
     errors.append("Tidal Warden fan must warn visibly before firing three shots")
-if "-captureFloodedBossScreenshot" not in scene or "-captureToxicBossScreenshot" not in scene:
+if not all(flag in scene for flag in ("-captureRootLordScreenshot", "-captureToxicMatriarchScreenshot", "-captureWarforgeScreenshot", "-captureFrostWraithScreenshot")):
     errors.append("Both new worlds must have simulator boss-spawn and attack coverage")
 if '? selectedWorld.title : "OUTPOST ZERO"' not in scene and 'selectedWorld.title : "OUTPOST ZERO")' not in scene:
     if 'wave > 0 && phase != .ready && phase != .loadout' not in scene:
@@ -368,7 +368,7 @@ if "SKShapeNode(ellipseOf:" in art:
     errors.append("Large ellipse terrain stamps must not return")
 if 'flooded.name = "floodedAmbientBackdrop"' not in art:
     errors.append("World 2 must have its own prerendered maritime surface")
-if 'if zone == 1 && worldMapIndex == 1' not in scene:
+if 'if zone == 1 && selectedWorld.biome == 1' not in scene:
     errors.append("Flooded Outpost must not reuse forest broadleaf props")
 if 'toxic.name = "toxicAmbientBackdrop"' not in art:
     errors.append("Toxic Crossing needs a unique ground material")

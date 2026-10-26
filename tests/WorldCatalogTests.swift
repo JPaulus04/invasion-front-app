@@ -7,8 +7,8 @@ struct WorldCatalogTests {
         precondition(WorldCatalog.worlds.map(\.title).count == 20)
         precondition(Set(WorldCatalog.worlds.map(\.title)).count == 20)
         precondition(WorldCatalog.worlds[0].title == "FRONTIER FOREST")
-        precondition(WorldCatalog.worlds[1].title == "FLOODED OUTPOST")
-        precondition(WorldCatalog.worlds[2].title == "TOXIC CROSSING")
+        precondition(WorldCatalog.worlds[1].title == "TOXIC CROSSING")
+        precondition(WorldCatalog.worlds[2].title == "IRON WASTES")
         precondition(WorldCatalog.worlds[19].region == "VOID FRONTIER")
         precondition(WorldCatalog.worlds.map(\.region).filter { $0 == "FRONTIER" }.count == 4)
         let suite = "outpost.zero.world.catalog.test"
@@ -43,8 +43,12 @@ struct WorldCatalogTests {
         precondition(WorldCatalog.recordVictory(2, stars: 2, storage: store) == 2)
         precondition(WorldCatalog.recordVictory(1, stars: 3, storage: store) == 2)
         precondition(WorldCatalog.recordVictory(2, stars: 3, storage: store) == 1)
-        precondition(!WorldCatalog.unlocked(3, storage: store))
-        precondition(WorldCatalog.recordVictory(3, stars: 3, storage: store) == 0)
+        precondition(WorldCatalog.unlocked(3, storage: store))
+        let reopened = UserDefaults(suiteName: suite)!
+        precondition(WorldCatalog.unlocked(3, storage: reopened))
+        precondition(WorldCatalog.recordVictory(3, stars: 3, storage: reopened) == 3)
+        precondition(WorldCatalog.recordVictory(3, stars: 3, storage: reopened) == 0)
+        precondition(!WorldCatalog.unlocked(4, storage: reopened))
         // Preserve historical completed-world rewards when older versions
         // used the original Frontier Forest keys.
         store.removePersistentDomain(forName: suite)
@@ -60,6 +64,11 @@ struct WorldCatalogTests {
         precondition(WorldCatalog.recordVictory(0, stars: 3, storage: store) == 1)
         precondition(WorldCatalog.recordVictory(0, stars: 3, storage: store) == 0)
         store.removePersistentDomain(forName: suite)
+        store.set(true, forKey: "outpostZero.world.2.complete")
+        precondition(WorldCatalog.unlocked(3, storage: store),
+                     "Older completion-only saves must unlock World 4 without awarding new cores")
+        precondition(WorldCatalog.stars(2, storage: store) == 0)
+        store.removePersistentDomain(forName: suite)
         // World 1 rules stay exactly the same. World 2 and 3 introduce
         // early but telegraphed shooters, lobbers and armored threats.
         for room in 1...20 {
@@ -71,10 +80,10 @@ struct WorldCatalogTests {
         precondition(WorldCatalog.enemyType(world: 1, room: 6, roll: 10) == 4)
         precondition(WorldCatalog.enemyType(world: 1, room: 9, roll: 10) == 5)
         precondition(WorldCatalog.enemyType(world: 2, room: 8, roll: 10) == 5)
-        precondition(WorldCatalog.info(1).boss == "SCRAPYARD WARDEN")
-        precondition(WorldCatalog.info(2).boss == "TOXIC SENTINEL")
-        precondition(WorldCatalog.info(1).bossStyle == 1)
-        precondition(WorldCatalog.info(2).bossStyle == 2)
-        print("Twenty-world roadmap, three playable unlocks, legacy progress and per-world core rewards passed")
+        precondition(WorldCatalog.info(1).boss == "TOXIC MATRIARCH")
+        precondition(WorldCatalog.info(2).boss == "WARFORGE")
+        precondition(WorldCatalog.info(1).bossStyle == 2)
+        precondition(WorldCatalog.info(2).bossStyle == 1)
+        print("Twenty-world roadmap, four playable unlocks, legacy progress and per-world core rewards passed")
     }
 }

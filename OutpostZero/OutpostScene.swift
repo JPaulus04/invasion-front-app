@@ -1307,9 +1307,7 @@ final class OutpostScene: SKScene {
             precondition(wave == 20 && enemies.count == 1 && bossNode != nil &&
                          bossNode?.alpha == 1 &&
                          enemies[0].health == selectedWorld.bossHealth &&
-                         bossNode?.childNode(withName: "//guardianCore") != nil &&
-                         bossNode?.childNode(withName: "//guardianArmorLeft") != nil &&
-                         bossNode?.childNode(withName: "guardianArt") != nil &&
+                         bossNode?.childNode(withName: "bossArt") != nil &&
                          bossNode?.childNode(withName: "guardianBossNameplate") != nil,
                          "World 1 boss must show enlarged illustrated Guardian and nameplate")
             if guardianExposed || guardianResolved {
@@ -1472,44 +1470,28 @@ final class OutpostScene: SKScene {
         #endif
         // Real SpriteKit boss integration: stage the final room and
         // confirm each world's attack behavior, health and telegraphs.
-        if ProcessInfo.processInfo.arguments.contains("-captureFloodedBossScreenshot") {
-            worldMapIndex = 1
+        let bossCaptureFlags = ["-captureRootLordScreenshot", "-captureToxicMatriarchScreenshot",
+                                "-captureWarforgeScreenshot", "-captureFrostWraithScreenshot"]
+        if let index = bossCaptureFlags.firstIndex(where: { ProcessInfo.processInfo.arguments.contains($0) }) {
+            worldMapIndex = index
             wave = 19
             gateUnlocked = true
             startWave()
             spawned = waveTarget
             spawnEnemy()
-            precondition(wave == 20 && enemies.count == 1 &&
-                         bossNode != nil && enemies[0].health == selectedWorld.bossHealth &&
-                         zoneBanner.text == "BOSS: TIDAL WARDEN",
-                         "Flooded boss must spawn as the correct final encounter")
+            bossNode?.alpha = 1
+            bossNode?.childNode(withName: "spawnWarning")?.removeFromParent()
+            bossNode?.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY + 75)
+            pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY - 100)
+            precondition(enemies.count == 1 && wave == 20 &&
+                         enemies[0].health == selectedWorld.bossHealth &&
+                         bossNode?.childNode(withName: "bossArt") != nil &&
+                         zoneBanner.text == "BOSS: \(selectedWorld.boss)",
+                         "Boss capture must use the production encounter and artwork")
             combatClock.advance(2.2, playing: true)
             updateRangedAttack(at: 0)
-            precondition(enemies[0].shotTarget != nil &&
-                         bossNode?.childNode(withName: "aimLineLeft") != nil &&
-                         bossNode?.childNode(withName: "aimLineRight") != nil,
-                         "Tidal Warden needs visibly warned fan attack")
-            arena.isPaused = true
-            phase = .levelUp
-            updateHUD()
-        }
-        if ProcessInfo.processInfo.arguments.contains("-captureToxicBossScreenshot") {
-            worldMapIndex = 2
-            wave = 19
-            gateUnlocked = true
-            startWave()
-            spawned = waveTarget
-            spawnEnemy()
-            precondition(wave == 20 && enemies.count == 1 &&
-                         bossNode != nil && enemies[0].health == selectedWorld.bossHealth &&
-                         zoneBanner.text == "BOSS: TOXIC SENTINEL" &&
-                         roomHazards.contains(where: { $0.kind == .acid }),
-                         "Toxic boss must spawn with active terrain hazards")
-            combatClock.advance(2.2, playing: true)
-            updateRangedAttack(at: 0)
-            precondition(lobs.count == 1 &&
-                         lobs[0].marker.childNode(withName: "mortarCountdown") != nil,
-                         "Toxic Sentinel must signal its mortar impact")
+            precondition(!lobs.isEmpty || enemies[0].shotTarget != nil,
+                         "Every boss must present a real combat telegraph")
             arena.isPaused = true
             phase = .levelUp
             updateHUD()
@@ -1524,9 +1506,9 @@ final class OutpostScene: SKScene {
                          "Clearing World 1 must unlock Flooded Outpost")
             precondition(enterSelectedWorld() && wave == 1 &&
                          lockedLoadout.selected.isEmpty &&
-                         roomHazards.contains(where: { $0.kind == .water }) &&
-                         !roomHazards.contains(where: { $0.kind == .acid }),
-                         "World 2 must launch with water and distinct terrain")
+                         roomHazards.contains(where: { $0.kind == .acid }) &&
+                         !roomHazards.contains(where: { $0.kind == .water }),
+                         "World 2 must launch with acid and distinct terrain")
             arena.isPaused = true
             phase = .levelUp
             updateHUD()
@@ -1552,11 +1534,11 @@ final class OutpostScene: SKScene {
             advanceToNextWorld()
             precondition(worldMapIndex == 2 && wave == 1 &&
                          phase == .playing && lockedLoadout.selected.isEmpty &&
-                         roomHazards.contains(where: { $0.kind == .acid }) &&
-                         !roomHazards.contains(where: { $0.kind == .water }),
+                         roomHazards.contains(where: { $0.kind == .water }) &&
+                         !roomHazards.contains(where: { $0.kind == .acid }),
                          "Next world must enter Room 1 with fresh empty abilities")
-            precondition(roomHazards.contains(where: { $0.kind == .acid }),
-                         "Toxic Crossing must start with active acid")
+            precondition(roomHazards.contains(where: { $0.kind == .water }),
+                         "Iron Wastes must start with blocked water channels")
             arena.isPaused = true
             phase = .levelUp
             updateHUD()
@@ -1565,8 +1547,23 @@ final class OutpostScene: SKScene {
         // art and damage boundaries in the same World 3 room as the inactive
         // capture. This is a deterministic QA-only fixture, never a cheat or
         // tutorial bypass in regular gameplay.
-        if ProcessInfo.processInfo.arguments.contains("-captureAcidActiveScreenshot") {
+        if ProcessInfo.processInfo.arguments.contains("-captureFourthWorldTransitionScreenshot") {
+            for index in 0..<2 { _ = WorldCatalog.recordVictory(index, stars: 1) }
             worldMapIndex = 2
+            showReady()
+            precondition(enterSelectedWorld())
+            completeWorld()
+            precondition(WorldCatalog.unlocked(3) && overlayButtons["next_world"] != nil)
+            advanceToNextWorld()
+            precondition(worldMapIndex == 3 && wave == 1 && phase == .playing &&
+                         lockedLoadout.selected.isEmpty && selectedWorld.biome == 4,
+                         "World 3 victory must enter the playable Frost Expanse")
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+        }
+        if ProcessInfo.processInfo.arguments.contains("-captureAcidActiveScreenshot") {
+            worldMapIndex = 1
             wave = 0
             gateUnlocked = true
             startWave()
@@ -2257,21 +2254,22 @@ final class OutpostScene: SKScene {
                 let height = CGFloat(35 + index % 2 * 25) * scale
                 let tower = SKShapeNode(rectOf: CGSize(width: 33 * scale, height: height), cornerRadius: 5)
                 tower.position = CGPoint(x: stageWidth * horizontal, y: -50 * scale + height / 2)
-                tower.fillColor = worldMapIndex == 1
+                tower.fillColor = selectedWorld.biome == 1
                     ? SKColor(red: 0.38, green: 0.49, blue: 0.57, alpha: 1)
                     : SKColor(red: 0.46, green: 0.39, blue: 0.52, alpha: 1)
+                if selectedWorld.biome == 4 { tower.fillColor = .systemCyan }
                 tower.strokeColor = SKColor.white.withAlphaComponent(0.55)
                 tower.zPosition = 1
                 overlay.addChild(tower)
                 let light = SKShapeNode(rectOf: CGSize(width: 20 * scale, height: 6 * scale), cornerRadius: 2)
                 light.position.y = height * 0.24
-                light.fillColor = worldMapIndex == 1 ? .systemCyan : .systemGreen
+                light.fillColor = selectedWorld.biome == 1 ? .systemCyan : .systemGreen
                 light.strokeColor = .clear
                 tower.addChild(light)
             }
             let channel = SKShapeNode(ellipseOf: CGSize(width: stageWidth * 0.64, height: 23 * scale))
             channel.position = CGPoint(x: 0, y: -76 * scale)
-            channel.fillColor = worldMapIndex == 1 ? .systemCyan : .systemGreen
+            channel.fillColor = selectedWorld.biome == 1 ? .systemCyan : .systemGreen
             channel.strokeColor = .white.withAlphaComponent(0.6)
             channel.zPosition = 0.8
             overlay.addChild(channel)
@@ -2667,7 +2665,7 @@ final class OutpostScene: SKScene {
         installHubShell(active: "nav_abilities")
         overlayText("ABILITY LAB", y: 159, fontSize: 24)
         overlayText("\(permanent.salvage) SALVAGE AVAILABLE", y: 125, fontSize: 14)
-        overlayText("MASTERY ONLY WORKS WHEN EQUIPPED", y: 101, fontSize: 11)
+        overlayText("MASTERY BOOSTS ABILITIES YOU DISCOVER", y: 101, fontSize: 11)
         let labels = ["CHAIN LIGHTNING", "EXPLOSIVES", "INCENDIARY", "ORBITAL BLADES"]
         for (index, id) in PersistentProgression.abilities.enumerated() {
             let level = permanent.rank(id)
@@ -2678,7 +2676,7 @@ final class OutpostScene: SKScene {
                          tint: index.isMultiple(of: 2) ? .systemTeal : .systemIndigo,
                          enabled: level < PersistentProgression.maximumRank && permanent.salvage >= price)
         }
-        overlayText("SELECT 3 ABILITIES BEFORE EACH WORLD", y: -158, fontSize: 11)
+        overlayText("DISCOVER ABILITIES DURING EACH RUN", y: -158, fontSize: 11)
         actionButton("BACK TO HOME", key: "hq_back", y: -209, tint: .systemBlue)
         updateHUD()
     }
@@ -3098,7 +3096,7 @@ final class OutpostScene: SKScene {
     private func decorateRubbleObstacle(_ obstacle: SKShapeNode, size: CGSize) {
         let w = size.width
         let h = size.height
-        let maritime = worldMapIndex == 1
+        let maritime = selectedWorld.biome == 1
         let rim = maritime
             ? SKColor(red: 0.55, green: 0.66, blue: 0.64, alpha: 1)
             : SKColor(red: 0.52, green: 0.57, blue: 0.45, alpha: 1)
@@ -3591,10 +3589,13 @@ final class OutpostScene: SKScene {
         if wave == 1 || (wave - 1) % 5 == 0 || wave == worldWaveCount ||
            [4, 9, 14, 19].contains(wave) {
             zoneBanner.removeAllActions()
-            let labels = worldMapIndex == 0 ? zoneNames :
-                (worldMapIndex == 1
-                    ? ["OUTER DOCKS", "FLOODED CHANNEL", "PUMP STATION", "WARDEN PLATFORM"]
-                    : ["TOXIC PERIMETER", "CORROSIVE PASS", "WASTE PROCESSING", "SENTINEL CHAMBER"])
+            let labels: [String]
+            switch selectedWorld.biome {
+            case 2: labels = ["TOXIC PERIMETER", "CORROSIVE PASS", "WASTE PROCESSING", "MATRIARCH NEST"]
+            case 1: labels = ["IRON APPROACH", "COOLANT CHANNEL", "FORGE WORKS", "WARFORGE PLATFORM"]
+            case 4: labels = ["FROZEN PASS", "ICEBOUND RELAY", "GLACIAL TRENCH", "WRAITH SANCTUM"]
+            default: labels = zoneNames
+            }
             zoneBanner.text = wave == worldWaveCount
                 ? "BOSS: \(selectedWorld.boss)"
                 : ([4, 9, 14, 19].contains(wave)
@@ -3661,7 +3662,8 @@ final class OutpostScene: SKScene {
 
     private func worldColor(for zone: Int) -> SKColor {
         if worldMapIndex == 0 { return zoneColors[min(3, max(0, zone))] }
-        let colors: [SKColor] = worldMapIndex == 1 ? [
+        if selectedWorld.biome == 4 { return SKColor(red: 0.16, green: 0.30, blue: 0.44, alpha: 1) }
+        let colors: [SKColor] = selectedWorld.biome == 1 ? [
             SKColor(red: 0.11, green: 0.22, blue: 0.29, alpha: 1),
             SKColor(red: 0.10, green: 0.20, blue: 0.25, alpha: 1),
             SKColor(red: 0.13, green: 0.19, blue: 0.24, alpha: 1),
@@ -3907,20 +3909,28 @@ final class OutpostScene: SKScene {
         // Later worlds emphasize industrial ruins rather than using the
         // forest's illustrated pines for every environment.
         let zone = worldMapIndex == 0 ? requestedZone :
-            (worldMapIndex == 1 ? max(1, requestedZone) : max(2, requestedZone))
+            (selectedWorld.biome == 1 ? max(1, requestedZone) : max(2, requestedZone))
         zoneScenery.removeAllChildren()
         // Forest art is atmospheric, not terrain geometry. Only World 1
         // displays the continuous forest texture; later worlds retain their
         // distinct opaque industrial and toxic environment palettes.
         let roomArt = arena.childNode(withName: "roomArtwork")
         let nonForestWorld = worldMapIndex != 0
+        if selectedWorld.biome == 4 {
+            let frost = SKSpriteNode(texture: FrostFloorArt.texture(for: size))
+            frost.name = "frostAmbientBackdrop"
+            frost.size = size
+            frost.position = CGPoint(x: size.width / 2, y: size.height / 2)
+            frost.zPosition = -19
+            zoneScenery.addChild(frost)
+        }
         roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = nonForestWorld
-        roomArt?.childNode(withName: "floodedAmbientBackdrop")?.isHidden = worldMapIndex != 1
-        roomArt?.childNode(withName: "toxicAmbientBackdrop")?.isHidden = worldMapIndex != 2
+        roomArt?.childNode(withName: "floodedAmbientBackdrop")?.isHidden = selectedWorld.biome != 1
+        roomArt?.childNode(withName: "toxicAmbientBackdrop")?.isHidden = selectedWorld.biome != 2
         if let floor = roomArt?.childNode(withName: "roomFloor") as? SKShapeNode {
-            floor.fillColor = worldMapIndex == 2
+            floor.fillColor = selectedWorld.biome == 2
                 ? SKColor(red: 0.18, green: 0.22, blue: 0.14, alpha: 0.13)
-                : (worldMapIndex == 1
+                : (selectedWorld.biome == 1
                     ? SKColor(red: 0.10, green: 0.19, blue: 0.23, alpha: 0.14)
                     : (zone == 1
                     ? SKColor(red: 0.16, green: 0.25, blue: 0.20, alpha: 0.16)
@@ -3933,7 +3943,7 @@ final class OutpostScene: SKScene {
         // Scrapyard floors need a separate visual identity from the forest.
         // Faded plate seams and scattered bolt heads are purely atmospheric;
         // they do not modify water hazard geometry or movement collision.
-        if worldMapIndex == 1 {
+        if selectedWorld.biome == 1 {
             let floorDetail = SKNode()
             floorDetail.name = "scrapyardFloorDetail"
             floorDetail.zPosition = -0.75
@@ -3994,7 +4004,7 @@ final class OutpostScene: SKScene {
             }
         }
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
-        let count = worldMapIndex == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3))
+        let count = selectedWorld.biome == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3))
         let roomVariant = (wave - 1) % 4
         for index in 0..<count {
             let leftSide = (index + roomVariant).isMultiple(of: 2)
@@ -4034,10 +4044,33 @@ final class OutpostScene: SKScene {
             // The old guardian-zone props were intentionally ghostly red
             // beacons; their illustrated tree replacements must be opaque.
             prop.alpha = worldMapIndex == 0 && zone == 3 ? 0.94 :
-                (worldMapIndex == 2 ? 0.94 :
+                (selectedWorld.biome == 2 ? 0.94 :
                     (zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55)))
             prop.position = CGPoint(x: x, y: y)
             zoneScenery.addChild(prop)
+            if selectedWorld.biome == 4 {
+                prop.fillColor = .clear
+                prop.strokeColor = .clear
+                prop.alpha = 0.95
+                for shard in 0..<3 {
+                    let h = CGFloat(24 + (index * 11 + shard * 17) % 35)
+                    let path = CGMutablePath()
+                    path.move(to: CGPoint(x: -7, y: -8))
+                    path.addLine(to: CGPoint(x: -5, y: h * 0.65))
+                    path.addLine(to: CGPoint(x: 1, y: h))
+                    path.addLine(to: CGPoint(x: 9, y: h * 0.55))
+                    path.addLine(to: CGPoint(x: 7, y: -8))
+                    path.closeSubpath()
+                    let crystal = SKShapeNode(path: path)
+                    crystal.fillColor = SKColor(red: 0.18, green: 0.51, blue: 0.74, alpha: 1)
+                    crystal.strokeColor = SKColor(red: 0.65, green: 0.90, blue: 1, alpha: 1)
+                    crystal.lineWidth = 1.5
+                    crystal.position.x = CGFloat(shard - 1) * 12
+                    crystal.zRotation = CGFloat(shard - 1) * -0.15
+                    prop.addChild(crystal)
+                }
+                continue
+            }
             if zone == 3 && worldMapIndex == 0 {
                 // Organic side framing leaves the pilot's central travel lane
                 // clear and restores recognizable Frontier Forest identity
@@ -4084,7 +4117,7 @@ final class OutpostScene: SKScene {
                     .fadeAlpha(to: 1, duration: 0.75)
                 ])))
             }
-            if zone == 2 && worldMapIndex != 2 {
+            if zone == 2 && selectedWorld.biome != 2 {
                 // Weathered ruins: cracked capstone and recessed masonry joint.
                 let cap = SKShapeNode(rectOf: CGSize(width: 30, height: 6), cornerRadius: 1)
                 cap.fillColor = SKColor(red: 0.43, green: 0.47, blue: 0.45, alpha: 1)
@@ -4099,11 +4132,11 @@ final class OutpostScene: SKScene {
                 seam.zPosition = 1
                 prop.addChild(seam)
             }
-            if worldMapIndex == 2 {
+            if selectedWorld.biome == 2 {
                 addToxicEdgeProp(to: prop, index: index,
                                  leftSide: leftSide, guardian: zone == 3)
             }
-            if worldMapIndex == 1 && index.isMultiple(of: 2) {
+            if selectedWorld.biome == 1 && index.isMultiple(of: 2) {
                 // World 2 scrapyard identity: layered salvaged plating and
                 // riveted beams frame the flooded industrial arena. Decorative
                 // only: the existing water hazard owns collision and slowdown.
@@ -4141,7 +4174,7 @@ final class OutpostScene: SKScene {
                     prop.addChild(beam)
                 }
             }
-            if zone == 1 && worldMapIndex == 1 {
+            if zone == 1 && selectedWorld.biome == 1 {
                 // Flooded Outpost has metal piers, eroded blocks and driftwood,
                 // not broadleaf trees borrowed from the forest. These are
                 // decorative edge props; water slowdowns come from hazards.
@@ -4747,7 +4780,7 @@ final class OutpostScene: SKScene {
         if type == 5 { node.fillColor = .systemOrange }
         node.strokeColor = type == 1 ? .systemYellow : .white
         node.lineWidth = type == 1 ? 4 : 2
-        if isBoss && (worldMapIndex == 0 || worldMapIndex == 1) {
+        if isBoss {
             node.fillColor = .clear
             node.strokeColor = .clear
         }
@@ -4891,148 +4924,7 @@ final class OutpostScene: SKScene {
         if !usesIllustratedEnemy && !isBoss {
             node.addChild(core)
         }
-        if isBoss && worldMapIndex == 1 {
-            // The World 2 warden is a salvaged industrial machine, not a
-            // recolored forest guardian. All additions are visual only.
-            let chassis = SKShapeNode(rectOf: CGSize(width: 92, height: 53),
-                                       cornerRadius: 9)
-            chassis.name = "scrapyardWardenChassis"
-            chassis.fillColor = SKColor(red: 0.24, green: 0.30,
-                                        blue: 0.35, alpha: 1)
-            chassis.strokeColor = .systemOrange
-            chassis.lineWidth = 3
-            chassis.zPosition = 1.5
-            node.addChild(chassis)
-            // Wide demolition arms establish a readable silhouette.
-            for side: CGFloat in [-1, 1] {
-                let arm = SKShapeNode(rectOf: CGSize(width: 24, height: 48),
-                                      cornerRadius: 7)
-                arm.name = "scrapyardWardenDemolitionArm"
-                arm.position = CGPoint(x: side * 57, y: -5)
-                arm.fillColor = SKColor(red: 0.34, green: 0.36, blue: 0.36, alpha: 1)
-                arm.strokeColor = .systemOrange
-                arm.lineWidth = 2
-                arm.zPosition = 1.8
-                node.addChild(arm)
-                let claw = SKShapeNode(rectOf: CGSize(width: 31, height: 17),
-                                        cornerRadius: 4)
-                claw.position = CGPoint(x: side * 57, y: -32)
-                claw.fillColor = .darkGray
-                claw.strokeColor = .lightGray
-                claw.lineWidth = 2
-                claw.zPosition = 2
-                node.addChild(claw)
-            }
-            let head = SKShapeNode(rectOf: CGSize(width: 54, height: 23),
-                                    cornerRadius: 6)
-            head.name = "scrapyardWardenHead"
-            head.position.y = 35
-            head.fillColor = SKColor(red: 0.16, green: 0.23, blue: 0.30, alpha: 1)
-            head.strokeColor = .systemBlue
-            head.lineWidth = 2
-            head.zPosition = 2.3
-            node.addChild(head)
-            let visor = SKShapeNode(rectOf: CGSize(width: 34, height: 7),
-                                     cornerRadius: 3)
-            visor.name = "scrapyardWardenVisor"
-            visor.position.y = 35
-            visor.fillColor = .systemCyan
-            visor.strokeColor = .clear
-            visor.glowWidth = 3
-            visor.zPosition = 2.6
-            node.addChild(visor)
-            for side: CGFloat in [-1, 1] {
-                let piston = SKShapeNode(rectOf: CGSize(width: 16, height: 43),
-                                         cornerRadius: 3)
-                piston.fillColor = .darkGray
-                piston.strokeColor = .lightGray
-                piston.lineWidth = 2
-                piston.position = CGPoint(x: side * 43, y: -9)
-                piston.zPosition = 1.7
-                node.addChild(piston)
-            }
-            // Layered shoulder housings and hazard stripes make the
-            // industrial silhouette legible at normal gameplay zoom.
-            for side: CGFloat in [-1, 1] {
-                let shoulder = SKShapeNode(rectOf: CGSize(width: 30, height: 23),
-                                           cornerRadius: 5)
-                shoulder.position = CGPoint(x: side * 40, y: 22)
-                shoulder.fillColor = SKColor(red: 0.47, green: 0.51,
-                                             blue: 0.53, alpha: 1)
-                shoulder.strokeColor = .black
-                shoulder.lineWidth = 2
-                shoulder.zPosition = 2.35
-                node.addChild(shoulder)
-                let stripe = SKShapeNode(rectOf: CGSize(width: 18, height: 5),
-                                         cornerRadius: 1)
-                stripe.position = CGPoint(x: side * 40, y: 23)
-                stripe.zRotation = side * .pi / 6
-                stripe.fillColor = .systemYellow
-                stripe.strokeColor = .clear
-                stripe.zPosition = 2.4
-                node.addChild(stripe)
-                let exhaust = SKShapeNode(rectOf: CGSize(width: 13, height: 24),
-                                          cornerRadius: 3)
-                exhaust.position = CGPoint(x: side * 25, y: 51)
-                exhaust.fillColor = .darkGray
-                exhaust.strokeColor = .systemOrange
-                exhaust.lineWidth = 2
-                exhaust.zPosition = 1.9
-                node.addChild(exhaust)
-            }
-            let furnace = SKShapeNode(circleOfRadius: 13)
-            furnace.name = "scrapyardWardenFurnace"
-            furnace.fillColor = .systemOrange
-            furnace.strokeColor = .systemYellow
-            furnace.lineWidth = 3
-            furnace.glowWidth = 5
-            furnace.zPosition = 2.5
-            node.addChild(furnace)
-        }
-        if isBoss && worldMapIndex == 2 {
-            // Toxic-world guardian retains its separate armor language,
-            // keeping its silhouette distinct from the scrapyard machine.
-            let crown = SKShapeNode(rectOf: CGSize(width: radius * 1.7, height: 12), cornerRadius: 3)
-            crown.fillColor = .systemGreen
-            crown.strokeColor = .white
-            crown.lineWidth = 2
-            crown.position.y = radius * 0.8
-            crown.zPosition = 2
-            node.addChild(crown)
-            let eye = SKShapeNode(rectOf: CGSize(width: radius * 0.9, height: 10), cornerRadius: 3)
-            eye.fillColor = .systemGreen
-            eye.strokeColor = .white
-            eye.position.y = radius * 0.14
-            eye.zPosition = 3
-            node.addChild(eye)
-            // Toxic guardian side armor reinforces its chemical identity.
-            for side: CGFloat in [-1, 1] {
-                let guardPlate = SKShapeNode(rectOf: CGSize(width: 18, height: 28), cornerRadius: 5)
-                guardPlate.position = CGPoint(x: side * radius * 0.83, y: -5)
-                guardPlate.fillColor = .systemGreen
-                guardPlate.strokeColor = .systemYellow
-                guardPlate.lineWidth = 2
-                guardPlate.zPosition = 2
-                node.addChild(guardPlate)
-            }
-            let reactor = SKShapeNode(circleOfRadius: 9)
-            reactor.position = CGPoint(x: 0, y: -radius * 0.42)
-            reactor.fillColor = .systemGreen
-            reactor.strokeColor = .white
-            reactor.glowWidth = 5
-            reactor.zPosition = 4
-            node.addChild(reactor)
-        }
-        if isBoss && worldMapIndex == 0 {
-            // Scale only illustration children. Enemy's combat location,
-            // radius, attack timing and movement remain unchanged.
-            let art = SKShapeNode()
-            art.name = "guardianArt"
-            art.zPosition = 1
-            art.setScale(1.14)
-            installFrontierGuardianArtwork(on: art)
-            node.addChild(art)
-        }
+        if isBoss { BossArtwork.install(on: node, world: worldMapIndex) }
         if type >= 4 && !usesIllustratedEnemy && !isBoss {
             let weapon = SKShapeNode(rectOf: CGSize(width: type == 5 ? 22 : 8, height: 26), cornerRadius: 3)
             weapon.fillColor = type == 5 ? .systemYellow : .systemCyan
@@ -5130,6 +5022,10 @@ final class OutpostScene: SKScene {
                 in: roomBounds, radius: radius,
                 pilot: pilot.position, candidates: candidates)
         }
+        if isBoss {
+            node.position = CGPoint(x: roomBounds.midX,
+                                    y: min(roomBounds.maxY - 140, roomBounds.midY + 70))
+        }
         node.alpha = 0.28
         let spawnRing = SKShapeNode(circleOfRadius: radius + 9)
         spawnRing.name = "spawnWarning"
@@ -5159,13 +5055,10 @@ final class OutpostScene: SKScene {
             ? 70 : max(1, Int((Double(baseEnemyHP) * healthFactor).rounded()))
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         // Keep the track and fill together above the larger illustrated sprite.
-        let guardianBoss = isBoss && worldMapIndex == 0
-        let wardenBoss = isBoss && worldMapIndex == 1
-        // The Warden's tall mechanical head must not overlap its health bar.
-        let healthBarOffset: CGFloat = guardianBoss ? 127 :
-            (wardenBoss ? 79 : (usesIllustratedEnemy ? radius * 1.39 + 9 : radius + 12))
-        let barWidth: CGFloat = (guardianBoss || wardenBoss) ? 148 : radius * 2.2
-        let barHeight: CGFloat = (guardianBoss || wardenBoss) ? 8 : 5
+        let healthBarOffset: CGFloat = isBoss ? 118 :
+            (usesIllustratedEnemy ? radius * 1.39 + 9 : radius + 12)
+        let barWidth: CGFloat = isBoss ? 148 : radius * 2.2
+        let barHeight: CGFloat = isBoss ? 8 : 5
         let healthTrack = SKShapeNode(rectOf: CGSize(
             width: barWidth, height: barHeight), cornerRadius: barHeight / 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
@@ -5179,12 +5072,12 @@ final class OutpostScene: SKScene {
         healthBar.position.y = healthBarOffset
         healthBar.zPosition = 2
         node.addChild(healthBar)
-        if guardianBoss {
+        if isBoss {
             // The named boss bar is legible at iPhone scale, unlike the same
             // tiny anonymous bar used for grunts.
             let nameplate = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             nameplate.name = "guardianBossNameplate"
-            nameplate.text = "FOREST GUARDIAN"
+            nameplate.text = selectedWorld.boss
             nameplate.fontSize = 11
             nameplate.fontColor = .systemYellow
             nameplate.position.y = healthBarOffset + 13
@@ -5602,7 +5495,7 @@ final class OutpostScene: SKScene {
             guard combatTime >= enemy.fireAt else { return }
             enemy.node.childNode(withName: "aimLine")?.removeFromParent()
             enemy.node.childNode(withName: "aimReticle")?.removeFromParent()
-            if enemy.node === bossNode && selectedWorld.bossStyle == 1 {
+            if enemy.node === bossNode && (selectedWorld.bossStyle == 1 || selectedWorld.bossStyle == 3) {
                 for direction in CombatRules.wardenVolleyTargets(
                     origin: enemy.node.position, target: target) {
                     fireProjectile(from: enemy.node.position, toward: direction)
@@ -5617,7 +5510,7 @@ final class OutpostScene: SKScene {
             // three-lane volley once its armor is badly damaged. This
             // changes attack cadence, not projectile speed or warning time.
             let damagedWarden = enemy.node === bossNode &&
-                worldMapIndex == 1 && selectedWorld.bossStyle == 1 &&
+                worldMapIndex == 2 && selectedWorld.bossStyle == 1 &&
                 scrapyardWardenEnraged
             let baseCooldown = CombatRules.shooterCooldown(room: wave)
             enemies[index].nextAttack = combatTime +
@@ -5634,6 +5527,10 @@ final class OutpostScene: SKScene {
                 enemies[index].nextAttack = combatTime +
                     (enemy.node === bossNode ? 2.8 : CombatRules.lobberCooldown(room: wave))
             } else {
+                if enemy.node === bossNode && selectedWorld.bossStyle == 3 {
+                    let flank = FrontierGuardianRules.flankTarget(pilot: pilot.position, bounds: roomBounds)
+                    launchLob(from: enemy.node.position, target: flank)
+                }
                 // Lock the aim before firing so the player can sidestep it.
                 enemies[index].shotTarget = pilot.position
                 enemies[index].fireAt = combatTime + CombatRules.shooterTelegraph(room: wave)
@@ -5647,14 +5544,14 @@ final class OutpostScene: SKScene {
                 // The scrapyard boss has a distinct orange warning language.
                 // Keep all three volley lanes visible for the full wind-up.
                 let wardenOverdrive = enemy.node === bossNode &&
-                    worldMapIndex == 1 && scrapyardWardenEnraged
+                    worldMapIndex == 2 && scrapyardWardenEnraged
                 aim.strokeColor = wardenOverdrive
                     ? .systemOrange.withAlphaComponent(0.95)
                     : .systemPink.withAlphaComponent(0.85)
                 aim.lineWidth = wardenOverdrive ? 3.5 : 3
                 aim.zPosition = 6
                 enemy.node.addChild(aim)
-                if enemy.node === bossNode && selectedWorld.bossStyle == 1 {
+                if enemy.node === bossNode && (selectedWorld.bossStyle == 1 || selectedWorld.bossStyle == 3) {
                     let targets = CombatRules.wardenVolleyTargets(
                         origin: enemy.node.position, target: pilot.position)
                     for (index, direction) in [targets[0], targets[2]].enumerated() {
@@ -5714,7 +5611,7 @@ final class OutpostScene: SKScene {
         let dy = target.y - origin.y
         let length = max(1, hypot(dx, dy))
         let node = SKShapeNode(circleOfRadius: 6)
-        node.fillColor = .systemPink
+        node.fillColor = wave == worldWaveCount ? BossArtwork.colors[min(3, worldMapIndex)] : .systemPink
         node.strokeColor = .white
         node.lineWidth = 2
         node.position = origin
@@ -6164,19 +6061,7 @@ final class OutpostScene: SKScene {
             }
             guardianTransitionUntil = combatTime + FrontierGuardianRules.transitionSeconds
             enemies[index].health = threshold
-            for name in ["guardianArmorLeft", "guardianArmorRight"] {
-                if let armor = bossNode.childNode(withName: "//\(name)") as? SKShapeNode {
-                    armor.fillColor = .darkGray
-                    armor.strokeColor = .systemOrange
-                    armor.run(.sequence([.rotate(byAngle: name == "guardianArmorLeft"
-                        ? 0.22 : -0.22, duration: 0.30)]))
-                }
-            }
-            if let core = bossNode.childNode(withName: "//guardianCore") as? SKShapeNode {
-                core.fillColor = .systemOrange
-                core.strokeColor = .systemYellow
-                core.glowWidth = 10
-            }
+            BossArtwork.enrage(bossNode)
             let alert = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             alert.name = "guardianCoreAwakened"
             alert.text = "CORE EXPOSED"
@@ -6208,7 +6093,7 @@ final class OutpostScene: SKScene {
     }
 
     private func updateScrapyardWardenPhase() {
-        guard worldMapIndex == 1, wave == worldWaveCount,
+        guard worldMapIndex == 2, wave == worldWaveCount,
               !scrapyardWardenEnraged, !roomCleared,
               let bossNode,
               let enemy = enemies.first(where: { $0.node === bossNode }),
@@ -6217,18 +6102,7 @@ final class OutpostScene: SKScene {
         // The overdrive phase is authoritative for both the visual warning
         // and the faster volley cadence. Avoid a silent speed-up before the
         // player has received the phase-change cue.
-        if let furnace = bossNode.childNode(withName: "scrapyardWardenFurnace") as? SKShapeNode {
-            furnace.fillColor = .systemRed
-            furnace.strokeColor = .systemYellow
-            furnace.glowWidth = 12
-        }
-        if let visor = bossNode.childNode(withName: "scrapyardWardenVisor") as? SKShapeNode {
-            visor.fillColor = .systemOrange
-            visor.glowWidth = 7
-        }
-        if let chassis = bossNode.childNode(withName: "scrapyardWardenChassis") as? SKShapeNode {
-            chassis.strokeColor = .systemRed
-        }
+        BossArtwork.enrage(bossNode)
         let alert = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         alert.name = "scrapyardOverdriveWarning"
         alert.text = "OVERDRIVE"

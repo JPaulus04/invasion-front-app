@@ -88,8 +88,9 @@ enum TerrainHazards {
                             y: 0.79, width: 0.24, height: 0.11,
                             bounds: bounds, alternate: alternate)
         switch world {
-        case 1: return [water, barrier] // Flooded Outpost: impassable channels and debris
-        case 2: return [acid, barrier] // Toxic Crossing: pulsing acid and blocked paths
+        case 2: return [water, barrier] // Flooded Outpost: impassable channels and debris
+        case 1: return [acid, barrier] // Toxic Crossing: pulsing acid and blocked paths
+        case 3: return [water, barrier]
         default: return [water, acid, barrier]
         }
     }

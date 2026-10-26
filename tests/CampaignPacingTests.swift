@@ -28,8 +28,8 @@ struct CampaignPacingTests {
             precondition(bounds.contains(entry))
             precondition(hypot(entry.x - flankPilot.x, entry.y - flankPilot.y) >= 95)
         }
-        let expectedSurvival = [3, 3, 3]
-        let expectedDefense = [1, 0, 1]
+        let expectedSurvival = [3, 3, 3, 3]
+        let expectedDefense = [1, 0, 1, 0]
         for world in 0..<WorldCatalog.playableCount {
             var timed = 0
             var survival = 0

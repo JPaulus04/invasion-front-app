@@ -9,7 +9,7 @@ enum EnemyCombatFeedback {
             .colorize(with: .white, colorBlendFactor: 0.72, duration: 0.035),
             .colorize(withColorBlendFactor: 0, duration: 0.13)
         ]), withKey: "enemyHitFeedback")
-        guard let art = enemy.childNode(withName: "enemyArt") as? SKSpriteNode else { return }
+        guard let art = (enemy.childNode(withName: "enemyArt") ?? enemy.childNode(withName: "bossArt")) as? SKSpriteNode else { return }
         art.removeAction(forKey: "spriteHitFeedback")
         art.run(.sequence([
             .colorize(with: .white, colorBlendFactor: 0.88, duration: 0.045),
@@ -79,7 +79,7 @@ enum EnemyCombatFeedback {
             (role == 4 ? .systemCyan :
              (role == 5 ? .systemOrange :
               (role == 2 ? .systemPurple : .systemRed)))
-        if let sprite = enemy.childNode(withName: "enemyArt") as? SKSpriteNode,
+        if let sprite = (enemy.childNode(withName: "enemyArt") ?? enemy.childNode(withName: "bossArt")) as? SKSpriteNode,
            let texture = sprite.texture {
             let echo = SKSpriteNode(texture: texture)
             echo.name = "enemyDefeatEcho"

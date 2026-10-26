@@ -88,7 +88,7 @@ struct RoomRulesTests {
         let exit = CGPoint(x: reference.midX, y: reference.maxY - 24)
         precondition(TerrainHazards.patches(world: 0, room: 18, bounds: reference).isEmpty)
         for room in 1...20 {
-            let hazards = TerrainHazards.patches(world: 1, room: room, bounds: reference)
+            let hazards = TerrainHazards.patches(world: 2, room: room, bounds: reference)
             precondition(hazards.count == 2)
             precondition(!hazards.contains { $0.kind == .acid })
             precondition(!hazards.contains { $0.contains(entry, margin: 16) })
@@ -129,7 +129,7 @@ struct RoomRulesTests {
         }
         // Flooded sections span substantial room depth. Impassable collision
         // and the visible polygon must match on every playable device.
-        let patches = TerrainHazards.patches(world: 1, room: 12, bounds: reference)
+        let patches = TerrainHazards.patches(world: 2, room: 12, bounds: reference)
         let watery = patches[0]
         precondition(watery.frame.height >= reference.height * 0.44,
                      "Flooded terrain must be a room section, not a small stamp")
@@ -164,7 +164,7 @@ struct RoomRulesTests {
         let blockedCenter = CGPoint(x: patches[1].frame.midX, y: patches[1].frame.midY)
         precondition(!TerrainHazards.spawnAllowed(blockedCenter, radius: 15, patches: patches))
         precondition(TerrainHazards.spawnAllowed(entry, radius: 15, patches: patches))
-        let toxicPatches = TerrainHazards.patches(world: 2, room: 12, bounds: reference)
+        let toxicPatches = TerrainHazards.patches(world: 1, room: 12, bounds: reference)
         precondition(toxicPatches.count == 2)
         precondition(!toxicPatches.contains { $0.kind == .water })
         precondition(toxicPatches[0].outline.count >= 10)
@@ -175,7 +175,7 @@ struct RoomRulesTests {
         precondition(!TerrainHazards.acidTouches(toxic, patches: toxicPatches, at: 5.5))
         precondition(!TerrainHazards.acidTouches(entry, patches: toxicPatches, at: 2.5))
         for room in 1...20 {
-            let sections = TerrainHazards.patches(world: 2, room: room, bounds: reference)
+            let sections = TerrainHazards.patches(world: 1, room: room, bounds: reference)
             for fraction in 0...20 {
                 let p = CGPoint(x: reference.midX, y: reference.minY +
                     reference.height * CGFloat(fraction) / 20)
@@ -254,7 +254,7 @@ struct RoomRulesTests {
         // Both small and large phones retain the guaranteed safe corridor.
         for screen in [CGSize(width: 320, height: 568), CGSize(width: 768, height: 1024)] {
             let arena = RoomRules.bounds(for: screen)
-            let localPatches = TerrainHazards.patches(world: 1, room: 17, bounds: arena)
+            let localPatches = TerrainHazards.patches(world: 2, room: 17, bounds: arena)
             for i in 0...25 {
                 let p = CGPoint(x: arena.midX,
                     y: arena.minY + arena.height * CGFloat(i) / 25)

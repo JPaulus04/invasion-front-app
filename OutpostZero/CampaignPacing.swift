@@ -191,10 +191,10 @@ enum SurvivalEncounterRules {
     // Three spaced endurance interruptions per 20-room campaign world.
     // Dedicated optional endurance missions use a separate progression path.
     private static let survivalRooms: [[Int]] = [
-        [6, 9, 17], [5, 11, 17], [6, 12, 18]
+        [6, 9, 17], [5, 11, 17], [6, 12, 18], [5, 11, 17]
     ]
     private static let defenseRooms: [[Int]] = [
-        [12], [], [15]
+        [12], [], [15], []
     ]
 
     static func kind(world: Int, room: Int) -> Kind {
