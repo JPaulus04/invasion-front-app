@@ -2947,6 +2947,49 @@ final class OutpostScene: SKScene {
         illuminatedRim.zPosition = 0.12
         pool.addChild(illuminatedRim)
 
+        // Directional terrain masonry: broad, overlapping rock slabs sit
+        // above the cut edge and cast their own offset shadows. Unlike a
+        // concentric outline, these have visible top faces and vertical sides.
+        for index in 0..<8 {
+            let angle = CGFloat(index) * .pi / 4 + (acid ? 0.18 : 0.04)
+            let x = cos(angle) * w * 0.43
+            let y = sin(angle) * h * 0.43
+            let slabWidth = max(7, min(w, h) * (index.isMultiple(of: 3) ? 0.19 : 0.14))
+            let slabHeight = max(4, slabWidth * 0.40)
+            let topPath = CGMutablePath()
+            topPath.move(to: CGPoint(x: -slabWidth * 0.55, y: 0))
+            topPath.addLine(to: CGPoint(x: -slabWidth * 0.26, y: slabHeight * 0.65))
+            topPath.addLine(to: CGPoint(x: slabWidth * 0.36, y: slabHeight * 0.55))
+            topPath.addLine(to: CGPoint(x: slabWidth * 0.54, y: -slabHeight * 0.12))
+            topPath.addLine(to: CGPoint(x: slabWidth * 0.12, y: -slabHeight * 0.42))
+            topPath.closeSubpath()
+            let shadow = SKShapeNode(path: topPath)
+            shadow.position = CGPoint(x: x + 2.4, y: y - 5.5)
+            shadow.fillColor = SKColor(white: 0.04, alpha: 0.54)
+            shadow.strokeColor = .clear
+            shadow.zPosition = 0.42
+            pool.addChild(shadow)
+            let side = SKShapeNode(path: topPath)
+            side.position = CGPoint(x: x, y: y - 3.2)
+            side.fillColor = acid
+                ? SKColor(red: 0.19, green: 0.20, blue: 0.11, alpha: 1)
+                : SKColor(red: 0.13, green: 0.24, blue: 0.27, alpha: 1)
+            side.strokeColor = .clear
+            side.zPosition = 0.43
+            pool.addChild(side)
+            let top = SKShapeNode(path: topPath)
+            top.position = CGPoint(x: x, y: y + 1.4)
+            top.fillColor = acid
+                ? SKColor(red: 0.42 + CGFloat(index % 3) * 0.035,
+                          green: 0.39, blue: 0.25, alpha: 1)
+                : SKColor(red: 0.35, green: 0.46 + CGFloat(index % 3) * 0.025,
+                          blue: 0.45, alpha: 1)
+            top.strokeColor = SKColor(white: 0.80, alpha: 0.20)
+            top.lineWidth = 0.8
+            top.zPosition = 0.44
+            pool.addChild(top)
+        }
+
         // A translucent bank/lip extends a few points beyond the water line.
         // The physical polygon remains exact; this rim is visual sediment and
         // replaces the previous strong, continuous neon-blue/yellow outline.
