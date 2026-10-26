@@ -3516,6 +3516,9 @@ final class OutpostScene: SKScene {
         burns.removeAll()
         chilledUntil.removeAll()
         lastOrbitalHit.removeAll()
+        // Hit throttles are keyed by enemy node identity. Reset them between
+        // rooms so no defeated enemy or stale node survives in cooldown maps.
+        lastEnergyWheelHit.removeAll()
         enemyAcidDamageAt.removeAll()
         roomCleared = false
         checkpointUsed = false
@@ -5861,6 +5864,8 @@ final class OutpostScene: SKScene {
                                                synergyRank: synergyRank)) else { return false }
         energyWheelEvolved = true
         for blade in orbitalNodes { blade.isHidden = true }
+        // Defensive cleanup also covers scene restoration/reentry.
+        energyWheelNode?.removeFromParent()
         let wheel = SKShapeNode(circleOfRadius: 82)
         wheel.name = "energyWheel"
         wheel.fillColor = .clear
