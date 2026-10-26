@@ -209,7 +209,9 @@ enum EncounterDirector {
             let shooterRoll: Int
             switch world {
             case 1: shooterRoll = 19 + seed % 7
-            case 2: shooterRoll = max(25, min(30, 15 + room) + 2)
+            // Worlds 3 and 4 share WorldCatalog's later-world table.
+            // Stay above its mortar threshold and inside its shooter band.
+            case 2...: shooterRoll = max(25, min(30, 15 + room) + 2)
             default: shooterRoll = room >= 11
                 ? min(39, 15 + room) : 6 + seed % 8
             }
