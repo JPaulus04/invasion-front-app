@@ -5874,6 +5874,30 @@ final class OutpostScene: SKScene {
                    destroyed: enemies[index].health <= 0)
             EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
             updateEnemyHealthBar(at: index)
+            // Retain the Arc Blades combination when the individual orbiting
+            // projectiles evolve. Evolution must not remove earned synergies.
+            let reach = AbilitySynergies.bladeArcReach(
+                chain: chainLevel, orbit: orbitLevel)
+            if reach > 0, combatTime >= nextBladeArcAt,
+               let arcIndex = enemies.indices
+                .filter({ $0 != index && enemies[$0].health > 0 &&
+                    combatTime >= enemies[$0].activeAt &&
+                    distance(enemies[$0].node.position, enemy.node.position) <= reach })
+                .min(by: { distance(enemies[$0].node.position, enemy.node.position) <
+                            distance(enemies[$1].node.position, enemy.node.position) }) {
+                nextBladeArcAt = combatTime + AbilitySynergies.bladeArcCooldown
+                let discharge = AbilitySynergies.bladeArcDamage(
+                    chain: chainLevel, orbit: orbitLevel)
+                let arcPosition = enemies[arcIndex].node.position
+                CombatVisuals.chainArc(in: arena, from: enemy.node.position,
+                                       to: arcPosition, rank: chainLevel)
+                enemies[arcIndex].health -= discharge
+                impact(at: arcPosition, color: .systemCyan,
+                       destroyed: enemies[arcIndex].health <= 0)
+                EnemyCombatFeedback.hit(enemies[arcIndex].node,
+                                        from: enemy.node.position)
+                updateEnemyHealthBar(at: arcIndex)
+            }
         }
         removeDefeatedEnemies()
         updateHUD()
