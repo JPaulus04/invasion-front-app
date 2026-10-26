@@ -199,6 +199,34 @@ struct RoomRulesTests {
                              "Acid spill must leave an unobstructed central route")
             }
         }
+        // Every detached hazard remains navigable across supported screen sizes.
+        // Check both parity variants so room alternation cannot introduce
+        // overlapping obstacles or block the center escape lane.
+        for screen in [CGSize(width: 320, height: 568),
+                       CGSize(width: 393, height: 852),
+                       CGSize(width: 768, height: 1024)] {
+            let field = RoomRules.bounds(for: screen)
+            for world in 1...3 {
+                for roomNumber in [1, 2, 9, 20] {
+                    let terrain = TerrainHazards.patches(
+                        world: world, room: roomNumber, bounds: field)
+                    precondition(terrain.count == 3,
+                                 "Each biome needs two detached pockets and rubble")
+                    precondition(terrain[0].frame.intersection(terrain[1].frame).isNull,
+                                 "Secondary pocket must not overlap the primary")
+                    precondition(terrain[1].frame.intersection(terrain[2].frame).isNull,
+                                 "Secondary pocket must not overlap rubble")
+                    for step in 0...24 {
+                        let lanePoint = CGPoint(
+                            x: field.midX,
+                            y: field.minY + field.height * CGFloat(step) / 24)
+                        precondition(!terrain.contains {
+                            $0.contains(lanePoint, margin: 14)
+                        }, "Center lane must remain clear on all devices")
+                    }
+                }
+            }
+        }
         // Actual extraction pathfinding must validate the complete walking
         // approach, not just a visually clear destination point.
         for screen in [CGSize(width: 320, height: 568),
