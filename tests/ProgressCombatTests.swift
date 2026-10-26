@@ -103,17 +103,23 @@ struct ProgressCombatTests {
         precondition(permanent.salvage == 0 && permanent.rank("weapon") == 0)
         precondition(!permanent.purchase("weapon"))
         precondition(permanent.bank(-25) == 0)
-        precondition(permanent.bank(64) == 64)
+        let initialWeaponCost = PersistentProgression.cost("weapon", at: 0)
+        precondition(initialWeaponCost == 135)
+        precondition(permanent.bank(initialWeaponCost - 1) == initialWeaponCost - 1)
         precondition(!permanent.purchase("weapon"))
         precondition(permanent.bank(1) == 1)
         precondition(permanent.purchase("weapon"))
         precondition(permanent.salvage == 0 && permanent.rank("weapon") == 1)
-        precondition(permanent.cost("weapon") == 130)
+        precondition(permanent.cost("weapon") == 540)
         precondition(!permanent.purchase("invalid"))
-        precondition(permanent.bank(300) == 300)
+        precondition(permanent.bank(1_000) == 1_000)
         precondition(permanent.purchase("armor"))
         precondition(permanent.purchase("chain"))
         precondition(permanent.rank("armor") == 1 && permanent.rank("chain") == 1)
+        precondition(PersistentProgression.maximumRank == 12)
+        precondition(PersistentProgression.cost("weapon", at: 9) >
+                     PersistentProgression.cost("weapon", at: 5))
+        precondition(PersistentProgression.cost("weapon", at: 12) == Int.max)
         let restarted = PersistentProgression(storage: store)
         precondition(restarted.rank("weapon") == 1 && restarted.rank("chain") == 1)
         precondition(restarted.salvage == permanent.salvage)
@@ -121,15 +127,14 @@ struct ProgressCombatTests {
                      PersistentProgression.roomReward(room: 3))
         precondition(PersistentProgression.enemyReward(isHeavy: false, isBoss: true) >
                      PersistentProgression.enemyReward(isHeavy: false, isBoss: false))
-        // The completion bonus is a separate award, not another Room 20
-        // enemy reward subject to an interrupted room's replay credit.
-        precondition(PersistentProgression.worldCompletionBonus == 100)
+        // The reduced completion bonus must match the live economy.
+        precondition(PersistentProgression.worldCompletionBonus == 45)
         let completionSuite = "outpost.zero.completion.test"
         let completionStorage = UserDefaults(suiteName: completionSuite)!
         completionStorage.removePersistentDomain(forName: completionSuite)
         let completionProgress = PersistentProgression(storage: completionStorage)
         let paidBonus = completionProgress.bank(PersistentProgression.worldCompletionBonus)
-        precondition(paidBonus == 100 && completionProgress.salvage == 100)
+        precondition(paidBonus == 45 && completionProgress.salvage == 45)
         completionStorage.removePersistentDomain(forName: completionSuite)
         store.removePersistentDomain(forName: suite)
         // Persist and recover a Room 12 battle without losing the chosen
