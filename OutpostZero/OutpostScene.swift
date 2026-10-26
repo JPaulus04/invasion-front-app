@@ -2882,6 +2882,35 @@ final class OutpostScene: SKScene {
                 shape.lineWidth = 2
                 decorateRubbleObstacle(shape, size: patch.frame.size)
             }
+            // Prefer authored transparent terrain illustrations when bundled.
+            // They are presentation-only: the exact polygon above remains the
+            // authoritative collision and damage boundary.
+            if patch.kind != .rubble {
+                let material = patch.kind == .acid ? "acid" : "water"
+                let biome = worldMapIndex == 1 ? "toxic"
+                    : (worldMapIndex == 2 ? "industrial" : "frost")
+                let assetName = "terrain_\(biome)_\(material)_\(roomHazards.firstIndex(where: {
+                    $0.frame == patch.frame && $0.kind == patch.kind
+                }) ?? 0)"
+                if let illustration = productionImage(named: assetName) {
+                    let texture = SKTexture(image: illustration)
+                    texture.filteringMode = .linear
+                    let art = SKSpriteNode(texture: texture)
+                    art.name = "illustratedTerrain"
+                    art.size = CGSize(width: patch.frame.width * 1.14,
+                                      height: patch.frame.height * 1.22)
+                    art.position = CGPoint(x: 0, y: -patch.frame.height * 0.025)
+                    art.zPosition = 0.9
+                    shape.addChild(art)
+                    // Avoid doubling up the placeholder rockwork and veins
+                    // underneath a finished transparent terrain illustration.
+                    for child in shape.children where child !== art {
+                        child.isHidden = true
+                    }
+                    shape.fillColor = .clear
+                    shape.strokeColor = .clear
+                }
+            }
             hazardScenery.addChild(shape)
             // No permanent WATER/ACID debug text. Coastline materials and
             // the pulsing hazardous edge communicate the threat in-world.
