@@ -5805,6 +5805,7 @@ final class OutpostScene: SKScene {
                 wake.zPosition = -0.1
                 blade.addChild(wake)
             }
+            blade.isHidden = energyWheelEvolved
             arena.addChild(blade)
             orbitalNodes.append(blade)
         }
@@ -6599,6 +6600,14 @@ final class OutpostScene: SKScene {
            !lockedLoadout.contains(choice),
            !lockedLoadout.acquire(choice, capacity: playerMastery.capacity) {
             return
+        }
+        // Never consume an upgrade on a stale or no-longer-eligible evolution.
+        if choice == "evolveOrbit" {
+            guard TacticalDraftRules.canEvolve(
+                "orbit", rank: orbitLevel,
+                masteryLevel: playerMastery.level, world: worldMapIndex + 1,
+                synergyRank: min(chainLevel, orbitLevel)),
+                !energyWheelEvolved else { return }
         }
         guard progress.chooseUpgrade() else { return }
         let isNewTactical = (choice == "chain" && chainLevel == 0) ||
