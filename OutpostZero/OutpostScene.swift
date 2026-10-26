@@ -2908,6 +2908,31 @@ final class OutpostScene: SKScene {
         // sampled or redrawn during movement/combat frames.
         guard let bankPath = pool.path else { return }
 
+        // Recess the pool below the walkable floor. The offset dark shelf and
+        // inner bevel create an isometric sidewall without changing the
+        // collision polygon or covering combat telegraphs.
+        let recessedWall = SKShapeNode(path: bankPath)
+        recessedWall.name = "recessedTerrainSidewall"
+        recessedWall.position = CGPoint(x: 0, y: -3.5)
+        recessedWall.fillColor = .clear
+        recessedWall.strokeColor = acid
+            ? SKColor(red: 0.12, green: 0.17, blue: 0.08, alpha: 0.86)
+            : SKColor(red: 0.06, green: 0.17, blue: 0.21, alpha: 0.83)
+        recessedWall.lineWidth = 6.5
+        recessedWall.zPosition = -0.25
+        pool.addChild(recessedWall)
+
+        let illuminatedRim = SKShapeNode(path: bankPath)
+        illuminatedRim.name = "terrainCutEdge"
+        illuminatedRim.position = CGPoint(x: 0, y: 1.6)
+        illuminatedRim.fillColor = .clear
+        illuminatedRim.strokeColor = acid
+            ? SKColor(red: 0.56, green: 0.52, blue: 0.22, alpha: 0.58)
+            : SKColor(red: 0.40, green: 0.57, blue: 0.58, alpha: 0.50)
+        illuminatedRim.lineWidth = 2.3
+        illuminatedRim.zPosition = 0.12
+        pool.addChild(illuminatedRim)
+
         // A translucent bank/lip extends a few points beyond the water line.
         // The physical polygon remains exact; this rim is visual sediment and
         // replaces the previous strong, continuous neon-blue/yellow outline.
