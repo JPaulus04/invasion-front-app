@@ -84,13 +84,21 @@ enum TerrainHazards {
         let acid = patch(.acid, x: 0.855, y: 0.535,
                          width: 0.22, height: 0.20,
                          bounds: bounds, alternate: alternate)
+        // A second, detached spill makes the crossing tactical instead of
+        // presenting one continuous flat pool across the arena.
+        let acidPocket = patch(.acid, x: 0.79, y: 0.22,
+                               width: 0.15, height: 0.13,
+                               bounds: bounds, alternate: !alternate)
+        let waterPocket = patch(.water, x: 0.18, y: 0.70,
+                                width: 0.15, height: 0.12,
+                                bounds: bounds, alternate: !alternate)
         let barrier = patch(.rubble, x: alternate ? 0.18 : 0.21,
                             y: 0.79, width: 0.24, height: 0.11,
                             bounds: bounds, alternate: alternate)
         switch world {
-        case 2: return [water, barrier] // Flooded Outpost: impassable channels and debris
-        case 1: return [acid, barrier] // Toxic Crossing: pulsing acid and blocked paths
-        case 3: return [water, barrier]
+        case 2: return [water, waterPocket, barrier] // Flooded Outpost: impassable channels and debris
+        case 1: return [acid, acidPocket, barrier] // Toxic Crossing: pulsing acid and blocked paths
+        case 3: return [water, waterPocket, barrier]
         default: return [water, acid, barrier]
         }
     }
