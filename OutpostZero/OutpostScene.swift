@@ -1569,13 +1569,15 @@ final class OutpostScene: SKScene {
             startWave()
             precondition(wave == 1 && phase == .playing &&
                          roomHazards.contains(where: { $0.kind == .acid }) &&
-                         acidVisualNodes.count == 1,
-                         "World 3 acid fixture must use real room terrain")
+                         acidVisualNodes.count == 2,
+                         "Toxic Crossing preview must render both acid pockets")
             waveElapsed = 2.5
             updateTerrainHazards()
             precondition(displayedAcidActive == true &&
-                         acidVisualNodes[0].childNode(
-                            withName: "acidActiveVeins")?.isHidden == false &&
+                         (acidVisualNodes[0].childNode(
+                            withName: "illustratedTerrain") != nil ||
+                          acidVisualNodes[0].childNode(
+                            withName: "acidActiveVeins")?.isHidden == false) &&
                          TerrainHazards.acidTouches(
                             CGPoint(x: roomHazards[0].frame.midX,
                                     y: roomHazards[0].frame.midY),
