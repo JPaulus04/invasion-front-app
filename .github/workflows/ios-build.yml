@@ -752,6 +752,9 @@ jobs:
           capture_scene -captureLoadoutScreenshot screenshots/outpost-zero-loadout.png
           capture_scene -captureOvergrownScreenshot screenshots/outpost-zero-overgrown-path.png
           capture_scene -captureTerrainHazardsScreenshot screenshots/outpost-zero-terrain.png
+          capture_scene -captureToxicTerrainScreenshot screenshots/outpost-zero-terrain-toxic.png
+          capture_scene -captureIronTerrainScreenshot screenshots/outpost-zero-terrain-iron.png
+          capture_scene -captureFrostTerrainScreenshot screenshots/outpost-zero-terrain-frost.png
           capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
           capture_scene -captureSurvivalExtractionScreenshot screenshots/outpost-zero-extraction-open.png
           capture_scene -captureSurvivalTransitionScreenshot screenshots/outpost-zero-after-extraction.png
