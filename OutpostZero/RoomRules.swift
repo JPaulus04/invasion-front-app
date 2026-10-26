@@ -59,8 +59,10 @@ enum RoomRules {
 enum ArenaLayout {
     static func bounds(for viewportSize: CGSize) -> CGRect {
         let view = RoomRules.bounds(for: viewportSize)
-        let width = view.width * 1.8
-        let height = view.height * 1.65
+        // Survival is broader than tactical play, but remains portrait-oriented.
+        // Keep proportions stable across iPhone and iPad viewports.
+        let width = view.width * 1.28
+        let height = max(view.height * 1.45, width * 1.35)
         return CGRect(x: view.midX - width / 2, y: view.midY - height / 2,
                       width: width, height: height)
     }
