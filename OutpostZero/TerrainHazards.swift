@@ -73,10 +73,8 @@ enum TerrainHazards {
     static func patches(world: Int, room: Int, bounds: CGRect,
                         preview: Bool = false) -> [Patch] {
         guard preview || world > 0 else { return [] }
-        // Each non-forest world has a dedicated side-of-room terrain section:
-        // a long, broken flood channel in World 2 and a leaking industrial
-        // runoff trench in World 3. Their irregular banks vary by room but
-        // leave the center corridor clear at every supported screen size.
+        // Compact, separated terrain pockets preserve a navigable center
+        // corridor. Each pocket has the same shoreline for art and physics.
         let alternate = room.isMultiple(of: 2)
         let water = patch(.water, x: 0.145, y: 0.425,
                           width: 0.24, height: 0.22,
@@ -89,16 +87,16 @@ enum TerrainHazards {
         let acidPocket = patch(.acid, x: 0.79, y: 0.22,
                                width: 0.15, height: 0.13,
                                bounds: bounds, alternate: !alternate)
-        let waterPocket = patch(.water, x: 0.18, y: 0.70,
+        let waterPocket = patch(.water, x: 0.18, y: 0.64,
                                 width: 0.15, height: 0.12,
                                 bounds: bounds, alternate: !alternate)
         let barrier = patch(.rubble, x: alternate ? 0.18 : 0.21,
                             y: 0.79, width: 0.24, height: 0.11,
                             bounds: bounds, alternate: alternate)
         switch world {
-        case 2: return [water, waterPocket, barrier] // Flooded Outpost: impassable channels and debris
+        case 2: return [water, waterPocket, barrier] // Iron Wastes: coolant pools and debris
         case 1: return [acid, acidPocket, barrier] // Toxic Crossing: pulsing acid and blocked paths
-        case 3: return [water, waterPocket, barrier]
+        case 3: return [water, waterPocket, barrier] // Frost Expanse: icy pools and debris
         default: return [water, acid, barrier]
         }
     }
