@@ -5875,10 +5875,13 @@ final class OutpostScene: SKScene {
         // A perfect circle looks stationary when rotated. Four bright
         // segments give the evolved wheel an unmistakable spinning motion.
         for index in 0..<4 {
-            let accent = SKShapeNode(arcOfRadius: 82,
-                                     startAngle: CGFloat(index) * .pi / 2,
-                                     endAngle: CGFloat(index) * .pi / 2 + .pi / 5,
-                                     clockwise: false)
+            let startAngle = CGFloat(index) * (.pi / 2)
+            let endAngle = startAngle + (.pi / 5)
+            let arcPath = CGMutablePath()
+            arcPath.addArc(center: .zero, radius: 82,
+                           startAngle: startAngle, endAngle: endAngle,
+                           clockwise: false)
+            let accent = SKShapeNode(path: arcPath)
             accent.strokeColor = SKColor(red: 0.88, green: 1, blue: 1, alpha: 1)
             accent.lineWidth = 17
             accent.glowWidth = 7
