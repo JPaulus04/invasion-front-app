@@ -4351,7 +4351,7 @@ final class OutpostScene: SKScene {
                     prop.fillColor = SKColor(red: 0.42, green: 0.43, blue: 0.38, alpha: 1)
                 }
             } else {
-            switch zone {
+                switch zone {
             case 0: // Tall pines along the forest approach.
                 prop = SKShapeNode(path: {
                     let path = CGMutablePath()
@@ -4368,15 +4368,10 @@ final class OutpostScene: SKScene {
             case 2: // Ruined concrete blocks.
                 prop = SKShapeNode(rectOf: CGSize(width: 27, height: 21), cornerRadius: 2)
                 prop.fillColor = .darkGray
-            default: // Guardian Clearing is still a forest, not red industrial posts.
-                if worldMapIndex == 0 {
-                    prop = SKShapeNode(ellipseOf: CGSize(width: 24, height: 10))
-                    prop.fillColor = .clear
-                } else {
-                    prop = SKShapeNode(rectOf: CGSize(width: 12, height: 34), cornerRadius: 3)
-                    prop.fillColor = .systemRed
+            default:
+                prop = SKShapeNode(rectOf: CGSize(width: 12, height: 34), cornerRadius: 3)
+                prop.fillColor = .systemRed
                 }
-            }
             }
             prop.strokeColor = .white.withAlphaComponent(0.22)
             prop.lineWidth = 1
