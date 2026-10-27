@@ -4260,21 +4260,21 @@ final class OutpostScene: SKScene {
             floorDetail.name = "worldOneFallbackFloorDetail"
             floorDetail.zPosition = -0.8
             zoneScenery.addChild(floorDetail)
+            // Repeat ground texture across consecutive rooms in the
+            // same landscape rather than visibly re-randomizing it.
+            let landscapeSeed: Int
+            switch wave {
+            case 1...3: landscapeSeed = 1
+            case 4...5: landscapeSeed = 4
+            case 6...8: landscapeSeed = 6
+            case 9...10: landscapeSeed = 9
+            case 11...13: landscapeSeed = 11
+            case 14...15: landscapeSeed = 14
+            case 16...19: landscapeSeed = wave
+            case 20: landscapeSeed = 20
+            default: landscapeSeed = 1
+            }
             for index in 0..<24 {
-                // Repeat ground texture across consecutive rooms in the
-                // same landscape rather than visibly re-randomizing it.
-                let landscapeSeed: Int
-                switch wave {
-                case 1...3: landscapeSeed = 1
-                case 4...5: landscapeSeed = 4
-                case 6...8: landscapeSeed = 6
-                case 9...10: landscapeSeed = 9
-                case 11...13: landscapeSeed = 11
-                case 14...15: landscapeSeed = 14
-                case 16...19: landscapeSeed = wave
-                case 20: landscapeSeed = 20
-                default: landscapeSeed = 1
-                }
                 let seed = index * 37 + landscapeSeed * 19
                 let fx = CGFloat((seed * 53) % 97) / 97
                 let fy = CGFloat((seed * 29 + 13) % 89) / 89
