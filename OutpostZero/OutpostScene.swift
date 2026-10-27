@@ -4257,11 +4257,25 @@ final class OutpostScene: SKScene {
         // Ground marks are strictly decorative and never alter collision.
         if worldMapIndex == 0 && roomArt?.childNode(withName: "world1AuthoredFloor") == nil {
             let floorDetail = SKNode()
-            floorDetail.name = "forestFloorDetail"
+            floorDetail.name = "worldOneFallbackFloorDetail"
             floorDetail.zPosition = -0.8
             zoneScenery.addChild(floorDetail)
             for index in 0..<24 {
-                let seed = index * 37 + wave * 19
+                // Repeat ground texture across consecutive rooms in the
+                // same landscape rather than visibly re-randomizing it.
+                let landscapeSeed: Int
+                switch wave {
+                case 1...3: landscapeSeed = 1
+                case 4...5: landscapeSeed = 4
+                case 6...8: landscapeSeed = 6
+                case 9...10: landscapeSeed = 9
+                case 11...13: landscapeSeed = 11
+                case 14...15: landscapeSeed = 14
+                case 16...19: landscapeSeed = wave
+                case 20: landscapeSeed = 20
+                default: landscapeSeed = 1
+                }
+                let seed = index * 37 + landscapeSeed * 19
                 let fx = CGFloat((seed * 53) % 97) / 97
                 let fy = CGFloat((seed * 29 + 13) % 89) / 89
                 let point = CGPoint(
@@ -4270,12 +4284,25 @@ final class OutpostScene: SKScene {
                 let mark = SKShapeNode(ellipseOf: CGSize(
                     width: CGFloat(7 + seed % 8),
                     height: CGFloat(3 + seed % 4)))
-                mark.name = "forestFloorMark"
+                mark.name = "worldOneFallbackGroundMark"
                 mark.position = point
                 mark.zRotation = CGFloat(seed % 7 - 3) * 0.19
-                mark.fillColor = index.isMultiple(of: 3)
-                    ? SKColor(red: 0.48, green: 0.39, blue: 0.24, alpha: 0.21)
-                    : SKColor(red: 0.16, green: 0.29, blue: 0.17, alpha: 0.23)
+                switch wave {
+                case 4...5, 11...13:
+                    mark.fillColor = index.isMultiple(of: 3)
+                        ? SKColor(red: 0.30, green: 0.47, blue: 0.32, alpha: 0.25)
+                        : SKColor(red: 0.13, green: 0.34, blue: 0.29, alpha: 0.25)
+                case 9...10, 14...15:
+                    mark.fillColor = index.isMultiple(of: 3)
+                        ? SKColor(red: 0.48, green: 0.54, blue: 0.34, alpha: 0.24)
+                        : SKColor(red: 0.27, green: 0.32, blue: 0.30, alpha: 0.26)
+                case 20:
+                    mark.fillColor = SKColor(red: 0.49, green: 0.39, blue: 0.28, alpha: 0.23)
+                default:
+                    mark.fillColor = index.isMultiple(of: 3)
+                        ? SKColor(red: 0.49, green: 0.42, blue: 0.30, alpha: 0.24)
+                        : SKColor(red: 0.33, green: 0.37, blue: 0.31, alpha: 0.23)
+                }
                 mark.strokeColor = .clear
                 floorDetail.addChild(mark)
             }
