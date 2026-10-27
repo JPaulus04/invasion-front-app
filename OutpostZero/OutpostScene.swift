@@ -48,12 +48,9 @@ final class OutpostScene: SKScene {
     // Authored scenery is reused across rooms. Cache decoded SpriteKit textures
     // rather than recreating them for every perimeter prop on every wave.
     private var worldOneArtTextures: [String: SKTexture] = [:]
-    private var worldOneMissingArt: Set<String> = []
     private func worldOneTexture(named name: String) -> SKTexture? {
         if let cached = worldOneArtTextures[name] { return cached }
-        if worldOneMissingArt.contains(name) { return nil }
         guard let image = productionImage(named: name) else {
-            worldOneMissingArt.insert(name)
             return nil
         }
         let texture = SKTexture(image: image)
