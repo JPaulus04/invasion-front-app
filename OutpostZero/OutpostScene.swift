@@ -4324,6 +4324,33 @@ final class OutpostScene: SKScene {
                 : CGFloat(((index * 11 + wave * 7) % 19) - 9)
             let y = roomBounds.minY + 55 + CGFloat(index) * spacing + layoutShift
             let prop: SKShapeNode
+            // When illustrated prop PNGs are not yet shipped, World 1 must
+            // still read as ruins, swamp, or caves rather than generic forest.
+            // These are visual fallbacks only; no new collision is introduced.
+            if worldMapIndex == 0 {
+                switch wave {
+                case 4...5, 11...13:
+                    prop = SKShapeNode(ellipseOf: CGSize(width: 32, height: 15))
+                    prop.fillColor = SKColor(red: 0.20, green: 0.39, blue: 0.28, alpha: 1)
+                case 9...10, 14...15:
+                    prop = SKShapeNode(rectOf: CGSize(width: 29, height: 25), cornerRadius: 7)
+                    prop.fillColor = SKColor(red: 0.30, green: 0.36, blue: 0.31, alpha: 1)
+                case 16...19:
+                    if (wave - 16) % 3 == 1 {
+                        prop = SKShapeNode(ellipseOf: CGSize(width: 32, height: 15))
+                        prop.fillColor = SKColor(red: 0.20, green: 0.39, blue: 0.28, alpha: 1)
+                    } else {
+                        prop = SKShapeNode(rectOf: CGSize(width: 29, height: 25), cornerRadius: 5)
+                        prop.fillColor = SKColor(red: 0.36, green: 0.39, blue: 0.37, alpha: 1)
+                    }
+                case 20:
+                    prop = SKShapeNode(rectOf: CGSize(width: 30, height: 20), cornerRadius: 4)
+                    prop.fillColor = SKColor(red: 0.34, green: 0.30, blue: 0.29, alpha: 1)
+                default:
+                    prop = SKShapeNode(rectOf: CGSize(width: 30, height: 22), cornerRadius: 3)
+                    prop.fillColor = SKColor(red: 0.42, green: 0.43, blue: 0.38, alpha: 1)
+                }
+            } else {
             switch zone {
             case 0: // Tall pines along the forest approach.
                 prop = SKShapeNode(path: {
@@ -4349,6 +4376,7 @@ final class OutpostScene: SKScene {
                     prop = SKShapeNode(rectOf: CGSize(width: 12, height: 34), cornerRadius: 3)
                     prop.fillColor = .systemRed
                 }
+            }
             }
             prop.strokeColor = .white.withAlphaComponent(0.22)
             prop.lineWidth = 1
