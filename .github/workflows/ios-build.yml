@@ -85,6 +85,31 @@ jobs:
             fi
             echo "Verified bundled asset: $FOUND"
           done
+      - name: Verify World 1 authored artwork in compiled app
+        if: ${{ vars.REQUIRE_WORLD_ONE_ART == 'true' }}
+        run: |
+          set -euo pipefail
+          # A strict asset gate checks both source artwork and the actual
+          # simulator bundle. Source files alone cannot prove runtime loading.
+          REQUIRE_WORLD_ONE_ART=1 python3 scripts/check_art_sprites.py
+          APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
+          for LANDSCAPE in ruined_outpost swamp_basin toxic_caves boss_arena; do
+            for VARIANT in 1 2 3; do
+              NAME="world1_${LANDSCAPE}_floor_${VARIANT}.png"
+              if [ -z "$(find "$APP" -type f -name "$NAME" -print -quit)" ]; then
+                echo "::error::Missing bundled World 1 floor: $NAME"
+                exit 1
+              fi
+            done
+            for KIND in wall boulder vegetation debris lantern crate; do
+              NAME="world1_${LANDSCAPE}_${KIND}.png"
+              if [ -z "$(find "$APP" -type f -name "$NAME" -print -quit)" ]; then
+                echo "::error::Missing bundled World 1 prop: $NAME"
+                exit 1
+              fi
+            done
+          done
+          echo "All required World 1 authored PNGs are bundled."
       - name: Package compiled simulator app
         run: |
           set -e
