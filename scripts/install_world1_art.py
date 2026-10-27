@@ -25,7 +25,13 @@ def main():
         print("Usage: install_world1_art.py <approved-png-directory> [landscape|all]", file=sys.stderr)
         return 2
     source = Path(sys.argv[1]).resolve()
-    missing = [name for name in NAMES if not (source / (name + ".png")).is_file()]
+    landscape = sys.argv[2] if len(sys.argv) == 3 else "all"
+    if landscape != "all" and landscape not in LANDSCAPES:
+        print(f"Unknown landscape: {landscape}", file=sys.stderr)
+        return 2
+    selected = [name for name in NAMES
+                if landscape == "all" or name.startswith(f"world1_{landscape}_")]
+    missing = [name for name in selected if not (source / (name + ".png")).is_file()]
     if missing:
         print("Artwork incomplete; no assets installed:", file=sys.stderr)
         for name in missing:
