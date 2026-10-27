@@ -278,6 +278,24 @@ jobs:
           capture_scene -captureWorldOneOutpostRevisitScreenshot screenshots/outpost-zero-world1-outpost-revisit.png
           capture_scene -captureWorldOneSwampRevisitScreenshot screenshots/outpost-zero-world1-swamp-revisit.png
           capture_scene -captureWorldOneCavesRevisitScreenshot screenshots/outpost-zero-world1-caves-revisit.png
+          # The World 1 art review is not complete unless all seven actual
+          # simulator frames exist. Fail explicitly rather than uploading an
+          # apparently successful archive containing only legacy captures.
+          python3 - <<'PY'
+          from pathlib import Path
+          expected = (
+              "outpost", "swamp", "caves", "boss",
+              "outpost-revisit", "swamp-revisit", "caves-revisit"
+          )
+          missing = [
+              str(Path("screenshots") / f"outpost-zero-world1-{name}.png")
+              for name in expected
+              if not (Path("screenshots") / f"outpost-zero-world1-{name}.png").is_file()
+          ]
+          if missing:
+              raise SystemExit("Missing required World 1 simulator captures: " + ", ".join(missing))
+          print("PASS: all seven World 1 simulator landscape captures present")
+          PY
           capture_scene -captureEquipmentDefenseScreenshot screenshots/outpost-zero-defense-active.png
           capture_scene -captureEquipmentDefenseClearScreenshot screenshots/outpost-zero-defense-cleared.png
           capture_scene -captureEquipmentDefenseFailureScreenshot screenshots/outpost-zero-defense-failed.png
