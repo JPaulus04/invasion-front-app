@@ -4165,6 +4165,12 @@ final class OutpostScene: SKScene {
         roomArt?.childNode(withName: "floodedAmbientBackdrop")?.isHidden = selectedWorld.biome != 1
         roomArt?.childNode(withName: "toxicAmbientBackdrop")?.isHidden = selectedWorld.biome != 2
         if let floor = roomArt?.childNode(withName: "roomFloor") as? SKShapeNode {
+            // Preserve authored floor colors; the legacy procedural tint must
+            // not wash out the new painted environment artwork.
+            if worldMapIndex == 0 && roomArt?.childNode(withName: "world1AuthoredFloor") != nil {
+                floor.fillColor = .clear
+                floor.strokeColor = .clear
+            } else {
             floor.fillColor = selectedWorld.biome == 2
                 ? SKColor(red: 0.18, green: 0.22, blue: 0.14, alpha: 0.13)
                 : (selectedWorld.biome == 1
@@ -4175,6 +4181,7 @@ final class OutpostScene: SKScene {
             floor.strokeColor = nonForestWorld
                 ? SKColor(red: 0.10, green: 0.18, blue: 0.19, alpha: 0.25)
                 : .clear
+            }
         }
         roomArt?.childNode(withName: "roomContactEdge")?.alpha = nonForestWorld ? 0.32 : 0
         // Scrapyard floors need a separate visual identity from the forest.
