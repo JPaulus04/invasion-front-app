@@ -614,6 +614,14 @@ jobs:
                       recorder.kill()
                       recorder.wait(timeout=5)
           PY
+      - name: Upload World 1 landscape review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-world1-landscape-review
+          path: screenshots/outpost-zero-world1-*.png
+          if-no-files-found: warn
+          retention-days: 14
       - name: Upload live pilot walk preview
         if: always()
         uses: actions/upload-artifact@v4
