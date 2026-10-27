@@ -93,6 +93,28 @@ for path in files:
                 errors.append(f"{label}: no fully opaque pixels; artwork may be faint or empty")
         except (ValueError, zlib.error) as exc:
             errors.append(f"{label}: cannot decode transparency: {exc}")
+# A green sprite-format check must not be mistaken for proof that World 1
+# illustrated assets have been delivered. The strict gate can be enabled by
+# the release workflow once the complete asset set is ready.
+import os
+required_world_one = os.environ.get("REQUIRE_WORLD_ONE_ART") == "1"
+landscapes = ("ruined_outpost", "swamp_basin", "toxic_caves", "boss_arena")
+prop_kinds = ("wall", "boulder", "vegetation", "debris", "lantern", "crate")
+existing_stems = {p.stem for p in files}
+expected = {
+    f"world1_{landscape}_floor_{variant}"
+    for landscape in landscapes for variant in range(1, 4)
+}
+expected.update(
+    f"world1_{landscape}_{kind}"
+    for landscape in landscapes for kind in prop_kinds
+)
+missing = sorted(expected - existing_stems)
+if required_world_one:
+    errors.extend(f"missing required World 1 artwork: {name}.png" for name in missing)
+elif missing:
+    print(f"NOTICE: {len(missing)} of {len(expected)} World 1 illustrated floor/prop assets are not yet present; "
+          "format validation alone does not certify in-game artwork readiness.")
 print(f"Checked {len(files)} production PNG sprites in {ASSETS.relative_to(ROOT)}")
 if errors:
     print("\n".join("ERROR: " + item for item in errors))
