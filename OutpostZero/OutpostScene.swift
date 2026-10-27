@@ -4276,8 +4276,27 @@ final class OutpostScene: SKScene {
             }
         }
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
-        let count = selectedWorld.biome == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3))
-        let roomVariant = (wave - 1) % 4
+        let count = worldMapIndex == 0 ? (zone <= 1 ? 8 : 6) :
+            (selectedWorld.biome == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)))
+        // Keep a landscape's perimeter composition stable for consecutive
+        // waves; change the layout when the player enters another location.
+        let landscapeLayoutSeed: Int
+        if worldMapIndex == 0 {
+            switch wave {
+            case 1...3: landscapeLayoutSeed = 0
+            case 4...5: landscapeLayoutSeed = 1
+            case 6...8: landscapeLayoutSeed = 2
+            case 9...10: landscapeLayoutSeed = 3
+            case 11...13: landscapeLayoutSeed = 4
+            case 14...15: landscapeLayoutSeed = 5
+            case 16...19: landscapeLayoutSeed = wave - 10
+            case 20: landscapeLayoutSeed = 10
+            default: landscapeLayoutSeed = 0
+            }
+        } else {
+            landscapeLayoutSeed = wave - 1
+        }
+        let roomVariant = ((landscapeLayoutSeed % 4) + 4) % 4
         for index in 0..<count {
             let leftSide = (index + roomVariant).isMultiple(of: 2)
             // World 1 gets genuinely different perimeter compositions:
@@ -4296,7 +4315,7 @@ final class OutpostScene: SKScene {
             let x = size.width * side + CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8
             let spacing = max(25, (roomBounds.height - 100) / CGFloat(count))
             let layoutShift = worldMapIndex == 0
-                ? CGFloat(((index * (roomVariant + 3) * 13 + wave * 7) % 31) - 15)
+                ? CGFloat(((index * (roomVariant + 3) * 13 + landscapeLayoutSeed * 7) % 31) - 15)
                 : CGFloat(((index * 11 + wave * 7) % 19) - 9)
             let y = roomBounds.minY + 55 + CGFloat(index) * spacing + layoutShift
             let prop: SKShapeNode
