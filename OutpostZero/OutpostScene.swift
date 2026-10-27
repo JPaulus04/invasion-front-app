@@ -45,6 +45,23 @@ final class OutpostScene: SKScene {
     private let zoneBanner = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let controlsHint = SKLabelNode(fontNamed: "AvenirNext-Heavy")
     private let zoneScenery = SKNode()
+    // Authored scenery is reused across rooms. Cache decoded SpriteKit textures
+    // rather than recreating them for every perimeter prop on every wave.
+    private var worldOneArtTextures: [String: SKTexture] = [:]
+    private var worldOneMissingArt: Set<String> = []
+    private func worldOneTexture(named name: String) -> SKTexture? {
+        if let cached = worldOneArtTextures[name] { return cached }
+        if worldOneMissingArt.contains(name) { return nil }
+        guard let image = productionImage(named: name) else {
+            worldOneMissingArt.insert(name)
+            return nil
+        }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .linear
+        worldOneArtTextures[name] = texture
+        return texture
+    }
+
     private let hazardScenery = SKNode()
     // Cache only toxic pool nodes, and only repaint when the hazard phase
     // actually changes. Water-only rooms require no acid work per frame.
@@ -4128,13 +4145,12 @@ final class OutpostScene: SKScene {
             let artName = "world1_\(landscape)_floor_\((max(0, wave - 1) % 3) + 1)"
             let prior = roomArt?.childNode(withName: "world1AuthoredFloor")
             prior?.removeFromParent()
+            let authoredFloorTexture = worldOneTexture(named: artName)
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
-               productionImage(named: artName) == nil {
+               authoredFloorTexture == nil {
                 preconditionFailure("Missing authored World 1 floor: \(artName)")
             }
-            if let image = productionImage(named: artName) {
-                let texture = SKTexture(image: image)
-                texture.filteringMode = .linear
+            if let texture = authoredFloorTexture {
                 let floorArt = SKSpriteNode(texture: texture)
                 floorArt.name = "world1AuthoredFloor"
                 floorArt.size = size
@@ -4300,18 +4316,16 @@ final class OutpostScene: SKScene {
                 let propKinds = ["wall", "boulder", "vegetation", "debris", "lantern", "crate"]
                 let kind = propKinds[(index + wave) % propKinds.count]
                 let assetName = "world1_\(landscape)_\(kind)"
-                // Strict visual captures must not silently accept placeholder props.
+                let authoredTexture = worldOneTexture(named: assetName)
                 if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
-                   productionImage(named: assetName) == nil {
+                   authoredTexture == nil {
                     preconditionFailure("Missing authored World 1 prop: \(assetName)")
                 }
-                if let art = productionImage(named: assetName) {
-                    let texture = SKTexture(image: art)
-                    texture.filteringMode = .linear
+                if let texture = authoredTexture {
                     let sprite = SKSpriteNode(texture: texture)
                     sprite.name = "world1AuthoredProp"
                     let height: CGFloat = kind == "wall" ? 78 : (kind == "vegetation" ? 62 : 48)
-                    let ratio = max(0.45, min(1.9, art.size.width / max(1, art.size.height)))
+                    let ratio = max(0.45, min(1.9, texture.size().width / max(1, texture.size().height)))
                     sprite.size = CGSize(width: height * ratio, height: height)
                     sprite.position.y = height * 0.27
                     sprite.zPosition = 0.8
