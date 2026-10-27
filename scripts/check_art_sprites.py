@@ -71,7 +71,15 @@ for path in files:
         errors.append(f"{label}: invalid PNG header")
         continue
     width, height, depth, color, compression, filtering, interlace = struct.unpack(">IIBBBBB", data[16:29])
-    if width < 96 or height < 96:
+    is_world_one_floor = path.stem.startswith("world1_") and "_floor_" in path.stem
+    if is_world_one_floor:
+        # Full-screen portrait artwork must have enough pixels to avoid
+        # obvious upscaling and must not be supplied in landscape orientation.
+        if width < 512 or height < 768:
+            errors.append(f"{label}: World 1 floor too small ({width}x{height}); need at least 512x768")
+        if width >= height:
+            errors.append(f"{label}: World 1 floor must be portrait-oriented ({width}x{height})")
+    elif width < 96 or height < 96:
         errors.append(f"{label}: too small ({width}x{height}); need at least 96x96")
     # Floor illustrations are full-bleed opaque backgrounds; props and
     # characters must have transparent cutout edges. Do not reject valid
@@ -119,4 +127,6 @@ print(f"Checked {len(files)} production PNG sprites in {ASSETS.relative_to(ROOT)
 if errors:
     print("\n".join("ERROR: " + item for item in errors))
     sys.exit(1)
-print("PASS: existing sprites meet PNG format, minimum-size, and pixel-transparency checks")
+print("PASS: present PNG files meet applicable format, dimensions, and transparency checks" +
+      ("; required World 1 assets are present" if required_world_one else
+       "; World 1 asset completeness was NOT enforced"))
