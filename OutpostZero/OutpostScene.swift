@@ -1614,7 +1614,12 @@ final class OutpostScene: SKScene {
             ("-captureWorldOneOutpostScreenshot", 1),
             ("-captureWorldOneSwampScreenshot", 4),
             ("-captureWorldOneCavesScreenshot", 9),
-            ("-captureWorldOneBossScreenshot", 20)
+            ("-captureWorldOneBossScreenshot", 20),
+            // Revisit captures exercise alternate authored floor compositions,
+            // not only the first appearance of each landscape.
+            ("-captureWorldOneOutpostRevisitScreenshot", 7),
+            ("-captureWorldOneSwampRevisitScreenshot", 12),
+            ("-captureWorldOneCavesRevisitScreenshot", 15)
         ]
         if let selection = worldOneCaptures.first(where: {
             ProcessInfo.processInfo.arguments.contains($0.0)
