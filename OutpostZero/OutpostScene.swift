@@ -4161,6 +4161,11 @@ final class OutpostScene: SKScene {
             roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden =
                 roomArt?.childNode(withName: "world1AuthoredFloor") != nil
         }
+        // Remove any authored floor left from a previous World 1 room when
+        // switching to a different world; do not let its texture bleed through.
+        if worldMapIndex != 0 {
+            roomArt?.childNode(withName: "world1AuthoredFloor")?.removeFromParent()
+        }
         roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = nonForestWorld || roomArt?.childNode(withName: "world1AuthoredFloor") != nil
         roomArt?.childNode(withName: "floodedAmbientBackdrop")?.isHidden = selectedWorld.biome != 1
         roomArt?.childNode(withName: "toxicAmbientBackdrop")?.isHidden = selectedWorld.biome != 2
