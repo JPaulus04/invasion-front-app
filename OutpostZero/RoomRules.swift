@@ -61,8 +61,11 @@ enum ArenaLayout {
         let view = RoomRules.bounds(for: viewportSize)
         // Survival is broader than tactical play, but remains portrait-oriented.
         // Keep proportions stable across iPhone and iPad viewports.
-        let width = view.width * 1.28
-        let height = max(view.height * 1.45, width * 1.35)
+        // Camera coverage tests require room-scale traversal in both axes.
+        // The previous 1.28× width could not contain the visible viewport
+        // at the arena edges and contradicted the survival layout contract.
+        let width = view.width * 1.75
+        let height = max(view.height * 1.65, width * 1.35)
         return CGRect(x: view.midX - width / 2, y: view.midY - height / 2,
                       width: width, height: height)
     }
