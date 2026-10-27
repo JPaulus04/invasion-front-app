@@ -73,8 +73,13 @@ for path in files:
     width, height, depth, color, compression, filtering, interlace = struct.unpack(">IIBBBBB", data[16:29])
     if width < 96 or height < 96:
         errors.append(f"{label}: too small ({width}x{height}); need at least 96x96")
-    if color not in (4, 6):
-        errors.append(f"{label}: no alpha channel (PNG color type {color})")
+    # Floor illustrations are full-bleed opaque backgrounds; props and
+    # characters must have transparent cutout edges. Do not reject valid
+    # authored floor artwork for lacking transparency.
+    is_floor = "_floor_" in path.stem or path.stem.endswith("_floor")
+    allowed_colors = (2, 6) if is_floor else (4, 6)
+    if color not in allowed_colors:
+        errors.append(f"{label}: unexpected PNG color type {color} for {'floor' if is_floor else 'sprite'}")
     if depth != 8:
         errors.append(f"{label}: expected 8-bit channels, got {depth}")
     if interlace:
@@ -82,7 +87,7 @@ for path in files:
     if color in (4, 6) and depth == 8 and not interlace:
         try:
             minimum, maximum = alpha_range(data, width, height, color)
-            if minimum != 0:
+            if not is_floor and minimum != 0:
                 errors.append(f"{label}: no fully transparent pixels; background may be baked in")
             if maximum != 255:
                 errors.append(f"{label}: no fully opaque pixels; artwork may be faint or empty")
