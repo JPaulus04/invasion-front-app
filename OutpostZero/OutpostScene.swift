@@ -4183,7 +4183,10 @@ final class OutpostScene: SKScene {
                 : .clear
             }
         }
-        roomArt?.childNode(withName: "roomContactEdge")?.alpha = nonForestWorld ? 0.32 : 0
+        // Keep procedural edge decoration off the painted floor.
+        roomArt?.childNode(withName: "roomContactEdge")?.alpha =
+            worldMapIndex == 0 && roomArt?.childNode(withName: "world1AuthoredFloor") != nil
+            ? 0 : (nonForestWorld ? 0.32 : 0)
         // Scrapyard floors need a separate visual identity from the forest.
         // Faded plate seams and scattered bolt heads are purely atmospheric;
         // they do not modify water hazard geometry or movement collision.
