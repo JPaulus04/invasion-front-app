@@ -53,9 +53,15 @@ def png_metadata(path):
 
 
 def main():
+    landscape = sys.argv[1] if len(sys.argv) == 2 else "all"
+    if len(sys.argv) > 2 or (landscape != "all" and landscape not in LANDSCAPES):
+        print("Usage: audit_world1_art.py [ruined_outpost|swamp_basin|toxic_caves|boss_arena|all]", file=sys.stderr)
+        return 2
+    required = [(name, kind) for name, kind in REQUIRED
+                if landscape == "all" or name.startswith(f"world1_{landscape}_")]
     errors = []
     valid = 0
-    for name, kind in REQUIRED:
+    for name, kind in required:
         path = resolve_png(name)
         if path is None:
             errors.append(f"MISSING {name}: no PNG payload")
@@ -73,7 +79,7 @@ def main():
             errors.append(f"NO ALPHA {name}: PNG color type {color_type}")
         else:
             valid += 1
-    print(f"World 1 authored art: {valid}/{len(REQUIRED)} PNG assets validated")
+    print(f"World 1 authored art: {valid}/{len(required)} PNG assets validated")
     for error in errors:
         print(error)
     if errors:
