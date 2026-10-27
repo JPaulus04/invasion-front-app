@@ -229,7 +229,16 @@ jobs:
               sleep 2
               # Cold-booted CoreSimulator can accept the app but not yet
               # serve pixels. Launch/screenshot timeout is retriable too.
-              if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+              # In strict art-review mode, World 1 screenshots must render
+              # with authored textures. The scene's existing assertion fails
+              # loudly if a required floor or prop cannot be loaded at runtime.
+              EXTRA_FLAGS=()
+              if [ "${REQUIRE_WORLD_ONE_ART:-0}" = "1" ]; then
+                case "$FLAG" in
+                  -captureWorldOne*Screenshot) EXTRA_FLAGS=(-requireWorldOneAuthoredArt) ;;
+                esac
+              fi
+              if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG" "${EXTRA_FLAGS[@]}"; then
                 echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
                 if [ "$ATTEMPT" != 3 ]; then
                   # A cold CoreSimulatorService can become unresponsive even
