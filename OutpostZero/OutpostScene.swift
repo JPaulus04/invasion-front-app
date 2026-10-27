@@ -4349,7 +4349,21 @@ final class OutpostScene: SKScene {
                 default: landscape = "ruined_outpost"
                 }
                 let propKinds = ["wall", "boulder", "vegetation", "debris", "lantern", "crate"]
-                let kind = propKinds[(index + wave) % propKinds.count]
+                // Keep prop identity stable within a landscape sequence.
+                // Otherwise the same perimeter location switches from a
+                // wall to a lantern or crate every time a wave advances.
+                let landscapePhase: Int
+                switch wave {
+                case 1...3: landscapePhase = 0
+                case 4...5: landscapePhase = 1
+                case 6...8: landscapePhase = 2
+                case 9...10: landscapePhase = 3
+                case 11...13: landscapePhase = 4
+                case 14...15: landscapePhase = 5
+                case 16...19: landscapePhase = wave - 10
+                default: landscapePhase = 10
+                }
+                let kind = propKinds[(index + landscapePhase) % propKinds.count]
                 let assetName = "world1_\(landscape)_\(kind)"
                 let authoredTexture = worldOneTexture(named: assetName)
                 if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
