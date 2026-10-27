@@ -4308,7 +4308,19 @@ final class OutpostScene: SKScene {
             }
         }
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
-        let count = worldMapIndex == 0 ? (zone <= 1 ? 8 : 6) :
+        // Keep perimeter density constant within a World 1 landscape.
+        // The former zone-based count changed mid-location even when the
+        // layout seed and prop identities remained fixed.
+        let worldOnePropCount: Int
+        switch wave {
+        case 1...3, 6...8: worldOnePropCount = 8
+        case 4...5, 11...13: worldOnePropCount = 7
+        case 9...10, 14...15: worldOnePropCount = 6
+        case 16...19: worldOnePropCount = 7
+        case 20: worldOnePropCount = 6
+        default: worldOnePropCount = 8
+        }
+        let count = worldMapIndex == 0 ? worldOnePropCount :
             (selectedWorld.biome == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)))
         // Keep a landscape's perimeter composition stable for consecutive
         // waves; change the layout when the player enters another location.
