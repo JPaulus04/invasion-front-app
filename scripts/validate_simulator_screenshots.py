@@ -62,6 +62,12 @@ def verify(path: Path) -> None:
     }
     if path.name.startswith("outpost-zero-walk-preview-"):
         expected_markers[path.name] = 2
+    world_one_markers = {
+        f"outpost-zero-world1-{name}.png": index
+        for index, name in enumerate((
+            "outpost", "swamp", "caves", "boss", "outpost-revisit",
+            "swamp-revisit", "caves-revisit"), start=1)
+    }
     is_survival = (path.name.startswith("outpost-zero-survival-") or
                    path.name == "outpost-zero-extraction-open.png")
     # Ignore static phone notch/home bar; sample the game area.
@@ -93,7 +99,7 @@ def verify(path: Path) -> None:
                 row[i] = (row[i] + predictor) & 255
         elif mode != 0:
             raise ValueError(f"unsupported PNG filter {mode}")
-        if (path.name in expected_markers or is_survival) and y == round(height * 0.40):
+        if (path.name in expected_markers or path.name in world_one_markers or is_survival) and y == round(height * 0.40):
             cx = round(width * 0.90)
             arena_marker = tuple(row[cx * channels:cx * channels + 3])
         if height // 7 < y < height * 13 // 14 and y % y_step == 0:
@@ -117,6 +123,15 @@ def verify(path: Path) -> None:
             raise ValueError(
                 f"missing or incorrect arena game identity marker: "
                 f"expected RGB channel {channel}, sampled {arena_marker}")
+    if path.name in world_one_markers:
+        code = world_one_markers[path.name]
+        if arena_marker is None or any(
+            (arena_marker[channel] < 170 if code & (1 << channel)
+             else arena_marker[channel] > 90) for channel in range(3)
+        ):
+            raise ValueError(
+                f"wrong World 1 landscape capture: expected identity {code}, "
+                f"sampled {arena_marker}")
     if is_survival and (
         arena_marker is None or arena_marker[0] < 170 or
         arena_marker[1] > 90 or arena_marker[2] < 170

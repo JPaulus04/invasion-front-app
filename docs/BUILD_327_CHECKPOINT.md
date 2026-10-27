@@ -1,5 +1,20 @@
 # Build 327 development checkpoint
 
+## October 27 — Portal guidance and trustworthy landscape capture
+
+This section supersedes the older status/blocker below; older entries remain historical.
+
+- Resumed from remote build-327 at 9b795efa6d31a78ededcdb39348db99be8e00641. Its run 40588740569 passed build/logic tests; visual jobs were still running when this correction was prepared.
+- Inspected all seven actual baseline landscape images from run 40498084160, artifact 12732318123. The swamp filename contained Floor 1 instead of Floor 4. Other images included ongoing combat damage. File existence/color checks were insufficient to establish the intended scene. These images predate portal guidance and cannot establish its visual acceptance.
+- Landscape fixtures now hold the scene update as well as SpriteKit actions, stage up to three production enemies, and stamp seven distinct QA-only RGB identities. Screenshot validation requires the expected identity, rejecting stale frames from another landscape.
+- Removed upper-gate guidance from survival encounters, whose extraction orb spawns near the player. Added an assertion in the existing production survival-extraction fixture. Tactical, defense and boss exits retain their guidance.
+- Local source and 65-sprite format checks pass; whitespace passes. Screenshot validator exercise accepted all 7 matching identities and rejected all 42 mismatches; it also rejected the actual mislabeled baseline swamp image.
+- Authored-art audit FAILS: 0/36 planned World 1 floor/prop PNGs present. Existing character/boss/tree art does not satisfy that environment asset contract. Procedural fallback polish is not completion of the agreed production-art standard.
+- Fresh iOS compile, full simulator validation and actual corrected-frame review remain required for this patch. No TestFlight upload or player reset.
+- Next: review the corrected seven-frame artifact and portal approach/extraction captures, then complete the authored World 1 environment asset integration and navigation/performance acceptance before extending the same foundation to other worlds.
+
+## Historical initial checkpoint
+
 ## Status
 Development checkpoint only. Not compiled or visually accepted. No TestFlight action.
 Stable baseline: c1fc125da825d558a84d0fd05939c6348ad942f2 on outpost-zero.

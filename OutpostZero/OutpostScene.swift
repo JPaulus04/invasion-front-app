@@ -1215,6 +1215,8 @@ final class OutpostScene: SKScene {
                 for: pilot.position, viewportSize: size)
             precondition(activeEncounter == .survival && expandedArenaPreview,
                          "World 1 Room 6 must launch a playable timed arena")
+            precondition(zoneScenery.childNode(withName: "worldOnePortalApproach") == nil,
+                         "Survival scenery must not direct players toward an unused campaign gate")
             for index in 0..<5 {
                 spawned += 1
                 spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(
@@ -1628,6 +1630,30 @@ final class OutpostScene: SKScene {
             wave = selection.1 - 1
             gateUnlocked = true
             startWave()
+            // Hold an actual production room before combat can damage the
+            // pilot or change rooms while simctl waits for the screenshot.
+            for _ in 0..<min(3, waveTarget) {
+                spawned += 1
+                spawnEnemy()
+            }
+            for index in enemies.indices {
+                enemies[index].node.alpha = 1
+                enemies[index].node.childNode(withName: "spawnWarning")?.removeFromParent()
+            }
+            precondition(wave == selection.1 && worldMapIndex == 0)
+            // Seven distinct binary RGB identities reject a stale frame from
+            // a different landscape, even when that frame looks like gameplay.
+            let captureIndex = worldOneCaptures.firstIndex(where: { $0.0 == selection.0 })! + 1
+            let identity = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
+            identity.fillColor = SKColor(
+                red: captureIndex & 1 != 0 ? 1 : 0,
+                green: captureIndex & 2 != 0 ? 1 : 0,
+                blue: captureIndex & 4 != 0 ? 1 : 0, alpha: 1)
+            identity.strokeColor = .clear
+            identity.position = CGPoint(x: size.width * 0.90, y: size.height * 0.60)
+            identity.zPosition = 65
+            hud.addChild(identity)
+            holdDefenseQAScreenshot = true
             zoneBanner.removeAllActions()
             zoneBanner.alpha = 0
             controlsHint.removeAllActions()
@@ -4314,7 +4340,7 @@ final class OutpostScene: SKScene {
         // fallback only; authored landscape paintings own their composition.
         if worldMapIndex == 0 &&
            roomArt?.childNode(withName: "world1AuthoredFloor") == nil &&
-           wave > 0 {
+           activeEncounter != .survival && wave > 0 {
             let guide = SKNode()
             guide.name = "worldOnePortalApproach"
             guide.zPosition = -0.7
