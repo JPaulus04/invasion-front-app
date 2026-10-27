@@ -4140,20 +4140,22 @@ final class OutpostScene: SKScene {
             default: landscape = "ruined_outpost"
             }
             let artName = "world1_\(landscape)_floor_\((max(0, wave - 1) % 3) + 1)"
-            let prior = roomArt?.childNode(withName: "world1AuthoredFloor")
-            prior?.removeFromParent()
             let authoredFloorTexture = worldOneTexture(named: artName)
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
                authoredFloorTexture == nil {
                 preconditionFailure("Missing authored World 1 floor: \(artName)")
             }
             if let texture = authoredFloorTexture {
-                let floorArt = SKSpriteNode(texture: texture)
+                let floorArt = (roomArt?.childNode(withName: "world1AuthoredFloor") as? SKSpriteNode)
+                    ?? SKSpriteNode(texture: texture)
                 floorArt.name = "world1AuthoredFloor"
+                floorArt.texture = texture
                 floorArt.size = size
                 floorArt.position = CGPoint(x: size.width / 2, y: size.height / 2)
                 floorArt.zPosition = -18.5
-                roomArt?.addChild(floorArt)
+                if floorArt.parent == nil { roomArt?.addChild(floorArt) }
+            } else {
+                roomArt?.childNode(withName: "world1AuthoredFloor")?.removeFromParent()
             }
             roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden =
                 roomArt?.childNode(withName: "world1AuthoredFloor") != nil
