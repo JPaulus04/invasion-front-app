@@ -4307,6 +4307,57 @@ final class OutpostScene: SKScene {
                 floorDetail.addChild(mark)
             }
         }
+        // Environmental wayfinding: the floor is NOT painted with a literal
+        // road. Two broken banks of stones and vegetation frame an open
+        // approach toward the portal. The middle remains completely free for
+        // combat, dodging and alternative approaches. This is the procedural
+        // fallback only; authored landscape paintings own their composition.
+        if worldMapIndex == 0 &&
+           roomArt?.childNode(withName: "world1AuthoredFloor") == nil &&
+           wave > 0 {
+            let guide = SKNode()
+            guide.name = "worldOnePortalApproach"
+            guide.zPosition = -0.7
+            zoneScenery.addChild(guide)
+            let startY = roomBounds.minY + 72
+            let endY = min(roomBounds.maxY - 88, passageGate.position.y - 52)
+            if endY > startY {
+                let guideSeed: Int
+                switch wave {
+                case 1...3: guideSeed = 1
+                case 4...5: guideSeed = 4
+                case 6...8: guideSeed = 6
+                case 9...10: guideSeed = 9
+                case 11...13: guideSeed = 11
+                case 14...15: guideSeed = 14
+                default: guideSeed = wave
+                }
+                let approachWidth = min(72, roomBounds.width * 0.28)
+                for side in [-1.0, 1.0] {
+                    for step in 0..<7 {
+                        // Missing pieces prevent a painted-lane appearance.
+                        if (step + guideSeed + (side < 0 ? 1 : 0)) % 4 == 0 {
+                            continue
+                        }
+                        let fraction = CGFloat(step) / 6
+                        let bend = sin(fraction * .pi) * CGFloat((guideSeed % 3) - 1) * 13
+                        let x = roomBounds.midX + CGFloat(side) *
+                            (approachWidth - fraction * 12) + bend
+                        let y = startY + (endY - startY) * fraction
+                        let pebble = SKShapeNode(ellipseOf: CGSize(
+                            width: CGFloat(9 + (step + guideSeed) % 8),
+                            height: CGFloat(4 + step % 3)))
+                        pebble.name = "portalApproachEdge"
+                        pebble.position = CGPoint(x: x, y: y)
+                        pebble.zRotation = CGFloat((step % 3) - 1) * 0.22
+                        pebble.fillColor = SKColor(
+                            red: 0.36, green: 0.37, blue: 0.30, alpha: 0.30)
+                        pebble.strokeColor = .clear
+                        guide.addChild(pebble)
+                    }
+                }
+            }
+        }
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
         // Keep perimeter density constant within a World 1 landscape.
         // The former zone-based count changed mid-location even when the
