@@ -42,14 +42,34 @@ def resolve_png(name):
 
 def png_metadata(path):
     with path.open("rb") as stream:
-        header = stream.read(26)
+        header = stream.read(33)
     if len(header) < 26 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
         raise ValueError("invalid PNG signature or IHDR")
     width, height = struct.unpack(">II", header[16:24])
     color_type = header[25]
+    # A palette image only has transparency when a tRNS chunk is present.
+    # Read chunk boundaries rather than treating every indexed PNG as alpha.
+    has_palette_alpha = False
+    if color_type == 3:
+        with path.open("rb") as stream:
+            stream.seek(8)
+            while True:
+                length_bytes = stream.read(4)
+                if len(length_bytes) != 4:
+                    break
+                length = struct.unpack(">I", length_bytes)[0]
+                chunk_type = stream.read(4)
+                if len(chunk_type) != 4 or length > 64 * 1024 * 1024:
+                    break
+                if chunk_type == b"tRNS":
+                    has_palette_alpha = True
+                    break
+                if chunk_type in (b"IDAT", b"IEND"):
+                    break
+                stream.seek(length + 4, 1)
     if width < 1 or height < 1:
         raise ValueError("zero-size PNG")
-    return width, height, color_type
+    return width, height, color_type, has_palette_alpha
 
 
 def main():
@@ -67,15 +87,14 @@ def main():
             errors.append(f"MISSING {name}: no PNG payload")
             continue
         try:
-            width, height, color_type = png_metadata(path)
+            width, height, color_type, has_palette_alpha = png_metadata(path)
         except (ValueError, OSError) as exc:
             errors.append(f"INVALID {name}: {exc}")
             continue
         minimum = 256 if kind == "floor" else 64
         if width < minimum or height < minimum:
             errors.append(f"TOO SMALL {name}: {width}x{height} (minimum {minimum}x{minimum})")
-        elif kind == "prop" and color_type not in (4, 6, 3):
-            # Palette PNGs may carry transparency via tRNS; inspect in art review.
+        elif kind == "prop" and not (color_type in (4, 6) or (color_type == 3 and has_palette_alpha)):
             errors.append(f"NO ALPHA {name}: PNG color type {color_type}")
         else:
             valid += 1
