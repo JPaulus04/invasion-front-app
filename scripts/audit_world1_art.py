@@ -43,7 +43,7 @@ def resolve_png(name):
 def png_metadata(path):
     with path.open("rb") as stream:
         header = stream.read(26)
-    if len(header) < 26 or header[:8] != b"\\x89PNG\\r\\n\\x1a\\n" or header[12:16] != b"IHDR":
+    if len(header) < 26 or header[:8] != b"\x89PNG\r\n\x1a\n" or header[12:16] != b"IHDR":
         raise ValueError("invalid PNG signature or IHDR")
     width, height = struct.unpack(">II", header[16:24])
     color_type = header[25]
