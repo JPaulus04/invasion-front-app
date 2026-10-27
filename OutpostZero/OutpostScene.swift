@@ -4144,7 +4144,23 @@ final class OutpostScene: SKScene {
             case 20: landscape = "boss_arena"
             default: landscape = "ruined_outpost"
             }
-            let artName = "world1_\(landscape)_floor_\((max(0, wave - 1) % 3) + 1)"
+            // Keep the same illustrated floor for consecutive rooms in a
+            // landscape, while rotating its three compositions on revisits.
+            // Global wave modulo would change the floor every room and make
+            // each location feel visually unstable.
+            let landscapeVisit: Int
+            switch wave {
+            case 1...3: landscapeVisit = 0
+            case 4...5: landscapeVisit = 0
+            case 6...8: landscapeVisit = 1
+            case 9...10: landscapeVisit = 0
+            case 11...13: landscapeVisit = 1
+            case 14...15: landscapeVisit = 1
+            case 16...19: landscapeVisit = 2
+            case 20: landscapeVisit = 0
+            default: landscapeVisit = 0
+            }
+            let artName = "world1_\(landscape)_floor_\(landscapeVisit + 1)"
             let authoredFloorTexture = worldOneTexture(named: artName)
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
                authoredFloorTexture == nil {
