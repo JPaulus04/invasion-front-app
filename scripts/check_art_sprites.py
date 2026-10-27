@@ -64,6 +64,13 @@ def alpha_range(data, width, height, color):
 
 errors = []
 files = sorted(ASSETS.rglob("*.png")) if ASSETS.exists() else []
+# The World 1 installer uses image sets, which Xcode compiles into Assets.car.
+# Validate their real referenced PNG payloads alongside standalone sprites.
+from audit_world1_art import REQUIRED, resolve_png
+for name, _ in REQUIRED:
+    path = resolve_png(name)
+    if path is not None and path not in files:
+        files.append(path)
 for path in files:
     data = path.read_bytes()
     label = str(path.relative_to(ROOT))
@@ -123,7 +130,7 @@ if required_world_one:
 elif missing:
     print(f"NOTICE: {len(missing)} of {len(expected)} World 1 illustrated floor/prop assets are not yet present; "
           "format validation alone does not certify in-game artwork readiness.")
-print(f"Checked {len(files)} production PNG sprites in {ASSETS.relative_to(ROOT)}")
+print(f"Checked {len(files)} production PNG assets across ArtAssets and World 1 image sets")
 if errors:
     print("\n".join("ERROR: " + item for item in errors))
     sys.exit(1)

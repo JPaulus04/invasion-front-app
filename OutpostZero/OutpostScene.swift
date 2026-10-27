@@ -1217,6 +1217,12 @@ final class OutpostScene: SKScene {
                          "World 1 Room 6 must launch a playable timed arena")
             precondition(zoneScenery.childNode(withName: "worldOnePortalApproach") == nil,
                          "Survival scenery must not direct players toward an unused campaign gate")
+            if let floor = arena.childNode(withName: "roomArtwork")?
+                .childNode(withName: "world1AuthoredFloor") as? SKSpriteNode {
+                precondition(floor.frame.contains(roomBounds) &&
+                    arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden == true,
+                    "Authored survival floor must cover the moving camera arena without a fallback overlay")
+            }
             for index in 0..<5 {
                 spawned += 1
                 spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(
@@ -1641,6 +1647,15 @@ final class OutpostScene: SKScene {
                 enemies[index].node.childNode(withName: "spawnWarning")?.removeFromParent()
             }
             precondition(wave == selection.1 && worldMapIndex == 0)
+            if wave == 1 || wave == 7 {
+                precondition(arena.childNode(withName: "roomArtwork")?
+                    .childNode(withName: "world1AuthoredFloor") != nil,
+                    "Ruined Outpost review requires its bundled illustrated floor")
+                for kind in ["wall", "boulder", "vegetation", "debris", "lantern", "crate"] {
+                    precondition(worldOneTexture(named: "world1_ruined_outpost_" + kind) != nil,
+                                 "Ruined Outpost review requires all six bundled props")
+                }
+            }
             // Seven distinct binary RGB identities reject a stale frame from
             // a different landscape, even when that frame looks like gameplay.
             let captureIndex = worldOneCaptures.firstIndex(where: { $0.0 == selection.0 })! + 1
@@ -4202,8 +4217,11 @@ final class OutpostScene: SKScene {
                     ?? SKSpriteNode(texture: texture)
                 floorArt.name = "world1AuthoredFloor"
                 floorArt.texture = texture
-                floorArt.size = size
-                floorArt.position = CGPoint(x: size.width / 2, y: size.height / 2)
+                let paintedBounds = expandedArenaPreview
+                    ? roomBounds.insetBy(dx: -24, dy: -24)
+                    : CGRect(origin: .zero, size: size)
+                floorArt.size = paintedBounds.size
+                floorArt.position = CGPoint(x: paintedBounds.midX, y: paintedBounds.midY)
                 floorArt.zPosition = -18.5
                 if floorArt.parent == nil { roomArt?.addChild(floorArt) }
             } else {
@@ -4217,6 +4235,10 @@ final class OutpostScene: SKScene {
         if worldMapIndex != 0 {
             roomArt?.childNode(withName: "world1AuthoredFloor")?.removeFromParent()
         }
+        // Expanded survival ground sits above roomArtwork. Hide that
+        // fallback only when a painting covers the complete moving arena.
+        arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden =
+            worldMapIndex == 0 && roomArt?.childNode(withName: "world1AuthoredFloor") != nil
         roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = nonForestWorld || roomArt?.childNode(withName: "world1AuthoredFloor") != nil
         roomArt?.childNode(withName: "floodedAmbientBackdrop")?.isHidden = selectedWorld.biome != 1
         roomArt?.childNode(withName: "toxicAmbientBackdrop")?.isHidden = selectedWorld.biome != 2
@@ -4551,7 +4573,14 @@ final class OutpostScene: SKScene {
                     shadow.position = CGPoint(x: 0, y: 1)
                     shadow.zPosition = 0.1
                     prop.addChild(shadow)
-                    sprite.position.y = height * 0.27
+                    if landscape == "ruined_outpost" {
+                        // This pack has a normalized 20px transparent border.
+                        // Register its visible bottom at the contact shadow.
+                        sprite.anchorPoint = CGPoint(x: 0.5, y: 20 / texture.size().height)
+                        sprite.position.y = 0
+                    } else {
+                        sprite.position.y = height * 0.27
+                    }
                     sprite.zPosition = 0.8
                     prop.fillColor = .clear
                     prop.strokeColor = .clear

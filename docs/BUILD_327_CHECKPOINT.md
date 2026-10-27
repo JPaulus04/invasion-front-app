@@ -1,5 +1,16 @@
 # Build 327 development checkpoint
 
+## October 27 — First complete Ruined Outpost asset candidate
+
+- Published the previously approved correction via the GitHub connector as d0afe5548a4aebfbb75b6e94781e207d9bbfde13 (same tree as local 5bc736c). Shell push lacked credentials; connector publication succeeded. Run 40591065946 passed compile/logic; simulator jobs remained running at this checkpoint.
+- Generated and installed all nine Ruined Outpost assets: three separate ground compositions plus wall, boulder, vegetation, debris, lantern and crate. This is the first landscape candidate, not final art acceptance. Swamp Basin, Toxic Caves and boss arena still need 27 assets.
+- Normalized props with preserved alpha and a known 20px border; runtime bottom anchors now align this pack with its contact shadows. Reviewed all six props at small display sizes locally.
+- Authored floors cover expanded survival bounds, and the higher fallback survival ground is hidden when an illustrated floor is present. Existing extraction fixture checks coverage and absence of the fallback overlay.
+- First/revisit Ruined Outpost captures now require the real floor and all six bundled props, preventing silent fallback acceptance.
+- Corrected the sprite validator to inspect installed image-set payloads as well as standalone ArtAssets. Local checks: 21 Swift source checks pass; 74 PNGs pass format/alpha checks; Ruined Outpost audit 9/9; complete World 1 still 9/36.
+- Candidate images are full-room ground compositions, not verified seamless tiles. Runtime currently uses one composition per room; do not claim tile seam acceptance. Floor contrast, projectile readability, prop grounding, survival camera motion and performance still require actual simulator/device review.
+- Next: inspect real first/revisit Ruined Outpost and survival captures at this revision. Resolve visual defects before making other landscape packs. No TestFlight upload or save reset.
+
 ## October 27 — Portal guidance and trustworthy landscape capture
 
 This section supersedes the older status/blocker below; older entries remain historical.

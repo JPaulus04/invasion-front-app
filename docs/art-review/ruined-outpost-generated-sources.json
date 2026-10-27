@@ -1,0 +1,16 @@
+{
+  "generator": "built-in image_gen",
+  "status": "candidate artwork; simulator review pending",
+  "source_ids": {
+    "floor_1": "00f777de-c285-4244-a6f0-86bbf590e8c7",
+    "floor_2": "eae02d5f-4e9e-4122-b3ea-6b35c8cfc986",
+    "floor_3": "5b9b32ed-b82d-401a-8956-54bef1295056",
+    "wall": "66f2596f-52dc-4aaf-a89f-db39f0758b26",
+    "boulder": "45c9cf7e-5cd8-4ed0-bdcc-2424186265d2",
+    "vegetation": "a2688c62-29b0-436c-9747-810f0249e330",
+    "debris": "61c857ab-e893-43d3-bed1-31a405fd613a",
+    "lantern": "0e822b7b-749d-438b-bf27-fbb4553d0d17",
+    "crate": "145bd11d-e629-4ef6-a40b-eee67dae43d6"
+  },
+  "normalization": "Floors 512x768. Props cropped to alpha >16 bounds, resized proportionally to max460, padded20 pixels. Transparent alpha preserved. Runtime ground anchor uses 20/textureHeight."
+}
