@@ -4462,6 +4462,18 @@ final class OutpostScene: SKScene {
                     let height: CGFloat = kind == "wall" ? 78 : (kind == "vegetation" ? 62 : 48)
                     let ratio = max(0.45, min(1.9, texture.size().width / max(1, texture.size().height)))
                     sprite.size = CGSize(width: height * ratio, height: height)
+                    // Ground the illustrated prop in the arena. The
+                    // transparent artwork otherwise appears to float over
+                    // the floor, particularly for tall walls and vegetation.
+                    let shadow = SKShapeNode(ellipseOf: CGSize(
+                        width: max(23, min(65, sprite.size.width * 0.72)),
+                        height: max(9, min(19, height * 0.22))))
+                    shadow.name = "world1PropContactShadow"
+                    shadow.fillColor = SKColor.black.withAlphaComponent(0.24)
+                    shadow.strokeColor = .clear
+                    shadow.position = CGPoint(x: 0, y: 1)
+                    shadow.zPosition = 0.1
+                    prop.addChild(shadow)
                     sprite.position.y = height * 0.27
                     sprite.zPosition = 0.8
                     prop.fillColor = .clear
