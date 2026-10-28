@@ -135,7 +135,7 @@ jobs:
     # Full campaign screenshots remain in the separate simulator-review job.
     needs: build
     runs-on: macos-26
-    timeout-minutes: 18
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - name: Download compiled simulator app
