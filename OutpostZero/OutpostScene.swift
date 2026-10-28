@@ -4611,7 +4611,12 @@ final class OutpostScene: SKScene {
                     castShadow.name = "world1PropCastShadow"
                     castShadow.fillColor = SKColor.black.withAlphaComponent(0.13)
                     castShadow.strokeColor = .clear
-                    castShadow.position = CGPoint(x: 12, y: -7)
+                    // Cast-shadow displacement follows the rendered
+                    // footprint so tiny props do not inherit the same
+                    // oversized offset as large wall illustrations.
+                    castShadow.position = CGPoint(
+                        x: min(12, sprite.size.width * 0.16),
+                        y: -min(7, sprite.size.height * 0.10))
                     castShadow.zRotation = -0.23
                     castShadow.zPosition = 0.05
                     prop.addChild(castShadow)
