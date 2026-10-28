@@ -4593,8 +4593,8 @@ final class OutpostScene: SKScene {
                     // transparent artwork otherwise appears to float over
                     // the floor, particularly for tall walls and vegetation.
                     let shadow = SKShapeNode(ellipseOf: CGSize(
-                        width: max(23, min(65, sprite.size.width * 0.72)),
-                        height: max(9, min(19, height * 0.22))))
+                        width: max(8, min(65, sprite.size.width * 0.72)),
+                        height: max(4, min(19, sprite.size.height * 0.22))))
                     shadow.name = "world1PropContactShadow"
                     shadow.fillColor = SKColor.black.withAlphaComponent(0.31)
                     shadow.strokeColor = .clear
@@ -4606,8 +4606,8 @@ final class OutpostScene: SKScene {
                     // Keep the shadow behind the prop and inside its parent
                     // so it follows the existing perimeter layout.
                     let castShadow = SKShapeNode(ellipseOf: CGSize(
-                        width: max(18, min(58, sprite.size.width * 0.65)),
-                        height: max(7, min(15, height * 0.16))))
+                        width: max(7, min(58, sprite.size.width * 0.65)),
+                        height: max(3, min(15, sprite.size.height * 0.16))))
                     castShadow.name = "world1PropCastShadow"
                     castShadow.fillColor = SKColor.black.withAlphaComponent(0.13)
                     castShadow.strokeColor = .clear
