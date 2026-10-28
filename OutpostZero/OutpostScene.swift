@@ -4570,6 +4570,18 @@ final class OutpostScene: SKScene {
                     }
                     let ratio = texture.size().width / max(1, texture.size().height)
                     sprite.size = CGSize(width: height * ratio, height: height)
+                    // Perimeter positions were chosen for small placeholder
+                    // shapes. Wide illustrated ruins could extend offscreen.
+                    // Keep their full silhouette within the playable arena
+                    // without moving any collision or encounter geometry.
+                    let halfWidth = sprite.size.width * 0.5
+                    let minimumX = roomBounds.minX + halfWidth + 4
+                    let maximumX = roomBounds.maxX - halfWidth - 4
+                    if minimumX <= maximumX {
+                        prop.position.x = min(max(prop.position.x, minimumX), maximumX)
+                    } else {
+                        prop.position.x = roomBounds.midX
+                    }
                     // Ground the illustrated prop in the arena. The
                     // transparent artwork otherwise appears to float over
                     // the floor, particularly for tall walls and vegetation.
