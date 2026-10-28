@@ -97,6 +97,24 @@ jobs:
             exit 1
           }
           python3 scripts/audit_world1_art.py ruined_outpost
+          # Make missing authored landscapes visible on every build, even
+          # when procedural fallback is intentionally permitted.
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.audit_world1_art import resolve_png, PROPS
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary.open("a") as report:
+              report.write("### World 1 authored artwork coverage\n\n")
+              report.write("| Landscape | PNGs | Readiness |\n|---|---:|---|\n")
+              for landscape in ("ruined_outpost", "swamp_basin", "toxic_caves", "boss_arena"):
+                  names = [f"world1_{landscape}_floor_{i}" for i in (1, 2, 3)]
+                  names += [f"world1_{landscape}_{kind}" for kind in PROPS]
+                  count = sum(resolve_png(name) is not None for name in names)
+                  status = "Source complete; visual review pending" if count == 9 else "INCOMPLETE: fallback scenery"
+                  report.write(f"| {landscape} | {count}/9 | {status} |\n")
+              report.write("\nA green build does not establish visual approval.\n")
+          PY
           # assetutil inspects the actual compiled catalog rather than
           # assuming .imageset PNGs remain as loose files in the .app.
           xcrun --find assetutil >/dev/null
