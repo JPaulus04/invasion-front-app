@@ -4225,9 +4225,13 @@ final class OutpostScene: SKScene {
                     ?? SKSpriteNode(texture: texture)
                 floorArt.name = "world1AuthoredFloor"
                 floorArt.texture = texture
+                // Extend the authored painting beyond the camera viewport
+                // even in standard rooms. A small camera offset previously
+                // exposed the flat fallback ground as a straight strip along
+                // the lower edge of the first Toxic Caves capture.
                 let paintedBounds = expandedArenaPreview
                     ? roomBounds.insetBy(dx: -24, dy: -24)
-                    : CGRect(origin: .zero, size: size)
+                    : CGRect(origin: .zero, size: size).insetBy(dx: -24, dy: -24)
                 floorArt.size = paintedBounds.size
                 floorArt.position = CGPoint(x: paintedBounds.midX, y: paintedBounds.midY)
                 floorArt.zPosition = -18.5
