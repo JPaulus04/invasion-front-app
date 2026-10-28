@@ -4620,8 +4620,8 @@ final class OutpostScene: SKScene {
                     castShadow.zRotation = -0.23
                     castShadow.zPosition = 0.05
                     prop.addChild(castShadow)
-                    if landscape == "ruined_outpost" {
-                        // This pack has a normalized 20px transparent border.
+                    if landscape == "ruined_outpost" || landscape == "swamp_basin" {
+                        // Both packs have a normalized 20px transparent border.
                         // Register its visible bottom at the contact shadow.
                         sprite.anchorPoint = CGPoint(x: 0.5, y: 20 / texture.size().height)
                         sprite.position.y = 0

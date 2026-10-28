@@ -1,5 +1,13 @@
 # Build 327 development checkpoint
 
+## October 28 — Swamp Basin candidate integrated
+
+- Added three 512x768 opaque ground compositions and six transparent props using built-in image generation. Source IDs and exported sizes are recorded in `docs/art-review/swamp-basin-generated-sources.json`.
+- Props preserve aspect ratio, max 472px content edge, and measured 20px transparent border. Extended the existing visible-bottom anchor to Swamp Basin. Floor selection already maps rooms 4–5, 11–13 and 17 to the three variants.
+- Local checks passed: Swamp audit 9/9; 83 present sprites meet format checks; 21 Swift source sanity checks; whitespace. World 1 now has 18/36 required assets.
+- No hosted validation launched: user requested batching to avoid repeated 20-minute runs. New pack is NOT simulator-validated or visually accepted. Review scale, shadows, water readability and projectile contrast in the next necessary batched run. TestFlight remains on hold.
+
+
 ## October 28 — Verified Build 327 visual baseline and production decision
 
 - iOS Compile Check #558 on 33eb38f passed build, simulator-review and defense-visual-review; all seven World 1 landscape PNGs were independently inspected from the uploaded `outpost-zero-world1-landscape-review.zip` artifact. This is a visual observation, not an assertion that all authored art is complete.
