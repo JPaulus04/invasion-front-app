@@ -125,30 +125,16 @@ jobs:
           records = json.loads(Path(sys.argv[1]).read_text())
           compiled = {item.get("Name") for item in records if isinstance(item, dict)}
           required = set()
-          for landscape in ("ruined_outpost", "swamp_basin", "toxic_caves"):
+          for landscape in ("ruined_outpost", "swamp_basin", "toxic_caves", "boss_arena"):
               required.update(f"world1_{landscape}_floor_{i}" for i in (1, 2, 3))
               required.update(f"world1_{landscape}_{p}" for p in
                               ("wall", "boulder", "vegetation", "debris", "lantern", "crate"))
           missing = sorted(required - compiled)
           if missing:
               raise SystemExit(f"Missing authored World 1 textures from Assets.car: {missing}")
-          print("PASS: all 27 delivered World 1 textures present in compiled Assets.car")
+          print("PASS: all 36 World 1 textures present in compiled Assets.car")
           PY
-          python3 - <<'PY'
-          from pathlib import Path
-          from scripts.audit_world1_art import resolve_png, PROPS
-          landscapes = ("swamp_basin", "toxic_caves", "boss_arena")
-          for landscape in landscapes:
-              names = [f"world1_{landscape}_floor_{n}" for n in (1,2,3)]
-              names += [f"world1_{landscape}_{kind}" for kind in PROPS]
-              present = [name for name in names if resolve_png(name) is not None]
-              if present and len(present) != len(names):
-                  missing = sorted(set(names) - set(present))
-                  raise SystemExit(f"Partial World 1 {landscape} pack: {len(present)}/9; missing {missing}")
-              print(f"World 1 {landscape}: {len(present)}/9 source PNGs (empty pack allowed during development)")
-          PY
-      - name: Verify complete World 1 authored artwork when required
-        if: ${{ vars.REQUIRE_WORLD_ONE_ART == 'true' }}
+      - name: Verify complete World 1 authored artwork
         run: |
           set -euo pipefail
           REQUIRE_WORLD_ONE_ART=1 python3 scripts/check_art_sprites.py

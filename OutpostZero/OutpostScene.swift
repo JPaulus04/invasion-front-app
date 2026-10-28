@@ -1652,6 +1652,7 @@ final class OutpostScene: SKScene {
             case 1, 7: requiredCaptureLandscape = "ruined_outpost"
             case 4, 12: requiredCaptureLandscape = "swamp_basin"
             case 9, 15: requiredCaptureLandscape = "toxic_caves"
+            case 20: requiredCaptureLandscape = "boss_arena"
             default: requiredCaptureLandscape = nil
             }
             if let landscape = requiredCaptureLandscape {
@@ -4627,17 +4628,10 @@ final class OutpostScene: SKScene {
                     castShadow.zRotation = -0.23
                     castShadow.zPosition = 0.05
                     prop.addChild(castShadow)
-                    if ["ruined_outpost", "swamp_basin", "toxic_caves"].contains(landscape) {
-                        // These packs have a normalized 20px transparent border.
-                        // Register its visible bottom at the contact shadow.
-                        sprite.anchorPoint = CGPoint(x: 0.5, y: 20 / texture.size().height)
-                        sprite.position.y = 0
-                    } else {
-                        // Offset must follow the displayed sprite, not the
-                        // unscaled design height. Otherwise large cutouts
-                        // reduced for the perimeter float above the floor.
-                        sprite.position.y = sprite.size.height * 0.27
-                    }
+                    // All four World 1 packs have a normalized 20px
+                    // transparent border. Register visible bottoms at shadows.
+                    sprite.anchorPoint = CGPoint(x: 0.5, y: 20 / texture.size().height)
+                    sprite.position.y = 0
                     sprite.zPosition = 0.8
                     prop.fillColor = .clear
                     prop.strokeColor = .clear

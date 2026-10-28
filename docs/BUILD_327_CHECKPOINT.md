@@ -1,5 +1,15 @@
 # Build 327 development checkpoint
 
+## October 28 — Guardian Clearing candidate; World 1 asset inventory complete
+
+- Added nine Guardian Clearing assets (boss_arena naming): three opaque 512x768 floor compositions and six transparent root/limestone/fern props. Built-in image generation; prompts, source IDs and export dimensions recorded in docs/art-review/guardian-clearing-*.
+- Room 20 uses floor_1. Floor_2 and floor_3 are bundled alternatives, not new gameplay encounters or campaign rotation. Prop exports preserve aspect ratio with max 472px content edge and a measured 20px transparent border; all four World 1 packs now share the visible-bottom ground anchor.
+- Guardian landscape capture now requires authored floor and six props. Next hosted compile requires all 36 textures in Assets.car and complete source art unconditionally; removed the obsolete empty-pack allowance. This is a packaging gate, not visual acceptance.
+- Local checks passed: World 1 audit 36/36; strict format/alpha check for 101 production PNGs; all nine Guardian PNG checksums; 21 Swift source sanity checks; YAML parse; compiled-catalog check accepted 36 names and rejected each of 36 individually missing names; whitespace. No Swift compilation or simulator run locally.
+- Published as a batch with [skip ci]. No hosted validation or TestFlight action. Swamp, Caves and Guardian remain visual candidates.
+- Next necessary validation: one consolidated simulator pass for all new landscapes, first/revisit frames, Root Lord encounter, portal approach/extraction and live projectile readability. Inspect screenshots from the actual candidate SHA. Check edge fitting, grounding, occlusion and performance before visual acceptance.
+
+
 ## October 28 — Toxic Caves candidate integrated
 
 - Added three 512x768 slate/violet floor compositions and six transparent cave props using built-in image generation. Prompts and source IDs are recorded under docs/art-review/toxic-caves-*.
