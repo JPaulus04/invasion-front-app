@@ -85,6 +85,26 @@ jobs:
             fi
             echo "Verified bundled asset: $FOUND"
           done
+      - name: Verify approved Ruined Outpost candidate in compiled app
+        run: |
+          set -euo pipefail
+          APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
+          test -d "$APP"
+          for VARIANT in 1 2 3; do
+            NAME="world1_ruined_outpost_floor_${VARIANT}.png"
+            test -n "$(find "$APP" -type f -name "$NAME" -print -quit)" || {
+              echo "::error::Missing approved Ruined Outpost floor: $NAME"
+              exit 1
+            }
+          done
+          for KIND in wall boulder vegetation debris lantern crate; do
+            NAME="world1_ruined_outpost_${KIND}.png"
+            test -n "$(find "$APP" -type f -name "$NAME" -print -quit)" || {
+              echo "::error::Missing approved Ruined Outpost prop: $NAME"
+              exit 1
+            }
+          done
+          echo "PASS: all nine Ruined Outpost candidate assets are bundled"
       - name: Verify World 1 authored artwork in compiled app
         if: ${{ vars.REQUIRE_WORLD_ONE_ART == 'true' }}
         run: |
