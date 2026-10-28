@@ -4538,15 +4538,14 @@ final class OutpostScene: SKScene {
                 // Otherwise the same perimeter location switches from a
                 // wall to a lantern or crate every time a wave advances.
                 let landscapePhase: Int
-                switch wave {
-                case 1...3: landscapePhase = 0
-                case 4...5: landscapePhase = 1
-                case 6...8: landscapePhase = 2
-                case 9...10: landscapePhase = 3
-                case 11...13: landscapePhase = 4
-                case 14...15: landscapePhase = 5
-                case 16...19: landscapePhase = wave - 10
-                default: landscapePhase = 10
+                // Reuse the same prop ordering whenever a landscape
+                // returns. A different wave must not turn an established
+                // ruin into a crate or lantern in the same perimeter slot.
+                switch landscape {
+                case "ruined_outpost": landscapePhase = 0
+                case "swamp_basin": landscapePhase = 1
+                case "toxic_caves": landscapePhase = 2
+                default: landscapePhase = 3
                 }
                 let kind = propKinds[(index + landscapePhase) % propKinds.count]
                 let assetName = "world1_\(landscape)_\(kind)"
