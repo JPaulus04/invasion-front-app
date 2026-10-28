@@ -4621,7 +4621,10 @@ final class OutpostScene: SKScene {
                         sprite.anchorPoint = CGPoint(x: 0.5, y: 20 / texture.size().height)
                         sprite.position.y = 0
                     } else {
-                        sprite.position.y = height * 0.27
+                        // Offset must follow the displayed sprite, not the
+                        // unscaled design height. Otherwise large cutouts
+                        // reduced for the perimeter float above the floor.
+                        sprite.position.y = sprite.size.height * 0.27
                     }
                     sprite.zPosition = 0.8
                     prop.fillColor = .clear
