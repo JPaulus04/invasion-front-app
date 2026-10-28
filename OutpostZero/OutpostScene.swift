@@ -4569,7 +4569,14 @@ final class OutpostScene: SKScene {
                     default: height = 48
                     }
                     let ratio = texture.size().width / max(1, texture.size().height)
-                    sprite.size = CGSize(width: height * ratio, height: height)
+                    // Respect the existing combat corridor. A very wide
+                    // illustration must shrink uniformly rather than being
+                    // pushed from the perimeter into the player's route.
+                    let desiredWidth = height * ratio
+                    let perimeterWidth = max(40, roomBounds.width * 0.25)
+                    let displayScale = min(1, perimeterWidth / max(1, desiredWidth))
+                    sprite.size = CGSize(width: desiredWidth * displayScale,
+                                         height: height * displayScale)
                     // Perimeter positions were chosen for small placeholder
                     // shapes. Wide illustrated ruins could extend offscreen.
                     // Keep their full silhouette within the playable arena
