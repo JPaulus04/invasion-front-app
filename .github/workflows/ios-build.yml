@@ -330,6 +330,18 @@ jobs:
               raise SystemExit("Missing required World 1 simulator captures: " + ", ".join(missing))
           print("PASS: all seven World 1 simulator landscape captures present")
           PY
+          # Reject the uniform green fallback strip previously visible at
+          # the bottom of the first Toxic Caves simulator screenshot.
+          python3 - <<'PY'
+          from PIL import Image
+          image = Image.open("screenshots/outpost-zero-world1-caves.png").convert("RGB")
+          width, height = image.size
+          sample_y = height - max(8, round(height * 0.015))
+          pixels = [image.getpixel((x, sample_y)) for x in range(0, width, max(1, width // 80))]
+          if len(set(pixels)) <= 2:
+              raise SystemExit("Toxic Caves: uniform bottom-edge fallback strip detected")
+          print("PASS: Toxic Caves bottom edge contains illustrated detail")
+          PY
           capture_scene -captureEquipmentDefenseScreenshot screenshots/outpost-zero-defense-active.png
           capture_scene -captureEquipmentDefenseClearScreenshot screenshots/outpost-zero-defense-cleared.png
           capture_scene -captureEquipmentDefenseFailureScreenshot screenshots/outpost-zero-defense-failed.png
