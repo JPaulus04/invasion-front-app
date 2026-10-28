@@ -1,5 +1,15 @@
 # Build 327 development checkpoint
 
+## October 28 — Verified Build 327 visual baseline and production decision
+
+- iOS Compile Check #558 on 33eb38f passed build, simulator-review and defense-visual-review; all seven World 1 landscape PNGs were independently inspected from the uploaded `outpost-zero-world1-landscape-review.zip` artifact. This is a visual observation, not an assertion that all authored art is complete.
+- Floor 1 and Floor 7 Ruined Outpost show the new bright textured ground and authored stone/vegetation/debris props, with open combat space and readable player/enemy silhouettes. Accept the **visual direction** as the benchmark; retain candidate status pending live portal traversal, contact-shadow and projectile-contrast review.
+- Floor 4 Swamp Basin, Floor 9 Toxic Caves, Floor 12 Swamp revisit, Floor 15 Caves revisit, and Floor 20 Guardian Clearing still show mostly procedural/dark ground. They are not visually approved. Boss character artwork is stronger than the generic boss arena.
+- Distinguish **CI pass** (compiled, capture fixtures and validation passed) from **art acceptance** (human review of actual captured frames). Never infer appearance from a stale run; record screenshot source commit/run and preserve the landscape ZIP.
+- Production order: Swamp Basin, Toxic Caves, Guardian Clearing. For each: ground compositions + six integrated props, visual review at first/revisit where applicable, enemy/projectile contrast, open dodging lanes, and natural portal approaches without a literal road. Only then move to the next biome.
+- No TestFlight release or save reset at this checkpoint.
+
+
 ## October 27 — First complete Ruined Outpost asset candidate
 
 - Published the previously approved correction via the GitHub connector as d0afe5548a4aebfbb75b6e94781e207d9bbfde13 (same tree as local 5bc736c). Shell push lacked credentials; connector publication succeeded. Run 40591065946 passed compile/logic; simulator jobs remained running at this checkpoint.
