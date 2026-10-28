@@ -4558,8 +4558,18 @@ final class OutpostScene: SKScene {
                 if let texture = authoredTexture {
                     let sprite = SKSpriteNode(texture: texture)
                     sprite.name = "world1AuthoredProp"
-                    let height: CGFloat = kind == "wall" ? 78 : (kind == "vegetation" ? 62 : 48)
-                    let ratio = max(0.45, min(1.9, texture.size().width / max(1, texture.size().height)))
+                    // Preserve the proportions of the authored cutout.
+                    // The previous 0.45...1.9 clamp visibly squashed wide
+                    // ruins and stretched narrow props into generic shapes.
+                    let height: CGFloat
+                    switch kind {
+                    case "wall": height = 78
+                    case "vegetation": height = 62
+                    case "boulder": height = 52
+                    case "lantern": height = 57
+                    default: height = 48
+                    }
+                    let ratio = texture.size().width / max(1, texture.size().height)
                     sprite.size = CGSize(width: height * ratio, height: height)
                     // Ground the illustrated prop in the arena. The
                     // transparent artwork otherwise appears to float over
