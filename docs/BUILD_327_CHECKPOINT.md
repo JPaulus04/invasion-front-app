@@ -1,5 +1,14 @@
 # Build 327 development checkpoint
 
+## October 28 — Toxic Caves candidate integrated
+
+- Added three 512x768 slate/violet floor compositions and six transparent cave props using built-in image generation. Prompts and source IDs are recorded under docs/art-review/toxic-caves-*.
+- Exported props with max 472px content edge, preserved proportions and measured 20px transparent borders; extended ground-contact anchors to this pack. Existing room selection loads variants on 9–10, 14–15 and 18.
+- Next hosted validation now requires all 27 delivered textures in Assets.car. Swamp/Cave first and revisit captures require authored floors and six resolvable props. Guardian fallback remains allowed during development.
+- Local validation: cave audit 9/9; 92 PNG format/alpha checks; all nine cave PNG checksums; 21 Swift source checks; YAML parse and compiled-catalog acceptance/rejection exercise. One incomplete debris PNG export was caught and corrected.
+- World 1 artwork coverage is 27/36; Guardian Clearing remains missing. Swamp and Caves remain candidates with simulator scale, contact, projectile contrast, traversal and performance review deferred. No CI run or TestFlight action; batch commit uses [skip ci] at user request.
+
+
 ## October 28 — Swamp Basin candidate integrated
 
 - Added three 512x768 opaque ground compositions and six transparent props using built-in image generation. Source IDs and exported sizes are recorded in `docs/art-review/swamp-basin-generated-sources.json`.

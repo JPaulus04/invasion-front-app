@@ -1647,13 +1647,20 @@ final class OutpostScene: SKScene {
                 enemies[index].node.childNode(withName: "spawnWarning")?.removeFromParent()
             }
             precondition(wave == selection.1 && worldMapIndex == 0)
-            if wave == 1 || wave == 7 {
+            let requiredCaptureLandscape: String?
+            switch wave {
+            case 1, 7: requiredCaptureLandscape = "ruined_outpost"
+            case 4, 12: requiredCaptureLandscape = "swamp_basin"
+            case 9, 15: requiredCaptureLandscape = "toxic_caves"
+            default: requiredCaptureLandscape = nil
+            }
+            if let landscape = requiredCaptureLandscape {
                 precondition(arena.childNode(withName: "roomArtwork")?
                     .childNode(withName: "world1AuthoredFloor") != nil,
-                    "Ruined Outpost review requires its bundled illustrated floor")
+                    "Landscape review requires its bundled illustrated floor")
                 for kind in ["wall", "boulder", "vegetation", "debris", "lantern", "crate"] {
-                    precondition(worldOneTexture(named: "world1_ruined_outpost_" + kind) != nil,
-                                 "Ruined Outpost review requires all six bundled props")
+                    precondition(worldOneTexture(named: "world1_" + landscape + "_" + kind) != nil,
+                                 "Landscape review requires all six bundled props")
                 }
             }
             // Seven distinct binary RGB identities reject a stale frame from
@@ -4620,8 +4627,8 @@ final class OutpostScene: SKScene {
                     castShadow.zRotation = -0.23
                     castShadow.zPosition = 0.05
                     prop.addChild(castShadow)
-                    if landscape == "ruined_outpost" || landscape == "swamp_basin" {
-                        // Both packs have a normalized 20px transparent border.
+                    if ["ruined_outpost", "swamp_basin", "toxic_caves"].contains(landscape) {
+                        // These packs have a normalized 20px transparent border.
                         // Register its visible bottom at the contact shadow.
                         sprite.anchorPoint = CGPoint(x: 0.5, y: 20 / texture.size().height)
                         sprite.position.y = 0

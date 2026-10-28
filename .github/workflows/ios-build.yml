@@ -124,13 +124,15 @@ jobs:
           from pathlib import Path
           records = json.loads(Path(sys.argv[1]).read_text())
           compiled = {item.get("Name") for item in records if isinstance(item, dict)}
-          required = {f"world1_ruined_outpost_floor_{i}" for i in (1, 2, 3)}
-          required.update(f"world1_ruined_outpost_{p}" for p in
-                          ("wall", "boulder", "vegetation", "debris", "lantern", "crate"))
+          required = set()
+          for landscape in ("ruined_outpost", "swamp_basin", "toxic_caves"):
+              required.update(f"world1_{landscape}_floor_{i}" for i in (1, 2, 3))
+              required.update(f"world1_{landscape}_{p}" for p in
+                              ("wall", "boulder", "vegetation", "debris", "lantern", "crate"))
           missing = sorted(required - compiled)
           if missing:
-              raise SystemExit(f"Missing Ruined Outpost textures from Assets.car: {missing}")
-          print("PASS: all nine Ruined Outpost textures present in compiled Assets.car")
+              raise SystemExit(f"Missing authored World 1 textures from Assets.car: {missing}")
+          print("PASS: all 27 delivered World 1 textures present in compiled Assets.car")
           PY
           python3 - <<'PY'
           from pathlib import Path

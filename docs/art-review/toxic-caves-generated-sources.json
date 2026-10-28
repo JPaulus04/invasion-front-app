@@ -1,0 +1,83 @@
+[
+  {
+    "asset": "world1_toxic_caves_floor_1",
+    "source": "exec-f6859f14-0c7d-4469-a046-bff8acc4e436.png",
+    "size": [
+      512,
+      768
+    ],
+    "transparent_border_px": null
+  },
+  {
+    "asset": "world1_toxic_caves_floor_2",
+    "source": "exec-5893096c-2be0-4543-9730-4b1a27975fb0.png",
+    "size": [
+      512,
+      768
+    ],
+    "transparent_border_px": null
+  },
+  {
+    "asset": "world1_toxic_caves_floor_3",
+    "source": "exec-87f93c82-d0e5-4570-9b48-3ffccbc347a1.png",
+    "size": [
+      512,
+      768
+    ],
+    "transparent_border_px": null
+  },
+  {
+    "asset": "world1_toxic_caves_wall",
+    "source": "exec-4ad49dea-ea22-4bab-9ef9-5ee86ad52e8a.png",
+    "size": [
+      512,
+      488
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_toxic_caves_boulder",
+    "source": "exec-0e449e82-f567-4a6c-b7d6-1f6aed5a5d4f.png",
+    "size": [
+      459,
+      499
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_toxic_caves_vegetation",
+    "source": "exec-fbe4cd2e-4884-4885-85e9-de57037b2228.png",
+    "size": [
+      504,
+      485
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_toxic_caves_debris",
+    "source": "exec-4c5c2435-871c-499e-bd39-35a139ec00b5.png",
+    "size": [
+      437,
+      369
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_toxic_caves_lantern",
+    "source": "exec-0c7f0192-2534-4377-961f-0fa0afa938d1.png",
+    "size": [
+      375,
+      499
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_toxic_caves_crate",
+    "source": "exec-d7ebf981-b2c7-4983-9a09-a5083ba1ea0b.png",
+    "size": [
+      512,
+      461
+    ],
+    "transparent_border_px": 20
+  }
+]
