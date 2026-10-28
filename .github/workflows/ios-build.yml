@@ -105,6 +105,39 @@ jobs:
             }
           done
           echo "PASS: all nine Ruined Outpost candidate assets are bundled"
+      - name: Reject partially bundled World 1 landscape packs
+        run: |
+          set -euo pipefail
+          APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
+          test -d "$APP"
+          # New landscape packs must ship atomically: a floor without its
+          # props (or vice versa) silently falls back to procedural scenery.
+          # Ruined Outpost has its own mandatory nine-asset gate above.
+          for LANDSCAPE in swamp_basin toxic_caves boss_arena; do
+            PRESENT=0
+            MISSING=()
+            for VARIANT in 1 2 3; do
+              NAME="world1_${LANDSCAPE}_floor_${VARIANT}.png"
+              if [ -n "$(find "$APP" -type f -name "$NAME" -print -quit)" ]; then
+                PRESENT=$((PRESENT + 1))
+              else
+                MISSING+=("$NAME")
+              fi
+            done
+            for KIND in wall boulder vegetation debris lantern crate; do
+              NAME="world1_${LANDSCAPE}_${KIND}.png"
+              if [ -n "$(find "$APP" -type f -name "$NAME" -print -quit)" ]; then
+                PRESENT=$((PRESENT + 1))
+              else
+                MISSING+=("$NAME")
+              fi
+            done
+            if [ "$PRESENT" -gt 0 ] && [ "${#MISSING[@]}" -gt 0 ]; then
+              echo "::error::Partial World 1 ${LANDSCAPE} pack: ${PRESENT}/9 bundled; missing ${MISSING[*]}"
+              exit 1
+            fi
+            echo "World 1 ${LANDSCAPE}: ${PRESENT}/9 bundled (empty pack permitted during development)"
+          done
       - name: Verify World 1 authored artwork in compiled app
         if: ${{ vars.REQUIRE_WORLD_ONE_ART == 'true' }}
         run: |
