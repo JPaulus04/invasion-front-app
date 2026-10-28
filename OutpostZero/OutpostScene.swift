@@ -4568,11 +4568,25 @@ final class OutpostScene: SKScene {
                         width: max(23, min(65, sprite.size.width * 0.72)),
                         height: max(9, min(19, height * 0.22))))
                     shadow.name = "world1PropContactShadow"
-                    shadow.fillColor = SKColor.black.withAlphaComponent(0.24)
+                    shadow.fillColor = SKColor.black.withAlphaComponent(0.31)
                     shadow.strokeColor = .clear
                     shadow.position = CGPoint(x: 0, y: 1)
                     shadow.zPosition = 0.1
                     prop.addChild(shadow)
+                    // A soft directional shadow provides a second depth cue
+                    // without baking new artwork or affecting collisions.
+                    // Keep the shadow behind the prop and inside its parent
+                    // so it follows the existing perimeter layout.
+                    let castShadow = SKShapeNode(ellipseOf: CGSize(
+                        width: max(18, min(58, sprite.size.width * 0.65)),
+                        height: max(7, min(15, height * 0.16))))
+                    castShadow.name = "world1PropCastShadow"
+                    castShadow.fillColor = SKColor.black.withAlphaComponent(0.13)
+                    castShadow.strokeColor = .clear
+                    castShadow.position = CGPoint(x: 12, y: -7)
+                    castShadow.zRotation = -0.23
+                    castShadow.zPosition = 0.05
+                    prop.addChild(castShadow)
                     if landscape == "ruined_outpost" {
                         // This pack has a normalized 20px transparent border.
                         // Register its visible bottom at the contact shadow.
