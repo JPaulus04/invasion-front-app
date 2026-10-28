@@ -23,6 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate source tree
+        # Build 328: revalidate the authored-floor overscan and caves edge regression.
         run: python3 scripts/check_project.py
       - name: Validate production sprite assets
         run: python3 scripts/check_art_sprites.py
