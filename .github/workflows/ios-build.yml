@@ -85,84 +85,39 @@ jobs:
             fi
             echo "Verified bundled asset: $FOUND"
           done
-      - name: Verify approved Ruined Outpost candidate in compiled app
+      - name: Verify World 1 authored art source and compiled asset catalog
         run: |
           set -euo pipefail
           APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           test -d "$APP"
-          for VARIANT in 1 2 3; do
-            NAME="world1_ruined_outpost_floor_${VARIANT}.png"
-            test -n "$(find "$APP" -type f -name "$NAME" -print -quit)" || {
-              echo "::error::Missing approved Ruined Outpost floor: $NAME"
-              exit 1
-            }
-          done
-          for KIND in wall boulder vegetation debris lantern crate; do
-            NAME="world1_ruined_outpost_${KIND}.png"
-            test -n "$(find "$APP" -type f -name "$NAME" -print -quit)" || {
-              echo "::error::Missing approved Ruined Outpost prop: $NAME"
-              exit 1
-            }
-          done
-          echo "PASS: all nine Ruined Outpost candidate assets are bundled"
-      - name: Reject partially bundled World 1 landscape packs
-        run: |
-          set -euo pipefail
-          APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
-          test -d "$APP"
-          # New landscape packs must ship atomically: a floor without its
-          # props (or vice versa) silently falls back to procedural scenery.
-          # Ruined Outpost has its own mandatory nine-asset gate above.
-          for LANDSCAPE in swamp_basin toxic_caves boss_arena; do
-            PRESENT=0
-            MISSING=()
-            for VARIANT in 1 2 3; do
-              NAME="world1_${LANDSCAPE}_floor_${VARIANT}.png"
-              if [ -n "$(find "$APP" -type f -name "$NAME" -print -quit)" ]; then
-                PRESENT=$((PRESENT + 1))
-              else
-                MISSING+=("$NAME")
-              fi
-            done
-            for KIND in wall boulder vegetation debris lantern crate; do
-              NAME="world1_${LANDSCAPE}_${KIND}.png"
-              if [ -n "$(find "$APP" -type f -name "$NAME" -print -quit)" ]; then
-                PRESENT=$((PRESENT + 1))
-              else
-                MISSING+=("$NAME")
-              fi
-            done
-            if [ "$PRESENT" -gt 0 ] && [ "${#MISSING[@]}" -gt 0 ]; then
-              echo "::error::Partial World 1 ${LANDSCAPE} pack: ${PRESENT}/9 bundled; missing ${MISSING[*]}"
-              exit 1
-            fi
-            echo "World 1 ${LANDSCAPE}: ${PRESENT}/9 bundled (empty pack permitted during development)"
-          done
-      - name: Verify World 1 authored artwork in compiled app
+          # Xcode compiles .imageset PNG payloads into Assets.car. Individual
+          # PNG files are not guaranteed to exist in the final app bundle.
+          test -s "$APP/Assets.car" || {
+            echo "::error::Compiled asset catalog Assets.car is missing or empty"
+            exit 1
+          }
+          python3 scripts/audit_world1_art.py ruined_outpost
+          python3 - <<'PY'
+          from pathlib import Path
+          from scripts.audit_world1_art import resolve_png, PROPS
+          landscapes = ("swamp_basin", "toxic_caves", "boss_arena")
+          for landscape in landscapes:
+              names = [f"world1_{landscape}_floor_{n}" for n in (1,2,3)]
+              names += [f"world1_{landscape}_{kind}" for kind in PROPS]
+              present = [name for name in names if resolve_png(name) is not None]
+              if present and len(present) != len(names):
+                  missing = sorted(set(names) - set(present))
+                  raise SystemExit(f"Partial World 1 {landscape} pack: {len(present)}/9; missing {missing}")
+              print(f"World 1 {landscape}: {len(present)}/9 source PNGs (empty pack allowed during development)")
+          PY
+      - name: Verify complete World 1 authored artwork when required
         if: ${{ vars.REQUIRE_WORLD_ONE_ART == 'true' }}
         run: |
           set -euo pipefail
-          # A strict asset gate checks both source artwork and the actual
-          # simulator bundle. Source files alone cannot prove runtime loading.
           REQUIRE_WORLD_ONE_ART=1 python3 scripts/check_art_sprites.py
-          APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
-          for LANDSCAPE in ruined_outpost swamp_basin toxic_caves boss_arena; do
-            for VARIANT in 1 2 3; do
-              NAME="world1_${LANDSCAPE}_floor_${VARIANT}.png"
-              if [ -z "$(find "$APP" -type f -name "$NAME" -print -quit)" ]; then
-                echo "::error::Missing bundled World 1 floor: $NAME"
-                exit 1
-              fi
-            done
-            for KIND in wall boulder vegetation debris lantern crate; do
-              NAME="world1_${LANDSCAPE}_${KIND}.png"
-              if [ -z "$(find "$APP" -type f -name "$NAME" -print -quit)" ]; then
-                echo "::error::Missing bundled World 1 prop: $NAME"
-                exit 1
-              fi
-            done
-          done
-          echo "All required World 1 authored PNGs are bundled."
+          python3 scripts/audit_world1_art.py
+          # Source completeness plus Assets.car is a packaging sanity check,
+          # not proof of individual runtime texture loading or visual quality.
       - name: Package compiled simulator app
         run: |
           set -e
