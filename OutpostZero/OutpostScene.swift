@@ -3499,9 +3499,10 @@ final class OutpostScene: SKScene {
         // Feet are 27 points below the pilot origin; the reactor base is -37.
         let behind = pilot.position.y - 27 > defenseDevice.position.y - 37
         defenseDevice.zPosition = behind ? 10 : 8
-        let overlaps = abs(pilot.position.x - defenseDevice.position.x) < 65 &&
-            pilot.position.y < defenseDevice.position.y + 65
-        defenseDevice.alpha = behind && overlaps ? 0.55 : 1
+        // Occlude naturally by depth instead of fading the entire reactor.
+        // Transparency made the objective look intangible when the pilot
+        // passed behind it and also dimmed its integrity indicators.
+        defenseDevice.alpha = 1
     }
 
     private func installDefenseDevice() {
