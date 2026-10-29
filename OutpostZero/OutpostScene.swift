@@ -2149,7 +2149,10 @@ final class OutpostScene: SKScene {
         } else if activeEncounter == .equipmentDefense && !roomCleared {
             let remaining = max(0, Int(ceil(
                 SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
-            subtitleText = "DEFEND \(remaining)S  •  REACTOR \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
+            // Keep the deadline explicit and make the final fifteen seconds legible
+            // without introducing a second competing HUD element.
+            let urgency = remaining <= 15 ? "FINAL PUSH" : "DEFEND REACTOR"
+            subtitleText = "\(urgency)  •  \(remaining)S LEFT  •  CORE \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
         } else {
             subtitleText = "\(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
         }
