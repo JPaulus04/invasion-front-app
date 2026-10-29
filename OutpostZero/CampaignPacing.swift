@@ -108,9 +108,15 @@ enum EquipmentDefenseRules {
     static let hitCooldown: TimeInterval = 1.2
     static let enemyCap = 10
     static let spawnCadence: TimeInterval = 2.0
-    static func spawnCadence(world: Int) -> TimeInterval {
-        // Slightly more defensive pressure only in Frontier Forest.
-        world == 0 ? 1.75 : spawnCadence
+    static func spawnCadence(world: Int, elapsed: TimeInterval = 0,
+                             duration: TimeInterval = 0) -> TimeInterval {
+        // Teach the objective with a forgiving opening, then add a modest
+        // final-fifteen-second push. Never make the first world a swarm wall.
+        let baseline: TimeInterval = world == 0 ? 1.75 : spawnCadence
+        guard duration > 15, elapsed >= duration - 15, elapsed < duration else {
+            return baseline
+        }
+        return world == 0 ? 1.5 : 1.7
     }
     static func attackerType(world: Int, room: Int, slot: Int) -> Int {
         // Armored melee reinforcement occasionally tests target priorities.
