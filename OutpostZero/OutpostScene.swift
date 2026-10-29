@@ -431,6 +431,7 @@ final class OutpostScene: SKScene {
         settingsShortcut.lineWidth = 1.5
         settingsShortcut.zPosition = 50
         let settingsIcon = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        settingsIcon.name = "settingsSymbol"
         settingsIcon.text = "Ⅱ"
         settingsIcon.fontSize = 24
         settingsIcon.fontColor = .white
@@ -2117,6 +2118,9 @@ final class OutpostScene: SKScene {
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
         speedButton.isHidden = phase != .playing && phase != .gate
         settingsShortcut.isHidden = ![Phase.ready, .worldSelect, .loadout, .playing, .gate].contains(phase)
+        if let symbol = settingsShortcut.childNode(withName: "settingsSymbol") as? SKLabelNode {
+            symbol.text = (phase == .playing || phase == .gate) ? "Ⅱ" : "≡"
+        }
         // Player controls sit below the compact header.
         speedButton.position = CGPoint(x: size.width - 56, y: size.height - 195)
         if phase == .ready || phase == .worldSelect {
@@ -2245,7 +2249,10 @@ final class OutpostScene: SKScene {
         let estimatedWidth = CGFloat(label.count) * 9.1
         text.fontSize = estimatedWidth > width - 22
             ? max(11, 17 * (width - 22) / estimatedWidth) : 17
-        text.fontColor = enabled ? .white : .lightGray
+        let primaryHomeAction = key == "start" || key == "recover_run"
+        text.fontColor = enabled
+            ? (primaryHomeAction ? SKColor(red: 0.06, green: 0.16, blue: 0.22, alpha: 1) : .white)
+            : .lightGray
         text.verticalAlignmentMode = .center
         text.position = CGPoint(x: 0, y: y)
         text.zPosition = 2
@@ -2295,7 +2302,7 @@ final class OutpostScene: SKScene {
             x: -overlay.position.x / pageScale, y: -overlay.position.y / pageScale,
             width: size.width / pageScale, height: size.height / pageScale))
         background.name = "hubSky"
-        background.fillColor = SKColor(red: 0.20, green: 0.58, blue: 0.76, alpha: 1)
+        background.fillColor = SKColor(red: 0.15, green: 0.33, blue: 0.40, alpha: 1)
         background.strokeColor = .clear
         background.zPosition = -20
         overlay.addChild(background)
@@ -2305,8 +2312,8 @@ final class OutpostScene: SKScene {
             hill.position = CGPoint(x: CGFloat(index % 2 == 0 ? -1 : 1) * size.width * 0.32,
                                     y: -size.height * 0.36 - CGFloat(index) * 25)
             hill.fillColor = index < 2
-                ? SKColor(red: 0.29, green: 0.66, blue: 0.65, alpha: 1)
-                : SKColor(red: 0.19, green: 0.45, blue: 0.53, alpha: 1)
+                ? SKColor(red: 0.18, green: 0.39, blue: 0.43, alpha: 1)
+                : SKColor(red: 0.12, green: 0.28, blue: 0.34, alpha: 1)
             hill.strokeColor = .clear
             hill.zPosition = -19 + CGFloat(index)
             overlay.addChild(hill)
@@ -2325,14 +2332,15 @@ final class OutpostScene: SKScene {
                               width: width - 4, height: 64 * scale)
             let tile = SKShapeNode(rect: rect, cornerRadius: 12)
             tile.name = "homeNav_\(tab.2)"
-            tile.fillColor = selected ? SKColor(red: 1, green: 0.78, blue: 0.28, alpha: 1)
-                : SKColor(red: 0.90, green: 0.96, blue: 0.98, alpha: 1)
-            tile.strokeColor = selected ? .white : .clear
-            tile.lineWidth = 2
+            tile.fillColor = selected ? SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
+                : SKColor(red: 0.06, green: 0.16, blue: 0.22, alpha: 0.95)
+            tile.strokeColor = selected ? .clear : SKColor.white.withAlphaComponent(0.12)
+            tile.lineWidth = 1
             tile.zPosition = 10
             overlay.addChild(tile)
             if let image = UIImage(systemName: tab.1)?.withTintColor(
-                UIColor(red: 0.12, green: 0.28, blue: 0.40, alpha: 1), renderingMode: .alwaysOriginal) {
+                selected ? UIColor(red: 0.12, green: 0.28, blue: 0.40, alpha: 1) : UIColor.white,
+                renderingMode: .alwaysOriginal) {
                 let icon = SKSpriteNode(texture: SKTexture(image: image))
                 icon.size = CGSize(width: 24 * scale, height: 24 * scale)
                 icon.position = CGPoint(x: x, y: y + 10 * scale)
@@ -2341,7 +2349,7 @@ final class OutpostScene: SKScene {
             }
             let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             label.text = tab.0
-            label.fontColor = SKColor(red: 0.12, green: 0.28, blue: 0.40, alpha: 1)
+            label.fontColor = selected ? SKColor(red: 0.12, green: 0.28, blue: 0.40, alpha: 1) : .white
             label.fontSize = 10 * scale
             label.position = CGPoint(x: x, y: y - 20 * scale)
             label.zPosition = 11
@@ -2371,23 +2379,23 @@ final class OutpostScene: SKScene {
         let unlocked = playable && WorldCatalog.unlocked(worldMapIndex)
         let saved = recovery.load()
 
-        overlayText("OUTPOST ZERO", y: 255 * scale, fontSize: 24 * scale)
+        overlayText("OUTPOST ZERO", y: 255 * scale, fontSize: 20 * scale)
         let stripWidth = min(size.width - 30, 362)
         let strip = SKShapeNode(rect: CGRect(
             x: -stripWidth / 2, y: 185 * scale,
             width: stripWidth, height: 46 * scale), cornerRadius: 12 * scale)
         strip.name = "homeResourceBar"
         strip.fillColor = SKColor(red: 0.06, green: 0.16, blue: 0.22, alpha: 0.95)
-        strip.strokeColor = .systemTeal.withAlphaComponent(0.7)
-        strip.lineWidth = 1.2
+        strip.strokeColor = .white.withAlphaComponent(0.12)
+        strip.lineWidth = 1
         strip.zPosition = 1
         overlay.addChild(strip)
         overlayText("\(permanent.salvage) SALVAGE    •    \(availableCores) CORES",
                     y: 199 * scale, fontSize: 12 * scale)
-        overlayText(unlocked ? "WORLD \(worldMapIndex + 1)  •  \(world.title)" : "WORLD \(worldMapIndex + 1)  •  UNKNOWN",
-                    y: 151 * scale, fontSize: 17 * scale)
+        overlayText(unlocked ? world.title.uppercased() : "UNKNOWN WORLD",
+                    y: 151 * scale, fontSize: 19 * scale)
         overlayText(unlocked
-            ? "\(String(repeating: "★", count: WorldCatalog.stars(worldMapIndex)))\(String(repeating: "☆", count: 3 - WorldCatalog.stars(worldMapIndex)))   •   BEST ROOM \(WorldCatalog.bestRoom(worldMapIndex))/20"
+            ? "WORLD \(worldMapIndex + 1)   ·   \(String(repeating: "★", count: WorldCatalog.stars(worldMapIndex)))\(String(repeating: "☆", count: 3 - WorldCatalog.stars(worldMapIndex)))   ·   BEST \(WorldCatalog.bestRoom(worldMapIndex))/20"
             : (playable ? "LOCKED  •  EARN 1 STAR IN PREVIOUS WORLD" : "UNKNOWN  •  EXPLORE LATER"),
             y: 127 * scale, fontSize: 11 * scale)
 
@@ -2402,15 +2410,33 @@ final class OutpostScene: SKScene {
             : (worldMapIndex == 1
                 ? SKColor(red: 0.24, green: 0.61, blue: 0.78, alpha: 1)
                 : SKColor(red: 0.48, green: 0.55, blue: 0.36, alpha: 1))
-        stage.strokeColor = .systemTeal.withAlphaComponent(0.72)
-        stage.lineWidth = 2
+        stage.strokeColor = .white.withAlphaComponent(0.18)
+        stage.lineWidth = 1
         overlay.addChild(stage)
+        if unlocked && worldMapIndex == 0 {
+            // Reuse the actual World 1 floor inside a rounded crop. Home and
+            // gameplay now share materials rather than a plain green card.
+            let crop = SKCropNode()
+            crop.name = "homeAuthoredLandscape"
+            let mask = SKShapeNode(rect: CGRect(x: -stageWidth / 2, y: -120 * scale,
+                                               width: stageWidth, height: 230 * scale),
+                                   cornerRadius: 20 * scale)
+            mask.fillColor = .white
+            mask.strokeColor = .clear
+            crop.maskNode = mask
+            let ground = SKSpriteNode(imageNamed: "world1_ruined_outpost_floor_1")
+            ground.size = CGSize(width: stageWidth, height: stageWidth * 1.5)
+            ground.position = CGPoint(x: 0, y: -5 * scale)
+            crop.addChild(ground)
+            crop.zPosition = 0.1
+            overlay.addChild(crop)
+        }
         let island = SKShapeNode(ellipseOf: CGSize(width: stageWidth * 0.8,
                                                     height: 59 * scale))
         island.position = CGPoint(x: 0, y: -78 * scale)
         island.fillColor = unlocked ? SKColor(red: 0.26, green: 0.42, blue: 0.32, alpha: 1) : SKColor(red: 0.18, green: 0.22, blue: 0.27, alpha: 1)
-        island.strokeColor = unlocked ? .systemTeal.withAlphaComponent(0.72) : .gray.withAlphaComponent(0.5)
-        island.lineWidth = 2
+        island.strokeColor = .clear
+        island.alpha = 0.45
         island.zPosition = 0.5
         overlay.addChild(island)
         if unlocked && worldMapIndex == 0 {
@@ -2525,11 +2551,14 @@ final class OutpostScene: SKScene {
                     y: 88 * scale, fontSize: 11 * scale)
 
         if let saved {
-            actionButton("RESUME WORLD \(saved.worldIndex + 1) • ROOM \(saved.room)", key: "recover_run",
-                         y: -187 * scale, tint: .systemOrange)
+            actionButton("RESUME RUN", key: "recover_run",
+                         y: -187 * scale, tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1))
+            overlayText("WORLD \(saved.worldIndex + 1) · FLOOR \(saved.room) · PROGRESS SAVED",
+                        y: -145 * scale, fontSize: 10 * scale)
         } else {
-            actionButton(unlocked ? "PLAY" : "WORLD LOCKED",
-                         key: "start", y: -187 * scale, tint: .systemOrange,
+            actionButton(unlocked ? "START RUN" : "WORLD LOCKED",
+                         key: "start", y: -187 * scale,
+                         tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1),
                          enabled: unlocked)
         }
         for (direction, key, enabled) in [(-1, "world_prev", worldMapIndex > 0),

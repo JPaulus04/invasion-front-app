@@ -253,7 +253,7 @@ if "WorldCatalog.recordBestRoom(worldMapIndex, room: wave)" not in scene:
     errors.append("Best room must be tracked as each new room begins")
 if "WorldCatalog.recordBestRoom(worldMapIndex, room: worldWaveCount)" not in scene:
     errors.append("Completed worlds must record Room 20 as their best result")
-if '"RESUME WORLD \\(saved.worldIndex + 1)' not in scene:
+if 'key: "recover_run"' not in scene or 'WORLD \\(saved.worldIndex + 1) · FLOOR \\(saved.room)' not in scene:
     errors.append("Saved runs from later worlds must be directly resumable on the default world map")
 if "CampaignPacing.targetEnemies(room: wave)" not in scene or "CampaignPacing.enemyHealth(world: worldMapIndex" not in scene:
     errors.append("20-room QA tests must use the same enemy pacing as actual gameplay")
