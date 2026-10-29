@@ -3614,6 +3614,26 @@ final class OutpostScene: SKScene {
         footplate.zPosition = -1
         defenseDevice.addChild(footplate)
 
+        // Anchoring hardware visually connects the reactor to the floor,
+        // instead of leaving the tall sprite floating above its contact shadow.
+        for side: CGFloat in [-1, 1] {
+            let anchor = SKShapeNode(rectOf: CGSize(width: 18, height: 14), cornerRadius: 3)
+            anchor.name = "reactorFloorAnchor"
+            anchor.position = CGPoint(x: side * 38, y: -40)
+            anchor.fillColor = SKColor(red: 0.29, green: 0.40, blue: 0.43, alpha: 1)
+            anchor.strokeColor = SKColor(red: 0.55, green: 0.66, blue: 0.67, alpha: 1)
+            anchor.lineWidth = 1.5
+            anchor.zPosition = 0
+            defenseDevice.addChild(anchor)
+
+            let bolt = SKShapeNode(circleOfRadius: 2.5)
+            bolt.position = CGPoint(x: side * 38, y: -40)
+            bolt.fillColor = .black.withAlphaComponent(0.8)
+            bolt.strokeColor = .clear
+            bolt.zPosition = 1
+            defenseDevice.addChild(bolt)
+        }
+
         let chassis = SKShapeNode(rectOf: CGSize(width: 67, height: 77), cornerRadius: 12)
         chassis.name = "reactorArmorChassis"
         chassis.fillColor = SKColor(red: 0.13, green: 0.20, blue: 0.25, alpha: 1)
