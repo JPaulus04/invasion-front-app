@@ -57,7 +57,7 @@ if ! run_bounded 150 xcrun simctl install "$DEVICE" "$APP"; then
   run_bounded 150 xcrun simctl install "$DEVICE" "$APP"
 fi
 mkdir -p screenshots
-export REQUIRE_WORLD_ONE_ART="${{ vars.REQUIRE_WORLD_ONE_ART == 'true' && '1' || '0' }}"
+export REQUIRE_WORLD_ONE_ART="${REQUIRE_WORLD_ONE_ART:-0}"
 # A cold-booted simulator can show a gray launch screen for several
 # seconds while still returning success from 'simctl launch'.
 # Retry until a decoded screenshot contains actual rendered colors.
