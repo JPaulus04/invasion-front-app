@@ -2198,7 +2198,7 @@ final class OutpostScene: SKScene {
             if roomCleared {
                 survivalClock.fontColor = .systemGreen
             } else if activeEncounter == .equipmentDefense &&
-                        defenseIntegrity <= max(1, EquipmentDefenseRules.maximumIntegrity / 3) {
+                        EquipmentDefenseRules.criticalIntegrity(defenseIntegrity) {
                 // Integrity failure takes precedence over the countdown.
                 survivalClock.fontColor = .systemRed
             } else if (activeEncounter == .survival ||
