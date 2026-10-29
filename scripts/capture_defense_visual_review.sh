@@ -1,15 +1,5 @@
 #!/usr/bin/env bash
 set -e
-mkdir -p simulator-app
-ditto -x -k OutpostZero-simulator-app.zip simulator-app
-test -x simulator-app/OutpostZero.app/OutpostZero
-      - name: Capture equipment-defense states and live walk prototype
-        # Cold macOS runners spend 3-5 minutes booting and installing the app.
-        # Seven landscapes, defense states and eight motion videos need a
-        # separate realistic budget; each simctl operation is already bounded.
-        timeout-minutes: 30
-        run: |
-set -e
 # Every simulator subprocess is bounded so a stalled simctl cannot
 # pin the macOS runner until the whole job times out.
 run_bounded() {
