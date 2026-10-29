@@ -6155,7 +6155,8 @@ final class OutpostScene: SKScene {
                     worldMapIndex == 2 && scrapyardWardenEnraged
                 aim.strokeColor = wardenOverdrive
                     ? .systemOrange.withAlphaComponent(0.95)
-                    : .systemPink.withAlphaComponent(0.85)
+                    : (reactorShot ? .systemCyan.withAlphaComponent(0.95)
+                                   : .systemPink.withAlphaComponent(0.85))
                 aim.lineWidth = wardenOverdrive ? 3.5 : 3
                 aim.zPosition = 6
                 enemy.node.addChild(aim)
@@ -6190,7 +6191,7 @@ final class OutpostScene: SKScene {
                 aimReticle.name = "aimReticle"
                 aimReticle.position = CGPoint(x: aimedPoint.x - enemy.node.position.x,
                                              y: aimedPoint.y - enemy.node.position.y)
-                aimReticle.strokeColor = .systemPink
+                aimReticle.strokeColor = reactorShot ? .systemCyan : .systemPink
                 aimReticle.lineWidth = 3
                 aimReticle.fillColor = .clear
                 aimReticle.zPosition = 7
@@ -6282,7 +6283,7 @@ final class OutpostScene: SKScene {
             // In defense rooms, enemy rounds can also strike the objective.
             // The shared hit cooldown prevents a single volley from instantly
             // destroying the reactor and preserves the forgiving World 1 pace.
-            let hitReactor = activeEncounter == .equipmentDefense && !roomCleared &&
+            let hitReactor = !hit && activeEncounter == .equipmentDefense && !roomCleared &&
                 defenseIntegrity > 0 && CombatRules.projectileHits(
                     from: start, to: end, pilot: defenseDevice.position, radius: 30)
             if hit { damagePilot(7) }
