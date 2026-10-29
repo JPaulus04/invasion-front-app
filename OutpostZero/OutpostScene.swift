@@ -2195,8 +2195,16 @@ final class OutpostScene: SKScene {
             } else {
                 survivalClock.text = roomCleared ? "AREA SECURED" : selectedWorld.boss.uppercased()
             }
-            if roomCleared { survivalClock.fontColor = .systemGreen }
-            else if (activeEncounter == .survival || activeEncounter == .equipmentDefense) && seconds <= 10 { survivalClock.fontColor = .systemOrange }
+            if roomCleared {
+                survivalClock.fontColor = .systemGreen
+            } else if activeEncounter == .equipmentDefense &&
+                        EquipmentDefenseRules.criticalIntegrity(defenseIntegrity) {
+                // Integrity failure takes precedence over the countdown.
+                survivalClock.fontColor = .systemRed
+            } else if (activeEncounter == .survival ||
+                       activeEncounter == .equipmentDefense) && seconds <= 10 {
+                survivalClock.fontColor = .systemOrange
+            }
             // Fit longer localized objectives within the viewport.
             let available = max(1, size.width - 40)
             if survivalClock.frame.width > available {
