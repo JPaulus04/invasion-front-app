@@ -4230,8 +4230,8 @@ final class OutpostScene: SKScene {
                 // exposed the flat fallback ground as a straight strip along
                 // the lower edge of the first Toxic Caves capture.
                 let paintedBounds = expandedArenaPreview
-                    ? roomBounds.insetBy(dx: -24, dy: -24)
-                    : CGRect(origin: .zero, size: size).insetBy(dx: -24, dy: -24)
+                    ? roomBounds.insetBy(dx: -80, dy: -80)
+                    : CGRect(origin: .zero, size: size).insetBy(dx: -80, dy: -80)
                 floorArt.size = paintedBounds.size
                 floorArt.position = CGPoint(x: paintedBounds.midX, y: paintedBounds.midY)
                 floorArt.zPosition = -18.5
