@@ -6381,6 +6381,12 @@ final class OutpostScene: SKScene {
                     flightTime: lob.impactAt - lob.launchedAt))
             if combatTime >= lob.impactAt {
                 if CombatRules.blastHits(center: lob.target, pilot: pilot.position, radius: lob.radius) { damagePilot(12) }
+                // Mortar splash also threatens the objective during defense.
+                // Reuse the shared reactor hit cooldown to avoid burst damage.
+                if activeEncounter == .equipmentDefense && !roomCleared &&
+                    CombatRules.blastHits(center: lob.target, pilot: defenseDevice.position, radius: lob.radius) {
+                    damageDefenseDevice()
+                }
                 impact(at: lob.target, color: .systemOrange, destroyed: true)
                 lob.marker.removeFromParent()
                 lob.shell.removeFromParent()
