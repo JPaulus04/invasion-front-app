@@ -431,8 +431,8 @@ final class OutpostScene: SKScene {
         settingsShortcut.lineWidth = 1.5
         settingsShortcut.zPosition = 50
         let settingsIcon = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        settingsIcon.text = "⚙"
-        settingsIcon.fontSize = 29
+        settingsIcon.text = "Ⅱ"
+        settingsIcon.fontSize = 24
         settingsIcon.fontColor = .white
         settingsIcon.verticalAlignmentMode = .center
         settingsShortcut.addChild(settingsIcon)
@@ -2060,17 +2060,17 @@ final class OutpostScene: SKScene {
         if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
         updateArenaCamera(delta: 1)
-        // Compact three-line combat header; the slim XP bar shares its last
-        // row with the XP value. All information remains visible, but the
-        // arena gains vertical breathing room.
+        // One utility row and a slim progress row, below the device safe area.
+        let top = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 8
         hudPanel.path = CGPath(roundedRect: CGRect(
-            x: 12, y: size.height - 171,
-            width: max(1, size.width - 24), height: 96),
+            x: 12, y: top - 72,
+            width: max(1, size.width - 24), height: 72),
             cornerWidth: 13, cornerHeight: 13, transform: nil)
-        floorNumber.position = CGPoint(x: 27, y: size.height - 121)
-        survivalClock.position = CGPoint(x: size.width / 2, y: size.height - 246)
+        floorNumber.fontSize = 17
+        floorNumber.position = CGPoint(x: 24, y: top - 29)
+        survivalClock.position = CGPoint(x: size.width / 2, y: top - 99)
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
-        subtitle.position = CGPoint(x: size.width / 2, y: size.height - 121)
+        subtitle.position = CGPoint(x: size.width / 2, y: top - 29)
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
@@ -2080,14 +2080,14 @@ final class OutpostScene: SKScene {
         controlsHint.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 66)
         // Reserve the right side of the progress row for the level counter,
         // avoiding an additional line below the panel.
-        let xpWidth = max(1, size.width - 169)
+        let xpWidth = max(1, size.width - 108)
         xpTrack.path = CGPath(roundedRect: CGRect(
             x: 0, y: 0, width: xpWidth, height: 5),
             cornerWidth: 2.5, cornerHeight: 2.5, transform: nil)
         xpFill.path = xpTrack.path
-        xpTrack.position = CGPoint(x: 24, y: size.height - 160)
+        xpTrack.position = CGPoint(x: 24, y: top - 56)
         xpFill.position = xpTrack.position
-        xpLabel.position = CGPoint(x: size.width - 25, y: size.height - 162)
+        xpLabel.position = CGPoint(x: size.width - 25, y: top - 58)
         checkpointButton.position = CGPoint(x: size.width / 2,
                                             y: RoomRules.bounds(for: size).minY + 25)
         settingsShortcut.position = CGPoint(x: 36, y: size.height - 195)
@@ -2160,6 +2160,45 @@ final class OutpostScene: SKScene {
         let infoText = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
         if info.text != infoText { info.text = infoText }
         info.fontColor = health <= maximumHealth / 3 ? .systemRed : (health <= maximumHealth * 2 / 3 ? .systemYellow : .white)
+        // Combat presentation: details belong in the pause menu; objectives
+        // never share the utility row with the floor number.
+        title.isHidden = true
+        info.isHidden = true
+        floorNumber.text = wave > 0 ? "FLOOR \(wave)" : ""
+        subtitle.text = "\(coins) COINS"
+        subtitle.fontSize = 13
+        subtitle.fontColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
+        xpLabel.text = "LV \(progress.level)"
+        speedButton.isHidden = true // Speed remains available in Settings.
+        let top = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 8
+        if phase == .playing || phase == .gate {
+            settingsShortcut.position = CGPoint(x: size.width - 39, y: top - 24)
+        }
+        let objectiveActive = (phase == .playing || phase == .gate) &&
+            (activeEncounter == .survival || activeEncounter == .equipmentDefense || wave == worldWaveCount)
+        survivalClock.isHidden = !objectiveActive
+        survivalClock.fontSize = 16
+        survivalClock.fontColor = .white
+        if objectiveActive {
+            let seconds = max(0, Int(ceil(SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
+            let time = String(format: "%02d:%02d", seconds / 60, seconds % 60)
+            if activeEncounter == .equipmentDefense {
+                survivalClock.text = roomCleared
+                    ? (defenseIntegrity > 0 ? "REACTOR SECURED" : "REACTOR LOST")
+                    : "DEFEND  \(time)  ·  CORE \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
+            } else if activeEncounter == .survival {
+                survivalClock.text = roomCleared ? "EXTRACTION READY" : "SURVIVE  \(time)"
+            } else {
+                survivalClock.text = roomCleared ? "AREA SECURED" : selectedWorld.boss.uppercased()
+            }
+            if roomCleared { survivalClock.fontColor = .systemGreen }
+            else if (activeEncounter == .survival || activeEncounter == .equipmentDefense) && seconds <= 10 { survivalClock.fontColor = .systemOrange }
+            // Fit longer localized objectives within the viewport.
+            let available = max(1, size.width - 40)
+            if survivalClock.frame.width > available {
+                survivalClock.fontSize *= available / survivalClock.frame.width
+            }
+        }
     }
 
     private func clearOverlay() {
@@ -2889,7 +2928,12 @@ final class OutpostScene: SKScene {
             actionButton("CONFIRM END RUN", key: "confirm_end_run", y: -144, tint: .systemRed)
             actionButton("CANCEL", key: "cancel_end_run", y: -202, tint: .systemBlue)
         } else {
-            overlayText("PREFERENCES SAVED AUTOMATICALLY", y: -83, fontSize: 11)
+            if activeRun {
+                overlayText("HP \(health)/\(maximumHealth) · DAMAGE \(damage + permanentDamageBonus + gearWeaponBonus) · RATE \(fireRate)",
+                            y: -83, fontSize: 11)
+            } else {
+                overlayText("PREFERENCES SAVED AUTOMATICALLY", y: -83, fontSize: 11)
+            }
             if activeRun {
                 actionButton("END RUN", key: "end_run", y: -137, tint: .systemRed)
             }
