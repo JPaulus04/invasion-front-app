@@ -6206,7 +6206,15 @@ final class OutpostScene: SKScene {
             guard CombatRules.mayBeginRangedAttack(
                 room: wave, activeThreats: threatening) else { return }
             if enemy.behavior == 5 || (enemy.node === bossNode && selectedWorld.bossStyle == 2) {
-                launchLob(from: enemy.node.position, target: pilot.position)
+                // Once the player has learned the defense encounter, some
+                // lobbers target the stationary reactor instead of the pilot.
+                // The existing ground marker preserves a readable warning.
+                let mortarTargetsReactor = activeEncounter == .equipmentDefense &&
+                    enemy.behavior == 5 && waveElapsed >= 20 &&
+                    Int((waveElapsed + Double(enemy.node.position.y) * 0.011) /
+                        max(1, CombatRules.lobberCooldown(room: wave))).isMultiple(of: 3)
+                launchLob(from: enemy.node.position,
+                          target: mortarTargetsReactor ? defenseDevice.position : pilot.position)
                 enemies[index].nextAttack = combatTime +
                     (enemy.node === bossNode ? 2.8 : CombatRules.lobberCooldown(room: wave))
             } else {
