@@ -3606,6 +3606,16 @@ final class OutpostScene: SKScene {
         shadow.zPosition = -2
         defenseDevice.addChild(shadow)
 
+        // Soft ground-level ambient occlusion ties the reactor to authored
+        // terrain without adding an oversized glowing gameplay indicator.
+        let contactShade = SKShapeNode(ellipseOf: CGSize(width: 88, height: 17))
+        contactShade.name = "reactorContactShade"
+        contactShade.position = CGPoint(x: 0, y: -43)
+        contactShade.fillColor = .black.withAlphaComponent(0.24)
+        contactShade.strokeColor = .clear
+        contactShade.zPosition = -1.5
+        defenseDevice.addChild(contactShade)
+
         let footplate = SKShapeNode(rectOf: CGSize(width: 96, height: 23), cornerRadius: 7)
         footplate.position.y = -37
         footplate.fillColor = SKColor(red: 0.17, green: 0.26, blue: 0.29, alpha: 1)
