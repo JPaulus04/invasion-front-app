@@ -3206,6 +3206,26 @@ final class OutpostScene: SKScene {
         illuminatedRim.zPosition = 0.12
         pool.addChild(illuminatedRim)
 
+        // Sparse surface glints break up the flat fill while staying inside
+        // the liquid's silhouette. They are purely decorative and static.
+        let glints = SKCropNode()
+        let glintMask = SKShapeNode(path: bankPath)
+        glintMask.fillColor = .white
+        glintMask.strokeColor = .clear
+        glints.maskNode = glintMask
+        glints.zPosition = 0.16
+        for index in 0..<3 {
+            let glint = SKShapeNode(ellipseOf: CGSize(
+                width: max(9, min(w * 0.16, 30)), height: 2.2))
+            glint.position = CGPoint(x: w * (CGFloat(index) - 1) * 0.21,
+                                     y: h * (index.isMultiple(of: 2) ? 0.12 : -0.16))
+            glint.zRotation = -0.12
+            glint.fillColor = highlight.withAlphaComponent(0.28)
+            glint.strokeColor = .clear
+            glints.addChild(glint)
+        }
+        pool.addChild(glints)
+
         // Small detached pools need fewer shoreline slabs: eight full-sized
         // slabs overwhelm a pocket and conceal the liquid surface.
         let compactPocket = min(w, h) < 75
