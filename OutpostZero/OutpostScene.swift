@@ -6272,8 +6272,15 @@ final class OutpostScene: SKScene {
                               y: start.y + shot.velocity.dy * CGFloat(delta))
             shot.node.position = end
             let hit = CombatRules.projectileHits(from: start, to: end, pilot: pilot.position, radius: 20)
+            // In defense rooms, enemy rounds can also strike the objective.
+            // The shared hit cooldown prevents a single volley from instantly
+            // destroying the reactor and preserves the forgiving World 1 pace.
+            let hitReactor = activeEncounter == .equipmentDefense && !roomCleared &&
+                defenseIntegrity > 0 && CombatRules.projectileHits(
+                    from: start, to: end, pilot: defenseDevice.position, radius: 30)
             if hit { damagePilot(7) }
-            if hit || combatTime >= shot.expiresAt || !roomBounds.insetBy(dx: -20, dy: -20).contains(end) {
+            if hitReactor { damageDefenseDevice() }
+            if hit || hitReactor || combatTime >= shot.expiresAt || !roomBounds.insetBy(dx: -20, dy: -20).contains(end) {
                 shot.node.removeFromParent()
                 projectiles.remove(at: index)
             }
