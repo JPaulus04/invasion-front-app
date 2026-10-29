@@ -5868,10 +5868,12 @@ final class OutpostScene: SKScene {
             returningTo: extractionCombatActive ? .gate : .playing) { return }
         if activeEncounter == .equipmentDefense {
             let deadline = SurvivalEncounterRules.duration(world: worldMapIndex, room: wave)
+            let defenseCadence = EquipmentDefenseRules.spawnCadence(
+                world: worldMapIndex, elapsed: waveElapsed, duration: deadline)
             if EquipmentDefenseRules.maySpawn(elapsed: waveElapsed, duration: deadline,
                 integrity: defenseIntegrity, living: enemies.count),
-                spawnClock >= EquipmentDefenseRules.spawnCadence(world: worldMapIndex) {
-                spawnClock -= EquipmentDefenseRules.spawnCadence(world: worldMapIndex)
+                spawnClock >= defenseCadence {
+                spawnClock -= defenseCadence
                 spawned += 1
                 spawnEnemy(artReviewType: EquipmentDefenseRules.attackerType(
                     world: worldMapIndex, room: wave, slot: spawned))
