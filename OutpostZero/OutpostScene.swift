@@ -6117,6 +6117,13 @@ final class OutpostScene: SKScene {
             enemies[index].nextAttack = combatTime +
                 (damagedWarden ? max(1.4, baseCooldown * 0.78) : baseCooldown)
         } else if combatTime >= enemy.nextAttack {
+            // In reactor defense, ordinary shooters periodically threaten the
+            // objective itself. The opening ten seconds teach positioning;
+            // subsequent shots alternate between pilot and reactor.
+            let reactorShot = activeEncounter == .equipmentDefense &&
+                enemy.behavior == 4 && waveElapsed >= 10 &&
+                Int(combatTime / max(1, CombatRules.shooterCooldown(room: wave))).isMultiple(of: 2)
+            let aimedPoint = reactorShot ? defenseDevice.position : pilot.position
             // Aim markers, shots in flight and mortar warnings all count
             // toward the same readable combat-pressure budget.
             let threatening = enemies.filter { $0.shotTarget != nil }.count +
@@ -6133,13 +6140,13 @@ final class OutpostScene: SKScene {
                     launchLob(from: enemy.node.position, target: flank)
                 }
                 // Lock the aim before firing so the player can sidestep it.
-                enemies[index].shotTarget = pilot.position
+                enemies[index].shotTarget = aimedPoint
                 enemies[index].fireAt = combatTime + CombatRules.shooterTelegraph(room: wave)
                 let aim = SKShapeNode()
                 let path = CGMutablePath()
                 path.move(to: .zero)
-                path.addLine(to: CGPoint(x: pilot.position.x - enemy.node.position.x,
-                                        y: pilot.position.y - enemy.node.position.y))
+                path.addLine(to: CGPoint(x: aimedPoint.x - enemy.node.position.x,
+                                        y: aimedPoint.y - enemy.node.position.y))
                 aim.path = path
                 aim.name = "aimLine"
                 // The scrapyard boss has a distinct orange warning language.
@@ -6181,8 +6188,8 @@ final class OutpostScene: SKScene {
                 // short warning is displayed; the ring does not chase them.
                 let aimReticle = SKShapeNode(circleOfRadius: 11)
                 aimReticle.name = "aimReticle"
-                aimReticle.position = CGPoint(x: pilot.position.x - enemy.node.position.x,
-                                             y: pilot.position.y - enemy.node.position.y)
+                aimReticle.position = CGPoint(x: aimedPoint.x - enemy.node.position.x,
+                                             y: aimedPoint.y - enemy.node.position.y)
                 aimReticle.strokeColor = .systemPink
                 aimReticle.lineWidth = 3
                 aimReticle.fillColor = .clear
