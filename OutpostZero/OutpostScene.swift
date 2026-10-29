@@ -1099,10 +1099,10 @@ final class OutpostScene: SKScene {
             pilot.position = CGPoint(x: base.midX, y: base.maxY + 20)
             updateReactorOcclusion()
             precondition(defenseDevice.zPosition > pilot.zPosition &&
-                         defenseDevice.alpha < 1 &&
+                         defenseDevice.alpha == 1 &&
                          pilot.zPosition + pilotHealthTrack.zPosition >
                             defenseDevice.zPosition + 1,
-                         "Reactor must fade over a rear pilot and preserve health visibility")
+                         "Reactor must occlude a rear pilot without fading and preserve health visibility")
             pilot.position.y = base.minY - 20
             updateReactorOcclusion()
             precondition(defenseDevice.zPosition + 0.5 < pilot.zPosition &&
