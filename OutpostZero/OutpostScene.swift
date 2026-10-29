@@ -6123,7 +6123,7 @@ final class OutpostScene: SKScene {
             // subsequent shots alternate between pilot and reactor.
             let reactorShot = activeEncounter == .equipmentDefense &&
                 enemy.behavior == 4 && waveElapsed >= 10 &&
-                Int((waveElapsed + Double(index) * 1.3) /
+                Int((waveElapsed + Double(enemy.node.position.x) * 0.013) /
                     max(1, CombatRules.shooterCooldown(room: wave))).isMultiple(of: 2)
             let aimedPoint = reactorShot ? defenseDevice.position : pilot.position
             // Aim markers, shots in flight and mortar warnings all count
