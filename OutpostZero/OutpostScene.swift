@@ -3128,6 +3128,19 @@ final class OutpostScene: SKScene {
                     shape.strokeColor = .clear
                 }
             }
+            // A subdued offset shadow gives solid obstacles a grounded edge.
+            // Keep liquid silhouettes unshadowed so their shorelines remain
+            // aligned with the gameplay hazard polygon.
+            if patch.kind == .rubble {
+                let groundShadow = SKShapeNode(path: shape.path!)
+                groundShadow.name = "rubbleContactShadow"
+                groundShadow.position = CGPoint(x: shape.position.x + 4,
+                                                y: shape.position.y - 6)
+                groundShadow.fillColor = .black.withAlphaComponent(0.30)
+                groundShadow.strokeColor = .clear
+                groundShadow.zPosition = shape.zPosition - 0.1
+                hazardScenery.addChild(groundShadow)
+            }
             hazardScenery.addChild(shape)
             // No permanent WATER/ACID debug text. Coastline materials and
             // the pulsing hazardous edge communicate the threat in-world.
