@@ -191,6 +191,8 @@ jobs:
         # Seven landscapes, defense states and eight motion videos need a
         # separate realistic budget; each simctl operation is already bounded.
         timeout-minutes: 30
+        env:
+          REQUIRE_WORLD_ONE_ART: ${{ vars.REQUIRE_WORLD_ONE_ART == 'true' && '1' || '0' }}
         run: bash scripts/capture_defense_visual_review.sh
       - name: Upload World 1 landscape review screenshots
         if: always()
