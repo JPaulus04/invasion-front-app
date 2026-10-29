@@ -3131,8 +3131,8 @@ final class OutpostScene: SKScene {
             // A subdued offset shadow gives solid obstacles a grounded edge.
             // Keep liquid silhouettes unshadowed so their shorelines remain
             // aligned with the gameplay hazard polygon.
-            if patch.kind == .rubble {
-                let groundShadow = SKShapeNode(path: shape.path!)
+            if patch.kind == .rubble, let silhouette = shape.path {
+                let groundShadow = SKShapeNode(path: silhouette)
                 groundShadow.name = "rubbleContactShadow"
                 groundShadow.position = CGPoint(x: shape.position.x + 4,
                                                 y: shape.position.y - 6)
