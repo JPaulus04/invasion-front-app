@@ -4626,12 +4626,12 @@ final class OutpostScene: SKScene {
         // layout seed and prop identities remained fixed.
         let worldOnePropCount: Int
         switch wave {
-        case 1...3, 6...8: worldOnePropCount = 8
-        case 4...5, 11...13: worldOnePropCount = 7
-        case 9...10, 14...15: worldOnePropCount = 6
-        case 16...19: worldOnePropCount = 7
-        case 20: worldOnePropCount = 6
-        default: worldOnePropCount = 8
+        case 1...3, 6...8: worldOnePropCount = 12
+        case 4...5, 11...13: worldOnePropCount = 11
+        case 9...10, 14...15: worldOnePropCount = 10
+        case 16...19: worldOnePropCount = 11
+        case 20: worldOnePropCount = 8
+        default: worldOnePropCount = 12
         }
         let count = worldMapIndex == 0 ? worldOnePropCount :
             (selectedWorld.biome == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)))
@@ -4661,21 +4661,21 @@ final class OutpostScene: SKScene {
             // All props remain outside the central combat/movement lane.
             let worldOneSide: CGFloat
             switch roomVariant {
-            case 0: worldOneSide = leftSide ? 0.10 : 0.90
-            case 1: worldOneSide = leftSide ? 0.17 : 0.83
-            case 2: worldOneSide = leftSide ? 0.07 : 0.93
-            default: worldOneSide = leftSide ? 0.14 : 0.86
+            case 0: worldOneSide = leftSide ? 0.12 : 0.88
+            case 1: worldOneSide = leftSide ? 0.19 : 0.81
+            case 2: worldOneSide = leftSide ? 0.10 : 0.90
+            default: worldOneSide = leftSide ? 0.17 : 0.83
             }
             let side: CGFloat = worldMapIndex == 0 ? worldOneSide :
                 (zone == 0 ? (leftSide ? 0.12 : 0.88) :
                     (zone == 1 ? (leftSide ? 0.16 : 0.84) : (leftSide ? 0.09 : 0.91)))
             let x = size.width * side + CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8
-            let spacing = max(25, (roomBounds.height - 100) /
+            let spacing = max(18, (roomBounds.height - 120) /
                 CGFloat(worldMapIndex == 0 ? max(1, count - 1) : count))
             let layoutShift = worldMapIndex == 0
                 ? CGFloat(((index * (roomVariant + 3) * 13 + landscapeLayoutSeed * 7) % 31) - 15)
                 : CGFloat(((index * 11 + wave * 7) % 19) - 9)
-            let y = roomBounds.minY + 55 + CGFloat(index) * spacing + layoutShift
+            let y = roomBounds.minY + 60 + CGFloat(index) * spacing + layoutShift
             let prop: SKShapeNode
             // When illustrated prop PNGs are not yet shipped, World 1 must
             // still read as ruins, swamp, or caves rather than generic forest.
