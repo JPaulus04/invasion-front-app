@@ -2188,24 +2188,7 @@ final class OutpostScene: SKScene {
             : (wave > 0 && phase != .ready && phase != .loadout
                ? selectedWorld.title : "OUTPOST ZERO")
         if title.text != titleText { title.text = titleText }
-        let subtitleText: String
-        if activeEncounter == .survival && (phase == .playing || roomCleared) {
-            subtitleText = "\(enemies.count) FOES  •  \(coins) COINS"
-        } else if activeEncounter == .equipmentDefense && roomCleared {
-            subtitleText = defenseIntegrity > 0 ? "REACTOR SECURED" : "REACTOR LOST • BONUS LOST"
-        } else if activeEncounter == .equipmentDefense && !roomCleared {
-            let remaining = max(0, Int(ceil(
-                SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
-            // Keep the deadline explicit and make the final fifteen seconds legible
-            // without introducing a second competing HUD element.
-            let urgency = remaining <= 15 ? "FINAL PUSH" : "DEFEND REACTOR"
-            subtitleText = size.width < 390
-                ? "CORE \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity) • \(remaining)S"
-                : "\(urgency)  •  \(remaining)S  •  CORE \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
-        } else {
-            subtitleText = "\(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
-        }
-        // The visible objective lives in survivalClock, not subtitle.
+        // Objective messaging is rendered exclusively by survivalClock below.
         let infoText = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
         if info.text != infoText { info.text = infoText }
         info.fontColor = health <= maximumHealth / 3 ? .systemRed : (health <= maximumHealth * 2 / 3 ? .systemYellow : .white)
