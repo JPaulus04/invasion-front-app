@@ -315,9 +315,10 @@ enum TerrainHazards {
             // Otherwise a pursuer can repeatedly steer through another bank
             // or rubble patch and remain stuck against the same obstacle.
             if !blocksMovement(waypoint, patches: patches, radius: radius) &&
-                extractionApproachIsClear(from: current, to: waypoint,
-                                          patches: patches,
-                                          collisionRadius: radius) {
+                (blocksMovement(current, patches: patches, radius: radius) ||
+                 extractionApproachIsClear(from: current, to: waypoint,
+                                           patches: patches,
+                                           collisionRadius: radius)) {
                 return waypoint
             }
         }
