@@ -427,8 +427,8 @@ final class OutpostScene: SKScene {
         overlay.zPosition = 40
         settingsShortcut.name = "settingsShortcut"
         settingsShortcut.fillColor = SKColor(red: 0.07, green: 0.16, blue: 0.23, alpha: 0.95)
-        settingsShortcut.strokeColor = .systemTeal
-        settingsShortcut.lineWidth = 1.5
+        settingsShortcut.strokeColor = SKColor(white: 0.65, alpha: 0.45)
+        settingsShortcut.lineWidth = 1
         settingsShortcut.zPosition = 50
         let settingsIcon = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
         settingsIcon.name = "settingsSymbol"
@@ -2103,16 +2103,16 @@ final class OutpostScene: SKScene {
         // One utility row and a slim progress row, below the device safe area.
         let top = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 8
         hudPanel.path = CGPath(roundedRect: CGRect(
-            x: 12, y: top - 72,
-            width: max(1, size.width - 24), height: 72),
+            x: 12, y: top - 62,
+            width: max(1, size.width - 24), height: 62),
             cornerWidth: 13, cornerHeight: 13, transform: nil)
-        floorNumber.fontSize = 17
-        floorNumber.position = CGPoint(x: 24, y: top - 29)
-        survivalClock.position = CGPoint(x: size.width / 2, y: top - 99)
+        floorNumber.fontSize = 15
+        floorNumber.position = CGPoint(x: 24, y: top - 27)
+        survivalClock.position = CGPoint(x: size.width / 2, y: top - 82)
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         // Reserve the first HUD row for the objective, leaving the floor counter at left.
         // Keep the mission text clear of the counter and right-side controls.
-        subtitle.position = CGPoint(x: size.width / 2 + 12, y: top - 29)
+        subtitle.position = CGPoint(x: size.width / 2 + 8, y: top - 27)
         subtitle.fontSize = size.width < 390 ? 10 : 12
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
@@ -2128,9 +2128,9 @@ final class OutpostScene: SKScene {
             x: 0, y: 0, width: xpWidth, height: 5),
             cornerWidth: 2.5, cornerHeight: 2.5, transform: nil)
         xpFill.path = xpTrack.path
-        xpTrack.position = CGPoint(x: 24, y: top - 56)
+        xpTrack.position = CGPoint(x: 24, y: top - 53)
         xpFill.position = xpTrack.position
-        xpLabel.position = CGPoint(x: size.width - 25, y: top - 58)
+        xpLabel.position = CGPoint(x: size.width - 25, y: top - 55)
         checkpointButton.position = CGPoint(x: size.width / 2,
                                             y: RoomRules.bounds(for: size).minY + 25)
         settingsShortcut.position = CGPoint(x: 36, y: size.height - 195)
@@ -2138,6 +2138,17 @@ final class OutpostScene: SKScene {
     }
 
     private func updateHUD() {
+        // Full-health ordinary foes need their silhouette, not a second green
+        // target. Reveal compact bars when injured; bosses remain persistent.
+        for enemy in enemies {
+            let showHealth = enemy.node === bossNode || enemy.health < enemy.maxHealth
+            enemy.healthBar.isHidden = !showHealth
+            enemy.node.childNode(withName: "enemyHealthTrack")?.isHidden = !showHealth
+            let fraction = CGFloat(max(0, enemy.health)) / CGFloat(max(1, enemy.maxHealth))
+            enemy.healthBar.xScale = max(0.001, min(1, fraction))
+            enemy.healthBar.fillColor = fraction > 0.5 ? .systemGreen :
+                (fraction > 0.25 ? .systemYellow : .systemRed)
+        }
         floorNumber.text = wave > 0 ? "\(wave)" : ""
         floorNumber.isHidden = wave <= 0 || phase == .ready || phase == .loadout
         let survivalActive = activeEncounter == .survival &&
@@ -2212,7 +2223,7 @@ final class OutpostScene: SKScene {
         info.isHidden = true
         floorNumber.text = wave > 0 ? "FLOOR \(wave)" : ""
         subtitle.text = "\(coins) COINS"
-        subtitle.fontSize = 13
+        subtitle.fontSize = size.width < 390 ? 10 : 11
         subtitle.fontColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
         xpLabel.text = "LV \(progress.level)"
         speedButton.isHidden = true // Speed remains available in Settings.
@@ -2221,7 +2232,8 @@ final class OutpostScene: SKScene {
             settingsShortcut.position = CGPoint(x: size.width - 39, y: top - 24)
         }
         let objectiveActive = (phase == .playing || phase == .gate) &&
-            (activeEncounter == .survival || activeEncounter == .equipmentDefense || wave == worldWaveCount)
+            (activeEncounter == .survival || activeEncounter == .equipmentDefense ||
+             (wave == worldWaveCount && roomCleared))
         survivalClock.isHidden = !objectiveActive
         survivalClock.fontSize = size.width < 390 ? 12 : 14
         survivalClock.fontColor = .white
@@ -4678,7 +4690,8 @@ final class OutpostScene: SKScene {
                 (zone == 0 ? (leftSide ? 0.12 : 0.88) :
                     (zone == 1 ? (leftSide ? 0.16 : 0.84) : (leftSide ? 0.09 : 0.91)))
             let x = size.width * side + CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8
-            let spacing = max(25, (roomBounds.height - 100) / CGFloat(count))
+            let spacing = max(25, (roomBounds.height - 100) /
+                CGFloat(worldMapIndex == 0 ? max(1, count - 1) : count))
             let layoutShift = worldMapIndex == 0
                 ? CGFloat(((index * (roomVariant + 3) * 13 + landscapeLayoutSeed * 7) % 31) - 15)
                 : CGFloat(((index * 11 + wave * 7) % 19) - 9)
@@ -4815,10 +4828,10 @@ final class OutpostScene: SKScene {
                     // transparent artwork otherwise appears to float over
                     // the floor, particularly for tall walls and vegetation.
                     let shadow = SKShapeNode(ellipseOf: CGSize(
-                        width: max(8, min(65, sprite.size.width * 0.72)),
-                        height: max(4, min(19, sprite.size.height * 0.22))))
+                        width: max(8, min(58, sprite.size.width * 0.64)),
+                        height: max(3, min(10, sprite.size.height * 0.10))))
                     shadow.name = "world1PropContactShadow"
-                    shadow.fillColor = SKColor.black.withAlphaComponent(0.31)
+                    shadow.fillColor = SKColor.black.withAlphaComponent(0.25)
                     shadow.strokeColor = .clear
                     shadow.position = CGPoint(x: 0, y: 1)
                     shadow.zPosition = 0.1
@@ -4831,7 +4844,7 @@ final class OutpostScene: SKScene {
                         width: max(7, min(58, sprite.size.width * 0.65)),
                         height: max(3, min(15, sprite.size.height * 0.16))))
                     castShadow.name = "world1PropCastShadow"
-                    castShadow.fillColor = SKColor.black.withAlphaComponent(0.13)
+                    castShadow.fillColor = SKColor.black.withAlphaComponent(0.08)
                     castShadow.strokeColor = .clear
                     // Cast-shadow displacement follows the rendered
                     // footprint so tiny props do not inherit the same
@@ -4842,9 +4855,10 @@ final class OutpostScene: SKScene {
                     castShadow.zRotation = -0.23
                     castShadow.zPosition = 0.05
                     prop.addChild(castShadow)
-                    // All four World 1 packs have a normalized 20px
-                    // transparent border. Register visible bottoms at shadows.
-                    sprite.anchorPoint = CGPoint(x: 0.5, y: 20 / texture.size().height)
+                    // A fixed transparent border includes faint image fringes.
+                    // Anchor the visible base, measured in normalized PNG units.
+                    sprite.anchorPoint = CGPoint(x: 0.5,
+                        y: WorldOneArtMetrics.groundAnchorY(for: assetName))
                     sprite.position.y = 0
                     sprite.zPosition = 0.8
                     prop.fillColor = .clear
@@ -5862,20 +5876,24 @@ final class OutpostScene: SKScene {
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         // Keep the track and fill together above the larger illustrated sprite.
         let healthBarOffset: CGFloat = isBoss ? 118 :
-            (usesIllustratedEnemy ? radius * 1.39 + 9 : radius + 12)
-        let barWidth: CGFloat = isBoss ? 148 : radius * 2.2
-        let barHeight: CGFloat = isBoss ? 8 : 5
+            (usesIllustratedEnemy ? radius * 1.39 + 5 : radius + 8)
+        let barWidth: CGFloat = isBoss ? 148 : min(38, radius * 1.8)
+        let barHeight: CGFloat = isBoss ? 8 : 3
         let healthTrack = SKShapeNode(rectOf: CGSize(
             width: barWidth, height: barHeight), cornerRadius: barHeight / 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
         healthTrack.strokeColor = .clear
+        healthTrack.name = "enemyHealthTrack"
         healthTrack.position.y = healthBarOffset
+        healthTrack.isHidden = !isBoss
         node.addChild(healthTrack)
-        let healthBar = SKShapeNode(rectOf: CGSize(
+        // Left-origin fill drains toward a fixed edge, not toward the center.
+        let healthBar = SKShapeNode(rect: CGRect(x: 0, y: -barHeight / 2,
             width: barWidth, height: barHeight), cornerRadius: barHeight / 2)
         healthBar.fillColor = .systemGreen
         healthBar.strokeColor = .clear
-        healthBar.position.y = healthBarOffset
+        healthBar.position = CGPoint(x: -barWidth / 2, y: healthBarOffset)
+        healthBar.isHidden = !isBoss
         healthBar.zPosition = 2
         node.addChild(healthBar)
         if isBoss {
