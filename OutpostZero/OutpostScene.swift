@@ -4633,7 +4633,11 @@ final class OutpostScene: SKScene {
         case 20: worldOnePropCount = 8
         default: worldOnePropCount = 12
         }
-        let count = worldMapIndex == 0 ? worldOnePropCount :
+        // Adapt density to the actual playable height: the extra props should
+        // frame combat, not pile up on compact phones.
+        let visibleWorldOneCount = min(worldOnePropCount,
+            max(6, Int((roomBounds.height - 100) / 46)))
+        let count = worldMapIndex == 0 ? visibleWorldOneCount :
             (selectedWorld.biome == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)))
         // Keep a landscape's perimeter composition stable for consecutive
         // waves; change the layout when the player enters another location.
@@ -4675,7 +4679,8 @@ final class OutpostScene: SKScene {
             let layoutShift = worldMapIndex == 0
                 ? CGFloat(((index * (roomVariant + 3) * 13 + landscapeLayoutSeed * 7) % 31) - 15)
                 : CGFloat(((index * 11 + wave * 7) % 19) - 9)
-            let y = roomBounds.minY + 60 + CGFloat(index) * spacing + layoutShift
+            let proposedY = roomBounds.minY + 60 + CGFloat(index) * spacing + layoutShift
+            let y = min(roomBounds.maxY - 36, max(roomBounds.minY + 36, proposedY))
             let prop: SKShapeNode
             // When illustrated prop PNGs are not yet shipped, World 1 must
             // still read as ruins, swamp, or caves rather than generic forest.
@@ -4788,7 +4793,7 @@ final class OutpostScene: SKScene {
                     // illustration must shrink uniformly rather than being
                     // pushed from the perimeter into the player's route.
                     let desiredWidth = height * ratio
-                    let perimeterWidth = max(40, roomBounds.width * 0.25)
+                    let perimeterWidth = max(40, roomBounds.width * 0.23)
                     let displayScale = min(1, perimeterWidth / max(1, desiredWidth))
                     sprite.size = CGSize(width: desiredWidth * displayScale,
                                          height: height * displayScale)
