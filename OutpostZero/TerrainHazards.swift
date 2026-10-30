@@ -273,6 +273,13 @@ enum TerrainHazards {
                                  radius: CGFloat) -> CGPoint {
         let distance = hypot(pilot.x - current.x, pilot.y - current.y)
         guard distance > radius else { return pilot }
+        // Keep direct pursuit when the entire corridor is unobstructed.
+        // Side-steering on clear ground causes visible enemy zigzagging.
+        if extractionApproachIsClear(from: current, to: pilot,
+                                      patches: patches,
+                                      collisionRadius: radius) {
+            return pilot
+        }
         let padding = radius + 9
         for patch in patches where patch.kind != .acid {
             let margin = patch.frame.insetBy(dx: -padding, dy: -padding)
