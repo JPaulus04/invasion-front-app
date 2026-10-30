@@ -2184,7 +2184,7 @@ final class OutpostScene: SKScene {
         let objectiveActive = (phase == .playing || phase == .gate) &&
             (activeEncounter == .survival || activeEncounter == .equipmentDefense || wave == worldWaveCount)
         survivalClock.isHidden = !objectiveActive
-        survivalClock.fontSize = 16
+        survivalClock.fontSize = size.width < 390 ? 12 : 14
         survivalClock.fontColor = .white
         if objectiveActive {
             let seconds = max(0, Int(ceil(SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
