@@ -328,9 +328,14 @@ enum TerrainHazards {
         let accessible = bounds.insetBy(dx: radius + 2, dy: radius + 2)
         var bestWaypoint: CGPoint?
         var bestScore = CGFloat.greatestFiniteMagnitude
-        for steeringDistance: CGFloat in [radius * 3 + 18, radius * 2 + 12] {
-            for offset: CGFloat in [.pi / 3, -.pi / 3, .pi / 2, -.pi / 2,
-                                    2 * .pi / 3, -2 * .pi / 3] {
+        let steeringDistances: [CGFloat] = [radius * 3 + 18, radius * 2 + 12]
+        let pi = CGFloat.pi
+        let steeringOffsets: [CGFloat] = [
+            pi / 3, -pi / 3, pi / 2, -pi / 2,
+            (2 * pi) / 3, -(2 * pi) / 3
+        ]
+        for steeringDistance in steeringDistances {
+            for offset in steeringOffsets {
                 let angle = heading + offset
                 let waypoint = CGPoint(
                     x: current.x + cos(angle) * steeringDistance,
