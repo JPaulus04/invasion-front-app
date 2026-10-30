@@ -2071,7 +2071,10 @@ final class OutpostScene: SKScene {
         floorNumber.position = CGPoint(x: 24, y: top - 29)
         survivalClock.position = CGPoint(x: size.width / 2, y: top - 99)
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
-        subtitle.position = CGPoint(x: size.width / 2, y: top - 29)
+        // Reserve the first HUD row for the objective, leaving the floor counter at left.
+        // Keep the mission text clear of the counter and right-side controls.
+        subtitle.position = CGPoint(x: size.width / 2 + 12, y: top - 29)
+        subtitle.fontSize = size.width < 390 ? 10 : 12
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
