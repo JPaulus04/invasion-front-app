@@ -2215,7 +2215,7 @@ final class OutpostScene: SKScene {
         } else {
             subtitleText = "\(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
         }
-        if subtitle.text != subtitleText { subtitle.text = subtitleText }
+        // The visible objective lives in survivalClock, not subtitle.
         let infoText = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
         if info.text != infoText { info.text = infoText }
         info.fontColor = health <= maximumHealth / 3 ? .systemRed : (health <= maximumHealth * 2 / 3 ? .systemYellow : .white)
@@ -2224,6 +2224,8 @@ final class OutpostScene: SKScene {
         title.isHidden = true
         info.isHidden = true
         floorNumber.text = wave > 0 ? "FLOOR \(wave)" : ""
+        // Keep the top utility row compact; the encounter objective has its
+        // own dedicated clock below the panel.
         subtitle.text = "\(coins) COINS"
         subtitle.fontSize = size.width < 390 ? 10 : 11
         subtitle.fontColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
