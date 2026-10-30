@@ -578,6 +578,17 @@ jobs:
           assert len(hashes) >= 2, "Live combat snapshots are identical: scene may be frozen"
           print(f"PASS: {len(hashes)} different live combat captures")
           PY
+          # A successful screenshot command can still capture SpringBoard after
+          # the app exits. Verify the live frame has substantial battlefield detail.
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          for path in sorted(Path("screenshots").glob("outpost-zero-survival-*.png")):
+              image = Image.open(path).convert("RGB")
+              colors = len(image.resize((120, 260)).getcolors(120 * 260) or [])
+              assert colors >= 100, f"{path}: suspiciously empty live scene ({colors} colors)"
+          print("PASS: survival captures contain detailed gameplay imagery")
+          PY
           python3 scripts/validate_simulator_screenshots.py \
             screenshots/outpost-zero-survival-1.png \
             screenshots/outpost-zero-survival-2.png \
