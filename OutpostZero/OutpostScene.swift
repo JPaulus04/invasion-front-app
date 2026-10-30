@@ -6341,6 +6341,7 @@ final class OutpostScene: SKScene {
             guard combatTime >= enemy.fireAt else { return }
             enemy.node.childNode(withName: "aimLine")?.removeFromParent()
             enemy.node.childNode(withName: "aimReticle")?.removeFromParent()
+            enemy.node.childNode(withName: "attackCharge")?.removeFromParent()
             if enemy.node === bossNode && (selectedWorld.bossStyle == 1 || selectedWorld.bossStyle == 3) {
                 for direction in CombatRules.wardenVolleyTargets(
                     origin: enemy.node.position, target: target) {
@@ -6412,8 +6413,26 @@ final class OutpostScene: SKScene {
                     : (reactorShot ? .systemCyan.withAlphaComponent(0.95)
                                    : .systemPink.withAlphaComponent(0.85))
                 aim.lineWidth = wardenOverdrive ? 3.5 : 3
+                aim.glowWidth = 2
                 aim.zPosition = 6
                 enemy.node.addChild(aim)
+                // Wind-up halo makes the attacking enemy identifiable even
+                // when its target reticle is outside the visible combat cluster.
+                let charge = SKShapeNode(circleOfRadius: enemy.radius + 8)
+                charge.name = "attackCharge"
+                charge.fillColor = .clear
+                charge.strokeColor = reactorShot ? .systemCyan : .systemPink
+                charge.lineWidth = 2.5
+                charge.glowWidth = 3
+                charge.alpha = 0.85
+                charge.zPosition = 5
+                enemy.node.addChild(charge)
+                charge.run(.repeatForever(.sequence([
+                    .group([.scale(to: 1.18, duration: 0.20),
+                            .fadeAlpha(to: 0.4, duration: 0.20)]),
+                    .group([.scale(to: 1, duration: 0.20),
+                            .fadeAlpha(to: 0.85, duration: 0.20)])
+                ])))
                 if enemy.node === bossNode && (selectedWorld.bossStyle == 1 || selectedWorld.bossStyle == 3) {
                     let targets = CombatRules.wardenVolleyTargets(
                         origin: enemy.node.position, target: pilot.position)
