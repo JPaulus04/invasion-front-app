@@ -2159,7 +2159,7 @@ final class OutpostScene: SKScene {
             // Keep the deadline explicit and make the final fifteen seconds legible
             // without introducing a second competing HUD element.
             let urgency = remaining <= 15 ? "FINAL PUSH" : "DEFEND REACTOR"
-            subtitleText = "\(urgency)  •  \(remaining)S LEFT  •  CORE \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
+            subtitleText = "\(urgency)  •  \(remaining)S  •  CORE \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
         } else {
             subtitleText = "\(coins) COINS  •  \(max(0, waveTarget - spawned) + enemies.count) FOES"
         }
