@@ -15,8 +15,9 @@ enum EnemyCombatFeedback {
             .colorize(with: .white, colorBlendFactor: 0.88, duration: 0.045),
             .colorize(withColorBlendFactor: 0, duration: 0.13)
         ]), withKey: "spriteHitFeedback")
+        // Repeated hits should not snap the sprite to an arbitrary X origin.
+        // Reset only the previous recoil displacement before applying a new one.
         art.removeAction(forKey: "spriteImpactRecoil")
-        art.position.x = 0
         let direction: CGFloat = enemy.position.x >= origin.x ? 1 : -1
         art.run(.sequence([
             .moveTo(x: direction * 3.2, duration: 0.045),
