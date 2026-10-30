@@ -326,22 +326,33 @@ enum TerrainHazards {
         // instead of repeatedly targeting the pilot through a solid barrier.
         let heading = atan2(pilot.y - current.y, pilot.x - current.x)
         let accessible = bounds.insetBy(dx: radius + 2, dy: radius + 2)
-        for distance: CGFloat in [radius * 3 + 18, radius * 2 + 12] {
+        var bestWaypoint: CGPoint?
+        var bestScore = CGFloat.greatestFiniteMagnitude
+        for steeringDistance: CGFloat in [radius * 3 + 18, radius * 2 + 12] {
             for offset: CGFloat in [.pi / 3, -.pi / 3, .pi / 2, -.pi / 2,
                                     2 * .pi / 3, -2 * .pi / 3] {
                 let angle = heading + offset
                 let waypoint = CGPoint(
-                    x: current.x + cos(angle) * distance,
-                    y: current.y + sin(angle) * distance)
+                    x: current.x + cos(angle) * steeringDistance,
+                    y: current.y + sin(angle) * steeringDistance)
                 guard accessible.contains(waypoint),
                       !blocksMovement(waypoint, patches: patches, radius: radius),
                       extractionApproachIsClear(from: current, to: waypoint,
                                                 patches: patches,
                                                 collisionRadius: radius) else { continue }
-                return waypoint
+                // Prefer the reachable detour that leaves the shortest
+                // remaining distance to the player, rather than always
+                // favoring the first (counterclockwise) steering option.
+                let remaining = hypot(pilot.x - waypoint.x,
+                                      pilot.y - waypoint.y)
+                let score = remaining + steeringDistance * 0.05
+                if score < bestScore {
+                    bestScore = score
+                    bestWaypoint = waypoint
+                }
             }
         }
-        return pilot
+        return bestWaypoint ?? pilot
     }
 
     /// 2 seconds of visible warning, 3 seconds active, 1 second recovery.
