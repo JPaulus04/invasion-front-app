@@ -2192,7 +2192,7 @@ final class OutpostScene: SKScene {
             if activeEncounter == .equipmentDefense {
                 survivalClock.text = roomCleared
                     ? (defenseIntegrity > 0 ? "REACTOR SECURED" : "REACTOR LOST")
-                    : "DEFEND  \(time)  ·  CORE \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
+                    : "\(seconds <= 15 ? "FINAL PUSH" : "DEFEND")  \(time)  ·  CORE \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
             } else if activeEncounter == .survival {
                 survivalClock.text = roomCleared ? "EXTRACTION READY" : "SURVIVE  \(time)"
             } else {
