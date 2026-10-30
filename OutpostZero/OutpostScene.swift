@@ -3588,8 +3588,11 @@ final class OutpostScene: SKScene {
                 shape.fillColor = acidOn
                     ? SKColor(red: 0.24, green: 0.70, blue: 0.16, alpha: 0.77)
                     : SKColor(red: 0.19, green: 0.43, blue: 0.13, alpha: 0.66)
+                // Telegraph danger with the same toxic-green language as
+                // the pool interior. Red shoreline outlines read like debug
+                // collision boundaries and compete with enemy attack cues.
                 shape.strokeColor = acidOn
-                    ? SKColor.systemRed.withAlphaComponent(0.91)
+                    ? SKColor(red: 0.77, green: 0.94, blue: 0.31, alpha: 0.86)
                     : SKColor(red: 0.64, green: 0.72, blue: 0.29, alpha: 0.45)
                 shape.glowWidth = acidOn ? 1.7 : 0
                 shape.childNode(withName: "acidActiveVeins")?.isHidden = !acidOn
