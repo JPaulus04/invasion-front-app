@@ -4594,14 +4594,31 @@ final class OutpostScene: SKScene {
                         let x = roomBounds.midX + CGFloat(side) *
                             (approachWidth - fraction * 12) + bend
                         let y = startY + (endY - startY) * fraction
+                        // Mix broken stone, moss and dark earth along each bank.
+                        // Alternating materials and irregular offsets avoid the
+                        // look of evenly spaced markers or a painted road.
+                        let material = (step * 3 + guideSeed + (side < 0 ? 1 : 0)) % 5
+                        let organic = material >= 3
                         let pebble = SKShapeNode(ellipseOf: CGSize(
-                            width: CGFloat(9 + (step + guideSeed) % 8),
-                            height: CGFloat(4 + step % 3)))
+                            width: CGFloat(organic ? 18 + step % 3 * 5
+                                                   : 9 + (step + guideSeed) % 8),
+                            height: CGFloat(organic ? 6 + step % 3 * 3
+                                                    : 4 + step % 3)))
                         pebble.name = "portalApproachEdge"
-                        pebble.position = CGPoint(x: x, y: y)
-                        pebble.zRotation = CGFloat((step % 3) - 1) * 0.22
-                        pebble.fillColor = SKColor(
-                            red: 0.36, green: 0.37, blue: 0.30, alpha: 0.30)
+                        pebble.position = CGPoint(
+                            x: x + CGFloat((step * 7 + guideSeed) % 9 - 4),
+                            y: y + CGFloat((step * 11 + guideSeed) % 13 - 6))
+                        pebble.zRotation = CGFloat((step % 5) - 2) * 0.17
+                        if material == 3 {
+                            pebble.fillColor = SKColor(
+                                red: 0.22, green: 0.35, blue: 0.22, alpha: 0.34)
+                        } else if material == 4 {
+                            pebble.fillColor = SKColor(
+                                red: 0.17, green: 0.24, blue: 0.19, alpha: 0.27)
+                        } else {
+                            pebble.fillColor = SKColor(
+                                red: 0.36, green: 0.37, blue: 0.30, alpha: 0.30)
+                        }
                         pebble.strokeColor = .clear
                         guide.addChild(pebble)
                     }
