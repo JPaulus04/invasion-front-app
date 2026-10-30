@@ -304,7 +304,13 @@ enum TerrainHazards {
             let waypoint = CGPoint(
                 x: max(accessible.minX, min(accessible.maxX, side)),
                 y: around)
-            if !blocksMovement(waypoint, patches: patches, radius: radius) {
+            // A waypoint must be reachable from the enemy's current position.
+            // Otherwise a pursuer can repeatedly steer through another bank
+            // or rubble patch and remain stuck against the same obstacle.
+            if !blocksMovement(waypoint, patches: patches, radius: radius) &&
+                extractionApproachIsClear(from: current, to: waypoint,
+                                          patches: patches,
+                                          collisionRadius: radius) {
                 return waypoint
             }
         }
