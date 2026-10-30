@@ -2213,7 +2213,9 @@ final class OutpostScene: SKScene {
             (activeEncounter == .survival || activeEncounter == .equipmentDefense ||
              (wave == worldWaveCount && roomCleared))
         survivalClock.isHidden = !objectiveActive
-        survivalClock.fontSize = size.width < 390 ? 12 : 14
+        // Mission status is the primary combat readout, not tertiary metadata.
+        // Scale it before the existing fit-to-width guard below.
+        survivalClock.fontSize = size.width < 390 ? 15 : 17
         survivalClock.fontColor = .white
         if objectiveActive {
             let seconds = max(0, Int(ceil(SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
@@ -6543,6 +6545,23 @@ final class OutpostScene: SKScene {
                     from: start, to: end, pilot: defenseDevice.position, radius: 30)
             if hit { damagePilot(7) }
             if hitReactor { damageDefenseDevice() }
+            if hit || hitReactor {
+                // Immediate impact confirmation for both pilot and reactor;
+                // particles are short-lived and have no collision or damage.
+                let flash = SKShapeNode(circleOfRadius: hitReactor ? 17 : 13)
+                flash.position = end
+                flash.fillColor = .systemYellow.withAlphaComponent(0.38)
+                flash.strokeColor = hitReactor ? .systemCyan : .systemPink
+                flash.lineWidth = 3
+                flash.glowWidth = 4
+                flash.zPosition = 14
+                arena.addChild(flash)
+                flash.run(.sequence([
+                    .group([.scale(to: 1.8, duration: 0.16),
+                            .fadeOut(withDuration: 0.16)]),
+                    .removeFromParent()
+                ]))
+            }
             if hit || hitReactor || combatTime >= shot.expiresAt || !roomBounds.insetBy(dx: -20, dy: -20).contains(end) {
                 shot.node.removeFromParent()
                 projectiles.remove(at: index)
