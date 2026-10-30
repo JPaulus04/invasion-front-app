@@ -2141,7 +2141,7 @@ final class OutpostScene: SKScene {
         // Full-health ordinary foes need their silhouette, not a second green
         // target. Reveal compact bars when injured; bosses remain persistent.
         for enemy in enemies {
-            let showHealth = enemy.node === bossNode || enemy.health < enemy.maxHealth
+            let showHealth = enemy.node === bossNode || (enemy.health > 0 && enemy.health < enemy.maxHealth)
             enemy.healthBar.isHidden = !showHealth
             enemy.node.childNode(withName: "enemyHealthTrack")?.isHidden = !showHealth
             let fraction = CGFloat(max(0, enemy.health)) / CGFloat(max(1, enemy.maxHealth))
@@ -5600,7 +5600,7 @@ final class OutpostScene: SKScene {
             // without modifying radius, overlap tests or ranged attack rules.
             // Give ordinary illustrated threats more readable screen presence.
             // Keep the underlying collision radius and spawn spacing unchanged.
-            let illustrationScale: CGFloat = hasProductionArt ? 1.12 : 1
+            let illustrationScale: CGFloat = hasProductionArt ? (type == 3 ? 1.20 : 1.16) : 1
             armor.size = CGSize(
                 width: radius * (hasProductionArt ? 2.48 : 2.3) * illustrationScale,
                 height: radius * (hasProductionArt ? 2.74 : 2.55) * illustrationScale)
@@ -5624,8 +5624,8 @@ final class OutpostScene: SKScene {
             if hasProductionArt {
                 // Ground shadow anchors illustrated enemies without obscuring their silhouette.
                 let contactShadow = SKShapeNode(ellipseOf: CGSize(
-                    width: radius * 2.0, height: radius * 0.51))
-                contactShadow.fillColor = SKColor.black.withAlphaComponent(0.39)
+                    width: radius * 2.15, height: radius * 0.57))
+                contactShadow.fillColor = SKColor.black.withAlphaComponent(0.33)
                 contactShadow.strokeColor = .clear
                 contactShadow.position = CGPoint(x: 3, y: -radius * 0.99)
                 contactShadow.name = "enemyGroundShadow"
@@ -5859,9 +5859,9 @@ final class OutpostScene: SKScene {
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         // Keep the track and fill together above the larger illustrated sprite.
         let healthBarOffset: CGFloat = isBoss ? 118 :
-            (usesIllustratedEnemy ? radius * 1.39 + 5 : radius + 8)
-        let barWidth: CGFloat = isBoss ? 148 : min(38, radius * 1.8)
-        let barHeight: CGFloat = isBoss ? 8 : 3
+            (usesIllustratedEnemy ? radius * (type == 3 ? 1.66 : 1.60) + 5 : radius + 8)
+        let barWidth: CGFloat = isBoss ? 148 : min(48, radius * 2.0)
+        let barHeight: CGFloat = isBoss ? 8 : 4
         let healthTrack = SKShapeNode(rectOf: CGSize(
             width: barWidth, height: barHeight), cornerRadius: barHeight / 2)
         healthTrack.fillColor = SKColor.black.withAlphaComponent(0.7)
