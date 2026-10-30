@@ -71,7 +71,7 @@ enum CombatVisuals {
     /// visually distinct from ordinary hits but with no independent damage.
     static func explosiveBurst(in parent: SKNode, at point: CGPoint,
                                rank: Int, burning: Bool) {
-        let reach = CGFloat(min(40, 22 + rank * 4))
+        let reach = CGFloat(min(40, 22 + max(0, rank) * 4))
         let color: SKColor = burning ? .systemOrange : .systemYellow
         let blast = SKShapeNode(circleOfRadius: reach)
         blast.name = "explosiveBurst"
