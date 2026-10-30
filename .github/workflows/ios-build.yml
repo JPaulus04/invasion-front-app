@@ -243,6 +243,7 @@ jobs:
           retention-days: 7
   simulator-review:
     # Full campaign captures are reserved for milestones and release review.
+    # Build 328 release gate: full simulator capture must pass before TestFlight.
     # Fast tests, compilation and focused motion captures still run every time.
     if: >-
       github.event_name == 'pull_request' ||
