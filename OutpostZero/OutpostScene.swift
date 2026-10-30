@@ -2149,19 +2149,9 @@ final class OutpostScene: SKScene {
             enemy.healthBar.fillColor = fraction > 0.5 ? .systemGreen :
                 (fraction > 0.25 ? .systemYellow : .systemRed)
         }
-        floorNumber.text = wave > 0 ? "\(wave)" : ""
         floorNumber.isHidden = wave <= 0 || phase == .ready || phase == .loadout
-        let survivalActive = activeEncounter == .survival &&
-            (phase == .playing || phase == .gate)
-        survivalClock.isHidden = !survivalActive
-        if survivalActive {
-            let seconds = max(0, Int(ceil(
-                SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
-            survivalClock.text = roomCleared ? "EXTRACTION READY" :
-                String(format: "%02d:%02d", seconds / 60, seconds % 60)
-            survivalClock.fontSize = roomCleared ? 19 : 32
-            survivalClock.fontColor = seconds <= 10 ? .systemOrange : .systemYellow
-        }
+        // The unified objective clock below handles survival, defense and boss
+        // states; do not overwrite it here with the legacy survival-only HUD.
         pilotHealthFill.xScale = max(0.001, min(1,
             CGFloat(health) / CGFloat(max(1, maximumHealth))))
         pilotHealthFill.fillColor = health <= maximumHealth / 3 ? .systemRed : .systemGreen
