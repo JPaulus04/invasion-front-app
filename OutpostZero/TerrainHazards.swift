@@ -236,7 +236,34 @@ enum TerrainHazards {
                 }
             }
         }
-        return pilot
+        // Search the remaining reachable arena at a finer resolution before
+        // accepting an extraction directly on the pilot. This catches narrow
+        // safe pockets missed by the fixed radial candidates above.
+        let spacing: CGFloat = 18
+        let columns = max(1, Int(ceil(safe.width / spacing)))
+        let rows = max(1, Int(ceil(safe.height / spacing)))
+        var nearest: CGPoint?
+        var nearestDistance = CGFloat.greatestFiniteMagnitude
+        for row in 0...rows {
+            for column in 0...columns {
+                let candidate = CGPoint(
+                    x: safe.minX + safe.width * CGFloat(column) / CGFloat(columns),
+                    y: safe.minY + safe.height * CGFloat(row) / CGFloat(rows))
+                let separation = hypot(candidate.x - pilot.x,
+                                       candidate.y - pilot.y)
+                guard separation >= 45,
+                      !blocksMovement(candidate, patches: patches, radius: 14),
+                      extractionApproachIsClear(from: pilot, to: candidate,
+                                                patches: patches) else { continue }
+                if separation < nearestDistance {
+                    nearest = candidate
+                    nearestDistance = separation
+                }
+            }
+        }
+        // A truly enclosed pilot has no reachable destination; do not place
+        // extraction behind an impassable obstacle just to force separation.
+        return nearest ?? pilot
     }
 
     /// Redirect pursuers around the nearest blocked shoreline instead of
