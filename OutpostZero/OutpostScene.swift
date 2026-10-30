@@ -4705,7 +4705,19 @@ final class OutpostScene: SKScene {
             let side: CGFloat = worldMapIndex == 0 ? worldOneSide :
                 (zone == 0 ? (leftSide ? 0.12 : 0.88) :
                     (zone == 1 ? (leftSide ? 0.16 : 0.84) : (leftSide ? 0.09 : 0.91)))
-            let x = size.width * side + CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8
+            // Alternating perimeter pockets create distinct silhouettes:
+            // some ruins gather near corners while other stretches open up.
+            // Keep the middle 55% of the arena free for evasive combat.
+            let pocket = worldMapIndex == 0
+                ? CGFloat(((index / 2 + roomVariant) % 3) - 1) * 11 : 0
+            let rawX = size.width * side +
+                CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8 +
+                (leftSide ? pocket : -pocket)
+            let x = worldMapIndex == 0
+                ? (leftSide
+                    ? min(size.width * 0.24, max(size.width * 0.06, rawX))
+                    : min(size.width * 0.94, max(size.width * 0.76, rawX)))
+                : rawX
             let spacing = max(18, (roomBounds.height - 120) /
                 CGFloat(worldMapIndex == 0 ? max(1, count - 1) : count))
             let layoutShift = worldMapIndex == 0
