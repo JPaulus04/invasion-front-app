@@ -5598,9 +5598,12 @@ final class OutpostScene: SKScene {
             let armor = SKSpriteNode(texture: productionTexture(named: assetName, fallback: enemyChassisTexture))
             // A modest art-only enlargement preserves the threat silhouette
             // without modifying radius, overlap tests or ranged attack rules.
+            // Give ordinary illustrated threats more readable screen presence.
+            // Keep the underlying collision radius and spawn spacing unchanged.
+            let illustrationScale: CGFloat = hasProductionArt ? 1.12 : 1
             armor.size = CGSize(
-                width: radius * (hasProductionArt ? 2.48 : 2.3),
-                height: radius * (hasProductionArt ? 2.74 : 2.55))
+                width: radius * (hasProductionArt ? 2.48 : 2.3) * illustrationScale,
+                height: radius * (hasProductionArt ? 2.74 : 2.55) * illustrationScale)
             if (0...5).contains(type) && hasProductionArt {
                 armor.size.width = armor.size.height
             }
@@ -5621,7 +5624,7 @@ final class OutpostScene: SKScene {
             if hasProductionArt {
                 // Ground shadow anchors illustrated enemies without obscuring their silhouette.
                 let contactShadow = SKShapeNode(ellipseOf: CGSize(
-                    width: radius * 1.85, height: radius * 0.51))
+                    width: radius * 2.0, height: radius * 0.51))
                 contactShadow.fillColor = SKColor.black.withAlphaComponent(0.39)
                 contactShadow.strokeColor = .clear
                 contactShadow.position = CGPoint(x: 3, y: -radius * 0.99)
