@@ -125,6 +125,26 @@ enum EnemyCombatFeedback {
             .group([.scale(to: isBoss ? 3.5 : 2.3, duration: 0.32),
                     .fadeOut(withDuration: 0.32)]), .removeFromParent()
         ]))
+        if isBoss {
+            // A delayed, low-opacity second ground pulse makes boss defeats
+            // legible without increasing the particle count during combat.
+            let aftershock = SKShapeNode(ellipseOf: CGSize(
+                width: radius * 1.5, height: max(8, radius * 0.46)))
+            aftershock.position = shock.position
+            aftershock.fillColor = .clear
+            aftershock.strokeColor = tint.withAlphaComponent(0.45)
+            aftershock.lineWidth = 2
+            aftershock.zPosition = 10.6
+            aftershock.alpha = 0
+            parent.addChild(aftershock)
+            aftershock.run(.sequence([
+                .wait(forDuration: 0.12),
+                .fadeIn(withDuration: 0.04),
+                .group([.scale(to: 4.1, duration: 0.35),
+                        .fadeOut(withDuration: 0.35)]),
+                .removeFromParent()
+            ]))
+        }
         let count = isBoss ? 5 : 3
         for i in 0..<count {
             let piece = SKShapeNode(rectOf: CGSize(
