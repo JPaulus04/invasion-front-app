@@ -2199,7 +2199,8 @@ final class OutpostScene: SKScene {
         floorNumber.text = wave > 0 ? "FLOOR \(wave)" : ""
         // Keep the top utility row compact; the encounter objective has its
         // own dedicated clock below the panel.
-        subtitle.text = "\(coins) COINS"
+        let subtitleText = "\(coins) COINS"
+        if subtitle.text != subtitleText { subtitle.text = subtitleText }
         subtitle.fontSize = size.width < 390 ? 10 : 11
         subtitle.fontColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
         xpLabel.text = "LV \(progress.level)"
