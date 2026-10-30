@@ -60,7 +60,9 @@ enum EnemyCombatFeedback {
             .group([.scale(to: 1.6, duration: 0.11),
                     .fadeOut(withDuration: 0.11)]), .removeFromParent()
         ]))
-        let count = destroyed ? 5 : 2
+        // Ordinary hits need a restrained footprint so dense combat does not
+        // obscure enemy silhouettes or incoming projectiles.
+        let count = destroyed ? 5 : 1
         for i in 0..<count {
             let spark = SKShapeNode(rectOf: CGSize(
                 width: destroyed ? 3 : 2, height: destroyed ? 7 : 4),
