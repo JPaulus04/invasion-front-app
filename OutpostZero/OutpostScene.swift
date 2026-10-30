@@ -6441,12 +6441,34 @@ final class OutpostScene: SKScene {
         let dx = target.x - origin.x
         let dy = target.y - origin.y
         let length = max(1, hypot(dx, dy))
+        // High-contrast hostile shots: a luminous core, colored outer ring,
+        // and a short directional tail. Collision radius and speed stay intact.
         let node = SKShapeNode(circleOfRadius: 6)
-        node.fillColor = wave == worldWaveCount ? BossArtwork.colors[min(3, worldMapIndex)] : .systemPink
+        let hostileColor = wave == worldWaveCount
+            ? BossArtwork.colors[min(3, worldMapIndex)] : .systemPink
+        node.fillColor = hostileColor
         node.strokeColor = .white
         node.lineWidth = 2
+        node.glowWidth = 3
         node.position = origin
         node.zPosition = 11
+        let halo = SKShapeNode(circleOfRadius: 10)
+        halo.strokeColor = hostileColor.withAlphaComponent(0.75)
+        halo.lineWidth = 2
+        halo.fillColor = .clear
+        halo.zPosition = -1
+        node.addChild(halo)
+        let tail = SKShapeNode(rectOf: CGSize(width: 15, height: 3), cornerRadius: 1.5)
+        tail.fillColor = hostileColor.withAlphaComponent(0.75)
+        tail.strokeColor = .clear
+        tail.position = CGPoint(x: -12, y: 0)
+        tail.zPosition = -2
+        node.addChild(tail)
+        node.zRotation = atan2(dy, dx)
+        node.run(.repeatForever(.sequence([
+            .scale(to: 1.12, duration: 0.16),
+            .scale(to: 1.0, duration: 0.16)
+        ])))
         arena.addChild(node)
         projectiles.append(Projectile(node: node, velocity: CGVector(dx: dx / length * 145, dy: dy / length * 145),
                                       expiresAt: combatTime + 6))
@@ -6459,7 +6481,16 @@ final class OutpostScene: SKScene {
         marker.fillColor = .systemOrange.withAlphaComponent(0.23)
         marker.strokeColor = .systemOrange
         marker.lineWidth = 4
+        marker.glowWidth = 2
         marker.zPosition = 4
+        // Inner hazard zone reinforces the blast radius without obscuring
+        // the ground or changing mortar timing.
+        let innerZone = SKShapeNode(circleOfRadius: radius * 0.48)
+        innerZone.fillColor = .systemRed.withAlphaComponent(0.14)
+        innerZone.strokeColor = .systemYellow.withAlphaComponent(0.8)
+        innerZone.lineWidth = 1.5
+        innerZone.zPosition = 0
+        marker.addChild(innerZone)
         // A shrinking yellow countdown ring indicates *when* the mortar will
         // land; the orange perimeter indicates *where*. Unlike a generic
         // flash, it gives players actionable information while dodging.
@@ -6487,6 +6518,8 @@ final class OutpostScene: SKScene {
         let shell = SKShapeNode(circleOfRadius: 8)
         shell.fillColor = .systemYellow
         shell.strokeColor = .white
+        shell.lineWidth = 2.5
+        shell.glowWidth = 5
         shell.position = origin
         shell.zPosition = 13
         arena.addChild(shell)
