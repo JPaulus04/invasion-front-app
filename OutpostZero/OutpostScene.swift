@@ -2013,31 +2013,70 @@ final class OutpostScene: SKScene {
             shadow.fillColor = SKColor.black.withAlphaComponent(0.27)
             shadow.strokeColor = .clear
             floor.addChild(shadow)
-            let pad = SKShapeNode(rectOf: CGSize(width: 73, height: 34),
-                                  cornerRadius: 6)
-            pad.position = CGPoint(x: x, y: y)
-            pad.zRotation = index.isMultiple(of: 2) ? 0.10 : -0.16
-            pad.fillColor = SKColor(red: 0.21, green: 0.28,
-                                    blue: 0.25, alpha: 0.9)
-            pad.strokeColor = SKColor(red: 0.38, green: 0.47,
-                                      blue: 0.39, alpha: 0.8)
-            pad.lineWidth = 2
-            floor.addChild(pad)
-            for stripe in [-1, 1] {
-                let rail = SKShapeNode(rectOf: CGSize(width: 8, height: 28),
-                                       cornerRadius: 2)
-                rail.position.x = CGFloat(stripe) * 25
-                rail.fillColor = SKColor(red: 0.31, green: 0.38,
-                                         blue: 0.34, alpha: 1)
-                rail.strokeColor = .clear
-                pad.addChild(rail)
+
+            // Edge landmarks are scenery, not collision. Alternate silhouettes
+            // by layout so successive survival rooms do not repeat identical
+            // industrial pads. Keep the entire central combat lane unobstructed.
+            let variant = (index + survivalLayout) % 3
+            if variant == 0 {
+                let pad = SKShapeNode(rectOf: CGSize(width: 73, height: 34),
+                                      cornerRadius: 6)
+                pad.position = CGPoint(x: x, y: y)
+                pad.zRotation = index.isMultiple(of: 2) ? 0.10 : -0.16
+                pad.fillColor = SKColor(red: 0.21, green: 0.28,
+                                        blue: 0.25, alpha: 0.9)
+                pad.strokeColor = SKColor(red: 0.38, green: 0.47,
+                                          blue: 0.39, alpha: 0.8)
+                pad.lineWidth = 2
+                floor.addChild(pad)
+                for stripe in [-1, 1] {
+                    let rail = SKShapeNode(rectOf: CGSize(width: 8, height: 28),
+                                           cornerRadius: 2)
+                    rail.position.x = CGFloat(stripe) * 25
+                    rail.fillColor = SKColor(red: 0.31, green: 0.38,
+                                             blue: 0.34, alpha: 1)
+                    rail.strokeColor = .clear
+                    pad.addChild(rail)
+                }
+                let signal = SKShapeNode(circleOfRadius: 4)
+                signal.position = CGPoint(x: 0, y: 10)
+                signal.fillColor = .systemOrange
+                signal.strokeColor = .clear
+                signal.glowWidth = 2
+                pad.addChild(signal)
+            } else if variant == 1 {
+                // Broken flagstones suggest an old crossing without drawing a
+                // literal navigation arrow or imposing an invisible barrier.
+                for slabIndex in 0..<3 {
+                    let slab = SKShapeNode(rectOf: CGSize(
+                        width: CGFloat(24 + slabIndex * 4), height: CGFloat(13 + slabIndex % 2 * 5)),
+                        cornerRadius: 3)
+                    slab.position = CGPoint(x: x + CGFloat(slabIndex - 1) * 22,
+                                            y: y + CGFloat((slabIndex * 7) % 13 - 6))
+                    slab.zRotation = CGFloat(slabIndex - 1) * 0.19
+                    slab.fillColor = SKColor(red: 0.34, green: 0.39,
+                                             blue: 0.31, alpha: 0.82)
+                    slab.strokeColor = SKColor(red: 0.13, green: 0.20,
+                                               blue: 0.17, alpha: 0.65)
+                    slab.lineWidth = 1.2
+                    floor.addChild(slab)
+                }
+            } else {
+                // Low, irregular mossy ground cover softens the industrial
+                // repetition; these patches never affect movement.
+                for tuftIndex in 0..<4 {
+                    let tuft = SKShapeNode(ellipseOf: CGSize(
+                        width: CGFloat(17 + tuftIndex % 2 * 13),
+                        height: CGFloat(8 + tuftIndex % 3 * 4)))
+                    tuft.position = CGPoint(x: x + CGFloat(tuftIndex - 2) * 16,
+                                            y: y + CGFloat((tuftIndex * 11) % 19 - 9))
+                    tuft.zRotation = CGFloat(tuftIndex) * 0.27
+                    tuft.fillColor = SKColor(red: 0.22, green: 0.36,
+                                             blue: 0.23, alpha: 0.65)
+                    tuft.strokeColor = .clear
+                    floor.addChild(tuft)
+                }
             }
-            let signal = SKShapeNode(circleOfRadius: 4)
-            signal.position = CGPoint(x: 0, y: 10)
-            signal.fillColor = .systemOrange
-            signal.strokeColor = .clear
-            signal.glowWidth = 2
-            pad.addChild(signal)
         }
         arena.addChild(floor)
     }
