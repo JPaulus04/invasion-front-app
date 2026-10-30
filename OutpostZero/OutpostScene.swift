@@ -6227,12 +6227,23 @@ final class OutpostScene: SKScene {
                 phase: enemy.weavePhase, moving: advancing,
                 aiming: enemies[index].shotTarget != nil)
             if let enemyArt = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                // Let momentum register in the illustration without rotating
+                // collision geometry, health bars or attack telegraphs.
+                let travelDX = enemy.node.position.x - current.x
+                let travelDY = enemy.node.position.y - current.y
+                let travelLength = max(0.001, hypot(travelDX, travelDY))
+                let directionLean = advancing
+                    ? max(-0.055, min(0.055, travelDX / travelLength * 0.055))
+                    : 0
                 enemyArt.position.y = enemyPose.verticalOffset
-                enemyArt.zRotation = enemyPose.lean
+                enemyArt.zRotation = enemyPose.lean + directionLean
                 enemyArt.yScale = enemyPose.heightScale
             }
             if let ground = enemy.node.childNode(withName: "enemyGroundShadow") as? SKShapeNode {
                 ground.xScale = enemyPose.shadowScale
+                // A moving chassis shifts subtly away from its grounded
+                // contact patch; no extra particles or per-frame nodes.
+                ground.alpha = advancing ? 0.82 : 1
             }
             if activeEncounter == .equipmentDefense && enemy.behavior < 4 &&
                 distance(enemy.node.position, defenseDevice.position) < enemy.radius + 28 {
