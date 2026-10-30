@@ -314,6 +314,26 @@ enum TerrainHazards {
                 return waypoint
             }
         }
+        // If the preferred side is blocked, try short, reachable steering
+        // offsets. These give pursuers a way to move around compound terrain
+        // instead of repeatedly targeting the pilot through a solid barrier.
+        let heading = atan2(pilot.y - current.y, pilot.x - current.x)
+        let accessible = bounds.insetBy(dx: radius + 2, dy: radius + 2)
+        for distance: CGFloat in [radius * 3 + 18, radius * 2 + 12] {
+            for offset: CGFloat in [.pi / 3, -.pi / 3, .pi / 2, -.pi / 2,
+                                    2 * .pi / 3, -2 * .pi / 3] {
+                let angle = heading + offset
+                let waypoint = CGPoint(
+                    x: current.x + cos(angle) * distance,
+                    y: current.y + sin(angle) * distance)
+                guard accessible.contains(waypoint),
+                      !blocksMovement(waypoint, patches: patches, radius: radius),
+                      extractionApproachIsClear(from: current, to: waypoint,
+                                                patches: patches,
+                                                collisionRadius: radius) else { continue }
+                return waypoint
+            }
+        }
         return pilot
     }
 
