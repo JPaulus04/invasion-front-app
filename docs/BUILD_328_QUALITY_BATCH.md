@@ -25,3 +25,17 @@ Working scorecard: 7.4/10 provisional overall; target 8.5/10 before the next maj
 One consolidated [full-review] push for this complete batch. User explicitly requested: start validation and stop; do not monitor the run. TestFlight is not authorized.
 
 Inspect grounding of cave walls and Guardian debris, compact HUD readability, upper perimeter overlap, injured-enemy bars and persistent boss health. Review live combat separately from frozen landscape fixtures. Economy/fresh-character pacing, Home navigation and animation grades remain provisional and are outside this presentation batch.
+
+
+## Consolidated combat and arena validation — October 30, 2026
+
+Scope since prior passing review: hostile projectile silhouettes and directional tails; mortar impact telegraphs; projectile-hit confirmation; larger objective HUD clock; reactor critical-state pulse and grounded shockwave; ranged shooter wind-up halos; World 1 staggered perimeter pockets; direction-aware enemy lean and contact-shadow response.
+
+Full review acceptance gates:
+1. Source checks, character motion and combat tests, iOS compile, and visual capture must pass.
+2. Verify no overlapping HUD labels or obscured objective timer on narrow devices.
+3. Inspect projectile and mortar warnings for visibility without obscuring enemy silhouettes.
+4. Inspect perimeter prop bounds and central movement clearance in all World 1 landscapes.
+5. Confirm reactor warnings and enemy wind-ups remain readable during busy encounters.
+
+This checkpoint is a validation trigger, not visual approval or TestFlight authorization.
