@@ -2123,6 +2123,42 @@ final class OutpostScene: SKScene {
         chrome.name = "combatChrome"
         chrome.zPosition = -1
         hud.addChild(chrome)
+        // Illustrated HUD elements remain anchored to the combat safe area.
+        let portrait = SKShapeNode(circleOfRadius: 20)
+        portrait.position = CGPoint(x: 36, y: top - 28)
+        portrait.fillColor = SKColor(red: 0.08, green: 0.19, blue: 0.33, alpha: 1)
+        portrait.strokeColor = .systemCyan
+        portrait.lineWidth = 2
+        chrome.addChild(portrait)
+        let visor = SKShapeNode(rectOf: CGSize(width: 27, height: 10), cornerRadius: 4)
+        visor.fillColor = .systemOrange
+        visor.strokeColor = .white.withAlphaComponent(0.5)
+        portrait.addChild(visor)
+        let coin = SKShapeNode(circleOfRadius: 10)
+        coin.position = CGPoint(x: size.width - 114, y: top - 29)
+        coin.fillColor = .systemYellow
+        coin.strokeColor = SKColor(red: 1, green: 0.82, blue: 0.25, alpha: 1)
+        coin.lineWidth = 2
+        chrome.addChild(coin)
+        let coinMark = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        coinMark.text = "★"
+        coinMark.fontSize = 12
+        coinMark.fontColor = SKColor(red: 0.63, green: 0.36, blue: 0.03, alpha: 1)
+        coinMark.verticalAlignmentMode = .center
+        coin.addChild(coinMark)
+        let worldLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        worldLabel.name = "hudWorldLabel"
+        worldLabel.fontSize = 10
+        worldLabel.fontColor = .white
+        worldLabel.position = CGPoint(x: size.width / 2, y: top - 16)
+        chrome.addChild(worldLabel)
+        for index in 0..<7 {
+            let dot = SKShapeNode(circleOfRadius: 3)
+            dot.name = "hudRouteDot_\(index)"
+            dot.position = CGPoint(x: size.width / 2 + CGFloat(index - 3) * 12, y: top - 46)
+            dot.strokeColor = .white.withAlphaComponent(0.3)
+            chrome.addChild(dot)
+        }
         // Three purpose-built HUD capsules: floor, progression, and currency.
         // Keep the center dedicated to player progress rather than covering
         // the battlefield with the old full-width information header.
@@ -2248,6 +2284,15 @@ final class OutpostScene: SKScene {
         subtitle.fontSize = 16
         subtitle.fontColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
         xpLabel.text = "LV \(progress.level)"
+        if let chrome = hud.childNode(withName: "combatChrome") {
+            (chrome.childNode(withName: "hudWorldLabel") as? SKLabelNode)?.text = selectedWorld.title.uppercased()
+            for index in 0..<7 {
+                if let dot = chrome.childNode(withName: "hudRouteDot_\(index)") as? SKShapeNode {
+                    dot.fillColor = index <= min(6, max(0, wave * 7 / max(1, worldWaveCount)))
+                        ? .systemCyan : SKColor(white: 0.3, alpha: 1)
+                }
+            }
+        }
         speedButton.isHidden = true // Speed remains available in Settings.
         let top = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 8
         if phase == .playing || phase == .gate {
