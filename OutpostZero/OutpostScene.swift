@@ -2235,7 +2235,7 @@ final class OutpostScene: SKScene {
         // own dedicated clock below the panel.
         let subtitleText = "\(coins) ¢"
         if subtitle.text != subtitleText { subtitle.text = subtitleText }
-        subtitle.fontSize = size.width < 390 ? 10 : 11
+        subtitle.fontSize = size.width < 390 ? 15 : 17
         subtitle.fontColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
         xpLabel.text = "LV \(progress.level)"
         speedButton.isHidden = true // Speed remains available in Settings.
@@ -2266,7 +2266,9 @@ final class OutpostScene: SKScene {
                 survivalClock.text = roomCleared ? "AREA SECURED" : selectedWorld.boss.uppercased()
             }
             if roomCleared {
-                survivalClock.fontColor = .systemGreen
+                // A failed defense is never a green success state.
+                survivalClock.fontColor = activeEncounter == .equipmentDefense && defenseIntegrity <= 0
+                    ? .systemRed : .systemGreen
             } else if activeEncounter == .equipmentDefense &&
                         EquipmentDefenseRules.criticalIntegrity(defenseIntegrity) {
                 // Integrity failure takes precedence over the countdown.
