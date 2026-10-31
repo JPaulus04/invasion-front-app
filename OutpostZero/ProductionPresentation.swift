@@ -39,6 +39,39 @@ enum ProductionPresentation {
             let context = renderer.cgContext
             let wet = landscape == "swamp_basin"
             let cave = landscape == "toxic_caves"
+            // Distinct low-relief landforms, baked below actors and warnings.
+            // No painted ledge or stain introduces invisible collision.
+            for bank in 0..<4 {
+                let side: CGFloat = bank.isMultiple(of: 2) ? 0.04 : 0.73
+                let x = size.width * side
+                let y = size.height * CGFloat(bank + 1) / 5
+                let w = size.width * 0.23
+                let h: CGFloat = cave ? 54 : (wet ? 38 : 27)
+                let shape = UIBezierPath()
+                shape.move(to: CGPoint(x: x, y: y))
+                shape.addCurve(to: CGPoint(x: x + w, y: y + h * 0.3),
+                    controlPoint1: CGPoint(x: x + w * 0.25, y: y - h),
+                    controlPoint2: CGPoint(x: x + w * 0.78, y: y - h * 0.45))
+                shape.addQuadCurve(to: CGPoint(x: x, y: y),
+                    controlPoint: CGPoint(x: x + w * 0.62, y: y + h))
+                context.saveGState()
+                context.setShadow(offset: CGSize(width: 5, height: 7), blur: 9,
+                    color: UIColor.black.withAlphaComponent(0.24).cgColor)
+                UIColor(red: cave ? 0.13 : 0.20, green: wet ? 0.26 : 0.22,
+                        blue: cave ? 0.25 : 0.15, alpha: 0.20).setFill()
+                shape.fill()
+                context.restoreGState()
+                if cave {
+                    UIColor(red: 0.42, green: 0.50, blue: 0.66, alpha: 0.19).setStroke()
+                    shape.lineWidth = 2
+                    shape.stroke()
+                } else if wet {
+                    let reflection = UIBezierPath(ovalIn: CGRect(x: x + 12, y: y,
+                        width: w * 0.65, height: h * 0.24))
+                    UIColor(red: 0.31, green: 0.53, blue: 0.49, alpha: 0.16).setFill()
+                    reflection.fill()
+                }
+            }
             // Broad canopy shadows and an off-center warm skylight establish
             // a consistent upper-left light source across all room furniture.
             for i in 0..<12 {

@@ -205,6 +205,11 @@ enum EncounterDirector {
             if world == 0 && slot.isMultiple(of: 5) { return 4 + seed % 9 }
             return 35 + seed % 35
         }
+        // World 1 flank rooms also need a priority ranged target; support
+        // alternates with melee arrivals rather than replacing the whole wave.
+        if world == 0 && room >= 6 && room < 20 && style(room: room) == .flank {
+            if slot % 5 == 0 { return room >= 11 ? 30 : 10 }
+        }
         // Controlled ranged slots avoid accidentally making 50% of late
         // encounters shooters when the enemy unlock thresholds increase.
         let supportRoll = room >= 11 ? 55 + seed % 45 : 34 + seed % 66

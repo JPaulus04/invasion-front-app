@@ -443,6 +443,14 @@ struct ProgressCombatTests {
                 }
             }
         }
+        for room in 6...19 where EncounterDirector.style(room: room) == .flank {
+            let types = (1...CampaignPacing.targetEnemies(room: room)).map {
+                WorldCatalog.enemyType(world: 0, room: room,
+                    roll: EncounterDirector.enemyRoll(world: 0, room: room, slot: $0))
+            }
+            precondition(types.contains(4), "World 1 flank encounters require ranged pressure")
+            precondition(types.filter { $0 >= 4 }.count <= (types.count + 2) / 3)
+        }
         // True gameplay modifiers, not just alternate effect colors.
         precondition(AbilitySynergies.chainReach(chain: 0, incendiary: 3) == 0)
         precondition(AbilitySynergies.chainReach(chain: 1, incendiary: 0) == 115)

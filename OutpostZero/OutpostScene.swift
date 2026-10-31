@@ -2235,6 +2235,8 @@ final class OutpostScene: SKScene {
         // Reserve the right side of the progress row for the level counter,
         // avoiding an additional line below the panel.
         let xpWidth = max(1, size.width - 28)
+        xpTrack.isHidden = true
+        xpFill.isHidden = true
         xpTrack.path = CGPath(roundedRect: CGRect(
             x: 0, y: 0, width: xpWidth, height: 3),
             cornerWidth: 2.5, cornerHeight: 2.5, transform: nil)
@@ -2345,9 +2347,14 @@ final class OutpostScene: SKScene {
             chrome.isHidden = phase == .ready || phase == .worldSelect || phase == .loadout
         }
         speedButton.isHidden = true // Speed remains available in Settings.
+        subtitle.fontSize = 15
+        let walletTextWidth: CGFloat = 60
+        if subtitle.frame.width > walletTextWidth {
+            subtitle.fontSize *= walletTextWidth / subtitle.frame.width
+        }
         let top = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 8
         if phase == .playing || phase == .gate {
-            settingsShortcut.position = CGPoint(x: size.width - 32, y: top - 26)
+            settingsShortcut.position = CGPoint(x: size.width - 30, y: top - 72)
         }
         let objectiveActive = (phase == .playing || phase == .gate) &&
             (activeEncounter == .survival || activeEncounter == .equipmentDefense ||
