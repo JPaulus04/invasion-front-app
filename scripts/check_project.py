@@ -5,7 +5,7 @@ import sys
 
 root = Path(__file__).resolve().parents[1]
 sources = sorted((root / "OutpostZero").glob("*.swift"))
-required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift", "CampaignPacing.swift", "FrontierFloorArt.swift", "CombatVisuals.swift", "CharacterMotion.swift", "EnemyCombatFeedback.swift"}
+required = {"OutpostZeroApp.swift", "GameView.swift", "OutpostScene.swift", "BattlefieldArt.swift", "RoomRules.swift", "RunProgress.swift", "CombatRules.swift", "AbilityLoadout.swift", "PersistentProgression.swift", "RunRecovery.swift", "TerrainHazards.swift", "WorldCatalog.swift", "CampaignPacing.swift", "FrontierFloorArt.swift", "CombatVisuals.swift", "CharacterMotion.swift", "EnemyCombatFeedback.swift", "ProductionPresentation.swift"}
 errors = []
 if not required.issubset({p.name for p in sources}):
     errors.append("Missing required Swift source files")
@@ -182,8 +182,11 @@ if '(.gameOver, "headquarters")' not in scene or 'restart()\n            showHea
     errors.append("Defeated players must reach upgrade headquarters")
 if 'private func showGearBay()' not in scene or 'private func showAbilityLab()' not in scene:
     errors.append("Permanent gear and ability masteries need usable menus")
-if "gearWeaponBonus" not in scene or 'min(5, permanent.rank("armor")) * 15' not in scene or 'max(0, permanent.rank("armor") - 5) * 5' not in scene:
-    errors.append("Purchased gear must affect next-run combat stats")
+if not all(fragment in scene for fragment in (
+        'PersistentProgression.gearBenefit("weapon", rank: permanent.rank("weapon"))',
+        'PersistentProgression.gearBenefit("reactor", rank: permanent.rank("reactor"))',
+        'PersistentProgression.gearBenefit("armor", rank: permanent.rank("armor"))')):
+    errors.append("Purchased gear and purchase previews must share the live benefit calculation")
 if 'ProcessInfo.processInfo.arguments.contains("-captureHeadquartersScreenshot")' not in scene:
     errors.append("Simulator must capture the headquarters upgrade menu")
 if 'private func recoverSavedRun()' not in scene or 'key: "recover_run"' not in scene:

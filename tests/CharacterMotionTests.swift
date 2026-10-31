@@ -4,6 +4,21 @@ import CoreGraphics
 @main
 struct CharacterMotionTests {
     static func main() {
+        // Every joystick bearing must select an authored cycle, even halfway
+        // between the eight compass views. Invalid input remains safe.
+        for degrees in -720...720 {
+            let heading = CGFloat(degrees) * .pi / 180
+            let direction = CharacterMotion.pilotWalkingDirection(heading: heading)
+            precondition((0..<16).contains(direction) && direction.isMultiple(of: 2))
+            let error = atan2(sin(heading - CGFloat(direction) * .pi / 8),
+                              cos(heading - CGFloat(direction) * .pi / 8))
+            precondition(abs(error) <= .pi / 8 + 0.00001)
+        }
+        precondition(CharacterMotion.pilotWalkingDirection(heading: .nan) == 12)
+        precondition(CharacterMotion.pilotWalkingDirection(heading: .infinity) == 12)
+        precondition(CharacterMotion.pilotWalkingDirection(heading: .greatestFiniteMagnitude).isMultiple(of: 2))
+        precondition(CharacterMotion.pilotWalkingDirection(heading: .pi / 8 + 0.02, previous: 0) == 0)
+        precondition(CharacterMotion.pilotWalkingDirection(heading: .pi / 8 + 0.08, previous: 0) == 2)
         for frame in 0..<4 {
             let phase = (CGFloat(frame) + 0.25) * .pi
             precondition(CharacterMotion.pilotWalkFrame(stridePhase: phase, moving: true) == frame)

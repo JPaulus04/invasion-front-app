@@ -1,4 +1,5 @@
 import SpriteKit
+import UIKit
 
 final class OutpostScene: SKScene {
     private enum Phase { case ready, worldSelect, headquarters, gearBay, abilityLab, loadout, playing, levelUp, checkpoint, gate, settings, interrupted, worldComplete, restoration, gameOver }
@@ -79,7 +80,6 @@ final class OutpostScene: SKScene {
         // Guardian Clearing stays shadowed but recognizably forest green.
         SKColor(red: 0.14, green: 0.23, blue: 0.19, alpha: 1)
     ]
-    private var lastRestoredBranch = 0
     private let zoneNames = ["FOREST EDGE", "OVERGROWN PATH", "RUINED OUTPOST", "GUARDIAN CLEARING"]
     private var zoneIndex: Int { min(max(0, wave - 1) / 5, 3) }
     private var spawned = 0
@@ -321,9 +321,9 @@ final class OutpostScene: SKScene {
     }
     private var permanentDamageBonus: Int { branchLevel(0) / 3 }
     private var permanentArmorBonus: Int { branchLevel(2) * 2 }
-    private var gearWeaponBonus: Int { min(5, permanent.rank("weapon")) + max(0, permanent.rank("weapon") - 5) / 3 }
-    private var gearReactorBonus: Int { min(5, permanent.rank("reactor")) + max(0, permanent.rank("reactor") - 5) / 3 }
-    private var maximumHealth: Int { 100 + permanentArmorBonus + (min(5, permanent.rank("armor")) * 15 + max(0, permanent.rank("armor") - 5) * 5) + runArmor }
+    private var gearWeaponBonus: Int { PersistentProgression.gearBenefit("weapon", rank: permanent.rank("weapon")) }
+    private var gearReactorBonus: Int { PersistentProgression.gearBenefit("reactor", rank: permanent.rank("reactor")) }
+    private var maximumHealth: Int { 100 + permanentArmorBonus + PersistentProgression.gearBenefit("armor", rank: permanent.rank("armor")) + runArmor }
     private var permanentRateBonus: Int { branchLevel(3) / 4 }
     private var permanentReactorBonus: Int { branchLevel(1) / 3 }
     private var permanentSystemsBonus: Int { branchLevel(4) / 4 }
@@ -1026,8 +1026,13 @@ final class OutpostScene: SKScene {
             wave = 5
             gateUnlocked = true
             startWave()  // Room 6: same encounter entry path as real gameplay.
-            activeEncounter = .survival
-            installArenaPreviewGround()
+            precondition(activeEncounter == .survival && expandedArenaPreview,
+                         "Survival capture must use the scheduled production encounter")
+            precondition(arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden == true &&
+                         arena.childNode(withName: "roomArtwork")?
+                            .childNode(withName: "world1AuthoredFloor")?
+                            .childNode(withName: "materialRelief") != nil,
+                         "Survival capture must preserve the production terrain stack")
             pilot.position = CGPoint(x: roomBounds.midX,
                                       y: roomBounds.midY - roomBounds.height * 0.13)
             arena.position = ArenaLayout.offset(for: pilot.position,
@@ -1484,6 +1489,16 @@ final class OutpostScene: SKScene {
                 label.position = CGPoint(x: 0, y: -42)
                 sample.addChild(label)
             }
+            pilotTraveling = true
+            pilotStridePhase = .pi * 1.25
+            for sector in 0..<16 {
+                pilotRenderedHeading = CGFloat(sector) * .pi / 8
+                updatePilotPresentation(pose: CharacterMotion.pilot(
+                    time: 1, moving: true, facing: 1, timeSinceShot: 2))
+                precondition(pilotVisualDirection.isMultiple(of: 2),
+                             "Every production movement heading requires an authored walk cycle")
+            }
+            pilotTraveling = false
             pilot.isHidden = true
             let identity = SKShapeNode(rectOf: CGSize(width: 12, height: 12))
             identity.fillColor = .blue
@@ -2102,17 +2117,34 @@ final class OutpostScene: SKScene {
         updateArenaCamera(delta: 1)
         // One utility row and a slim progress row, below the device safe area.
         let top = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 8
-        hudPanel.path = CGPath(roundedRect: CGRect(
-            x: 12, y: top - 62,
-            width: max(1, size.width - 24), height: 62),
-            cornerWidth: 13, cornerHeight: 13, transform: nil)
-        floorNumber.fontSize = 15
-        floorNumber.position = CGPoint(x: 24, y: top - 27)
-        survivalClock.position = CGPoint(x: size.width / 2, y: top - 82)
+        hudPanel.path = nil
+        hud.childNode(withName: "combatChrome")?.removeFromParent()
+        let chrome = SKNode()
+        chrome.name = "combatChrome"
+        chrome.zPosition = -1
+        hud.addChild(chrome)
+        for rect in [CGRect(x: 14, y: top - 43, width: 96, height: 34),
+                     CGRect(x: size.width - 133, y: top - 43, width: 74, height: 34)] {
+            let chip = SKShapeNode(rect: rect, cornerRadius: 17)
+            chip.fillColor = SKColor(red: 0.025, green: 0.055, blue: 0.085, alpha: 0.9)
+            chip.strokeColor = .white.withAlphaComponent(0.12)
+            chrome.addChild(chip)
+        }
+        floorNumber.fontSize = 13
+        floorNumber.position = CGPoint(x: 27, y: top - 31)
+        survivalClock.position = CGPoint(x: size.width / 2, y: top - 77)
+        if survivalClock.childNode(withName: "objectivePlate") == nil {
+            let plate = SKShapeNode()
+            plate.name = "objectivePlate"
+            plate.fillColor = SKColor(red: 0.025, green: 0.055, blue: 0.085, alpha: 0.88)
+            plate.strokeColor = .white.withAlphaComponent(0.12)
+            plate.zPosition = -1
+            survivalClock.addChild(plate)
+        }
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         // Reserve the first HUD row for the objective, leaving the floor counter at left.
         // Keep the mission text clear of the counter and right-side controls.
-        subtitle.position = CGPoint(x: size.width / 2 + 8, y: top - 27)
+        subtitle.position = CGPoint(x: size.width - 96, y: top - 31)
         subtitle.fontSize = size.width < 390 ? 10 : 12
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
@@ -2123,14 +2155,16 @@ final class OutpostScene: SKScene {
         controlsHint.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 66)
         // Reserve the right side of the progress row for the level counter,
         // avoiding an additional line below the panel.
-        let xpWidth = max(1, size.width - 108)
+        let xpWidth = max(1, size.width - 28)
         xpTrack.path = CGPath(roundedRect: CGRect(
-            x: 0, y: 0, width: xpWidth, height: 5),
+            x: 0, y: 0, width: xpWidth, height: 3),
             cornerWidth: 2.5, cornerHeight: 2.5, transform: nil)
         xpFill.path = xpTrack.path
-        xpTrack.position = CGPoint(x: 24, y: top - 53)
+        xpTrack.position = CGPoint(x: 14, y: top)
         xpFill.position = xpTrack.position
-        xpLabel.position = CGPoint(x: size.width - 25, y: top - 55)
+        xpLabel.position = CGPoint(x: size.width / 2, y: top - 29)
+        xpLabel.horizontalAlignmentMode = .center
+        xpLabel.fontSize = 11
         checkpointButton.position = CGPoint(x: size.width / 2,
                                             y: RoomRules.bounds(for: size).minY + 25)
         settingsShortcut.position = CGPoint(x: 36, y: size.height - 195)
@@ -2199,7 +2233,7 @@ final class OutpostScene: SKScene {
         floorNumber.text = wave > 0 ? "FLOOR \(wave)" : ""
         // Keep the top utility row compact; the encounter objective has its
         // own dedicated clock below the panel.
-        let subtitleText = "\(coins) COINS"
+        let subtitleText = "\(coins) ¢"
         if subtitle.text != subtitleText { subtitle.text = subtitleText }
         subtitle.fontSize = size.width < 390 ? 10 : 11
         subtitle.fontColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
@@ -2207,7 +2241,7 @@ final class OutpostScene: SKScene {
         speedButton.isHidden = true // Speed remains available in Settings.
         let top = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 8
         if phase == .playing || phase == .gate {
-            settingsShortcut.position = CGPoint(x: size.width - 39, y: top - 24)
+            settingsShortcut.position = CGPoint(x: size.width - 32, y: top - 26)
         }
         let objectiveActive = (phase == .playing || phase == .gate) &&
             (activeEncounter == .survival || activeEncounter == .equipmentDefense ||
@@ -2245,6 +2279,11 @@ final class OutpostScene: SKScene {
             let available = max(1, size.width - 40)
             if survivalClock.frame.width > available {
                 survivalClock.fontSize *= available / survivalClock.frame.width
+            }
+            if let plate = survivalClock.childNode(withName: "objectivePlate") as? SKShapeNode {
+                let width = min(size.width - 28, survivalClock.frame.width + 28)
+                plate.path = CGPath(roundedRect: CGRect(x: -width / 2, y: -9, width: width, height: 35),
+                                    cornerWidth: 17, cornerHeight: 17, transform: nil)
             }
         }
     }
@@ -2900,6 +2939,12 @@ final class OutpostScene: SKScene {
             actionButton(label, key: "buy_\(id)", y: CGFloat(50 - index * 63),
                          tint: index == 0 ? .systemOrange : (index == 1 ? .systemTeal : .systemIndigo),
                          enabled: level < PersistentProgression.maximumRank && permanent.salvage >= price)
+            let current = PersistentProgression.gearBenefit(id, rank: level)
+            let next = PersistentProgression.gearBenefit(id, rank: level + 1)
+            let unit = id == "armor" ? "HP" : (id == "weapon" ? "damage" : "burn damage")
+            let benefit = next > current ? "+\(current) → +\(next) \(unit)" :
+                (level == PersistentProgression.maximumRank ? "Maximum rank" : "Milestone progress • no stat gain this rank")
+            overlayText(benefit, y: CGFloat(19 - index * 63), fontSize: 10)
         }
         overlayText("WEAPON: +1/RANK TO 5, THEN +1/3 RANKS", y: -133, fontSize: 10)
         overlayText("ARMOR: +15 HP TO RANK 5, THEN +5 HP/RANK", y: -155, fontSize: 10)
@@ -4449,10 +4494,30 @@ final class OutpostScene: SKScene {
                 let paintedBounds = expandedArenaPreview
                     ? roomBounds.insetBy(dx: -80, dy: -80)
                     : CGRect(origin: .zero, size: size).insetBy(dx: -80, dy: -80)
-                floorArt.size = paintedBounds.size
+                let textureSize = texture.size()
+                let coverScale = max(paintedBounds.width / max(1, textureSize.width),
+                                     paintedBounds.height / max(1, textureSize.height))
+                floorArt.size = CGSize(width: textureSize.width * coverScale,
+                                       height: textureSize.height * coverScale)
                 floorArt.position = CGPoint(x: paintedBounds.midX, y: paintedBounds.midY)
                 floorArt.zPosition = -18.5
                 if floorArt.parent == nil { roomArt?.addChild(floorArt) }
+                floorArt.childNode(withName: "materialRelief")?.removeFromParent()
+                let relief = SKSpriteNode(texture: ProductionPresentation.terrain(
+                    size: paintedBounds.size, landscape: landscape, visit: landscapeVisit))
+                relief.name = "materialRelief"
+                relief.size = paintedBounds.size
+                relief.zPosition = 0.1
+                floorArt.addChild(relief)
+                floorArt.childNode(withName: "canopyLight")?.removeFromParent()
+                let light = SKSpriteNode(texture: ProductionPresentation.glow(
+                    SKColor(red: 0.94, green: 0.83, blue: 0.51, alpha: 0.13)))
+                light.name = "canopyLight"
+                light.size = CGSize(width: paintedBounds.width * 0.9, height: paintedBounds.height * 0.85)
+                light.position = CGPoint(x: -paintedBounds.width * 0.18, y: paintedBounds.height * 0.22)
+                light.blendMode = .add
+                light.zPosition = 0.2
+                floorArt.addChild(light)
             } else {
                 roomArt?.childNode(withName: "world1AuthoredFloor")?.removeFromParent()
             }
@@ -4723,7 +4788,14 @@ final class OutpostScene: SKScene {
             let layoutShift = worldMapIndex == 0
                 ? CGFloat(((index * (roomVariant + 3) * 13 + landscapeLayoutSeed * 7) % 31) - 15)
                 : CGFloat(((index * 11 + wave * 7) % 19) - 9)
-            let proposedY = roomBounds.minY + 60 + CGFloat(index) * spacing + layoutShift
+            let group = index / 3
+            let member = index % 3
+            let groups = max(1, (count + 2) / 3)
+            let clusterY = roomBounds.minY + 65 + CGFloat(group) *
+                max(1, roomBounds.height - 150) / CGFloat(max(1, groups - 1))
+            let proposedY = worldMapIndex == 0
+                ? clusterY + CGFloat(member - 1) * 22 + layoutShift * 0.4
+                : roomBounds.minY + 60 + CGFloat(index) * spacing + layoutShift
             let y = min(roomBounds.maxY - 36, max(roomBounds.minY + 36, proposedY))
             let prop: SKShapeNode
             // When illustrated prop PNGs are not yet shipped, World 1 must
@@ -4783,6 +4855,9 @@ final class OutpostScene: SKScene {
                 (selectedWorld.biome == 2 ? 0.94 :
                     (zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55)))
             prop.position = CGPoint(x: x, y: y)
+            if worldMapIndex == 0 {
+                prop.zPosition = (roomBounds.maxY - y) / max(1, roomBounds.height) * 0.4
+            }
             zoneScenery.addChild(prop)
             // Production World 1 scenery is composed from individually
             // illustrated transparent sprites. Keep gameplay geometry and
@@ -4869,21 +4944,30 @@ final class OutpostScene: SKScene {
                     // without baking new artwork or affecting collisions.
                     // Keep the shadow behind the prop and inside its parent
                     // so it follows the existing perimeter layout.
-                    let castShadow = SKShapeNode(ellipseOf: CGSize(
-                        width: max(7, min(58, sprite.size.width * 0.65)),
-                        height: max(3, min(15, sprite.size.height * 0.16))))
+                    let castShadow = SKSpriteNode(texture: texture)
                     castShadow.name = "world1PropCastShadow"
-                    castShadow.fillColor = SKColor.black.withAlphaComponent(0.08)
-                    castShadow.strokeColor = .clear
-                    // Cast-shadow displacement follows the rendered
-                    // footprint so tiny props do not inherit the same
-                    // oversized offset as large wall illustrations.
-                    castShadow.position = CGPoint(
-                        x: min(12, sprite.size.width * 0.16),
-                        y: -min(7, sprite.size.height * 0.10))
-                    castShadow.zRotation = -0.23
+                    castShadow.size = sprite.size
+                    castShadow.anchorPoint = CGPoint(x: 0.5,
+                        y: WorldOneArtMetrics.groundAnchorY(for: assetName))
+                    castShadow.color = .black
+                    castShadow.colorBlendFactor = 1
+                    castShadow.alpha = 0.18
+                    castShadow.yScale = -0.28
+                    castShadow.zRotation = 0.65
+                    castShadow.position = CGPoint(x: 5, y: -2)
                     castShadow.zPosition = 0.05
                     prop.addChild(castShadow)
+                    if kind == "lantern" {
+                        let pool = SKSpriteNode(texture: ProductionPresentation.glow(
+                            SKColor(red: 1, green: 0.67, blue: 0.25, alpha: 0.32)))
+                        pool.name = "lanternGroundLight"
+                        pool.size = CGSize(width: 112, height: 60)
+                        pool.blendMode = .add
+                        pool.zPosition = 0.2
+                        prop.addChild(pool)
+                        pool.run(.repeatForever(.sequence([
+                            .fadeAlpha(to: 0.70, duration: 1.7), .fadeAlpha(to: 1, duration: 2.1)])))
+                    }
                     // A fixed transparent border includes faint image fringes.
                     // Anchor the visible base, measured in normalized PNG units.
                     sprite.anchorPoint = CGPoint(x: 0.5,
@@ -6278,34 +6362,24 @@ final class OutpostScene: SKScene {
         controlsHint.removeAllActions()
         controlsHint.isHidden = true
         damageFlash.removeAllActions()
-        damageFlash.alpha = 0.7
+        damageFlash.alpha = 0.45
         damageFlash.run(.fadeOut(withDuration: 0.32))
         pilot.removeAction(forKey: "hitFlash")
         pilot.run(.sequence([.fadeAlpha(to: 0.3, duration: 0.1), .fadeAlpha(to: 1, duration: 0.1),
                              .fadeAlpha(to: 0.3, duration: 0.1), .fadeAlpha(to: 1, duration: 0.1)]), withKey: "hitFlash")
-        warning.removeAllActions()
-        warning.fontColor = .systemRed
-        warning.fontSize = 16
-        warning.position = CGPoint(x: size.width / 2, y: roomBounds.minY + 90)
-        warning.text = "PLAYER HIT!  -\(actual) HP"
-        warning.alpha = 1
-        warning.isHidden = false
-        warning.run(.sequence([.wait(forDuration: 0.45), .fadeOut(withDuration: 0.4)]))
+        CombatVisuals.playerDamage(in: arena, at: pilot.position, amount: actual)
         updateHUD()
     }
 
     private func updatePilotPresentation(pose: PilotVisualPose) {
         guard let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode else { return }
-        let direction = CharacterMotion.pilotDirection(
-            heading: pilotRenderedHeading, previous: pilotVisualDirection)
+        let direction = pilotTraveling
+            ? CharacterMotion.pilotWalkingDirection(heading: pilotRenderedHeading,
+                                                     previous: pilotVisualDirection)
+            : CharacterMotion.pilotDirection(heading: pilotRenderedHeading,
+                                              previous: pilotVisualDirection)
         pilotVisualDirection = direction
-        // Ship authored locomotion in real gameplay. Simulator preview flags
-        // only control scripted movement/capture, never whether the art plays.
-        // The eight authored compass directions use their own walk cycles;
-        // intermediate headings retain their matching directional idle art.
-        let hasAuthoredWalk = direction == CharacterMotion.pilotSouthDirection ||
-            direction == 4 || direction == 0 || direction == 8 ||
-            direction == 2 || direction == 6 || direction == 10 || direction == 14
+        let hasAuthoredWalk = direction.isMultiple(of: 2)
         let walkFrame = pilotTraveling && hasAuthoredWalk
             ? CharacterMotion.pilotWalkFrame(stridePhase: pilotStridePhase,
                                              moving: pilotTraveling) : nil
@@ -7262,10 +7336,11 @@ final class OutpostScene: SKScene {
             x: -min(size.width - 28, 390) / 2, y: -278,
             width: min(size.width - 28, 390), height: 463),
             cornerWidth: 18, cornerHeight: 18, transform: nil)
+        let lowerSpace = overlay.position.y - max(16, view?.safeAreaInsets.bottom ?? 0) - 12
+        overlay.setScale(min(1, max(0.65, lowerSpace / 278)))
         let choiceLevel = progress.level - progress.pendingChoices + 1
         overlayText("LEVEL \(choiceLevel)!", y: 125, fontSize: 28)
-        overlayText("RANDOM DRAW • CHOOSE ONE", y: 87, fontSize: 15)
-        overlayText("MASTERY \(playerMastery.level)", y: 67, fontSize: 10)
+        overlayText("CHOOSE YOUR NEXT ADVANTAGE", y: 87, fontSize: 13)
         // Each filled circle represents an equipped tactical ability, not a
         // stat upgrade. A third slot appears only when mastery permits it.
         let slotIcons = ["chain": "ARC", "explosive": "AOE",
@@ -7276,7 +7351,7 @@ final class OutpostScene: SKScene {
             circle.name = "tacticalSlot\(index)"
             circle.position = CGPoint(
                 x: CGFloat(index) * 43 - CGFloat(slots - 1) * 21.5,
-                y: -220)
+                y: -229)
             circle.fillColor = index < lockedLoadout.selected.count
                 ? SKColor(red: 0.12, green: 0.42, blue: 0.61, alpha: 0.95)
                 : SKColor(red: 0.10, green: 0.14, blue: 0.20, alpha: 0.85)
@@ -7328,32 +7403,27 @@ final class OutpostScene: SKScene {
             let label: String
             let detail: String
             let category: String
-            let symbol: String
             let tint: SKColor
             switch choice {
             case "damage":
                 label = "DAMAGE \(damage) → \(damage + 1)"
                 detail = "Stronger weapon hits"
                 category = "WEAPON"
-                symbol = "DMG"
                 tint = SKColor(red: 1, green: 0.67, blue: 0.29, alpha: 1)
             case "rate":
                 label = "FIRE RATE \(fireRate) → \(fireRate + 1)"
                 detail = "Shoot more often"
                 category = "WEAPON"
-                symbol = "SPD"
                 tint = SKColor(red: 1, green: 0.67, blue: 0.29, alpha: 1)
             case "mobility":
                 label = "MOBILITY \(mobilityRank) → \(mobilityRank + 1)"
                 detail = "Move slightly faster when dodging"
                 category = "MOVEMENT"
-                symbol = "MOV"
                 tint = SKColor(red: 0.36, green: 0.83, blue: 0.87, alpha: 1)
             case "supplies":
                 label = "SUPPLY CACHE +40 COINS"
                 detail = "Bank coins for repairs during this run"
                 category = "SUPPLIES"
-                symbol = "CR"
                 tint = SKColor(red: 0.81, green: 0.74, blue: 0.38, alpha: 1)
             case "chain":
                 label = "EPIC • CHAIN LIGHTNING  LV \(chainLevel + 1)"
@@ -7362,7 +7432,6 @@ final class OutpostScene: SKScene {
                     explosive: explosiveLevel, incendiary: incendiaryLevel,
                     orbit: orbitLevel) ?? "Hits additional nearby enemies"
                 category = "TACTICAL"
-                symbol = "ARC"
                 tint = SKColor(red: 0.51, green: 0.74, blue: 1, alpha: 1)
             case "explosive":
                 label = "RARE • EXPLOSIVE ROUNDS  LV \(explosiveLevel + 1)"
@@ -7371,7 +7440,6 @@ final class OutpostScene: SKScene {
                     explosive: explosiveLevel, incendiary: incendiaryLevel,
                     orbit: orbitLevel) ?? "Weapon hits splash nearby enemies"
                 category = "ORDNANCE"
-                symbol = "AOE"
                 tint = SKColor(red: 1, green: 0.57, blue: 0.38, alpha: 1)
             case "incendiary":
                 label = "COMMON • INCENDIARY  LV \(incendiaryLevel + 1)"
@@ -7380,19 +7448,16 @@ final class OutpostScene: SKScene {
                     explosive: explosiveLevel, incendiary: incendiaryLevel,
                     orbit: orbitLevel) ?? "Weapon hits inflict lasting burn damage"
                 category = "ORDNANCE"
-                symbol = "HOT"
                 tint = SKColor(red: 1, green: 0.57, blue: 0.38, alpha: 1)
             case "frost":
                 label = "COMMON • FROST ROUNDS  LV \(frostLevel + 1)"
                 detail = "Chill targets to slow their approach"
                 category = "CONTROL"
-                symbol = "ICE"
                 tint = SKColor(red: 0.46, green: 0.84, blue: 1, alpha: 1)
             case "evolveOrbit":
                 label = "LEGENDARY • ENERGY WHEEL"
                 detail = "Evolve orbiting spheres into a continuous ring"
                 category = "EVOLUTION"
-                symbol = "WHEEL"
                 tint = SKColor(red: 0.40, green: 0.94, blue: 1, alpha: 1)
             case "orbit":
                 label = "RARE • ENERGY ORBIT  LV \(orbitLevel + 1)"
@@ -7401,97 +7466,99 @@ final class OutpostScene: SKScene {
                     explosive: explosiveLevel, incendiary: incendiaryLevel,
                     orbit: orbitLevel) ?? "Wide energy orbs strike nearby foes"
                 category = "TACTICAL"
-                symbol = "ORB"
                 tint = SKColor(red: 0.63, green: 0.70, blue: 1, alpha: 1)
             case "heal":
                 label = "RECOVER 40 HP"
-                detail = "Restore health, up to your maximum"
+                detail = "HP \(health) → \(min(maximumHealth, health + 40)) / \(maximumHealth)"
                 category = "DEFENSE"
-                symbol = "HP"
                 tint = SKColor(red: 0.41, green: 0.89, blue: 0.61, alpha: 1)
             default:
                 label = "ARMOR +20 MAX HP"
-                detail = "Raise maximum health and restore 20 HP"
+                detail = "Max HP \(maximumHealth) → \(maximumHealth + 20) • heal 20"
                 category = "DEFENSE"
-                symbol = "ARM"
                 tint = SKColor(red: 0.41, green: 0.89, blue: 0.61, alpha: 1)
             }
-            let cardWidth = min(size.width - 64, 324)
-            let cardCenterY = CGFloat(23 - index * 86)
-            let frame = CGRect(x: -cardWidth / 2, y: cardCenterY - 39,
-                               width: cardWidth, height: 78)
-            let card = SKShapeNode(rect: frame, cornerRadius: 13)
-            card.name = "upgradeModuleCard"
-            card.fillColor = SKColor(
-                red: 0.08, green: 0.14, blue: 0.20, alpha: 0.94)
-            // Card rim always signals rarity for abilities; its interior
-            // icon retains the effect-specific color.
+            let cardWidth = min(size.width - 52, 342)
+            let cardCenterY = CGFloat(22 - index * 91)
+            let frame = CGRect(x: -cardWidth / 2, y: cardCenterY - 43,
+                               width: cardWidth, height: 86)
             let rimTint: SKColor
+            let rarityName: String
             switch TacticalDraftRules.rarity(for: choice) {
-            case .common: rimTint = SKColor(white: 0.78, alpha: 1)
-            case .rare: rimTint = SKColor(red: 0.32, green: 0.62, blue: 1, alpha: 1)
-            case .epic: rimTint = SKColor(red: 0.73, green: 0.44, blue: 1, alpha: 1)
-            case .legendary: rimTint = SKColor(red: 1, green: 0.74, blue: 0.25, alpha: 1)
-            case nil: rimTint = tint
+            case .common:
+                rimTint = SKColor(white: 0.78, alpha: 1); rarityName = "COMMON"
+            case .rare:
+                rimTint = SKColor(red: 0.32, green: 0.62, blue: 1, alpha: 1); rarityName = "RARE"
+            case .epic:
+                rimTint = SKColor(red: 0.73, green: 0.44, blue: 1, alpha: 1); rarityName = "EPIC"
+            case .legendary:
+                rimTint = SKColor(red: 1, green: 0.74, blue: 0.25, alpha: 1); rarityName = "LEGENDARY"
+            case nil: rimTint = tint; rarityName = "UPGRADE"
             }
-            card.strokeColor = rimTint.withAlphaComponent(0.86)
-            card.lineWidth = 1.8
-            card.zPosition = 1
-            overlay.addChild(card)
-
-            // A restrained lower-edge light reflects the upgrade's function;
-            // the same weight is given to each of the three random choices.
-            let lowerEdge = SKShapeNode(rect: CGRect(
-                x: -cardWidth / 2 + 13, y: cardCenterY - 33,
-                width: cardWidth - 26, height: 2), cornerRadius: 1)
-            lowerEdge.fillColor = rimTint.withAlphaComponent(0.30)
-            lowerEdge.strokeColor = .clear
-            lowerEdge.zPosition = 2
-            overlay.addChild(lowerEdge)
-
-            let emblem = SKShapeNode(circleOfRadius: 17)
-            emblem.position = CGPoint(x: -cardWidth / 2 + 33, y: cardCenterY)
-            emblem.fillColor = tint.withAlphaComponent(0.16)
-            emblem.strokeColor = tint
-            emblem.lineWidth = 1.6
-            emblem.zPosition = 2
-            overlay.addChild(emblem)
-            let symbolLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-            symbolLabel.text = symbol
-            symbolLabel.fontSize = symbol.count > 2 ? 9 : 12
-            symbolLabel.fontColor = tint
-            symbolLabel.verticalAlignmentMode = .center
-            symbolLabel.zPosition = 1
-            emblem.addChild(symbolLabel)
-
-            let textLeft = -cardWidth / 2 + 64
+            let root = SKNode()
+            root.name = "upgradeModuleCard"
+            root.position.y = cardCenterY
+            root.zPosition = 1
+            overlay.addChild(root)
+            let shadow = SKShapeNode(rect: CGRect(x: -cardWidth / 2, y: -47,
+                width: cardWidth, height: 86), cornerRadius: 14)
+            shadow.fillColor = .black.withAlphaComponent(0.4)
+            shadow.strokeColor = .clear
+            root.addChild(shadow)
+            let card = SKShapeNode(rect: CGRect(x: -cardWidth / 2, y: -43,
+                width: cardWidth, height: 86), cornerRadius: 14)
+            card.fillColor = SKColor(red: 0.055, green: 0.085, blue: 0.14, alpha: 1)
+            card.strokeColor = rimTint.withAlphaComponent(0.75)
+            card.lineWidth = 1.3
+            root.addChild(card)
+            let light = SKSpriteNode(texture: ProductionPresentation.glow(rimTint.withAlphaComponent(0.24)))
+            light.size = CGSize(width: 115, height: 82)
+            light.position.x = -cardWidth / 2 + 58
+            root.addChild(light)
+            let icon = SKSpriteNode(texture: ProductionPresentation.abilityIcon(choice, tint: tint))
+            icon.size = CGSize(width: 58, height: 58)
+            icon.position = CGPoint(x: -cardWidth / 2 + 37, y: -1)
+            icon.zPosition = 2
+            root.addChild(icon)
+            let textLeft = -cardWidth / 2 + 75
+            let textWidth = cardWidth - 88
+            let rarity = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            rarity.text = "\(rarityName)  ·  \(category)"
+            rarity.fontSize = 8
+            rarity.fontColor = rimTint
+            rarity.horizontalAlignmentMode = .left
+            rarity.position = CGPoint(x: textLeft, y: 27)
+            root.addChild(rarity)
             let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-            titleLabel.text = label
+            titleLabel.text = label.components(separatedBy: " • ").last ?? label
             titleLabel.fontSize = 13
             titleLabel.fontColor = .white
             titleLabel.horizontalAlignmentMode = .left
-            titleLabel.position = CGPoint(x: textLeft, y: cardCenterY + 3)
-            titleLabel.zPosition = 3
-            overlay.addChild(titleLabel)
-
+            titleLabel.position = CGPoint(x: textLeft, y: 8)
+            root.addChild(titleLabel)
+            if titleLabel.frame.width > textWidth {
+                titleLabel.fontSize *= textWidth / titleLabel.frame.width
+            }
             let detailLabel = SKLabelNode(fontNamed: "AvenirNext-Medium")
             detailLabel.text = detail
-            detailLabel.fontSize = 10
+            detailLabel.fontSize = 10.5
             detailLabel.fontColor = SKColor(white: 0.83, alpha: 1)
             detailLabel.horizontalAlignmentMode = .left
-            detailLabel.position = CGPoint(x: textLeft, y: cardCenterY - 19)
-            detailLabel.zPosition = 3
-            overlay.addChild(detailLabel)
-
-            let categoryLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
-            categoryLabel.text = category
-            categoryLabel.fontSize = 8
-            categoryLabel.fontColor = rimTint
-            categoryLabel.horizontalAlignmentMode = .right
-            categoryLabel.position = CGPoint(
-                x: cardWidth / 2 - 14, y: cardCenterY + 24)
-            categoryLabel.zPosition = 3
-            overlay.addChild(categoryLabel)
+            detailLabel.verticalAlignmentMode = .top
+            detailLabel.numberOfLines = 2
+            detailLabel.preferredMaxLayoutWidth = textWidth
+            detailLabel.position = CGPoint(x: textLeft, y: -4)
+            root.addChild(detailLabel)
+            // Shared reveal animates complete cards, preserving internal alignment.
+            // Touch lock already lasts one second, longer than all three reveals.
+            if !UIAccessibility.isReduceMotionEnabled {
+                root.alpha = 0
+                root.position.y = cardCenterY - 12
+                let rise = SKAction.moveTo(y: cardCenterY, duration: 0.28)
+                rise.timingMode = .easeOut
+                root.run(.sequence([.wait(forDuration: Double(index) * 0.10),
+                    .group([.fadeIn(withDuration: 0.22), rise])]))
+            }
             overlayButtons[choice] = frame
         }
         overlayText("COMBAT PAUSED  •  SELECT TO RESUME", y: -262,
@@ -7835,14 +7902,23 @@ final class OutpostScene: SKScene {
         let total = (0..<coreBranches.count).reduce(0) { $0 + branchLevel($1) }
         overlayText("CHARACTER RESTORATION", y: 160, fontSize: 20)
         overlayText("\(total)/50 RESTORED  •  \(availableCores) CORES AVAILABLE", y: 124, fontSize: 14)
-        let effects = ["Weapons: +1 damage every 3 cores", "Reactor: stronger combat abilities", "Armor: +2 player HP per core", "Mobility: +3 move speed per core", "Systems: extra chain targets every 4 cores"]
-        overlayText(effects[min(lastRestoredBranch, 4)], y: -176, fontSize: 11)
-        drawRestorationRobot()
+        overlayText("Permanent upgrades • each step costs 1 core", y: 99, fontSize: 11)
+        overlayText("New world stars earn cores • repeat stars do not", y: 79, fontSize: 11)
         for index in coreBranches.indices {
             let level = branchLevel(index)
-            actionButton("\(coreBranches[index])   \(level)/10", key: "branch_\(index)",
-                         y: CGFloat(42 - index * 44), tint: .systemIndigo,
-                         enabled: availableCores > 0 && level < 10)
+            let y = CGFloat(40 - index * 48)
+            let enabled = availableCores > 0 && level < 10
+            let width = min(size.width - 64, 324)
+            let frame = CGRect(x: -width / 2, y: y - 27, width: width, height: 44)
+            let card = SKShapeNode(rect: frame, cornerRadius: 10)
+            card.name = "restorationBranch\(index)"
+            card.fillColor = SKColor(red: 0.07, green: 0.12, blue: 0.19, alpha: 1)
+            card.strokeColor = enabled ? .systemCyan.withAlphaComponent(0.55) : .white.withAlphaComponent(0.15)
+            overlay.addChild(card)
+            let status = level == 10 ? "MAX" : (availableCores > 0 ? "1 CORE" : "NEED 1 CORE")
+            overlayText("\(coreBranches[index])  \(level)/10  ·  \(status)", y: y + 1, fontSize: 12)
+            overlayText(RestorationBenefits.preview(branch: index, level: level), y: y - 16, fontSize: 10)
+            if enabled { overlayButtons["branch_\(index)"] = frame }
         }
         actionButton("BACK", key: "back", y: -222, tint: .systemTeal)
     }
@@ -7867,73 +7943,16 @@ final class OutpostScene: SKScene {
         }
     }
 
-    private func drawRestorationRobot() {
-        // Reuse the battlefield robot silhouette so upgrades are visibly attached to the pilot.
-        let preview = SKNode()
-        preview.name = "restorationRobot"
-        preview.position = CGPoint(x: 0, y: 86)
-        preview.setScale(0.95)
-        preview.zPosition = 5
-        let body = SKShapeNode(rectOf: CGSize(width: 28, height: 34), cornerRadius: 7)
-        body.fillColor = .systemCyan
-        body.strokeColor = .white
-        body.lineWidth = 3
-        preview.addChild(body)
-        let visor = SKShapeNode(rectOf: CGSize(width: 19, height: 9), cornerRadius: 3)
-        visor.fillColor = .systemBlue
-        visor.strokeColor = .white
-        visor.position.y = 6
-        body.addChild(visor)
-        let gun = SKShapeNode(rectOf: CGSize(width: 9, height: 23), cornerRadius: 3)
-        gun.fillColor = .darkGray
-        gun.strokeColor = .systemYellow
-        gun.position = CGPoint(x: 14, y: 11)
-        body.addChild(gun)
-        if branchLevel(2) > 0 { body.strokeColor = .systemGreen }
-        if branchLevel(0) > 0 { gun.strokeColor = .systemOrange }
-        if branchLevel(1) > 0 { visor.fillColor = .systemPurple }
-        if branchLevel(3) > 0 { body.lineWidth = 4 }
-        if branchLevel(4) > 0 { gun.lineWidth = 4 }
-        overlay.addChild(preview)
-    }
-
     private func investCore(_ index: Int) {
         guard coreBranches.indices.contains(index), availableCores > 0, branchLevel(index) < 10 else { return }
         UserDefaults.standard.set(availableCores - 1, forKey: "powerCoresAvailable")
         UserDefaults.standard.set(branchLevel(index) + 1, forKey: "coreBranch_\(index)")
-        lastRestoredBranch = index
         refreshPilotAppearance()
         showRestoration()
-        // Highlight the restored hardware instead of flashing the entire character.
-        let offset: CGPoint
-        let tint: SKColor
-        switch index {
-        case 0: offset = CGPoint(x: 14, y: 11); tint = .systemOrange // weapon mount
-        case 1: offset = CGPoint(x: 0, y: 6); tint = .systemPurple // reactor visor
-        case 2: offset = CGPoint(x: 0, y: -6); tint = .systemGreen // armor shell
-        case 3: offset = CGPoint(x: 0, y: -17); tint = .systemCyan // mobility feet
-        default: offset = CGPoint(x: 14, y: 0); tint = .systemYellow // systems module
+        if !UIAccessibility.isReduceMotionEnabled {
+            overlay.childNode(withName: "restorationBranch\(index)")?.run(.sequence([
+                .fadeAlpha(to: 0.5, duration: 0.12), .fadeAlpha(to: 1, duration: 0.22)]))
         }
-        let origin = CGPoint(x: offset.x * 0.95, y: 86 + offset.y * 0.95)
-        for ringIndex in 0..<3 {
-            let ring = SKShapeNode(circleOfRadius: CGFloat(8 + ringIndex * 5))
-            ring.fillColor = .clear
-            ring.strokeColor = tint
-            ring.lineWidth = 3
-            ring.position = origin
-            ring.zPosition = 20
-            ring.alpha = 0.95
-            overlay.addChild(ring)
-            ring.run(.sequence([
-                .wait(forDuration: Double(ringIndex) * 0.11),
-                .group([.scale(to: 2.1, duration: 0.48), .fadeOut(withDuration: 0.48)]),
-                .removeFromParent()
-            ]))
-        }
-        overlay.childNode(withName: "restorationRobot")?.run(.sequence([
-            .scale(to: 1.18, duration: 0.18),
-            .scale(to: 0.95, duration: 0.24)
-        ]))
     }
 
     private func endGame(_ reason: String = "PILOT DEFEATED") {

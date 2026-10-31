@@ -4,11 +4,33 @@ import SpriteKit
 /// intentionally remains unchanged: these are visual nodes only, created
 /// on successful shots and removed when their actions finish.
 enum CombatVisuals {
+    /// A single localized damage number follows the pilot's world position;
+    /// mission instructions stay readable and rapid hits cannot stack labels.
+    static func playerDamage(in parent: SKNode, at position: CGPoint, amount: Int) {
+        parent.childNode(withName: "pilotDamageNumber")?.removeFromParent()
+        let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        label.name = "pilotDamageNumber"
+        label.text = "−\(amount)"
+        label.fontSize = 18
+        label.fontColor = .white
+        label.position = CGPoint(x: position.x, y: position.y + 54)
+        label.zPosition = 28
+        let plate = SKShapeNode(rectOf: CGSize(width: 48, height: 27), cornerRadius: 9)
+        plate.fillColor = SKColor(red: 0.48, green: 0.035, blue: 0.07, alpha: 0.93)
+        plate.strokeColor = .clear
+        plate.position.y = 6
+        plate.zPosition = -1
+        label.addChild(plate)
+        parent.addChild(label)
+        label.run(.sequence([.group([.moveBy(x: 0, y: 20, duration: 0.65),
+            .sequence([.wait(forDuration: 0.30), .fadeOut(withDuration: 0.35)])]), .removeFromParent()]))
+    }
+
     static func rifleTracer(in parent: SKNode, origin: CGPoint,
                             target: CGPoint, incendiary: Bool,
                             explosive: Bool) {
         // Rapid retargeting must not leave a fan of flashes across the pilot.
-        for name in ["pilotTracerHalo", "pilotTracerCore", "pilotMuzzleFlash"] {
+        for name in ["pilotTracerHalo", "pilotTracerCore", "pilotMuzzleFlash", "pilotMuzzleLight"] {
             parent.childNode(withName: name)?.removeFromParent()
         }
         let dx = target.x - origin.x, dy = target.y - origin.y
@@ -21,6 +43,14 @@ enum CombatVisuals {
                              y: origin.y + sin(angle) * 28)
         let color: SKColor = incendiary ? .systemOrange :
             (explosive ? .systemCyan : .systemYellow)
+        let light = SKSpriteNode(texture: ProductionPresentation.glow(color.withAlphaComponent(0.24)))
+        light.name = "pilotMuzzleLight"
+        light.size = CGSize(width: 64, height: 38)
+        light.position = muzzle
+        light.blendMode = .add
+        light.zPosition = 7.5
+        parent.addChild(light)
+        light.run(.sequence([.fadeOut(withDuration: 0.10), .removeFromParent()]))
         let path = CGMutablePath()
         path.move(to: muzzle)
         path.addLine(to: target)

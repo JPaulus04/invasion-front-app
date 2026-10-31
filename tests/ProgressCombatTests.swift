@@ -4,6 +4,19 @@ import CoreGraphics
 @main
 struct ProgressCombatTests {
     static func main() {
+        for rank in 0...12 {
+            precondition(PersistentProgression.gearBenefit("weapon", rank: rank) == min(5, rank) + max(0, rank - 5) / 3)
+            precondition(PersistentProgression.gearBenefit("armor", rank: rank) == min(5, rank) * 15 + max(0, rank - 5) * 5)
+        }
+        precondition(PersistentProgression.gearBenefit("weapon", rank: 99) == 7)
+        precondition(PersistentProgression.gearBenefit("armor", rank: -1) == 0)
+        precondition(RestorationBenefits.preview(branch: 0, level: 2) == "+1 weapon damage now")
+        precondition(RestorationBenefits.preview(branch: 0, level: 0).contains("3 cores"))
+        precondition(RestorationBenefits.preview(branch: 0, level: 9).contains("no further stat gain"))
+        precondition(RestorationBenefits.preview(branch: 4, level: 3) == "+1 chain target now")
+        precondition(RestorationBenefits.preview(branch: 4, level: 8).contains("no further stat gain"))
+        precondition(RestorationBenefits.preview(branch: 3, level: 3).contains("+1 fire rate"))
+        precondition(RestorationBenefits.preview(branch: 2, level: 0) == "+0 → +2 maximum HP")
         precondition(WorldCoreRewards.newlyEarned(previousBest: 0, completedStars: 1) == 1)
         precondition(WorldCoreRewards.newlyEarned(previousBest: 1, completedStars: 2) == 1)
         precondition(WorldCoreRewards.newlyEarned(previousBest: 1, completedStars: 3) == 2)

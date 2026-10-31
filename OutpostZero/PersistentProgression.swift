@@ -16,6 +16,16 @@ final class PersistentProgression {
         default: return "LEGENDARY"
         }
     }
+    /// Shared by the live character stats and purchase previews.
+    static func gearBenefit(_ id: String, rank: Int) -> Int {
+        let rank = max(0, min(maximumRank, rank))
+        switch id {
+        case "armor": return min(5, rank) * 15 + max(0, rank - 5) * 5
+        case "weapon", "reactor": return min(5, rank) + max(0, rank - 5) / 3
+        default: return 0
+        }
+    }
+
     private let storage: UserDefaults
 
     init(storage: UserDefaults = .standard) { self.storage = storage }
@@ -62,4 +72,33 @@ final class PersistentProgression {
         3 + max(1, min(20, room))
     }
     static let worldCompletionBonus = 45
+}
+
+/// Exact previews of existing core mechanics, including non-benefit steps.
+/// Costs remain one earned core; do not imply every threshold upgrade fires now.
+enum RestorationBenefits {
+    static func preview(branch: Int, level: Int) -> String {
+        let rank = min(10, max(0, level))
+        if rank == 10 { return "Fully restored • permanent benefit active" }
+        let next = rank + 1
+        if ([0, 1].contains(branch) && rank >= 9) || (branch == 4 && rank >= 8) {
+            return "Restoration only • no further stat gain"
+        }
+        switch branch {
+        case 0:
+            return next / 3 > rank / 3 ? "+1 weapon damage now" :
+                "Next +1 damage in \(3 - rank % 3) cores"
+        case 1:
+            return next / 3 > rank / 3 ? "+1 incendiary burn damage now" :
+                "Next +1 burn damage in \(3 - rank % 3) cores"
+        case 2: return "+\(rank * 2) → +\(next * 2) maximum HP"
+        case 3:
+            return "+\(rank * 3) → +\(next * 3) move speed" +
+                (next / 4 > rank / 4 ? " • +1 fire rate" : "")
+        case 4:
+            return next / 4 > rank / 4 ? "+1 chain target now" :
+                "Next +1 chain target in \(4 - rank % 4) cores"
+        default: return ""
+        }
+    }
 }

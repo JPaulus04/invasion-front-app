@@ -45,6 +45,20 @@ enum CharacterMotion {
         return atan2(sin(current + step), cos(current + step))
     }
 
+    /// Nearest authored walk cycle with boundary hysteresis. All headings
+    /// animate in gameplay; idle retains the finer sixteen-way aim poses.
+    static func pilotWalkingDirection(heading: CGFloat, previous: Int? = nil) -> Int {
+        guard heading.isFinite else { return pilotSouthDirection }
+        if let previous, previous >= 0, previous < 16, previous.isMultiple(of: 2) {
+            let center = CGFloat(previous) * .pi / 8
+            let difference = atan2(sin(heading - center), cos(heading - center))
+            if abs(difference) < .pi / 8 + .pi / 60 { return previous }
+        }
+        let normalized = heading.truncatingRemainder(dividingBy: 2 * .pi)
+        let raw = Int((normalized / (.pi / 4)).rounded())
+        return ((raw % 8 + 8) % 8) * 2
+    }
+
     static func pilotDirection(heading: CGFloat, previous: Int? = nil) -> Int {
         guard heading.isFinite else { return previous ?? pilotSouthDirection }
         let full = CGFloat.pi * 2
