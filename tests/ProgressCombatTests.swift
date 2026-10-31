@@ -414,9 +414,11 @@ struct ProgressCombatTests {
                         roll: EncounterDirector.enemyRoll(
                             world: world, room: room, slot: slot))
                     if world == 0 {
-                        precondition(role == (slot.isMultiple(of: 5) ? 4 : role),
-                                     "World 1 tutorial shooter slot must remain ranged")
-                        if slot.isMultiple(of: 5) { precondition(role == 4) }
+                        if slot.isMultiple(of: 5) {
+                            precondition(role == 4, "World 1 must spawn early telegraphed shooters")
+                        } else {
+                            precondition(role < 3, "Other tutorial slots remain melee")
+                        }
                     } else {
                         precondition(role < 3, "Later-world tutorial pacing stays unchanged")
                     }
