@@ -202,7 +202,7 @@ enum EncounterDirector {
         if room <= 5 {
             // One shooter per five spawned enemies, with the rest still
             // predominantly melee. This keeps the first dodge lesson fair.
-            if slot.isMultiple(of: 5) { return 4 + seed % 9 }
+            if world == 0 && slot.isMultiple(of: 5) { return 4 + seed % 9 }
             return 35 + seed % 35
         }
         // Controlled ranged slots avoid accidentally making 50% of late
