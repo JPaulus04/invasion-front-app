@@ -2131,17 +2131,13 @@ final class OutpostScene: SKScene {
         let centerLeft = leftX + leftWidth + 5
         let centerWidth = max(60, rightX - centerLeft - 5)
         let centerX = centerLeft + centerWidth / 2
-        func capsule(_ x: CGFloat, _ width: CGFloat) {
-            let panel = SKShapeNode(rect: CGRect(x: x, y: top - 66, width: width, height: 58),
-                                    cornerRadius: 13)
-            panel.fillColor = SKColor(red: 0.025, green: 0.065, blue: 0.11, alpha: 0.94)
-            panel.strokeColor = SKColor(red: 0.36, green: 0.62, blue: 0.73, alpha: 0.6)
-            panel.lineWidth = 1.4
-            chrome.addChild(panel)
-        }
-        capsule(leftX, leftWidth)
-        capsule(centerLeft, centerWidth)
-        capsule(rightX, rightWidth)
+        // No three competing frames: the portrait, route and wallet float over
+        // the arena with only a subtle translucent backing behind the portrait.
+        let portraitBacking = SKShapeNode(rect: CGRect(x: leftX, y: top - 66,
+            width: leftWidth, height: 58), cornerRadius: 16)
+        portraitBacking.fillColor = SKColor(red: 0.025, green: 0.065, blue: 0.11, alpha: 0.60)
+        portraitBacking.strokeColor = .clear
+        chrome.addChild(portraitBacking)
         let portrait = SKShapeNode(circleOfRadius: 22)
         portrait.position = CGPoint(x: leftX + 24, y: top - 32)
         portrait.fillColor = SKColor(red: 0.08, green: 0.19, blue: 0.33, alpha: 1)
@@ -2201,7 +2197,7 @@ final class OutpostScene: SKScene {
             chrome.addChild(dot)
         }
         let coin = SKShapeNode(circleOfRadius: 11)
-        coin.position = CGPoint(x: rightX + 16, y: top - 31)
+        coin.position = CGPoint(x: rightX + 15, y: top - 28)
         coin.fillColor = SKColor(red: 0.99, green: 0.69, blue: 0.11, alpha: 1)
         coin.strokeColor = SKColor(red: 1, green: 0.87, blue: 0.44, alpha: 1)
         coin.lineWidth = 2
@@ -2213,7 +2209,7 @@ final class OutpostScene: SKScene {
         coinMark.verticalAlignmentMode = .center
         coin.addChild(coinMark)
         let walletCaption = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
-        walletCaption.text = "COINS"
+        walletCaption.text = ""
         walletCaption.fontSize = 9
         walletCaption.fontColor = SKColor(white: 0.75, alpha: 1)
         walletCaption.position = CGPoint(x: rightX + rightWidth / 2, y: top - 57)
@@ -2232,8 +2228,8 @@ final class OutpostScene: SKScene {
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         // Reserve the first HUD row for the objective, leaving the floor counter at left.
         // Keep the mission text clear of the counter and right-side controls.
-        subtitle.position = CGPoint(x: rightX + 60, y: top - 35)
-        subtitle.fontSize = 16
+        subtitle.position = CGPoint(x: rightX + 54, y: top - 34)
+        subtitle.fontSize = 15
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
@@ -2252,7 +2248,7 @@ final class OutpostScene: SKScene {
         xpFill.position = xpTrack.position
         xpLabel.position = CGPoint(x: leftX + 78, y: top - 59)
         xpLabel.horizontalAlignmentMode = .center
-        xpLabel.fontSize = 15
+        xpLabel.fontSize = 10
         checkpointButton.position = CGPoint(x: size.width / 2,
                                             y: RoomRules.bounds(for: size).minY + 25)
         settingsShortcut.position = CGPoint(x: 36, y: size.height - 195)
