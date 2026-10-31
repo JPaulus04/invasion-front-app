@@ -391,6 +391,22 @@ if "let fraction = CGFloat(index + 1) / 13" in scene:
     errors.append("Equidistant horizontal ground marks must not return")
 if "upgradeConfirmed ? 35 : 140" in scene:
     errors.append("Legacy upgrade touch bands must not return")
+# Regression gate: authored pilot locomotion must be visible in signed builds,
+# not silently restricted to simulator-only QA launch arguments.
+if "let walkFrame = pilotTraveling && hasAuthoredWalk" not in scene:
+    errors.append("Production pilot walking must use authored movement textures")
+if "let walkFrame = previewPilotWalk" in scene:
+    errors.append("Pilot walk animation must not be gated by simulator previews")
+for heading in ("pilotWalkNorthTextures", "pilotWalkSouthTextures", "pilotWalkEastTextures"):
+    if heading == "pilotWalkSouthTextures":
+        continue  # South art uses pilotWalkPrototypeTextures.
+    if heading not in scene:
+        errors.append(f"Missing authored pilot walk art: {heading}")
+for direction in ("n", "s", "e", "w", "ne", "nw", "se", "sw"):
+    for frame in range(4):
+        asset = root / "OutpostZero" / "ArtAssets" / f"pilot_walk_{direction}_{frame}.png"
+        if not asset.is_file():
+            errors.append(f"Missing authored walking frame: {asset.name}")
 # Keep the manual TestFlight flow in parity with the simulator workflow:
 # otherwise a green debug build can release placeholder artwork.
 release_workflow = root / ".github" / "workflows" / "testflight.yml"
