@@ -32,7 +32,12 @@ enum CombatRules {
     static func enemyType(room: Int, roll: Int) -> Int {
         if room == 20 { return 1 }
         if room >= 11 && roll < min(26, 12 + (room - 11) * 2) { return 5 }
-        if room >= 6 && roll < (room <= 10 ? 25 : min(55, 38 + (room - 11) * 2)) { return 4 }
+        // Teach dodging from the opening room: a single clearly telegraphed
+        // shooter enters each early encounter rather than a passive melee-only wave.
+        // Late rooms increase pressure through crossfire and mortar support.
+        if room >= 1 && roll < (room <= 3 ? 15 :
+                                (room <= 5 ? 21 :
+                                 (room <= 10 ? 25 : min(55, 38 + (room - 11) * 2)))) { return 4 }
         if room >= 4 && roll >= 85 { return 1 }
         if room >= 11 && roll >= 70 { return 3 }
         return roll >= 60 ? 2 : 0
@@ -194,7 +199,12 @@ enum EncounterDirector {
                     max(0, world) * 11) % 100
         // Rooms 1-5 should be readable even in Worlds 2/3. Keep the roll
         // above the ranged threshold and below the armored-heavy threshold.
-        if room <= 5 { return 35 + seed % 35 }
+        if room <= 5 {
+            // One shooter per five spawned enemies, with the rest still
+            // predominantly melee. This keeps the first dodge lesson fair.
+            if slot.isMultiple(of: 5) { return 4 + seed % 9 }
+            return 35 + seed % 35
+        }
         // Controlled ranged slots avoid accidentally making 50% of late
         // encounters shooters when the enemy unlock thresholds increase.
         let supportRoll = room >= 11 ? 55 + seed % 45 : 34 + seed % 66
