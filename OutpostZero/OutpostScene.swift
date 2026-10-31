@@ -6299,9 +6299,14 @@ final class OutpostScene: SKScene {
         let direction = CharacterMotion.pilotDirection(
             heading: pilotRenderedHeading, previous: pilotVisualDirection)
         pilotVisualDirection = direction
-        let walkFrame = previewPilotWalk && (direction == CharacterMotion.pilotSouthDirection ||
-                                             direction == 4 || direction == 0 || direction == 8 || direction == 2 ||
-                                             direction == 6 || direction == 10 || direction == 14)
+        // Ship authored locomotion in real gameplay. Simulator preview flags
+        // only control scripted movement/capture, never whether the art plays.
+        // The eight authored compass directions use their own walk cycles;
+        // intermediate headings retain their matching directional idle art.
+        let hasAuthoredWalk = direction == CharacterMotion.pilotSouthDirection ||
+            direction == 4 || direction == 0 || direction == 8 ||
+            direction == 2 || direction == 6 || direction == 10 || direction == 14
+        let walkFrame = pilotTraveling && hasAuthoredWalk
             ? CharacterMotion.pilotWalkFrame(stridePhase: pilotStridePhase,
                                              moving: pilotTraveling) : nil
         if let walkFrame {
@@ -6333,13 +6338,13 @@ final class OutpostScene: SKScene {
         // Authored steps already contain leg and body motion. Do not stack the
         // static-pose squash, bob and lean on top of them. Keep the same neutral
         // transform on preview idle so stopping cannot introduce a scale jump.
-        let authoredPreview = previewPilotWalk
+        let authoredWalk = walkFrame != nil
         art.position = CGPoint(x: -cos(recoilHeading) * kick * 1.5,
-                               y: (authoredPreview ? 0 : pose.verticalOffset) -
+                               y: (authoredWalk ? 0 : pose.verticalOffset) -
                                   sin(recoilHeading) * kick * 1.5)
-        art.xScale = authoredPreview ? 1 : abs(pose.widthScale)
-        art.yScale = authoredPreview ? 1 : pose.heightScale
-        art.zRotation = authoredPreview ? 0 : pose.lean
+        art.xScale = authoredWalk ? 1 : abs(pose.widthScale)
+        art.yScale = authoredWalk ? 1 : pose.heightScale
+        art.zRotation = authoredWalk ? 0 : pose.lean
         art.colorBlendFactor = 0
         if previewPilotLegRigSW && direction == 10 && (pilotTraveling || pilotWalkBlend > 0.01) {
             if pilotLegRigPreview == nil || pilotLegRigPreview?.parent == nil {
