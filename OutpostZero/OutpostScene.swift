@@ -2123,61 +2123,103 @@ final class OutpostScene: SKScene {
         chrome.name = "combatChrome"
         chrome.zPosition = -1
         hud.addChild(chrome)
-        // Illustrated HUD elements remain anchored to the combat safe area.
-        let portrait = SKShapeNode(circleOfRadius: 20)
-        portrait.position = CGPoint(x: 36, y: top - 28)
+        // Portrait, world-route, and coin wallet share one deliberate visual grid.
+        let leftX: CGFloat = 8
+        let leftWidth: CGFloat = 112
+        let rightWidth: CGFloat = 92
+        let rightX = size.width - rightWidth - 8
+        let centerLeft = leftX + leftWidth + 5
+        let centerWidth = max(60, rightX - centerLeft - 5)
+        let centerX = centerLeft + centerWidth / 2
+        func capsule(_ x: CGFloat, _ width: CGFloat) {
+            let panel = SKShapeNode(rect: CGRect(x: x, y: top - 66, width: width, height: 58),
+                                    cornerRadius: 13)
+            panel.fillColor = SKColor(red: 0.025, green: 0.065, blue: 0.11, alpha: 0.94)
+            panel.strokeColor = SKColor(red: 0.36, green: 0.62, blue: 0.73, alpha: 0.6)
+            panel.lineWidth = 1.4
+            chrome.addChild(panel)
+        }
+        capsule(leftX, leftWidth)
+        capsule(centerLeft, centerWidth)
+        capsule(rightX, rightWidth)
+        let portrait = SKShapeNode(circleOfRadius: 22)
+        portrait.position = CGPoint(x: leftX + 24, y: top - 32)
         portrait.fillColor = SKColor(red: 0.08, green: 0.19, blue: 0.33, alpha: 1)
         portrait.strokeColor = .systemCyan
         portrait.lineWidth = 2
         chrome.addChild(portrait)
-        let visor = SKShapeNode(rectOf: CGSize(width: 27, height: 10), cornerRadius: 4)
+        let helmet = SKShapeNode(rectOf: CGSize(width: 29, height: 31), cornerRadius: 10)
+        helmet.fillColor = SKColor(red: 0.16, green: 0.29, blue: 0.43, alpha: 1)
+        helmet.strokeColor = .white.withAlphaComponent(0.22)
+        portrait.addChild(helmet)
+        let visor = SKShapeNode(rectOf: CGSize(width: 25, height: 9), cornerRadius: 4)
+        visor.position.y = 3
         visor.fillColor = .systemOrange
-        visor.strokeColor = .white.withAlphaComponent(0.5)
-        portrait.addChild(visor)
-        let coin = SKShapeNode(circleOfRadius: 10)
-        coin.position = CGPoint(x: size.width - 114, y: top - 29)
-        coin.fillColor = .systemYellow
-        coin.strokeColor = SKColor(red: 1, green: 0.82, blue: 0.25, alpha: 1)
+        visor.strokeColor = SKColor(red: 1, green: 0.84, blue: 0.42, alpha: 1)
+        helmet.addChild(visor)
+        for (name, y, height, fillColor) in [
+            ("hudPortraitHP", top - 29, CGFloat(8), SKColor.systemGreen),
+            ("hudPortraitXP", top - 45, CGFloat(5), SKColor.systemCyan)
+        ] {
+            let track = SKShapeNode(rect: CGRect(x: leftX + 52, y: y, width: 52, height: height),
+                                    cornerRadius: 2)
+            track.fillColor = .black.withAlphaComponent(0.85)
+            track.strokeColor = .white.withAlphaComponent(0.16)
+            chrome.addChild(track)
+            let fill = SKShapeNode(rect: CGRect(x: leftX + 52, y: y, width: 52, height: height),
+                                   cornerRadius: 2)
+            fill.name = name
+            fill.fillColor = fillColor
+            fill.strokeColor = .clear
+            chrome.addChild(fill)
+        }
+        let level = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        level.name = "hudPortraitLevel"
+        level.fontSize = 10
+        level.fontColor = .white
+        level.position = CGPoint(x: leftX + 78, y: top - 59)
+        chrome.addChild(level)
+        let world = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        world.name = "hudWorldLabel"
+        world.fontSize = 10
+        world.fontColor = .white
+        world.position = CGPoint(x: centerX, y: top - 23)
+        chrome.addChild(world)
+        let route = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+        route.name = "hudRoomLabel"
+        route.fontSize = 10
+        route.fontColor = SKColor(white: 0.86, alpha: 1)
+        route.position = CGPoint(x: centerX, y: top - 39)
+        chrome.addChild(route)
+        let dotSpacing = min(CGFloat(12), (centerWidth - 12) / 6)
+        for index in 0..<7 {
+            let dot = SKShapeNode(circleOfRadius: 3)
+            dot.name = "hudRouteDot_\(index)"
+            dot.position = CGPoint(x: centerX + CGFloat(index - 3) * dotSpacing,
+                                   y: top - 55)
+            dot.strokeColor = .white.withAlphaComponent(0.3)
+            chrome.addChild(dot)
+        }
+        let coin = SKShapeNode(circleOfRadius: 11)
+        coin.position = CGPoint(x: rightX + 16, y: top - 31)
+        coin.fillColor = SKColor(red: 0.99, green: 0.69, blue: 0.11, alpha: 1)
+        coin.strokeColor = SKColor(red: 1, green: 0.87, blue: 0.44, alpha: 1)
         coin.lineWidth = 2
         chrome.addChild(coin)
         let coinMark = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         coinMark.text = "★"
-        coinMark.fontSize = 12
-        coinMark.fontColor = SKColor(red: 0.63, green: 0.36, blue: 0.03, alpha: 1)
+        coinMark.fontSize = 13
+        coinMark.fontColor = SKColor(red: 0.62, green: 0.34, blue: 0.03, alpha: 1)
         coinMark.verticalAlignmentMode = .center
         coin.addChild(coinMark)
-        let worldLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        worldLabel.name = "hudWorldLabel"
-        worldLabel.fontSize = 10
-        worldLabel.fontColor = .white
-        worldLabel.position = CGPoint(x: size.width / 2, y: top - 16)
-        chrome.addChild(worldLabel)
-        for index in 0..<7 {
-            let dot = SKShapeNode(circleOfRadius: 3)
-            dot.name = "hudRouteDot_\(index)"
-            dot.position = CGPoint(x: size.width / 2 + CGFloat(index - 3) * 12, y: top - 46)
-            dot.strokeColor = .white.withAlphaComponent(0.3)
-            chrome.addChild(dot)
-        }
-        // Three purpose-built HUD capsules: floor, progression, and currency.
-        // Keep the center dedicated to player progress rather than covering
-        // the battlefield with the old full-width information header.
-        let leftWidth: CGFloat = 96
-        let rightWidth: CGFloat = 100
-        let centerX = size.width / 2
-        let centerWidth = max(88, size.width - leftWidth - rightWidth - 56)
-        for rect in [CGRect(x: 12, y: top - 49, width: leftWidth, height: 42),
-                     CGRect(x: centerX - centerWidth / 2, y: top - 49,
-                            width: centerWidth, height: 42),
-                     CGRect(x: size.width - rightWidth - 12, y: top - 49,
-                            width: rightWidth, height: 42)] {
-            let chip = SKShapeNode(rect: rect, cornerRadius: 17)
-            chip.fillColor = SKColor(red: 0.025, green: 0.055, blue: 0.085, alpha: 0.9)
-            chip.strokeColor = .white.withAlphaComponent(0.12)
-            chrome.addChild(chip)
-        }
-        floorNumber.fontSize = 14
-        floorNumber.position = CGPoint(x: 22, y: top - 33)
+        let walletCaption = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+        walletCaption.text = "COINS"
+        walletCaption.fontSize = 9
+        walletCaption.fontColor = SKColor(white: 0.75, alpha: 1)
+        walletCaption.position = CGPoint(x: rightX + rightWidth / 2, y: top - 57)
+        chrome.addChild(walletCaption)
+        floorNumber.fontSize = 10
+        floorNumber.position = CGPoint(x: centerX, y: top - 39)
         survivalClock.position = CGPoint(x: size.width / 2, y: top - 91)
         if survivalClock.childNode(withName: "objectivePlate") == nil {
             let plate = SKShapeNode()
@@ -2190,7 +2232,7 @@ final class OutpostScene: SKScene {
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         // Reserve the first HUD row for the objective, leaving the floor counter at left.
         // Keep the mission text clear of the counter and right-side controls.
-        subtitle.position = CGPoint(x: size.width - 98, y: top - 33)
+        subtitle.position = CGPoint(x: rightX + 60, y: top - 35)
         subtitle.fontSize = 16
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
@@ -2208,7 +2250,7 @@ final class OutpostScene: SKScene {
         xpFill.path = xpTrack.path
         xpTrack.position = CGPoint(x: 14, y: top)
         xpFill.position = xpTrack.position
-        xpLabel.position = CGPoint(x: size.width / 2, y: top - 33)
+        xpLabel.position = CGPoint(x: leftX + 78, y: top - 59)
         xpLabel.horizontalAlignmentMode = .center
         xpLabel.fontSize = 15
         checkpointButton.position = CGPoint(x: size.width / 2,
@@ -2229,7 +2271,7 @@ final class OutpostScene: SKScene {
             enemy.healthBar.fillColor = fraction > 0.5 ? .systemGreen :
                 (fraction > 0.25 ? .systemYellow : .systemRed)
         }
-        floorNumber.isHidden = wave <= 0 || phase == .ready || phase == .loadout
+        floorNumber.isHidden = true
         // The unified objective clock below handles survival, defense and boss
         // states; do not overwrite it here with the legacy survival-only HUD.
         pilotHealthFill.xScale = max(0.001, min(1,
@@ -2279,19 +2321,37 @@ final class OutpostScene: SKScene {
         floorNumber.text = wave > 0 ? "FLOOR \(wave)" : ""
         // Keep the top utility row compact; the encounter objective has its
         // own dedicated clock below the panel.
-        let subtitleText = "\(coins) ¢"
+        let subtitleText = "\(coins)"
         if subtitle.text != subtitleText { subtitle.text = subtitleText }
-        subtitle.fontSize = 16
+        subtitle.fontSize = 13
         subtitle.fontColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
-        xpLabel.text = "LV \(progress.level)"
+        xpLabel.text = ""
         if let chrome = hud.childNode(withName: "combatChrome") {
-            (chrome.childNode(withName: "hudWorldLabel") as? SKLabelNode)?.text = selectedWorld.title.uppercased()
-            for index in 0..<7 {
-                if let dot = chrome.childNode(withName: "hudRouteDot_\(index)") as? SKShapeNode {
-                    dot.fillColor = index <= min(6, max(0, wave * 7 / max(1, worldWaveCount)))
-                        ? .systemCyan : SKColor(white: 0.3, alpha: 1)
+            (chrome.childNode(withName: "hudPortraitLevel") as? SKLabelNode)?.text = "LV \(progress.level)"
+            if let world = chrome.childNode(withName: "hudWorldLabel") as? SKLabelNode {
+                world.text = selectedWorld.title.uppercased()
+                let available = max(CGFloat(45), size.width - 250)
+                world.fontSize = 10
+                if world.frame.width > available {
+                    world.fontSize = max(6, world.fontSize * available / world.frame.width)
                 }
             }
+            (chrome.childNode(withName: "hudRoomLabel") as? SKLabelNode)?.text =
+                "ROOM \(max(1, wave))/\(worldWaveCount)"
+            for index in 0..<7 {
+                if let dot = chrome.childNode(withName: "hudRouteDot_\(index)") as? SKShapeNode {
+                    let current = min(6, max(0, (max(1, wave) - 1) * 7 / max(1, worldWaveCount)))
+                    dot.fillColor = index <= current ? .systemCyan : SKColor(white: 0.3, alpha: 1)
+                }
+            }
+            if let hp = chrome.childNode(withName: "hudPortraitHP") as? SKShapeNode {
+                hp.xScale = max(0.001, min(1, CGFloat(health) / CGFloat(max(1, maximumHealth))))
+                hp.fillColor = health < maximumHealth / 3 ? .systemRed : .systemGreen
+            }
+            if let xp = chrome.childNode(withName: "hudPortraitXP") as? SKShapeNode {
+                xp.xScale = max(0.001, min(1, CGFloat(progress.xp) / CGFloat(max(1, progress.nextLevelXP))))
+            }
+            chrome.isHidden = phase == .ready || phase == .worldSelect || phase == .loadout
         }
         speedButton.isHidden = true // Speed remains available in Settings.
         let top = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 8
