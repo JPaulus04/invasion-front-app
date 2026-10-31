@@ -2138,21 +2138,22 @@ final class OutpostScene: SKScene {
         portraitBacking.fillColor = SKColor(red: 0.025, green: 0.065, blue: 0.11, alpha: 0.60)
         portraitBacking.strokeColor = .clear
         chrome.addChild(portraitBacking)
+        let routeBacking = SKShapeNode(rect: CGRect(x: centerLeft - 2, y: top - 65, width: centerWidth + 4, height: 56), cornerRadius: 15)
+        routeBacking.fillColor = SKColor(red: 0.025, green: 0.065, blue: 0.11, alpha: 0.76)
+        routeBacking.strokeColor = .clear
+        chrome.addChild(routeBacking)
         let portrait = SKShapeNode(circleOfRadius: 22)
         portrait.position = CGPoint(x: leftX + 24, y: top - 32)
         portrait.fillColor = SKColor(red: 0.08, green: 0.19, blue: 0.33, alpha: 1)
         portrait.strokeColor = .systemCyan
         portrait.lineWidth = 2
         chrome.addChild(portrait)
-        let helmet = SKShapeNode(rectOf: CGSize(width: 29, height: 31), cornerRadius: 10)
-        helmet.fillColor = SKColor(red: 0.16, green: 0.29, blue: 0.43, alpha: 1)
-        helmet.strokeColor = .white.withAlphaComponent(0.22)
-        portrait.addChild(helmet)
-        let visor = SKShapeNode(rectOf: CGSize(width: 25, height: 9), cornerRadius: 4)
-        visor.position.y = 3
-        visor.fillColor = .systemOrange
-        visor.strokeColor = SKColor(red: 1, green: 0.84, blue: 0.42, alpha: 1)
-        helmet.addChild(visor)
+        if let image = productionImage(named: "pilot_s") ?? productionImage(named: "pilot_idle") {
+            let character = SKSpriteNode(texture: SKTexture(image: image))
+            character.size = CGSize(width: 39, height: 45)
+            character.position.y = -1
+            portrait.addChild(character)
+        }
         for (name, y, height, fillColor) in [
             ("hudPortraitHP", top - 29, CGFloat(8), SKColor.systemGreen),
             ("hudPortraitXP", top - 45, CGFloat(5), SKColor.systemCyan)
