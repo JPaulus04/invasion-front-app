@@ -2217,15 +2217,9 @@ final class OutpostScene: SKScene {
         chrome.addChild(walletCaption)
         floorNumber.fontSize = 10
         floorNumber.position = CGPoint(x: centerX, y: top - 39)
-        survivalClock.position = CGPoint(x: size.width / 2, y: top - 91)
-        if survivalClock.childNode(withName: "objectivePlate") == nil {
-            let plate = SKShapeNode()
-            plate.name = "objectivePlate"
-            plate.fillColor = SKColor(red: 0.025, green: 0.055, blue: 0.085, alpha: 0.88)
-            plate.strokeColor = .white.withAlphaComponent(0.12)
-            plate.zPosition = -1
-            survivalClock.addChild(plate)
-        }
+        // Compact benchmark-style encounter timer, directly beneath the route.
+        survivalClock.position = CGPoint(x: size.width / 2, y: top - 85)
+        survivalClock.childNode(withName: "objectivePlate")?.removeFromParent()
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         // Reserve the first HUD row for the objective, leaving the floor counter at left.
         // Keep the mission text clear of the counter and right-side controls.
@@ -2361,7 +2355,7 @@ final class OutpostScene: SKScene {
         survivalClock.isHidden = !objectiveActive
         // Mission status is the primary combat readout, not tertiary metadata.
         // Scale it before the existing fit-to-width guard below.
-        survivalClock.fontSize = size.width < 390 ? 15 : 17
+        survivalClock.fontSize = size.width < 390 ? 14 : 16
         survivalClock.fontColor = .white
         if objectiveActive {
             let seconds = max(0, Int(ceil(SurvivalEncounterRules.duration(world: worldMapIndex, room: wave) - waveElapsed)))
@@ -2370,10 +2364,10 @@ final class OutpostScene: SKScene {
                 survivalClock.text = roomCleared
                     ? (defenseIntegrity > 0 ? "REACTOR SECURED" : "REACTOR LOST")
                     : (size.width < 390
-                       ? "\(time)  ·  CORE \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
-                       : "\(seconds <= 15 ? "FINAL PUSH" : "DEFEND")  \(time)  ·  CORE \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)")
+                       ? "\(time)"
+                       : "\(time)")
             } else if activeEncounter == .survival {
-                survivalClock.text = roomCleared ? "EXTRACTION READY" : "SURVIVE  \(time)"
+                survivalClock.text = roomCleared ? "EXTRACTION READY" : time
             } else {
                 survivalClock.text = roomCleared ? "AREA SECURED" : selectedWorld.boss.uppercased()
             }
@@ -2394,11 +2388,7 @@ final class OutpostScene: SKScene {
             if survivalClock.frame.width > available {
                 survivalClock.fontSize *= available / survivalClock.frame.width
             }
-            if let plate = survivalClock.childNode(withName: "objectivePlate") as? SKShapeNode {
-                let width = min(size.width - 28, survivalClock.frame.width + 28)
-                plate.path = CGPath(roundedRect: CGRect(x: -width / 2, y: -9, width: width, height: 35),
-                                    cornerWidth: 17, cornerHeight: 17, transform: nil)
-            }
+
         }
     }
 
