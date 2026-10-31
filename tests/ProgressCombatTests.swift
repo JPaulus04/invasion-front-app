@@ -353,7 +353,11 @@ struct ProgressCombatTests {
         clock.advance(0.02, playing: true)
         precondition(clock.time >= attackDeadline)
         for room in 1...5 {
-            for roll in 0..<100 { precondition(CombatRules.enemyType(room: room, roll: roll) < 4) }
+            precondition(CombatRules.enemyType(room: room, roll: 5) == 4,
+                         "Early World 1 rooms must teach dodging telegraphed shots")
+            precondition(CombatRules.enemyType(room: room, roll: 50) < 4,
+                         "Early rooms must preserve forgiving melee encounters")
+            precondition(EncounterDirector.enemyRoll(world: 0, room: room, slot: 0) < 15)
         }
         precondition(CombatRules.enemyType(room: 6, roll: 20) == 4)
         precondition(CombatRules.enemyType(room: 6, roll: 30) != 4)
@@ -409,7 +413,13 @@ struct ProgressCombatTests {
                         world: world, room: room,
                         roll: EncounterDirector.enemyRoll(
                             world: world, room: room, slot: slot))
-                    precondition(role < 3, "No armored or ranged unit during tutorial rooms")
+                    if world == 0 {
+                        precondition(role == (slot.isMultiple(of: 5) ? 4 : role),
+                                     "World 1 tutorial shooter slot must remain ranged")
+                        if slot.isMultiple(of: 5) { precondition(role == 4) }
+                    } else {
+                        precondition(role < 3, "Later-world tutorial pacing stays unchanged")
+                    }
                 }
             }
             for room in 6...19 {
