@@ -102,7 +102,7 @@ enum ProductionPresentation {
                 context.saveGState()
                 context.setShadow(offset: CGSize(width: 3, height: 4), blur: 3,
                                   color: UIColor.black.withAlphaComponent(0.27).cgColor)
-                UIColor(red: wet ? 0.09 : 0.28, green: cave ? 0.32 : 0.30, blue: wet ? 0.23 : 0.24, alpha: 0.32).setFill()
+                UIColor(red: wet ? 0.09 : 0.28, green: cave ? 0.32 : 0.30, blue: wet ? 0.23 : 0.24, alpha: 0.16).setFill()
                 path.fill()
                 context.restoreGState()
                 let lip = UIBezierPath()
@@ -205,7 +205,11 @@ enum ProductionPresentation {
                 }
                 p.close()
             }
-            p.fill(); p.stroke()
+            if id != "orbit" && id != "evolveOrbit" && id != "frost" && id != "mobility" {
+                tint.withAlphaComponent(0.22).setFill()
+                p.fill()
+            }
+            p.stroke()
             c.setShadow(offset: .zero, blur: 0)
             UIColor.white.withAlphaComponent(0.8).setFill()
             UIBezierPath(ovalIn: CGRect(x: 32, y: 32, width: 8, height: 8)).fill()

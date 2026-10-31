@@ -425,6 +425,8 @@ final class OutpostScene: SKScene {
         hud.addChild(hudPanel)
         addChild(overlay)
         overlay.zPosition = 40
+        settingsShortcut.path = CGPath(roundedRect: CGRect(x: -15, y: -15, width: 30, height: 30),
+                                      cornerWidth: 8, cornerHeight: 8, transform: nil)
         settingsShortcut.name = "settingsShortcut"
         settingsShortcut.fillColor = SKColor(red: 0.07, green: 0.16, blue: 0.23, alpha: 0.95)
         settingsShortcut.strokeColor = SKColor(white: 0.65, alpha: 0.45)
@@ -433,7 +435,7 @@ final class OutpostScene: SKScene {
         let settingsIcon = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
         settingsIcon.name = "settingsSymbol"
         settingsIcon.text = "Ⅱ"
-        settingsIcon.fontSize = 24
+        settingsIcon.fontSize = 19
         settingsIcon.fontColor = .white
         settingsIcon.verticalAlignmentMode = .center
         settingsShortcut.addChild(settingsIcon)
@@ -443,6 +445,13 @@ final class OutpostScene: SKScene {
         damageFlash.zPosition = 35
         damageFlash.alpha = 0
         addChild(damageFlash)
+        let instructionPlate = SKShapeNode()
+        instructionPlate.name = "portalInstructionPlate"
+        instructionPlate.fillColor = SKColor(red: 0.025, green: 0.055, blue: 0.085, alpha: 0.92)
+        instructionPlate.strokeColor = .clear
+        instructionPlate.zPosition = -1
+        instructionPlate.isHidden = true
+        warning.addChild(instructionPlate)
         warning.fontSize = 18
         warning.fontColor = .systemRed
         warning.zPosition = 36
@@ -719,6 +728,49 @@ final class OutpostScene: SKScene {
         health = maximumHealth
         layout()
         showReady()
+        #if targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-captureDodgeAcceptanceScreenshot") {
+            worldMapIndex = 0
+            wave = 0
+            startWave()
+            for enemy in enemies { enemy.node.removeFromParent() }
+            enemies.removeAll()
+            spawnEnemy(artReviewType: 4)
+            precondition(enemies.count == 1)
+            let start = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 45)
+            func resolveShot(moving: Bool) -> Int {
+                for shot in projectiles { shot.node.removeFromParent() }
+                projectiles.removeAll()
+                health = 100
+                pilotShieldUntil = 0
+                pilot.position = start
+                enemies[0].node.position = CGPoint(x: start.x, y: start.y + 150)
+                enemies[0].shotTarget = nil
+                enemies[0].nextAttack = combatTime
+                updateRangedAttack(at: 0)
+                precondition(enemies[0].shotTarget == start)
+                for _ in 0..<150 {
+                    let dt = 1.0 / 60.0
+                    combatClock.advance(dt, playing: true)
+                    if moving { pilot.position.x = min(start.x + 55, pilot.position.x + 144 * CGFloat(dt)) }
+                    updateRangedAttack(at: 0)
+                    updateHostileAttacks(delta: dt)
+                }
+                return health
+            }
+            let stationaryHP = resolveShot(moving: false)
+            let movingHP = resolveShot(moving: true)
+            precondition(stationaryHP < 100 && movingHP == 100,
+                         "Locked aim must damage a stationary pilot and permit a timely sidestep")
+            warning.text = "DODGE CHECK: \(stationaryHP) / \(movingHP) HP"
+            warning.fontColor = .white
+            warning.alpha = 1
+            warning.isHidden = false
+            holdDefenseQAScreenshot = true
+            arena.isPaused = true
+            updateHUD()
+        }
+        #endif
         // Validate real navigation keys and stage geometry in a simulator,
         // rather than accepting a static presentation-board illustration.
         if ProcessInfo.processInfo.arguments.contains("-captureHomeNavigationScreenshot") {
@@ -2253,6 +2305,7 @@ final class OutpostScene: SKScene {
     }
 
     private func updateHUD() {
+        warning.childNode(withName: "portalInstructionPlate")?.isHidden = phase != .gate || passageGate.isHidden
         // Full-health ordinary foes need their silhouette, not a second green
         // target. Reveal compact bars when injured; bosses remain persistent.
         for enemy in enemies {
@@ -3804,7 +3857,13 @@ final class OutpostScene: SKScene {
     }
 
     private func updateReactorOcclusion() {
+        pilotHealthTrack.position = CGPoint(x: 0, y: 36)
         guard defenseDevice.parent === arena else { return }
+        // Separate the pilot bar from the reactor integrity stack when close.
+        if abs(pilot.position.x - defenseDevice.position.x) < 85 &&
+           abs(pilot.position.y - defenseDevice.position.y) < 95 {
+            pilotHealthTrack.position.y = max(36, defenseDevice.position.y + 100 - pilot.position.y)
+        }
         // Feet are 27 points below the pilot origin; the reactor base is -37.
         let behind = pilot.position.y - 27 > defenseDevice.position.y - 37
         defenseDevice.zPosition = behind ? 10 : 8
@@ -4765,9 +4824,7 @@ final class OutpostScene: SKScene {
         // approach toward the portal. The middle remains completely free for
         // combat, dodging and alternative approaches. This is the procedural
         // fallback only; authored landscape paintings own their composition.
-        if worldMapIndex == 0 &&
-           roomArt?.childNode(withName: "world1AuthoredFloor") == nil &&
-           activeEncounter != .survival && wave > 0 {
+        if worldMapIndex == 0 && activeEncounter != .survival && wave > 0 {
             let guide = SKNode()
             guide.name = "worldOnePortalApproach"
             guide.zPosition = -0.7
@@ -4899,13 +4956,15 @@ final class OutpostScene: SKScene {
             let layoutShift = worldMapIndex == 0
                 ? CGFloat(((index * (roomVariant + 3) * 13 + landscapeLayoutSeed * 7) % 31) - 15)
                 : CGFloat(((index * 11 + wave * 7) % 19) - 9)
-            let group = index / 3
-            let member = index % 3
-            let groups = max(1, (count + 2) / 3)
-            let clusterY = roomBounds.minY + 65 + CGFloat(group) *
-                max(1, roomBounds.height - 150) / CGFloat(max(1, groups - 1))
+            let bankFractions: [CGFloat]
+            switch roomVariant {
+            case 0: bankFractions = [0.12, 0.18, 0.43, 0.64, 0.77, 0.86, 0.28, 0.92]
+            case 1: bankFractions = [0.08, 0.31, 0.36, 0.60, 0.82, 0.88, 0.15, 0.69]
+            case 2: bankFractions = [0.15, 0.22, 0.52, 0.57, 0.83, 0.92, 0.34, 0.73]
+            default: bankFractions = [0.09, 0.28, 0.44, 0.72, 0.79, 0.91, 0.18, 0.54]
+            }
             let proposedY = worldMapIndex == 0
-                ? clusterY + CGFloat(member - 1) * 22 + layoutShift * 0.4
+                ? roomBounds.minY + 36 + bankFractions[index % bankFractions.count] * max(1, roomBounds.height - 100)
                 : roomBounds.minY + 60 + CGFloat(index) * spacing + layoutShift
             let y = min(roomBounds.maxY - 36, max(roomBounds.minY + 36, proposedY))
             let prop: SKShapeNode
@@ -5062,7 +5121,7 @@ final class OutpostScene: SKScene {
                         y: WorldOneArtMetrics.groundAnchorY(for: assetName))
                     castShadow.color = .black
                     castShadow.colorBlendFactor = 1
-                    castShadow.alpha = 0.18
+                    castShadow.alpha = 0.09
                     castShadow.yScale = -0.28
                     castShadow.zRotation = 0.65
                     castShadow.position = CGPoint(x: 5, y: -2)
@@ -7903,8 +7962,16 @@ final class OutpostScene: SKScene {
             : (wave == 1 ? "ROOM CLEAR — ENTER PORTAL" : "ROOM CLEAR — PORTAL OPEN")
         controlsHint.isHidden = true
         warning.fontColor = activeEncounter == .equipmentDefense && defenseIntegrity == 0
-            ? .systemOrange : .systemGreen
+            ? .systemOrange : .white
         warning.fontSize = 13
+        if warning.frame.width > size.width - 60 {
+            warning.fontSize *= (size.width - 60) / warning.frame.width
+        }
+        if let plate = warning.childNode(withName: "portalInstructionPlate") as? SKShapeNode {
+            let width = min(size.width - 36, warning.frame.width + 24)
+            plate.path = CGPath(roundedRect: CGRect(x: -width / 2, y: -7, width: width, height: 29),
+                                cornerWidth: 10, cornerHeight: 10, transform: nil)
+        }
         warning.position = CGPoint(x: passageGate.position.x, y: passageGate.position.y - 52)
         warning.removeAllActions()
         warning.alpha = 1
@@ -8202,7 +8269,7 @@ final class OutpostScene: SKScene {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let point = touch.location(in: self)
-        if !settingsShortcut.isHidden && settingsShortcut.contains(point) {
+        if !settingsShortcut.isHidden && (settingsShortcut.contains(point) || CGRect(x: settingsShortcut.position.x - 24, y: settingsShortcut.position.y - 24, width: 48, height: 48).contains(point)) {
             showSettings()
             return
         }

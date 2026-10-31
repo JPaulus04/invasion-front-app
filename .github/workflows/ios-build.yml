@@ -384,6 +384,7 @@ jobs:
           capture_scene -captureToxicMatriarchScreenshot screenshots/build327-toxic-matriarch.png
           capture_scene -captureWarforgeScreenshot screenshots/build327-warforge.png
           capture_scene -captureFrostWraithScreenshot screenshots/build327-frost-wraith.png
+          capture_scene -captureDodgeAcceptanceScreenshot screenshots/outpost-zero-dodge-acceptance.png
           capture_scene -capturePilotDirectionsScreenshot screenshots/outpost-zero-pilot-directions.png
           capture_scene -captureExpandedArenaLeftScreenshot screenshots/outpost-zero-arena-west.png
           capture_scene -captureExpandedArenaCenterScreenshot screenshots/outpost-zero-arena-center.png
