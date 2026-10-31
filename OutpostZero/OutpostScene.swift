@@ -2123,16 +2123,26 @@ final class OutpostScene: SKScene {
         chrome.name = "combatChrome"
         chrome.zPosition = -1
         hud.addChild(chrome)
-        for rect in [CGRect(x: 14, y: top - 43, width: 96, height: 34),
-                     CGRect(x: size.width - 133, y: top - 43, width: 74, height: 34)] {
+        // Three purpose-built HUD capsules: floor, progression, and currency.
+        // Keep the center dedicated to player progress rather than covering
+        // the battlefield with the old full-width information header.
+        let leftWidth: CGFloat = 96
+        let rightWidth: CGFloat = 100
+        let centerX = size.width / 2
+        let centerWidth = max(88, size.width - leftWidth - rightWidth - 56)
+        for rect in [CGRect(x: 12, y: top - 49, width: leftWidth, height: 42),
+                     CGRect(x: centerX - centerWidth / 2, y: top - 49,
+                            width: centerWidth, height: 42),
+                     CGRect(x: size.width - rightWidth - 12, y: top - 49,
+                            width: rightWidth, height: 42)] {
             let chip = SKShapeNode(rect: rect, cornerRadius: 17)
             chip.fillColor = SKColor(red: 0.025, green: 0.055, blue: 0.085, alpha: 0.9)
             chip.strokeColor = .white.withAlphaComponent(0.12)
             chrome.addChild(chip)
         }
-        floorNumber.fontSize = 13
-        floorNumber.position = CGPoint(x: 27, y: top - 31)
-        survivalClock.position = CGPoint(x: size.width / 2, y: top - 77)
+        floorNumber.fontSize = 14
+        floorNumber.position = CGPoint(x: 22, y: top - 33)
+        survivalClock.position = CGPoint(x: size.width / 2, y: top - 91)
         if survivalClock.childNode(withName: "objectivePlate") == nil {
             let plate = SKShapeNode()
             plate.name = "objectivePlate"
@@ -2144,8 +2154,8 @@ final class OutpostScene: SKScene {
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         // Reserve the first HUD row for the objective, leaving the floor counter at left.
         // Keep the mission text clear of the counter and right-side controls.
-        subtitle.position = CGPoint(x: size.width - 96, y: top - 31)
-        subtitle.fontSize = size.width < 390 ? 10 : 12
+        subtitle.position = CGPoint(x: size.width - 98, y: top - 33)
+        subtitle.fontSize = 16
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
@@ -2162,9 +2172,9 @@ final class OutpostScene: SKScene {
         xpFill.path = xpTrack.path
         xpTrack.position = CGPoint(x: 14, y: top)
         xpFill.position = xpTrack.position
-        xpLabel.position = CGPoint(x: size.width / 2, y: top - 29)
+        xpLabel.position = CGPoint(x: size.width / 2, y: top - 33)
         xpLabel.horizontalAlignmentMode = .center
-        xpLabel.fontSize = 11
+        xpLabel.fontSize = 15
         checkpointButton.position = CGPoint(x: size.width / 2,
                                             y: RoomRules.bounds(for: size).minY + 25)
         settingsShortcut.position = CGPoint(x: 36, y: size.height - 195)
@@ -2235,7 +2245,7 @@ final class OutpostScene: SKScene {
         // own dedicated clock below the panel.
         let subtitleText = "\(coins) ¢"
         if subtitle.text != subtitleText { subtitle.text = subtitleText }
-        subtitle.fontSize = size.width < 390 ? 15 : 17
+        subtitle.fontSize = 16
         subtitle.fontColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
         xpLabel.text = "LV \(progress.level)"
         speedButton.isHidden = true // Speed remains available in Settings.
