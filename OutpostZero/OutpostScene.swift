@@ -1,4 +1,5 @@
 import SpriteKit
+// Build 330 validation checkpoint: integrated pause, terrain lighting, and pilot presentation.
 import UIKit
 
 final class OutpostScene: SKScene {
