@@ -7607,7 +7607,7 @@ final class OutpostScene: SKScene {
                 tint = SKColor(red: 1, green: 0.67, blue: 0.29, alpha: 1)
             case "mobility":
                 label = "MOBILITY \(mobilityRank) → \(mobilityRank + 1)"
-                detail = "Movement speed +6 • automatic fire stays active"
+                detail = "Movement speed +6% • auto-fire stays active"
                 category = "MOVEMENT"
                 tint = SKColor(red: 0.36, green: 0.83, blue: 0.87, alpha: 1)
             case "supplies":
@@ -7685,6 +7685,17 @@ final class OutpostScene: SKScene {
                 rimTint = SKColor(red: 1, green: 0.74, blue: 0.25, alpha: 1); rarityName = "LEGENDARY"
             case nil: rimTint = tint; rarityName = "UPGRADE"
             }
+            // A darkened reward stage prevents scenery from competing with choices.
+            if index == 0 {
+                let rewardScrim = SKShapeNode(rect: CGRect(
+                    x: -size.width / 2, y: -size.height / 2,
+                    width: size.width, height: size.height))
+                rewardScrim.name = "rewardStageScrim"
+                rewardScrim.fillColor = SKColor(red: 0.012, green: 0.025, blue: 0.06, alpha: 0.38)
+                rewardScrim.strokeColor = .clear
+                rewardScrim.zPosition = -0.5
+                overlay.addChild(rewardScrim)
+            }
             let root = SKNode()
             root.name = "upgradeModuleCard"
             root.position.y = cardCenterY
@@ -7748,7 +7759,8 @@ final class OutpostScene: SKScene {
             rarity.position = CGPoint(x: textLeft, y: 27)
             root.addChild(rarity)
             let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-            titleLabel.text = label.components(separatedBy: " • ").last ?? label
+            titleLabel.text = (label.components(separatedBy: " • ").last ?? label)
+                .replacingOccurrences(of: "  LV ", with: "  +")
             titleLabel.fontSize = 13
             titleLabel.fontColor = .white
             titleLabel.horizontalAlignmentMode = .left
@@ -7771,7 +7783,7 @@ final class OutpostScene: SKScene {
                          "incendiary": incendiaryLevel, "orbit": orbitLevel, "frost": frostLevel]
             let context = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
             if let rank = ranks[choice] {
-                context.text = "RANK \(rank) → \(rank + 1) / 3  ·  " +
+                context.text = "RANK \(rank + 1)/3  ·  " +
                     (lockedLoadout.contains(choice) ? "SLOT KEPT" : "USES 1 SLOT")
             } else if choice == "evolveOrbit" {
                 context.text = "EVOLUTION READY  ·  SLOT KEPT"
