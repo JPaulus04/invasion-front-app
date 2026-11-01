@@ -3295,14 +3295,24 @@ final class OutpostScene: SKScene {
         header.strokeColor = SKColor(red: 1, green: 0.92, blue: 0.55, alpha: 1)
         header.lineWidth = 2
         overlay.addChild(header)
-        overlayText(activeRun ? "BATTLE PAUSED" : "SETTINGS", y: 162, fontSize: 23)
+        let pauseTitle = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        pauseTitle.text = activeRun ? "BATTLE PAUSED" : "SETTINGS"
+        pauseTitle.fontSize = 23
+        pauseTitle.fontColor = SKColor(red: 0.12, green: 0.17, blue: 0.19, alpha: 1)
+        pauseTitle.position = CGPoint(x: 0, y: 162)
+        pauseTitle.zPosition = 2
+        overlay.addChild(pauseTitle)
 
         if activeRun {
             overlayText("TACTICAL LOADOUT", y: 118, fontSize: 13)
             let skills = Array(lockedLoadout.selected.prefix(3))
             let names = ["chain": "CHAIN", "explosive": "BLAST",
                          "incendiary": "FIRE", "orbit": "ORBS", "frost": "FROST"]
-            let accents: [SKColor] = [.systemCyan, .systemOrange, .systemTeal]
+            let skillAccents: [String: SKColor] = [
+                "chain": .systemCyan, "explosive": .systemOrange,
+                "incendiary": .systemRed, "orbit": .systemTeal,
+                "frost": .systemBlue
+            ]
             for index in 0..<3 {
                 let width = min((size.width - 48) / 3, 112)
                 let x = CGFloat(index - 1) * (width + 6)
@@ -3311,7 +3321,7 @@ final class OutpostScene: SKScene {
                 let tile = SKShapeNode(rect: CGRect(x: x - width / 2, y: 36,
                                                     width: width, height: 65), cornerRadius: 11)
                 tile.fillColor = SKColor(red: 0.10, green: 0.22, blue: 0.28, alpha: 0.97)
-                let accent = equipped ? accents[index] : SKColor.gray
+                let accent = equipped ? (skillAccents[skill] ?? .systemPurple) : SKColor.gray
                 tile.strokeColor = accent
                 tile.lineWidth = equipped ? 2 : 1
                 overlay.addChild(tile)
