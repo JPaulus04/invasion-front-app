@@ -7536,6 +7536,13 @@ final class OutpostScene: SKScene {
         let slotIcons = ["chain": "ARC", "explosive": "AOE",
                          "incendiary": "HOT", "orbit": "ORB", "frost": "ICE"]
         let slots = max(2, playerMastery.capacity)
+        let slotCaption = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+        slotCaption.name = "tacticalSlotsCaption"
+        slotCaption.text = "TACTICAL SLOTS"
+        slotCaption.fontSize = 9
+        slotCaption.fontColor = SKColor(white: 0.83, alpha: 1)
+        slotCaption.position = CGPoint(x: 0, y: -202)
+        overlay.addChild(slotCaption)
         for index in 0..<slots {
             let circle = SKShapeNode(circleOfRadius: 16)
             circle.name = "tacticalSlot\(index)"
@@ -7607,7 +7614,7 @@ final class OutpostScene: SKScene {
                 tint = SKColor(red: 1, green: 0.67, blue: 0.29, alpha: 1)
             case "mobility":
                 label = "MOBILITY \(mobilityRank) → \(mobilityRank + 1)"
-                detail = "Movement speed +6% • auto-fire stays active"
+                detail = "Speed \(144 + branchLevel(3) * 3 + mobilityRank * 6) → \(150 + branchLevel(3) * 3 + mobilityRank * 6) pts/s"
                 category = "MOVEMENT"
                 tint = SKColor(red: 0.36, green: 0.83, blue: 0.87, alpha: 1)
             case "supplies":
