@@ -3278,30 +3278,75 @@ final class OutpostScene: SKScene {
         hud.isHidden = true
         lockMenuBriefly()
         clearOverlay()
-        overlayText("SETTINGS", y: 137, fontSize: 27)
-        overlayText("AUDIO & GAMEPLAY", y: 98, fontSize: 13)
-        actionButton(ArcadeMusic.shared.isEnabled ? "MUSIC: ON" : "MUSIC: OFF",
-                     key: "toggle_music", y: 42, tint: .systemTeal)
-        actionButton(fastForward ? "GAME SPEED: 2×" : "GAME SPEED: 1×",
-                     key: "toggle_speed", y: -16, tint: .systemIndigo)
+
         let activeRun = settingsReturnPhase == .playing || settingsReturnPhase == .gate
+        // The battlefield remains visible behind a full-screen, softly tinted veil.
+        overlayBackdrop.path = CGPath(roundedRect: CGRect(
+            x: -size.width / 2, y: -size.height / 2,
+            width: size.width, height: size.height),
+            cornerWidth: 0, cornerHeight: 0, transform: nil)
+        overlayBackdrop.fillColor = SKColor(red: 0.025, green: 0.07, blue: 0.10, alpha: 0.86)
+        overlayBackdrop.strokeColor = .clear
+
+        let header = SKShapeNode(rect: CGRect(x: -min(size.width - 44, 350) / 2,
+                                              y: 147, width: min(size.width - 44, 350), height: 51),
+                                     cornerRadius: 13)
+        header.fillColor = SKColor(red: 0.95, green: 0.73, blue: 0.25, alpha: 1)
+        header.strokeColor = SKColor(red: 1, green: 0.92, blue: 0.55, alpha: 1)
+        header.lineWidth = 2
+        overlay.addChild(header)
+        overlayText(activeRun ? "BATTLE PAUSED" : "SETTINGS", y: 162, fontSize: 23)
+
+        if activeRun {
+            overlayText("ACQUIRED SKILLS", y: 118, fontSize: 13)
+            // Compact run summary; no fake skill icons or misleading rarity labels.
+            let stats = [
+                "HP  \(health)/\(maximumHealth)",
+                "POWER  \(damage + permanentDamageBonus + gearWeaponBonus)",
+                "FIRE RATE  \(fireRate)"
+            ]
+            for (index, value) in stats.enumerated() {
+                let column = CGFloat(index - 1)
+                let width = min((size.width - 48) / 3, 112)
+                let x = column * (width + 6)
+                let tile = SKShapeNode(rect: CGRect(x: x - width / 2, y: 36,
+                                                    width: width, height: 65), cornerRadius: 11)
+                tile.fillColor = SKColor(red: 0.10, green: 0.22, blue: 0.28, alpha: 0.97)
+                tile.strokeColor = SKColor(red: 0.31, green: 0.77, blue: 0.78, alpha: 0.9)
+                tile.lineWidth = 1.5
+                overlay.addChild(tile)
+                let label = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+                label.text = value
+                label.fontSize = 11
+                label.fontColor = .white
+                label.verticalAlignmentMode = .center
+                label.position = CGPoint(x: x, y: 68)
+                label.zPosition = 2
+                overlay.addChild(label)
+            }
+            overlayText("MUSIC & GAMEPLAY", y: 9, fontSize: 12)
+        } else {
+            overlayText("AUDIO & GAMEPLAY", y: 95, fontSize: 13)
+        }
+
+        actionButton(ArcadeMusic.shared.isEnabled ? "MUSIC: ON" : "MUSIC: OFF",
+                     key: "toggle_music", y: activeRun ? -32 : 42, tint: .systemTeal)
+        actionButton(fastForward ? "GAME SPEED: 2×" : "GAME SPEED: 1×",
+                     key: "toggle_speed", y: activeRun ? -85 : -16, tint: .systemIndigo)
         if endRunConfirmationVisible && activeRun {
-            overlayText("END THIS RUN?", y: -73, fontSize: 17)
-            overlayText("BANKED SALVAGE IS SAFE", y: -100, fontSize: 11)
-            actionButton("CONFIRM END RUN", key: "confirm_end_run", y: -144, tint: .systemRed)
-            actionButton("CANCEL", key: "cancel_end_run", y: -202, tint: .systemBlue)
+            overlayText("END THIS RUN?", y: -130, fontSize: 16)
+            overlayText("BANKED SALVAGE IS SAFE", y: -152, fontSize: 11)
+            actionButton("CONFIRM END RUN", key: "confirm_end_run", y: -191, tint: .systemRed)
+            actionButton("CANCEL", key: "cancel_end_run", y: -244, tint: .systemBlue)
         } else {
             if activeRun {
-                overlayText("HP \(health)/\(maximumHealth) · DAMAGE \(damage + permanentDamageBonus + gearWeaponBonus) · RATE \(fireRate)",
-                            y: -83, fontSize: 11)
+                actionButton("EXIT BATTLE", key: "end_run", y: -154, tint: .systemOrange)
             } else {
                 overlayText("PREFERENCES SAVED AUTOMATICALLY", y: -83, fontSize: 11)
             }
-            if activeRun {
-                actionButton("END RUN", key: "end_run", y: -137, tint: .systemRed)
-            }
-            actionButton(activeRun ? "RESUME GAME" : "BACK",
-                         key: "close_settings", y: activeRun ? -203 : -143, tint: .systemBlue)
+            actionButton(activeRun ? "CONTINUE" : "BACK",
+                         key: "close_settings", y: activeRun ? -216 : -143,
+                         tint: .systemGreen)
         }
         updateHUD()
     }
