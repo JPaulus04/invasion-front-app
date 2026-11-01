@@ -6520,10 +6520,25 @@ final class OutpostScene: SKScene {
         if let bounce = pilot.childNode(withName: "pilotArmorBounce") as? SKShapeNode {
             bounce.xScale = pose.shadowScale
         }
-        if isMoving && worldMapIndex == 0 && clock >= nextFootstepAt {
-            nextFootstepAt = clock + 0.19
+        if let penumbra = pilot.childNode(withName: "pilotGroundPenumbra") as? SKShapeNode {
+            penumbra.xScale = pose.shadowScale
+            penumbra.alpha = isMoving ? 0.76 : 1.0
+        }
+        // Low-opacity ground marks follow the actual stride and each biome's
+        // floor material. They are visual-only and never obstruct movement.
+        if isMoving && clock >= nextFootstepAt {
+            nextFootstepAt = clock + 0.23
             let footprint = SKShapeNode(ellipseOf: CGSize(width: 7, height: 3))
-            footprint.fillColor = SKColor(red: 0.62, green: 0.64, blue: 0.46, alpha: 0.24)
+            switch selectedWorld.biome {
+            case 1:
+                footprint.fillColor = SKColor(red: 0.48, green: 0.62, blue: 0.67, alpha: 0.15)
+            case 2:
+                footprint.fillColor = SKColor(red: 0.60, green: 0.73, blue: 0.36, alpha: 0.15)
+            case 4:
+                footprint.fillColor = SKColor(red: 0.75, green: 0.88, blue: 0.95, alpha: 0.17)
+            default:
+                footprint.fillColor = SKColor(red: 0.62, green: 0.64, blue: 0.46, alpha: 0.20)
+            }
             footprint.strokeColor = .clear
             footprint.position = CGPoint(
                 x: pilot.position.x + (sin(CGFloat(clock) * 15) > 0 ? -6 : 6),
