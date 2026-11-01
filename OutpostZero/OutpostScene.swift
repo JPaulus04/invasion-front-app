@@ -3083,14 +3083,32 @@ final class OutpostScene: SKScene {
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
         installHubShell(active: "nav_pilot")
-        overlayText("PILOT", y: 162, fontSize: 26)
-        overlayText("\(availableCores) POWER CORES", y: 128, fontSize: 14)
+        overlayText("PILOT", y: 198, fontSize: 28)
+        overlayText("COMMANDER PROFILE  ·  \(availableCores) POWER CORES", y: 169, fontSize: 11)
+        // A dedicated character display fills the former empty teal space.
+        let showcase = SKShapeNode(rect: CGRect(x: -154, y: -39, width: 308, height: 192),
+                                   cornerRadius: 22)
+        showcase.name = "pilotShowcasePanel"
+        showcase.fillColor = SKColor(red: 0.055, green: 0.14, blue: 0.21, alpha: 0.96)
+        showcase.strokeColor = SKColor(red: 0.39, green: 0.74, blue: 0.81, alpha: 0.7)
+        showcase.lineWidth = 2
+        showcase.zPosition = 1
+        overlay.addChild(showcase)
+        let portraitGlow = SKSpriteNode(texture: ProductionPresentation.glow(
+            SKColor(red: 0.31, green: 0.81, blue: 0.97, alpha: 0.52)))
+        portraitGlow.name = "pilotShowcaseGlow"
+        portraitGlow.size = CGSize(width: 200, height: 180)
+        portraitGlow.position = CGPoint(x: 0, y: 54)
+        portraitGlow.zPosition = 2
+        overlay.addChild(portraitGlow)
         let portrait = SKSpriteNode(texture: pilotDirectionalTextures[10])
         portrait.name = "hubPilotPortrait"
-        portrait.size = CGSize(width: 132, height: 132)
-        portrait.position = CGPoint(x: 0, y: 39)
+        portrait.size = CGSize(width: 168, height: 168)
+        portrait.position = CGPoint(x: 0, y: 49)
         portrait.zPosition = 3
         overlay.addChild(portrait)
+        overlayText("PILOT READINESS  ·  RESTORE TO IMPROVE STATS",
+                    y: -24, fontSize: 10)
         actionButton("RESTORATION & SPECIALIZATION", key: "restore", y: -72, tint: .systemIndigo)
         let fresh = UserDefaults.standard.bool(forKey: "ozFreshPilotActive")
         if profileSwitchArmed {
@@ -4160,10 +4178,10 @@ final class OutpostScene: SKScene {
         // or altering the reactor's gameplay collision area.
         let hitLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         hitLabel.name = "fieldReactorHitLabel"
-        hitLabel.text = "-\(EquipmentDefenseRules.hitDamage)"
+        hitLabel.text = "REACTOR -\(EquipmentDefenseRules.hitDamage) HP"
         hitLabel.fontColor = .systemOrange
-        hitLabel.fontSize = 16
-        hitLabel.position = CGPoint(x: 28, y: 69)
+        hitLabel.fontSize = 12
+        hitLabel.position = CGPoint(x: 0, y: 82)
         hitLabel.zPosition = 12
         defenseDevice.addChild(hitLabel)
         hitLabel.run(.sequence([
