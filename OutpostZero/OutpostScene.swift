@@ -2573,6 +2573,38 @@ final class OutpostScene: SKScene {
         background.strokeColor = .clear
         background.zPosition = -20
         overlay.addChild(background)
+        // Layered atmosphere makes the hub feel like a location, not an empty teal canvas.
+        let skyGlow = SKSpriteNode(texture: ProductionPresentation.glow(
+            SKColor(red: 0.52, green: 0.85, blue: 0.92, alpha: 0.45)))
+        skyGlow.name = "hubAtmosphere"
+        skyGlow.size = CGSize(width: size.width * 1.35, height: size.height * 0.72)
+        skyGlow.position = CGPoint(x: size.width * 0.24, y: size.height * 0.22)
+        skyGlow.zPosition = -19.9
+        overlay.addChild(skyGlow)
+        for layer in 0..<3 {
+            let ridge = CGMutablePath()
+            let left = -size.width * 0.75
+            let right = size.width * 0.75
+            let baseline = -size.height * (0.18 + CGFloat(layer) * 0.085)
+            ridge.move(to: CGPoint(x: left, y: -size.height))
+            ridge.addLine(to: CGPoint(x: left, y: baseline))
+            for step in 0...12 {
+                let x = left + (right - left) * CGFloat(step) / 12
+                let elevation = CGFloat((step * 7 + layer * 11) % 5) * 13
+                ridge.addLine(to: CGPoint(x: x, y: baseline + elevation))
+            }
+            ridge.addLine(to: CGPoint(x: right, y: -size.height))
+            ridge.closeSubpath()
+            let silhouette = SKShapeNode(path: ridge)
+            silhouette.name = "hubDistantRidge"
+            silhouette.fillColor = SKColor(
+                red: 0.11 + CGFloat(layer) * 0.035,
+                green: 0.24 + CGFloat(layer) * 0.045,
+                blue: 0.32 + CGFloat(layer) * 0.035, alpha: 0.85)
+            silhouette.strokeColor = .clear
+            silhouette.zPosition = -19.8 + CGFloat(layer) * 0.1
+            overlay.addChild(silhouette)
+        }
         for index in 0..<4 {
             let hill = SKShapeNode(ellipseOf: CGSize(width: size.width * 1.4,
                                                      height: size.height * 0.48))
@@ -2828,26 +2860,7 @@ final class OutpostScene: SKScene {
                          tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1),
                          enabled: unlocked)
         }
-        for (direction, key, enabled) in [(-1, "world_prev", worldMapIndex > 0),
-                                           (1, "world_next", worldMapIndex < WorldCatalog.worlds.count - 1)] {
-            let x = CGFloat(direction) * (stageWidth / 2 - 23)
-            let rect = CGRect(x: x - 22, y: -28 * scale, width: 44, height: 56 * scale)
-            let arrow = SKShapeNode(rect: rect, cornerRadius: 12)
-            arrow.fillColor = SKColor(red: 0.10, green: 0.26, blue: 0.39, alpha: enabled ? 0.90 : 0.30)
-            arrow.strokeColor = .clear
-            arrow.zPosition = 7
-            overlay.addChild(arrow)
-            let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-            label.text = direction < 0 ? "‹" : "›"
-            label.fontSize = 32 * scale
-            label.fontColor = .white.withAlphaComponent(enabled ? 1 : 0.3)
-            label.verticalAlignmentMode = .center
-            label.position = CGPoint(x: x, y: 0)
-            label.zPosition = 8
-            overlay.addChild(label)
-            if enabled { overlayButtons[key] = rect }
-        }
-        overlayText("SWIPE LEFT OR RIGHT TO EXPLORE WORLDS",
+        overlayText("SWIPE TO EXPLORE WORLDS  •  TAP PLAY TO DEPLOY",
                     y: -233 * scale, fontSize: 10 * scale)
         updateHUD()
     }
