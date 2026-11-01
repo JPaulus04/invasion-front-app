@@ -2712,6 +2712,25 @@ final class OutpostScene: SKScene {
         stage.strokeColor = .white.withAlphaComponent(0.18)
         stage.lineWidth = 1
         overlay.addChild(stage)
+        // The destination is a dimensional diorama, not a flat menu swatch.
+        let stageShadow = SKShapeNode(ellipseOf: CGSize(
+            width: stageWidth * 0.90, height: 34 * scale))
+        stageShadow.name = "homeStageShadow"
+        stageShadow.position = CGPoint(x: 0, y: -128 * scale)
+        stageShadow.fillColor = .black.withAlphaComponent(0.34)
+        stageShadow.strokeColor = .clear
+        stageShadow.zPosition = -0.2
+        overlay.addChild(stageShadow)
+        let stageHighlight = SKShapeNode(rect: CGRect(
+            x: -stageWidth / 2 + 4, y: -116 * scale,
+            width: stageWidth - 8, height: 222 * scale),
+            cornerRadius: 18 * scale)
+        stageHighlight.name = "homeStageHighlight"
+        stageHighlight.fillColor = .clear
+        stageHighlight.strokeColor = SKColor.white.withAlphaComponent(0.24)
+        stageHighlight.lineWidth = 1.4
+        stageHighlight.zPosition = 6
+        overlay.addChild(stageHighlight)
         if unlocked && worldMapIndex == 0 {
             // Reuse the actual World 1 floor inside a rounded crop. Home and
             // gameplay now share materials rather than a plain green card.
@@ -2837,6 +2856,17 @@ final class OutpostScene: SKScene {
                 .fadeAlpha(to: 0.94, duration: 0.7 + Double(index) * 0.10)
             ])))
         }
+        // An illuminated portal platform ties the pilot and destination together.
+        let portalFootprint = SKShapeNode(ellipseOf: CGSize(
+            width: 132 * scale, height: 28 * scale))
+        portalFootprint.name = "homePortalFootprint"
+        portalFootprint.fillColor = SKColor(red: 0.11, green: 0.67, blue: 0.91, alpha: 0.30)
+        portalFootprint.strokeColor = SKColor.systemCyan.withAlphaComponent(0.65)
+        portalFootprint.lineWidth = 2
+        portalFootprint.glowWidth = 4
+        portalFootprint.position = CGPoint(x: 0, y: -78 * scale)
+        portalFootprint.zPosition = 1.5
+        overlay.addChild(portalFootprint)
         let pilotPreview = SKSpriteNode(texture: pilotDirectionalTextures[10])
         pilotPreview.name = "homePilotPreview"
         pilotPreview.size = CGSize(width: 69 * scale, height: 69 * scale)
