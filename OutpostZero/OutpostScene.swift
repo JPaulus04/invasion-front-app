@@ -3298,7 +3298,7 @@ final class OutpostScene: SKScene {
         overlayText(activeRun ? "BATTLE PAUSED" : "SETTINGS", y: 162, fontSize: 23)
 
         if activeRun {
-            overlayText("ACQUIRED SKILLS", y: 118, fontSize: 13)
+            overlayText("TACTICAL LOADOUT", y: 118, fontSize: 13)
             // Compact run summary; no fake skill icons or misleading rarity labels.
             let stats = [
                 "HP  \(health)/\(maximumHealth)",
