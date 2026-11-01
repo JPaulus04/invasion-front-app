@@ -484,6 +484,15 @@ final class OutpostScene: SKScene {
         pilotShadow.name = "pilotGroundShadow"
         pilotShadow.zPosition = -0.6
         pilot.addChild(pilotShadow)
+        // A broader, low-opacity penumbra blends the contact shadow into
+        // painted terrain instead of leaving a hard oval beneath the feet.
+        let pilotPenumbra = SKShapeNode(ellipseOf: CGSize(width: 65, height: 20))
+        pilotPenumbra.name = "pilotGroundPenumbra"
+        pilotPenumbra.position = CGPoint(x: 7, y: -29)
+        pilotPenumbra.fillColor = SKColor.black.withAlphaComponent(0.13)
+        pilotPenumbra.strokeColor = .clear
+        pilotPenumbra.zPosition = -0.7
+        pilot.addChild(pilotPenumbra)
         // A soft reflected patch differentiates blue-white armor from the
         // olive forest floor. No bright selection ring or collision marker.
         let armorBounce = SKShapeNode(ellipseOf: CGSize(width: 30, height: 8))
