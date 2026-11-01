@@ -142,6 +142,24 @@ enum ProductionPresentation {
         format.scale = 2
         let image = UIGraphicsImageRenderer(size: CGSize(width: 72, height: 72), format: format).image { renderer in
             let c = renderer.cgContext
+            // Recessed equipment medallion: bevel, shaded material, rim light.
+            let bezel = UIBezierPath(roundedRect: CGRect(x: 5, y: 5, width: 62, height: 62), cornerRadius: 16)
+            c.saveGState()
+            c.setShadow(offset: CGSize(width: 0, height: 3), blur: 4, color: UIColor.black.cgColor)
+            UIColor(red: 0.025, green: 0.045, blue: 0.08, alpha: 1).setFill()
+            bezel.fill()
+            c.restoreGState()
+            c.saveGState()
+            bezel.addClip()
+            let colors = [tint.withAlphaComponent(0.38).cgColor,
+                          UIColor(red: 0.035, green: 0.055, blue: 0.10, alpha: 1).cgColor] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1]) {
+                c.drawLinearGradient(gradient, start: CGPoint(x: 10, y: 5), end: CGPoint(x: 60, y: 68), options: [])
+            }
+            c.restoreGState()
+            tint.withAlphaComponent(0.7).setStroke()
+            bezel.lineWidth = 1.5
+            bezel.stroke()
             c.setShadow(offset: .zero, blur: 7, color: tint.withAlphaComponent(0.7).cgColor)
             tint.setStroke()
             tint.withAlphaComponent(0.22).setFill()
@@ -217,5 +235,83 @@ enum ProductionPresentation {
         let texture = SKTexture(image: image)
         textures.setObject(texture, forKey: key)
         return texture
+    }
+}
+
+extension ProductionPresentation {
+    /// Layered equipment illustrations, built once for the live draft screen.
+    static func abilityArtwork(_ id: String, tint: UIColor) -> SKTexture {
+        let key = "illustration-\(id)" as NSString
+        if let cached = textures.object(forKey: key) { return cached }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 2
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 120), format: format).image { renderer in
+            let c = renderer.cgContext
+            func sphere(_ center: CGPoint, _ radius: CGFloat, _ color: UIColor) {
+                c.saveGState()
+                c.setShadow(offset: CGSize(width: 2, height: 5), blur: 6, color: UIColor.black.withAlphaComponent(0.7).cgColor)
+                let circle = UIBezierPath(ovalIn: CGRect(x: center.x-radius, y: center.y-radius, width: radius*2, height: radius*2))
+                color.setFill(); circle.fill()
+                c.setShadow(offset: .zero, blur: 0)
+                circle.addClip()
+                let colors = [UIColor.white.cgColor, color.cgColor, UIColor(red: 0.01, green: 0.03, blue: 0.10, alpha: 1).cgColor] as CFArray
+                if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 0.36, 1]) {
+                    c.drawRadialGradient(gradient, startCenter: CGPoint(x: center.x-radius*0.3, y: center.y-radius*0.4), startRadius: 0, endCenter: center, endRadius: radius*1.3, options: [])
+                }
+                c.restoreGState()
+            }
+            // Large halo sits behind the equipment, never over the description.
+            let colors = [tint.withAlphaComponent(0.32).cgColor, tint.withAlphaComponent(0).cgColor] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0,1]) {
+                c.drawRadialGradient(gradient, startCenter: CGPoint(x:60,y:60), startRadius:0, endCenter:CGPoint(x:60,y:60), endRadius:59, options:[])
+            }
+            if id == "orbit" || id == "evolveOrbit" {
+                c.saveGState()
+                c.translateBy(x:60,y:60); c.rotate(by:-0.35)
+                let ring = UIBezierPath(ovalIn:CGRect(x:-42,y:-22,width:84,height:44))
+                tint.withAlphaComponent(0.8).setStroke(); ring.lineWidth = id == "orbit" ? 3 : 8; ring.stroke()
+                c.restoreGState()
+                sphere(CGPoint(x:60,y:60),14,UIColor(red:0.16,green:0.26,blue:0.42,alpha:1))
+                for point in [CGPoint(x:24,y:73),CGPoint(x:79,y:34),CGPoint(x:91,y:76)] { sphere(point,13,tint) }
+            } else if ["damage","rate","explosive","incendiary","frost"].contains(id) {
+                for index in 0..<3 {
+                    c.saveGState(); c.translateBy(x:CGFloat(35+index*24),y:CGFloat(67-index*8)); c.rotate(by:0.38)
+                    c.setShadow(offset:CGSize(width:3,height:4),blur:5,color:UIColor.black.cgColor)
+                    let shell = UIBezierPath(roundedRect:CGRect(x:-9,y:-24,width:18,height:48),cornerRadius:4)
+                    UIColor(red:0.28,green:0.35,blue:0.43,alpha:1).setFill(); shell.fill()
+                    tint.setStroke(); shell.lineWidth=2; shell.stroke()
+                    let tip=UIBezierPath();tip.move(to:CGPoint(x:-9,y:-24));tip.addLine(to:CGPoint(x:0,y:-40));tip.addLine(to:CGPoint(x:9,y:-24));tip.close()
+                    tint.setFill();tip.fill()
+                    c.setShadow(offset:.zero,blur:0)
+                    UIColor.white.withAlphaComponent(0.6).setFill();UIBezierPath(roundedRect:CGRect(x:-5,y:-21,width:3,height:32),cornerRadius:1).fill()
+                    tint.setFill();UIBezierPath(rect:CGRect(x:-9,y:13,width:18,height:5)).fill()
+                    c.restoreGState()
+                }
+                if id == "explosive" || id == "incendiary" {
+                    for i in 0..<7 { let a=CGFloat(i) * .pi / 3.5; sphere(CGPoint(x:60+cos(a)*46,y:60+sin(a)*46),CGFloat(i%2+2),tint) }
+                } else if id == "frost" {
+                    for i in 0..<5 {
+                        let x=CGFloat(18+i*21);let crystal=UIBezierPath();crystal.move(to:CGPoint(x:x,y:16));crystal.addLine(to:CGPoint(x:x+5,y:26));crystal.addLine(to:CGPoint(x:x,y:36));crystal.addLine(to:CGPoint(x:x-5,y:26));crystal.close();tint.withAlphaComponent(0.7).setFill();crystal.fill()
+                    }
+                }
+            } else if id == "chain" {
+                sphere(CGPoint(x:29,y:80),17,tint);sphere(CGPoint(x:91,y:33),17,tint)
+                let arc=UIBezierPath();arc.move(to:CGPoint(x:30,y:78));arc.addLine(to:CGPoint(x:62,y:66));arc.addLine(to:CGPoint(x:47,y:48));arc.addLine(to:CGPoint(x:90,y:33))
+                c.setShadow(offset:.zero,blur:8,color:tint.cgColor);tint.setStroke();arc.lineWidth=8;arc.stroke();UIColor.white.setStroke();arc.lineWidth=2;arc.stroke()
+            } else {
+                // Armor, repair, mobility and supply equipment retain recognizable
+                // emblems within a dimensional steel module rather than bare glyphs.
+                c.saveGState();c.translateBy(x:60,y:60);c.rotate(by:-0.12)
+                let plate=UIBezierPath(roundedRect:CGRect(x:-37,y:-40,width:74,height:80),cornerRadius:18)
+                c.setShadow(offset:CGSize(width:4,height:6),blur:7,color:UIColor.black.cgColor)
+                UIColor(red:0.10,green:0.17,blue:0.25,alpha:1).setFill();plate.fill();tint.setStroke();plate.lineWidth=3;plate.stroke();c.restoreGState()
+                do {
+                    let cg = abilityIcon(id, tint: tint).cgImage()
+                    UIImage(cgImage:cg).draw(in:CGRect(x:28,y:28,width:64,height:64))
+                }
+                for point in [CGPoint(x:29,y:25),CGPoint(x:88,y:20),CGPoint(x:35,y:99),CGPoint(x:94,y:90)] { sphere(point,3,UIColor.lightGray) }
+            }
+        }
+        let texture=SKTexture(image:image);textures.setObject(texture,forKey:key);return texture
     }
 }

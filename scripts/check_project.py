@@ -330,7 +330,7 @@ if "private func levelChoice(at point: CGPoint)" not in scene:
     errors.append("Level-up hit-test helper missing")
 if "private func activateLevelUp(at point: CGPoint)" not in scene:
     errors.append("Level-up tap action helper missing")
-if "case (.levelUp, _): _ = activateLevelUp(at: local)" not in scene:
+if "_ = self?.activateLevelUp(at: local)" not in scene or "_ = activateLevelUp(at: local)" not in scene:
     errors.append("Touch selection must use tested card hitboxes")
 if "activateLevelUp(at: CGPoint(x: rect.midX, y: rect.midY))" not in qa_scene:
     errors.append("Simulator must trigger the production level-up tap route")

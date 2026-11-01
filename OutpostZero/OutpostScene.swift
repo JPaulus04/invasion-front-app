@@ -169,6 +169,7 @@ final class OutpostScene: SKScene {
     private var fastForward = UserDefaults.standard.bool(forKey: "outpostZeroDoubleSpeed")
     private let speedButton = SKShapeNode(rectOf: CGSize(width: 72, height: 34), cornerRadius: 9)
     private let speedLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+    private var abilityRevealActive = false
     private var menuUnlockTime: TimeInterval = 0
     private var menuNeedsFreshTouch = false
     private var heldTouch: UITouch?
@@ -1946,6 +1947,22 @@ final class OutpostScene: SKScene {
             }
             precondition(levelChoice(at: CGPoint(x: 0, y: 200)) == nil,
                          "Empty overlay space must not select an upgrade")
+            let choicesBeforeReveal = levelChoices
+            let pendingBeforeReveal = progress.pendingChoices
+            finishAbilityReveal()
+            precondition(!abilityRevealActive && levelChoices == choicesBeforeReveal &&
+                         progress.pendingChoices == pendingBeforeReveal && phase == .levelUp,
+                         "Skipping reveal must not reroll, select, spend XP or resume combat")
+            for card in overlay.children where card.name == "upgradeModuleCard" {
+                precondition(card.alpha == 1 && card.action(forKey: "cardReveal") == nil,
+                             "Skipping must leave all three cards visible and settled")
+                guard let reel = card.childNode(withName: "abilityArtworkWindow/abilityArtworkReel") else {
+                    preconditionFailure("Every reward needs its production artwork reel")
+                }
+                precondition(reel.position.y == 0 && reel.action(forKey: "artworkScroll") == nil &&
+                             reel.childNode(withName: "reelEcho") == nil,
+                             "Skip must settle artwork and remove transient reel content")
+            }
             if qaLevelUpResume {
                 precondition(!levelChoices.isEmpty, "No level-up choices offered")
                 let choice = levelChoices[0]
@@ -2456,6 +2473,9 @@ final class OutpostScene: SKScene {
         speedButton.isHidden = true
         checkpointButton.isHidden = true
         overlay.setScale(1)
+        overlay.removeAction(forKey: "abilityRevealCompletion")
+        overlay.removeAction(forKey: "abilitySelection")
+        abilityRevealActive = false
         overlay.removeAllChildren()
         overlayBackdrop.fillColor = SKColor(white: 0.05, alpha: 0.82)
         overlayButtons.removeAll()
@@ -7587,7 +7607,7 @@ final class OutpostScene: SKScene {
                 tint = SKColor(red: 1, green: 0.67, blue: 0.29, alpha: 1)
             case "mobility":
                 label = "MOBILITY \(mobilityRank) → \(mobilityRank + 1)"
-                detail = "Move slightly faster when dodging"
+                detail = "Movement speed +6 • automatic fire stays active"
                 category = "MOVEMENT"
                 tint = SKColor(red: 0.36, green: 0.83, blue: 0.87, alpha: 1)
             case "supplies":
@@ -7668,6 +7688,9 @@ final class OutpostScene: SKScene {
             let root = SKNode()
             root.name = "upgradeModuleCard"
             root.position.y = cardCenterY
+            root.userData = NSMutableDictionary()
+            root.userData?["settledY"] = NSNumber(value: Double(cardCenterY))
+            root.userData?["choice"] = choice
             root.zPosition = 1
             overlay.addChild(root)
             let shadow = SKShapeNode(rect: CGRect(x: -cardWidth / 2, y: -47,
@@ -7685,15 +7708,40 @@ final class OutpostScene: SKScene {
             light.size = CGSize(width: 115, height: 82)
             light.position.x = -cardWidth / 2 + 58
             root.addChild(light)
-            let icon = SKSpriteNode(texture: ProductionPresentation.abilityIcon(choice, tint: tint))
-            icon.size = CGSize(width: 58, height: 58)
-            icon.position = CGPoint(x: -cardWidth / 2 + 37, y: -1)
+            let icon = SKSpriteNode(texture: ProductionPresentation.abilityArtwork(choice, tint: tint))
+            icon.size = CGSize(width: 80, height: 80)
+            icon.position = .zero
             icon.zPosition = 2
-            root.addChild(icon)
-            let textLeft = -cardWidth / 2 + 75
-            let textWidth = cardWidth - 88
+            let artworkWindow = SKCropNode()
+            artworkWindow.name = "abilityArtworkWindow"
+            artworkWindow.position = CGPoint(x: -cardWidth / 2 + 42, y: 0)
+            let mask = SKShapeNode(rectOf: CGSize(width: 80, height: 80), cornerRadius: 12)
+            mask.fillColor = .white
+            mask.strokeColor = .clear
+            artworkWindow.maskNode = mask
+            root.addChild(artworkWindow)
+            let reel = SKNode()
+            reel.name = "abilityArtworkReel"
+            artworkWindow.addChild(reel)
+            reel.addChild(icon)
+            // Repeat the actual reward, never fake a higher-rarity near miss.
+            if !UIAccessibility.isReduceMotionEnabled {
+                let echo = SKSpriteNode(texture: icon.texture)
+                echo.name = "reelEcho"
+                echo.size = icon.size
+                echo.position.y = -90
+                reel.addChild(echo)
+                reel.position.y = 180
+                let scroll = SKAction.moveTo(y: 0, duration: 0.70 + Double(index) * 0.14)
+                scroll.timingMode = .easeOut
+                reel.run(scroll, withKey: "artworkScroll")
+            }
+            let textLeft = -cardWidth / 2 + 85
+            let textWidth = cardWidth - 98
             let rarity = SKLabelNode(fontNamed: "AvenirNext-Bold")
-            rarity.text = "\(rarityName)  ·  \(category)"
+            let acquisition = AbilityLoadout.catalog.contains(choice)
+                ? (lockedLoadout.contains(choice) ? "RANK UP" : "NEW SKILL") : category
+            rarity.text = "\(rarityName)  ·  \(acquisition)"
             rarity.fontSize = 8
             rarity.fontColor = rimTint
             rarity.horizontalAlignmentMode = .left
@@ -7711,7 +7759,7 @@ final class OutpostScene: SKScene {
             }
             let detailLabel = SKLabelNode(fontNamed: "AvenirNext-Medium")
             detailLabel.text = detail
-            detailLabel.fontSize = 10.5
+            detailLabel.fontSize = 10
             detailLabel.fontColor = SKColor(white: 0.83, alpha: 1)
             detailLabel.horizontalAlignmentMode = .left
             detailLabel.verticalAlignmentMode = .top
@@ -7719,19 +7767,41 @@ final class OutpostScene: SKScene {
             detailLabel.preferredMaxLayoutWidth = textWidth
             detailLabel.position = CGPoint(x: textLeft, y: -4)
             root.addChild(detailLabel)
-            // Shared reveal animates complete cards, preserving internal alignment.
-            // Touch lock already lasts one second, longer than all three reveals.
+            let ranks = ["chain": chainLevel, "explosive": explosiveLevel,
+                         "incendiary": incendiaryLevel, "orbit": orbitLevel, "frost": frostLevel]
+            let context = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+            if let rank = ranks[choice] {
+                context.text = "RANK \(rank) → \(rank + 1) / 3  ·  " +
+                    (lockedLoadout.contains(choice) ? "SLOT KEPT" : "USES 1 SLOT")
+            } else if choice == "evolveOrbit" {
+                context.text = "EVOLUTION READY  ·  SLOT KEPT"
+            } else {
+                context.text = "INSTANT BENEFIT  ·  NO SLOT USED"
+            }
+            context.fontSize = 7.5
+            context.fontColor = rimTint
+            context.horizontalAlignmentMode = .left
+            context.position = CGPoint(x: textLeft, y: -35)
+            root.addChild(context)
+            // A short reveal happens outside the paused arena. The draw is
+            // already fixed; skipping never rerolls or consumes a choice.
             if !UIAccessibility.isReduceMotionEnabled {
                 root.alpha = 0
-                root.position.y = cardCenterY - 12
-                let rise = SKAction.moveTo(y: cardCenterY, duration: 0.28)
+                root.position.y = cardCenterY - 18
+                let rise = SKAction.moveTo(y: cardCenterY, duration: 0.32)
                 rise.timingMode = .easeOut
-                root.run(.sequence([.wait(forDuration: Double(index) * 0.10),
-                    .group([.fadeIn(withDuration: 0.22), rise])]))
+                root.run(.sequence([.wait(forDuration: 0.25 + Double(index) * 0.26),
+                    .group([.fadeIn(withDuration: 0.24), rise])]), withKey: "cardReveal")
             }
             overlayButtons[choice] = frame
         }
-        overlayText("COMBAT PAUSED  •  SELECT TO RESUME", y: -262,
+        abilityRevealActive = !UIAccessibility.isReduceMotionEnabled
+        if abilityRevealActive {
+            overlay.run(.sequence([.wait(forDuration: 1.35), .run { [weak self] in
+                self?.finishAbilityReveal()
+            }]), withKey: "abilityRevealCompletion")
+        }
+        overlayText(abilityRevealActive ? "TAP TO REVEAL ALL" : "COMBAT PAUSED  •  SELECT TO RESUME", y: -262,
                     fontSize: 11, name: "levelUpFooter")
         #if targetEnvironment(simulator)
         if let footer = overlay.childNode(withName: "levelUpFooter") {
@@ -7744,6 +7814,27 @@ final class OutpostScene: SKScene {
         }
         #endif
         updateHUD()
+    }
+
+    private func finishAbilityReveal() {
+        guard phase == .levelUp else { return }
+        abilityRevealActive = false
+        overlay.removeAction(forKey: "abilityRevealCompletion")
+        for card in overlay.children where card.name == "upgradeModuleCard" {
+            card.removeAction(forKey: "cardReveal")
+            card.alpha = 1
+            if let reel = card.childNode(withName: "abilityArtworkWindow/abilityArtworkReel") {
+                reel.removeAction(forKey: "artworkScroll")
+                reel.position.y = 0
+                reel.childNode(withName: "reelEcho")?.removeFromParent()
+            }
+            if let y = card.userData?["settledY"] as? NSNumber { card.position.y = CGFloat(truncating: y) }
+            for child in card.children {
+                child.removeAction(forKey: "iconReveal")
+                child.setScale(1)
+            }
+        }
+        (overlay.childNode(withName: "levelUpFooter") as? SKLabelNode)?.text = "COMBAT PAUSED  •  SELECT TO RESUME"
     }
 
     /// Single hit-testing path shared by real touches and simulator QA.
@@ -7763,6 +7854,7 @@ final class OutpostScene: SKScene {
     private func chooseLevelUpgrade(_ choice: String) {
         guard phase == .levelUp, levelChoices.contains(choice),
               progress.pendingChoices > 0 else { return }
+        finishAbilityReveal()
         // New abilities permanently occupy one of two beginner slots.
         // Existing skills can be ranked without consuming another slot.
         if AbilityLoadout.catalog.contains(choice),
@@ -8288,6 +8380,11 @@ final class OutpostScene: SKScene {
             movementTarget = nil
             return
         }
+        if phase == .levelUp && abilityRevealActive && !awaitingMenuRelease {
+            finishAbilityReveal()
+            menuUnlockTime = clock + 0.12
+            return // A skip touch must never also select a card.
+        }
         if clock < menuUnlockTime || awaitingMenuRelease { return }
         let local = touch.location(in: overlay)
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
@@ -8372,7 +8469,24 @@ final class OutpostScene: SKScene {
         case (.gameOver, "restart"), (.worldComplete, "restart"):
             restart()
             _ = enterSelectedWorld()
-        case (.levelUp, _): _ = activateLevelUp(at: local)
+        case (.levelUp, _):
+            guard overlay.action(forKey: "abilitySelection") == nil,
+                  let choice = levelChoice(at: local) else { return }
+            finishAbilityReveal()
+            if UIAccessibility.isReduceMotionEnabled {
+                _ = activateLevelUp(at: local)
+            } else {
+                for card in overlay.children where card.name == "upgradeModuleCard" {
+                    let selected = (card.userData?["choice"] as? String) == choice
+                    card.run(selected
+                        ? .sequence([.scale(to: 1.025, duration: 0.09), .scale(to: 1, duration: 0.13)])
+                        : .fadeAlpha(to: 0.25, duration: 0.16))
+                }
+                (overlay.childNode(withName: "levelUpFooter") as? SKLabelNode)?.text = "UPGRADE ACQUIRED"
+                overlay.run(.sequence([.wait(forDuration: 0.24), .run { [weak self] in
+                    _ = self?.activateLevelUp(at: local)
+                }]), withKey: "abilitySelection")
+            }
         case (.checkpoint, "heal") where !checkpointUsed && health < maximumHealth && coins >= repairCost:
             coins -= repairCost
             health = min(maximumHealth, health + 40)
