@@ -3299,25 +3299,24 @@ final class OutpostScene: SKScene {
 
         if activeRun {
             overlayText("TACTICAL LOADOUT", y: 118, fontSize: 13)
-            // Compact run summary; no fake skill icons or misleading rarity labels.
-            let stats = [
-                "HP  \(health)/\(maximumHealth)",
-                "POWER  \(damage + permanentDamageBonus + gearWeaponBonus)",
-                "FIRE RATE  \(fireRate)"
-            ]
-            for (index, value) in stats.enumerated() {
-                let column = CGFloat(index - 1)
+            let skills = Array(lockedLoadout.selected.prefix(3))
+            let names = ["chain": "CHAIN", "explosive": "BLAST",
+                         "incendiary": "FIRE", "orbit": "ORBS", "frost": "FROST"]
+            let accents: [SKColor] = [.systemCyan, .systemOrange, .systemTeal]
+            for index in 0..<3 {
                 let width = min((size.width - 48) / 3, 112)
-                let x = column * (width + 6)
+                let x = CGFloat(index - 1) * (width + 6)
+                let equipped = index < skills.count
+                let skill = equipped ? skills[index] : ""
                 let tile = SKShapeNode(rect: CGRect(x: x - width / 2, y: 36,
                                                     width: width, height: 65), cornerRadius: 11)
                 tile.fillColor = SKColor(red: 0.10, green: 0.22, blue: 0.28, alpha: 0.97)
-                tile.strokeColor = SKColor(red: 0.31, green: 0.77, blue: 0.78, alpha: 0.9)
-                tile.lineWidth = 1.5
+                tile.strokeColor = equipped ? accents[index] : .gray
+                tile.lineWidth = equipped ? 2 : 1
                 overlay.addChild(tile)
                 let label = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
-                label.text = value
-                label.fontSize = 11
+                label.text = equipped ? (names[skill] ?? skill.uppercased()) : "+ EMPTY"
+                label.fontSize = 12
                 label.fontColor = .white
                 label.verticalAlignmentMode = .center
                 label.position = CGPoint(x: x, y: 68)
