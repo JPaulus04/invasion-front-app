@@ -273,6 +273,60 @@ extension ProductionPresentation {
                 c.restoreGState()
                 sphere(CGPoint(x:60,y:60),14,UIColor(red:0.16,green:0.26,blue:0.42,alpha:1))
                 for point in [CGPoint(x:24,y:73),CGPoint(x:79,y:34),CGPoint(x:91,y:76)] { sphere(point,13,tint) }
+            } else if id == "rate" {
+                // A spinning multi-barrel accelerator, not another ammunition icon.
+                c.saveGState()
+                c.translateBy(x: 60, y: 60)
+                c.rotate(by: -0.28)
+                let housing = UIBezierPath(roundedRect: CGRect(x: -35, y: -26, width: 70, height: 52), cornerRadius: 13)
+                c.setShadow(offset: CGSize(width: 3, height: 6), blur: 7, color: UIColor.black.cgColor)
+                UIColor(red: 0.11, green: 0.19, blue: 0.29, alpha: 1).setFill()
+                housing.fill()
+                tint.setStroke(); housing.lineWidth = 3; housing.stroke()
+                c.setShadow(offset: .zero, blur: 0)
+                for offset in [-16.0, 0.0, 16.0] {
+                    let barrel = UIBezierPath(roundedRect: CGRect(x: 0, y: offset - 5, width: 47, height: 10), cornerRadius: 4)
+                    UIColor(red: 0.46, green: 0.59, blue: 0.67, alpha: 1).setFill(); barrel.fill()
+                    UIColor.white.withAlphaComponent(0.65).setStroke(); barrel.lineWidth = 1.5; barrel.stroke()
+                }
+                sphere(CGPoint(x: -13, y: 0), 20, tint)
+                sphere(CGPoint(x: -13, y: 0), 9, UIColor(red: 0.09, green: 0.15, blue: 0.23, alpha: 1))
+                c.restoreGState()
+                for index in 0..<3 {
+                    let y = CGFloat(41 + index * 18)
+                    let streak = UIBezierPath()
+                    streak.move(to: CGPoint(x: 97, y: y))
+                    streak.addLine(to: CGPoint(x: 113, y: y - 5))
+                    tint.withAlphaComponent(0.85).setStroke()
+                    streak.lineWidth = 3; streak.stroke()
+                }
+            } else if id == "explosive" {
+                // A single heavy warhead and an unmistakable blast silhouette.
+                let blast = UIBezierPath()
+                for index in 0..<16 {
+                    let angle = CGFloat(index) * .pi / 8
+                    let radius: CGFloat = index.isMultiple(of: 2) ? 51 : 29
+                    let point = CGPoint(x: 62 + cos(angle) * radius, y: 57 + sin(angle) * radius)
+                    if index == 0 { blast.move(to: point) } else { blast.addLine(to: point) }
+                }
+                blast.close()
+                UIColor(red: 1, green: 0.46, blue: 0.12, alpha: 0.72).setFill(); blast.fill()
+                UIColor(red: 1, green: 0.86, blue: 0.36, alpha: 0.9).setStroke()
+                blast.lineWidth = 3; blast.stroke()
+                c.saveGState()
+                c.translateBy(x: 55, y: 60); c.rotate(by: -0.65)
+                let body = UIBezierPath(roundedRect: CGRect(x: -13, y: -34, width: 26, height: 58), cornerRadius: 7)
+                UIColor(red: 0.18, green: 0.24, blue: 0.29, alpha: 1).setFill(); body.fill()
+                tint.setStroke(); body.lineWidth = 3; body.stroke()
+                let nose = UIBezierPath()
+                nose.move(to: CGPoint(x: -13, y: -34))
+                nose.addLine(to: CGPoint(x: 0, y: -52))
+                nose.addLine(to: CGPoint(x: 13, y: -34))
+                nose.close()
+                UIColor(red: 1, green: 0.81, blue: 0.35, alpha: 1).setFill(); nose.fill()
+                UIColor.white.withAlphaComponent(0.8).setFill()
+                UIBezierPath(roundedRect: CGRect(x: -5, y: -25, width: 4, height: 35), cornerRadius: 2).fill()
+                c.restoreGState()
             } else if ["damage","rate","explosive","incendiary","frost"].contains(id) {
                 for index in 0..<3 {
                     c.saveGState(); c.translateBy(x:CGFloat(35+index*24),y:CGFloat(67-index*8)); c.rotate(by:0.38)
