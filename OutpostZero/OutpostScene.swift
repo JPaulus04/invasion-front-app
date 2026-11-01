@@ -3311,15 +3311,57 @@ final class OutpostScene: SKScene {
                 let tile = SKShapeNode(rect: CGRect(x: x - width / 2, y: 36,
                                                     width: width, height: 65), cornerRadius: 11)
                 tile.fillColor = SKColor(red: 0.10, green: 0.22, blue: 0.28, alpha: 0.97)
-                tile.strokeColor = equipped ? accents[index] : .gray
+                let accent = equipped ? accents[index] : SKColor.gray
+                tile.strokeColor = accent
                 tile.lineWidth = equipped ? 2 : 1
                 overlay.addChild(tile)
+
+                // Distinct geometric skill emblems, not repeated letter badges.
+                let emblem = SKShapeNode(circleOfRadius: 13)
+                emblem.position = CGPoint(x: x, y: 78)
+                emblem.fillColor = accent.withAlphaComponent(equipped ? 0.25 : 0.08)
+                emblem.strokeColor = accent
+                emblem.lineWidth = 1.4
+                overlay.addChild(emblem)
+                if equipped {
+                    let glyph: SKShapeNode
+                    switch skill {
+                    case "chain":
+                        let p = CGMutablePath()
+                        p.move(to: CGPoint(x: -7, y: 6))
+                        p.addLine(to: CGPoint(x: 1, y: 6))
+                        p.addLine(to: CGPoint(x: -3, y: -1))
+                        p.addLine(to: CGPoint(x: 7, y: -1))
+                        p.addLine(to: CGPoint(x: -4, y: -8))
+                        glyph = SKShapeNode(path: p)
+                    case "explosive":
+                        glyph = SKShapeNode(rectOf: CGSize(width: 13, height: 13), cornerRadius: 3)
+                        glyph.zRotation = .pi / 4
+                    case "orbit":
+                        glyph = SKShapeNode(ellipseOf: CGSize(width: 19, height: 9))
+                        glyph.zRotation = .pi / 5
+                    case "incendiary":
+                        let p = CGMutablePath()
+                        p.move(to: CGPoint(x: 0, y: 9))
+                        p.addQuadCurve(to: CGPoint(x: 0, y: -9), control: CGPoint(x: 13, y: -1))
+                        p.addQuadCurve(to: CGPoint(x: 0, y: 9), control: CGPoint(x: -12, y: -2))
+                        glyph = SKShapeNode(path: p)
+                    default:
+                        glyph = SKShapeNode(circleOfRadius: 5)
+                    }
+                    glyph.position = emblem.position
+                    glyph.fillColor = accent
+                    glyph.strokeColor = .white
+                    glyph.lineWidth = 1.4
+                    glyph.zPosition = 2
+                    overlay.addChild(glyph)
+                }
                 let label = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
                 label.text = equipped ? (names[skill] ?? skill.uppercased()) : "+ EMPTY"
-                label.fontSize = 12
+                label.fontSize = 11
                 label.fontColor = .white
                 label.verticalAlignmentMode = .center
-                label.position = CGPoint(x: x, y: 68)
+                label.position = CGPoint(x: x, y: 49)
                 label.zPosition = 2
                 overlay.addChild(label)
             }
