@@ -4856,15 +4856,35 @@ final class OutpostScene: SKScene {
                 relief.size = paintedBounds.size
                 relief.zPosition = 0.1
                 floorArt.addChild(relief)
+                // Two broad, non-colliding lighting zones add depth to the
+                // painted floor while leaving the middle of the arena open.
+                // Remove previous nodes when changing rooms to avoid buildup.
                 floorArt.childNode(withName: "canopyLight")?.removeFromParent()
-                let light = SKSpriteNode(texture: ProductionPresentation.glow(
-                    SKColor(red: 0.94, green: 0.83, blue: 0.51, alpha: 0.13)))
+                floorArt.childNode(withName: "ambientBounceLight")?.removeFromParent()
+                let warm = landscape == "toxic_caves"
+                    ? SKColor(red: 0.55, green: 0.86, blue: 0.40, alpha: 0.11)
+                    : SKColor(red: 0.94, green: 0.83, blue: 0.51, alpha: 0.13)
+                let light = SKSpriteNode(texture: ProductionPresentation.glow(warm))
                 light.name = "canopyLight"
-                light.size = CGSize(width: paintedBounds.width * 0.9, height: paintedBounds.height * 0.85)
-                light.position = CGPoint(x: -paintedBounds.width * 0.18, y: paintedBounds.height * 0.22)
+                light.size = CGSize(width: paintedBounds.width * 0.9,
+                                    height: paintedBounds.height * 0.85)
+                light.position = CGPoint(x: -paintedBounds.width * 0.18,
+                                         y: paintedBounds.height * 0.22)
                 light.blendMode = .add
                 light.zPosition = 0.2
                 floorArt.addChild(light)
+                let cool = landscape == "swamp_basin"
+                    ? SKColor(red: 0.34, green: 0.74, blue: 0.75, alpha: 0.09)
+                    : SKColor(red: 0.42, green: 0.65, blue: 0.82, alpha: 0.07)
+                let bounce = SKSpriteNode(texture: ProductionPresentation.glow(cool))
+                bounce.name = "ambientBounceLight"
+                bounce.size = CGSize(width: paintedBounds.width * 0.62,
+                                     height: paintedBounds.height * 0.60)
+                bounce.position = CGPoint(x: paintedBounds.width * 0.25,
+                                          y: -paintedBounds.height * 0.24)
+                bounce.blendMode = .add
+                bounce.zPosition = 0.21
+                floorArt.addChild(bounce)
             } else {
                 roomArt?.childNode(withName: "world1AuthoredFloor")?.removeFromParent()
             }
