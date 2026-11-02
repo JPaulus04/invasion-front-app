@@ -2637,33 +2637,44 @@ final class OutpostScene: SKScene {
                     ("PILOT", "person.fill", "nav_pilot")]
         let width = min((size.width - 20) / 4, 96)
         let y = -294 * scale
+        // A single low-profile dock replaces four disconnected bordered tiles.
+        let dock = SKShapeNode(rect: CGRect(x: -2 * width - 3, y: y - 35 * scale,
+                                            width: 4 * width + 6, height: 69 * scale),
+                               cornerRadius: 25 * scale)
+        dock.name = "hubNavigationDock"
+        dock.fillColor = SKColor(red: 0.035, green: 0.11, blue: 0.17, alpha: 0.78)
+        dock.strokeColor = SKColor.white.withAlphaComponent(0.09)
+        dock.lineWidth = 1
+        dock.zPosition = 9
+        overlay.addChild(dock)
         for (index, tab) in tabs.enumerated() {
             let x = (CGFloat(index) - 1.5) * width
             let selected = tab.2 == active
             let rect = CGRect(x: x - width / 2 + 2, y: y - 30 * scale,
                               width: width - 4, height: 64 * scale)
-            let tile = SKShapeNode(rect: rect, cornerRadius: 12)
-            tile.name = "homeNav_\(tab.2)"
-            tile.fillColor = selected ? SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
-                : SKColor(red: 0.06, green: 0.16, blue: 0.22, alpha: 0.28)
-            tile.strokeColor = .clear
-            tile.lineWidth = 1
-            tile.zPosition = 10
-            overlay.addChild(tile)
+            if selected {
+                let indicator = SKShapeNode(ellipseOf: CGSize(width: 45 * scale, height: 43 * scale))
+                indicator.name = "homeNav_\(tab.2)"
+                indicator.position = CGPoint(x: x, y: y + 9 * scale)
+                indicator.fillColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 0.94)
+                indicator.strokeColor = .clear
+                indicator.zPosition = 10
+                overlay.addChild(indicator)
+            }
             if let image = UIImage(systemName: tab.1)?.withTintColor(
                 selected ? UIColor(red: 0.12, green: 0.28, blue: 0.40, alpha: 1) : UIColor.white,
                 renderingMode: .alwaysOriginal) {
                 let icon = SKSpriteNode(texture: SKTexture(image: image))
-                icon.size = CGSize(width: 24 * scale, height: 24 * scale)
-                icon.position = CGPoint(x: x, y: y + 10 * scale)
+                icon.size = CGSize(width: 23 * scale, height: 23 * scale)
+                icon.position = CGPoint(x: x, y: y + 9 * scale)
                 icon.zPosition = 11
                 overlay.addChild(icon)
             }
             let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             label.text = tab.0
-            label.fontColor = selected ? SKColor(red: 0.12, green: 0.28, blue: 0.40, alpha: 1) : .white
-            label.fontSize = 10 * scale
-            label.position = CGPoint(x: x, y: y - 20 * scale)
+            label.fontColor = selected ? SKColor(red: 0.99, green: 0.85, blue: 0.52, alpha: 1) : .white.withAlphaComponent(0.72)
+            label.fontSize = 9 * scale
+            label.position = CGPoint(x: x, y: y - 23 * scale)
             label.zPosition = 11
             overlay.addChild(label)
             overlayButtons[tab.2] = rect
