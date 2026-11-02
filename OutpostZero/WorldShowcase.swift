@@ -74,6 +74,53 @@ enum WorldShowcase {
             sprite.zPosition = 2 - y / 100
             root.addChild(sprite)
         }
+        // Layered world-specific landmarks establish depth at actual phone scale.
+        // Keep the portal approach clear and place the skyline behind the playable plateau.
+        let skylineColors: [(SKColor, SKColor)] = [
+            (SKColor(red:0.19,green:0.42,blue:0.30,alpha:1),
+             SKColor(red:0.35,green:0.66,blue:0.42,alpha:1)),
+            (SKColor(red:0.16,green:0.34,blue:0.38,alpha:1),
+             SKColor(red:0.35,green:0.69,blue:0.64,alpha:1)),
+            (SKColor(red:0.36,green:0.25,blue:0.23,alpha:1),
+             SKColor(red:0.86,green:0.49,blue:0.25,alpha:1)),
+            (SKColor(red:0.32,green:0.51,blue:0.63,alpha:1),
+             SKColor(red:0.67,green:0.86,blue:0.96,alpha:1))
+        ]
+        let palette = skylineColors[world % skylineColors.count]
+        for index in 0..<7 {
+            let x = CGFloat(index - 3) * 43 + CGFloat(index % 2) * 9
+            let y: CGFloat = 23 + CGFloat((index * 11) % 23)
+            let tall = CGFloat(18 + (index * 13) % 28)
+            let landmark = polygon([
+                CGPoint(x:x-11,y:y), CGPoint(x:x-8,y:y+tall*0.68),
+                CGPoint(x:x,y:y+tall), CGPoint(x:x+8,y:y+tall*0.66),
+                CGPoint(x:x+12,y:y)
+            ], color: index.isMultiple(of: 2) ? palette.0 : palette.1)
+            landmark.zPosition = 0.45 + CGFloat(index % 3) * 0.04
+            root.addChild(landmark)
+            let footShadow = SKShapeNode(ellipseOf: CGSize(width:29,height:9))
+            footShadow.position = CGPoint(x:x,y:y-2)
+            footShadow.fillColor = .black.withAlphaComponent(0.17)
+            footShadow.strokeColor = .clear
+            footShadow.zPosition = 0.43
+            root.addChild(footShadow)
+        }
+        // Rim-light and small ground fragments give the floating island a clear silhouette.
+        let rim = polygon(outline, color: .clear)
+        rim.strokeColor = palette.1.withAlphaComponent(0.65)
+        rim.lineWidth = 2.4
+        rim.zPosition = 0.18
+        root.addChild(rim)
+        for index in 0..<13 {
+            let x = CGFloat((index * 67) % 260) - 130
+            let y = CGFloat((index * 31) % 92) - 47
+            let pebble = SKShapeNode(ellipseOf: CGSize(width:CGFloat(5+index%4*3),height:CGFloat(2+index%3*2)))
+            pebble.fillColor = palette.1.withAlphaComponent(0.22)
+            pebble.strokeColor = .clear
+            pebble.position = CGPoint(x:x,y:y)
+            pebble.zPosition = 0.21
+            root.addChild(pebble)
+        }
         // Broken slabs lead into the upright portal without a literal road.
         for i in 0..<5 {
             let y = CGFloat(-54+i*15)
