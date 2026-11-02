@@ -31,7 +31,10 @@ enum CampaignPacing {
         let scaling = max(0, room - 1)
         let baseline = type == 3 ? 12 + scaling * 3 :
             (type == 1 ? 5 + scaling * 2 : 2 + scaling)
-        return baseline + WorldCatalog.info(world).enemyHealthBonus
+        // Support enemies must survive long enough to complete a warned attack.
+        // Boss health, reward rates and permanent progression are unchanged.
+        let supportArmor = (type == 4 || type == 5) ? 3 + min(5, room / 4) : 0
+        return baseline + supportArmor + WorldCatalog.info(world).enemyHealthBonus
     }
 
     static func killXP(type: Int, isBoss: Bool) -> Int {

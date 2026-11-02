@@ -42,7 +42,7 @@ enum CombatVisuals {
         let muzzle = CGPoint(x: origin.x + cos(angle) * 28,
                              y: origin.y + sin(angle) * 28)
         let color: SKColor = incendiary ? .systemOrange :
-            (explosive ? .systemCyan : .systemYellow)
+            (explosive ? .systemOrange : .systemYellow)
         let light = SKSpriteNode(texture: ProductionPresentation.glow(color.withAlphaComponent(0.24)))
         light.name = "pilotMuzzleLight"
         light.size = CGSize(width: 64, height: 38)
@@ -51,6 +51,32 @@ enum CombatVisuals {
         light.zPosition = 7.5
         parent.addChild(light)
         light.run(.sequence([.fadeOut(withDuration: 0.10), .removeFromParent()]))
+        // A short travelling bolt gives hits direction and velocity; gameplay
+        // remains hitscan and never waits for the presentation to arrive.
+        let bolt = SKNode()
+        bolt.position = muzzle
+        bolt.zRotation = angle
+        bolt.zPosition = 9
+        let body = SKShapeNode(rectOf: CGSize(width: explosive ? 19 : 12,
+            height: explosive ? 6 : 3), cornerRadius: 2)
+        body.fillColor = color
+        body.strokeColor = .white.withAlphaComponent(0.8)
+        body.lineWidth = 1
+        bolt.addChild(body)
+        if incendiary {
+            let tailPath = CGMutablePath()
+            tailPath.move(to: CGPoint(x: -4, y: 3))
+            tailPath.addLine(to: CGPoint(x: -22, y: 0))
+            tailPath.addLine(to: CGPoint(x: -4, y: -3))
+            tailPath.closeSubpath()
+            let tail = SKShapeNode(path: tailPath)
+            tail.fillColor = .systemOrange.withAlphaComponent(0.7)
+            tail.strokeColor = .clear
+            bolt.addChild(tail)
+        }
+        parent.addChild(bolt)
+        bolt.run(.sequence([.move(to: target, duration: min(0.12, Double(distance/2200))),
+                            .removeFromParent()]))
         let path = CGMutablePath()
         path.move(to: muzzle)
         path.addLine(to: target)

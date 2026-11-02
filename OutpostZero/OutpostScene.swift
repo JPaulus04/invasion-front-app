@@ -2214,11 +2214,13 @@ final class OutpostScene: SKScene {
         // the arena with only a subtle translucent backing behind the portrait.
         let portraitBacking = SKShapeNode(rect: CGRect(x: leftX, y: top - 66,
             width: leftWidth, height: 58), cornerRadius: 16)
-        portraitBacking.fillColor = SKColor(red: 0.025, green: 0.065, blue: 0.11, alpha: 0.60)
+        portraitBacking.path = CGPath(roundedRect: CGRect(x: 4, y: top - 68,
+            width: size.width - 8, height: 62), cornerWidth: 20, cornerHeight: 20, transform: nil)
+        portraitBacking.fillColor = SKColor(red: 0.025, green: 0.065, blue: 0.11, alpha: 0.66)
         portraitBacking.strokeColor = .clear
         chrome.addChild(portraitBacking)
         let routeBacking = SKShapeNode(rect: CGRect(x: centerLeft - 2, y: top - 65, width: centerWidth + 4, height: 56), cornerRadius: 15)
-        routeBacking.fillColor = SKColor(red: 0.025, green: 0.065, blue: 0.11, alpha: 0.76)
+        routeBacking.fillColor = .clear
         routeBacking.strokeColor = .clear
         chrome.addChild(routeBacking)
         let portrait = SKShapeNode(circleOfRadius: 22)
@@ -2573,6 +2575,7 @@ final class OutpostScene: SKScene {
     /// Shared shell keeps every pre-run destination separate from combat.
     private func installHubShell(active: String, scale: CGFloat = 1) {
         pilot.isHidden = true
+        overlayBackdrop.isHidden = true
         let pageScale: CGFloat = active == "nav_home" ? 1 : min(1, size.height / 780)
         overlay.setScale(pageScale)
         let background = SKShapeNode(rect: CGRect(
@@ -2642,8 +2645,8 @@ final class OutpostScene: SKScene {
             let tile = SKShapeNode(rect: rect, cornerRadius: 12)
             tile.name = "homeNav_\(tab.2)"
             tile.fillColor = selected ? SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
-                : SKColor(red: 0.06, green: 0.16, blue: 0.22, alpha: 0.95)
-            tile.strokeColor = selected ? .clear : SKColor.white.withAlphaComponent(0.12)
+                : SKColor(red: 0.06, green: 0.16, blue: 0.22, alpha: 0.28)
+            tile.strokeColor = .clear
             tile.lineWidth = 1
             tile.zPosition = 10
             overlay.addChild(tile)
@@ -2694,8 +2697,8 @@ final class OutpostScene: SKScene {
             x: -stripWidth / 2, y: 185 * scale,
             width: stripWidth, height: 46 * scale), cornerRadius: 12 * scale)
         strip.name = "homeResourceBar"
-        strip.fillColor = SKColor(red: 0.06, green: 0.16, blue: 0.22, alpha: 0.95)
-        strip.strokeColor = .white.withAlphaComponent(0.12)
+        strip.fillColor = .clear
+        strip.strokeColor = .clear
         strip.lineWidth = 1
         strip.zPosition = 1
         overlay.addChild(strip)
@@ -2708,186 +2711,21 @@ final class OutpostScene: SKScene {
             : (playable ? "LOCKED  •  EARN 1 STAR IN PREVIOUS WORLD" : "UNKNOWN  •  EXPLORE LATER"),
             y: 127 * scale, fontSize: 11 * scale)
 
-        let stageWidth = min(size.width - 36, 352)
-        let stage = SKShapeNode(rect: CGRect(
-            x: -stageWidth / 2, y: -120 * scale,
-            width: stageWidth, height: 230 * scale),
-            cornerRadius: 20 * scale)
-        stage.name = "homeWorldPreview"
-        stage.fillColor = !unlocked ? SKColor(red: 0.13, green: 0.17, blue: 0.23, alpha: 1) : worldMapIndex == 0
-            ? SKColor(red: 0.29, green: 0.66, blue: 0.40, alpha: 1)
-            : (worldMapIndex == 1
-                ? SKColor(red: 0.24, green: 0.61, blue: 0.78, alpha: 1)
-                : SKColor(red: 0.48, green: 0.55, blue: 0.36, alpha: 1))
-        stage.strokeColor = .white.withAlphaComponent(0.18)
-        stage.lineWidth = 1
-        overlay.addChild(stage)
-        // The destination is a dimensional diorama, not a flat menu swatch.
-        let stageShadow = SKShapeNode(ellipseOf: CGSize(
-            width: stageWidth * 0.90, height: 34 * scale))
-        stageShadow.name = "homeStageShadow"
-        stageShadow.position = CGPoint(x: 0, y: -128 * scale)
-        stageShadow.fillColor = .black.withAlphaComponent(0.34)
-        stageShadow.strokeColor = .clear
-        stageShadow.zPosition = -0.2
-        overlay.addChild(stageShadow)
-        let stageHighlight = SKShapeNode(rect: CGRect(
-            x: -stageWidth / 2 + 4, y: -116 * scale,
-            width: stageWidth - 8, height: 222 * scale),
-            cornerRadius: 18 * scale)
-        stageHighlight.name = "homeStageHighlight"
-        stageHighlight.fillColor = .clear
-        stageHighlight.strokeColor = SKColor.white.withAlphaComponent(0.24)
-        stageHighlight.lineWidth = 1.4
-        stageHighlight.zPosition = 6
-        overlay.addChild(stageHighlight)
-        if unlocked && worldMapIndex == 0 {
-            // Reuse the actual World 1 floor inside a rounded crop. Home and
-            // gameplay now share materials rather than a plain green card.
-            let crop = SKCropNode()
-            crop.name = "homeAuthoredLandscape"
-            let mask = SKShapeNode(rect: CGRect(x: -stageWidth / 2, y: -120 * scale,
-                                               width: stageWidth, height: 230 * scale),
-                                   cornerRadius: 20 * scale)
-            mask.fillColor = .white
-            mask.strokeColor = .clear
-            crop.maskNode = mask
-            let ground = SKSpriteNode(imageNamed: "world1_ruined_outpost_floor_1")
-            ground.size = CGSize(width: stageWidth, height: stageWidth * 1.5)
-            ground.position = CGPoint(x: 0, y: -5 * scale)
-            crop.addChild(ground)
-            crop.zPosition = 0.1
-            overlay.addChild(crop)
-        }
-        let island = SKShapeNode(ellipseOf: CGSize(width: stageWidth * 0.8,
-                                                    height: 59 * scale))
-        island.position = CGPoint(x: 0, y: -78 * scale)
-        island.fillColor = unlocked ? SKColor(red: 0.26, green: 0.42, blue: 0.32, alpha: 1) : SKColor(red: 0.18, green: 0.22, blue: 0.27, alpha: 1)
-        island.strokeColor = .clear
-        island.alpha = 0.45
-        island.zPosition = 0.5
-        overlay.addChild(island)
-        if unlocked && worldMapIndex == 0 {
-        for (i, horizontal) in [CGFloat(-0.38), -0.25, 0.28, 0.4].enumerated() {
-            let tree = SKSpriteNode(texture: productionTexture(
-                named: i.isMultiple(of: 2) ? "forest_pine" : "forest_broadleaf",
-                fallback: forestPineTexture))
-            tree.size = CGSize(width: 88 * scale, height: 88 * scale)
-            tree.position = CGPoint(x: stageWidth * horizontal,
-                                    y: CGFloat(-21 + (i % 2) * 13) * scale)
-            tree.zPosition = 1
-            overlay.addChild(tree)
-        }
-        }
-        if unlocked && worldMapIndex > 0 {
-            // Industrial destination models replace forest trees in later worlds.
-            for (index, horizontal) in [CGFloat(-0.36), -0.20, 0.29, 0.39].enumerated() {
-                let height = CGFloat(35 + index % 2 * 25) * scale
-                let tower = SKShapeNode(rectOf: CGSize(width: 33 * scale, height: height), cornerRadius: 5)
-                tower.position = CGPoint(x: stageWidth * horizontal, y: -50 * scale + height / 2)
-                tower.fillColor = selectedWorld.biome == 1
-                    ? SKColor(red: 0.38, green: 0.49, blue: 0.57, alpha: 1)
-                    : SKColor(red: 0.46, green: 0.39, blue: 0.52, alpha: 1)
-                if selectedWorld.biome == 4 { tower.fillColor = .systemCyan }
-                tower.strokeColor = SKColor.white.withAlphaComponent(0.55)
-                tower.zPosition = 1
-                overlay.addChild(tower)
-                let light = SKShapeNode(rectOf: CGSize(width: 20 * scale, height: 6 * scale), cornerRadius: 2)
-                light.position.y = height * 0.24
-                light.fillColor = selectedWorld.biome == 1 ? .systemCyan : .systemGreen
-                light.strokeColor = .clear
-                tower.addChild(light)
-            }
-            let channel = SKShapeNode(ellipseOf: CGSize(width: stageWidth * 0.64, height: 23 * scale))
-            channel.position = CGPoint(x: 0, y: -76 * scale)
-            channel.fillColor = selectedWorld.biome == 1 ? .systemCyan : .systemGreen
-            channel.strokeColor = .white.withAlphaComponent(0.6)
-            channel.zPosition = 0.8
-            overlay.addChild(channel)
-        }
-        if !unlocked {
-            for index in 0..<6 {
-                let cloud = SKShapeNode(ellipseOf: CGSize(width: CGFloat(100 + index % 3 * 34) * scale,
-                                                            height: CGFloat(38 + index % 2 * 19) * scale))
-                cloud.name = "homeUnknownCloud"
-                cloud.position = CGPoint(x: CGFloat((index % 3 - 1) * 92) * scale,
-                                         y: CGFloat(-74 + index / 3 * 76) * scale)
-                cloud.fillColor = SKColor(red: 0.39, green: 0.46, blue: 0.53, alpha: 0.97)
-                cloud.strokeColor = .white.withAlphaComponent(0.12)
-                cloud.zPosition = 5
-                overlay.addChild(cloud)
-            }
-        }
-        if unlocked {
-        // The same upright ring language as our campaign exit, never a
-        // rectangular gate or a floor circle.
-        let portal = SKShapeNode(ellipseOf: CGSize(width: 96 * scale,
-                                                    height: 138 * scale))
-        portal.name = "homeUprightPortal"
-        portal.position = CGPoint(x: 0, y: -4 * scale)
-        portal.fillColor = SKColor(red: 0.035, green: 0.29,
-                                   blue: 0.59, alpha: 1)
-        portal.strokeColor = SKColor(red: 0.53, green: 0.81,
-                                     blue: 0.85, alpha: 1)
-        portal.lineWidth = 9 * scale
-        portal.glowWidth = 3
-        portal.zPosition = 2
-        overlay.addChild(portal)
-        let energy = SKShapeNode(ellipseOf: CGSize(width: 70 * scale,
-                                                    height: 113 * scale))
-        energy.fillColor = SKColor(red: 0.07, green: 0.52,
-                                   blue: 0.83, alpha: 1)
-        energy.strokeColor = .systemCyan
-        energy.lineWidth = 2.2
-        energy.zPosition = 1
-        portal.addChild(energy)
-        // Four curved, translucent currents create a liquid-energy surface,
-        // without flattening the ring or obscuring the pilot's silhouette.
-        for index in 0..<4 {
-            let offset = CGFloat(index) * 17 * scale
-            let path = CGMutablePath()
-            path.move(to: CGPoint(x: -19 * scale, y: -43 * scale + offset))
-            path.addCurve(
-                to: CGPoint(x: 18 * scale, y: -23 * scale + offset),
-                control1: CGPoint(x: 25 * scale, y: -37 * scale + offset),
-                control2: CGPoint(x: -23 * scale, y: -20 * scale + offset))
-            let current = SKShapeNode(path: path)
-            current.name = "homePortalCurrent"
-            current.strokeColor = index.isMultiple(of: 2)
-                ? SKColor(red: 0.66, green: 0.93, blue: 1, alpha: 0.77)
-                : SKColor(red: 0.13, green: 0.37, blue: 0.94, alpha: 0.86)
-            current.lineWidth = 3.2 * scale
-            current.lineCap = .round
-            current.glowWidth = 1.8
-            current.zPosition = 2
-            energy.addChild(current)
-            current.run(.repeatForever(.sequence([
-                .fadeAlpha(to: 0.38, duration: 0.6 + Double(index) * 0.11),
-                .fadeAlpha(to: 0.94, duration: 0.7 + Double(index) * 0.10)
-            ])))
-        }
-        // An illuminated portal platform ties the pilot and destination together.
-        let portalFootprint = SKShapeNode(ellipseOf: CGSize(
-            width: 132 * scale, height: 28 * scale))
-        portalFootprint.name = "homePortalFootprint"
-        portalFootprint.fillColor = SKColor(red: 0.11, green: 0.67, blue: 0.91, alpha: 0.30)
-        portalFootprint.strokeColor = SKColor.systemCyan.withAlphaComponent(0.65)
-        portalFootprint.lineWidth = 2
-        portalFootprint.glowWidth = 4
-        portalFootprint.position = CGPoint(x: 0, y: -78 * scale)
-        portalFootprint.zPosition = 1.5
-        overlay.addChild(portalFootprint)
-        let pilotPreview = SKSpriteNode(texture: pilotDirectionalTextures[10])
-        pilotPreview.name = "homePilotPreview"
-        pilotPreview.size = CGSize(width: 69 * scale, height: 69 * scale)
-        pilotPreview.position = CGPoint(x: 67 * scale, y: -67 * scale)
-        pilotPreview.zPosition = 3
-        overlay.addChild(pilotPreview)
-        }
-        // The region label belongs in the open sky, not across the green
-        // oval platform outline at the bottom of the world preview.
+        let stageWidth = min(size.width - 24, 380)
+        let diorama = WorldShowcase.island(world: worldMapIndex, locked: !unlocked,
+            width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
+        diorama.position.y = -8 * scale
+        diorama.yScale *= scale
+        overlay.addChild(diorama)
         overlayText(unlocked ? world.region.uppercased() : "UNEXPLORED",
-                    y: 88 * scale, fontSize: 11 * scale)
+                    y: 100 * scale, fontSize: 10 * scale)
+        for index in max(0, worldMapIndex - 2)...min(WorldCatalog.worlds.count - 1, worldMapIndex + 2) {
+            let dot = SKShapeNode(circleOfRadius: index == worldMapIndex ? 4 : 2.5)
+            dot.fillColor = index == worldMapIndex ? .systemYellow : .white.withAlphaComponent(0.35)
+            dot.strokeColor = .clear
+            dot.position = CGPoint(x: CGFloat(index - worldMapIndex)*14, y: -139*scale)
+            overlay.addChild(dot)
+        }
 
         if let saved {
             actionButton("RESUME RUN", key: "recover_run",
@@ -2900,7 +2738,7 @@ final class OutpostScene: SKScene {
                          tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1),
                          enabled: unlocked)
         }
-        overlayText("SWIPE TO EXPLORE WORLDS  •  TAP PLAY TO DEPLOY",
+        overlayText("SWIPE TO EXPLORE",
                     y: -233 * scale, fontSize: 10 * scale)
         updateHUD()
     }
@@ -3138,15 +2976,9 @@ final class OutpostScene: SKScene {
         installHubShell(active: "nav_pilot")
         overlayText("PILOT", y: 198, fontSize: 28)
         overlayText("COMMANDER PROFILE  ·  \(availableCores) POWER CORES", y: 169, fontSize: 11)
-        // A dedicated character display fills the former empty teal space.
-        let showcase = SKShapeNode(rect: CGRect(x: -154, y: -39, width: 308, height: 192),
-                                   cornerRadius: 22)
-        showcase.name = "pilotShowcasePanel"
-        showcase.fillColor = SKColor(red: 0.055, green: 0.14, blue: 0.21, alpha: 0.96)
-        showcase.strokeColor = SKColor(red: 0.39, green: 0.74, blue: 0.81, alpha: 0.7)
-        showcase.lineWidth = 2
-        showcase.zPosition = 1
-        overlay.addChild(showcase)
+        let hangar = WorldShowcase.hangar(width: min(size.width - 20, 370))
+        hangar.zPosition = 1
+        overlay.addChild(hangar)
         let portraitGlow = SKSpriteNode(texture: ProductionPresentation.glow(
             SKColor(red: 0.31, green: 0.81, blue: 0.97, alpha: 0.52)))
         portraitGlow.name = "pilotShowcaseGlow"
@@ -3160,9 +2992,13 @@ final class OutpostScene: SKScene {
         portrait.position = CGPoint(x: 0, y: 49)
         portrait.zPosition = 3
         overlay.addChild(portrait)
-        overlayText("PILOT READINESS  ·  RESTORE TO IMPROVE STATS",
-                    y: -24, fontSize: 10)
-        actionButton("RESTORATION & SPECIALIZATION", key: "restore", y: -72, tint: .systemIndigo)
+        if !UIAccessibility.isReduceMotionEnabled {
+            portrait.run(.repeatForever(.animate(with: pilotDirectionalTextures,
+                timePerFrame: 0.24, resize: false, restore: true)))
+        }
+        overlayText("\(maximumHealth) HP   ·   \(damage) DAMAGE   ·   \(Int(pilotSpeed)) SPEED",
+                    y: -24, fontSize: 12)
+        actionButton("UPGRADE PILOT STATS", key: "restore", y: -72, tint: .systemIndigo)
         let fresh = UserDefaults.standard.bool(forKey: "ozFreshPilotActive")
         if profileSwitchArmed {
             overlayText("SAVE CURRENT PROGRESS AND SWITCH?", y: -123, fontSize: 10)
@@ -3176,34 +3012,93 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
+    /// Shared illustrated upgrade display. The purchase target is separate
+    /// from the information so unaffordable equipment remains fully legible.
+    private func installUpgradeDisplay(id: String, title: String, center: CGPoint,
+                                       width: CGFloat, height: CGFloat, compact: Bool) {
+        let rank = permanent.rank(id)
+        let maximum = rank == PersistentProgression.maximumRank
+        let affordable = !maximum && permanent.salvage >= permanent.cost(id)
+        let tint: SKColor = rank >= 9 ? .systemYellow : rank >= 6 ? .systemPurple :
+            rank >= 3 ? .systemCyan : SKColor(red: 0.68, green: 0.80, blue: 0.84, alpha: 1)
+        let root = SKNode()
+        root.position = center
+        root.zPosition = 3
+        overlay.addChild(root)
+        let glow = SKSpriteNode(texture: ProductionPresentation.glow(tint.withAlphaComponent(0.28)))
+        glow.size = CGSize(width: width, height: height)
+        root.addChild(glow)
+        let iconID = id == "weapon" ? "rate" : id == "reactor" ? "reactor" : id
+        let art = SKSpriteNode(texture: ProductionPresentation.abilityArtwork(iconID, tint: tint))
+        art.size = CGSize(width: compact ? 88 : 94, height: compact ? 88 : 94)
+        art.position = compact ? CGPoint(x: 0, y: 31) : CGPoint(x: -width/2 + 47, y: 4)
+        root.addChild(art)
+        let left = compact ? -width/2 + 8 : -width/2 + 100
+        let textWidth = compact ? width-16 : width-112
+        func text(_ value: String, y: CGFloat, size: CGFloat, color: SKColor = .white) {
+            let label = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+            label.text = value
+            label.fontSize = size
+            label.fontColor = color
+            label.horizontalAlignmentMode = .left
+            label.position = CGPoint(x: left, y: y)
+            if label.frame.width > textWidth { label.fontSize *= textWidth / label.frame.width }
+            root.addChild(label)
+        }
+        text(title, y: compact ? -16 : 31, size: compact ? 12 : 16)
+        text("\(PersistentProgression.rarity(at: rank))  ·  LV \(rank)",
+             y: compact ? -32 : 14, size: 9, color: tint)
+        let current: String
+        let next: String
+        if PersistentProgression.gear.contains(id) {
+            let unit = id == "armor" ? "HP" : id == "weapon" ? "damage" : "burn damage"
+            current = "+\(PersistentProgression.gearBenefit(id, rank: rank)) \(unit)"
+            next = maximum ? "MAXIMUM LEVEL" : "Next: +\(PersistentProgression.gearBenefit(id, rank: rank + 1)) \(unit)"
+        } else {
+            switch id {
+            case "chain": current = "+\(rank) damage · +\(rank/2) targets"; next = "+\(rank+1) damage · +\((rank+1)/2) targets"
+            case "explosive": current = "+\(rank) damage · +\(rank*5) radius"; next = "+\(rank+1) damage · +\((rank+1)*5) radius"
+            case "incendiary": current = "+\(rank) burn damage"; next = "+\(rank+1) burn damage"
+            default: current = "+\(rank) orbital damage"; next = "+\(rank+1) orbital damage"
+            }
+        }
+        text(current, y: compact ? -48 : -4, size: 10)
+        text(maximum ? "MAXIMUM LEVEL" : next, y: compact ? -62 : -20, size: 9,
+             color: SKColor(white: 0.77, alpha: 1))
+        let buttonY: CGFloat = compact ? -85 : -43
+        let buttonWidth = compact ? width-12 : textWidth
+        let buttonX = compact ? -buttonWidth/2 : left
+        let frame = CGRect(x: buttonX, y: buttonY-13, width: buttonWidth, height: 28)
+        let button = SKShapeNode(rect: frame, cornerRadius: 8)
+        button.fillColor = affordable ? SKColor(red:0.93,green:0.74,blue:0.33,alpha:1) :
+            SKColor(red:0.09,green:0.19,blue:0.24,alpha:1)
+        button.strokeColor = .clear
+        root.addChild(button)
+        let cost = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        cost.text = maximum ? "MAXED" : "\(affordable ? "UPGRADE" : "NEED")  \(permanent.cost(id))"
+        cost.fontSize = 10
+        cost.fontColor = affordable ? SKColor(red:0.07,green:0.15,blue:0.20,alpha:1) : .lightGray
+        cost.verticalAlignmentMode = .center
+        cost.position = CGPoint(x: buttonX+buttonWidth/2, y: buttonY)
+        root.addChild(cost)
+        if affordable { overlayButtons["buy_\(id)"] = frame.offsetBy(dx: center.x, dy: center.y) }
+    }
+
     private func showGearBay() {
         discardRunArmed = false
         phase = .gearBay
         hud.isHidden = true
         clearOverlay()
         installHubShell(active: "nav_gear")
-        overlayText("GEAR BAY", y: 162, fontSize: 24)
-        overlayText("\(permanent.salvage) SALVAGE AVAILABLE", y: 128, fontSize: 14)
-        overlayText("EQUIPMENT STAYS UPGRADED AFTER DEFEAT", y: 104, fontSize: 11)
-        let labels = ["WEAPON", "ARMOR", "REACTOR"]
+        overlayText("ARMORY", y: 218, fontSize: 26)
+        overlayText("\(permanent.salvage) SALVAGE", y: 191, fontSize: 12)
+        let titles = ["PULSE RIFLE", "PILOT ARMOR", "REACTOR CORE"]
         for (index, id) in PersistentProgression.gear.enumerated() {
-            let level = permanent.rank(id)
-            let price = permanent.cost(id)
-            let label = level == PersistentProgression.maximumRank ? "\(labels[index])  LV \(level)  •  MAX" :
-                "\(labels[index])  LV \(level)  \(PersistentProgression.rarity(at: level))  •  \(price) SALVAGE"
-            actionButton(label, key: "buy_\(id)", y: CGFloat(50 - index * 63),
-                         tint: index == 0 ? .systemOrange : (index == 1 ? .systemTeal : .systemIndigo),
-                         enabled: level < PersistentProgression.maximumRank && permanent.salvage >= price)
-            let current = PersistentProgression.gearBenefit(id, rank: level)
-            let next = PersistentProgression.gearBenefit(id, rank: level + 1)
-            let unit = id == "armor" ? "HP" : (id == "weapon" ? "damage" : "burn damage")
-            let benefit = next > current ? "+\(current) → +\(next) \(unit)" :
-                (level == PersistentProgression.maximumRank ? "Maximum rank" : "Milestone progress • no stat gain this rank")
-            overlayText(benefit, y: CGFloat(19 - index * 63), fontSize: 10)
+            installUpgradeDisplay(id: id, title: titles[index],
+                center: CGPoint(x: 0, y: CGFloat(123-index*126)),
+                width: min(size.width-28, 350), height: 116, compact: false)
         }
-        overlayText("WEAPON: +1/RANK TO 5, THEN +1/3 RANKS", y: -133, fontSize: 10)
-        overlayText("ARMOR: +15 HP TO RANK 5, THEN +5 HP/RANK", y: -155, fontSize: 10)
-        actionButton("BACK TO HOME", key: "hq_back", y: -209, tint: .systemBlue)
+        overlayText("PERMANENT EQUIPMENT · KEPT AFTER EVERY RUN", y: -230, fontSize: 9)
         updateHUD()
     }
 
@@ -3213,21 +3108,17 @@ final class OutpostScene: SKScene {
         hud.isHidden = true
         clearOverlay()
         installHubShell(active: "nav_abilities")
-        overlayText("ABILITY LAB", y: 159, fontSize: 24)
-        overlayText("\(permanent.salvage) SALVAGE AVAILABLE", y: 125, fontSize: 14)
-        overlayText("MASTERY BOOSTS ABILITIES YOU DISCOVER", y: 101, fontSize: 11)
-        let labels = ["CHAIN LIGHTNING", "EXPLOSIVES", "INCENDIARY", "ORBITAL BLADES"]
+        overlayText("ABILITY MASTERY", y: 238, fontSize: 24)
+        overlayText("\(permanent.salvage) SALVAGE · PERMANENT BONUSES", y: 213, fontSize: 11)
+        let titles = ["CHAIN LIGHTNING", "EXPLOSIVES", "INCENDIARY", "ORBITAL BLADES"]
+        let width = min((size.width-32)/2, 172)
         for (index, id) in PersistentProgression.abilities.enumerated() {
-            let level = permanent.rank(id)
-            let price = permanent.cost(id)
-            let label = level == PersistentProgression.maximumRank ? "\(labels[index])  LV \(level) MAX" :
-                "\(labels[index])  LV \(level)  \(PersistentProgression.rarity(at: level))  •  \(price)"
-            actionButton(label, key: "buy_\(id)", y: CGFloat(61 - index * 56),
-                         tint: index.isMultiple(of: 2) ? .systemTeal : .systemIndigo,
-                         enabled: level < PersistentProgression.maximumRank && permanent.salvage >= price)
+            installUpgradeDisplay(id: id, title: titles[index],
+                center: CGPoint(x: (index.isMultiple(of: 2) ? -1 : 1)*(width+8)/2,
+                                y: index < 2 ? 107 : -102),
+                width: width, height: 198, compact: true)
         }
-        overlayText("DISCOVER ABILITIES DURING EACH RUN", y: -158, fontSize: 11)
-        actionButton("BACK TO HOME", key: "hq_back", y: -209, tint: .systemBlue)
+        overlayText("FIND SKILLS DURING RUNS TO ACTIVATE THESE BONUSES", y: -227, fontSize: 9)
         updateHUD()
     }
 
@@ -4833,7 +4724,12 @@ final class OutpostScene: SKScene {
             case 20: landscapeVisit = 0
             default: landscapeVisit = 0
             }
-            let artName = "world1_\(landscape)_floor_\(landscapeVisit + 1)"
+            if wave != 20 {
+                zoneScenery.addChild(WorldShowcase.frontierRoom(bounds: roomBounds,
+                    room: wave, family: landscape,
+                    texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            }
+            let artName = "world1_\(landscape)_floor_\(wave == 20 ? 1 : (wave - 1) % 3 + 1)"
             let authoredFloorTexture = worldOneTexture(named: artName)
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
                authoredFloorTexture == nil {
@@ -5109,7 +5005,7 @@ final class OutpostScene: SKScene {
         // frame combat, not pile up on compact phones.
         let visibleWorldOneCount = min(worldOnePropCount,
             max(6, Int((roomBounds.height - 100) / 46)))
-        let count = worldMapIndex == 0 ? visibleWorldOneCount :
+        let count = worldMapIndex == 0 ? (wave == 20 ? visibleWorldOneCount : 4) :
             (selectedWorld.biome == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)))
         // Keep a landscape's perimeter composition stable for consecutive
         // waves; change the layout when the player enters another location.
@@ -6812,6 +6708,19 @@ final class OutpostScene: SKScene {
         art.yScale = authoredWalk ? 1 : pose.heightScale
         art.zRotation = authoredWalk ? 0 : pose.lean
         art.colorBlendFactor = 0
+        if pilot.childNode(withName: "pilotFacingCue") == nil {
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: 22, y: -5)); path.addLine(to: CGPoint(x: 29, y: 0))
+            path.addLine(to: CGPoint(x: 22, y: 5))
+            let cue = SKShapeNode(path: path)
+            cue.name = "pilotFacingCue"
+            cue.strokeColor = .white.withAlphaComponent(0.65)
+            cue.lineWidth = 1.8
+            cue.zPosition = -0.1
+            pilot.addChild(cue)
+        }
+        pilot.childNode(withName: "pilotFacingCue")?.zRotation = pilotRenderedHeading
+        pilot.childNode(withName: "pilotFacingCue")?.alpha = pilotTraveling ? 0.8 : 0.3
         if previewPilotLegRigSW && direction == 10 && (pilotTraveling || pilotWalkBlend > 0.01) {
             if pilotLegRigPreview == nil || pilotLegRigPreview?.parent == nil {
                 let rig = PilotLegRigPreview(texture: pilotDirectionalTextures[10], size: art.size)
@@ -7725,14 +7634,14 @@ final class OutpostScene: SKScene {
         // Reserve separate rows for tactical slots and the resume hint.
         // The old footer crossed the circles at y=-220 on real devices.
         overlayBackdrop.path = CGPath(roundedRect: CGRect(
-            x: -min(size.width - 28, 390) / 2, y: -278,
-            width: min(size.width - 28, 390), height: 463),
+            x: -min(size.width - 28, 390) / 2, y: -310,
+            width: min(size.width - 28, 390), height: 510),
             cornerWidth: 18, cornerHeight: 18, transform: nil)
         let lowerSpace = overlay.position.y - max(16, view?.safeAreaInsets.bottom ?? 0) - 12
-        overlay.setScale(min(1, max(0.65, lowerSpace / 278)))
+        overlay.setScale(min(1, max(0.65, lowerSpace / 310)))
         let choiceLevel = progress.level - progress.pendingChoices + 1
-        overlayText("LEVEL \(choiceLevel)!", y: 125, fontSize: 28)
-        overlayText("CHOOSE YOUR NEXT ADVANTAGE", y: 87, fontSize: 13)
+        overlayText("LEVEL \(choiceLevel)!", y: 164, fontSize: 28)
+        overlayText("CHOOSE YOUR NEXT ADVANTAGE", y: 132, fontSize: 13)
         // Each filled circle represents an equipped tactical ability, not a
         // stat upgrade. A third slot appears only when mastery permits it.
         let slotIcons = ["chain": "ARC", "explosive": "AOE",
@@ -7750,7 +7659,7 @@ final class OutpostScene: SKScene {
             circle.name = "tacticalSlot\(index)"
             circle.position = CGPoint(
                 x: CGFloat(index) * 43 - CGFloat(slots - 1) * 21.5,
-                y: -229)
+                y: -265)
             circle.fillColor = index < lockedLoadout.selected.count
                 ? SKColor(red: 0.12, green: 0.42, blue: 0.61, alpha: 0.95)
                 : SKColor(red: 0.10, green: 0.14, blue: 0.20, alpha: 0.85)
@@ -7878,9 +7787,9 @@ final class OutpostScene: SKScene {
                 tint = SKColor(red: 0.41, green: 0.89, blue: 0.61, alpha: 1)
             }
             let cardWidth = min(size.width - 52, 342)
-            let cardCenterY = CGFloat(22 - index * 91)
-            let frame = CGRect(x: -cardWidth / 2, y: cardCenterY - 43,
-                               width: cardWidth, height: 86)
+            let cardCenterY = CGFloat(60 - index * 112)
+            let frame = CGRect(x: -cardWidth / 2, y: cardCenterY - 52,
+                               width: cardWidth, height: 104)
             let rimTint: SKColor
             let rarityName: String
             switch TacticalDraftRules.rarity(for: choice) {
@@ -7913,29 +7822,33 @@ final class OutpostScene: SKScene {
             root.userData?["choice"] = choice
             root.zPosition = 1
             overlay.addChild(root)
-            let shadow = SKShapeNode(rect: CGRect(x: -cardWidth / 2, y: -47,
-                width: cardWidth, height: 86), cornerRadius: 14)
+            let shadow = SKShapeNode(rect: CGRect(x: -cardWidth / 2, y: -56,
+                width: cardWidth, height: 104), cornerRadius: 14)
             shadow.fillColor = .black.withAlphaComponent(0.4)
             shadow.strokeColor = .clear
             root.addChild(shadow)
-            let card = SKShapeNode(rect: CGRect(x: -cardWidth / 2, y: -43,
-                width: cardWidth, height: 86), cornerRadius: 14)
+            let card = SKShapeNode(rect: CGRect(x: -cardWidth / 2, y: -52,
+                width: cardWidth, height: 104), cornerRadius: 14)
             card.fillColor = SKColor(red: 0.055, green: 0.085, blue: 0.14, alpha: 1)
-            card.strokeColor = rimTint.withAlphaComponent(0.75)
-            card.lineWidth = 1.3
+            card.strokeColor = .clear
+            let accent = SKShapeNode(rectOf: CGSize(width: 3, height: 72), cornerRadius: 1.5)
+            accent.fillColor = rimTint
+            accent.strokeColor = .clear
+            accent.position = CGPoint(x: cardWidth/2 - 5, y: 0)
+            card.addChild(accent)
             root.addChild(card)
             let light = SKSpriteNode(texture: ProductionPresentation.glow(rimTint.withAlphaComponent(0.24)))
             light.size = CGSize(width: 115, height: 82)
             light.position.x = -cardWidth / 2 + 58
             root.addChild(light)
             let icon = SKSpriteNode(texture: ProductionPresentation.abilityArtwork(choice, tint: tint))
-            icon.size = CGSize(width: 80, height: 80)
+            icon.size = CGSize(width: 96, height: 96)
             icon.position = .zero
             icon.zPosition = 2
             let artworkWindow = SKCropNode()
             artworkWindow.name = "abilityArtworkWindow"
-            artworkWindow.position = CGPoint(x: -cardWidth / 2 + 42, y: 0)
-            let mask = SKShapeNode(rectOf: CGSize(width: 80, height: 80), cornerRadius: 12)
+            artworkWindow.position = CGPoint(x: -cardWidth / 2 + 47, y: 0)
+            let mask = SKShapeNode(rectOf: CGSize(width: 96, height: 96), cornerRadius: 12)
             mask.fillColor = .white
             mask.strokeColor = .clear
             artworkWindow.maskNode = mask
@@ -7956,31 +7869,31 @@ final class OutpostScene: SKScene {
                 scroll.timingMode = .easeOut
                 reel.run(scroll, withKey: "artworkScroll")
             }
-            let textLeft = -cardWidth / 2 + 85
-            let textWidth = cardWidth - 98
+            let textLeft = -cardWidth / 2 + 99
+            let textWidth = cardWidth - 116
             let rarity = SKLabelNode(fontNamed: "AvenirNext-Bold")
             let acquisition = AbilityLoadout.catalog.contains(choice)
                 ? (lockedLoadout.contains(choice) ? "RANK UP" : "NEW SKILL") : category
             rarity.text = "\(rarityName)  ·  \(acquisition)"
-            rarity.fontSize = 8
+            rarity.fontSize = 9
             rarity.fontColor = rimTint
             rarity.horizontalAlignmentMode = .left
-            rarity.position = CGPoint(x: textLeft, y: 27)
+            rarity.position = CGPoint(x: textLeft, y: 34)
             root.addChild(rarity)
             let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             titleLabel.text = (label.components(separatedBy: " • ").last ?? label)
                 .replacingOccurrences(of: "  LV ", with: "  +")
-            titleLabel.fontSize = 13
+            titleLabel.fontSize = 14
             titleLabel.fontColor = .white
             titleLabel.horizontalAlignmentMode = .left
-            titleLabel.position = CGPoint(x: textLeft, y: 8)
+            titleLabel.position = CGPoint(x: textLeft, y: 14)
             root.addChild(titleLabel)
             if titleLabel.frame.width > textWidth {
                 titleLabel.fontSize *= textWidth / titleLabel.frame.width
             }
             let detailLabel = SKLabelNode(fontNamed: "AvenirNext-Medium")
             detailLabel.text = detail
-            detailLabel.fontSize = 10
+            detailLabel.fontSize = 11
             detailLabel.fontColor = SKColor(white: 0.83, alpha: 1)
             detailLabel.horizontalAlignmentMode = .left
             detailLabel.verticalAlignmentMode = .top
@@ -7999,10 +7912,10 @@ final class OutpostScene: SKScene {
             } else {
                 context.text = "INSTANT BENEFIT  ·  NO SLOT USED"
             }
-            context.fontSize = 7.5
+            context.fontSize = 8.5
             context.fontColor = rimTint
             context.horizontalAlignmentMode = .left
-            context.position = CGPoint(x: textLeft, y: -35)
+            context.position = CGPoint(x: textLeft, y: -41)
             root.addChild(context)
             // A short reveal happens outside the paused arena. The draw is
             // already fixed; skipping never rerolls or consumes a choice.
@@ -8022,7 +7935,7 @@ final class OutpostScene: SKScene {
                 self?.finishAbilityReveal()
             }]), withKey: "abilityRevealCompletion")
         }
-        overlayText(abilityRevealActive ? "TAP TO REVEAL ALL" : "COMBAT PAUSED  •  SELECT TO RESUME", y: -262,
+        overlayText(abilityRevealActive ? "TAP TO REVEAL ALL" : "COMBAT PAUSED  •  SELECT TO RESUME", y: -298,
                     fontSize: 11, name: "levelUpFooter")
         #if targetEnvironment(simulator)
         if let footer = overlay.childNode(withName: "levelUpFooter") {
@@ -8720,7 +8633,9 @@ final class OutpostScene: SKScene {
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         if (phase == .worldSelect || phase == .ready), let start = worldMapSwipeStart, let touch = touches.first {
-            if abs(touch.location(in: self).x - start.x) > 30 { worldMapSwipeMoved = true }
+            let dx = touch.location(in: self).x - start.x
+            if abs(dx) > 30 { worldMapSwipeMoved = true }
+            overlay.childNode(withName: "worldDiorama")?.position.x = dx * 0.72
         }
         if (phase == .playing || phase == .gate), let heldTouch, touches.contains(heldTouch) {
             let point = heldTouch.location(in: self)
@@ -8743,6 +8658,14 @@ final class OutpostScene: SKScene {
             if abs(dx) > 65 {
                 worldMapIndex = min(WorldCatalog.worlds.count - 1, max(0, worldMapIndex + (dx < 0 ? 1 : -1)))
                 if phase == .ready { showReady() } else { showWorldSelector() }
+                if let island = overlay.childNode(withName: "worldDiorama"), !UIAccessibility.isReduceMotionEnabled {
+                    island.position.x = dx < 0 ? size.width * 0.65 : -size.width * 0.65
+                    let settle = SKAction.moveTo(x: 0, duration: 0.28)
+                    settle.timingMode = .easeOut
+                    island.run(settle)
+                }
+            } else {
+                overlay.childNode(withName: "worldDiorama")?.run(.moveTo(x: 0, duration: 0.18))
             }
         }
         worldMapSwipeStart = nil
@@ -8758,6 +8681,9 @@ final class OutpostScene: SKScene {
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        worldMapSwipeStart = nil
+        worldMapSwipeMoved = false
+        overlay.childNode(withName: "worldDiorama")?.run(.moveTo(x: 0, duration: 0.18))
         if let heldTouch, touches.contains(heldTouch) {
             self.heldTouch = nil
             movementOrigin = nil

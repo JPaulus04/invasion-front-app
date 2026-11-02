@@ -136,7 +136,7 @@ enum ProductionPresentation {
     /// Original vector emblems share materials but retain distinct silhouettes.
     /// Rasterized once at 2x; no emoji or three-letter placeholder artwork.
     static func abilityIcon(_ id: String, tint: UIColor) -> SKTexture {
-        let key = "ability-\(id)" as NSString
+        let key = "ability-\(id)-\(tint.description)" as NSString
         if let texture = textures.object(forKey: key) { return texture }
         let format = UIGraphicsImageRendererFormat()
         format.scale = 2
@@ -241,7 +241,7 @@ enum ProductionPresentation {
 extension ProductionPresentation {
     /// Layered equipment illustrations, built once for the live draft screen.
     static func abilityArtwork(_ id: String, tint: UIColor) -> SKTexture {
-        let key = "illustration-\(id)" as NSString
+        let key = "illustration-\(id)-\(tint.description)" as NSString
         if let cached = textures.object(forKey: key) { return cached }
         let format = UIGraphicsImageRendererFormat()
         format.scale = 2
@@ -273,6 +273,30 @@ extension ProductionPresentation {
                 c.restoreGState()
                 sphere(CGPoint(x:60,y:60),14,UIColor(red:0.16,green:0.26,blue:0.42,alpha:1))
                 for point in [CGPoint(x:24,y:73),CGPoint(x:79,y:34),CGPoint(x:91,y:76)] { sphere(point,13,tint) }
+            } else if id == "incendiary" {
+                // A burning fuel canister has a different silhouette from ammunition.
+                sphere(CGPoint(x:60,y:75),26,UIColor(red:0.22,green:0.27,blue:0.32,alpha:1))
+                let flame = UIBezierPath()
+                flame.move(to:CGPoint(x:63,y:8))
+                flame.addCurve(to:CGPoint(x:91,y:57),controlPoint1:CGPoint(x:47,y:37),controlPoint2:CGPoint(x:94,y:32))
+                flame.addCurve(to:CGPoint(x:29,y:59),controlPoint1:CGPoint(x:89,y:92),controlPoint2:CGPoint(x:19,y:92))
+                flame.addQuadCurve(to:CGPoint(x:44,y:30),controlPoint:CGPoint(x:22,y:41))
+                flame.addLine(to:CGPoint(x:47,y:49))
+                flame.addQuadCurve(to:CGPoint(x:63,y:8),controlPoint:CGPoint(x:64,y:38))
+                flame.close()
+                c.setShadow(offset:.zero,blur:12,color:UIColor.systemOrange.cgColor)
+                UIColor.systemOrange.setFill();flame.fill()
+                UIColor.systemYellow.setStroke();flame.lineWidth=3;flame.stroke()
+                c.setShadow(offset:.zero,blur:0)
+                sphere(CGPoint(x:60,y:62),11,.systemYellow)
+            } else if id == "reactor" {
+                for i in 0..<3 {
+                    c.saveGState();c.translateBy(x:60,y:60);c.rotate(by:CGFloat(i) * .pi / 3)
+                    let ring=UIBezierPath(ovalIn:CGRect(x:-43,y:-19,width:86,height:38))
+                    UIColor.systemCyan.setStroke();ring.lineWidth=4;ring.stroke();c.restoreGState()
+                }
+                sphere(CGPoint(x:60,y:60),22,.systemCyan)
+                sphere(CGPoint(x:60,y:60),9,.white)
             } else if id == "rate" {
                 // A spinning multi-barrel accelerator, not another ammunition icon.
                 c.saveGState()

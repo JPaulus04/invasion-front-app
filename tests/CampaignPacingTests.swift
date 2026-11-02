@@ -28,6 +28,16 @@ struct CampaignPacingTests {
             precondition(bounds.contains(entry))
             precondition(hypot(entry.x - flankPilot.x, entry.y - flankPilot.y) >= 95)
         }
+        // Support threats survive longer than grunts while keeping boss HP exact.
+        for room in 1..<20 {
+            let grunt = CampaignPacing.enemyHealth(world: 0, room: room, type: 0)
+            for role in [4, 5] {
+                let support = CampaignPacing.enemyHealth(world: 0, room: room, type: role)
+                precondition(support > grunt && support <= grunt + 8)
+            }
+            precondition(CombatRules.shooterTelegraph(room: room) >= 0.48)
+        }
+        precondition(CampaignPacing.enemyHealth(world: 0, room: 20, type: 4) == WorldCatalog.info(0).bossHealth)
         let expectedSurvival = [3, 3, 3, 3]
         let expectedDefense = [1, 0, 1, 0]
         for world in 0..<WorldCatalog.playableCount {
