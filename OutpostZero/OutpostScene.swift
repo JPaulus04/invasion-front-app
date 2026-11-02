@@ -2573,6 +2573,7 @@ final class OutpostScene: SKScene {
     }
 
     /// Shared shell keeps every pre-run destination separate from combat.
+    // Build 330 validation checkpoint: verify unified dock, floating diorama, and upgrade layouts.
     private func installHubShell(active: String, scale: CGFloat = 1) {
         pilot.isHidden = true
         overlayBackdrop.isHidden = true
