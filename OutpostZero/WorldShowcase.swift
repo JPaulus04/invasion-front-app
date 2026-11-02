@@ -118,6 +118,14 @@ enum WorldShowcase {
                 }
             }
         }
+        // A floating landmass should read as a living destination, not a static menu illustration.
+        // The entire diorama breathes in place; world navigation remains owned by the scene.
+        if !UIAccessibility.isReduceMotionEnabled {
+            root.run(.repeatForever(.sequence([
+                .moveBy(x: 0, y: 6, duration: 2.4),
+                .moveBy(x: 0, y: -6, duration: 2.4)
+            ])), withKey: "worldFloat")
+        }
         root.setScale(width / 340)
         return root
     }
