@@ -121,6 +121,79 @@ enum WorldShowcase {
             pebble.zPosition = 0.21
             root.addChild(pebble)
         }
+        // Build 331: biome-specific structures rather than identical silhouettes.
+        // A skyline alone reads as decoration; recognizable landmarks give each world identity.
+        let structures: [(CGFloat, CGFloat, CGFloat)] = [
+            (-94, 39, 0.88), (91, 35, 1.12)
+        ]
+        for (x, y, factor) in structures {
+            let monument = SKNode()
+            monument.position = CGPoint(x: x, y: y)
+            monument.zPosition = 1.1
+            root.addChild(monument)
+            switch world % 4 {
+            case 0:
+                // Ruined forest watchtowers, split stone and overgrown crowns.
+                let tower = polygon([
+                    CGPoint(x:-14,y:0),CGPoint(x:-11,y:45*factor),
+                    CGPoint(x:-4,y:51*factor),CGPoint(x:3,y:38*factor),
+                    CGPoint(x:12,y:42*factor),CGPoint(x:15,y:0)
+                ], color: SKColor(red:0.35,green:0.38,blue:0.32,alpha:1))
+                monument.addChild(tower)
+                let crown = SKShapeNode(ellipseOf: CGSize(width:42*factor,height:29*factor))
+                crown.position.y = 43*factor
+                crown.fillColor = SKColor(red:0.14,green:0.39,blue:0.23,alpha:1)
+                crown.strokeColor = SKColor(red:0.40,green:0.65,blue:0.31,alpha:1)
+                crown.lineWidth = 2
+                monument.addChild(crown)
+            case 1:
+                // Scrapyard: stacked industrial wreckage with a lit antenna.
+                let base = polygon([
+                    CGPoint(x:-22,y:0),CGPoint(x:-18,y:24*factor),
+                    CGPoint(x:8,y:32*factor),CGPoint(x:21,y:0)
+                ], color: SKColor(red:0.30,green:0.39,blue:0.42,alpha:1))
+                monument.addChild(base)
+                let mast = SKShapeNode(rectOf: CGSize(width:5,height:56*factor))
+                mast.position = CGPoint(x:5,y:39*factor)
+                mast.fillColor = SKColor(red:0.64,green:0.73,blue:0.72,alpha:1)
+                mast.strokeColor = .clear
+                monument.addChild(mast)
+                let beacon = SKShapeNode(circleOfRadius:5)
+                beacon.position = CGPoint(x:5,y:69*factor)
+                beacon.fillColor = .systemOrange
+                beacon.glowWidth = 5
+                monument.addChild(beacon)
+            case 2:
+                // Volcanic ruins: a cracked basalt obelisk with a hot seam.
+                let rock = polygon([
+                    CGPoint(x:-17,y:0),CGPoint(x:-13,y:36*factor),
+                    CGPoint(x:0,y:65*factor),CGPoint(x:15,y:27*factor),
+                    CGPoint(x:18,y:0)
+                ], color: SKColor(red:0.23,green:0.24,blue:0.28,alpha:1))
+                monument.addChild(rock)
+                let fissure = SKShapeNode()
+                let path = CGMutablePath()
+                path.move(to:CGPoint(x:0,y:7))
+                path.addLine(to:CGPoint(x:-3,y:24*factor))
+                path.addLine(to:CGPoint(x:5,y:38*factor))
+                fissure.path = path
+                fissure.strokeColor = SKColor(red:1,green:0.43,blue:0.12,alpha:1)
+                fissure.lineWidth = 3
+                fissure.glowWidth = 4
+                monument.addChild(fissure)
+            default:
+                // Frozen citadel: crystalline spires with cold edge highlights.
+                for offset in [-12.0, 8.0] {
+                    let crystal = polygon([
+                        CGPoint(x:offset-11,y:0),CGPoint(x:offset-8,y:34*factor),
+                        CGPoint(x:offset+2,y:65*factor),CGPoint(x:offset+12,y:0)
+                    ], color: SKColor(red:0.45,green:0.77,blue:0.89,alpha:0.95))
+                    crystal.strokeColor = SKColor(red:0.78,green:0.95,blue:1,alpha:1)
+                    crystal.lineWidth = 1.5
+                    monument.addChild(crystal)
+                }
+            }
+        }
         // Broken slabs lead into the upright portal without a literal road.
         for i in 0..<5 {
             let y = CGFloat(-54+i*15)
