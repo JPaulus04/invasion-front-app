@@ -3044,7 +3044,10 @@ final class OutpostScene: SKScene {
         commanderTexture.filteringMode = .linear
         let hero = SKSpriteNode(texture: commanderTexture)
         hero.name = "commanderShowcase"
-        hero.size = CGSize(width: 190 * scale, height: 190 * scale)
+        let heroAspect = commanderTexture.size()
+        let heroWidth: CGFloat = 190 * scale
+        hero.size = CGSize(width: heroWidth,
+                           height: min(250 * scale, heroWidth * heroAspect.height / max(1, heroAspect.width)))
         hero.position = CGPoint(x: 0, y: 86 * scale)
         hero.zPosition = 4
         let tints: [SKColor] = [.white, .systemTeal, .systemOrange, .systemPurple]
@@ -3052,6 +3055,12 @@ final class OutpostScene: SKScene {
         hero.colorBlendFactor = unlocked ? (artAvailable ? 0 : (index == 0 ? 0 : 0.48)) : 0.62
         hero.alpha = unlocked ? 1 : 0.78
         overlay.addChild(hero)
+        if artAvailable {
+            hero.run(.repeatForever(.sequence([
+                .moveBy(x: 0, y: 2.5 * scale, duration: 1.4),
+                .moveBy(x: 0, y: -2.5 * scale, duration: 1.4)
+            ])), withKey: "commanderBreathing")
+        }
         // Unlock requirements below the portrait communicate the lock state
         // without obscuring the character's face.
         overlayText(roster[index], y: -30 * scale, fontSize: 24 * scale)
@@ -3079,7 +3088,10 @@ final class OutpostScene: SKScene {
                 ? SKTexture(imageNamed: thumbnailArtName) : pilotDirectionalTextures[10]
             thumbnailTexture.filteringMode = .linear
             let mini = SKSpriteNode(texture: thumbnailTexture)
-            mini.size = CGSize(width: 41 * scale, height: 41 * scale)
+            let thumbnailAspect = thumbnailTexture.size()
+            let thumbnailWidth: CGFloat = 41 * scale
+            mini.size = CGSize(width: thumbnailWidth,
+                               height: min(46 * scale, thumbnailWidth * thumbnailAspect.height / max(1, thumbnailAspect.width)))
             mini.color = available ? .white : .darkGray
             mini.colorBlendFactor = available ? (thumbnailAvailable ? 0 : 0.5) : 0.95
             mini.alpha = available ? 1 : 0.42
