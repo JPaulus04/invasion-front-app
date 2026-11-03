@@ -3040,68 +3040,11 @@ final class OutpostScene: SKScene {
         hero.zPosition = 4
         let tints: [SKColor] = [.white, .systemTeal, .systemOrange, .systemPurple]
         hero.color = unlocked ? tints[index] : .darkGray
-        hero.colorBlendFactor = unlocked ? (index == 0 ? 0 : 0.48) : 0.9
-        hero.alpha = unlocked ? 1 : 0.58
+        hero.colorBlendFactor = unlocked ? (index == 0 ? 0 : 0.48) : 0.62
+        hero.alpha = unlocked ? 1 : 0.78
         overlay.addChild(hero)
-        // Character-specific equipment is constructed as a coherent silhouette:
-        // recon optics, heavy plating, or a powered energy harness.
-        if index > 0 {
-            let equipment = SKNode()
-            equipment.name = "commanderEquipment"
-            equipment.position = hero.position
-            equipment.zPosition = 5
-            overlay.addChild(equipment)
-            let accent = unlocked ? tints[index] : SKColor.gray
-            func armor(_ w: CGFloat, _ h: CGFloat, x: CGFloat, y: CGFloat,
-                       color: SKColor, radius: CGFloat = 5) -> SKShapeNode {
-                let shape = SKShapeNode(rectOf: CGSize(width: w * scale, height: h * scale),
-                                        cornerRadius: radius * scale)
-                shape.position = CGPoint(x: x * scale, y: y * scale)
-                shape.fillColor = color
-                shape.strokeColor = .white.withAlphaComponent(0.38)
-                shape.lineWidth = 1.5
-                equipment.addChild(shape)
-                return shape
-            }
-            switch index {
-            case 1: // SPECTER: slim recon frame, raised antennas and optic visor.
-                for side in [-1.0, 1.0] {
-                    armor(5, 42, x: CGFloat(side) * 36, y: 76, color: accent, radius: 2)
-                    armor(15, 27, x: CGFloat(side) * 55, y: -4, color: accent)
-                }
-                let visor = armor(69, 11, x: 0, y: 38, color: .systemCyan)
-                visor.glowWidth = unlocked ? 5 : 0
-            case 2: // BULWARK: broad pauldrons, reinforced chest and collar.
-                for side in [-1.0, 1.0] {
-                    armor(51, 42, x: CGFloat(side) * 73, y: -6, color: accent, radius: 10)
-                    armor(16, 24, x: CGFloat(side) * 47, y: 35, color: accent)
-                }
-                armor(78, 23, x: 0, y: -29, color: accent, radius: 7)
-            default: // VOLT: power cells, conductive rails and glowing core.
-                for side in [-1.0, 1.0] {
-                    let rail = armor(12, 64, x: CGFloat(side) * 60, y: 8,
-                                     color: accent, radius: 5)
-                    rail.glowWidth = unlocked ? 7 : 0
-                    let cell = SKShapeNode(circleOfRadius: 12 * scale)
-                    cell.position = CGPoint(x: CGFloat(side) * 69 * scale, y: -27 * scale)
-                    cell.fillColor = accent
-                    cell.strokeColor = .systemCyan
-                    cell.lineWidth = 3
-                    cell.glowWidth = unlocked ? 6 : 0
-                    equipment.addChild(cell)
-                }
-                let core = SKShapeNode(circleOfRadius: 12 * scale)
-                core.position = CGPoint(x: 0, y: -20 * scale)
-                core.fillColor = .systemCyan
-                core.strokeColor = .white
-                core.lineWidth = 2
-                core.glowWidth = unlocked ? 8 : 0
-                equipment.addChild(core)
-            }
-        }
-        if !unlocked {
-            overlayText("LOCKED", y: 89 * scale, fontSize: 25 * scale)
-        }
+        // Unlock requirements below the portrait communicate the lock state
+        // without obscuring the character's face.
         overlayText(roster[index], y: -30 * scale, fontSize: 24 * scale)
         overlayText(roles[index], y: -57 * scale, fontSize: 12 * scale)
 
@@ -3128,24 +3071,6 @@ final class OutpostScene: SKScene {
             mini.alpha = available ? 1 : 0.42
             mini.zPosition = 5
             tile.addChild(mini)
-            // Match the full-size specialist silhouette in each roster
-            // thumbnail, so selection does not rely on color alone.
-            if slot > 0 {
-                for side in [-1.0, 1.0] {
-                    let accessory = SKShapeNode(rectOf: CGSize(
-                        width: (slot == 2 ? 12 : 5) * scale,
-                        height: (slot == 1 ? 13 : 10) * scale),
-                        cornerRadius: 2 * scale)
-                    accessory.position = CGPoint(
-                        x: CGFloat(side) * (slot == 2 ? 20 : 17) * scale,
-                        y: (slot == 1 ? 13 : -3) * scale)
-                    accessory.fillColor = available ? tints[slot] : .darkGray
-                    accessory.strokeColor = .white.withAlphaComponent(available ? 0.65 : 0.18)
-                    accessory.lineWidth = 1
-                    accessory.zPosition = 6
-                    tile.addChild(accessory)
-                }
-            }
             if !available {
                 // Locked portraits remain visible as silhouettes; the lock
                 // badge communicates status without hiding the roster.
