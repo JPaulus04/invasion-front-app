@@ -965,6 +965,16 @@ final class OutpostScene: SKScene {
                          "Ability Lab must be reachable and expose persistent hub navigation")
             showHeadquarters()
         }
+        if ProcessInfo.processInfo.arguments.contains("-captureSpecterScreenshot") {
+            UserDefaults.standard.set(1, forKey: "ozViewedCommander")
+            showHeadquarters()
+            validateHubNavigation()
+        }
+        if ProcessInfo.processInfo.arguments.contains("-captureBulwarkScreenshot") {
+            UserDefaults.standard.set(2, forKey: "ozViewedCommander")
+            showHeadquarters()
+            validateHubNavigation()
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureLockedCommanderScreenshot") {
             UserDefaults.standard.set(3, forKey: "ozViewedCommander")
             showHeadquarters()
