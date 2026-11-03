@@ -156,8 +156,10 @@ if 'ProcessInfo.processInfo.arguments.contains("-captureSettingsScreenshot")' no
     errors.append("Simulator must verify settings and interruption recovery")
 if 'ProcessInfo.processInfo.arguments.contains("-capturePausedRunScreenshot")' not in scene:
     errors.append("Simulator must validate the focused pause card")
-if 'homeResourceBar' not in scene or 'validateHubNavigation()' not in scene:
-    errors.append("World selection needs resource status and simulator-checked navigation bounds")
+if ('WorldShowcase.island(' not in scene or
+        'permanent.salvage' not in scene or
+        'validateHubNavigation()' not in scene):
+    errors.append("World selection needs floating diorama, resource status and simulator-checked navigation")
 if "COMBAT FROZEN UNTIL YOU RESUME" not in scene:
     errors.append("Pause message must not promise unsaved progress protection")
 if "settingsShortcut.position = CGPoint(" not in scene or "y: overlay.position.y + 155" not in scene:
