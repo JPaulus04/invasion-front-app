@@ -57,15 +57,18 @@ enum CampaignPacing {
     /// Make early exploration more forgiving without making late bosses a
     /// guaranteed win. Values are identical at 1× and 2× game clock speeds.
     static func incomingDamage(amount: Int, room: Int) -> Int {
-        if room <= 5 { return max(1, Int(ceil(Double(amount) * 0.75))) }
-        if room <= 10 { return max(1, Int(ceil(Double(amount) * 0.85))) }
+        // Build 331: early contact must matter. The old 25% damage
+        // reduction plus 1.5-second immunity made stationary play viable.
+        // Keep a small onboarding buffer, but make repeated hits consequential.
+        if room <= 3 { return max(1, Int(ceil(Double(amount) * 0.90))) }
+        if room <= 10 { return max(1, Int(ceil(Double(amount) * 0.95))) }
         return amount
     }
 
     static func hitGracePeriod(room: Int) -> TimeInterval {
-        if room <= 5 { return 1.5 }
-        if room <= 10 { return 1.3 }
-        return 1.1
+        if room <= 3 { return 1.10 }
+        if room <= 10 { return 1.00 }
+        return 0.95
     }
     static func clearCoins(room: Int) -> Int { 12 + room * 2 }
     static func healingCost(room: Int) -> Int { 40 + room * 8 }
