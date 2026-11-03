@@ -2660,15 +2660,19 @@ final class OutpostScene: SKScene {
             let selected = tab.2 == active
             let rect = CGRect(x: x - width / 2 + 2, y: y - 30 * scale,
                               width: width - 4, height: 64 * scale)
-            if selected {
-                let indicator = SKShapeNode(ellipseOf: CGSize(width: 45 * scale, height: 43 * scale))
-                indicator.name = "homeNav_\(tab.2)"
-                indicator.position = CGPoint(x: x, y: y + 9 * scale)
-                indicator.fillColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 0.94)
-                indicator.strokeColor = .clear
-                indicator.zPosition = 10
-                overlay.addChild(indicator)
-            }
+            // The simulator renders some SF Symbol textures black regardless
+            // of requested tint. A light icon well preserves contrast on all
+            // four destinations, including inactive tabs.
+            let indicator = SKShapeNode(ellipseOf: CGSize(width: 45 * scale, height: 43 * scale))
+            indicator.name = "homeNav_\(tab.2)"
+            indicator.position = CGPoint(x: x, y: y + 9 * scale)
+            indicator.fillColor = selected
+                ? SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 0.96)
+                : SKColor(red: 0.72, green: 0.84, blue: 0.89, alpha: 0.88)
+            indicator.strokeColor = selected ? .clear : SKColor.white.withAlphaComponent(0.24)
+            indicator.lineWidth = 1
+            indicator.zPosition = 10
+            overlay.addChild(indicator)
             if let image = UIImage(systemName: tab.1)?.withTintColor(
                 selected ? UIColor(red: 0.12, green: 0.28, blue: 0.40, alpha: 1) : UIColor.white,
                 renderingMode: .alwaysOriginal) {
