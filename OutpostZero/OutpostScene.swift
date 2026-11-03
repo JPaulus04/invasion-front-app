@@ -3158,14 +3158,65 @@ final class OutpostScene: SKScene {
             ("incendiary", "INCENDIARY ROUNDS  •  BOSS"),
             ("orbit", "ORBITAL BLADES  •  DEFENSE")
         ]
+        // Build 331: illustrated tactical modules instead of four generic
+        // rectangular action buttons. The entire card remains a touch target.
+        let cardWidth = min(size.width - 58, 326)
+        let moduleColors: [SKColor] = [.systemCyan, .systemOrange, .systemRed, .systemPurple]
+        let artIDs = ["chain", "explosive", "incendiary", "orbit"]
         for (index, option) in options.enumerated() {
             let chosen = draftLoadout.contains(option.0)
-            actionButton("\(chosen ? "✓ " : "＋ ")\(option.1)",
-                         key: "pick_\(option.0)", y: CGFloat(42 - index * 53),
-                         tint: chosen ? .systemTeal : .systemIndigo,
-                         enabled: chosen || draftLoadout.selected.count < 3)
-            // Full loadouts remain editable: remove an ability to swap.
-            // Disabled unselected cards are displayed but don't accept taps.
+            let enabled = chosen || draftLoadout.selected.count < 3
+            let y = CGFloat(42 - index * 53)
+            let color = moduleColors[index]
+            let card = SKNode()
+            card.position = CGPoint(x: 0, y: y)
+            card.zPosition = 2
+            overlay.addChild(card)
+            let backdrop = SKShapeNode(rectOf:CGSize(width:cardWidth,height:47),cornerRadius:12)
+            backdrop.fillColor = SKColor(red:0.055,green:0.12,blue:0.20,alpha:0.94)
+            backdrop.strokeColor = chosen ? color : SKColor(white:0.67,alpha:enabled ? 0.45 : 0.18)
+            backdrop.lineWidth = chosen ? 2.4 : 1.1
+            card.addChild(backdrop)
+            let rail = SKShapeNode(rectOf:CGSize(width:4,height:32),cornerRadius:2)
+            rail.position.x = -cardWidth/2 + 8
+            rail.fillColor = enabled ? color : .gray
+            rail.strokeColor = .clear
+            card.addChild(rail)
+            let artwork = SKSpriteNode(texture:ProductionPresentation.abilityArtwork(artIDs[index],tint:color))
+            artwork.size = CGSize(width:41,height:41)
+            artwork.position = CGPoint(x:-cardWidth/2+38,y:0)
+            artwork.alpha = enabled ? 1 : 0.45
+            card.addChild(artwork)
+            let title = SKLabelNode(fontNamed:"AvenirNext-Heavy")
+            title.text = option.1.components(separatedBy:"  •  ").first ?? option.1
+            title.fontSize = 13
+            title.fontColor = enabled ? .white : .gray
+            title.horizontalAlignmentMode = .left
+            title.position = CGPoint(x:-cardWidth/2+67,y:3)
+            card.addChild(title)
+            let role = SKLabelNode(fontNamed:"AvenirNext-Medium")
+            role.text = option.1.components(separatedBy:"  •  ").last ?? ""
+            role.fontSize = 10
+            role.fontColor = color.withAlphaComponent(enabled ? 0.92 : 0.4)
+            role.horizontalAlignmentMode = .left
+            role.position = CGPoint(x:-cardWidth/2+67,y:-13)
+            card.addChild(role)
+            let marker = SKShapeNode(circleOfRadius:12)
+            marker.position.x = cardWidth/2-20
+            marker.fillColor = chosen ? color : SKColor(white:0.2,alpha:0.8)
+            marker.strokeColor = chosen ? .white : SKColor(white:0.55,alpha:0.7)
+            marker.lineWidth = 1.2
+            card.addChild(marker)
+            let symbol = SKLabelNode(fontNamed:"AvenirNext-Heavy")
+            symbol.text = chosen ? "✓" : "+"
+            symbol.fontSize = 15
+            symbol.fontColor = .white
+            symbol.verticalAlignmentMode = .center
+            marker.addChild(symbol)
+            if enabled {
+                overlayButtons["pick_\\(option.0)"] = CGRect(
+                    x:-cardWidth/2,y:y-23.5,width:cardWidth,height:47)
+            }
         }
         actionButton("LOCK LOADOUT & ENTER", key: "lock_loadout", y: -181,
                      tint: .systemGreen, enabled: draftLoadout.isReady)
