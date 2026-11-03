@@ -80,11 +80,30 @@ enum WorldShowcase {
         for index in 0..<outline.count {
             let a = outline[index], b = outline[(index + 1) % outline.count]
             let drop = CGFloat(32 + index % 3 * 12)
+            // Faceted rock follows the world's palette, with directional
+            // lighting and a subtle lower seam rather than a flat black skirt.
+            let shade = CGFloat(index % 4) * 0.028
+            let facetTint = SKColor(
+                red: 0.17 + shade + CGFloat(world % 3) * 0.018,
+                green: 0.21 + shade + CGFloat(world % 2) * 0.016,
+                blue: 0.22 + shade,
+                alpha: 1)
             let facet = polygon([a,b,CGPoint(x:b.x * 0.82,y:b.y-drop),
                                  CGPoint(x:a.x * 0.82,y:a.y-drop-7)],
-                color: SKColor(white: 0.14 + CGFloat(index % 4) * 0.035, alpha: 1))
+                                color: facetTint)
             facet.zPosition = -2
             root.addChild(facet)
+            if index % 2 == 0 {
+                let ledge = SKShapeNode()
+                let edgePath = CGMutablePath()
+                edgePath.move(to: a)
+                edgePath.addLine(to: b)
+                ledge.path = edgePath
+                ledge.strokeColor = tint.withAlphaComponent(0.42)
+                ledge.lineWidth = 2
+                ledge.zPosition = -1.8
+                root.addChild(ledge)
+            }
         }
         let ground = polygon(outline, color: tint)
         root.addChild(ground)
