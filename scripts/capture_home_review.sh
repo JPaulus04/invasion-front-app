@@ -111,8 +111,29 @@ capture_scene() {
     2>/dev/null | tail -35 || true
   return 1
 }
+# Capture SpringBoard as a reference. A valid PNG is not proof the app
+# remained in the foreground after its QA launch assertions.
+run_bounded 45 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+sleep 2
+run_bounded 45 xcrun simctl io "$DEVICE" screenshot screenshots/springboard-reference.png
+verify_game_foreground() {
+  python3 - "$1" <<'PY'
+from PIL import Image, ImageChops, ImageStat
+import sys
+reference = Image.open("screenshots/springboard-reference.png").convert("RGB").resize((120, 260))
+captured = Image.open(sys.argv[1]).convert("RGB").resize((120, 260))
+difference = ImageStat.Stat(ImageChops.difference(reference, captured)).mean
+score = sum(difference) / 3
+print(f"Foreground difference from SpringBoard: {score:.1f}")
+if score < 17:
+    raise SystemExit("Screenshot resembles iOS SpringBoard, not Outpost Zero")
+PY
+}
 # Focused Home review: only three requested states.
 capture_scene -captureHomeNavigationScreenshot screenshots/outpost-zero-home-navigation.png
+verify_game_foreground screenshots/outpost-zero-home-navigation.png
 capture_scene -captureWorldSelectorScreenshot screenshots/outpost-zero-world-selector.png
+verify_game_foreground screenshots/outpost-zero-world-selector.png
 capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
+verify_game_foreground screenshots/outpost-zero-headquarters.png
 python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-home-navigation.png screenshots/outpost-zero-world-selector.png screenshots/outpost-zero-headquarters.png
