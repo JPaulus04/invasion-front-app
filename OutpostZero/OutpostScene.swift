@@ -7018,6 +7018,42 @@ final class OutpostScene: SKScene {
         }
     }
 
+    // Build 331: an attack must have a readable origin, direction and release.
+    // Keep the effect separate from projectile simulation and damage rules.
+    private func hostileMuzzleBurst(at origin: CGPoint, toward target: CGPoint,
+                                   color: SKColor) {
+        let heading = atan2(target.y - origin.y, target.x - origin.x)
+        let burst = SKNode()
+        burst.position = origin
+        burst.zRotation = heading
+        burst.zPosition = 13
+        arena.addChild(burst)
+        let flare = SKShapeNode(circleOfRadius: 9)
+        flare.position.x = 13
+        flare.fillColor = .white
+        flare.strokeColor = color
+        flare.lineWidth = 3
+        flare.glowWidth = 7
+        burst.addChild(flare)
+        for index in 0..<5 {
+            let spread = CGFloat(index - 2) * .pi / 11
+            let ray = SKShapeNode(rectOf:CGSize(width:CGFloat(13 + index % 2 * 7),
+                                                 height:2.5),cornerRadius:1)
+            ray.position = CGPoint(x:CGFloat(21 + index % 2 * 5),
+                                   y:CGFloat(index - 2) * 4)
+            ray.zRotation = spread
+            ray.fillColor = index.isMultiple(of:2) ? .white : color
+            ray.strokeColor = .clear
+            burst.addChild(ray)
+        }
+        burst.setScale(0.65)
+        burst.run(.sequence([
+            .group([.scale(to:1.35,duration:0.08),.fadeAlpha(to:0.4,duration:0.08)]),
+            .group([.scale(to:0.6,duration:0.10),.fadeOut(withDuration:0.10)]),
+            .removeFromParent()
+        ]))
+    }
+
     private func fireProjectile(from origin: CGPoint, toward target: CGPoint) {
         let dx = target.x - origin.x
         let dy = target.y - origin.y
@@ -7027,6 +7063,7 @@ final class OutpostScene: SKScene {
         let node = SKShapeNode(circleOfRadius: 6)
         let hostileColor = wave == worldWaveCount
             ? BossArtwork.colors[min(3, worldMapIndex)] : .systemPink
+        hostileMuzzleBurst(at:origin,toward:target,color:hostileColor)
         node.fillColor = hostileColor
         node.strokeColor = .white
         node.lineWidth = 2
