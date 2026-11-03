@@ -242,6 +242,40 @@ jobs:
           path: screenshots/outpost-zero-defense-*.png
           if-no-files-found: ignore
           retention-days: 7
+  home-visual-review:
+    # Fast focused capture; run only when explicitly requested in a commit.
+    if: >-
+      github.event_name == 'push' &&
+      contains(github.event.head_commit.message, '[home-review]')
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download compiled simulator app
+        uses: actions/download-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+      - name: Restore simulator app
+        run: |
+          mkdir -p simulator-app
+          ditto -x -k OutpostZero-simulator-app.zip simulator-app
+          test -x simulator-app/OutpostZero.app/OutpostZero
+      - name: Install image decoder
+        run: |
+          python3 -m venv "$RUNNER_TEMP/home-review-python"
+          "$RUNNER_TEMP/home-review-python/bin/python" -m pip install Pillow
+          echo "$RUNNER_TEMP/home-review-python/bin" >> "$GITHUB_PATH"
+      - name: Capture three Home states
+        run: bash scripts/capture_home_review.sh
+      - name: Upload Home-only screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-home-focused-review
+          path: screenshots/outpost-zero-*.png
+          if-no-files-found: ignore
+          retention-days: 14
   simulator-review:
     # Full campaign captures are reserved for milestones and release review.
     # Build 328 release gate: full simulator capture must pass before TestFlight.
