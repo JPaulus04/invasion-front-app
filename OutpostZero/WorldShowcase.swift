@@ -234,37 +234,9 @@ enum WorldShowcase {
                 }
             }
         }
-        // Broken slabs lead into the upright portal without a literal road.
-        for i in 0..<5 {
-            let y = CGFloat(-54+i*15)
-            let slab = polygon([CGPoint(x:-17,y:y),CGPoint(x:1,y:y+7),
-                CGPoint(x:24,y:y+3),CGPoint(x:8,y:y-5)],
-                color: SKColor(red:0.62,green:0.65,blue:0.52,alpha:0.65))
-            slab.position.x = CGFloat(i % 2) * 6
-            slab.zPosition = 0.3
-            root.addChild(slab)
-        }
-        if !locked {
-            let portal = SKShapeNode(ellipseOf: CGSize(width:62,height:91))
-            portal.position = CGPoint(x:5,y:43)
-            portal.fillColor = SKColor(red:0.02,green:0.12,blue:0.32,alpha:1)
-            portal.strokeColor = .systemCyan
-            portal.lineWidth = 6
-            portal.glowWidth = 3
-            portal.zPosition = 3
-            root.addChild(portal)
-            for i in 0..<4 {
-                let arc = SKShapeNode(ellipseOf: CGSize(width:CGFloat(17+i*10),height:CGFloat(25+i*16)))
-                arc.strokeColor = SKColor(red:0.3,green:0.7,blue:1,alpha:0.8)
-                arc.lineWidth = 2
-                arc.fillColor = .clear
-                arc.zRotation = CGFloat(i)*0.6
-                portal.addChild(arc)
-                if !UIAccessibility.isReduceMotionEnabled {
-                    arc.run(.repeatForever(.rotate(byAngle: .pi*2,duration:Double(5+i))))
-                }
-            }
-        } else {
+        // Home islands represent worlds, not room exits. No portal or portal
+        // approach is rendered here; extraction portals remain in gameplay.
+        if locked {
             // The silhouette is visible through drifting mist; no lock card.
             root.children.filter { $0 !== shadow }.forEach { $0.alpha *= 0.32 }
             for i in 0..<5 {
