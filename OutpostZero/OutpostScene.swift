@@ -790,19 +790,16 @@ final class OutpostScene: SKScene {
                         "nav_abilities", "nav_home"]
             precondition(phase == .ready && pilot.isHidden &&
                          keys.allSatisfy({ overlayButtons[$0] != nil }) &&
-                         overlay.childNode(withName: "homeUprightPortal") != nil &&
-                         overlay.childNode(withName: "//homePortalCurrent") != nil &&
-                         overlay.childNode(withName: "homeResourceBar") != nil &&
-                         overlay.childNode(withName: "homePilotPreview") != nil &&
+                         overlay.childNode(withName: "worldDiorama") != nil &&
                          overlayButtons["start"] != nil,
-                         "Home must render one pilot, animated portal and working dock")
+                         "Home must render floating world diorama and working navigation")
         }
         if ProcessInfo.processInfo.arguments.contains("-captureWorldSelectorScreenshot") {
             showWorldSelector()
             precondition(phase == .worldSelect &&
-                         overlayButtons["world_next"] != nil &&
+                         overlay.childNode(withName: "worldDiorama") != nil &&
                          overlayButtons["nav_home"] != nil,
-                         "World map must support selection and return to home")
+                         "World map must render the swipeable diorama and home navigation")
         }
         // CI-only settings and lifecycle integration: a call must pause
         // hostile attacks, and resuming must require deliberate input.
