@@ -8759,7 +8759,21 @@ final class OutpostScene: SKScene {
         if clock < menuUnlockTime || awaitingMenuRelease { return }
         let local = touch.location(in: overlay)
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
-        if (phase == .worldSelect || phase == .ready || phase == .headquarters), tapped == nil {
+        // Profile tiles are real controls, not decorative images. Register
+        // the touch for swipe detection and allow a tap to preview a hero.
+        if phase == .headquarters, tapped == nil {
+            worldMapSwipeStart = point
+            worldMapSwipeMoved = false
+            for slot in 0..<4 {
+                if let tile = overlay.childNode(withName: "commanderProfile_\(slot)"),
+                   tile.contains(local) {
+                    UserDefaults.standard.set(slot, forKey: "ozViewedCommander")
+                    showHeadquarters()
+                    return
+                }
+            }
+        }
+        if (phase == .worldSelect || phase == .ready), tapped == nil {
             worldMapSwipeStart = point
             worldMapSwipeMoved = false
         }
@@ -8902,6 +8916,7 @@ final class OutpostScene: SKScene {
                 let viewed = UserDefaults.standard.integer(forKey: "ozViewedCommander")
                 UserDefaults.standard.set(min(3, max(0, viewed + (dx < 0 ? 1 : -1))),
                                           forKey: "ozViewedCommander")
+                worldMapSwipeStart = nil
                 showHeadquarters()
             }
         }
