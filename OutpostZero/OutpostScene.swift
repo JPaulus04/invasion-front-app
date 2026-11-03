@@ -3026,6 +3026,29 @@ final class OutpostScene: SKScene {
         hero.colorBlendFactor = unlocked ? (index == 0 ? 0 : 0.48) : 0.9
         hero.alpha = unlocked ? 1 : 0.58
         overlay.addChild(hero)
+        // Silhouette accessories distinguish specialists until dedicated
+        // character animation assets are available.
+        if index > 0 {
+            let equipment = SKNode()
+            equipment.name = "commanderEquipment"
+            equipment.position = hero.position
+            equipment.zPosition = 5
+            overlay.addChild(equipment)
+            let accent = unlocked ? tints[index] : SKColor.gray
+            for side in [-1.0, 1.0] {
+                let x = CGFloat(side) * (index == 2 ? 74 : 63) * scale
+                let item = SKShapeNode(rectOf: CGSize(
+                    width: (index == 2 ? 45 : 18) * scale,
+                    height: (index == 1 ? 46 : 35) * scale),
+                    cornerRadius: 7 * scale)
+                item.position = CGPoint(x: x, y: (index == 1 ? 46 : -8) * scale)
+                item.fillColor = accent
+                item.strokeColor = .white.withAlphaComponent(0.5)
+                item.lineWidth = 2
+                if index == 3 { item.glowWidth = 6 }
+                equipment.addChild(item)
+            }
+        }
         if !unlocked {
             overlayText("LOCKED", y: 89 * scale, fontSize: 25 * scale)
         }
