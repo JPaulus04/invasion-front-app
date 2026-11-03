@@ -381,8 +381,18 @@ struct ProgressCombatTests {
         let shooterMotion = CombatRules.enemySteering(
             behavior: 4, origin: .zero, pilot: CGPoint(x: 120, y: 0),
             elapsed: 2, phase: 1, ranged: true, aiming: false)
-        precondition(gruntMotion.dx == 1 && gruntMotion.dy == 0)
-        precondition(abs(raiderMotion.dy) > 0.05)
+        // Build 331: grunts now approach off-axis; they still converge on
+        // the pilot, and faster raiders apply greater lateral pressure.
+        precondition(gruntMotion.dx > 0.8 && abs(gruntMotion.dy) > 0.05)
+        precondition(abs(raiderMotion.dy) > abs(gruntMotion.dy))
+        let closeGrunt = CombatRules.enemySteering(
+            behavior: 0, origin: .zero, pilot: CGPoint(x: 24, y: 0),
+            elapsed: 2, phase: 1, ranged: false, aiming: false)
+        precondition(closeGrunt.dx == 1 && closeGrunt.dy == 0)
+        precondition(CampaignPacing.incomingDamage(amount: 10, room: 1) == 9)
+        precondition(CampaignPacing.incomingDamage(amount: 10, room: 6) == 10)
+        precondition(CampaignPacing.hitGracePeriod(room: 1) == 1.10)
+        precondition(CampaignPacing.hitGracePeriod(room: 8) == 1.00)
         precondition(shooterMotion.dx < 0 && abs(shooterMotion.dy) > 0.05)
         for role in 0...5 {
             let motion = CombatRules.enemySteering(
