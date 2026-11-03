@@ -94,9 +94,13 @@ enum CombatRules {
     /// wall of simultaneous projectiles and marked mortars. Difficulty grows
     /// through additional threats, not instant overlapping attacks.
     static func maximumConcurrentRangedThreats(room: Int) -> Int {
-        if room <= 10 { return 1 }
-        if room <= 15 { return 2 }
-        return 3
+        // Keep the opening readable, then introduce genuine crossfire.
+        // A single in-flight shot used to block every other shooter until
+        // it expired, allowing stationary pilots to clear early rooms.
+        if room <= 3 { return 1 }
+        if room <= 10 { return 2 }
+        if room <= 15 { return 3 }
+        return 4
     }
 
     static func mayBeginRangedAttack(room: Int, activeThreats: Int) -> Bool {
