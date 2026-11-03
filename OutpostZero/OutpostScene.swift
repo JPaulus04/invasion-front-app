@@ -2989,50 +2989,81 @@ final class OutpostScene: SKScene {
     }
 
     private func showHeadquarters() {
-        // Commander roster is a non-destructive selection: changing heroes
-        // never resets campaign, equipment, salvage, or saved runs.
         phase = .headquarters
         hud.isHidden = true
         pilot.isHidden = true
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
         installHubShell(active: "nav_pilot")
-        overlayText("COMMANDERS", y: 202, fontSize: 27)
-        overlayText("CHOOSE YOUR PILOT", y: 174, fontSize: 12)
         let roster = ["VANGUARD", "SPECTER", "BULWARK", "VOLT"]
-        let roles = ["BALANCED", "MOBILITY", "DEFENSE", "ENERGY"]
-        let selected = min(max(UserDefaults.standard.integer(forKey: "ozSelectedCommander"), 0), roster.count - 1)
-        let portraitGlow = SKSpriteNode(texture: ProductionPresentation.glow(
-            SKColor(red: 0.31, green: 0.81, blue: 0.97, alpha: 0.52)))
-        portraitGlow.size = CGSize(width: 174, height: 135)
-        portraitGlow.position = CGPoint(x: 0, y: 86)
-        portraitGlow.zPosition = 2
-        overlay.addChild(portraitGlow)
-        let portrait = SKSpriteNode(texture: pilotDirectionalTextures[10])
-        portrait.name = "hubPilotPortrait"
-        portrait.size = CGSize(width: 116, height: 116)
-        portrait.position = CGPoint(x: 0, y: 85)
-        portrait.zPosition = 3
+        let roles = ["BALANCED ASSAULT", "HIGH MOBILITY", "ARMORED DEFENDER", "ENERGY SPECIALIST"]
+        let perks = ["BASELINE STATS", "+15% MOVEMENT", "+30 HP · -8% MOVEMENT", "+2 WEAPON DAMAGE"]
+        let index = min(max(UserDefaults.standard.integer(forKey: "ozViewedCommander"), 0), 3)
+        let selected = min(max(UserDefaults.standard.integer(forKey: "ozSelectedCommander"), 0), 3)
+        let unlocked = index == 0 || WorldCatalog.stars(index - 1) > 0
+        let scale = min(1, size.height / 780)
+        overlayText("COMMANDERS", y: 270 * scale, fontSize: 25 * scale)
+        overlayText("SWIPE TO EXPLORE YOUR ROSTER", y: 241 * scale, fontSize: 10 * scale)
+
+        // A single large hero showcase replaces the prototype stack of buttons.
+        let glow = SKSpriteNode(texture: ProductionPresentation.glow(
+            SKColor(red: 0.32, green: 0.76, blue: 0.96, alpha: 0.38)))
+        glow.size = CGSize(width: 270, height: 260)
+        glow.position = CGPoint(x: 0, y: 86 * scale)
+        glow.zPosition = 2
+        overlay.addChild(glow)
+        let hero = SKSpriteNode(texture: pilotDirectionalTextures[10])
+        hero.name = "commanderShowcase"
+        hero.size = CGSize(width: 190 * scale, height: 190 * scale)
+        hero.position = CGPoint(x: 0, y: 86 * scale)
+        hero.zPosition = 4
         let tints: [SKColor] = [.white, .systemTeal, .systemOrange, .systemPurple]
-        portrait.color = tints[selected]
-        portrait.colorBlendFactor = selected == 0 ? 0 : 0.48
-        overlay.addChild(portrait)
-        overlayText("\(roster[selected])  ·  \(roles[selected])", y: 12, fontSize: 14)
-        overlayText(selected == 1 ? "+15% MOVE SPEED" :
-                    (selected == 2 ? "+30 MAX HP · -8% SPEED" :
-                     (selected == 3 ? "+2 WEAPON DAMAGE" : "BALANCED BASE STATS")),
-                    y: -13, fontSize: 11)
-        for index in roster.indices {
-            let unlocked = index == 0 || WorldCatalog.stars(index - 1) > 0
-            let isSelected = selected == index
-            let label = "\(isSelected ? "✓ " : "")\(roster[index])  ·  \(unlocked ? roles[index] : "LOCKED · WORLD \(index) STAR")"
-            actionButton(label, key: "select_commander_\(index)",
-                         y: CGFloat(-66 - index * 54),
-                         tint: isSelected ? .systemGreen : .systemIndigo,
-                         enabled: unlocked)
+        hero.color = unlocked ? tints[index] : .darkGray
+        hero.colorBlendFactor = unlocked ? (index == 0 ? 0 : 0.48) : 0.9
+        hero.alpha = unlocked ? 1 : 0.58
+        overlay.addChild(hero)
+        if !unlocked {
+            overlayText("LOCKED", y: 89 * scale, fontSize: 25 * scale)
         }
-        overlayText("UNLOCK MORE COMMANDERS BY EARNING WORLD STARS",
-                    y: -294, fontSize: 9)
+        overlayText(roster[index], y: -30 * scale, fontSize: 24 * scale)
+        overlayText(roles[index], y: -57 * scale, fontSize: 12 * scale)
+
+        // Compact profile indicators make the roster visible without making
+        // four oversized prototype menu buttons.
+        for slot in 0..<4 {
+            let available = slot == 0 || WorldCatalog.stars(slot - 1) > 0
+            let tile = SKShapeNode(rectOf: CGSize(width: 53 * scale, height: 53 * scale),
+                                   cornerRadius: 10 * scale)
+            tile.name = "commanderProfile_\(slot)"
+            tile.position = CGPoint(x: CGFloat(slot) * 65 * scale - 97.5 * scale,
+                                    y: -108 * scale)
+            tile.fillColor = slot == index
+                ? SKColor(red: 0.25, green: 0.51, blue: 0.65, alpha: 1)
+                : SKColor(red: 0.13, green: 0.23, blue: 0.31, alpha: 0.94)
+            tile.strokeColor = slot == index ? .systemYellow : .white.withAlphaComponent(0.24)
+            tile.lineWidth = slot == index ? 2.5 : 1
+            tile.zPosition = 4
+            overlay.addChild(tile)
+            let mini = SKSpriteNode(texture: pilotDirectionalTextures[10])
+            mini.size = CGSize(width: 41 * scale, height: 41 * scale)
+            mini.color = available ? tints[slot] : .darkGray
+            mini.colorBlendFactor = available ? 0.5 : 0.95
+            mini.alpha = available ? 1 : 0.42
+            mini.zPosition = 5
+            tile.addChild(mini)
+        }
+        overlayText(perks[index], y: -158 * scale, fontSize: 14 * scale)
+        if unlocked {
+            actionButton(index == selected ? "ACTIVE COMMANDER" : "SET ACTIVE COMMANDER",
+                         key: "activate_commander", y: -207 * scale,
+                         tint: index == selected ? .systemGreen : .systemCyan,
+                         enabled: index != selected)
+        } else {
+            overlayText("EARN A STAR IN WORLD \(index) TO UNLOCK",
+                        y: -207 * scale, fontSize: 12 * scale)
+        }
+        overlayText("\(index + 1) / 4   ·   SWIPE LEFT OR RIGHT",
+                    y: -250 * scale, fontSize: 10 * scale)
         updateHUD()
     }
 
@@ -8724,7 +8755,7 @@ final class OutpostScene: SKScene {
         if clock < menuUnlockTime || awaitingMenuRelease { return }
         let local = touch.location(in: overlay)
         let tapped = overlayButtons.first(where: { $0.value.contains(local) })?.key
-        if (phase == .worldSelect || phase == .ready), tapped == nil {
+        if (phase == .worldSelect || phase == .ready || phase == .headquarters), tapped == nil {
             worldMapSwipeStart = point
             worldMapSwipeMoved = false
         }
@@ -8761,11 +8792,10 @@ final class OutpostScene: SKScene {
         case (.ready, "gear_bay"): showGearBay()
         case (.ready, "ability_lab"): showAbilityLab()
         case (.ready, "headquarters"): showHeadquarters()
-        case (.headquarters, let key?) where key.hasPrefix("select_commander_"):
-            if let index = Int(key.dropFirst("select_commander_".count)),
-               (0...3).contains(index),
-               (index == 0 || WorldCatalog.stars(index - 1) > 0) {
-                UserDefaults.standard.set(index, forKey: "ozSelectedCommander")
+        case (.headquarters, "activate_commander"):
+            let viewed = min(max(UserDefaults.standard.integer(forKey: "ozViewedCommander"), 0), 3)
+            if viewed == 0 || WorldCatalog.stars(viewed - 1) > 0 {
+                UserDefaults.standard.set(viewed, forKey: "ozSelectedCommander")
                 showHeadquarters()
             }
         case (.headquarters, "discard_run"): discardSavedRun()
@@ -8862,6 +8892,15 @@ final class OutpostScene: SKScene {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if phase == .headquarters, let start = worldMapSwipeStart, let touch = touches.first {
+            let dx = touch.location(in: self).x - start.x
+            if abs(dx) > 65 {
+                let viewed = UserDefaults.standard.integer(forKey: "ozViewedCommander")
+                UserDefaults.standard.set(min(3, max(0, viewed + (dx < 0 ? 1 : -1))),
+                                          forKey: "ozViewedCommander")
+                showHeadquarters()
+            }
+        }
         if (phase == .worldSelect || phase == .ready), let start = worldMapSwipeStart, let touch = touches.first {
             let dx = touch.location(in: self).x - start.x
             if abs(dx) > 65 {
