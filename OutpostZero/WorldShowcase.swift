@@ -36,6 +36,46 @@ enum WorldShowcase {
         shadow.position.y = -113
         shadow.zPosition = -3
         root.addChild(shadow)
+        // Build 331: a floating world should read as a physical object suspended
+        // in atmosphere. Three depth-separated light pools and drifting motes
+        // add scale cues without placing another rectangular panel behind it.
+        let underlight = SKSpriteNode(texture:ProductionPresentation.glow(
+            tint.withAlphaComponent(0.34)))
+        underlight.size = CGSize(width:280,height:115)
+        underlight.position = CGPoint(x:0,y:-91)
+        underlight.zPosition = -2.9
+        root.addChild(underlight)
+        if !locked {
+            underlight.run(.repeatForever(.sequence([
+                .group([.fadeAlpha(to:0.52,duration:2.1),
+                        .scale(to:1.13,duration:2.1)]),
+                .group([.fadeAlpha(to:1,duration:2.1),
+                        .scale(to:1,duration:2.1)])
+            ])))
+        }
+        for index in 0..<12 {
+            let phase = CGFloat(index) * .pi * 2 / 12
+            let x = cos(phase) * CGFloat(133 + index % 3 * 13)
+            let y = sin(phase) * 44 - 18
+            let mote = SKShapeNode(circleOfRadius:CGFloat(index % 3 + 1) * 0.9)
+            mote.position = CGPoint(x:x,y:y)
+            mote.fillColor = tint.withAlphaComponent(locked ? 0.14 : 0.66)
+            mote.strokeColor = .clear
+            mote.glowWidth = locked ? 0 : 2
+            mote.zPosition = index.isMultiple(of:2) ? -1.2 : 4.5
+            root.addChild(mote)
+            if !locked {
+                let travel = CGFloat(7 + index % 4 * 3)
+                mote.run(.repeatForever(.sequence([
+                    .group([.moveBy(x:CGFloat(index % 2 == 0 ? 5 : -5),
+                                    y:travel,duration:1.8+Double(index%4)*0.3),
+                            .fadeAlpha(to:0.25,duration:1.8+Double(index%4)*0.3)]),
+                    .group([.moveBy(x:CGFloat(index % 2 == 0 ? -5 : 5),
+                                    y:-travel,duration:1.8+Double(index%4)*0.3),
+                            .fadeAlpha(to:1,duration:1.8+Double(index%4)*0.3)])
+                ])))
+            }
+        }
         // Separate cliff facets expose the thickness of the floating landmass.
         for index in 0..<outline.count {
             let a = outline[index], b = outline[(index + 1) % outline.count]
