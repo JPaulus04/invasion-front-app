@@ -298,8 +298,18 @@ final class OutpostScene: SKScene {
     private var movementTarget: CGPoint?
     // A small in-run positioning bonus, distinct from tactical abilities.
     private var mobilityRank = 0
+    private var selectedCommander: Int {
+        min(max(UserDefaults.standard.integer(forKey: "ozSelectedCommander"), 0), 3)
+    }
+    private var commanderHealthBonus: Int {
+        selectedCommander == 2 ? 30 : 0
+    }
+    private var commanderDamageBonus: Int {
+        selectedCommander == 3 ? 2 : 0
+    }
     private var pilotSpeed: CGFloat {
-        144 + CGFloat(branchLevel(3) * 3 + mobilityRank * 6)
+        let base = 144 + CGFloat(branchLevel(3) * 3 + mobilityRank * 6)
+        return base * (selectedCommander == 1 ? 1.15 : (selectedCommander == 2 ? 0.92 : 1))
     }
     private let autoFireRange: CGFloat = 260
     private var pilotShieldUntil: TimeInterval = 0
@@ -325,7 +335,7 @@ final class OutpostScene: SKScene {
     private var permanentArmorBonus: Int { branchLevel(2) * 2 }
     private var gearWeaponBonus: Int { PersistentProgression.gearBenefit("weapon", rank: permanent.rank("weapon")) }
     private var gearReactorBonus: Int { PersistentProgression.gearBenefit("reactor", rank: permanent.rank("reactor")) }
-    private var maximumHealth: Int { 100 + permanentArmorBonus + PersistentProgression.gearBenefit("armor", rank: permanent.rank("armor")) + runArmor }
+    private var maximumHealth: Int { 100 + commanderHealthBonus + permanentArmorBonus + PersistentProgression.gearBenefit("armor", rank: permanent.rank("armor")) + runArmor }
     private var permanentRateBonus: Int { branchLevel(3) / 4 }
     private var permanentReactorBonus: Int { branchLevel(1) / 3 }
     private var permanentSystemsBonus: Int { branchLevel(4) / 4 }
@@ -2383,7 +2393,7 @@ final class OutpostScene: SKScene {
                ? selectedWorld.title : "OUTPOST ZERO")
         if title.text != titleText { title.text = titleText }
         // Objective messaging is rendered exclusively by survivalClock below.
-        let infoText = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus)  •  RATE \(fireRate)"
+        let infoText = "HP \(health)/\(maximumHealth)  •  DMG \(damage + permanentDamageBonus + gearWeaponBonus + commanderDamageBonus)  •  RATE \(fireRate)"
         if info.text != infoText { info.text = infoText }
         info.fontColor = health <= maximumHealth / 3 ? .systemRed : (health <= maximumHealth * 2 / 3 ? .systemYellow : .white)
         // Combat presentation: details belong in the pause menu; objectives
@@ -3008,7 +3018,10 @@ final class OutpostScene: SKScene {
         portrait.colorBlendFactor = selected == 0 ? 0 : 0.48
         overlay.addChild(portrait)
         overlayText("\(roster[selected])  ·  \(roles[selected])", y: 12, fontSize: 14)
-        overlayText("EQUIPMENT AND CAMPAIGN PROGRESS ARE SHARED", y: -13, fontSize: 9)
+        overlayText(selected == 1 ? "+15% MOVE SPEED" :
+                    (selected == 2 ? "+30 MAX HP · -8% SPEED" :
+                     (selected == 3 ? "+2 WEAPON DAMAGE" : "BALANCED BASE STATS")),
+                    y: -13, fontSize: 11)
         for index in roster.indices {
             let unlocked = index == 0 || WorldCatalog.stars(index - 1) > 0
             let isSelected = selected == index
@@ -7496,7 +7509,7 @@ final class OutpostScene: SKScene {
                                          rank: explosiveLevel,
                                          burning: incendiaryLevel > 0)
         }
-        let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus
+        let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus + commanderDamageBonus
         // Elemental hits must read differently from ordinary kinetic shots.
         let hitColor: SKColor = explosiveLevel > 0 ? .systemOrange :
             (incendiaryLevel > 0 ? .systemRed :
