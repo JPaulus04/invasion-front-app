@@ -965,6 +965,13 @@ final class OutpostScene: SKScene {
                          "Ability Lab must be reachable and expose persistent hub navigation")
             showHeadquarters()
         }
+        if ProcessInfo.processInfo.arguments.contains("-captureLockedCommanderScreenshot") {
+            UserDefaults.standard.set(3, forKey: "ozViewedCommander")
+            showHeadquarters()
+            validateHubNavigation()
+            precondition(phase == .headquarters && overlay.childNode(withName: "commanderShowcase") != nil,
+                         "Locked commander preview must render its showcase")
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureGearBayScreenshot") {
             showGearBay()
             validateHubNavigation()
