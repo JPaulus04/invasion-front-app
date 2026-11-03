@@ -957,12 +957,12 @@ final class OutpostScene: SKScene {
                          "Headquarters must expose both permanent upgrade areas")
             showGearBay()
             validateHubNavigation()
-            precondition(phase == .gearBay && overlayButtons["hq_back"] != nil,
-                         "Gear Bay must be reachable and have a way out")
+            precondition(phase == .gearBay && overlayButtons["nav_pilot"] != nil && overlayButtons["nav_home"] != nil,
+                         "Gear Bay must be reachable and expose persistent hub navigation")
             showAbilityLab()
             validateHubNavigation()
-            precondition(phase == .abilityLab && overlayButtons["hq_back"] != nil,
-                         "Ability Lab must be reachable and have a way out")
+            precondition(phase == .abilityLab && overlayButtons["nav_pilot"] != nil && overlayButtons["nav_home"] != nil,
+                         "Ability Lab must be reachable and expose persistent hub navigation")
             showHeadquarters()
         }
         if ProcessInfo.processInfo.arguments.contains("-captureGearBayScreenshot") {
