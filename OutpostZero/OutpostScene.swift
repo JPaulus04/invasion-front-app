@@ -6931,6 +6931,26 @@ final class OutpostScene: SKScene {
         tail.zPosition = -2
         node.addChild(tail)
         node.zRotation = atan2(dy, dx)
+        // Build 331: hostile rounds carry a directional warning signature.
+        // Three staggered luminous tracers clarify travel direction at speed,
+        // without modifying projectile physics or hit geometry.
+        for index in 0..<3 {
+            let streak = SKShapeNode(rectOf: CGSize(width: CGFloat(9 + index * 5),
+                                                     height: CGFloat(2 + (index == 0 ? 1 : 0))),
+                                     cornerRadius: 1)
+            streak.position = CGPoint(x: CGFloat(-21 - index * 10), y: 0)
+            streak.fillColor = hostileColor.withAlphaComponent(CGFloat(0.57 - Double(index) * 0.15))
+            streak.strokeColor = .clear
+            streak.glowWidth = index == 0 ? 2 : 0
+            streak.zPosition = -3
+            node.addChild(streak)
+        }
+        let warningCore = SKShapeNode(circleOfRadius: 2.5)
+        warningCore.fillColor = .white
+        warningCore.strokeColor = .clear
+        warningCore.position = CGPoint(x: 2, y: 0)
+        warningCore.zPosition = 2
+        node.addChild(warningCore)
         node.run(.repeatForever(.sequence([
             .scale(to: 1.12, duration: 0.16),
             .scale(to: 1.0, duration: 0.16)
