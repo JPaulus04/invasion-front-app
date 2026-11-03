@@ -154,6 +154,10 @@ if [ "$hq_ok" != 1 ]; then
   exit 1
 fi
 # Verify the alternate locked roster state, not just the default Vanguard.
+capture_scene -captureSpecterScreenshot screenshots/outpost-zero-commander-specter.png
+verify_game_foreground screenshots/outpost-zero-commander-specter.png
+capture_scene -captureBulwarkScreenshot screenshots/outpost-zero-commander-bulwark.png
+verify_game_foreground screenshots/outpost-zero-commander-bulwark.png
 capture_scene -captureLockedCommanderScreenshot screenshots/outpost-zero-commander-locked.png
 verify_game_foreground screenshots/outpost-zero-commander-locked.png
 
