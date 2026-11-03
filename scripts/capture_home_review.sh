@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+set -e
+# Every simulator subprocess is bounded so a stalled simctl cannot
+# pin the macOS runner until the whole job times out.
+run_bounded() {
+  LIMIT="$1"; shift
+  python3 - "$LIMIT" "$@" <<'PY'
+import subprocess
+import sys
+try:
+    subprocess.run(sys.argv[2:], check=True, timeout=int(sys.argv[1]))
+except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
+    print(f"Simulator command unavailable: {error}", file=sys.stderr)
+    sys.exit(1)
+PY
+}
+# Let a fresh service finish first-boot data migration. Killing it
+# before listing devices made the migrations restart on some hosts.
+# Fallback to a second available iPhone only after bounded readiness.
+DEVICE=""
+DEVICE_CANDIDATES="$(xcrun simctl list devices available -j | python3 -c '
+import json, sys
+data=json.load(sys.stdin)["devices"]
+found=[]
+for runtime, devices in sorted(data.items(), reverse=True):
+    for device in devices:
+        if device.get("isAvailable", True) and device.get("name", "").startswith("iPhone"):
+            found.append(device["udid"])
+print(chr(10).join(found[:2]))
+')"
+for CANDIDATE in $DEVICE_CANDIDATES; do
+  echo "Preparing simulator $CANDIDATE"
+  run_bounded 35 xcrun simctl boot "$CANDIDATE" || true
+  # Data migration often needs more than 90 seconds on a cold VM.
+  if run_bounded 200 xcrun simctl bootstatus "$CANDIDATE" -b; then
+    DEVICE="$CANDIDATE"
+    break
+  fi
+  echo "::warning::Simulator $CANDIDATE failed boot readiness; trying alternate device"
+  run_bounded 20 xcrun simctl shutdown "$CANDIDATE" || true
+done
+if [ -z "$DEVICE" ]; then
+  echo "::error::No available iPhone simulator reached boot readiness"
+  exit 1
+fi
+echo "Simulator ready: $DEVICE"
+APP="simulator-app/OutpostZero.app"
+# If CoreSimulatorService is cold, allow a generous first install.
+# On failure restart only the simulator rather than recompiling iOS.
+if ! run_bounded 150 xcrun simctl install "$DEVICE" "$APP"; then
+  # A slow initial install may recover after a single service reset.
+  # Do not loop forever on a damaged simulator installation.
+  echo "::warning::Simulator install failed; one bounded reinstall attempt"
+  run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
+  run_bounded 40 xcrun simctl boot "$DEVICE" || true
+  run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b
+  run_bounded 150 xcrun simctl install "$DEVICE" "$APP"
+fi
+mkdir -p screenshots
+export REQUIRE_WORLD_ONE_ART="${REQUIRE_WORLD_ONE_ART:-0}"
+# A cold-booted simulator can show a gray launch screen for several
+# seconds while still returning success from 'simctl launch'.
+# Retry until a decoded screenshot contains actual rendered colors.
+capture_scene() {
+  FLAG="$1"
+  OUTPUT="$2"
+  for ATTEMPT in 1 2 3; do
+    run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+    # Give SpringBoard time to remove the previous game's surface
+    # before launching a different QA flag. Without this the
+    # simulator occasionally screenshots the previous scene.
+    sleep 2
+    # Cold-booted CoreSimulator can accept the app but not yet
+    # serve pixels. Launch/screenshot timeout is retriable too.
+    # In strict art-review mode, World 1 screenshots must render
+    # with authored textures. The scene's existing assertion fails
+    # loudly if a required floor or prop cannot be loaded at runtime.
+    EXTRA_FLAGS=()
+    if [ "${REQUIRE_WORLD_ONE_ART:-0}" = "1" ]; then
+      case "$FLAG" in
+        -captureWorldOne*Screenshot) EXTRA_FLAGS=(-requireWorldOneAuthoredArt) ;;
+      esac
+    fi
+    if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG" "${EXTRA_FLAGS[@]}"; then
+      echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
+      if [ "$ATTEMPT" != 3 ]; then
+        # A cold CoreSimulatorService can become unresponsive even
+        # after installation. Reboot the simulator before retrying
+        # rather than issuing launch to the same wedged instance.
+        run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
+        run_bounded 45 xcrun simctl boot "$DEVICE" || true
+        run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b || true
+        run_bounded 65 xcrun simctl install "$DEVICE" "$APP" || true
+      fi
+      sleep 4
+      continue
+    fi
+    sleep 8
+    if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT" &&
+       python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
+      return 0
+    fi
+    echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT); retrying"
+    sleep 4
+  done
+  echo "::error::Simulator never rendered a usable frame for $FLAG"
+  # Leave a useful reason in CI when the app exits after launch.
+  run_bounded 25 xcrun simctl spawn "$DEVICE" log show \
+    --last 90s --style compact \
+    --predicate 'process == "OutpostZero" AND messageType == error' \
+    2>/dev/null | tail -35 || true
+  return 1
+}
+# Focused Home review: only three requested states.
+capture_scene -captureHomeNavigationScreenshot screenshots/outpost-zero-home-navigation.png
+capture_scene -captureWorldSelectorScreenshot screenshots/outpost-zero-world-selector.png
+capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
+python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-home-navigation.png screenshots/outpost-zero-world-selector.png screenshots/outpost-zero-headquarters.png
