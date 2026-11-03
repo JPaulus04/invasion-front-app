@@ -153,4 +153,8 @@ if [ "$hq_ok" != 1 ]; then
   echo "::error::Headquarters did not stay foreground; review simulator crash diagnostics"
   exit 1
 fi
+# Verify the alternate locked roster state, not just the default Vanguard.
+capture_scene -captureLockedCommanderScreenshot screenshots/outpost-zero-commander-locked.png
+verify_game_foreground screenshots/outpost-zero-commander-locked.png
+
 python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-home-navigation.png screenshots/outpost-zero-world-selector.png screenshots/outpost-zero-headquarters.png
