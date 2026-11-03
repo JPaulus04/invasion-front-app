@@ -3033,14 +3033,23 @@ final class OutpostScene: SKScene {
         glow.position = CGPoint(x: 0, y: 86 * scale)
         glow.zPosition = 2
         overlay.addChild(glow)
-        let hero = SKSpriteNode(texture: pilotDirectionalTextures[10])
+        let commanderArtNames = ["commander_vanguard", "commander_specter",
+                                 "commander_bulwark", "commander_volt"]
+        // Use dedicated full-body artwork once it is bundled. Until then the
+        // original pilot is an explicit fallback, not a recolored final asset.
+        let artName = commanderArtNames[index]
+        let artAvailable = UIImage(named: artName) != nil
+        let commanderTexture = artAvailable ? SKTexture(imageNamed: artName)
+                                            : pilotDirectionalTextures[10]
+        commanderTexture.filteringMode = .linear
+        let hero = SKSpriteNode(texture: commanderTexture)
         hero.name = "commanderShowcase"
         hero.size = CGSize(width: 190 * scale, height: 190 * scale)
         hero.position = CGPoint(x: 0, y: 86 * scale)
         hero.zPosition = 4
         let tints: [SKColor] = [.white, .systemTeal, .systemOrange, .systemPurple]
-        hero.color = unlocked ? tints[index] : .darkGray
-        hero.colorBlendFactor = unlocked ? (index == 0 ? 0 : 0.48) : 0.62
+        hero.color = unlocked ? .white : .darkGray
+        hero.colorBlendFactor = unlocked ? (artAvailable ? 0 : (index == 0 ? 0 : 0.48)) : 0.62
         hero.alpha = unlocked ? 1 : 0.78
         overlay.addChild(hero)
         // Unlock requirements below the portrait communicate the lock state
@@ -3064,10 +3073,15 @@ final class OutpostScene: SKScene {
             tile.lineWidth = slot == index ? 2.5 : 1
             tile.zPosition = 4
             overlay.addChild(tile)
-            let mini = SKSpriteNode(texture: pilotDirectionalTextures[10])
+            let thumbnailArtName = commanderArtNames[slot]
+            let thumbnailAvailable = UIImage(named: thumbnailArtName) != nil
+            let thumbnailTexture = thumbnailAvailable
+                ? SKTexture(imageNamed: thumbnailArtName) : pilotDirectionalTextures[10]
+            thumbnailTexture.filteringMode = .linear
+            let mini = SKSpriteNode(texture: thumbnailTexture)
             mini.size = CGSize(width: 41 * scale, height: 41 * scale)
-            mini.color = available ? tints[slot] : .darkGray
-            mini.colorBlendFactor = available ? 0.5 : 0.95
+            mini.color = available ? .white : .darkGray
+            mini.colorBlendFactor = available ? (thumbnailAvailable ? 0 : 0.5) : 0.95
             mini.alpha = available ? 1 : 0.42
             mini.zPosition = 5
             tile.addChild(mini)
