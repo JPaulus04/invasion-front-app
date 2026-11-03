@@ -3040,6 +3040,37 @@ final class OutpostScene: SKScene {
         let glow = SKSpriteNode(texture: ProductionPresentation.glow(tint.withAlphaComponent(0.28)))
         glow.size = CGSize(width: width, height: height)
         root.addChild(glow)
+        // Build 331: each upgrade is a complete equipment tile, not floating
+        // text over scenery. A physical frame anchors illustration and stats.
+        let plate = SKShapeNode(rectOf:CGSize(width:width,height:height-2),cornerRadius:14)
+        plate.fillColor = SKColor(red:0.045,green:0.105,blue:0.17,alpha:0.96)
+        plate.strokeColor = tint.withAlphaComponent(rank > 0 ? 0.8 : 0.42)
+        plate.lineWidth = rank > 0 ? 1.8 : 1.2
+        plate.zPosition = -0.2
+        root.addChild(plate)
+        let headerBand = SKShapeNode(rectOf:CGSize(width:width-12,height:compact ? 5 : 6),cornerRadius:2)
+        headerBand.position.y = height/2 - 8
+        headerBand.fillColor = tint.withAlphaComponent(0.72)
+        headerBand.strokeColor = .clear
+        root.addChild(headerBand)
+        // Progress toward the next rarity milestone. This is purely visual;
+        // purchase costs, rank caps, and upgrade behavior are unchanged.
+        let progressWidth = width - (compact ? 20 : 114)
+        let progressY: CGFloat = compact ? -70 : -33
+        let progressX: CGFloat = compact ? 0 : 49
+        let progressTrack = SKShapeNode(rectOf:CGSize(width:progressWidth,height:3),cornerRadius:1.5)
+        progressTrack.position = CGPoint(x:progressX,y:progressY)
+        progressTrack.fillColor = SKColor(white:0.28,alpha:0.9)
+        progressTrack.strokeColor = .clear
+        root.addChild(progressTrack)
+        let progress = CGFloat(rank % 3) / 3
+        if rank > 0 && progress > 0 {
+            let fill = SKShapeNode(rectOf:CGSize(width:progressWidth*progress,height:3),cornerRadius:1.5)
+            fill.position = CGPoint(x:progressX-progressWidth*(1-progress)/2,y:progressY)
+            fill.fillColor = tint
+            fill.strokeColor = .clear
+            root.addChild(fill)
+        }
         let iconID = id == "weapon" ? "rate" : id == "reactor" ? "reactor" : id
         let art = SKSpriteNode(texture: ProductionPresentation.abilityArtwork(iconID, tint: tint))
         art.size = CGSize(width: compact ? 88 : 94, height: compact ? 88 : 94)
