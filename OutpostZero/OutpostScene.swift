@@ -2979,47 +2979,47 @@ final class OutpostScene: SKScene {
     }
 
     private func showHeadquarters() {
+        // Commander roster is a non-destructive selection: changing heroes
+        // never resets campaign, equipment, salvage, or saved runs.
         phase = .headquarters
         hud.isHidden = true
         pilot.isHidden = true
         ArcadeMusic.shared.play(.headquarters)
         clearOverlay()
         installHubShell(active: "nav_pilot")
-        overlayText("PILOT", y: 198, fontSize: 28)
-        overlayText("COMMANDER PROFILE  ·  \(availableCores) POWER CORES", y: 169, fontSize: 11)
-        let hangar = WorldShowcase.hangar(width: min(size.width - 20, 370))
-        hangar.zPosition = 1
-        overlay.addChild(hangar)
+        overlayText("COMMANDERS", y: 202, fontSize: 27)
+        overlayText("CHOOSE YOUR PILOT", y: 174, fontSize: 12)
+        let roster = ["VANGUARD", "SPECTER", "BULWARK", "VOLT"]
+        let roles = ["BALANCED", "MOBILITY", "DEFENSE", "ENERGY"]
+        let selected = min(max(UserDefaults.standard.integer(forKey: "ozSelectedCommander"), 0), roster.count - 1)
         let portraitGlow = SKSpriteNode(texture: ProductionPresentation.glow(
             SKColor(red: 0.31, green: 0.81, blue: 0.97, alpha: 0.52)))
-        portraitGlow.name = "pilotShowcaseGlow"
-        portraitGlow.size = CGSize(width: 200, height: 180)
-        portraitGlow.position = CGPoint(x: 0, y: 54)
+        portraitGlow.size = CGSize(width: 174, height: 135)
+        portraitGlow.position = CGPoint(x: 0, y: 86)
         portraitGlow.zPosition = 2
         overlay.addChild(portraitGlow)
         let portrait = SKSpriteNode(texture: pilotDirectionalTextures[10])
         portrait.name = "hubPilotPortrait"
-        portrait.size = CGSize(width: 168, height: 168)
-        portrait.position = CGPoint(x: 0, y: 49)
+        portrait.size = CGSize(width: 116, height: 116)
+        portrait.position = CGPoint(x: 0, y: 85)
         portrait.zPosition = 3
+        let tints: [SKColor] = [.white, .systemTeal, .systemOrange, .systemPurple]
+        portrait.color = tints[selected]
+        portrait.colorBlendFactor = selected == 0 ? 0 : 0.48
         overlay.addChild(portrait)
-        if !UIAccessibility.isReduceMotionEnabled {
-            portrait.run(.repeatForever(.animate(with: pilotDirectionalTextures,
-                timePerFrame: 0.24, resize: false, restore: true)))
+        overlayText("\(roster[selected])  ·  \(roles[selected])", y: 12, fontSize: 14)
+        overlayText("EQUIPMENT AND CAMPAIGN PROGRESS ARE SHARED", y: -13, fontSize: 9)
+        for index in roster.indices {
+            let unlocked = index == 0 || WorldCatalog.stars(index - 1) > 0
+            let isSelected = selected == index
+            let label = "\(isSelected ? "✓ " : "")\(roster[index])  ·  \(unlocked ? roles[index] : "LOCKED · WORLD \(index) STAR")"
+            actionButton(label, key: "select_commander_\(index)",
+                         y: CGFloat(-66 - index * 54),
+                         tint: isSelected ? .systemGreen : .systemIndigo,
+                         enabled: unlocked)
         }
-        overlayText("\(maximumHealth) HP   ·   \(damage) DAMAGE   ·   \(Int(pilotSpeed)) SPEED",
-                    y: -24, fontSize: 12)
-        actionButton("UPGRADE PILOT STATS", key: "restore", y: -72, tint: .systemIndigo)
-        let fresh = UserDefaults.standard.bool(forKey: "ozFreshPilotActive")
-        if profileSwitchArmed {
-            overlayText("SAVE CURRENT PROGRESS AND SWITCH?", y: -123, fontSize: 10)
-            actionButton("CONFIRM PILOT SWITCH", key: "confirm_pilot_switch", y: -164, tint: .systemRed)
-            actionButton("CANCEL", key: "cancel_pilot_switch", y: -218, tint: .systemBlue)
-        } else {
-            actionButton(fresh ? "RETURN TO ORIGINAL PILOT" : "START FRESH PILOT",
-                         key: "switch_pilot", y: -143, tint: .systemOrange)
-            actionButton("BACK TO HOME", key: "hq_back", y: -201, tint: .systemBlue)
-        }
+        overlayText("UNLOCK MORE COMMANDERS BY EARNING WORLD STARS",
+                    y: -294, fontSize: 9)
         updateHUD()
     }
 
@@ -8748,6 +8748,13 @@ final class OutpostScene: SKScene {
         case (.ready, "gear_bay"): showGearBay()
         case (.ready, "ability_lab"): showAbilityLab()
         case (.ready, "headquarters"): showHeadquarters()
+        case (.headquarters, let key?) where key.hasPrefix("select_commander_"):
+            if let index = Int(key.dropFirst("select_commander_".count)),
+               (0...3).contains(index),
+               (index == 0 || WorldCatalog.stars(index - 1) > 0) {
+                UserDefaults.standard.set(index, forKey: "ozSelectedCommander")
+                showHeadquarters()
+            }
         case (.headquarters, "discard_run"): discardSavedRun()
         case (.headquarters, "switch_pilot"):
             profileSwitchArmed = true
