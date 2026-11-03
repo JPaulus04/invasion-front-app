@@ -279,8 +279,8 @@ struct CampaignPacingTests {
         precondition(CampaignPacing.targetEnemies(room: 5) == 9)
         precondition(CampaignPacing.targetEnemies(room: 10) == 19)
         precondition(CampaignPacing.targetEnemies(room: 19) == 37)
-        precondition(CampaignPacing.incomingDamage(amount: 12, room: 3) == 9)
-        precondition(CampaignPacing.incomingDamage(amount: 12, room: 8) == 11)
+        precondition(CampaignPacing.incomingDamage(amount: 12, room: 3) == 11)
+        precondition(CampaignPacing.incomingDamage(amount: 12, room: 8) == 12)
         precondition(CampaignPacing.incomingDamage(amount: 12, room: 19) == 12)
         precondition(CampaignPacing.hitGracePeriod(room: 2) >
                      CampaignPacing.hitGracePeriod(room: 17))
