@@ -368,6 +368,12 @@ struct ProgressCombatTests {
         precondition(!CombatRules.mayBeginRangedAttack(room: 6, activeThreats: 1))
         precondition(CombatRules.mayBeginRangedAttack(room: 19, activeThreats: 2))
         precondition(!CombatRules.mayBeginRangedAttack(room: 19, activeThreats: 3))
+        precondition(CombatRules.maximumConcurrentRangedThreats(room: 1) == 1)
+        precondition(CombatRules.maximumConcurrentRangedThreats(room: 6) == 2)
+        precondition(CombatRules.maximumConcurrentRangedThreats(room: 12) == 3)
+        precondition(CombatRules.maximumConcurrentRangedThreats(room: 18) == 4)
+        precondition(CombatRules.mayBeginRangedAttack(room: 6, activeThreats: 1))
+        precondition(!CombatRules.mayBeginRangedAttack(room: 6, activeThreats: 2))
         precondition(CombatRules.enemyType(room: 11, roll: 10) == 5)
         precondition(CombatRules.enemyType(room: 11, roll: 30) == 4)
         // Enemies use independent pursuit and flank patterns; the steering
