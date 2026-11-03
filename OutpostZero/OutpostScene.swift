@@ -3055,6 +3055,32 @@ final class OutpostScene: SKScene {
             mini.alpha = available ? 1 : 0.42
             mini.zPosition = 5
             tile.addChild(mini)
+            if !available {
+                // Locked portraits remain visible as silhouettes; the lock
+                // badge communicates status without hiding the roster.
+                let lockBadge = SKShapeNode(circleOfRadius: 10 * scale)
+                lockBadge.fillColor = SKColor(red: 0.08, green: 0.14, blue: 0.20, alpha: 0.96)
+                lockBadge.strokeColor = SKColor.white.withAlphaComponent(0.46)
+                lockBadge.lineWidth = 1
+                lockBadge.position = CGPoint(x: 18 * scale, y: -17 * scale)
+                lockBadge.zPosition = 6
+                tile.addChild(lockBadge)
+                let lock = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+                lock.text = "×"
+                lock.fontSize = 15 * scale
+                lock.fontColor = .white
+                lock.verticalAlignmentMode = .center
+                lock.zPosition = 7
+                lockBadge.addChild(lock)
+            } else if slot == selected {
+                let activeDot = SKShapeNode(circleOfRadius: 5 * scale)
+                activeDot.fillColor = .systemGreen
+                activeDot.strokeColor = .white
+                activeDot.lineWidth = 1
+                activeDot.position = CGPoint(x: 18 * scale, y: -17 * scale)
+                activeDot.zPosition = 7
+                tile.addChild(activeDot)
+            }
         }
         overlayText(perks[index], y: -158 * scale, fontSize: 14 * scale)
         if unlocked {
