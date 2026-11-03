@@ -2646,10 +2646,10 @@ final class OutpostScene: SKScene {
             overlay.addChild(hill)
         }
         overlayBackdrop.fillColor = SKColor(red: 0.10, green: 0.24, blue: 0.36, alpha: 1)
-        let tabs = [("GEAR", "shippingbox.fill", "nav_gear"),
+        let tabs = [("HOME", "house.fill", "nav_home"),
+                    ("GEAR", "shippingbox.fill", "nav_gear"),
                     ("ABILITIES", "bolt.fill", "nav_abilities"),
-                    ("HOME", "house.fill", "nav_home"),
-                    ("PILOT", "person.fill", "nav_pilot")]
+                    ("COMMANDER", "person.fill", "nav_pilot")]
         let width = min((size.width - 20) / 4, 96)
         let y = -294 * scale
         // A single low-profile dock replaces four disconnected bordered tiles.
