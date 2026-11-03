@@ -64,11 +64,25 @@ enum CombatRules {
             lateral = (sin(phase) >= 0 ? 1 : -1) *
                 (abs(forward) < 0.1 ? 0.27 : 0.16)
         } else {
-            forward = behavior == 2 ? 0.83 : 1
+            // Build 331: melee enemies pursue from distinct angles instead of
+            // forming one straight-line queue. Sideways pressure fades as an
+            // enemy reaches contact range, preserving predictable hitboxes.
+            let approach = min(1, max(0, (distance - 36) / 110))
+            let flankSign: CGFloat = sin(phase) >= 0 ? 1 : -1
+            forward = behavior == 2 ? 0.90 : 1
             switch behavior {
-            case 1: lateral = sin(CGFloat(elapsed) * 2.1 + phase) * 0.19
-            case 2: lateral = sin(CGFloat(elapsed) * 1.25 + phase) * 0.52
-            default: lateral = 0
+            case 0:
+                lateral = flankSign * 0.32 * approach
+            case 1:
+                lateral = (flankSign * 0.22 +
+                    sin(CGFloat(elapsed) * 2.1 + phase) * 0.14) * approach
+            case 2:
+                lateral = (flankSign * 0.48 +
+                    sin(CGFloat(elapsed) * 1.25 + phase) * 0.18) * approach
+            case 3:
+                lateral = flankSign * 0.12 * approach
+            default:
+                lateral = 0
             }
         }
         let scale = max(1, hypot(forward, lateral))
