@@ -1,0 +1,53 @@
+name: Focused Home Visual Review
+on:
+  push:
+    branches: [build-327]
+  workflow_dispatch:
+concurrency:
+  group: home-focused-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  home-screens:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[home-review]'))
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate app resources and project
+        run: |
+          python3 scripts/generate_icon.py
+          python3 scripts/generate_forest_art.py
+          python3 scripts/generate_pilot_art.py
+          python3 scripts/generate_enemy_art.py
+          brew install xcodegen
+          xcodegen generate
+      - name: Compile simulator app only
+        run: |
+          set -o pipefail
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee xcodebuild-home.log
+          mkdir -p simulator-app
+          cp -R DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/
+      - name: Install screenshot decoder
+        run: |
+          python3 -m venv "$RUNNER_TEMP/home-review-python"
+          "$RUNNER_TEMP/home-review-python/bin/python" -m pip install Pillow
+          echo "$RUNNER_TEMP/home-review-python/bin" >> "$GITHUB_PATH"
+      - name: Capture Home, World Selector and Headquarters
+        run: bash scripts/capture_home_review.sh
+      - name: Upload focused screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-home-focused-review
+          path: screenshots/outpost-zero-*.png
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload focused build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-focused-build-log
+          path: xcodebuild-home.log
+          if-no-files-found: ignore
