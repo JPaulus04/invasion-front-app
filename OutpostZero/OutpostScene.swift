@@ -3245,7 +3245,7 @@ final class OutpostScene: SKScene {
             symbol.verticalAlignmentMode = .center
             marker.addChild(symbol)
             if enabled {
-                overlayButtons["pick_\\(option.0)"] = CGRect(
+                overlayButtons["pick_\(option.0)"] = CGRect(
                     x:-cardWidth/2,y:y-23.5,width:cardWidth,height:47)
             }
         }
