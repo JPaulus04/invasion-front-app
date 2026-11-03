@@ -3039,6 +3039,7 @@ final class OutpostScene: SKScene {
         overlay.addChild(root)
         let glow = SKSpriteNode(texture: ProductionPresentation.glow(tint.withAlphaComponent(0.28)))
         glow.size = CGSize(width: width, height: height)
+        glow.zPosition = -0.5
         root.addChild(glow)
         // Build 331: each upgrade is a complete equipment tile, not floating
         // text over scenery. A physical frame anchors illustration and stats.
@@ -3223,6 +3224,11 @@ final class OutpostScene: SKScene {
             title.fontSize = 13
             title.fontColor = enabled ? .white : .gray
             title.horizontalAlignmentMode = .left
+            // Keep long module names inside the selection marker on small phones.
+            let availableTitleWidth = cardWidth - 67 - 43
+            if title.frame.width > availableTitleWidth {
+                title.fontSize *= availableTitleWidth / title.frame.width
+            }
             title.position = CGPoint(x:-cardWidth/2+67,y:3)
             card.addChild(title)
             let role = SKLabelNode(fontNamed:"AvenirNext-Medium")
