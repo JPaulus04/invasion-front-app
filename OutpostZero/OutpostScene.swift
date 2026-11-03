@@ -3085,6 +3085,24 @@ final class OutpostScene: SKScene {
             mini.alpha = available ? 1 : 0.42
             mini.zPosition = 5
             tile.addChild(mini)
+            // Match the full-size specialist silhouette in each roster
+            // thumbnail, so selection does not rely on color alone.
+            if slot > 0 {
+                for side in [-1.0, 1.0] {
+                    let accessory = SKShapeNode(rectOf: CGSize(
+                        width: (slot == 2 ? 12 : 5) * scale,
+                        height: (slot == 1 ? 13 : 10) * scale),
+                        cornerRadius: 2 * scale)
+                    accessory.position = CGPoint(
+                        x: CGFloat(side) * (slot == 2 ? 20 : 17) * scale,
+                        y: (slot == 1 ? 13 : -3) * scale)
+                    accessory.fillColor = available ? tints[slot] : .darkGray
+                    accessory.strokeColor = .white.withAlphaComponent(available ? 0.65 : 0.18)
+                    accessory.lineWidth = 1
+                    accessory.zPosition = 6
+                    tile.addChild(accessory)
+                }
+            }
             if !available {
                 // Locked portraits remain visible as silhouettes; the lock
                 // badge communicates status without hiding the roster.
