@@ -6629,6 +6629,39 @@ final class OutpostScene: SKScene {
                 // contact patch; no extra particles or per-frame nodes.
                 ground.alpha = advancing ? 0.82 : 1
             }
+            // Build 331: readable melee threat envelope. Only nearby melee
+            // enemies telegraph their contact range; the warning remains
+            // attached to the enemy and does not alter damage or collisions.
+            if enemy.behavior < 4 && enemy.node !== bossNode {
+                let proximity = distance(enemy.node.position, pilot.position)
+                let threatRange = enemy.radius + 54
+                if proximity < threatRange && proximity > enemy.radius + 12 {
+                    let warning: SKShapeNode
+                    if let existing = enemy.node.childNode(withName: "meleeThreatArc") as? SKShapeNode {
+                        warning = existing
+                    } else {
+                        warning = SKShapeNode()
+                        warning.name = "meleeThreatArc"
+                        warning.fillColor = .clear
+                        warning.strokeColor = SKColor(red:1,green:0.43,blue:0.19,alpha:0.88)
+                        warning.lineWidth = 3
+                        warning.glowWidth = 2
+                        warning.zPosition = -0.4
+                        enemy.node.addChild(warning)
+                    }
+                    let heading = atan2(pilot.position.y - enemy.node.position.y,
+                                        pilot.position.x - enemy.node.position.x)
+                    let radius = enemy.radius + 18
+                    let path = CGMutablePath()
+                    path.addArc(center:.zero,radius:radius,
+                                startAngle:heading - .pi/4,
+                                endAngle:heading + .pi/4,clockwise:false)
+                    warning.path = path
+                    warning.alpha = 0.55 + 0.25 * CGFloat(sin(combatTime * 11))
+                } else {
+                    enemy.node.childNode(withName:"meleeThreatArc")?.removeFromParent()
+                }
+            }
             if activeEncounter == .equipmentDefense && enemy.behavior < 4 &&
                 distance(enemy.node.position, defenseDevice.position) < enemy.radius + 28 {
                 damageDefenseDevice()
