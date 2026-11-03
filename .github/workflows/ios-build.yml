@@ -615,6 +615,18 @@ jobs:
           assert len({sha256(data).digest() for data in files}) >= 2, "Ranged combat scene did not change over time"
           print("PASS: three live ranged enemy screenshots")
           PY
+      - name: Build consolidated Build 331 visual review board
+        if: always()
+        run: |
+          python3 scripts/create_visual_review_board.py
+      - name: Upload visual review manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-visual-review-manifest
+          path: screenshots/outpost-zero-review-manifest.json
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload actual simulator screenshot
         if: always()
         uses: actions/upload-artifact@v4
