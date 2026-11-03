@@ -2703,39 +2703,41 @@ final class OutpostScene: SKScene {
         let unlocked = playable && WorldCatalog.unlocked(worldMapIndex)
         let saved = recovery.load()
 
-        overlayText("OUTPOST ZERO", y: 255 * scale, fontSize: 20 * scale)
-        let stripWidth = min(size.width - 30, 362)
-        let strip = SKShapeNode(rect: CGRect(
-            x: -stripWidth / 2, y: 185 * scale,
-            width: stripWidth, height: 46 * scale), cornerRadius: 12 * scale)
-        strip.name = "homeResourceBar"
-        strip.fillColor = .clear
-        strip.strokeColor = .clear
-        strip.lineWidth = 1
-        strip.zPosition = 1
-        overlay.addChild(strip)
-        overlayText("\(permanent.salvage) SALVAGE    •    \(availableCores) CORES",
-                    y: 199 * scale, fontSize: 12 * scale)
+        // Build 331: hero-led home composition. The island owns the center
+        // of the screen; all progress and currency information is secondary.
+        overlayText("OUTPOST ZERO", y: 271 * scale, fontSize: 25 * scale)
+        let resourceWidth = min(size.width - 72, 300)
+        let resourceTrack = SKShapeNode(rectOf:
+            CGSize(width:resourceWidth,height:1))
+        resourceTrack.position = CGPoint(x:0,y:225*scale)
+        resourceTrack.fillColor = SKColor(white:1,alpha:0.26)
+        resourceTrack.strokeColor = .clear
+        overlay.addChild(resourceTrack)
+        overlayText("\(permanent.salvage) SALVAGE    ·    \(availableCores) CORES",
+                    y: 238 * scale, fontSize: 11 * scale)
         overlayText(unlocked ? world.title.uppercased() : "UNKNOWN WORLD",
-                    y: 151 * scale, fontSize: 19 * scale)
+                    y: 187 * scale, fontSize: 22 * scale)
         overlayText(unlocked
             ? "WORLD \(worldMapIndex + 1)   ·   \(String(repeating: "★", count: WorldCatalog.stars(worldMapIndex)))\(String(repeating: "☆", count: 3 - WorldCatalog.stars(worldMapIndex)))   ·   BEST \(WorldCatalog.bestRoom(worldMapIndex))/20"
-            : (playable ? "LOCKED  •  EARN 1 STAR IN PREVIOUS WORLD" : "UNKNOWN  •  EXPLORE LATER"),
-            y: 127 * scale, fontSize: 11 * scale)
+            : (playable ? "LOCKED  ·  EARN 1 STAR IN PREVIOUS WORLD" : "UNKNOWN  ·  EXPLORE LATER"),
+            y: 162 * scale, fontSize: 11 * scale)
 
-        let stageWidth = min(size.width - 24, 380)
+        // Give the physical island the majority of the hero region instead
+        // of rendering it as a small illustration between UI labels.
+        let stageWidth = min(size.width - 18, 390)
         let diorama = WorldShowcase.island(world: worldMapIndex, locked: !unlocked,
             width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
-        diorama.position.y = -8 * scale
-        diorama.yScale *= scale
+        diorama.position.y = 4 * scale
+        diorama.setScale(1.18 * scale)
+        diorama.zPosition = 2
         overlay.addChild(diorama)
         overlayText(unlocked ? world.region.uppercased() : "UNEXPLORED",
-                    y: 100 * scale, fontSize: 10 * scale)
+                    y: -119 * scale, fontSize: 11 * scale)
         for index in max(0, worldMapIndex - 2)...min(WorldCatalog.worlds.count - 1, worldMapIndex + 2) {
-            let dot = SKShapeNode(circleOfRadius: index == worldMapIndex ? 4 : 2.5)
+            let dot = SKShapeNode(circleOfRadius:index == worldMapIndex ? 4 : 2.5)
             dot.fillColor = index == worldMapIndex ? .systemYellow : .white.withAlphaComponent(0.35)
             dot.strokeColor = .clear
-            dot.position = CGPoint(x: CGFloat(index - worldMapIndex)*14, y: -139*scale)
+            dot.position = CGPoint(x:CGFloat(index-worldMapIndex)*15,y:-153*scale)
             overlay.addChild(dot)
         }
 
