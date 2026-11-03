@@ -134,6 +134,23 @@ capture_scene -captureHomeNavigationScreenshot screenshots/outpost-zero-home-nav
 verify_game_foreground screenshots/outpost-zero-home-navigation.png
 capture_scene -captureWorldSelectorScreenshot screenshots/outpost-zero-world-selector.png
 verify_game_foreground screenshots/outpost-zero-world-selector.png
-capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
-verify_game_foreground screenshots/outpost-zero-headquarters.png
+# Headquarters can terminate on a failed launch assertion. Collect crash
+# evidence and retry only this scene rather than rerunning the whole review.
+hq_ok=0
+for hq_attempt in 1 2; do
+  capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
+  if verify_game_foreground screenshots/outpost-zero-headquarters.png; then
+    hq_ok=1
+    break
+  fi
+  echo "::warning::Headquarters returned to SpringBoard (attempt $hq_attempt)"
+  run_bounded 35 xcrun simctl spawn "$DEVICE" log show --last 120s --style compact \
+    --predicate '(process == "OutpostZero" OR process == "ReportCrash") AND (messageType == error OR eventMessage CONTAINS[c] "precondition" OR eventMessage CONTAINS[c] "fatal")' \
+    2>/dev/null | tail -70 || true
+  sleep 3
+done
+if [ "$hq_ok" != 1 ]; then
+  echo "::error::Headquarters did not stay foreground; review simulator crash diagnostics"
+  exit 1
+fi
 python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-home-navigation.png screenshots/outpost-zero-world-selector.png screenshots/outpost-zero-headquarters.png
