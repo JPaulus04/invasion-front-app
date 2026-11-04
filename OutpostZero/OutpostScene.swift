@@ -3284,7 +3284,34 @@ final class OutpostScene: SKScene {
                 tile.addChild(activeDot)
             }
         }
-        overlayText(perks[index], y: -158 * scale, fontSize: 14 * scale)
+        // The Commander bonus is presented as an equipment-style information
+        // panel instead of an isolated prototype label. Keep its entire hit
+        // region above the existing activation button.
+        let bonusPanel = SKShapeNode(rectOf: CGSize(width: 282 * scale,
+                                                     height: 57 * scale),
+                                     cornerRadius: 12 * scale)
+        bonusPanel.position = CGPoint(x: 0, y: -160 * scale)
+        bonusPanel.fillColor = SKColor(red: 0.045, green: 0.11, blue: 0.20, alpha: 0.94)
+        bonusPanel.strokeColor = SKColor(red: 0.27, green: 0.74, blue: 0.95, alpha: 0.85)
+        bonusPanel.lineWidth = 1.6 * scale
+        bonusPanel.zPosition = 3.5
+        overlay.addChild(bonusPanel)
+        let bonusHeading = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        bonusHeading.text = "COMMANDER BONUS"
+        bonusHeading.fontSize = 10 * scale
+        bonusHeading.fontColor = SKColor(red: 0.49, green: 0.87, blue: 1, alpha: 1)
+        bonusHeading.position = CGPoint(x: 0, y: 8 * scale)
+        bonusHeading.verticalAlignmentMode = .center
+        bonusHeading.zPosition = 1
+        bonusPanel.addChild(bonusHeading)
+        let bonusValue = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        bonusValue.text = perks[index]
+        bonusValue.fontSize = 13 * scale
+        bonusValue.fontColor = unlocked ? .white : .lightGray
+        bonusValue.position = CGPoint(x: 0, y: -13 * scale)
+        bonusValue.verticalAlignmentMode = .center
+        bonusValue.zPosition = 1
+        bonusPanel.addChild(bonusValue)
         if unlocked {
             actionButton(index == selected ? "ACTIVE COMMANDER" : "SET ACTIVE COMMANDER",
                          key: "activate_commander", y: -207 * scale,
