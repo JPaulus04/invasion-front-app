@@ -114,15 +114,15 @@ capture_scene() {
   # Preserve the real termination reason: SpriteKit QA preconditions produce
   # .ips crash reports, often without a useful OSLog error message.
   echo "::group::Recent OutpostZero crash reports"
-  find "$HOME/Library/Logs/DiagnosticReports" -type f \\( -iname '*OutpostZero*.ips' -o -iname '*OutpostZero*.crash' \\) -mmin -25 -print 2>/dev/null | while IFS= read -r report; do
+  find "$HOME/Library/Logs/DiagnosticReports" -type f \( -iname '*OutpostZero*.ips' -o -iname '*OutpostZero*.crash' \) -mmin -25 -print 2>/dev/null | while IFS= read -r report; do
     echo "Crash report: $report"
     head -c 18000 "$report" || true
     echo
   done
   echo "::endgroup::"
   echo "::group::Recent app termination and assertion events"
-  run_bounded 35 xcrun simctl spawn "$DEVICE" log show --last 6m --style compact \\
-    --predicate '(process == "OutpostZero" OR process == "ReportCrash" OR process == "SpringBoard") AND (eventMessage CONTAINS[c] "assert" OR eventMessage CONTAINS[c] "crash" OR eventMessage CONTAINS[c] "termination" OR eventMessage CONTAINS[c] "precondition")' \\
+  run_bounded 35 xcrun simctl spawn "$DEVICE" log show --last 6m --style compact \
+    --predicate '(process == "OutpostZero" OR process == "ReportCrash" OR process == "SpringBoard") AND (eventMessage CONTAINS[c] "assert" OR eventMessage CONTAINS[c] "crash" OR eventMessage CONTAINS[c] "termination" OR eventMessage CONTAINS[c] "precondition")' \
     2>/dev/null | tail -90 || true
   echo "::endgroup::"
   # Leave a useful reason in CI when the app exits after launch.
