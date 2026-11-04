@@ -24,6 +24,8 @@ jobs:
             echo "Prewarming iPhone simulator $DEVICE"
             (xcrun simctl boot "$DEVICE" || true) > /tmp/outpost-sim-prewarm.log 2>&1 &
           fi
+      - name: Audit production menu sprite assets
+        run: python3 scripts/audit_menu_art.py
       - name: Generate app resources and project
         run: |
           python3 scripts/generate_icon.py
