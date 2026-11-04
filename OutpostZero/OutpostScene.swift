@@ -297,7 +297,7 @@ final class OutpostScene: SKScene {
     // Assets are intentionally optional while the illustrated PNGs are
     // being prepared; no network request or runtime file decoding is needed.
     private static let commanderAssetNames = [
-        "commander_vanguard", "commander_specter",
+        "OutpostZero_Vanguard_Transparent", "commander_specter",
         "commander_bulwark", "commander_volt"
     ]
     private static var commanderTextureCache: [Int: SKTexture] = [:]
