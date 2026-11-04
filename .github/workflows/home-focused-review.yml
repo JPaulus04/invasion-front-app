@@ -3,16 +3,16 @@ on:
   push:
     branches: [build-327]
   workflow_dispatch:
-concurrency:
-  group: home-focused-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   home-screens:
+    concurrency:
+      group: home-focused-${{ github.ref }}
+      cancel-in-progress: false
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && contains(github.event.head_commit.message, '[home-review]'))
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: Warm simulator while compiling
@@ -43,7 +43,7 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/home-review-python"
           "$RUNNER_TEMP/home-review-python/bin/python" -m pip install Pillow
           echo "$RUNNER_TEMP/home-review-python/bin" >> "$GITHUB_PATH"
-      - name: Capture Home, World Selector and Headquarters
+      - name: Capture Home, World Selector and all menu screens
         run: bash scripts/capture_home_review.sh
       - name: Upload focused screenshots
         if: always()
