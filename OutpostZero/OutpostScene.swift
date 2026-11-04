@@ -293,6 +293,24 @@ final class OutpostScene: SKScene {
             productionTexture(named: "pilot_" + $0, fallback: pilotArmorTexture)
         }
     }()
+    // Shared production-art lookup for both the roster and live combat.
+    // Assets are intentionally optional while the illustrated PNGs are
+    // being prepared; no network request or runtime file decoding is needed.
+    private static let commanderAssetNames = [
+        "commander_vanguard", "commander_specter",
+        "commander_bulwark", "commander_volt"
+    ]
+    private static var commanderTextureCache: [Int: SKTexture] = [:]
+    private static func commanderArtwork(_ index: Int) -> SKTexture? {
+        guard (0..<commanderAssetNames.count).contains(index) else { return nil }
+        if let cached = commanderTextureCache[index] { return cached }
+        let name = commanderAssetNames[index]
+        guard let image = UIImage(named: name) else { return nil }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .linear
+        commanderTextureCache[index] = texture
+        return texture
+    }
     private var nextFootstepAt: TimeInterval = 0
     private var movementOrigin: CGPoint?
     private var movementTarget: CGPoint?
@@ -479,7 +497,7 @@ final class OutpostScene: SKScene {
         pilot.lineWidth = 3
         pilot.zPosition = 9
         // Illustrated armor plate covers the original collision body without changing gameplay.
-        let pilotArmor = SKSpriteNode(texture: selectedCommander == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[CharacterMotion.pilotSouthDirection])
+        let pilotArmor = SKSpriteNode(texture: Self.commanderArtwork(selectedCommander) ?? (selectedCommander == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[CharacterMotion.pilotSouthDirection]))
         // Visual scale only: give the hero enough screen presence to read
         // its face, shoulder plates and reactor at normal phone size.
         // The 28x34 collision container and movement physics do not change.
@@ -3151,9 +3169,9 @@ final class OutpostScene: SKScene {
         // Use dedicated full-body artwork once it is bundled. Until then the
         // original pilot is an explicit fallback, not a recolored final asset.
         let artName = commanderArtNames[index]
-        let artAvailable = UIImage(named: artName) != nil
-        let commanderTexture = artAvailable ? SKTexture(imageNamed: artName)
-            : (index == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[10])
+        let illustratedArt = Self.commanderArtwork(index)
+        let artAvailable = illustratedArt != nil
+        let commanderTexture = illustratedArt ?? (index == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[10])
         commanderTexture.filteringMode = .linear
         let hero = SKSpriteNode(texture: commanderTexture)
         hero.name = "commanderShowcase"
@@ -3196,10 +3214,9 @@ final class OutpostScene: SKScene {
             tile.zPosition = 4
             overlay.addChild(tile)
             let thumbnailArtName = commanderArtNames[slot]
-            let thumbnailAvailable = UIImage(named: thumbnailArtName) != nil
-            let thumbnailTexture = thumbnailAvailable
-                ? SKTexture(imageNamed: thumbnailArtName)
-                : (slot == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[10])
+            let thumbnailIllustration = Self.commanderArtwork(slot)
+            let thumbnailAvailable = thumbnailIllustration != nil
+            let thumbnailTexture = thumbnailIllustration ?? (slot == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[10])
             thumbnailTexture.filteringMode = .linear
             let mini = SKSpriteNode(texture: thumbnailTexture)
             let thumbnailAspect = thumbnailTexture.size()
@@ -7033,7 +7050,9 @@ final class OutpostScene: SKScene {
         let walkFrame = pilotTraveling && hasAuthoredWalk
             ? CharacterMotion.pilotWalkFrame(stridePhase: pilotStridePhase,
                                              moving: pilotTraveling) : nil
-        if selectedCommander == 0 {
+        if let illustrated = Self.commanderArtwork(selectedCommander) {
+            art.texture = illustrated
+        } else if selectedCommander == 0 {
             // Vanguard uses a single illustrated 2.5D sprite in live combat.
             // Movement, aiming and projectiles remain independent of its art.
             art.texture = Self.stylizedVanguardTexture
@@ -7066,7 +7085,7 @@ final class OutpostScene: SKScene {
         // Authored steps already contain leg and body motion. Do not stack the
         // static-pose squash, bob and lean on top of them. Keep the same neutral
         // transform on preview idle so stopping cannot introduce a scale jump.
-        let authoredWalk = selectedCommander != 0 && walkFrame != nil
+        let authoredWalk = Self.commanderArtwork(selectedCommander) == nil && selectedCommander != 0 && walkFrame != nil
         art.position = CGPoint(x: -cos(recoilHeading) * kick * 1.5,
                                y: (authoredWalk ? 0 : pose.verticalOffset) -
                                   sin(recoilHeading) * kick * 1.5)
@@ -7087,7 +7106,7 @@ final class OutpostScene: SKScene {
         }
         pilot.childNode(withName: "pilotFacingCue")?.zRotation = pilotRenderedHeading
         pilot.childNode(withName: "pilotFacingCue")?.alpha = pilotTraveling ? 0.8 : 0.3
-        if selectedCommander != 0 && previewPilotLegRigSW && direction == 10 && (pilotTraveling || pilotWalkBlend > 0.01) {
+        if Self.commanderArtwork(selectedCommander) == nil && selectedCommander != 0 && previewPilotLegRigSW && direction == 10 && (pilotTraveling || pilotWalkBlend > 0.01) {
             if pilotLegRigPreview == nil || pilotLegRigPreview?.parent == nil {
                 let rig = PilotLegRigPreview(texture: pilotDirectionalTextures[10], size: art.size)
                 rig.zPosition = art.zPosition
@@ -8865,7 +8884,7 @@ final class OutpostScene: SKScene {
         pilotAimHeading = nil
         pilotVisualDirection = CharacterMotion.pilotSouthDirection
         if let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode {
-            art.texture = selectedCommander == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[CharacterMotion.pilotSouthDirection]
+            art.texture = Self.commanderArtwork(selectedCommander) ?? (selectedCommander == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[CharacterMotion.pilotSouthDirection])
         }
         nextFootstepAt = 0
         pilot.removeAction(forKey: "hitFlash")
