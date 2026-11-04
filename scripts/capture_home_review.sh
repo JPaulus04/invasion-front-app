@@ -168,6 +168,13 @@ verify_game_foreground screenshots/outpost-zero-commander-bulwark.png
 capture_scene -captureLockedCommanderScreenshot screenshots/outpost-zero-commander-locked.png
 verify_game_foreground screenshots/outpost-zero-commander-locked.png
 
+# The menu acceptance pass must include both permanent progression screens.
+# These flags already exist in OutpostScene and exercise the real screens.
+capture_scene -captureGearBayScreenshot screenshots/outpost-zero-gear-bay.png
+verify_game_foreground screenshots/outpost-zero-gear-bay.png
+capture_scene -captureAbilityLabScreenshot screenshots/outpost-zero-ability-lab.png
+verify_game_foreground screenshots/outpost-zero-ability-lab.png
+
 # Review the actual player sprite at gameplay scale, not only its menu portrait.
 capture_scene -captureCombatScreenshot screenshots/outpost-zero-vanguard-combat.png
 verify_game_foreground screenshots/outpost-zero-vanguard-combat.png
