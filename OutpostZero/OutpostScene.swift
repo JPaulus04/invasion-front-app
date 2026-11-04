@@ -994,6 +994,16 @@ final class OutpostScene: SKScene {
                          "Ability Lab must be reachable and expose persistent hub navigation")
             showHeadquarters()
         }
+        // Screenshot QA must fail explicitly if a newly supplied commander
+        // illustration is absent from the compiled application bundle.
+        if ProcessInfo.processInfo.arguments.contains("-captureSpecterScreenshot") ||
+           ProcessInfo.processInfo.arguments.contains("-captureBulwarkScreenshot") ||
+           ProcessInfo.processInfo.arguments.contains("-captureLockedCommanderScreenshot") {
+            for commanderIndex in 0..<Self.commanderAssetNames.count {
+                precondition(Self.commanderArtwork(commanderIndex) != nil,
+                             "Missing bundled commander illustration: \\(Self.commanderAssetNames[commanderIndex])")
+            }
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureSpecterScreenshot") {
             UserDefaults.standard.set(1, forKey: "ozViewedCommander")
             showHeadquarters()
