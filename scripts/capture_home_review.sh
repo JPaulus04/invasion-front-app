@@ -26,18 +26,18 @@ for runtime, devices in sorted(data.items(), reverse=True):
     for device in devices:
         if device.get("isAvailable", True) and device.get("name", "").startswith("iPhone"):
             found.append(device["udid"])
-print(chr(10).join(found[:2]))
+print(chr(10).join(found[:4]))
 ')"
 for CANDIDATE in $DEVICE_CANDIDATES; do
   echo "Preparing simulator $CANDIDATE"
-  run_bounded 35 xcrun simctl boot "$CANDIDATE" || true
+  # A prewarmed device may already be booted; do not fail that case.\n  run_bounded 25 xcrun simctl boot "$CANDIDATE" || true
   # Data migration often needs more than 90 seconds on a cold VM.
-  if run_bounded 200 xcrun simctl bootstatus "$CANDIDATE" -b; then
+  if run_bounded 135 xcrun simctl bootstatus "$CANDIDATE" -b; then
     DEVICE="$CANDIDATE"
     break
   fi
   echo "::warning::Simulator $CANDIDATE failed boot readiness; trying alternate device"
-  run_bounded 20 xcrun simctl shutdown "$CANDIDATE" || true
+  run_bounded 10 xcrun simctl shutdown "$CANDIDATE" || true
 done
 if [ -z "$DEVICE" ]; then
   echo "::error::No available iPhone simulator reached boot readiness"
