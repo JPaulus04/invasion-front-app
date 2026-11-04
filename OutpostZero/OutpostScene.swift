@@ -7061,7 +7061,8 @@ final class OutpostScene: SKScene {
         let walkFrame = pilotTraveling && hasAuthoredWalk
             ? CharacterMotion.pilotWalkFrame(stridePhase: pilotStridePhase,
                                              moving: pilotTraveling) : nil
-        if let illustrated = Self.commanderArtwork(selectedCommander) {
+        let commanderIllustration = Self.commanderArtwork(selectedCommander)
+        if let illustrated = commanderIllustration {
             art.texture = illustrated
         } else if selectedCommander == 0 {
             // Vanguard uses a single illustrated 2.5D sprite in live combat.
@@ -7096,8 +7097,8 @@ final class OutpostScene: SKScene {
         // Authored steps already contain leg and body motion. Do not stack the
         // static-pose squash, bob and lean on top of them. Keep the same neutral
         // transform on preview idle so stopping cannot introduce a scale jump.
-        let authoredWalk = Self.commanderArtwork(selectedCommander) == nil && selectedCommander != 0 && walkFrame != nil
-        let illustratedArt = Self.commanderArtwork(selectedCommander) != nil
+        let authoredWalk = commanderIllustration == nil && selectedCommander != 0 && walkFrame != nil
+        let illustratedArt = commanderIllustration != nil
         // The illustrated sprite has no skeletal rig. Give it a gentle
         // breathing cycle at rest and a restrained footfall when moving.
         // This is calculated in the existing animation update, so recoil,
@@ -7105,7 +7106,7 @@ final class OutpostScene: SKScene {
         let illustratedMotion = illustratedArt
             ? (pilotTraveling
                ? sin(pilotStridePhase * .pi * 2) * 1.8
-               : sin(pilotAnimationTime * 2.6) * 1.1)
+               : sin(CGFloat(pilotAnimationTime) * 2.6) * 1.1)
             : 0.0
         let illustratedScale = illustratedArt && !pilotTraveling
             ? 1 + 0.006 * sin(pilotAnimationTime * 2.6)
@@ -7132,7 +7133,7 @@ final class OutpostScene: SKScene {
         }
         pilot.childNode(withName: "pilotFacingCue")?.zRotation = pilotRenderedHeading
         pilot.childNode(withName: "pilotFacingCue")?.alpha = pilotTraveling ? 0.8 : 0.3
-        if Self.commanderArtwork(selectedCommander) == nil && selectedCommander != 0 && previewPilotLegRigSW && direction == 10 && (pilotTraveling || pilotWalkBlend > 0.01) {
+        if commanderIllustration == nil && selectedCommander != 0 && previewPilotLegRigSW && direction == 10 && (pilotTraveling || pilotWalkBlend > 0.01) {
             if pilotLegRigPreview == nil || pilotLegRigPreview?.parent == nil {
                 let rig = PilotLegRigPreview(texture: pilotDirectionalTextures[10], size: art.size)
                 rig.zPosition = art.zPosition
