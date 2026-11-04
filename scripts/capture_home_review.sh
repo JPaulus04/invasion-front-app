@@ -161,4 +161,7 @@ verify_game_foreground screenshots/outpost-zero-commander-bulwark.png
 capture_scene -captureLockedCommanderScreenshot screenshots/outpost-zero-commander-locked.png
 verify_game_foreground screenshots/outpost-zero-commander-locked.png
 
-python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-home-navigation.png screenshots/outpost-zero-world-selector.png screenshots/outpost-zero-headquarters.png
+# Review the actual player sprite at gameplay scale, not only its menu portrait.
+capture_scene -captureCombatScreenshot screenshots/outpost-zero-vanguard-combat.png
+verify_game_foreground screenshots/outpost-zero-vanguard-combat.png
+python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-home-navigation.png screenshots/outpost-zero-world-selector.png screenshots/outpost-zero-headquarters.png screenshots/outpost-zero-vanguard-combat.png
