@@ -3033,6 +3033,45 @@ final class OutpostScene: SKScene {
         glow.position = CGPoint(x: 0, y: 86 * scale)
         glow.zPosition = 2
         overlay.addChild(glow)
+        // A dimensional hangar display platform replaces the floating
+        // character-on-background presentation. Keep it behind the hero and
+        // clear of the roster tiles and Commander labels.
+        let platformY: CGFloat = -12 * scale
+        let platformShadow = SKShapeNode(ellipseOf: CGSize(width: 216 * scale,
+                                                            height: 39 * scale))
+        platformShadow.position = CGPoint(x: 0, y: platformY - 14 * scale)
+        platformShadow.fillColor = .black.withAlphaComponent(0.43)
+        platformShadow.strokeColor = .clear
+        platformShadow.zPosition = 2.3
+        overlay.addChild(platformShadow)
+        let pedestalBase = SKShapeNode(ellipseOf: CGSize(width: 201 * scale,
+                                                           height: 43 * scale))
+        pedestalBase.position = CGPoint(x: 0, y: platformY - 7 * scale)
+        pedestalBase.fillColor = SKColor(red: 0.10, green: 0.19, blue: 0.28, alpha: 1)
+        pedestalBase.strokeColor = SKColor(red: 0.20, green: 0.50, blue: 0.70, alpha: 0.9)
+        pedestalBase.lineWidth = 3 * scale
+        pedestalBase.zPosition = 2.5
+        overlay.addChild(pedestalBase)
+        let platformTop = SKShapeNode(ellipseOf: CGSize(width: 188 * scale,
+                                                          height: 32 * scale))
+        platformTop.position = CGPoint(x: 0, y: platformY + 2 * scale)
+        platformTop.fillColor = SKColor(red: 0.17, green: 0.30, blue: 0.41, alpha: 1)
+        platformTop.strokeColor = SKColor(red: 0.37, green: 0.79, blue: 0.96, alpha: 0.9)
+        platformTop.lineWidth = 2 * scale
+        platformTop.glowWidth = 3 * scale
+        platformTop.zPosition = 2.7
+        overlay.addChild(platformTop)
+        for side in [-1.0, 1.0] {
+            let lamp = SKShapeNode(rectOf: CGSize(width: 23 * scale, height: 4 * scale),
+                                   cornerRadius: 2 * scale)
+            lamp.position = CGPoint(x: CGFloat(side) * 61 * scale,
+                                    y: platformY - 11 * scale)
+            lamp.fillColor = SKColor(red: 1, green: 0.58, blue: 0.17, alpha: 1)
+            lamp.strokeColor = .clear
+            lamp.glowWidth = 3 * scale
+            lamp.zPosition = 2.8
+            overlay.addChild(lamp)
+        }
         let commanderArtNames = ["commander_vanguard", "commander_specter",
                                  "commander_bulwark", "commander_volt"]
         // Use dedicated full-body artwork once it is bundled. Until then the
