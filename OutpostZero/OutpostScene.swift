@@ -2827,8 +2827,23 @@ final class OutpostScene: SKScene {
                          tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1),
                          enabled: unlocked)
         }
-        overlayText("SWIPE TO EXPLORE",
-                    y: -233 * scale, fontSize: 10 * scale)
+        // A restrained world index rail makes swipe navigation discoverable
+        // without bringing back oversized left/right navigation buttons.
+        let rail = SKShapeNode(rectOf: CGSize(width: 174 * scale, height: 24 * scale),
+                               cornerRadius: 12 * scale)
+        rail.position = CGPoint(x: 0, y: -235 * scale)
+        rail.fillColor = SKColor(red: 0.04, green: 0.11, blue: 0.18, alpha: 0.88)
+        rail.strokeColor = .white.withAlphaComponent(0.2)
+        rail.lineWidth = 1
+        rail.zPosition = 3
+        overlay.addChild(rail)
+        let railLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+        railLabel.text = "‹   WORLD \\(worldMapIndex + 1) / \\(WorldCatalog.worlds.count)   ›"
+        railLabel.fontSize = 11 * scale
+        railLabel.fontColor = .white.withAlphaComponent(0.94)
+        railLabel.verticalAlignmentMode = .center
+        railLabel.zPosition = 1
+        rail.addChild(railLabel)
         updateHUD()
     }
 
