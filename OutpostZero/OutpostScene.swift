@@ -514,21 +514,8 @@ final class OutpostScene: SKScene {
         pilotArmor.zPosition = 0.5
         pilotArmor.name = "pilotArt"
         pilot.addChild(pilotArmor)
-        // Lightweight breathing and footwork: animate the displayed illustration
-        // without changing hitboxes, movement speed, or aiming mechanics.
-        if illustratedPilotTexture != nil {
-            let settle = SKAction.group([
-                .moveBy(x: 0, y: 1.7, duration: 0.72),
-                .scaleX(to: 1.012, y: 0.987, duration: 0.72)
-            ])
-            let recover = SKAction.group([
-                .moveBy(x: 0, y: -1.7, duration: 0.72),
-                .scaleX(to: 1, y: 1, duration: 0.72)
-            ])
-            settle.timingMode = .easeInEaseOut
-            recover.timingMode = .easeInEaseOut
-            pilotArmor.run(.repeatForever(.sequence([settle, recover])), withKey: "illustratedPilotIdle")
-        }
+        // Illustrated idle and stride motion is driven by updatePilotPresentation,
+        // avoiding competing SKActions that get overwritten every frame.
         // Ground contact and a soft offset shadow give the pilot depth at phone scale.
         let pilotShadow = SKShapeNode(ellipseOf: CGSize(width: 43, height: 13))
         pilotShadow.fillColor = SKColor.black.withAlphaComponent(0.42)
@@ -7110,11 +7097,26 @@ final class OutpostScene: SKScene {
         // static-pose squash, bob and lean on top of them. Keep the same neutral
         // transform on preview idle so stopping cannot introduce a scale jump.
         let authoredWalk = Self.commanderArtwork(selectedCommander) == nil && selectedCommander != 0 && walkFrame != nil
+        let illustratedArt = Self.commanderArtwork(selectedCommander) != nil
+        // The illustrated sprite has no skeletal rig. Give it a gentle
+        // breathing cycle at rest and a restrained footfall when moving.
+        // This is calculated in the existing animation update, so recoil,
+        // direction cues and movement cannot fight a separate SKAction.
+        let illustratedMotion = illustratedArt
+            ? (pilotTraveling
+               ? sin(pilotStridePhase * .pi * 2) * 1.8
+               : sin(pilotAnimationTime * 2.6) * 1.1)
+            : 0.0
+        let illustratedScale = illustratedArt && !pilotTraveling
+            ? 1 + 0.006 * sin(pilotAnimationTime * 2.6)
+            : 1.0
         art.position = CGPoint(x: -cos(recoilHeading) * kick * 1.5,
-                               y: (authoredWalk ? 0 : pose.verticalOffset) -
-                                  sin(recoilHeading) * kick * 1.5)
-        art.xScale = authoredWalk ? 1 : abs(pose.widthScale)
-        art.yScale = authoredWalk ? 1 : pose.heightScale
+                               y: (authoredWalk ? 0 : pose.verticalOffset) +
+                                  illustratedMotion -
+                                  sin(recoilHeading) * kick * 1.5 +
+                                  (illustratedArt ? 6 : 0))
+        art.xScale = (authoredWalk ? 1 : abs(pose.widthScale)) * illustratedScale
+        art.yScale = (authoredWalk ? 1 : pose.heightScale) * illustratedScale
         art.zRotation = authoredWalk ? 0 : pose.lean
         art.colorBlendFactor = 0
         if pilot.childNode(withName: "pilotFacingCue") == nil {
