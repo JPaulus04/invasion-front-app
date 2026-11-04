@@ -497,11 +497,20 @@ final class OutpostScene: SKScene {
         pilot.lineWidth = 3
         pilot.zPosition = 9
         // Illustrated armor plate covers the original collision body without changing gameplay.
-        let pilotArmor = SKSpriteNode(texture: Self.commanderArtwork(selectedCommander) ?? (selectedCommander == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[CharacterMotion.pilotSouthDirection]))
-        // Visual scale only: give the hero enough screen presence to read
-        // its face, shoulder plates and reactor at normal phone size.
+        let illustratedPilotTexture = Self.commanderArtwork(selectedCommander)
+        let pilotArmor = SKSpriteNode(texture: illustratedPilotTexture ?? (selectedCommander == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[CharacterMotion.pilotSouthDirection]))
+        // Preserve the tall proportions of illustrated commanders. Forcing the
+        // portrait into a 63x63 square compressed Vanguard's face and armor.
         // The 28x34 collision container and movement physics do not change.
-        pilotArmor.size = CGSize(width: 63, height: 63)
+        if let illustratedPilotTexture {
+            let nativeSize = illustratedPilotTexture.size()
+            let targetHeight: CGFloat = 70
+            let targetWidth = targetHeight * nativeSize.width / max(nativeSize.height, 1)
+            pilotArmor.size = CGSize(width: min(58, targetWidth), height: targetHeight)
+            pilotArmor.position.y = 6
+        } else {
+            pilotArmor.size = CGSize(width: 63, height: 63)
+        }
         pilotArmor.zPosition = 0.5
         pilotArmor.name = "pilotArt"
         pilot.addChild(pilotArmor)
