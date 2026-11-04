@@ -3009,6 +3009,80 @@ final class OutpostScene: SKScene {
         showHeadquarters()
     }
 
+    // Lightweight stylized Commander portrait generated as a real texture.
+    // This gives Vanguard a rounded, dimensional illustration without adding
+    // a full animation rig or altering the collision/aiming system.
+    private static let stylizedVanguardTexture: SKTexture = {
+        let canvas = CGSize(width: 320, height: 360)
+        let image = UIGraphicsImageRenderer(size: canvas).image { renderer in
+            let ctx = renderer.cgContext
+            func rounded(_ rect: CGRect, _ radius: CGFloat, _ fill: UIColor,
+                         _ stroke: UIColor? = nil, _ line: CGFloat = 0) {
+                let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
+                ctx.setFillColor(fill.cgColor)
+                ctx.addPath(path.cgPath)
+                ctx.fillPath()
+                if let stroke = stroke {
+                    ctx.setStrokeColor(stroke.cgColor)
+                    ctx.setLineWidth(line)
+                    ctx.addPath(path.cgPath)
+                    ctx.strokePath()
+                }
+            }
+            func ellipse(_ rect: CGRect, _ fill: UIColor) {
+                ctx.setFillColor(fill.cgColor)
+                ctx.fillEllipse(in: rect)
+            }
+            let ink = UIColor(red: 0.11, green: 0.19, blue: 0.27, alpha: 1)
+            let steel = UIColor(red: 0.80, green: 0.88, blue: 0.93, alpha: 1)
+            let bright = UIColor(red: 0.98, green: 0.99, blue: 1, alpha: 1)
+            let red = UIColor(red: 0.93, green: 0.31, blue: 0.25, alpha: 1)
+            let shadow = UIColor(red: 0.30, green: 0.43, blue: 0.54, alpha: 1)
+            // Legs and heavy cartoon boots.
+            rounded(CGRect(x: 101, y: 236, width: 47, height: 81), 15, shadow, ink, 5)
+            rounded(CGRect(x: 174, y: 236, width: 47, height: 81), 15, shadow, ink, 5)
+            rounded(CGRect(x: 88, y: 296, width: 68, height: 35), 13, steel, ink, 5)
+            rounded(CGRect(x: 168, y: 296, width: 68, height: 35), 13, steel, ink, 5)
+            // Rounded oversized armor and shoulder plates.
+            rounded(CGRect(x: 80, y: 117, width: 160, height: 145), 42, ink)
+            rounded(CGRect(x: 91, y: 125, width: 139, height: 121), 35, steel, ink, 7)
+            rounded(CGRect(x: 42, y: 136, width: 69, height: 82), 28, shadow, ink, 6)
+            rounded(CGRect(x: 209, y: 136, width: 69, height: 82), 28, shadow, ink, 6)
+            rounded(CGRect(x: 48, y: 140, width: 58, height: 54), 23, bright)
+            rounded(CGRect(x: 214, y: 140, width: 58, height: 54), 23, bright)
+            rounded(CGRect(x: 61, y: 145, width: 35, height: 12), 6, red)
+            rounded(CGRect(x: 225, y: 145, width: 35, height: 12), 6, red)
+            rounded(CGRect(x: 119, y: 148, width: 82, height: 81), 20, bright)
+            rounded(CGRect(x: 132, y: 162, width: 57, height: 13), 6, red)
+            ellipse(CGRect(x: 146, y: 181, width: 28, height: 28),
+                    UIColor(red: 0.20, green: 0.82, blue: 0.98, alpha: 1))
+            ellipse(CGRect(x: 152, y: 185, width: 12, height: 12), .white)
+            // Oversized friendly helmet, curved visor and faceplate.
+            rounded(CGRect(x: 93, y: 28, width: 135, height: 126), 49, ink)
+            rounded(CGRect(x: 99, y: 30, width: 122, height: 117), 45, steel)
+            rounded(CGRect(x: 107, y: 37, width: 106, height: 45), 23, bright)
+            rounded(CGRect(x: 108, y: 76, width: 104, height: 44), 18, ink)
+            rounded(CGRect(x: 116, y: 81, width: 88, height: 31), 14,
+                    UIColor(red: 0.12, green: 0.70, blue: 0.86, alpha: 1))
+            rounded(CGRect(x: 120, y: 84, width: 80, height: 9), 5,
+                    UIColor(red: 0.65, green: 0.97, blue: 1, alpha: 0.9))
+            rounded(CGRect(x: 129, y: 119, width: 63, height: 23), 11, bright)
+            rounded(CGRect(x: 146, y: 125, width: 28, height: 6), 3, red)
+            // A diagonal compact blaster remains clearly readable at phone size.
+            ctx.saveGState()
+            ctx.translateBy(x: 190, y: 210)
+            ctx.rotate(by: -.pi / 9)
+            rounded(CGRect(x: -44, y: -8, width: 116, height: 25), 10, ink)
+            rounded(CGRect(x: -31, y: -6, width: 91, height: 16), 7, shadow)
+            rounded(CGRect(x: 49, y: -4, width: 27, height: 11), 5, red)
+            rounded(CGRect(x: -9, y: 12, width: 20, height: 31), 5, ink)
+            ctx.restoreGState()
+        }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .linear
+        return texture
+    }()
+
     private func showHeadquarters() {
         phase = .headquarters
         hud.isHidden = true
@@ -3079,7 +3153,7 @@ final class OutpostScene: SKScene {
         let artName = commanderArtNames[index]
         let artAvailable = UIImage(named: artName) != nil
         let commanderTexture = artAvailable ? SKTexture(imageNamed: artName)
-                                            : pilotDirectionalTextures[10]
+            : (index == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[10])
         commanderTexture.filteringMode = .linear
         let hero = SKSpriteNode(texture: commanderTexture)
         hero.name = "commanderShowcase"
@@ -3091,7 +3165,7 @@ final class OutpostScene: SKScene {
         hero.zPosition = 4
         let tints: [SKColor] = [.white, .systemTeal, .systemOrange, .systemPurple]
         hero.color = unlocked ? .white : .darkGray
-        hero.colorBlendFactor = unlocked ? (artAvailable ? 0 : (index == 0 ? 0 : 0.48)) : 0.62
+        hero.colorBlendFactor = unlocked ? (artAvailable || index == 0 ? 0 : 0.48) : 0.62
         hero.alpha = unlocked ? 1 : 0.78
         overlay.addChild(hero)
         if artAvailable {
@@ -3124,7 +3198,8 @@ final class OutpostScene: SKScene {
             let thumbnailArtName = commanderArtNames[slot]
             let thumbnailAvailable = UIImage(named: thumbnailArtName) != nil
             let thumbnailTexture = thumbnailAvailable
-                ? SKTexture(imageNamed: thumbnailArtName) : pilotDirectionalTextures[10]
+                ? SKTexture(imageNamed: thumbnailArtName)
+                : (slot == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[10])
             thumbnailTexture.filteringMode = .linear
             let mini = SKSpriteNode(texture: thumbnailTexture)
             let thumbnailAspect = thumbnailTexture.size()
