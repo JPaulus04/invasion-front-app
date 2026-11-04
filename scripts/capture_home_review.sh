@@ -97,7 +97,8 @@ capture_scene() {
     fi
     sleep 8
     if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT" &&
-       python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
+       python3 scripts/validate_simulator_screenshots.py "$OUTPUT" &&
+       python3 scripts/validate_home_capture.py "$OUTPUT"; then
       # A healthy PNG can still be the iOS home screen if the app exited
       # after launch. Treat that as a retriable capture failure here.
       if [ -f screenshots/springboard-reference.png ] &&
