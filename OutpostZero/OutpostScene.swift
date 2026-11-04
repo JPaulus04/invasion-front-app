@@ -479,7 +479,7 @@ final class OutpostScene: SKScene {
         pilot.lineWidth = 3
         pilot.zPosition = 9
         // Illustrated armor plate covers the original collision body without changing gameplay.
-        let pilotArmor = SKSpriteNode(texture: pilotDirectionalTextures[CharacterMotion.pilotSouthDirection])
+        let pilotArmor = SKSpriteNode(texture: selectedCommander == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[CharacterMotion.pilotSouthDirection])
         // Visual scale only: give the hero enough screen presence to read
         // its face, shoulder plates and reactor at normal phone size.
         // The 28x34 collision container and movement physics do not change.
@@ -7033,7 +7033,11 @@ final class OutpostScene: SKScene {
         let walkFrame = pilotTraveling && hasAuthoredWalk
             ? CharacterMotion.pilotWalkFrame(stridePhase: pilotStridePhase,
                                              moving: pilotTraveling) : nil
-        if let walkFrame {
+        if selectedCommander == 0 {
+            // Vanguard uses a single illustrated 2.5D sprite in live combat.
+            // Movement, aiming and projectiles remain independent of its art.
+            art.texture = Self.stylizedVanguardTexture
+        } else if let walkFrame {
             if direction == 6 {
                 art.texture = pilotWalkNWTextures[walkFrame]
             } else if direction == 14 {
@@ -7062,7 +7066,7 @@ final class OutpostScene: SKScene {
         // Authored steps already contain leg and body motion. Do not stack the
         // static-pose squash, bob and lean on top of them. Keep the same neutral
         // transform on preview idle so stopping cannot introduce a scale jump.
-        let authoredWalk = walkFrame != nil
+        let authoredWalk = selectedCommander != 0 && walkFrame != nil
         art.position = CGPoint(x: -cos(recoilHeading) * kick * 1.5,
                                y: (authoredWalk ? 0 : pose.verticalOffset) -
                                   sin(recoilHeading) * kick * 1.5)
@@ -7083,7 +7087,7 @@ final class OutpostScene: SKScene {
         }
         pilot.childNode(withName: "pilotFacingCue")?.zRotation = pilotRenderedHeading
         pilot.childNode(withName: "pilotFacingCue")?.alpha = pilotTraveling ? 0.8 : 0.3
-        if previewPilotLegRigSW && direction == 10 && (pilotTraveling || pilotWalkBlend > 0.01) {
+        if selectedCommander != 0 && previewPilotLegRigSW && direction == 10 && (pilotTraveling || pilotWalkBlend > 0.01) {
             if pilotLegRigPreview == nil || pilotLegRigPreview?.parent == nil {
                 let rig = PilotLegRigPreview(texture: pilotDirectionalTextures[10], size: art.size)
                 rig.zPosition = art.zPosition
@@ -8861,7 +8865,7 @@ final class OutpostScene: SKScene {
         pilotAimHeading = nil
         pilotVisualDirection = CharacterMotion.pilotSouthDirection
         if let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode {
-            art.texture = pilotDirectionalTextures[CharacterMotion.pilotSouthDirection]
+            art.texture = selectedCommander == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[CharacterMotion.pilotSouthDirection]
         }
         nextFootstepAt = 0
         pilot.removeAction(forKey: "hitFlash")
