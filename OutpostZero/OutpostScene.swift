@@ -3226,62 +3226,70 @@ final class OutpostScene: SKScene {
         overlayText(roster[index], y: -30 * scale, fontSize: 24 * scale)
         overlayText(roles[index], y: -57 * scale, fontSize: 12 * scale)
 
-        // Compact profile indicators make the roster visible without making
-        // four oversized prototype menu buttons.
+        // Portrait-first selection cards: four distinct Commander identities
+        // remain visible together without hiding the main character artwork.
+        let rosterColors: [SKColor] = [.systemCyan, .systemTeal, .systemOrange, .systemPurple]
+        let cardWidth = min(76 * scale, (size.width - 34) / 4.0)
+        let cardStep = cardWidth + 5 * scale
         for slot in 0..<4 {
             let available = slot == 0 || WorldCatalog.stars(slot - 1) > 0
-            let tile = SKShapeNode(rectOf: CGSize(width: 53 * scale, height: 53 * scale),
+            let focused = slot == index
+            let accent = rosterColors[slot]
+            let tile = SKShapeNode(rectOf: CGSize(width: cardWidth, height: 65 * scale),
                                    cornerRadius: 10 * scale)
             tile.name = "commanderProfile_\(slot)"
-            tile.position = CGPoint(x: CGFloat(slot) * 65 * scale - 97.5 * scale,
-                                    y: -108 * scale)
-            tile.fillColor = slot == index
-                ? SKColor(red: 0.25, green: 0.51, blue: 0.65, alpha: 1)
-                : SKColor(red: 0.13, green: 0.23, blue: 0.31, alpha: 0.94)
-            tile.strokeColor = slot == index ? .systemYellow : .white.withAlphaComponent(0.24)
-            tile.lineWidth = slot == index ? 2.5 : 1
+            tile.position = CGPoint(x: (CGFloat(slot) - 1.5) * cardStep,
+                                    y: -100 * scale)
+            tile.fillColor = focused
+                ? SKColor(red: 0.13, green: 0.25, blue: 0.35, alpha: 0.98)
+                : SKColor(red: 0.045, green: 0.10, blue: 0.18, alpha: 0.94)
+            tile.strokeColor = focused ? accent : .white.withAlphaComponent(0.26)
+            tile.lineWidth = focused ? 2.7 * scale : 1 * scale
             tile.zPosition = 4
             overlay.addChild(tile)
-            let thumbnailArtName = commanderArtNames[slot]
+            let accentRail = SKShapeNode(rectOf: CGSize(width: cardWidth - 13 * scale,
+                                                        height: 3 * scale),
+                                         cornerRadius: 1.5 * scale)
+            accentRail.position = CGPoint(x: 0, y: 28 * scale)
+            accentRail.fillColor = accent
+            accentRail.strokeColor = .clear
+            tile.addChild(accentRail)
             let thumbnailIllustration = Self.commanderArtwork(slot)
-            let thumbnailAvailable = thumbnailIllustration != nil
             let thumbnailTexture = thumbnailIllustration ?? (slot == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[10])
             thumbnailTexture.filteringMode = .linear
             let mini = SKSpriteNode(texture: thumbnailTexture)
-            let thumbnailAspect = thumbnailTexture.size()
-            let thumbnailWidth: CGFloat = 41 * scale
-            mini.size = CGSize(width: thumbnailWidth,
-                               height: min(46 * scale, thumbnailWidth * thumbnailAspect.height / max(1, thumbnailAspect.width)))
+            let aspect = thumbnailTexture.size()
+            let imageWidth = 39 * scale
+            mini.size = CGSize(width: imageWidth,
+                               height: min(42 * scale, imageWidth * aspect.height / max(1, aspect.width)))
+            mini.position = CGPoint(x: 0, y: 5 * scale)
             mini.color = available ? .white : .darkGray
-            mini.colorBlendFactor = available ? (thumbnailAvailable ? 0 : 0.5) : 0.95
-            mini.alpha = available ? 1 : 0.42
+            mini.colorBlendFactor = available ? 0 : 0.85
+            mini.alpha = available ? 1 : 0.5
             mini.zPosition = 5
             tile.addChild(mini)
-            if !available {
-                // Locked portraits remain visible as silhouettes; the lock
-                // badge communicates status without hiding the roster.
-                let lockBadge = SKShapeNode(circleOfRadius: 10 * scale)
-                lockBadge.fillColor = SKColor(red: 0.08, green: 0.14, blue: 0.20, alpha: 0.96)
-                lockBadge.strokeColor = SKColor.white.withAlphaComponent(0.46)
-                lockBadge.lineWidth = 1
-                lockBadge.position = CGPoint(x: 18 * scale, y: -17 * scale)
-                lockBadge.zPosition = 6
-                tile.addChild(lockBadge)
-                let lock = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-                lock.text = "×"
-                lock.fontSize = 15 * scale
-                lock.fontColor = .white
-                lock.verticalAlignmentMode = .center
-                lock.zPosition = 7
-                lockBadge.addChild(lock)
-            } else if slot == selected {
-                let activeDot = SKShapeNode(circleOfRadius: 5 * scale)
-                activeDot.fillColor = .systemGreen
-                activeDot.strokeColor = .white
-                activeDot.lineWidth = 1
-                activeDot.position = CGPoint(x: 18 * scale, y: -17 * scale)
-                activeDot.zPosition = 7
-                tile.addChild(activeDot)
+            let name = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            name.text = roster[slot]
+            name.fontSize = 8 * scale
+            name.fontColor = focused ? .white : .white.withAlphaComponent(0.76)
+            name.verticalAlignmentMode = .center
+            name.position = CGPoint(x: 0, y: -24 * scale)
+            name.zPosition = 6
+            tile.addChild(name)
+            if !available || slot == selected {
+                let badge = SKShapeNode(circleOfRadius: 8 * scale)
+                badge.position = CGPoint(x: cardWidth / 2 - 7 * scale, y: 24 * scale)
+                badge.fillColor = available ? .systemGreen : SKColor(red: 0.1, green: 0.15, blue: 0.22, alpha: 1)
+                badge.strokeColor = .white.withAlphaComponent(0.65)
+                badge.lineWidth = 1
+                badge.zPosition = 7
+                tile.addChild(badge)
+                let mark = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+                mark.text = available ? "✓" : "×"
+                mark.fontSize = 10 * scale
+                mark.fontColor = .white
+                mark.verticalAlignmentMode = .center
+                badge.addChild(mark)
             }
         }
         // The Commander bonus is presented as an equipment-style information
