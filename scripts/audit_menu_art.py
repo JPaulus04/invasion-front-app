@@ -26,7 +26,7 @@ for name in EXPECTED:
         missing.append(name)
         continue
     data = path.read_bytes()
-    if len(data) < 33 or data[:8] != b"\x89PNG\r\n\\x1a\n":
+    if len(data) < 33 or data[:8] != b"\x89PNG\r\n\x1a\n":
         errors.append(f"{name}: not a PNG")
         continue
     width, height, bit_depth, color_type = struct.unpack(">IIBB", data[16:26])
