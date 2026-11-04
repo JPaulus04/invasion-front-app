@@ -2282,9 +2282,17 @@ final class OutpostScene: SKScene {
         portrait.strokeColor = .systemCyan
         portrait.lineWidth = 2
         chrome.addChild(portrait)
-        if let image = productionImage(named: "pilot_s") ?? productionImage(named: "pilot_idle") {
-            let character = SKSpriteNode(texture: SKTexture(image: image))
-            character.size = CGSize(width: 39, height: 45)
+        // The HUD must show the equipped commander, not the legacy blue pilot.
+        // Preserve aspect ratio for the tall illustrated PNGs.
+        let hudCommanderTexture = Self.commanderArtwork(selectedCommander)
+        let hudFallbackImage = productionImage(named: "pilot_s") ?? productionImage(named: "pilot_idle")
+        if let characterTexture = hudCommanderTexture ?? hudFallbackImage.map({ SKTexture(image: $0) }) {
+            let character = SKSpriteNode(texture: characterTexture)
+            let native = characterTexture.size()
+            let maxHeight: CGFloat = 42
+            let maxWidth: CGFloat = 38
+            let fittedWidth = min(maxWidth, maxHeight * native.width / max(native.height, 1))
+            character.size = CGSize(width: fittedWidth, height: maxHeight)
             character.position.y = -1
             portrait.addChild(character)
         }
