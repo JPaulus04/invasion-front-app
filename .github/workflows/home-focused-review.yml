@@ -15,15 +15,12 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - name: Warm simulator while compiling
+      - name: Reset simulator service before compiling
         run: |
-          # Cold macOS runners can spend minutes migrating CoreSimulator data.
-          # Start that work before resource generation and xcodebuild.
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next((x["udid"] for group in d.values() for x in group if x.get("isAvailable", True) and x.get("name", "").startswith("iPhone")), ""))')
-          if [ -n "$DEVICE" ]; then
-            echo "Prewarming iPhone simulator $DEVICE"
-            (xcrun simctl boot "$DEVICE" || true) > /tmp/outpost-sim-prewarm.log 2>&1 &
-          fi
+          # Avoid simultaneous background boots during Xcode's first-use setup.
+          xcodebuild -runFirstLaunch || true
+          xcrun simctl shutdown all || true
+          xcrun simctl list devices available
       # Artwork uploaded: verify all 12 production menu sprites before capture.
       - name: Audit production menu sprite assets
         run: python3 scripts/audit_menu_art.py
