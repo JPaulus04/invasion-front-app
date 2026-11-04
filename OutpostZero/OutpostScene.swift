@@ -2802,10 +2802,34 @@ final class OutpostScene: SKScene {
         let stageWidth = min(size.width - 18, 390)
         let diorama = WorldShowcase.island(world: worldMapIndex, locked: !unlocked,
             width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
-        diorama.position.y = 4 * scale
-        diorama.setScale(1.18 * scale)
-        diorama.zPosition = 2
-        overlay.addChild(diorama)
+        // Prefer authored island art where the biome matches the destination.
+        // Never display the lava or void concept as an unrelated playable world.
+        let islandAssets: [Int: String] = [
+            0: "world_forest_island",
+            3: "world_ice_island",
+            4: "world_lava_island",
+            8: "world_ice_island",
+            12: "world_void_island"
+        ]
+        if let assetName = islandAssets[worldMapIndex],
+           let image = UIImage(named: assetName) {
+            let islandTexture = SKTexture(image: image)
+            islandTexture.filteringMode = .linear
+            let islandSprite = SKSpriteNode(texture: islandTexture)
+            let dimensions = islandTexture.size()
+            let width = min(size.width - 20, 345) * scale
+            islandSprite.size = CGSize(width: width,
+                height: min(260 * scale, width * dimensions.height / max(1, dimensions.width)))
+            islandSprite.position = CGPoint(x: 0, y: 0)
+            islandSprite.zPosition = 2
+            islandSprite.alpha = unlocked ? 1 : 0.5
+            overlay.addChild(islandSprite)
+        } else {
+            diorama.position.y = 4 * scale
+            diorama.setScale(1.18 * scale)
+            diorama.zPosition = 2
+            overlay.addChild(diorama)
+        }
         overlayText(unlocked ? world.region.uppercased() : "UNEXPLORED",
                     y: -119 * scale, fontSize: 11 * scale)
         for index in max(0, worldMapIndex - 2)...min(WorldCatalog.worlds.count - 1, worldMapIndex + 2) {
@@ -3265,6 +3289,30 @@ final class OutpostScene: SKScene {
             tile.lineWidth = focused ? 2.7 * scale : 1 * scale
             tile.zPosition = 4
             overlay.addChild(tile)
+            // A finished card already contains the portrait, frame and name.
+            // Keep the vector-built card as a safe fallback until the PNGs ship.
+            let cardNames = ["vanguard", "specter", "bulwark", "volt"]
+            let cardSuffix = available ? "card" : "locked"
+            let cardAsset = "commander_\\(cardNames[slot])_\\(cardSuffix)"
+            if let cardImage = UIImage(named: cardAsset) {
+                let cardTexture = SKTexture(image: cardImage)
+                cardTexture.filteringMode = .linear
+                let card = SKSpriteNode(texture: cardTexture)
+                let original = cardTexture.size()
+                let targetWidth = cardWidth - 2 * scale
+                let targetHeight = 63 * scale
+                let factor = min(targetWidth / max(1, original.width),
+                                 targetHeight / max(1, original.height))
+                card.size = CGSize(width: original.width * factor,
+                                   height: original.height * factor)
+                card.zPosition = 5
+                tile.addChild(card)
+                if focused {
+                    tile.strokeColor = accent
+                    tile.lineWidth = 3 * scale
+                }
+                continue
+            }
             let accentRail = SKShapeNode(rectOf: CGSize(width: cardWidth - 13 * scale,
                                                         height: 3 * scale),
                                          cornerRadius: 1.5 * scale)
