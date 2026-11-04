@@ -1001,7 +1001,7 @@ final class OutpostScene: SKScene {
            ProcessInfo.processInfo.arguments.contains("-captureLockedCommanderScreenshot") {
             for commanderIndex in 0..<Self.commanderAssetNames.count {
                 precondition(Self.commanderArtwork(commanderIndex) != nil,
-                             "Missing bundled commander illustration: \\(Self.commanderAssetNames[commanderIndex])")
+                             "Missing bundled commander illustration: \(Self.commanderAssetNames[commanderIndex])")
             }
         }
         if ProcessInfo.processInfo.arguments.contains("-captureSpecterScreenshot") {
