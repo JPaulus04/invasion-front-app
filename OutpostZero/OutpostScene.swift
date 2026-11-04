@@ -514,6 +514,21 @@ final class OutpostScene: SKScene {
         pilotArmor.zPosition = 0.5
         pilotArmor.name = "pilotArt"
         pilot.addChild(pilotArmor)
+        // Lightweight breathing and footwork: animate the displayed illustration
+        // without changing hitboxes, movement speed, or aiming mechanics.
+        if illustratedPilotTexture != nil {
+            let settle = SKAction.group([
+                .moveBy(x: 0, y: 1.7, duration: 0.72),
+                .scaleX(to: 1.012, y: 0.987, duration: 0.72)
+            ])
+            let recover = SKAction.group([
+                .moveBy(x: 0, y: -1.7, duration: 0.72),
+                .scaleX(to: 1, y: 1, duration: 0.72)
+            ])
+            settle.timingMode = .easeInEaseOut
+            recover.timingMode = .easeInEaseOut
+            pilotArmor.run(.repeatForever(.sequence([settle, recover])), withKey: "illustratedPilotIdle")
+        }
         // Ground contact and a soft offset shadow give the pilot depth at phone scale.
         let pilotShadow = SKShapeNode(ellipseOf: CGSize(width: 43, height: 13))
         pilotShadow.fillColor = SKColor.black.withAlphaComponent(0.42)
