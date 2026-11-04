@@ -3205,10 +3205,13 @@ final class OutpostScene: SKScene {
         let hero = SKSpriteNode(texture: commanderTexture)
         hero.name = "commanderShowcase"
         let heroAspect = commanderTexture.size()
-        let heroWidth: CGFloat = 190 * scale
-        hero.size = CGSize(width: heroWidth,
-                           height: min(250 * scale, heroWidth * heroAspect.height / max(1, heroAspect.width)))
-        hero.position = CGPoint(x: 0, y: 86 * scale)
+        // Scale by height to preserve the illustrated Commander's proportions.
+        // Width-limited sizing distorted the showcase for tall transparent art.
+        let heroHeight = 242 * scale
+        let heroWidth = min(205 * scale,
+                            heroHeight * heroAspect.width / max(1, heroAspect.height))
+        hero.size = CGSize(width: heroWidth, height: heroHeight)
+        hero.position = CGPoint(x: 0, y: 91 * scale)
         hero.zPosition = 4
         let tints: [SKColor] = [.white, .systemTeal, .systemOrange, .systemPurple]
         hero.color = unlocked ? .white : .darkGray
