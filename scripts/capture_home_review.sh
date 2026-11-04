@@ -65,7 +65,7 @@ capture_scene() {
   FLAG="$1"
   OUTPUT="$2"
   for ATTEMPT in 1 2 3; do
-    run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+    # Do not block on terminate: on cold hosted simulators this can hang\n    # even when the app is not running. Let launch replace it.
     # Give SpringBoard time to remove the previous game's surface
     # before launching a different QA flag. Without this the
     # simulator occasionally screenshots the previous scene.
@@ -81,7 +81,7 @@ capture_scene() {
         -captureWorldOne*Screenshot) EXTRA_FLAGS=(-requireWorldOneAuthoredArt) ;;
       esac
     fi
-    if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG" "${EXTRA_FLAGS[@]}"; then
+    if ! run_bounded 65 xcrun simctl launch --terminate-running-process "$DEVICE" com.paulus.laststandcommand "$FLAG" "${EXTRA_FLAGS[@]}"; then
       echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
       if [ "$ATTEMPT" != 3 ]; then
         # A cold CoreSimulatorService can become unresponsive even
@@ -134,7 +134,7 @@ capture_scene() {
 }
 # Capture SpringBoard as a reference. A valid PNG is not proof the app
 # remained in the foreground after its QA launch assertions.
-run_bounded 45 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+run_bounded 8 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
 sleep 2
 run_bounded 45 xcrun simctl io "$DEVICE" screenshot screenshots/springboard-reference.png
 verify_game_foreground() {
