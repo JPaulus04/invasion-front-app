@@ -15,6 +15,15 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Warm simulator while compiling
+        run: |
+          # Cold macOS runners can spend minutes migrating CoreSimulator data.
+          # Start that work before resource generation and xcodebuild.
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next((x["udid"] for group in d.values() for x in group if x.get("isAvailable", True) and x.get("name", "").startswith("iPhone")), ""))')
+          if [ -n "$DEVICE" ]; then
+            echo "Prewarming iPhone simulator $DEVICE"
+            (xcrun simctl boot "$DEVICE" || true) > /tmp/outpost-sim-prewarm.log 2>&1 &
+          fi
       - name: Generate app resources and project
         run: |
           python3 scripts/generate_icon.py
