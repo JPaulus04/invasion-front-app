@@ -3293,7 +3293,7 @@ final class OutpostScene: SKScene {
             // Keep the vector-built card as a safe fallback until the PNGs ship.
             let cardNames = ["vanguard", "specter", "bulwark", "volt"]
             let cardSuffix = available ? "card" : "locked"
-            let cardAsset = "commander_\\(cardNames[slot])_\\(cardSuffix)"
+            let cardAsset = "commander_\(cardNames[slot])_\(cardSuffix)"
             if let cardImage = UIImage(named: cardAsset) {
                 let cardTexture = SKTexture(image: cardImage)
                 cardTexture.filteringMode = .linear
