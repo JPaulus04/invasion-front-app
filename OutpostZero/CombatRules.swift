@@ -192,7 +192,7 @@ enum EncounterDirector {
     static func style(room: Int) -> Style {
         if room >= 20 { return .boss }
         // Introduce positioning mechanics in the first three rooms:
-        // basic pursuit, opposing approach lanes, then a ranged crossfire.
+        // basic pursuit, alternating flanks, then a two-sided pincer.
         // Early enemy counts and shooter limits remain unchanged.
         if room == 1 { return .patrol }
         if room == 2 { return .flank }
@@ -215,7 +215,7 @@ enum EncounterDirector {
         switch style(room: room) {
         case .patrol: return "PATROL"
         case .flank: return "FLANKING RAID"
-        case .crossfire: return "CROSSFIRE"
+        case .crossfire: return room < 6 ? "PINCER ATTACK" : "CROSSFIRE"
         case .siege: return "MORTAR SUPPORT"
         case .gauntlet: return "MIXED ASSAULT"
         case .boss: return "BOSS ENCOUNTER"
