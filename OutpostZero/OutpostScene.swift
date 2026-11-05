@@ -2802,6 +2802,7 @@ final class OutpostScene: SKScene {
         let stageWidth = min(size.width - 18, 390)
         let diorama = WorldShowcase.island(world: worldMapIndex, locked: !unlocked,
             width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
+        diorama.name = "worldDiorama"
         // Prefer authored island art where the biome matches the destination.
         // Never display the lava or void concept as an unrelated playable world.
         let islandAssets: [Int: String] = [
@@ -2816,6 +2817,7 @@ final class OutpostScene: SKScene {
             let islandTexture = SKTexture(image: image)
             islandTexture.filteringMode = .linear
             let islandSprite = SKSpriteNode(texture: islandTexture)
+            islandSprite.name = "worldDiorama"
             let dimensions = islandTexture.size()
             let width = min(size.width - 20, 345) * scale
             islandSprite.size = CGSize(width: width,
