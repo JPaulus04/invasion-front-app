@@ -233,6 +233,25 @@ enum EncounterDirector {
             // One shooter per five spawned enemies, with the rest still
             // predominantly melee. This keeps the first dodge lesson fair.
             if world == 0 && slot.isMultiple(of: 5) { return 4 + seed % 9 }
+            // Early rooms must play differently, not merely display a new
+            // encounter title. Patrol favors basic grunts; flank rooms mix
+            // faster pursuers; crossfire interleaves them from opposing lanes.
+            // Keep all rolls outside the shooter threshold for non-support
+            // slots so the opening remains a readable dodge lesson.
+            if world == 0 {
+                switch style(room: room) {
+                case .patrol:
+                    return 35 + seed % 24
+                case .flank:
+                    return slot.isMultiple(of: 2) ? 62 + seed % 15 :
+                        35 + seed % 23
+                case .crossfire:
+                    return slot.isMultiple(of: 2) ? 37 + seed % 20 :
+                        64 + seed % 13
+                default:
+                    break
+                }
+            }
             return 35 + seed % 35
         }
         // World 1 flank rooms also need a priority ranged target; support
