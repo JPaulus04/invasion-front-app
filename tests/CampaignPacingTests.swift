@@ -163,6 +163,20 @@ struct CampaignPacingTests {
         precondition(EquipmentDefenseRules.enemyCap <= 12)
         precondition(EquipmentDefenseRules.spawnCadence(world: 0) <
                      EquipmentDefenseRules.spawnCadence(world: 1))
+        // Reinforcement pacing must rise predictably without exceeding
+        // the established enemy cap or spawning directly on the reactor.
+        let opening = EquipmentDefenseRules.spawnCadence(
+            world: 0, elapsed: 0, duration: 60)
+        let middle = EquipmentDefenseRules.spawnCadence(
+            world: 0, elapsed: 30, duration: 60)
+        let finale = EquipmentDefenseRules.spawnCadence(
+            world: 0, elapsed: 50, duration: 60)
+        precondition(opening > middle && middle > finale,
+                     "Defense pressure must escalate through the encounter")
+        precondition(EquipmentDefenseRules.spawnCadence(
+            world: 0, elapsed: 60, duration: 60) > 0,
+            "Completed defense must not produce invalid spawn intervals")
+
         precondition(EquipmentDefenseRules.attackerType(
             world: 0, room: 12, slot: 8) == 3)
         precondition(EquipmentDefenseRules.attackerType(
