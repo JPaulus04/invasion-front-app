@@ -69,6 +69,19 @@ struct CharacterMotionTests {
         }
         precondition(abs(slowFrames - fastFrames) < 0.0001,
                      "Turning must be consistent at 30 and 120 FPS")
+        // Enemy roles must read differently in motion, without changing
+        // gameplay speed or collision geometry.
+        let runner = CharacterMotion.enemy(time: 0.1, behavior: 2,
+            phase: 0, moving: true, aiming: false)
+        let heavy = CharacterMotion.enemy(time: 0.1, behavior: 3,
+            phase: 0, moving: true, aiming: false)
+        let shooter = CharacterMotion.enemy(time: 0.1, behavior: 4,
+            phase: 0, moving: true, aiming: false)
+        precondition(runner.lean != heavy.lean && shooter.lean != heavy.lean)
+        precondition(runner.shadowScale < 1 && heavy.shadowScale > 1)
+        let warning = CharacterMotion.enemy(time: 0.1, behavior: 4,
+            phase: 0, moving: false, aiming: true)
+        precondition(warning.lean == 0 && warning.heightScale > 1)
         let walkStart = CharacterMotion.pilot(time: 1, moving: true, facing: 1,
             timeSinceShot: 2, stridePhase: .pi, movementBlend: 1)
         let walkSettling = CharacterMotion.pilot(time: 1, moving: false, facing: 1,
