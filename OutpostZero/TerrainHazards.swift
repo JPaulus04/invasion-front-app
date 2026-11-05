@@ -75,7 +75,17 @@ enum TerrainHazards {
         guard preview || world > 0 else { return [] }
         // Compact, separated terrain pockets preserve a navigable center
         // corridor. Each pocket has the same shoreline for art and physics.
-        let alternate = room.isMultiple(of: 2)
+        // Four repeatable tactical layouts rather than alternating the same
+        // two arenas. Keep every patch on its original side of the central
+        // entrance-to-exit corridor for consistent player navigation.
+        let layout = (max(1, room) - 1) % 4
+        let alternate = layout == 1 || layout == 3
+        let upperPocketY: CGFloat = layout == 0 ? 0.64 :
+            (layout == 1 ? 0.72 : (layout == 2 ? 0.56 : 0.78))
+        let lowerPocketY: CGFloat = layout == 0 ? 0.22 :
+            (layout == 1 ? 0.30 : (layout == 2 ? 0.17 : 0.36))
+        let barrierY: CGFloat = layout == 0 ? 0.79 :
+            (layout == 1 ? 0.69 : (layout == 2 ? 0.86 : 0.75))
         let water = patch(.water, x: 0.145, y: 0.425,
                           width: 0.24, height: 0.22,
                           bounds: bounds, alternate: alternate)
@@ -84,14 +94,14 @@ enum TerrainHazards {
                          bounds: bounds, alternate: alternate)
         // A second, detached spill makes the crossing tactical instead of
         // presenting one continuous flat pool across the arena.
-        let acidPocket = patch(.acid, x: 0.79, y: 0.22,
+        let acidPocket = patch(.acid, x: 0.79, y: lowerPocketY,
                                width: 0.15, height: 0.13,
                                bounds: bounds, alternate: !alternate)
-        let waterPocket = patch(.water, x: 0.18, y: 0.64,
+        let waterPocket = patch(.water, x: 0.18, y: upperPocketY,
                                 width: 0.15, height: 0.12,
                                 bounds: bounds, alternate: !alternate)
         let barrier = patch(.rubble, x: alternate ? 0.18 : 0.21,
-                            y: 0.79, width: 0.24, height: 0.11,
+                            y: barrierY, width: 0.24, height: 0.11,
                             bounds: bounds, alternate: alternate)
         switch world {
         case 2: return [water, waterPocket, barrier] // Iron Wastes: coolant pools and debris
