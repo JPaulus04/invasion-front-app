@@ -2864,7 +2864,7 @@ final class OutpostScene: SKScene {
         rail.zPosition = 3
         overlay.addChild(rail)
         let railLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
-        railLabel.text = "‹   WORLD \\(worldMapIndex + 1) / \\(WorldCatalog.worlds.count)   ›"
+        railLabel.text = "‹   WORLD \(worldMapIndex + 1) / \(WorldCatalog.worlds.count)   ›"
         railLabel.fontSize = 11 * scale
         railLabel.fontColor = .white.withAlphaComponent(0.94)
         railLabel.verticalAlignmentMode = .center
