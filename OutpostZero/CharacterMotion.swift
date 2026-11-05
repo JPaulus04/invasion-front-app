@@ -106,9 +106,29 @@ enum CharacterMotion {
         let amplitude: CGFloat = behavior == 3 ? 0.7 : (behavior == 2 ? 2.3 : 1.4)
         let bob = moving ? amplitude * sin(stride) : 0.28 * sin(t * 2.2 + phase)
         let warningPulse: CGFloat = aiming ? 0.025 * (1 + sin(t * 8)) : 0
-        let height = moving ? 1 + 0.024 * sin(stride + .pi / 3) : 1 + warningPulse
-        let lean = moving ? 0.028 * sin(stride * 0.5) : 0
-        let shadow = moving ? 1 - 0.035 * abs(sin(stride)) : 1
+        // Distinct readable silhouettes at gameplay scale: rushers spring
+        // forward, heavy units plant their weight, ranged units sidestep.
+        // Visual transforms never alter collision geometry or attack cadence.
+        let height: CGFloat
+        let lean: CGFloat
+        let shadow: CGFloat
+        if moving && behavior == 2 {
+            height = 1 + 0.075 * sin(stride + .pi / 3)
+            lean = 0.065 * sin(stride * 0.5)
+            shadow = 1 - 0.10 * abs(sin(stride))
+        } else if moving && behavior == 3 {
+            height = 1 - 0.038 * abs(sin(stride))
+            lean = 0.012 * sin(stride * 0.5)
+            shadow = 1 + 0.045 * abs(sin(stride))
+        } else if moving && behavior >= 4 {
+            height = 1 + 0.022 * sin(stride + .pi / 3)
+            lean = 0.065 * sin(stride * 0.5)
+            shadow = 1 - 0.045 * abs(sin(stride))
+        } else {
+            height = moving ? 1 + 0.024 * sin(stride + .pi / 3) : 1 + warningPulse
+            lean = moving ? 0.028 * sin(stride * 0.5) : 0
+            shadow = moving ? 1 - 0.035 * abs(sin(stride)) : 1
+        }
         return EnemyVisualPose(verticalOffset: bob, lean: lean,
                                heightScale: height, shadowScale: shadow)
     }
