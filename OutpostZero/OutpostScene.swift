@@ -3461,11 +3461,11 @@ final class OutpostScene: SKScene {
         }
         let iconID = id == "weapon" ? "rate" : id == "reactor" ? "reactor" : id
         let art = SKSpriteNode(texture: ProductionPresentation.abilityArtwork(iconID, tint: tint))
-        art.size = CGSize(width: compact ? 88 : 94, height: compact ? 88 : 94)
-        art.position = compact ? CGPoint(x: 0, y: 31) : CGPoint(x: -width/2 + 47, y: 4)
+        art.size = CGSize(width: compact ? 70 : 94, height: compact ? 70 : 94)
+        art.position = compact ? CGPoint(x: 0, y: 46) : CGPoint(x: -width/2 + 47, y: 4)
         root.addChild(art)
         // A dedicated icon socket gives each module a stronger silhouette.
-        let socket = SKShapeNode(circleOfRadius: compact ? 43 : 44)
+        let socket = SKShapeNode(circleOfRadius: compact ? 36 : 44)
         socket.position = art.position
         socket.fillColor = tint.withAlphaComponent(0.12)
         socket.strokeColor = tint.withAlphaComponent(0.48)
@@ -3485,10 +3485,6 @@ final class OutpostScene: SKScene {
             root.addChild(label)
         }
         text(title, y: compact ? -16 : 31, size: compact ? 12 : 16)
-        if !compact {
-            text(id == "weapon" ? "PRIMARY WEAPON" : id == "armor" ? "DEFENSE SYSTEM" : "POWER MODULE",
-                 y: 47, size: 8, color: tint)
-        }
         text("\(PersistentProgression.rarity(at: rank))  ·  LV \(rank)",
              y: compact ? -32 : 14, size: 9, color: tint)
         let current: String
