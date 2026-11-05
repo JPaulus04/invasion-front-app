@@ -3412,6 +3412,7 @@ final class OutpostScene: SKScene {
         let tint: SKColor = rank >= 9 ? .systemYellow : rank >= 6 ? .systemPurple :
             rank >= 3 ? .systemCyan : SKColor(red: 0.68, green: 0.80, blue: 0.84, alpha: 1)
         let root = SKNode()
+        root.name = "upgrade_\(id)"
         root.position = center
         root.zPosition = 3
         overlay.addChild(root)
@@ -3427,6 +3428,14 @@ final class OutpostScene: SKScene {
         plate.lineWidth = rank > 0 ? 1.8 : 1.2
         plate.zPosition = -0.2
         root.addChild(plate)
+        // Inner edge and restrained material treatment: upgrades should read
+        // as physical modules, not text placed directly over the hub sky.
+        let inner = SKShapeNode(rectOf: CGSize(width: width - 8, height: height - 10),
+                                cornerRadius: 11)
+        inner.fillColor = .clear
+        inner.strokeColor = SKColor(white: 1, alpha: 0.09)
+        inner.lineWidth = 1
+        root.addChild(inner)
         let headerBand = SKShapeNode(rectOf:CGSize(width:width-12,height:compact ? 5 : 6),cornerRadius:2)
         headerBand.position.y = height/2 - 8
         headerBand.fillColor = tint.withAlphaComponent(0.72)
@@ -3442,7 +3451,7 @@ final class OutpostScene: SKScene {
         progressTrack.fillColor = SKColor(white:0.28,alpha:0.9)
         progressTrack.strokeColor = .clear
         root.addChild(progressTrack)
-        let progress = CGFloat(rank % 3) / 3
+        let progress = maximum ? CGFloat(1) : CGFloat(rank % 3) / 3
         if rank > 0 && progress > 0 {
             let fill = SKShapeNode(rectOf:CGSize(width:progressWidth*progress,height:3),cornerRadius:1.5)
             fill.position = CGPoint(x:progressX-progressWidth*(1-progress)/2,y:progressY)
@@ -3455,6 +3464,14 @@ final class OutpostScene: SKScene {
         art.size = CGSize(width: compact ? 88 : 94, height: compact ? 88 : 94)
         art.position = compact ? CGPoint(x: 0, y: 31) : CGPoint(x: -width/2 + 47, y: 4)
         root.addChild(art)
+        // A dedicated icon socket gives each module a stronger silhouette.
+        let socket = SKShapeNode(circleOfRadius: compact ? 43 : 44)
+        socket.position = art.position
+        socket.fillColor = tint.withAlphaComponent(0.12)
+        socket.strokeColor = tint.withAlphaComponent(0.48)
+        socket.lineWidth = 1.2
+        socket.zPosition = art.zPosition - 0.1
+        root.addChild(socket)
         let left = compact ? -width/2 + 8 : -width/2 + 100
         let textWidth = compact ? width-16 : width-112
         func text(_ value: String, y: CGFloat, size: CGFloat, color: SKColor = .white) {
@@ -3468,6 +3485,10 @@ final class OutpostScene: SKScene {
             root.addChild(label)
         }
         text(title, y: compact ? -16 : 31, size: compact ? 12 : 16)
+        if !compact {
+            text(id == "weapon" ? "PRIMARY WEAPON" : id == "armor" ? "DEFENSE SYSTEM" : "POWER MODULE",
+                 y: 47, size: 8, color: tint)
+        }
         text("\(PersistentProgression.rarity(at: rank))  ·  LV \(rank)",
              y: compact ? -32 : 14, size: 9, color: tint)
         let current: String
