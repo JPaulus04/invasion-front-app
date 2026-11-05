@@ -73,12 +73,12 @@ struct CharacterMotionTests {
         // gameplay speed or collision geometry.
         let runner = CharacterMotion.enemy(time: 0.1, behavior: 2,
             phase: 0, moving: true, aiming: false)
-        let heavy = CharacterMotion.enemy(time: 0.1, behavior: 3,
+        let heavyRole = CharacterMotion.enemy(time: 0.1, behavior: 3,
             phase: 0, moving: true, aiming: false)
-        let shooter = CharacterMotion.enemy(time: 0.1, behavior: 4,
+        let shooterRole = CharacterMotion.enemy(time: 0.1, behavior: 4,
             phase: 0, moving: true, aiming: false)
-        precondition(runner.lean != heavy.lean && shooter.lean != heavy.lean)
-        precondition(runner.shadowScale < 1 && heavy.shadowScale > 1)
+        precondition(runner.lean != heavyRole.lean && shooterRole.lean != heavyRole.lean)
+        precondition(runner.shadowScale < 1 && heavyRole.shadowScale > 1)
         let warning = CharacterMotion.enemy(time: 0.1, behavior: 4,
             phase: 0, moving: false, aiming: true)
         precondition(warning.lean == 0 && warning.heightScale > 1)
