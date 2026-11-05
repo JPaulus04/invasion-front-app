@@ -26,6 +26,23 @@ enum EnemyCombatFeedback {
             anchor = art.position.x
             art.userData?[anchorKey] = NSNumber(value: Double(anchor))
         }
+        // A brief silhouette compression reads as physical impact even
+        // when small projectiles overlap a detailed enemy illustration.
+        // Reset scale before each hit so rapid fire cannot compound it.
+        let scaleKey = "combatRecoilAnchorScale"
+        let baseline: CGFloat
+        if let saved = art.userData?[scaleKey] as? NSNumber {
+            baseline = CGFloat(truncating: saved)
+        } else {
+            baseline = art.yScale
+            art.userData?[scaleKey] = NSNumber(value: Double(baseline))
+        }
+        art.removeAction(forKey: "spriteImpactSquash")
+        art.yScale = baseline
+        art.run(.sequence([
+            .scaleY(to: baseline * 0.92, duration: 0.045),
+            .scaleY(to: baseline, duration: 0.11)
+        ]), withKey: "spriteImpactSquash")
         art.removeAction(forKey: "spriteImpactRecoil")
         art.position.x = anchor
         let direction: CGFloat = enemy.position.x >= origin.x ? 1 : -1
