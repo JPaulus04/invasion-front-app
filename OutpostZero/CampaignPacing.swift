@@ -116,13 +116,19 @@ enum EquipmentDefenseRules {
     static let spawnCadence: TimeInterval = 2.0
     static func spawnCadence(world: Int, elapsed: TimeInterval = 0,
                              duration: TimeInterval = 0) -> TimeInterval {
-        // Teach the objective with a forgiving opening, then add a modest
-        // final-fifteen-second push. Never make the first world a swarm wall.
+        // Three deliberate phases: teach, pressure, then a final push.
+        // Enemy cap and spawn safety still apply; this changes frequency,
+        // not enemy durability or unavoidable reactor contact damage.
         let baseline: TimeInterval = world == 0 ? 1.75 : spawnCadence
-        guard duration > 15, elapsed >= duration - 15, elapsed < duration else {
-            return baseline
+        guard duration > 0 else { return baseline }
+        let progress = max(0, min(1, elapsed / duration))
+        if progress >= 0.75 && elapsed < duration {
+            return world == 0 ? 1.4 : 1.55
         }
-        return world == 0 ? 1.5 : 1.7
+        if progress >= 0.4 {
+            return world == 0 ? 1.6 : 1.85
+        }
+        return baseline
     }
     static func attackerType(world: Int, room: Int, slot: Int) -> Int {
         // Armored melee reinforcement occasionally tests target priorities.
