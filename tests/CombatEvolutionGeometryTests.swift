@@ -9,11 +9,11 @@ enum CombatEvolutionGeometryTests {
         precondition(EncounterDirector.style(room: 3) == .crossfire)
         precondition(EncounterDirector.style(room: 4) == .flank)
         precondition(EncounterDirector.style(room: 5) == .crossfire)
-        precondition(EncounterDirector.style(room: 6) == .crossfire)
-        precondition(EncounterDirector.style(room: 7) == .flank)
-        precondition(EncounterDirector.style(room: 8) == .crossfire)
-        precondition(EncounterDirector.style(room: 9) == .flank)
-        precondition(EncounterDirector.style(room: 10) == .crossfire)
+        precondition(EncounterDirector.style(room: 6) == .flank)
+        precondition(EncounterDirector.style(room: 7) == .crossfire)
+        precondition(EncounterDirector.style(room: 8) == .flank)
+        precondition(EncounterDirector.style(room: 9) == .crossfire)
+        precondition(EncounterDirector.style(room: 10) == .flank)
         // Verify the encounter label changes actual enemy composition.
         // Slots divisible by five remain the single telegraphed shooter.
         for room in 1...3 {
