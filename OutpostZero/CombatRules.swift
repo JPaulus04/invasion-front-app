@@ -191,7 +191,12 @@ enum EncounterDirector {
 
     static func style(room: Int) -> Style {
         if room >= 20 { return .boss }
-        if room <= 3 { return .patrol }
+        // Introduce positioning mechanics in the first three rooms:
+        // basic pursuit, opposing approach lanes, then a ranged crossfire.
+        // Early enemy counts and shooter limits remain unchanged.
+        if room == 1 { return .patrol }
+        if room == 2 { return .flank }
+        if room == 3 { return .crossfire }
         if room <= 5 { return .flank }
         if room <= 10 { return room.isMultiple(of: 3) ? .crossfire : .flank }
         if room <= 15 {
