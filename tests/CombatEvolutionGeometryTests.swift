@@ -7,6 +7,17 @@ enum CombatEvolutionGeometryTests {
         precondition(EncounterDirector.style(room: 1) == .patrol)
         precondition(EncounterDirector.style(room: 2) == .flank)
         precondition(EncounterDirector.style(room: 3) == .crossfire)
+        // Verify the encounter label changes actual enemy composition.
+        // Slots divisible by five remain the single telegraphed shooter.
+        for room in 1...3 {
+            precondition(EncounterDirector.enemyRoll(world: 0, room: room, slot: 0) < 15)
+            for slot in 1...4 {
+                precondition(EncounterDirector.enemyRoll(world: 0, room: room, slot: slot) >= 35)
+            }
+        }
+        precondition(EncounterDirector.enemyRoll(world: 0, room: 1, slot: 2) < 60)
+        precondition(EncounterDirector.enemyRoll(world: 0, room: 2, slot: 2) >= 60)
+        precondition(EncounterDirector.enemyRoll(world: 0, room: 3, slot: 3) >= 60)
         precondition(EncounterDirector.spawnLane(room: 2, slot: 0) == .left)
         precondition(EncounterDirector.spawnLane(room: 2, slot: 2) == .right)
         precondition(EncounterDirector.spawnLane(room: 3, slot: 0) == .left)
