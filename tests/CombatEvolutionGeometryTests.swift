@@ -3,6 +3,26 @@ import CoreGraphics
 
 /// Run with the existing Swift test harness alongside CombatRules.swift.
 enum CombatEvolutionGeometryTests {
+    static func verifyRangedRepositioning() {
+        let origin = CGPoint(x: 0, y: 0)
+        let pilot = CGPoint(x: 180, y: 0)
+        let left = CombatRules.enemySteering(
+            behavior: 4, origin: origin, pilot: pilot,
+            elapsed: 0, phase: .pi / 2, ranged: true, aiming: false)
+        let right = CombatRules.enemySteering(
+            behavior: 4, origin: origin, pilot: pilot,
+            elapsed: 0, phase: -.pi / 2, ranged: true, aiming: false)
+        precondition(left.dy > 0 && right.dy < 0,
+                     "Ranged flankers must establish opposing firing angles")
+        precondition(hypot(left.dx, left.dy) <= 1.001,
+                     "Ranged steering must not exceed the enemy speed cap")
+        let telegraph = CombatRules.enemySteering(
+            behavior: 4, origin: origin, pilot: pilot,
+            elapsed: 5, phase: .pi / 2, ranged: true, aiming: true)
+        precondition(telegraph.dx == 0 && telegraph.dy == 0,
+                     "Telegraphing shooters must remain stationary")
+    }
+
     static func verifyEnergyWheelGeometry() {
         let pilot = CGPoint(x: 0, y: 0)
         func hit(_ x: CGFloat, _ radius: CGFloat = 10) -> Bool {
