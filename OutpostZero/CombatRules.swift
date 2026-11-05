@@ -61,8 +61,13 @@ enum CombatRules {
             let hold: CGFloat = behavior == 5 ? 190 : 155
             forward = distance < hold - 25 ? -0.55 :
                 (distance > hold + 35 ? 0.55 : 0)
-            lateral = (sin(phase) >= 0 ? 1 : -1) *
-                (abs(forward) < 0.1 ? 0.27 : 0.16)
+            // Keep ranged enemies repositioning after reaching firing distance.
+            // Opposing phase signs produce crossfire without increasing speed.
+            // A slow direction reversal prevents permanently safe firing lanes
+            // against a player who stands in one place.
+            let strafeDirection: CGFloat =
+                sin(CGFloat(elapsed) * 0.65 + phase) >= 0 ? 1 : -1
+            lateral = strafeDirection * (abs(forward) < 0.1 ? 0.42 : 0.22)
         } else {
             // Build 331: melee enemies pursue from distinct angles instead of
             // forming one straight-line queue. Sideways pressure fades as an
@@ -80,6 +85,8 @@ enum CombatRules {
                 lateral = (flankSign * 0.48 +
                     sin(CGFloat(elapsed) * 1.25 + phase) * 0.18) * approach
             case 3:
+                // Heavy pursuers maintain forward pressure; light flankers
+                // do the circling. This preserves a readable escape lane.
                 lateral = flankSign * 0.12 * approach
             default:
                 lateral = 0
