@@ -93,6 +93,8 @@ struct ProgressCombatTests {
             for: evolutionLoadout, ranks: ["orbit": 3, "chain": 2],
             masteryLevel: 20, world: 3, synergyRanks: ["orbit": 2],
             alreadyEvolved: ["orbit"]).contains("orbit"))
+        CombatEvolutionGeometryTests.verifyEarlyEncounterVariety()
+        CombatEvolutionGeometryTests.verifyRangedRepositioning()
         CombatEvolutionGeometryTests.verifyEnergyWheelGeometry()
         var earnedRun = RunProgress()
         precondition(earnedRun.claimMastery(room: 1))
