@@ -197,8 +197,11 @@ enum EncounterDirector {
         if room == 1 { return .patrol }
         if room == 2 { return .flank }
         if room == 3 { return .crossfire }
-        if room <= 5 { return .flank }
-        if room <= 10 { return room.isMultiple(of: 3) ? .crossfire : .flank }
+        if room == 4 { return .flank }
+        if room == 5 { return .crossfire }
+        // Avoid back-to-back crossfire rooms at the 5/6 transition.
+        // Rooms 6-10 alternate flanking pressure with ranged crossfire.
+        if room <= 10 { return room.isMultiple(of: 2) ? .crossfire : .flank }
         if room <= 15 {
             return room.isMultiple(of: 3) ? .siege :
                 (room.isMultiple(of: 2) ? .crossfire : .flank)
