@@ -3,6 +3,16 @@ import CoreGraphics
 
 /// Run with the existing Swift test harness alongside CombatRules.swift.
 enum CombatEvolutionGeometryTests {
+    static func verifyEarlyEncounterVariety() {
+        precondition(EncounterDirector.style(room: 1) == .patrol)
+        precondition(EncounterDirector.style(room: 2) == .flank)
+        precondition(EncounterDirector.style(room: 3) == .crossfire)
+        precondition(EncounterDirector.spawnLane(room: 2, slot: 0) == .left)
+        precondition(EncounterDirector.spawnLane(room: 2, slot: 2) == .right)
+        precondition(EncounterDirector.spawnLane(room: 3, slot: 0) == .left)
+        precondition(EncounterDirector.spawnLane(room: 3, slot: 1) == .right)
+    }
+
     static func verifyRangedRepositioning() {
         let origin = CGPoint(x: 0, y: 0)
         let pilot = CGPoint(x: 180, y: 0)
