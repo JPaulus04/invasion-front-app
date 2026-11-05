@@ -81,11 +81,11 @@ enum TerrainHazards {
         let layout = (max(1, room) - 1) % 4
         let alternate = layout == 1 || layout == 3
         let upperPocketY: CGFloat = layout == 0 ? 0.64 :
-            (layout == 1 ? 0.72 : (layout == 2 ? 0.56 : 0.78))
+            (layout == 1 ? 0.62 : (layout == 2 ? 0.68 : 0.67))
         let lowerPocketY: CGFloat = layout == 0 ? 0.22 :
             (layout == 1 ? 0.30 : (layout == 2 ? 0.17 : 0.36))
         let barrierY: CGFloat = layout == 0 ? 0.79 :
-            (layout == 1 ? 0.69 : (layout == 2 ? 0.86 : 0.75))
+            (layout == 1 ? 0.80 : (layout == 2 ? 0.86 : 0.86))
         let water = patch(.water, x: 0.145, y: 0.425,
                           width: 0.24, height: 0.22,
                           bounds: bounds, alternate: alternate)
