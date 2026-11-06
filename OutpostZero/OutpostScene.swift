@@ -2709,7 +2709,7 @@ final class OutpostScene: SKScene {
                     ("ABILITIES", "bolt.fill", "nav_abilities"),
                     ("COMMANDER", "person.fill", "nav_pilot")]
         let width = min((size.width - 20) / 4, 96)
-        let y = -294 * scale
+        let y = (active == "nav_home" ? -340 : -294) * scale
         // A single low-profile dock replaces four disconnected bordered tiles.
         let dock = SKShapeNode(rect: CGRect(x: -2 * width - 3, y: y - 35 * scale,
                                             width: 4 * width + 6, height: 69 * scale),
@@ -2918,7 +2918,7 @@ final class OutpostScene: SKScene {
         // without bringing back oversized left/right navigation buttons.
         let rail = SKShapeNode(rectOf: CGSize(width: 174 * scale, height: 24 * scale),
                                cornerRadius: 12 * scale)
-        rail.position = CGPoint(x: 0, y: -235 * scale)
+        rail.position = CGPoint(x: 0, y: -259 * scale)
         rail.fillColor = SKColor(red: 0.04, green: 0.11, blue: 0.18, alpha: 0.88)
         rail.strokeColor = .white.withAlphaComponent(0.2)
         rail.lineWidth = 1
