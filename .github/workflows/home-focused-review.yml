@@ -13,7 +13,7 @@ jobs:
       (github.event_name == 'push' && contains(github.event.head_commit.message, '[home-review]'))
     # Explicit Intel pool avoids the documented ARM64 acquisition failures.
     runs-on: macos-15-intel
-    timeout-minutes: 40
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - name: Record runner and revision diagnostics
@@ -45,9 +45,12 @@ jobs:
           brew install xcodegen
           xcodegen generate
       - name: Compile simulator app only
+        timeout-minutes: 35
         run: |
           set -o pipefail
+          echo "Compile started: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee xcodebuild-home.log
+          echo "Compile finished: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           mkdir -p simulator-app
           cp -R DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/
       - name: Verify all production menu assets in compiled app
