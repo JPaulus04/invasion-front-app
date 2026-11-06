@@ -3261,7 +3261,7 @@ final class OutpostScene: SKScene {
         installHubShell(active: "nav_pilot")
         let roster = ["VANGUARD", "SPECTER", "BULWARK", "VOLT"]
         let roles = ["BALANCED ASSAULT", "HIGH MOBILITY", "ARMORED DEFENDER", "ENERGY SPECIALIST"]
-        let perks = ["BASELINE STATS", "+15% MOVEMENT", "+30 HP · -8% MOVEMENT", "+2 WEAPON DAMAGE"]
+        let perks = ["100 HP  ·  STANDARD SPEED", "+15% MOVEMENT SPEED", "+30 MAX HP  ·  -8% SPEED", "+2 BASE WEAPON DAMAGE"]
         let index = min(max(UserDefaults.standard.integer(forKey: "ozViewedCommander"), 0), 3)
         let selected = min(max(UserDefaults.standard.integer(forKey: "ozSelectedCommander"), 0), 3)
         let unlocked = index == 0 || WorldCatalog.stars(index - 1) > 0
@@ -3350,6 +3350,17 @@ final class OutpostScene: SKScene {
         // without obscuring the character's face.
         overlayText(roster[index], y: -30 * scale, fontSize: 24 * scale)
         overlayText(roles[index], y: -57 * scale, fontSize: 12 * scale)
+        // Clear status without putting a lock icon over the character art.
+        let status = index == selected ? "EQUIPPED" : (unlocked ? "AVAILABLE" : "LOCKED")
+        let statusLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        statusLabel.name = "commanderStatus"
+        statusLabel.text = status
+        statusLabel.fontSize = 10 * scale
+        statusLabel.fontColor = index == selected ? .systemGreen :
+            (unlocked ? .systemCyan : .systemOrange)
+        statusLabel.position = CGPoint(x: 0, y: -75 * scale)
+        statusLabel.zPosition = 5
+        overlay.addChild(statusLabel)
 
         // Portrait-first selection cards: four distinct Commander identities
         // remain visible together without hiding the main character artwork.
