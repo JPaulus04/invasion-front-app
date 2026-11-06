@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -eo pipefail
 # Every simulator subprocess is bounded so a stalled simctl cannot
 # pin the macOS runner until the whole job times out.
 run_bounded() {
@@ -30,7 +30,8 @@ print(chr(10).join(found[:4]))
 ')"
 for CANDIDATE in $DEVICE_CANDIDATES; do
   echo "Preparing simulator $CANDIDATE"
-  # A prewarmed device may already be booted; do not fail that case.\n  run_bounded 25 xcrun simctl boot "$CANDIDATE" || true
+  # A prewarmed device may already be booted; do not fail that case.
+  run_bounded 25 xcrun simctl boot "$CANDIDATE" || true
   # Data migration often needs more than 90 seconds on a cold VM.
   if run_bounded 135 xcrun simctl bootstatus "$CANDIDATE" -b; then
     DEVICE="$CANDIDATE"

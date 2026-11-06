@@ -7,15 +7,25 @@ jobs:
   home-screens:
     concurrency:
       group: home-focused-${{ github.ref }}
-      cancel-in-progress: false
+      cancel-in-progress: true
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && contains(github.event.head_commit.message, '[home-review]'))
-    runs-on: macos-15
+    # Explicit Intel pool avoids the documented ARM64 acquisition failures.
+    runs-on: macos-15-intel
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+      - name: Record runner and revision diagnostics
+        run: |
+          mkdir -p diagnostics
+          { git rev-parse HEAD; uname -m; sw_vers; xcodebuild -version; xcrun simctl list runtimes; } 2>&1 | tee diagnostics/environment.log
+      - name: Validate source tree
+        run: |
+          set -o pipefail
+          python3 scripts/check_project.py 2>&1 | tee diagnostics/source-check.log
       - name: Reset simulator service before compiling
+        timeout-minutes: 5
         run: |
           # Avoid simultaneous background boots during Xcode's first-use setup.
           xcodebuild -runFirstLaunch || true
@@ -23,7 +33,9 @@ jobs:
           xcrun simctl list devices available
       # Artwork uploaded: verify all 12 production menu sprites before capture.
       - name: Audit production menu sprite assets
-        run: python3 scripts/audit_menu_art.py
+        run: |
+          set -o pipefail
+          python3 scripts/audit_menu_art.py --require-all 2>&1 | tee diagnostics/menu-art.log
       - name: Generate app resources and project
         run: |
           python3 scripts/generate_icon.py
@@ -38,13 +50,29 @@ jobs:
           xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee xcodebuild-home.log
           mkdir -p simulator-app
           cp -R DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/
+      - name: Verify all production menu assets in compiled app
+        run: |
+          python3 - <<'PYTHON'
+          from pathlib import Path
+          import runpy
+          audit = runpy.run_path("scripts/audit_menu_art.py")
+          app = Path("simulator-app/OutpostZero.app")
+          for name in audit["EXPECTED"]:
+              matches = list(app.rglob(name))
+              assert matches, f"Missing bundled menu asset: {name}"
+              assert any(p.read_bytes() == (audit["ROOT"] / name).read_bytes() for p in matches), f"Bundled asset differs: {name}"
+          print("PASS: all 12 production menu PNGs bundled unchanged")
+          PYTHON
       - name: Install screenshot decoder
         run: |
           python3 -m venv "$RUNNER_TEMP/home-review-python"
           "$RUNNER_TEMP/home-review-python/bin/python" -m pip install Pillow
           echo "$RUNNER_TEMP/home-review-python/bin" >> "$GITHUB_PATH"
       - name: Capture Home, World Selector and all menu screens
-        run: bash scripts/capture_home_review.sh
+        timeout-minutes: 25
+        run: |
+          set -o pipefail
+          bash scripts/capture_home_review.sh 2>&1 | tee diagnostics/simulator-capture.log
       - name: Verify World Selector differs visibly from Home
         run: |
           python3 scripts/validate_world_selector_distinction.py \
@@ -56,12 +84,14 @@ jobs:
         with:
           name: outpost-zero-home-focused-review
           path: screenshots/outpost-zero-*.png
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 14
       - name: Upload focused build diagnostics
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: home-focused-build-log
-          path: xcodebuild-home.log
+          path: |
+            xcodebuild-home.log
+            diagnostics/
           if-no-files-found: ignore
