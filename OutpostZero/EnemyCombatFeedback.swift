@@ -52,51 +52,83 @@ enum EnemyCombatFeedback {
         ]), withKey: "spriteImpactRecoil")
     }
 
+    /// A layered hit signature: white-hot core, expanding colored shock ring,
+    /// and directional streaks. Effects remain visual-only and self-remove.
     static func impact(in parent: SKNode, at position: CGPoint,
                        color: SKColor, destroyed: Bool) {
-        let ring = SKShapeNode(circleOfRadius: destroyed ? 10 : 5)
+        let duration: TimeInterval = destroyed ? 0.32 : 0.19
+        let ring = SKShapeNode(circleOfRadius: destroyed ? 12 : 7)
+        ring.name = "combatImpactRing"
         ring.position = position
-        ring.strokeColor = color.withAlphaComponent(0.9)
+        ring.strokeColor = color.withAlphaComponent(0.95)
         ring.fillColor = .clear
-        ring.lineWidth = destroyed ? 2 : 1.3
-        ring.glowWidth = destroyed ? 1.5 : 0.6
-        ring.zPosition = 11
+        ring.lineWidth = destroyed ? 3.4 : 2.2
+        ring.glowWidth = destroyed ? 3 : 1.4
+        ring.zPosition = 12
         parent.addChild(ring)
         ring.run(.sequence([
-            .group([.scale(to: destroyed ? 1.8 : 1.4, duration: 0.22),
-                    .fadeOut(withDuration: 0.22)]), .removeFromParent()
+            .group([.scale(to: destroyed ? 2.6 : 2.0, duration: duration),
+                    .fadeOut(withDuration: duration)]),
+            .removeFromParent()
         ]))
-        let flash = SKShapeNode(circleOfRadius: destroyed ? 8 : 4)
-        flash.position = position
-        flash.fillColor = color.withAlphaComponent(destroyed ? 0.35 : 0.22)
-        flash.strokeColor = .clear
-        flash.lineWidth = 1
-        flash.zPosition = 11.2
-        parent.addChild(flash)
-        flash.run(.sequence([
-            .group([.scale(to: 1.6, duration: 0.11),
-                    .fadeOut(withDuration: 0.11)]), .removeFromParent()
+
+        let core = SKShapeNode(circleOfRadius: destroyed ? 9 : 5.5)
+        core.name = "combatImpactCore"
+        core.position = position
+        core.fillColor = .white
+        core.strokeColor = color
+        core.lineWidth = 2
+        core.glowWidth = destroyed ? 5 : 2.5
+        core.zPosition = 13
+        parent.addChild(core)
+        core.run(.sequence([
+            .group([.scale(to: destroyed ? 1.7 : 1.35, duration: 0.07),
+                    .fadeOut(withDuration: 0.13)]),
+            .removeFromParent()
         ]))
-        // Ordinary hits need a restrained footprint so dense combat does not
-        // obscure enemy silhouettes or incoming projectiles.
-        let count = destroyed ? 5 : 1
+
+        // Fixed particle budget: normal hits use four streaks, kills eight.
+        // Short-lived shapes read clearly at phone scale without emitters.
+        let count = destroyed ? 8 : 4
         for i in 0..<count {
-            let spark = SKShapeNode(rectOf: CGSize(
-                width: destroyed ? 3 : 2, height: destroyed ? 7 : 4),
-                cornerRadius: 1)
-            spark.fillColor = i.isMultiple(of: 2) ? color : .white
-            spark.strokeColor = .clear
-            spark.position = position
-            spark.zPosition = 12
-            parent.addChild(spark)
-            let angle = CGFloat(i) * .pi * 2 / CGFloat(count) + 0.35
-            let length: CGFloat = destroyed ? 30 : 12
-            spark.zRotation = angle
-            spark.run(.sequence([
-                .group([.moveBy(x: cos(angle) * length,
-                                y: sin(angle) * length, duration: 0.22),
-                        .fadeOut(withDuration: 0.22),
-                        .scale(to: 0.4, duration: 0.22)]),
+            let angle = CGFloat(i) * (.pi * 2 / CGFloat(count)) + 0.22
+            let reach: CGFloat = destroyed ? 38 : 19
+            let streak = SKShapeNode(rectOf: CGSize(
+                width: destroyed ? 3.5 : 2.3,
+                height: destroyed ? 14 : 9), cornerRadius: 1)
+            streak.name = "combatImpactStreak"
+            streak.fillColor = i.isMultiple(of: 2) ? .white : color
+            streak.strokeColor = .clear
+            streak.glowWidth = destroyed ? 2 : 1
+            streak.position = position
+            streak.zRotation = angle - .pi / 2
+            streak.zPosition = 12.5
+            parent.addChild(streak)
+            streak.run(.sequence([
+                .group([
+                    .moveBy(x: cos(angle) * reach,
+                            y: sin(angle) * reach, duration: duration),
+                    .fadeOut(withDuration: duration),
+                    .scale(to: 0.3, duration: duration)
+                ]),
+                .removeFromParent()
+            ]))
+        }
+        if destroyed {
+            let second = SKShapeNode(circleOfRadius: 8)
+            second.name = "combatKillAftershock"
+            second.position = position
+            second.strokeColor = .white.withAlphaComponent(0.6)
+            second.fillColor = .clear
+            second.lineWidth = 1.8
+            second.zPosition = 11.5
+            second.alpha = 0
+            parent.addChild(second)
+            second.run(.sequence([
+                .wait(forDuration: 0.07),
+                .fadeIn(withDuration: 0.025),
+                .group([.scale(to: 4, duration: 0.28),
+                        .fadeOut(withDuration: 0.28)]),
                 .removeFromParent()
             ]))
         }
