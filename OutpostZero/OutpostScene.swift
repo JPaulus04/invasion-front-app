@@ -835,11 +835,11 @@ final class OutpostScene: SKScene {
         }
         if ProcessInfo.processInfo.arguments.contains("-captureWorldSelectorScreenshot") {
             showWorldSelector()
-            precondition(phase == .worldSelect &&
+            precondition(phase == .ready &&
                          overlay.childNode(withName: "worldDiorama") != nil &&
-                         overlay.childNode(withName: "worldSelectorPresentation") != nil &&
+                         overlayButtons["start"] != nil &&
                          overlayButtons["nav_home"] != nil,
-                         "World map must render the swipeable diorama and home navigation")
+                         "World browsing must remain on Home with a swipeable island and deployment")
         }
         // CI-only settings and lifecycle integration: a call must pause
         // hostile attacks, and resuming must require deliberate input.
@@ -2761,7 +2761,7 @@ final class OutpostScene: SKScene {
     /// Distinct home screen: concise resources, one highlighted world and a
     /// single primary Play/Resume action. No marketing notifications or fake
     /// currencies copied from the visual navigation benchmark.
-    private func showReady(selector: Bool = false) {
+    private func showReady() {
         discardRunArmed = false
         hud.isHidden = true
         phase = .ready
@@ -2781,7 +2781,7 @@ final class OutpostScene: SKScene {
 
         // Build 331: hero-led home composition. The island owns the center
         // of the screen; all progress and currency information is secondary.
-        overlayText(selector ? "EXPLORE WORLDS" : "OUTPOST ZERO", y: 271 * scale, fontSize: selector ? 23 * scale : 25 * scale)
+        overlayText("OUTPOST ZERO", y: 271 * scale, fontSize: 25 * scale)
         let resourceWidth = min(size.width - 72, 300)
         let resourceTrack = SKShapeNode(rectOf:
             CGSize(width:resourceWidth,height:1))
@@ -2789,7 +2789,7 @@ final class OutpostScene: SKScene {
         resourceTrack.fillColor = SKColor(white:1,alpha:0.26)
         resourceTrack.strokeColor = .clear
         overlay.addChild(resourceTrack)
-        overlayText(selector ? "SWIPE TO DISCOVER YOUR NEXT MISSION" : "\(permanent.salvage) SALVAGE    ·    \(availableCores) CORES",
+        overlayText("\(permanent.salvage) SALVAGE    ·    \(availableCores) CORES",
                     y: 238 * scale, fontSize: 11 * scale)
         overlayText(unlocked ? world.title.uppercased() : "UNKNOWN WORLD",
                     y: 187 * scale, fontSize: 22 * scale)
@@ -2820,20 +2820,20 @@ final class OutpostScene: SKScene {
             let islandSprite = SKSpriteNode(texture: islandTexture)
             islandSprite.name = "worldDiorama"
             let dimensions = islandTexture.size()
-            let width = min(size.width - 20, selector ? 375 : 345) * scale
+            let width = min(size.width - 20, 345) * scale
             islandSprite.size = CGSize(width: width,
-                height: min((selector ? 290 : 260) * scale, width * dimensions.height / max(1, dimensions.width)))
-            islandSprite.position = CGPoint(x: 0, y: selector ? 11 * scale : 0)
+                height: min((260) * scale, width * dimensions.height / max(1, dimensions.width)))
+            islandSprite.position = CGPoint(x: 0, y: 0)
             islandSprite.zPosition = 2
             islandSprite.alpha = unlocked ? 1 : 0.5
             overlay.addChild(islandSprite)
         } else {
-            diorama.position.y = (selector ? 15 : 4) * scale
-            diorama.setScale((selector ? 1.26 : 1.18) * scale)
+            diorama.position.y = 4 * scale
+            diorama.setScale(1.18 * scale)
             diorama.zPosition = 2
             overlay.addChild(diorama)
         }
-        overlayText(selector ? (unlocked ? "MISSION REGION  ·  \(world.region.uppercased())" : "CLASSIFIED REGION") : (unlocked ? world.region.uppercased() : "UNEXPLORED"),
+        overlayText((unlocked ? world.region.uppercased() : "UNEXPLORED"),
                     y: -119 * scale, fontSize: 11 * scale)
         for index in max(0, worldMapIndex - 2)...min(WorldCatalog.worlds.count - 1, worldMapIndex + 2) {
             let dot = SKShapeNode(circleOfRadius:index == worldMapIndex ? 4 : 2.5)
@@ -2849,7 +2849,7 @@ final class OutpostScene: SKScene {
             overlayText("WORLD \(saved.worldIndex + 1) · FLOOR \(saved.room) · PROGRESS SAVED",
                         y: -145 * scale, fontSize: 10 * scale)
         } else {
-            actionButton(unlocked ? (selector ? "DEPLOY TO WORLD" : "START RUN") : "WORLD LOCKED",
+            actionButton(unlocked ? "START RUN" : "WORLD LOCKED",
                          key: "start", y: -187 * scale,
                          tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1),
                          enabled: unlocked)
@@ -2865,7 +2865,7 @@ final class OutpostScene: SKScene {
         rail.zPosition = 3
         overlay.addChild(rail)
         let railLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
-        railLabel.text = selector ? "‹    EXPLORE \(worldMapIndex + 1) OF \(WorldCatalog.worlds.count)    ›" : "‹   WORLD \(worldMapIndex + 1) / \(WorldCatalog.worlds.count)   ›"
+        railLabel.text = "‹   WORLD \(worldMapIndex + 1) / \(WorldCatalog.worlds.count)   ›"
         railLabel.fontSize = 11 * scale
         railLabel.fontColor = .white.withAlphaComponent(0.94)
         railLabel.verticalAlignmentMode = .center
@@ -2874,87 +2874,10 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
+    // Legacy entry point retained for existing capture and navigation callers.
+    // World browsing lives on Home; there is no second selector destination.
     private func showWorldSelector() {
-        // The explorer is a destination, not the Home layout with new copy.
-        // Preserve the persistent dock and the existing world swipe/deploy keys.
-        discardRunArmed = false
-        hud.isHidden = true
-        pilot.isHidden = true
-        phase = .worldSelect
-        ArcadeMusic.shared.play(.headquarters)
-        clearOverlay()
-        overlayBackdrop.isHidden = true
-        let scale = min(1, size.height / 780)
-        installHubShell(active: "nav_home", scale: scale)
-        let playable = worldMapIndex < WorldCatalog.playableCount
-        let unlocked = playable && WorldCatalog.unlocked(worldMapIndex)
-        let world = selectedWorld
-
-        let selectorMarker = SKNode()
-        selectorMarker.name = "worldSelectorPresentation"
-        overlay.addChild(selectorMarker)
-        overlayText("WORLD EXPLORER", y: 275 * scale, fontSize: 25 * scale)
-        overlayText("SWIPE LEFT OR RIGHT TO EXPLORE", y: 247 * scale, fontSize: 10 * scale)
-        let headingLine = SKShapeNode(rectOf: CGSize(width: min(size.width - 72, 310),
-                                                       height: 1))
-        headingLine.fillColor = .white.withAlphaComponent(0.22)
-        headingLine.strokeColor = .clear
-        headingLine.position.y = 228 * scale
-        overlay.addChild(headingLine)
-
-        // Large floating island, with a separate world identity and mission
-        // information below it instead of the Home screen's stacked headings.
-        let islandAssets: [Int: String] = [
-            0: "world_forest_island", 3: "world_ice_island",
-            4: "world_lava_island", 8: "world_ice_island",
-            12: "world_void_island"
-        ]
-        let stageWidth = min(size.width - 12, 395)
-        let diorama = WorldShowcase.island(world: worldMapIndex, locked: !unlocked,
-            width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
-        diorama.name = "worldDiorama"
-        if let asset = islandAssets[worldMapIndex], let image = UIImage(named: asset) {
-            let texture = SKTexture(image: image)
-            texture.filteringMode = .linear
-            let sprite = SKSpriteNode(texture: texture)
-            sprite.name = "worldDiorama"
-            let dimensions = texture.size()
-            let width = min(size.width - 10, 390) * scale
-            sprite.size = CGSize(width: width,
-                height: min(315 * scale, width * dimensions.height / max(1, dimensions.width)))
-            sprite.position = CGPoint(x: 0, y: 47 * scale)
-            sprite.zPosition = 2
-            sprite.alpha = unlocked ? 1 : 0.5
-            overlay.addChild(sprite)
-        } else {
-            diorama.position = CGPoint(x: 0, y: 47 * scale)
-            diorama.setScale(1.27 * scale)
-            diorama.zPosition = 2
-            overlay.addChild(diorama)
-        }
-
-        // A visible exploration index is distinct from Home's compact dots.
-        overlayText("‹     WORLD \(worldMapIndex + 1) OF \(WorldCatalog.worlds.count)     ›",
-                    y: -100 * scale, fontSize: 13 * scale)
-        overlayText(unlocked ? world.title.uppercased() : "UNKNOWN WORLD",
-                    y: -134 * scale, fontSize: 23 * scale)
-        overlayText(unlocked
-            ? "\(String(repeating: "★", count: WorldCatalog.stars(worldMapIndex)))\(String(repeating: "☆", count: 3 - WorldCatalog.stars(worldMapIndex)))   ·   BEST ROOM \(WorldCatalog.bestRoom(worldMapIndex))/20"
-            : (playable ? "LOCKED  ·  EARN 1 STAR IN THE PREVIOUS WORLD" : "UNEXPLORED  ·  FUTURE WORLD"),
-            y: -158 * scale, fontSize: 10 * scale)
-        if let saved = recovery.load() {
-            actionButton("RESUME RUN", key: "recover_run", y: -202 * scale,
-                         tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1))
-            overlayText("WORLD \(saved.worldIndex + 1) · FLOOR \(saved.room) · PROGRESS SAVED",
-                        y: -175 * scale, fontSize: 9 * scale)
-        } else {
-            actionButton(unlocked ? "DEPLOY TO WORLD" : "WORLD LOCKED",
-                         key: "start", y: -202 * scale,
-                         tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1),
-                         enabled: unlocked)
-        }
-        overlayText("SWIPE TO CHANGE WORLD", y: -246 * scale, fontSize: 10 * scale)
-        updateHUD()
+        showReady()
     }
 
     private func bankSalvage(_ amount: Int) {
@@ -9253,7 +9176,7 @@ final class OutpostScene: SKScene {
         case (.interrupted, "resume_run"): resumeInterruptedRun()
         case (.ready, "recover_run"), (.worldSelect, "recover_run"):
             recoverSavedRun()
-        case (.ready, "worlds"): showWorldSelector()
+        case (.ready, "worlds"): showReady()
         case (.worldSelect, "home"): showReady()
         case (.ready, "gear_bay"): showGearBay()
         case (.ready, "ability_lab"): showAbilityLab()
@@ -9293,10 +9216,10 @@ final class OutpostScene: SKScene {
             _ = enterSelectedWorld()
         case (.ready, "world_prev"), (.worldSelect, "world_prev"):
             worldMapIndex = max(0, worldMapIndex - 1)
-            showWorldSelector()
+            showReady()
         case (.ready, "world_next"), (.worldSelect, "world_next"):
             worldMapIndex = min(WorldCatalog.worlds.count - 1, worldMapIndex + 1)
-            showWorldSelector()
+            showReady()
         case (.ready, "restore"), (.worldComplete, "restore"): showRestoration()
         case (.restoration, "back"):
             if restorationReturnPhase == .worldComplete { showWorldCompleteSummary() }
