@@ -3545,7 +3545,7 @@ final class OutpostScene: SKScene {
         // Progress toward the next rarity milestone. This is purely visual;
         // purchase costs, rank caps, and upgrade behavior are unchanged.
         let progressWidth = width - (compact ? 20 : 114)
-        let progressY: CGFloat = compact ? -68 : -27
+        let progressY: CGFloat = compact ? -64 : -22
         let progressX: CGFloat = compact ? 0 : 49
         let progressTrack = SKShapeNode(rectOf:CGSize(width:progressWidth,height:3),cornerRadius:1.5)
         progressTrack.position = CGPoint(x:progressX,y:progressY)
@@ -3621,10 +3621,10 @@ final class OutpostScene: SKScene {
             default: current = "+\(rank) orbital damage"; next = "+\(rank+1) orbital damage"
             }
         }
-        text(current, y: compact ? -48 : -4, size: 10)
+        text("NOW  " + current, y: compact ? -48 : -4, size: 10)
         // Make the actual benefit of the next purchase explicit, rather than
         // requiring players to compare two unlabeled stat strings.
-        text(maximum ? "MAXIMUM LEVEL" : next, y: compact ? -62 : -20, size: 9,
+        text(maximum ? "MAXIMUM LEVEL" : "NEXT  " + next.replacingOccurrences(of: "Next: ", with: ""), y: compact ? -62 : -20, size: 9,
              color: SKColor(white: 0.77, alpha: 1))
         let buttonY: CGFloat = compact ? -85 : -43
         let buttonWidth = compact ? width-12 : textWidth
