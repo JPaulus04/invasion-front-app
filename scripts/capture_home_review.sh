@@ -43,10 +43,17 @@ for CANDIDATE in $DEVICE_CANDIDATES; do
     echo "::warning::Simulator $CANDIDATE reported ready but is $STATE"
   fi
   echo "::warning::Simulator $CANDIDATE failed boot readiness; trying alternate device"
-  run_bounded 10 xcrun simctl shutdown "$CANDIDATE" || true
+  # Avoid shutting down a stuck simulator between attempts: CoreSimulator
+  # shutdown itself repeatedly hangs and may block the shared service.
+  xcrun simctl list devices | grep -F "$CANDIDATE" || true
 done
 if [ -z "$DEVICE" ]; then
-  echo "::error::No available iPhone simulator reached boot readiness"
+  echo "::group::CoreSimulator failure diagnostics"
+  xcrun simctl list runtimes || true
+  xcrun simctl list devices available || true
+  ps -axo pid,stat,etime,command | grep -E "[C]oreSimulator|[S]imLaunch|[s]imctl|[S]imulator.app" | head -60 || true
+  echo "::endgroup::"
+  echo "::error::No available iPhone simulator reached boot readiness; CoreSimulator host failure, not an app compilation error"
   exit 1
 fi
 echo "Simulator ready: $DEVICE"
