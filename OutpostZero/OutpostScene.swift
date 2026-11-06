@@ -2798,6 +2798,55 @@ final class OutpostScene: SKScene {
             : (playable ? "LOCKED  ·  EARN 1 STAR IN PREVIOUS WORLD" : "UNKNOWN  ·  EXPLORE LATER"),
             y: 162 * scale, fontSize: 11 * scale)
 
+        // Atmospheric world stage: distant fractured platforms and a broad
+        // luminous horizon frame the island without competing with its artwork.
+        // All stage elements sit behind the interactive world diorama.
+        let horizon = SKShapeNode(ellipseOf: CGSize(width: min(size.width * 1.28, 530) * scale,
+                                                     height: 220 * scale))
+        horizon.name = "homeWorldHorizon"
+        horizon.position = CGPoint(x: 0, y: 12 * scale)
+        horizon.fillColor = SKColor(red: 0.29, green: 0.63, blue: 0.64, alpha: 0.18)
+        horizon.strokeColor = SKColor(red: 0.71, green: 0.95, blue: 0.87, alpha: 0.12)
+        horizon.lineWidth = 2
+        horizon.zPosition = 0.2
+        overlay.addChild(horizon)
+        for side in [-1, 1] {
+            let direction = CGFloat(side)
+            let distant = SKShapeNode(path: {
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: -46, y: 0))
+                path.addLine(to: CGPoint(x: -28, y: 25))
+                path.addLine(to: CGPoint(x: 12, y: 34))
+                path.addLine(to: CGPoint(x: 49, y: 12))
+                path.addLine(to: CGPoint(x: 30, y: -12))
+                path.addLine(to: CGPoint(x: -18, y: -18))
+                path.closeSubpath()
+                return path
+            }())
+            distant.name = "homeDistantFloatingTerrain"
+            distant.position = CGPoint(x: direction * min(size.width * 0.43, 176),
+                                       y: -42 * scale)
+            distant.setScale(0.9 * scale)
+            distant.fillColor = SKColor(red: 0.13, green: 0.35, blue: 0.41, alpha: 0.48)
+            distant.strokeColor = SKColor(red: 0.46, green: 0.74, blue: 0.73, alpha: 0.28)
+            distant.lineWidth = 1.5
+            distant.zPosition = 0.35
+            overlay.addChild(distant)
+            let beacon = SKShapeNode(circleOfRadius: 4 * scale)
+            beacon.name = "homeDistantBeacon"
+            beacon.position = CGPoint(x: direction * min(size.width * 0.40, 163),
+                                      y: 3 * scale)
+            beacon.fillColor = SKColor(red: 0.94, green: 0.78, blue: 0.39, alpha: 0.75)
+            beacon.strokeColor = .clear
+            beacon.zPosition = 0.5
+            overlay.addChild(beacon)
+            if !UIAccessibility.isReduceMotionEnabled {
+                beacon.run(.repeatForever(.sequence([
+                    .fadeAlpha(to: 0.25, duration: 1.7),
+                    .fadeAlpha(to: 0.85, duration: 1.7)
+                ])), withKey: "homeBeaconPulse")
+            }
+        }
         // Give the physical island the majority of the hero region instead
         // of rendering it as a small illustration between UI labels.
         let stageWidth = min(size.width - 18, 390)
