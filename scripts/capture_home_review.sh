@@ -34,8 +34,13 @@ for CANDIDATE in $DEVICE_CANDIDATES; do
   run_bounded 25 xcrun simctl boot "$CANDIDATE" || true
   # Data migration often needs more than 90 seconds on a cold VM.
   if run_bounded 135 xcrun simctl bootstatus "$CANDIDATE" -b; then
-    DEVICE="$CANDIDATE"
-    break
+    # A successful bootstatus does not guarantee the device is still booted.
+    STATE="$(xcrun simctl list devices -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; u=sys.argv[1]; print(next((v.get("state","") for vs in d.values() for v in vs if v.get("udid")==u), "missing"))' "$CANDIDATE")"
+    if [ "$STATE" = "Booted" ]; then
+      DEVICE="$CANDIDATE"
+      break
+    fi
+    echo "::warning::Simulator $CANDIDATE reported ready but is $STATE"
   fi
   echo "::warning::Simulator $CANDIDATE failed boot readiness; trying alternate device"
   run_bounded 10 xcrun simctl shutdown "$CANDIDATE" || true
