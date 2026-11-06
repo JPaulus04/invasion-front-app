@@ -26,12 +26,13 @@ jobs:
         run: |
           set -o pipefail
           python3 scripts/check_project.py 2>&1 | tee diagnostics/source-check.log
-      - name: Reset simulator service before compiling
+      - name: Inspect simulator runtime before compiling
         timeout-minutes: 5
         run: |
-          # Avoid simultaneous background boots during Xcode's first-use setup.
-          xcodebuild -runFirstLaunch || true
-          xcrun simctl shutdown all || true
+          # Do not restart CoreSimulator on a freshly provisioned runner.
+          # The previous workflow called shutdown all before first boot,
+          # which can race with runtime initialization and migrations.
+          xcrun simctl list runtimes
           xcrun simctl list devices available
       # Artwork uploaded: verify all 12 production menu sprites before capture.
       - name: Audit production menu sprite assets
