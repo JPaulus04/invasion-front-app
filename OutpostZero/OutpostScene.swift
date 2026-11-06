@@ -3350,10 +3350,10 @@ final class OutpostScene: SKScene {
         // without obscuring the character's face.
         // Keep identity above the illustrated hero and pedestal; the default
         // overlayText z-order previously let the hero hide the name.
-        overlayText(roster[index], y: -30 * scale, fontSize: 24 * scale,
+        overlayText(roster[index], y: -49 * scale, fontSize: 24 * scale,
                     name: "commanderName")
         overlay.childNode(withName: "commanderName")?.zPosition = 6
-        overlayText(roles[index], y: -57 * scale, fontSize: 12 * scale,
+        overlayText(roles[index], y: -74 * scale, fontSize: 12 * scale,
                     name: "commanderRole")
         overlay.childNode(withName: "commanderRole")?.zPosition = 6
         let status = index == selected ? "EQUIPPED" : (unlocked ? "AVAILABLE" : "LOCKED")
@@ -3371,7 +3371,7 @@ final class OutpostScene: SKScene {
                                    cornerRadius: 10 * scale)
             tile.name = "commanderProfile_\(slot)"
             tile.position = CGPoint(x: (CGFloat(slot) - 1.5) * cardStep,
-                                    y: -100 * scale)
+                                    y: -119 * scale)
             tile.fillColor = focused
                 ? SKColor(red: 0.13, green: 0.25, blue: 0.35, alpha: 0.98)
                 : SKColor(red: 0.045, green: 0.10, blue: 0.18, alpha: 0.94)
@@ -3454,7 +3454,7 @@ final class OutpostScene: SKScene {
         let bonusPanel = SKShapeNode(rectOf: CGSize(width: 282 * scale,
                                                      height: 57 * scale),
                                      cornerRadius: 12 * scale)
-        bonusPanel.position = CGPoint(x: 0, y: -160 * scale)
+        bonusPanel.position = CGPoint(x: 0, y: -180 * scale)
         bonusPanel.fillColor = SKColor(red: 0.045, green: 0.11, blue: 0.20, alpha: 0.94)
         bonusPanel.strokeColor = SKColor(red: 0.27, green: 0.74, blue: 0.95, alpha: 0.85)
         bonusPanel.lineWidth = 1.6 * scale
@@ -3478,15 +3478,15 @@ final class OutpostScene: SKScene {
         bonusPanel.addChild(bonusValue)
         if unlocked {
             actionButton(index == selected ? "ACTIVE COMMANDER" : "SET ACTIVE COMMANDER",
-                         key: "activate_commander", y: -207 * scale,
+                         key: "activate_commander", y: -227 * scale,
                          tint: index == selected ? .systemGreen : .systemCyan,
                          enabled: index != selected)
         } else {
             overlayText("EARN A STAR IN WORLD \(index) TO UNLOCK",
-                        y: -207 * scale, fontSize: 12 * scale)
+                        y: -227 * scale, fontSize: 12 * scale)
         }
         overlayText("\(index + 1) / 4   ·   SWIPE LEFT OR RIGHT",
-                    y: -250 * scale, fontSize: 10 * scale)
+                    y: -269 * scale, fontSize: 10 * scale)
         updateHUD()
     }
 
