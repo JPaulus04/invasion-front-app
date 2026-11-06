@@ -3590,6 +3590,8 @@ final class OutpostScene: SKScene {
             }
         }
         text(current, y: compact ? -48 : -4, size: 10)
+        // Make the actual benefit of the next purchase explicit, rather than
+        // requiring players to compare two unlabeled stat strings.
         text(maximum ? "MAXIMUM LEVEL" : next, y: compact ? -62 : -20, size: 9,
              color: SKColor(white: 0.77, alpha: 1))
         let buttonY: CGFloat = compact ? -85 : -43
@@ -3602,7 +3604,9 @@ final class OutpostScene: SKScene {
         button.strokeColor = .clear
         root.addChild(button)
         let cost = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        cost.text = maximum ? "MAXED" : "\(affordable ? "UPGRADE" : "NEED")  \(permanent.cost(id))"
+        cost.text = maximum ? "MAXED" :
+            (affordable ? "UPGRADE · \(permanent.cost(id)) SALVAGE" :
+                "NEED \(permanent.cost(id) - permanent.salvage) MORE SALVAGE")
         cost.fontSize = 10
         cost.fontColor = affordable ? SKColor(red:0.07,green:0.15,blue:0.20,alpha:1) : .lightGray
         cost.verticalAlignmentMode = .center
@@ -3625,7 +3629,7 @@ final class OutpostScene: SKScene {
                 center: CGPoint(x: 0, y: CGFloat(123-index*126)),
                 width: min(size.width-28, 350), height: 116, compact: false)
         }
-        overlayText("PERMANENT EQUIPMENT · KEPT AFTER EVERY RUN", y: -230, fontSize: 9)
+        overlayText("UPGRADES ARE PERMANENT · SURVIVE EVERY RUN", y: -230, fontSize: 9)
         updateHUD()
     }
 
