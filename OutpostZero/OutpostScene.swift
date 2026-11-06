@@ -9323,7 +9323,7 @@ final class OutpostScene: SKScene {
         case (.interrupted, "resume_run"): resumeInterruptedRun()
         case (.ready, "recover_run"), (.worldSelect, "recover_run"):
             recoverSavedRun()
-        case (.ready, "worlds"): showReady()
+        case (.ready, "worlds"): showWorldSelector()
         case (.worldSelect, "home"): showReady()
         case (.ready, "gear_bay"): showGearBay()
         case (.ready, "ability_lab"): showAbilityLab()
