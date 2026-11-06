@@ -316,15 +316,19 @@ extension WorldShowcase {
                              texture: (String) -> SKTexture?) -> SKNode {
         let root = SKNode()
         root.name = "frontierRoomComposition"
-        let variant = (max(1,room)-1) % 4
+        let variant = (max(1,room)-1) % 8
         let center = CGPoint(x:bounds.midX,y:bounds.midY)
-        // Four architectural footprints: broken plaza, offset courtyard,
-        // crescent sanctuary and paired platforms. Distinct negative space.
+        // Eight architectural footprints, with asymmetric prop placement and
+        // distinct ground treatments across a complete World 1 run.
         let anchors: [[CGPoint]] = [
             [CGPoint(x:0.10,y:0.28),CGPoint(x:0.87,y:0.70)],
             [CGPoint(x:0.12,y:0.65),CGPoint(x:0.86,y:0.25)],
             [CGPoint(x:0.10,y:0.48),CGPoint(x:0.89,y:0.50)],
-            [CGPoint(x:0.12,y:0.78),CGPoint(x:0.86,y:0.73)]]
+            [CGPoint(x:0.12,y:0.78),CGPoint(x:0.86,y:0.73)],
+            [CGPoint(x:0.14,y:0.23),CGPoint(x:0.83,y:0.82)],
+            [CGPoint(x:0.11,y:0.81),CGPoint(x:0.85,y:0.39)],
+            [CGPoint(x:0.16,y:0.46),CGPoint(x:0.81,y:0.77)],
+            [CGPoint(x:0.11,y:0.31),CGPoint(x:0.88,y:0.56)]]
         let paving = SKNode()
         paving.zPosition = -1
         root.addChild(paving)
@@ -335,9 +339,13 @@ extension WorldShowcase {
             for column in 0..<5 {
                 if (row*7+column*3+variant)%5 == 0 { continue }
                 let x = center.x + CGFloat(column-2)*32 + CGFloat(row%2)*12
+                    + (variant >= 4 ? CGFloat((row+variant)%3-1)*15 : 0)
                 let y = bounds.minY + bounds.height*0.27 + CGFloat(row)*28
-                if variant == 1 && column > 2 { continue }
-                if variant == 2 && row < 3 && column == 2 { continue }
+                    + (variant >= 4 ? CGFloat((column+variant)%3-1)*8 : 0)
+                if (variant == 1 || variant == 5) && column > 2 { continue }
+                if (variant == 2 || variant == 6) && row < 3 && column == 2 { continue }
+                if variant == 4 && row > 3 && column < 2 { continue }
+                if variant == 7 && row < 4 && column > 2 { continue }
                 let tile = polygon([CGPoint(x:-14,y:-8),CGPoint(x:10,y:-10),
                     CGPoint(x:15,y:7),CGPoint(x:-9,y:11)],color:stone)
                 tile.position = CGPoint(x:x,y:y)
@@ -385,7 +393,8 @@ extension WorldShowcase {
         let bend: CGFloat = variant.isMultiple(of: 2) ? 1 : -1
         for step in 0..<7 {
             let progress = CGFloat(step) / 6
-            let x = center.x + bend * sin(progress * .pi) * bounds.width * 0.15
+            let x = center.x + bend * sin(progress * .pi) * bounds.width
+                * (variant >= 4 ? 0.24 : 0.15)
             let y = bounds.minY + bounds.height * (0.19 + progress * 0.57)
             let halfWidth: CGFloat = 12 + (1-progress) * 8
             let fragment = polygon([
@@ -401,7 +410,9 @@ extension WorldShowcase {
         for side in [-1, 1] {
             let sign = CGFloat(side)
             let x = center.x + sign * bounds.width * 0.39
-            let y = bounds.minY + bounds.height * (variant == 2 ? 0.52 : 0.39)
+            let y = bounds.minY + bounds.height *
+                (variant == 2 || variant == 6 ? 0.52 :
+                 (variant == 5 || variant == 7 ? 0.63 : 0.39))
             let shadow = SKShapeNode(ellipseOf:CGSize(width:bounds.width*0.18,height:24))
             shadow.position = CGPoint(x:x,y:y-9)
             shadow.fillColor = SKColor.black.withAlphaComponent(0.18)
