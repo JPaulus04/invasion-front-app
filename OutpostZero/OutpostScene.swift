@@ -3518,7 +3518,7 @@ final class OutpostScene: SKScene {
         root.zPosition = 3
         overlay.addChild(root)
         let glow = SKSpriteNode(texture: ProductionPresentation.glow(tint.withAlphaComponent(0.28)))
-        glow.size = CGSize(width: width, height: height)
+        glow.size = CGSize(width: width + (compact ? 8 : 24), height: height + (compact ? 8 : 14))
         glow.zPosition = -0.5
         root.addChild(glow)
         // Build 331: each upgrade is a complete equipment tile, not floating
@@ -3586,11 +3586,11 @@ final class OutpostScene: SKScene {
         }
         let iconID = id == "weapon" ? "rate" : id == "reactor" ? "reactor" : id
         let art = SKSpriteNode(texture: ProductionPresentation.abilityArtwork(iconID, tint: tint))
-        art.size = CGSize(width: compact ? 70 : 94, height: compact ? 70 : 94)
-        art.position = compact ? CGPoint(x: 0, y: 46) : CGPoint(x: -width/2 + 47, y: 4)
+        art.size = CGSize(width: compact ? 76 : 104, height: compact ? 76 : 104)
+        art.position = compact ? CGPoint(x: 0, y: 46) : CGPoint(x: -width/2 + 52, y: 4)
         root.addChild(art)
         // A dedicated icon socket gives each module a stronger silhouette.
-        let socket = SKShapeNode(circleOfRadius: compact ? 36 : 44)
+        let socket = SKShapeNode(circleOfRadius: compact ? 38 : 48)
         socket.position = art.position
         socket.fillColor = tint.withAlphaComponent(0.12)
         socket.strokeColor = tint.withAlphaComponent(0.48)
@@ -3599,7 +3599,7 @@ final class OutpostScene: SKScene {
         root.addChild(socket)
         // A second, offset ring and four corner bolts make each upgrade read
         // as a mounted piece of equipment instead of a flat icon card.
-        let socketRing = SKShapeNode(circleOfRadius: compact ? 43 : 51)
+        let socketRing = SKShapeNode(circleOfRadius: compact ? 44 : 54)
         socketRing.position = art.position
         socketRing.fillColor = .clear
         socketRing.strokeColor = tint.withAlphaComponent(0.20)
@@ -3616,8 +3616,8 @@ final class OutpostScene: SKScene {
                 root.addChild(bolt)
             }
         }
-        let left = compact ? -width/2 + 8 : -width/2 + 100
-        let textWidth = compact ? width-16 : width-112
+        let left = compact ? -width/2 + 8 : -width/2 + 112
+        let textWidth = compact ? width-16 : width-130
         func text(_ value: String, y: CGFloat, size: CGFloat, color: SKColor = .white) {
             let label = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
             label.text = value
