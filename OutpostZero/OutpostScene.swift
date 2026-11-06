@@ -3573,6 +3573,25 @@ final class OutpostScene: SKScene {
         socket.lineWidth = 1.2
         socket.zPosition = art.zPosition - 0.1
         root.addChild(socket)
+        // A second, offset ring and four corner bolts make each upgrade read
+        // as a mounted piece of equipment instead of a flat icon card.
+        let socketRing = SKShapeNode(circleOfRadius: compact ? 43 : 51)
+        socketRing.position = art.position
+        socketRing.fillColor = .clear
+        socketRing.strokeColor = tint.withAlphaComponent(0.20)
+        socketRing.lineWidth = 2
+        socketRing.zPosition = art.zPosition - 0.2
+        root.addChild(socketRing)
+        for sideX in [-1.0, 1.0] {
+            for sideY in [-1.0, 1.0] {
+                let bolt = SKShapeNode(circleOfRadius: compact ? 2.2 : 2.8)
+                bolt.position = CGPoint(x: CGFloat(sideX) * (width / 2 - 11),
+                                        y: CGFloat(sideY) * (height / 2 - 13))
+                bolt.fillColor = tint.withAlphaComponent(0.65)
+                bolt.strokeColor = .clear
+                root.addChild(bolt)
+            }
+        }
         let left = compact ? -width/2 + 8 : -width/2 + 100
         let textWidth = compact ? width-16 : width-112
         func text(_ value: String, y: CGFloat, size: CGFloat, color: SKColor = .white) {
