@@ -2865,7 +2865,6 @@ final class OutpostScene: SKScene {
                          enabled: unlocked)
         }
         // Explain the interaction explicitly rather than relying on dots.
-        overlayText("SWIPE ISLAND TO EXPLORE", y: -214 * scale, fontSize: 9 * scale)
         // A restrained world index rail makes swipe navigation discoverable
         // without bringing back oversized left/right navigation buttons.
         let rail = SKShapeNode(rectOf: CGSize(width: 174 * scale, height: 24 * scale),
@@ -2877,7 +2876,7 @@ final class OutpostScene: SKScene {
         rail.zPosition = 3
         overlay.addChild(rail)
         let railLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
-        railLabel.text = "‹   WORLD \(worldMapIndex + 1) / \(WorldCatalog.worlds.count)   ›"
+        railLabel.text = "‹   SWIPE  ·  \(worldMapIndex + 1) / \(WorldCatalog.worlds.count)   ›"
         railLabel.fontSize = 11 * scale
         railLabel.fontColor = .white.withAlphaComponent(0.94)
         railLabel.verticalAlignmentMode = .center
