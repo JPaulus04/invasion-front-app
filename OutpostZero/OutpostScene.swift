@@ -3544,21 +3544,45 @@ final class OutpostScene: SKScene {
         root.addChild(headerBand)
         // Progress toward the next rarity milestone. This is purely visual;
         // purchase costs, rank caps, and upgrade behavior are unchanged.
-        let progressWidth = width - (compact ? 20 : 114)
-        let progressY: CGFloat = compact ? -64 : -22
-        let progressX: CGFloat = compact ? 0 : 49
-        let progressTrack = SKShapeNode(rectOf:CGSize(width:progressWidth,height:3),cornerRadius:1.5)
-        progressTrack.position = CGPoint(x:progressX,y:progressY)
-        progressTrack.fillColor = SKColor(white:0.28,alpha:0.9)
-        progressTrack.strokeColor = .clear
-        root.addChild(progressTrack)
+        // Gear cards use a vertical rank rail so progress never crosses
+        // the benefit text or purchase button. Compact mastery cards keep
+        // a short horizontal indicator above their purchase action.
         let progress = maximum ? CGFloat(1) : CGFloat(rank % 3) / 3
-        if rank > 0 && progress > 0 {
-            let fill = SKShapeNode(rectOf:CGSize(width:progressWidth*progress,height:3),cornerRadius:1.5)
-            fill.position = CGPoint(x:progressX-progressWidth*(1-progress)/2,y:progressY)
-            fill.fillColor = tint
-            fill.strokeColor = .clear
-            root.addChild(fill)
+        if compact {
+            let railWidth = width - 30
+            let railY: CGFloat = -70
+            let track = SKShapeNode(rectOf: CGSize(width: railWidth, height: 2),
+                                    cornerRadius: 1)
+            track.position = CGPoint(x: 0, y: railY)
+            track.fillColor = SKColor(white: 0.32, alpha: 0.85)
+            track.strokeColor = .clear
+            root.addChild(track)
+            if progress > 0 {
+                let fill = SKShapeNode(rectOf: CGSize(width: railWidth * progress, height: 2),
+                                       cornerRadius: 1)
+                fill.position = CGPoint(x: -railWidth * (1 - progress) / 2, y: railY)
+                fill.fillColor = tint
+                fill.strokeColor = .clear
+                root.addChild(fill)
+            }
+        } else {
+            let railX = width / 2 - 12
+            let railHeight: CGFloat = 66
+            let track = SKShapeNode(rectOf: CGSize(width: 4, height: railHeight),
+                                    cornerRadius: 2)
+            track.position = CGPoint(x: railX, y: 1)
+            track.fillColor = SKColor(white: 0.30, alpha: 0.85)
+            track.strokeColor = .clear
+            root.addChild(track)
+            if progress > 0 {
+                let fillHeight = railHeight * progress
+                let fill = SKShapeNode(rectOf: CGSize(width: 4, height: fillHeight),
+                                       cornerRadius: 2)
+                fill.position = CGPoint(x: railX, y: 1 - (railHeight - fillHeight) / 2)
+                fill.fillColor = tint
+                fill.strokeColor = .clear
+                root.addChild(fill)
+            }
         }
         let iconID = id == "weapon" ? "rate" : id == "reactor" ? "reactor" : id
         let art = SKSpriteNode(texture: ProductionPresentation.abilityArtwork(iconID, tint: tint))
