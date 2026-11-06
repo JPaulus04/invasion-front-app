@@ -3273,13 +3273,13 @@ final class OutpostScene: SKScene {
         let glow = SKSpriteNode(texture: ProductionPresentation.glow(
             SKColor(red: 0.32, green: 0.76, blue: 0.96, alpha: 0.38)))
         glow.size = CGSize(width: 270, height: 260)
-        glow.position = CGPoint(x: 0, y: 86 * scale)
+        glow.position = CGPoint(x: 0, y: 110 * scale)
         glow.zPosition = 2
         overlay.addChild(glow)
         // A dimensional hangar display platform replaces the floating
         // character-on-background presentation. Keep it behind the hero and
         // clear of the roster tiles and Commander labels.
-        let platformY: CGFloat = -12 * scale
+        let platformY: CGFloat = 12 * scale
         let platformShadow = SKShapeNode(ellipseOf: CGSize(width: 216 * scale,
                                                             height: 39 * scale))
         platformShadow.position = CGPoint(x: 0, y: platformY - 14 * scale)
@@ -3333,7 +3333,7 @@ final class OutpostScene: SKScene {
         let heroWidth = min(205 * scale,
                             heroHeight * heroAspect.width / max(1, heroAspect.height))
         hero.size = CGSize(width: heroWidth, height: heroHeight)
-        hero.position = CGPoint(x: 0, y: 91 * scale)
+        hero.position = CGPoint(x: 0, y: 115 * scale)
         hero.zPosition = 4
         let tints: [SKColor] = [.white, .systemTeal, .systemOrange, .systemPurple]
         hero.color = unlocked ? .white : .darkGray
