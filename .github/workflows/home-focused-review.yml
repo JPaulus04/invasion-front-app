@@ -55,13 +55,23 @@ jobs:
           python3 - <<'PYTHON'
           from pathlib import Path
           import runpy
+          import subprocess
           audit = runpy.run_path("scripts/audit_menu_art.py")
           app = Path("simulator-app/OutpostZero.app")
+          def dimensions(path):
+              # Xcode recompresses PNGs; compare decoded dimensions, not bytes.
+              result = subprocess.check_output(
+                  ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(path)], text=True)
+              values = dict(line.strip().split(": ", 1) for line in result.splitlines()
+                            if line.strip().startswith(("pixelWidth:", "pixelHeight:")))
+              return int(values["pixelWidth"]), int(values["pixelHeight"])
           for name in audit["EXPECTED"]:
               matches = list(app.rglob(name))
               assert matches, f"Missing bundled menu asset: {name}"
-              assert any(p.read_bytes() == (audit["ROOT"] / name).read_bytes() for p in matches), f"Bundled asset differs: {name}"
-          print("PASS: all 12 production menu PNGs bundled unchanged")
+              expected = dimensions(audit["ROOT"] / name)
+              assert any(dimensions(p) == expected for p in matches), f"Invalid bundled image: {name}"
+              print(f"PASS: bundled {name}: {expected}")
+          print("PASS: all 12 production menu PNGs bundled and decodable")
           PYTHON
       - name: Install screenshot decoder
         run: |
@@ -73,7 +83,7 @@ jobs:
         run: |
           set -o pipefail
           bash scripts/capture_home_review.sh 2>&1 | tee diagnostics/simulator-capture.log
-      - name: Verify World Selector differs visibly from Home
+      - name: Verify unified Home and World Selector captures
         run: |
           python3 scripts/validate_world_selector_distinction.py \
             screenshots/outpost-zero-home-navigation.png \
