@@ -2827,6 +2827,16 @@ final class OutpostScene: SKScene {
             islandSprite.zPosition = 2
             islandSprite.alpha = unlocked ? 1 : 0.5
             overlay.addChild(islandSprite)
+            // A restrained breathing motion gives the authored 3D island
+            // depth without replacing its production artwork.
+            if !UIAccessibility.isReduceMotionEnabled {
+                let rise = SKAction.moveBy(x: 0, y: 7 * scale, duration: 2.7)
+                rise.timingMode = .easeInEaseOut
+                let fall = rise.reversed()
+                fall.timingMode = .easeInEaseOut
+                islandSprite.run(.repeatForever(.sequence([rise, fall])),
+                                 withKey: "homeIslandFloat")
+            }
         } else {
             diorama.position.y = 4 * scale
             diorama.setScale(1.18 * scale)
@@ -2854,6 +2864,8 @@ final class OutpostScene: SKScene {
                          tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1),
                          enabled: unlocked)
         }
+        // Explain the interaction explicitly rather than relying on dots.
+        overlayText("SWIPE ISLAND TO EXPLORE", y: -214 * scale, fontSize: 9 * scale)
         // A restrained world index rail makes swipe navigation discoverable
         // without bringing back oversized left/right navigation buttons.
         let rail = SKShapeNode(rectOf: CGSize(width: 174 * scale, height: 24 * scale),
