@@ -2875,11 +2875,85 @@ final class OutpostScene: SKScene {
     }
 
     private func showWorldSelector() {
-        showReady(selector: true)
+        // The explorer is a destination, not the Home layout with new copy.
+        // Preserve the persistent dock and the existing world swipe/deploy keys.
+        discardRunArmed = false
+        hud.isHidden = true
+        pilot.isHidden = true
         phase = .worldSelect
+        ArcadeMusic.shared.play(.headquarters)
+        clearOverlay()
+        overlayBackdrop.isHidden = true
+        let scale = min(1, size.height / 780)
+        installHubShell(active: "nav_home", scale: scale)
+        let playable = worldMapIndex < WorldCatalog.playableCount
+        let unlocked = playable && WorldCatalog.unlocked(worldMapIndex)
+        let world = selectedWorld
+
         let selectorMarker = SKNode()
         selectorMarker.name = "worldSelectorPresentation"
         overlay.addChild(selectorMarker)
+        overlayText("WORLD EXPLORER", y: 275 * scale, fontSize: 25 * scale)
+        overlayText("SWIPE LEFT OR RIGHT TO EXPLORE", y: 247 * scale, fontSize: 10 * scale)
+        let headingLine = SKShapeNode(rectOf: CGSize(width: min(size.width - 72, 310),
+                                                       height: 1))
+        headingLine.fillColor = .white.withAlphaComponent(0.22)
+        headingLine.strokeColor = .clear
+        headingLine.position.y = 228 * scale
+        overlay.addChild(headingLine)
+
+        // Large floating island, with a separate world identity and mission
+        // information below it instead of the Home screen's stacked headings.
+        let islandAssets: [Int: String] = [
+            0: "world_forest_island", 3: "world_ice_island",
+            4: "world_lava_island", 8: "world_ice_island",
+            12: "world_void_island"
+        ]
+        let stageWidth = min(size.width - 12, 395)
+        let diorama = WorldShowcase.island(world: worldMapIndex, locked: !unlocked,
+            width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
+        diorama.name = "worldDiorama"
+        if let asset = islandAssets[worldMapIndex], let image = UIImage(named: asset) {
+            let texture = SKTexture(image: image)
+            texture.filteringMode = .linear
+            let sprite = SKSpriteNode(texture: texture)
+            sprite.name = "worldDiorama"
+            let dimensions = texture.size()
+            let width = min(size.width - 10, 390) * scale
+            sprite.size = CGSize(width: width,
+                height: min(315 * scale, width * dimensions.height / max(1, dimensions.width)))
+            sprite.position = CGPoint(x: 0, y: 47 * scale)
+            sprite.zPosition = 2
+            sprite.alpha = unlocked ? 1 : 0.5
+            overlay.addChild(sprite)
+        } else {
+            diorama.position = CGPoint(x: 0, y: 47 * scale)
+            diorama.setScale(1.27 * scale)
+            diorama.zPosition = 2
+            overlay.addChild(diorama)
+        }
+
+        // A visible exploration index is distinct from Home's compact dots.
+        overlayText("‹     WORLD \(worldMapIndex + 1) OF \(WorldCatalog.worlds.count)     ›",
+                    y: -100 * scale, fontSize: 13 * scale)
+        overlayText(unlocked ? world.title.uppercased() : "UNKNOWN WORLD",
+                    y: -134 * scale, fontSize: 23 * scale)
+        overlayText(unlocked
+            ? "\(String(repeating: "★", count: WorldCatalog.stars(worldMapIndex)))\(String(repeating: "☆", count: 3 - WorldCatalog.stars(worldMapIndex)))   ·   BEST ROOM \(WorldCatalog.bestRoom(worldMapIndex))/20"
+            : (playable ? "LOCKED  ·  EARN 1 STAR IN THE PREVIOUS WORLD" : "UNEXPLORED  ·  FUTURE WORLD"),
+            y: -158 * scale, fontSize: 10 * scale)
+        if let saved = recovery.load() {
+            actionButton("RESUME RUN", key: "recover_run", y: -202 * scale,
+                         tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1))
+            overlayText("WORLD \(saved.worldIndex + 1) · FLOOR \(saved.room) · PROGRESS SAVED",
+                        y: -175 * scale, fontSize: 9 * scale)
+        } else {
+            actionButton(unlocked ? "DEPLOY TO WORLD" : "WORLD LOCKED",
+                         key: "start", y: -202 * scale,
+                         tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1),
+                         enabled: unlocked)
+        }
+        overlayText("SWIPE TO CHANGE WORLD", y: -246 * scale, fontSize: 10 * scale)
         updateHUD()
     }
 
