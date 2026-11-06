@@ -45,6 +45,11 @@ jobs:
           echo "$RUNNER_TEMP/home-review-python/bin" >> "$GITHUB_PATH"
       - name: Capture Home, World Selector and all menu screens
         run: bash scripts/capture_home_review.sh
+      - name: Verify World Selector differs visibly from Home
+        run: |
+          python3 scripts/validate_world_selector_distinction.py \
+            screenshots/outpost-zero-home-navigation.png \
+            screenshots/outpost-zero-world-selector.png
       - name: Upload focused screenshots
         if: always()
         uses: actions/upload-artifact@v4
