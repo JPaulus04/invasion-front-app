@@ -3545,7 +3545,7 @@ final class OutpostScene: SKScene {
         // Progress toward the next rarity milestone. This is purely visual;
         // purchase costs, rank caps, and upgrade behavior are unchanged.
         let progressWidth = width - (compact ? 20 : 114)
-        let progressY: CGFloat = compact ? -70 : -33
+        let progressY: CGFloat = compact ? -68 : -27
         let progressX: CGFloat = compact ? 0 : 49
         let progressTrack = SKShapeNode(rectOf:CGSize(width:progressWidth,height:3),cornerRadius:1.5)
         progressTrack.position = CGPoint(x:progressX,y:progressY)
