@@ -837,6 +837,7 @@ final class OutpostScene: SKScene {
             showWorldSelector()
             precondition(phase == .worldSelect &&
                          overlay.childNode(withName: "worldDiorama") != nil &&
+                         overlay.childNode(withName: "worldSelectorPresentation") != nil &&
                          overlayButtons["nav_home"] != nil,
                          "World map must render the swipeable diorama and home navigation")
         }
@@ -2760,7 +2761,7 @@ final class OutpostScene: SKScene {
     /// Distinct home screen: concise resources, one highlighted world and a
     /// single primary Play/Resume action. No marketing notifications or fake
     /// currencies copied from the visual navigation benchmark.
-    private func showReady() {
+    private func showReady(selector: Bool = false) {
         discardRunArmed = false
         hud.isHidden = true
         phase = .ready
@@ -2780,7 +2781,7 @@ final class OutpostScene: SKScene {
 
         // Build 331: hero-led home composition. The island owns the center
         // of the screen; all progress and currency information is secondary.
-        overlayText("OUTPOST ZERO", y: 271 * scale, fontSize: 25 * scale)
+        overlayText(selector ? "EXPLORE WORLDS" : "OUTPOST ZERO", y: 271 * scale, fontSize: selector ? 23 * scale : 25 * scale)
         let resourceWidth = min(size.width - 72, 300)
         let resourceTrack = SKShapeNode(rectOf:
             CGSize(width:resourceWidth,height:1))
@@ -2788,7 +2789,7 @@ final class OutpostScene: SKScene {
         resourceTrack.fillColor = SKColor(white:1,alpha:0.26)
         resourceTrack.strokeColor = .clear
         overlay.addChild(resourceTrack)
-        overlayText("\(permanent.salvage) SALVAGE    ·    \(availableCores) CORES",
+        overlayText(selector ? "SWIPE TO DISCOVER YOUR NEXT MISSION" : "\(permanent.salvage) SALVAGE    ·    \(availableCores) CORES",
                     y: 238 * scale, fontSize: 11 * scale)
         overlayText(unlocked ? world.title.uppercased() : "UNKNOWN WORLD",
                     y: 187 * scale, fontSize: 22 * scale)
@@ -2819,20 +2820,20 @@ final class OutpostScene: SKScene {
             let islandSprite = SKSpriteNode(texture: islandTexture)
             islandSprite.name = "worldDiorama"
             let dimensions = islandTexture.size()
-            let width = min(size.width - 20, 345) * scale
+            let width = min(size.width - 20, selector ? 375 : 345) * scale
             islandSprite.size = CGSize(width: width,
-                height: min(260 * scale, width * dimensions.height / max(1, dimensions.width)))
-            islandSprite.position = CGPoint(x: 0, y: 0)
+                height: min((selector ? 290 : 260) * scale, width * dimensions.height / max(1, dimensions.width)))
+            islandSprite.position = CGPoint(x: 0, y: selector ? 11 * scale : 0)
             islandSprite.zPosition = 2
             islandSprite.alpha = unlocked ? 1 : 0.5
             overlay.addChild(islandSprite)
         } else {
-            diorama.position.y = 4 * scale
-            diorama.setScale(1.18 * scale)
+            diorama.position.y = (selector ? 15 : 4) * scale
+            diorama.setScale((selector ? 1.26 : 1.18) * scale)
             diorama.zPosition = 2
             overlay.addChild(diorama)
         }
-        overlayText(unlocked ? world.region.uppercased() : "UNEXPLORED",
+        overlayText(selector ? (unlocked ? "MISSION REGION  ·  \(world.region.uppercased())" : "CLASSIFIED REGION") : (unlocked ? world.region.uppercased() : "UNEXPLORED"),
                     y: -119 * scale, fontSize: 11 * scale)
         for index in max(0, worldMapIndex - 2)...min(WorldCatalog.worlds.count - 1, worldMapIndex + 2) {
             let dot = SKShapeNode(circleOfRadius:index == worldMapIndex ? 4 : 2.5)
@@ -2848,7 +2849,7 @@ final class OutpostScene: SKScene {
             overlayText("WORLD \(saved.worldIndex + 1) · FLOOR \(saved.room) · PROGRESS SAVED",
                         y: -145 * scale, fontSize: 10 * scale)
         } else {
-            actionButton(unlocked ? "START RUN" : "WORLD LOCKED",
+            actionButton(unlocked ? (selector ? "DEPLOY TO WORLD" : "START RUN") : "WORLD LOCKED",
                          key: "start", y: -187 * scale,
                          tint: SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1),
                          enabled: unlocked)
@@ -2864,7 +2865,7 @@ final class OutpostScene: SKScene {
         rail.zPosition = 3
         overlay.addChild(rail)
         let railLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
-        railLabel.text = "‹   WORLD \(worldMapIndex + 1) / \(WorldCatalog.worlds.count)   ›"
+        railLabel.text = selector ? "‹    EXPLORE \(worldMapIndex + 1) OF \(WorldCatalog.worlds.count)    ›" : "‹   WORLD \(worldMapIndex + 1) / \(WorldCatalog.worlds.count)   ›"
         railLabel.fontSize = 11 * scale
         railLabel.fontColor = .white.withAlphaComponent(0.94)
         railLabel.verticalAlignmentMode = .center
@@ -2874,8 +2875,11 @@ final class OutpostScene: SKScene {
     }
 
     private func showWorldSelector() {
-        showReady()
+        showReady(selector: true)
         phase = .worldSelect
+        let selectorMarker = SKNode()
+        selectorMarker.name = "worldSelectorPresentation"
+        overlay.addChild(selectorMarker)
         updateHUD()
     }
 
