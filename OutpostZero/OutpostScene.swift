@@ -3497,8 +3497,21 @@ final class OutpostScene: SKScene {
         let rank = permanent.rank(id)
         let maximum = rank == PersistentProgression.maximumRank
         let affordable = !maximum && permanent.salvage >= permanent.cost(id)
-        let tint: SKColor = rank >= 9 ? .systemYellow : rank >= 6 ? .systemPurple :
-            rank >= 3 ? .systemCyan : SKColor(red: 0.68, green: 0.80, blue: 0.84, alpha: 1)
+        // Each equipment family has its own visual identity at every rank;
+        // rarity milestones brighten the frame without making every item identical.
+        let familyTint: SKColor
+        switch id {
+        case "weapon": familyTint = .systemOrange
+        case "armor": familyTint = .systemTeal
+        case "reactor": familyTint = .systemCyan
+        case "chain": familyTint = .systemCyan
+        case "explosive": familyTint = .systemOrange
+        case "incendiary": familyTint = .systemRed
+        case "orbit": familyTint = .systemPurple
+        default: familyTint = .systemCyan
+        }
+        let tint: SKColor = rank >= 9 ? .systemYellow :
+            (rank >= 6 ? .systemPurple : familyTint)
         let root = SKNode()
         root.name = "upgrade_\(id)"
         root.position = center
@@ -3649,7 +3662,7 @@ final class OutpostScene: SKScene {
                                 y: index < 2 ? 107 : -102),
                 width: width, height: 198, compact: true)
         }
-        overlayText("FIND SKILLS DURING RUNS TO ACTIVATE THESE BONUSES", y: -227, fontSize: 9)
+        overlayText("MASTERIES BOOST SKILLS YOU FIND DURING RUNS", y: -227, fontSize: 9)
         updateHUD()
     }
 
