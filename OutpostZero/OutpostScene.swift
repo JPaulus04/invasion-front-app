@@ -3348,19 +3348,15 @@ final class OutpostScene: SKScene {
         }
         // Unlock requirements below the portrait communicate the lock state
         // without obscuring the character's face.
-        overlayText(roster[index], y: -30 * scale, fontSize: 24 * scale)
-        overlayText(roles[index], y: -57 * scale, fontSize: 12 * scale)
-        // Clear status without putting a lock icon over the character art.
+        // Keep identity above the illustrated hero and pedestal; the default
+        // overlayText z-order previously let the hero hide the name.
+        overlayText(roster[index], y: -30 * scale, fontSize: 24 * scale,
+                    name: "commanderName")
+        overlay.childNode(withName: "commanderName")?.zPosition = 6
+        overlayText(roles[index], y: -57 * scale, fontSize: 12 * scale,
+                    name: "commanderRole")
+        overlay.childNode(withName: "commanderRole")?.zPosition = 6
         let status = index == selected ? "EQUIPPED" : (unlocked ? "AVAILABLE" : "LOCKED")
-        let statusLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        statusLabel.name = "commanderStatus"
-        statusLabel.text = status
-        statusLabel.fontSize = 10 * scale
-        statusLabel.fontColor = index == selected ? .systemGreen :
-            (unlocked ? .systemCyan : .systemOrange)
-        statusLabel.position = CGPoint(x: 0, y: -75 * scale)
-        statusLabel.zPosition = 5
-        overlay.addChild(statusLabel)
 
         // Portrait-first selection cards: four distinct Commander identities
         // remain visible together without hiding the main character artwork.
@@ -3465,7 +3461,7 @@ final class OutpostScene: SKScene {
         bonusPanel.zPosition = 3.5
         overlay.addChild(bonusPanel)
         let bonusHeading = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        bonusHeading.text = "COMMANDER BONUS"
+        bonusHeading.text = "COMMANDER BONUS  ·  \(status)"
         bonusHeading.fontSize = 10 * scale
         bonusHeading.fontColor = SKColor(red: 0.49, green: 0.87, blue: 1, alpha: 1)
         bonusHeading.position = CGPoint(x: 0, y: 8 * scale)
