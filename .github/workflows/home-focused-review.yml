@@ -157,6 +157,7 @@ jobs:
           test -x simulator-app/OutpostZero.app/OutpostZero
           echo "Screenshot source app: $OUTPOST_BUILD_SHA (build run $OUTPOST_BUILD_RUN_ID)" | tee diagnostics/build-provenance.log
           echo "Requested review commit: $GITHUB_SHA" | tee -a diagnostics/build-provenance.log
+          echo "Phase 3 visual acceptance: commander, armory, and mastery" | tee -a diagnostics/build-provenance.log
       - name: Install screenshot decoder
         run: |
           python3 -m venv "$RUNNER_TEMP/home-review-python"
