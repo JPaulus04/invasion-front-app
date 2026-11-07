@@ -101,6 +101,25 @@ struct CampaignPacingTests {
             from: CGPoint(x: 10, y: 140),
             to: CGPoint(x: 310, y: 140),
             pilot: stationaryPilot, radius: 20))
+        // Playtest outcomes must be based on measured run telemetry, not
+        // idealized progression. Both profiles require explicit results.
+        let stationaryLoss = CombatRules.PlaytestMetrics(
+            elapsedSeconds: 84, roomsCompleted: 3, enemiesDefeated: 19,
+            damageTaken: 100, movementDistance: 0, upgradesChosen: 2,
+            playerDefeated: true, worldCompleted: false)
+        precondition(stationaryLoss.hasValidOutcome)
+        precondition(stationaryLoss.meetsStationaryFailureGoal)
+        precondition(!stationaryLoss.meetsActiveCompletionGoal)
+        let activeWin = CombatRules.PlaytestMetrics(
+            elapsedSeconds: 720, roomsCompleted: 20, enemiesDefeated: 310,
+            damageTaken: 75, movementDistance: 2600, upgradesChosen: 12,
+            playerDefeated: false, worldCompleted: true)
+        precondition(activeWin.hasValidOutcome)
+        precondition(activeWin.meetsActiveCompletionGoal)
+        precondition(!activeWin.meetsStationaryFailureGoal)
+        let contradictory = CombatRules.PlaytestMetrics(
+            playerDefeated: true, worldCompleted: true)
+        precondition(!contradictory.hasValidOutcome)
         // Support threats survive longer than grunts while keeping boss HP exact.
         for room in 1..<20 {
             let grunt = CampaignPacing.enemyHealth(world: 0, room: room, type: 0)
