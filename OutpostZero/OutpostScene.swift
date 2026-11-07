@@ -334,6 +334,24 @@ final class OutpostScene: SKScene {
     private var pilotHitCount = 0
     private var playtestMovementDistance: CGFloat = 0
     private var playtestEnemiesDefeated = 0
+    // Simulator-only real combat drivers. They do not award victories,
+    // bypass damage, or alter enemy statistics.
+    private var qaStationaryRun: Bool {
+        #if targetEnvironment(simulator)
+        return ProcessInfo.processInfo.arguments.contains("-qaStationaryRun")
+        #else
+        return false
+        #endif
+    }
+    private var qaMovingRun: Bool {
+        #if targetEnvironment(simulator)
+        return ProcessInfo.processInfo.arguments.contains("-qaMovingRun")
+        #else
+        return false
+        #endif
+    }
+    private var qaNextTelemetryAt: TimeInterval = 10
+
     private var playtestUpgradesChosen = 0
     private var playtestLastPilotPosition: CGPoint?
     private var chainLevel = 0
@@ -1924,6 +1942,12 @@ final class OutpostScene: SKScene {
         // freezing an art-review frame. This never executes in normal play.
         if ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") {
             startWave()
+        }
+        if qaStationaryRun || qaMovingRun {
+            // Fresh combat begins through the same production entry path.
+            // QA is intentionally not allowed to skip room clears.
+            startWave()
+            print("[PHASE4 QA] profile=\(qaStationaryRun ? "stationary" : "moving") started world=\(worldMapIndex + 1)")
         }
         if previewPilotWalk {
             for facing in ["s", "n", "e", "w", "ne", "nw", "se", "sw"] {
@@ -6959,6 +6983,11 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing || extractionCombatActive)
+        if (qaStationaryRun || qaMovingRun), phase == .playing,
+           combatTime >= qaNextTelemetryAt {
+            qaNextTelemetryAt = combatTime + 10
+            print("[PHASE4 QA] profile=\(qaStationaryRun ? "stationary" : "moving") room=\(wave) elapsed=\(Int(combatTime)) hp=\(health) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen)")
+        }
         if phase == .playing {
             if let prior = playtestLastPilotPosition {
                 let step = hypot(pilot.position.x - prior.x,
@@ -6996,6 +7025,15 @@ final class OutpostScene: SKScene {
         // simulator frames show actual locomotion, dodging and automatic fire.
         // This launch argument is never used in the shipped game.
         let capturePilotMotion = ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames")
+        if qaStationaryRun {
+            movementTarget = nil
+        } else if qaMovingRun && phase == .playing {
+            // Real collision-resolved pilot movement; no teleportation.
+            let t = CGFloat(combatTime)
+            movementTarget = CGPoint(
+                x: roomBounds.midX + sin(t * 0.86) * roomBounds.width * 0.25,
+                y: roomBounds.minY + roomBounds.height * (0.28 + 0.11 * sin(t * 0.49)))
+        }
         if (capturePilotMotion && (phase == .playing || phase == .gate)) ||
             (phase == .playing && (
             ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames") ||
