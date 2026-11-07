@@ -51,10 +51,9 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && contains(github.event.head_commit.message, '[home-review]'))
-    # Explicit Intel pool avoids the documented ARM64 acquisition failures.
-    # macOS 15 Intel repeatedly failed to boot all four available simulators.
-    # Try the newer simulator runtime only for the next explicit visual checkpoint.
-    runs-on: macos-26-intel
+    # Intel hosts repeatedly time out during CoreSimulator readiness.
+    # Test the Apple Silicon runner pool with a precompiled app artifact.
+    runs-on: macos-26
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
