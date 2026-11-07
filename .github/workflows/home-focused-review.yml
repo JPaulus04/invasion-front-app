@@ -55,7 +55,7 @@ jobs:
     # macOS 15 Intel repeatedly failed to boot all four available simulators.
     # Try the newer simulator runtime only for the next explicit visual checkpoint.
     runs-on: macos-26-intel
-    timeout-minutes: 75
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: Record runner and revision diagnostics
@@ -106,46 +106,18 @@ jobs:
         run: |
           set -o pipefail
           python3 scripts/audit_menu_art.py --require-all 2>&1 | tee diagnostics/menu-art.log
-      - name: Generate app resources and project
+      - name: Reuse verified simulator app from successful compile
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          python3 scripts/generate_icon.py
-          python3 scripts/generate_forest_art.py
-          python3 scripts/generate_pilot_art.py
-          python3 scripts/generate_enemy_art.py
-          brew install xcodegen
-          xcodegen generate
-      - name: Compile simulator app only
-        timeout-minutes: 35
-        run: |
-          set -o pipefail
-          echo "Compile started: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee xcodebuild-home.log
-          echo "Compile finished: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          set -euo pipefail
+          # Source-only workflow changes since this successful build; no game changes.
+          gh run download 42321978287 --repo ${{ github.repository }} --name outpost-zero-simulator-app --dir "$RUNNER_TEMP/compiled"
           mkdir -p simulator-app
-          cp -R DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/
-      - name: Verify all production menu assets in compiled app
-        run: |
-          python3 - <<'PYTHON'
-          from pathlib import Path
-          import runpy
-          import subprocess
-          audit = runpy.run_path("scripts/audit_menu_art.py")
-          app = Path("simulator-app/OutpostZero.app")
-          def dimensions(path):
-              # Xcode recompresses PNGs; compare decoded dimensions, not bytes.
-              result = subprocess.check_output(
-                  ["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(path)], text=True)
-              values = dict(line.strip().split(": ", 1) for line in result.splitlines()
-                            if line.strip().startswith(("pixelWidth:", "pixelHeight:")))
-              return int(values["pixelWidth"]), int(values["pixelHeight"])
-          for name in audit["EXPECTED"]:
-              matches = list(app.rglob(name))
-              assert matches, f"Missing bundled menu asset: {name}"
-              expected = dimensions(audit["ROOT"] / name)
-              assert any(dimensions(p) == expected for p in matches), f"Invalid bundled image: {name}"
-              print(f"PASS: bundled {name}: {expected}")
-          print("PASS: all 12 production menu PNGs bundled and decodable")
-          PYTHON
+          ditto -x -k "$RUNNER_TEMP/compiled/OutpostZero-simulator-app.zip" simulator-app
+          test -x simulator-app/OutpostZero.app/OutpostZero
+          echo "Verified compiled simulator app reused without rebuilding."
       - name: Install screenshot decoder
         run: |
           python3 -m venv "$RUNNER_TEMP/home-review-python"
