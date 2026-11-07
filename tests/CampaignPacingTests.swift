@@ -82,6 +82,25 @@ struct CampaignPacingTests {
         }
         precondition(observedPositive && observedNegative,
             "A stationary target must see pressure from both flanks")
+        // Phase 4 controlled dodge geometry: a stationary pilot on a
+        // telegraphed shot line takes the hit; a pilot who moves outside
+        // the collision corridor before impact avoids the same projectile.
+        // This verifies the live projectile collision rule, not full-run AI.
+        let shotStart = CGPoint(x: 35, y: 140)
+        let shotEnd = CGPoint(x: 265, y: 140)
+        let stationaryPilot = CGPoint(x: 150, y: 140)
+        let dodgingPilot = CGPoint(x: 150, y: 190)
+        precondition(CombatRules.projectileHits(
+            from: shotStart, to: shotEnd, pilot: stationaryPilot, radius: 20),
+            "A stationary pilot in a warned lane must be vulnerable")
+        precondition(!CombatRules.projectileHits(
+            from: shotStart, to: shotEnd, pilot: dodgingPilot, radius: 20),
+            "Moving clear of a warned lane must avoid the projectile")
+        // Sweep fast projectiles across the full frame to prevent tunneling.
+        precondition(CombatRules.projectileHits(
+            from: CGPoint(x: 10, y: 140),
+            to: CGPoint(x: 310, y: 140),
+            pilot: stationaryPilot, radius: 20))
         // Support threats survive longer than grunts while keeping boss HP exact.
         for room in 1..<20 {
             let grunt = CampaignPacing.enemyHealth(world: 0, room: room, type: 0)
