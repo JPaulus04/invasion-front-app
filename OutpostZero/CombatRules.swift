@@ -62,12 +62,11 @@ enum CombatRules {
             forward = distance < hold - 25 ? -0.55 :
                 (distance > hold + 35 ? 0.55 : 0)
             // Keep ranged enemies repositioning after reaching firing distance.
-            // Opposing phase signs produce crossfire without increasing speed.
-            // A slow direction reversal prevents permanently safe firing lanes
-            // against a player who stands in one place.
-            let strafeDirection: CGFloat =
-                sin(CGFloat(elapsed) * 0.65 + phase) >= 0 ? 1 : -1
-            lateral = strafeDirection * (abs(forward) < 0.1 ? 0.42 : 0.22)
+            // Smooth lateral movement instead of instant direction flips:
+            // telegraphed shots remain readable, while stationary players
+            // cannot exploit a permanently fixed firing lane.
+            let orbit = sin(CGFloat(elapsed) * 0.85 + phase)
+            lateral = orbit * (abs(forward) < 0.1 ? 0.55 : 0.30)
         } else {
             // Build 331: melee enemies pursue from distinct angles instead of
             // forming one straight-line queue. Sideways pressure fades as an
