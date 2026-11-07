@@ -3628,9 +3628,9 @@ final class OutpostScene: SKScene {
             if label.frame.width > textWidth { label.fontSize *= textWidth / label.frame.width }
             root.addChild(label)
         }
-        text(title, y: compact ? -16 : 31, size: compact ? 12 : 16)
+        text(title, y: compact ? -16 : 31, size: compact ? 14 : 17)
         text("\(PersistentProgression.rarity(at: rank))  ·  LV \(rank)",
-             y: compact ? -32 : 14, size: 9, color: tint)
+             y: compact ? -32 : 14, size: 10, color: tint)
         let current: String
         let next: String
         if PersistentProgression.gear.contains(id) {
@@ -3645,16 +3645,16 @@ final class OutpostScene: SKScene {
             default: current = "+\(rank) orbital damage"; next = "+\(rank+1) orbital damage"
             }
         }
-        text("NOW  " + current, y: compact ? -48 : -4, size: 10)
+        text("NOW  " + current, y: compact ? -48 : -4, size: compact ? 11 : 11)
         // Make the actual benefit of the next purchase explicit, rather than
         // requiring players to compare two unlabeled stat strings.
         text(maximum ? "MAXIMUM LEVEL" : "NEXT  " + next.replacingOccurrences(of: "Next: ", with: ""), y: compact ? -62 : -20, size: 9,
-             color: SKColor(white: 0.77, alpha: 1))
+             color: SKColor(white: 0.88, alpha: 1))
         let buttonY: CGFloat = compact ? -85 : -43
-        let buttonWidth = compact ? width-12 : textWidth
+        let buttonWidth = compact ? width-16 : textWidth
         let buttonX = compact ? -buttonWidth/2 : left
         let frame = CGRect(x: buttonX, y: buttonY-13, width: buttonWidth, height: 28)
-        let button = SKShapeNode(rect: frame, cornerRadius: 8)
+        let button = SKShapeNode(rect: frame, cornerRadius: 9)
         button.fillColor = affordable ? SKColor(red:0.93,green:0.74,blue:0.33,alpha:1) :
             SKColor(red:0.09,green:0.19,blue:0.24,alpha:1)
         button.strokeColor = .clear
@@ -3663,7 +3663,10 @@ final class OutpostScene: SKScene {
         cost.text = maximum ? "MAXED" :
             (affordable ? "UPGRADE · \(permanent.cost(id)) SALVAGE" :
                 "NEED \(permanent.cost(id) - permanent.salvage) MORE SALVAGE")
-        cost.fontSize = 10
+        cost.fontSize = compact ? 11 : 10
+        if cost.frame.width > buttonWidth - 10 {
+            cost.fontSize *= (buttonWidth - 10) / cost.frame.width
+        }
         cost.fontColor = affordable ? SKColor(red:0.07,green:0.15,blue:0.20,alpha:1) : .lightGray
         cost.verticalAlignmentMode = .center
         cost.position = CGPoint(x: buttonX+buttonWidth/2, y: buttonY)
