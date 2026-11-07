@@ -4,6 +4,46 @@ on:
     branches: [build-327]
   workflow_dispatch:
 jobs:
+  simulator-smoke:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[sim-smoke]')
+    runs-on: macos-26-intel
+    timeout-minutes: 12
+    steps:
+      - name: Check simulator service without building the game
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -uo pipefail
+          echo "Runner: $(sw_vers -productVersion)"
+          xcodebuild -version
+          xcrun simctl list runtimes
+          xcrun simctl list devices available
+          UDID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next((v["udid"] for vs in d.values() for v in vs if v.get("isAvailable",True) and v.get("name","").startswith("iPhone")), ""))')"
+          if [ -z "$UDID" ]; then echo "::error::No iPhone simulator available"; exit 1; fi
+          echo "Selected $UDID"
+          python3 - "$UDID" <<'PY'
+          import subprocess,sys
+          u=sys.argv[1]
+          for name,cmd,seconds in [
+            ("boot",["xcrun","simctl","boot",u],40),
+            ("bootstatus",["xcrun","simctl","bootstatus",u,"-b"],160),
+            ("state",["xcrun","simctl","list","devices","-j"],30),
+          ]:
+            print("Starting",name,flush=True)
+            try:
+              r=subprocess.run(cmd,timeout=seconds,text=True,capture_output=True)
+              print(name,"exit",r.returncode,"stdout",r.stdout[-2500:],"stderr",r.stderr[-2500:],flush=True)
+              if r.returncode: sys.exit(1)
+              if name=="state":
+                import json
+                d=json.loads(r.stdout)["devices"]
+                state=next((v.get("state") for vs in d.values() for v in vs if v.get("udid")==u),None)
+                print("Verified device state:",state,flush=True)
+                if state!="Booted": sys.exit(1)
+            except subprocess.TimeoutExpired:
+              print("::error::",name,"timed out after",seconds,"seconds",flush=True)
+              sys.exit(1)
+          PY
   home-screens:
     concurrency:
       group: home-focused-${{ github.ref }}
