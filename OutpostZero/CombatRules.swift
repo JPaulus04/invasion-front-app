@@ -104,8 +104,8 @@ enum CombatRules {
         // A single in-flight shot used to block every other shooter until
         // it expired, allowing stationary pilots to clear early rooms.
         if room <= 3 { return 1 }
-        if room <= 10 { return 2 }
-        if room <= 15 { return 3 }
+        if room <= 7 { return 2 }
+        if room <= 12 { return 3 }
         return 4
     }
 
