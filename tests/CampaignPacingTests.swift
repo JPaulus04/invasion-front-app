@@ -60,6 +60,28 @@ struct CampaignPacingTests {
                 precondition(locked.dx == 0 && locked.dy == 0)
             }
         }
+        // A stationary pilot must not create a permanently safe lane:
+        // ranged strafing changes direction smoothly across an encounter.
+        let origin = CGPoint(x: 20, y: 20)
+        let target = CGPoint(x: 220, y: 20)
+        var observedPositive = false
+        var observedNegative = false
+        var previousLateral: CGFloat?
+        for step in 0...160 {
+            let elapsed = Double(step) * 0.1
+            let motion = CombatRules.enemySteering(
+                behavior: 4, origin: origin, pilot: target,
+                elapsed: elapsed, phase: 0.4, ranged: true, aiming: false)
+            observedPositive = observedPositive || motion.dy > 0.15
+            observedNegative = observedNegative || motion.dy < -0.15
+            if let previousLateral {
+                precondition(abs(motion.dy - previousLateral) < 0.12,
+                    "Ranged strafing should reverse smoothly, without snapping")
+            }
+            previousLateral = motion.dy
+        }
+        precondition(observedPositive && observedNegative,
+            "A stationary target must see pressure from both flanks")
         // Support threats survive longer than grunts while keeping boss HP exact.
         for room in 1..<20 {
             let grunt = CampaignPacing.enemyHealth(world: 0, room: room, type: 0)
