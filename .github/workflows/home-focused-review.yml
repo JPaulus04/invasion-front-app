@@ -75,7 +75,7 @@ jobs:
           xcrun simctl list devices available
       # Artwork uploaded: verify all 12 production menu sprites before capture.
       - name: Boot iPhone simulator before resource-heavy compilation
-        timeout-minutes: 6
+        timeout-minutes: 7
         run: |
           python3 - <<'PY'
           import json, subprocess, sys
@@ -90,11 +90,11 @@ jobs:
           boot=call(["xcrun","simctl","boot",u],45)
           print("Boot command:",boot.returncode,boot.stderr[-500:],flush=True)
           try:
-              ready=call(["xcrun","simctl","bootstatus",u,"-b"],120)
+              ready=call(["xcrun","simctl","bootstatus",u,"-b"],240)
               print("Boot readiness:",ready.returncode,ready.stderr[-500:],flush=True)
               if ready.returncode: sys.exit("Simulator could not prewarm")
           except subprocess.TimeoutExpired:
-              print("::error::CoreSimulator readiness timed out after 120 seconds; aborting before costly compilation",flush=True)
+              print("::error::CoreSimulator readiness timed out after 240 seconds; aborting before costly compilation",flush=True)
               sys.exit(1)
           state=json.loads(call(["xcrun","simctl","list","devices","-j"],30).stdout)["devices"]
           current=next((v.get("state") for vs in state.values() for v in vs if v.get("udid")==u),None)
