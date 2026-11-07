@@ -90,9 +90,13 @@ jobs:
           print("Prewarming iPhone simulator",u,flush=True)
           boot=call(["xcrun","simctl","boot",u],45)
           print("Boot command:",boot.returncode,boot.stderr[-500:],flush=True)
-          ready=call(["xcrun","simctl","bootstatus",u,"-b"],180)
-          print("Boot readiness:",ready.returncode,ready.stderr[-500:],flush=True)
-          if ready.returncode: sys.exit("Simulator could not prewarm")
+          try:
+              ready=call(["xcrun","simctl","bootstatus",u,"-b"],120)
+              print("Boot readiness:",ready.returncode,ready.stderr[-500:],flush=True)
+              if ready.returncode: sys.exit("Simulator could not prewarm")
+          except subprocess.TimeoutExpired:
+              print("::error::CoreSimulator readiness timed out after 120 seconds; aborting before costly compilation",flush=True)
+              sys.exit(1)
           state=json.loads(call(["xcrun","simctl","list","devices","-j"],30).stdout)["devices"]
           current=next((v.get("state") for vs in state.values() for v in vs if v.get("udid")==u),None)
           print("Prewarmed state:",current,flush=True)
@@ -158,7 +162,7 @@ jobs:
             screenshots/outpost-zero-home-navigation.png \
             screenshots/outpost-zero-world-selector.png
       - name: Upload focused screenshots
-        if: always()
+        if: always() && hashFiles('screenshots/outpost-zero-*.png') != ''
         uses: actions/upload-artifact@v4
         with:
           name: outpost-zero-home-focused-review
