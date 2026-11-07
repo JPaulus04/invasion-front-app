@@ -332,6 +332,8 @@ final class OutpostScene: SKScene {
     private let autoFireRange: CGFloat = 260
     private var pilotShieldUntil: TimeInterval = 0
     private var pilotHitCount = 0
+    private var playtestMovementDistance: CGFloat = 0
+    private var playtestLastPilotPosition: CGPoint?
     private var chainLevel = 0
     private var explosiveLevel = 0
     private var incendiaryLevel = 0
@@ -6955,6 +6957,17 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing || extractionCombatActive)
+        if phase == .playing {
+            if let prior = playtestLastPilotPosition {
+                let step = hypot(pilot.position.x - prior.x,
+                                 pilot.position.y - prior.y)
+                // Ignore room-transition teleports; measure actual movement.
+                if step < 45 { playtestMovementDistance += step }
+            }
+            playtestLastPilotPosition = pilot.position
+        } else {
+            playtestLastPilotPosition = nil
+        }
         // Choosing to fight after extraction opens still carries combat risk.
         if (phase == .playing || extractionCombatActive) && health <= 0 {
             endGame()
@@ -9012,6 +9025,9 @@ final class OutpostScene: SKScene {
     }
 
     private func showWorldCompleteSummary() {
+        #if DEBUG
+        print("[PHASE4 PLAYTEST] outcome=complete world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) level=\(progress.level)")
+        #endif
         hud.isHidden = true
         phase = .worldComplete
         ArcadeMusic.shared.play(.headquarters)
@@ -9119,6 +9135,9 @@ final class OutpostScene: SKScene {
     }
 
     private func endGame(_ reason: String = "PILOT DEFEATED") {
+        #if DEBUG
+        print("[PHASE4 PLAYTEST] outcome=defeat world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) level=\(progress.level)")
+        #endif
         recovery.clear()
         phase = .gameOver
         arena.isPaused = true
@@ -9188,6 +9207,8 @@ final class OutpostScene: SKScene {
         movementOrigin = nil
         pilotShieldUntil = 0
         pilotHitCount = 0
+        playtestMovementDistance = 0
+        playtestLastPilotPosition = nil
         pilot.alpha = 1
         pilotFacing = 1
         pilotTraveling = false
