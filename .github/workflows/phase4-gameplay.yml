@@ -1,0 +1,55 @@
+name: Phase 4 Gameplay Validation
+on:
+  workflow_call:
+jobs:
+  campaign:
+    name: Fresh World 1 — ${{ matrix.profile }}
+    runs-on: macos-26
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [stationary, moving]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+          path: compiled
+      - name: Unpack app from this exact workflow run
+        run: |
+          mkdir -p simulator-app phase4
+          ditto -x -k compiled/OutpostZero-simulator-app.zip simulator-app
+          git rev-parse HEAD | tee phase4/revision.txt
+          lipo -info simulator-app/OutpostZero.app/OutpostZero
+      - name: Run fresh campaign with real combat
+        run: python3 scripts/run_phase4_simulator.py '${{ matrix.profile }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase4-${{ matrix.profile }}
+          path: phase4/
+          if-no-files-found: error
+          retention-days: 14
+  acceptance:
+    name: Assess World 1 gameplay outcomes
+    needs: campaign
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: phase4-*
+          merge-multiple: true
+          path: phase4
+      - name: Require stationary defeat and moving completion
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 scripts/analyze_phase4_playtests.py phase4/stationary.log phase4/moving.log | tee phase4/acceptance.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase4-acceptance
+          path: phase4/acceptance.json

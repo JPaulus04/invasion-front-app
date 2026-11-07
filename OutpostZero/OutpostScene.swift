@@ -351,6 +351,8 @@ final class OutpostScene: SKScene {
         #endif
     }
     private var qaNextTelemetryAt: TimeInterval = 10
+    private var qaNextMenuActionAt: TimeInterval = 0
+    private var qaExitWaypoints: [CGPoint] = []
 
     private var playtestUpgradesChosen = 0
     private var playtestLastPilotPosition: CGPoint?
@@ -1946,8 +1948,9 @@ final class OutpostScene: SKScene {
         if qaStationaryRun || qaMovingRun {
             // Fresh combat begins through the same production entry path.
             // QA is intentionally not allowed to skip room clears.
-            startWave()
+            precondition(enterSelectedWorld(), "QA requires a fresh, ready pilot")
             print("[PHASE4 QA] profile=\(qaStationaryRun ? "stationary" : "moving") started world=\(worldMapIndex + 1)")
+            fflush(stdout)
         }
         if previewPilotWalk {
             for facing in ["s", "n", "e", "w", "ne", "nw", "se", "sw"] {
@@ -6983,10 +6986,12 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing || extractionCombatActive)
+        updateQAMenus()
         if (qaStationaryRun || qaMovingRun), phase == .playing,
            combatTime >= qaNextTelemetryAt {
             qaNextTelemetryAt = combatTime + 10
             print("[PHASE4 QA] profile=\(qaStationaryRun ? "stationary" : "moving") room=\(wave) elapsed=\(Int(combatTime)) hp=\(health) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen)")
+            fflush(stdout)
         }
         if phase == .playing {
             if let prior = playtestLastPilotPosition {
@@ -7025,7 +7030,9 @@ final class OutpostScene: SKScene {
         // simulator frames show actual locomotion, dodging and automatic fire.
         // This launch argument is never used in the shipped game.
         let capturePilotMotion = ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames")
-        if qaStationaryRun {
+        if (qaStationaryRun || qaMovingRun), phase == .gate {
+            movementTarget = qaExitTarget()
+        } else if qaStationaryRun {
             movementTarget = nil
         } else if qaMovingRun && phase == .playing {
             // Real collision-resolved pilot movement; no teleportation.
@@ -8763,6 +8770,68 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
+    // Both profiles accept earned upgrades. Stationary means no movement
+    // during active rooms; exit transit is separate from the combat metric.
+    private func updateQAMenus() {
+        guard qaStationaryRun || qaMovingRun else { return }
+        if phase == .playing { qaExitWaypoints.removeAll() }
+        guard clock >= qaNextMenuActionAt else { return }
+        if phase == .levelUp {
+            guard !abilityRevealActive else { return }
+            let priorities = health < maximumHealth / 2
+                ? ["heal", "damage", "rate", "orbit", "chain", "explosive", "incendiary", "frost", "armor", "mobility", "supplies"]
+                : ["damage", "rate", "orbit", "chain", "explosive", "incendiary", "frost", "armor", "mobility", "heal", "supplies"]
+            guard let choice = priorities.first(where: { levelChoices.contains($0) }) ?? levelChoices.first,
+                  let frame = overlayButtons[choice] else { return }
+            let before = playtestUpgradesChosen
+            _ = activateLevelUp(at: CGPoint(x: frame.midX, y: frame.midY))
+            print("[PHASE4 QA] choice=\(choice) accepted=\(playtestUpgradesChosen > before) room=\(wave)")
+            fflush(stdout)
+            qaNextMenuActionAt = clock + 0.5
+        } else if phase == .checkpoint {
+            if !checkpointUsed && health < maximumHealth && coins >= repairCost {
+                purchaseCheckpointRepair()
+            } else {
+                showZoneGate()
+            }
+            qaNextMenuActionAt = clock + 0.5
+        }
+    }
+
+    private func qaExitTarget() -> CGPoint {
+        let destination = activeEncounter == .survival
+            ? extractionPortal.position : passageGate.position
+        if qaExitWaypoints.isEmpty {
+            // The central World 1 lane is clear except for defense reactors.
+            // Walk around their collision footprint, using normal movement.
+            if defenseDevice.parent === arena, let patch = reactorMovementPatch {
+                let frame = patch.frame.insetBy(dx: -24, dy: -24)
+                if pilot.position.y < frame.maxY && destination.y > frame.maxY {
+                    let x = pilot.position.x < frame.midX ? frame.minX : frame.maxX
+                    qaExitWaypoints = [CGPoint(x: x, y: pilot.position.y),
+                                       CGPoint(x: x, y: frame.maxY)]
+                }
+            }
+            qaExitWaypoints.append(destination)
+            print("[PHASE4 QA] exit room=\(wave) extraction=\(activeEncounter == .survival)")
+            fflush(stdout)
+        }
+        while qaExitWaypoints.count > 1,
+              distance(pilot.position, qaExitWaypoints[0]) < 8 {
+            qaExitWaypoints.removeFirst()
+        }
+        return qaExitWaypoints[0]
+    }
+
+    private func purchaseCheckpointRepair() {
+        guard phase == .checkpoint, !checkpointUsed,
+              health < maximumHealth, coins >= repairCost else { return }
+        coins -= repairCost
+        health = min(maximumHealth, health + 40)
+        checkpointUsed = true
+        showZoneGate()
+    }
+
     private func finishAbilityReveal() {
         guard phase == .levelUp else { return }
         abilityRevealActive = false
@@ -9069,6 +9138,7 @@ final class OutpostScene: SKScene {
     private func showWorldCompleteSummary() {
         #if DEBUG
         print("[PHASE4 PLAYTEST] outcome=complete world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen) level=\(progress.level)")
+        fflush(stdout)
         #endif
         hud.isHidden = true
         phase = .worldComplete
@@ -9179,6 +9249,7 @@ final class OutpostScene: SKScene {
     private func endGame(_ reason: String = "PILOT DEFEATED") {
         #if DEBUG
         print("[PHASE4 PLAYTEST] outcome=defeat world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen) level=\(progress.level)")
+        fflush(stdout)
         #endif
         recovery.clear()
         phase = .gameOver
@@ -9466,10 +9537,7 @@ final class OutpostScene: SKScene {
                 }]), withKey: "abilitySelection")
             }
         case (.checkpoint, "heal") where !checkpointUsed && health < maximumHealth && coins >= repairCost:
-            coins -= repairCost
-            health = min(maximumHealth, health + 40)
-            checkpointUsed = true
-            showZoneGate()
+            purchaseCheckpointRepair()
         case (.checkpoint, "back"): showZoneGate()
         default: break
         }
