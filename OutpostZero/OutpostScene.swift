@@ -333,6 +333,8 @@ final class OutpostScene: SKScene {
     private var pilotShieldUntil: TimeInterval = 0
     private var pilotHitCount = 0
     private var playtestMovementDistance: CGFloat = 0
+    private var playtestEnemiesDefeated = 0
+    private var playtestUpgradesChosen = 0
     private var playtestLastPilotPosition: CGPoint?
     private var chainLevel = 0
     private var explosiveLevel = 0
@@ -8245,6 +8247,7 @@ final class OutpostScene: SKScene {
         var paidXPTotal = 0
         for index in enemies.indices.reversed() where enemies[index].health <= 0 {
             defeatedCount += 1
+            playtestEnemiesDefeated += 1
             streak += 1
             awardRoomCoins(enemies[index].reward)
             bankSalvage(PersistentProgression.enemyReward(
@@ -8777,6 +8780,7 @@ final class OutpostScene: SKScene {
                 !energyWheelEvolved else { return }
         }
         guard progress.chooseUpgrade() else { return }
+        playtestUpgradesChosen += 1
         let isNewTactical = (choice == "chain" && chainLevel == 0) ||
             (choice == "explosive" && explosiveLevel == 0) ||
             (choice == "incendiary" && incendiaryLevel == 0) ||
@@ -9026,7 +9030,7 @@ final class OutpostScene: SKScene {
 
     private func showWorldCompleteSummary() {
         #if DEBUG
-        print("[PHASE4 PLAYTEST] outcome=complete world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) level=\(progress.level)")
+        print("[PHASE4 PLAYTEST] outcome=complete world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen) level=\(progress.level)")
         #endif
         hud.isHidden = true
         phase = .worldComplete
@@ -9136,7 +9140,7 @@ final class OutpostScene: SKScene {
 
     private func endGame(_ reason: String = "PILOT DEFEATED") {
         #if DEBUG
-        print("[PHASE4 PLAYTEST] outcome=defeat world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) level=\(progress.level)")
+        print("[PHASE4 PLAYTEST] outcome=defeat world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen) level=\(progress.level)")
         #endif
         recovery.clear()
         phase = .gameOver
@@ -9208,6 +9212,8 @@ final class OutpostScene: SKScene {
         pilotShieldUntil = 0
         pilotHitCount = 0
         playtestMovementDistance = 0
+        playtestEnemiesDefeated = 0
+        playtestUpgradesChosen = 0
         playtestLastPilotPosition = nil
         pilot.alpha = 1
         pilotFacing = 1
