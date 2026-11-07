@@ -28,6 +28,38 @@ struct CampaignPacingTests {
             precondition(bounds.contains(entry))
             precondition(hypot(entry.x - flankPilot.x, entry.y - flankPilot.y) >= 95)
         }
+        // Phase 4: early encounters teach one telegraphed lane, while
+        // mid-world rooms introduce crossfire before the final gauntlet.
+        let expectedThreatCaps = [
+            (room: 1, cap: 1), (room: 3, cap: 1),
+            (room: 4, cap: 2), (room: 7, cap: 2),
+            (room: 8, cap: 3), (room: 12, cap: 3),
+            (room: 13, cap: 4), (room: 19, cap: 4)
+        ]
+        for sample in expectedThreatCaps {
+            precondition(CombatRules.maximumConcurrentRangedThreats(
+                room: sample.room) == sample.cap)
+            precondition(!CombatRules.mayBeginRangedAttack(
+                room: sample.room, activeThreats: sample.cap))
+            precondition(CombatRules.mayBeginRangedAttack(
+                room: sample.room, activeThreats: sample.cap - 1))
+        }
+        // Smooth strafing must preserve a bounded speed and stop while
+        // the enemy is telegraphing a locked shot.
+        for behavior in [4, 5] {
+            for elapsed in stride(from: 0.0, through: 8.0, by: 0.25) {
+                let motion = CombatRules.enemySteering(
+                    behavior: behavior, origin: CGPoint(x: 20, y: 20),
+                    pilot: CGPoint(x: 200, y: 200), elapsed: elapsed,
+                    phase: 0.4, ranged: true, aiming: false)
+                precondition(hypot(motion.dx, motion.dy) <= 1.001)
+                let locked = CombatRules.enemySteering(
+                    behavior: behavior, origin: CGPoint(x: 20, y: 20),
+                    pilot: CGPoint(x: 200, y: 200), elapsed: elapsed,
+                    phase: 0.4, ranged: true, aiming: true)
+                precondition(locked.dx == 0 && locked.dy == 0)
+            }
+        }
         // Support threats survive longer than grunts while keeping boss HP exact.
         for room in 1..<20 {
             let grunt = CampaignPacing.enemyHealth(world: 0, room: room, type: 0)
