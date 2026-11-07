@@ -3267,12 +3267,12 @@ final class OutpostScene: SKScene {
         let unlocked = index == 0 || WorldCatalog.stars(index - 1) > 0
         let scale = min(1, size.height / 780)
         overlayText("COMMANDERS", y: 270 * scale, fontSize: 25 * scale)
-        overlayText("SWIPE TO EXPLORE YOUR ROSTER", y: 241 * scale, fontSize: 10 * scale)
+        overlayText("SWIPE TO EXPLORE YOUR ROSTER", y: 241 * scale, fontSize: 11 * scale)
 
         // A single large hero showcase replaces the prototype stack of buttons.
         let glow = SKSpriteNode(texture: ProductionPresentation.glow(
             SKColor(red: 0.32, green: 0.76, blue: 0.96, alpha: 0.38)))
-        glow.size = CGSize(width: 270, height: 260)
+        glow.size = CGSize(width: 298 * scale, height: 288 * scale)
         glow.position = CGPoint(x: 0, y: 110 * scale)
         glow.zPosition = 2
         overlay.addChild(glow)
@@ -3329,11 +3329,11 @@ final class OutpostScene: SKScene {
         let heroAspect = commanderTexture.size()
         // Scale by height to preserve the illustrated Commander's proportions.
         // Width-limited sizing distorted the showcase for tall transparent art.
-        let heroHeight = 242 * scale
+        let heroHeight = 258 * scale
         let heroWidth = min(205 * scale,
                             heroHeight * heroAspect.width / max(1, heroAspect.height))
         hero.size = CGSize(width: heroWidth, height: heroHeight)
-        hero.position = CGPoint(x: 0, y: 115 * scale)
+        hero.position = CGPoint(x: 0, y: 121 * scale)
         hero.zPosition = 4
         let tints: [SKColor] = [.white, .systemTeal, .systemOrange, .systemPurple]
         hero.color = unlocked ? .white : .darkGray
@@ -3586,11 +3586,11 @@ final class OutpostScene: SKScene {
         }
         let iconID = id == "weapon" ? "rate" : id == "reactor" ? "reactor" : id
         let art = SKSpriteNode(texture: ProductionPresentation.abilityArtwork(iconID, tint: tint))
-        art.size = CGSize(width: compact ? 76 : 104, height: compact ? 76 : 104)
+        art.size = CGSize(width: compact ? 86 : 104, height: compact ? 86 : 104)
         art.position = compact ? CGPoint(x: 0, y: 46) : CGPoint(x: -width/2 + 52, y: 4)
         root.addChild(art)
         // A dedicated icon socket gives each module a stronger silhouette.
-        let socket = SKShapeNode(circleOfRadius: compact ? 38 : 48)
+        let socket = SKShapeNode(circleOfRadius: compact ? 42 : 48)
         socket.position = art.position
         socket.fillColor = tint.withAlphaComponent(0.12)
         socket.strokeColor = tint.withAlphaComponent(0.48)
@@ -3599,7 +3599,7 @@ final class OutpostScene: SKScene {
         root.addChild(socket)
         // A second, offset ring and four corner bolts make each upgrade read
         // as a mounted piece of equipment instead of a flat icon card.
-        let socketRing = SKShapeNode(circleOfRadius: compact ? 44 : 54)
+        let socketRing = SKShapeNode(circleOfRadius: compact ? 46 : 54)
         socketRing.position = art.position
         socketRing.fillColor = .clear
         socketRing.strokeColor = tint.withAlphaComponent(0.20)
@@ -3657,7 +3657,8 @@ final class OutpostScene: SKScene {
         let button = SKShapeNode(rect: frame, cornerRadius: 9)
         button.fillColor = affordable ? SKColor(red:0.93,green:0.74,blue:0.33,alpha:1) :
             SKColor(red:0.09,green:0.19,blue:0.24,alpha:1)
-        button.strokeColor = .clear
+        button.strokeColor = affordable ? SKColor(white: 1, alpha: 0.45) : tint.withAlphaComponent(0.28)
+        button.lineWidth = 1.3
         root.addChild(button)
         let cost = SKLabelNode(fontNamed: "AvenirNext-Bold")
         cost.text = maximum ? "MAXED" :
@@ -3680,7 +3681,7 @@ final class OutpostScene: SKScene {
         hud.isHidden = true
         clearOverlay()
         installHubShell(active: "nav_gear")
-        overlayText("ARMORY", y: 218, fontSize: 26)
+        overlayText("ARMORY", y: 218, fontSize: 28)
         overlayText("\(permanent.salvage) SALVAGE", y: 191, fontSize: 12)
         let titles = ["PULSE RIFLE", "PILOT ARMOR", "REACTOR CORE"]
         for (index, id) in PersistentProgression.gear.enumerated() {
@@ -3688,7 +3689,7 @@ final class OutpostScene: SKScene {
                 center: CGPoint(x: 0, y: CGFloat(123-index*126)),
                 width: min(size.width-28, 350), height: 116, compact: false)
         }
-        overlayText("UPGRADES ARE PERMANENT · SURVIVE EVERY RUN", y: -230, fontSize: 9)
+        overlayText("PERMANENT UPGRADES · EVERY RUN", y: -230, fontSize: 10)
         updateHUD()
     }
 
@@ -3698,7 +3699,7 @@ final class OutpostScene: SKScene {
         hud.isHidden = true
         clearOverlay()
         installHubShell(active: "nav_abilities")
-        overlayText("ABILITY MASTERY", y: 238, fontSize: 24)
+        overlayText("ABILITY MASTERY", y: 238, fontSize: 26)
         overlayText("\(permanent.salvage) SALVAGE · PERMANENT BONUSES", y: 213, fontSize: 11)
         let titles = ["CHAIN LIGHTNING", "EXPLOSIVES", "INCENDIARY", "ORBITAL BLADES"]
         let width = min((size.width-32)/2, 172)
@@ -3708,7 +3709,7 @@ final class OutpostScene: SKScene {
                                 y: index < 2 ? 107 : -102),
                 width: width, height: 198, compact: true)
         }
-        overlayText("MASTERIES BOOST SKILLS YOU FIND DURING RUNS", y: -227, fontSize: 9)
+        overlayText("MASTERIES BOOST SKILLS FOUND DURING RUNS", y: -227, fontSize: 10)
         updateHUD()
     }
 
