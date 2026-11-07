@@ -96,10 +96,11 @@ jobs:
           except subprocess.TimeoutExpired:
               print("::error::CoreSimulator readiness timed out after 240 seconds; aborting before costly compilation",flush=True)
               sys.exit(1)
-          state=json.loads(call(["xcrun","simctl","list","devices","-j"],30).stdout)["devices"]
-          current=next((v.get("state") for vs in state.values() for v in vs if v.get("udid")==u),None)
-          print("Prewarmed state:",current,flush=True)
-          if current!="Booted": sys.exit("Simulator is not Booted after prewarm")
+          # bootstatus returning zero is the readiness signal. Re-querying the
+          # entire CoreSimulator device database has hung after successful boot.
+          with open("/tmp/outpost-zero-ci-device","w") as handle:
+              handle.write(u)
+          print("Simulator ready for screenshot capture:",u,flush=True)
           PY
       - name: Audit production menu sprite assets
         run: |
@@ -126,6 +127,7 @@ jobs:
         timeout-minutes: 25
         run: |
           set -o pipefail
+          export OUTPOST_ZERO_SIMULATOR_UDID="$(cat /tmp/outpost-zero-ci-device)"
           bash scripts/capture_home_review.sh 2>&1 | tee diagnostics/simulator-capture.log
       - name: Verify unified Home and World Selector captures
         run: |
