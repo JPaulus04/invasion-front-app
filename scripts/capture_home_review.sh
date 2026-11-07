@@ -17,43 +17,11 @@ PY
 # Let a fresh service finish first-boot data migration. Killing it
 # before listing devices made the migrations restart on some hosts.
 # Fallback to a second available iPhone only after bounded readiness.
-DEVICE=""
-DEVICE_CANDIDATES="$(xcrun simctl list devices available -j | python3 -c '
-import json, sys
-data=json.load(sys.stdin)["devices"]
-found=[]
-for runtime, devices in sorted(data.items(), reverse=True):
-    for device in devices:
-        if device.get("isAvailable", True) and device.get("name", "").startswith("iPhone"):
-            found.append(device["udid"])
-print(chr(10).join(found[:4]))
-')"
-for CANDIDATE in $DEVICE_CANDIDATES; do
-  echo "Preparing simulator $CANDIDATE"
-  # A prewarmed device may already be booted; do not fail that case.
-  run_bounded 25 xcrun simctl boot "$CANDIDATE" || true
-  # Data migration often needs more than 90 seconds on a cold VM.
-  if run_bounded 135 xcrun simctl bootstatus "$CANDIDATE" -b; then
-    # A successful bootstatus does not guarantee the device is still booted.
-    STATE="$(xcrun simctl list devices -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; u=sys.argv[1]; print(next((v.get("state","") for vs in d.values() for v in vs if v.get("udid")==u), "missing"))' "$CANDIDATE")"
-    if [ "$STATE" = "Booted" ]; then
-      DEVICE="$CANDIDATE"
-      break
-    fi
-    echo "::warning::Simulator $CANDIDATE reported ready but is $STATE"
-  fi
-  echo "::warning::Simulator $CANDIDATE failed boot readiness; trying alternate device"
-  # Avoid shutting down a stuck simulator between attempts: CoreSimulator
-  # shutdown itself repeatedly hangs and may block the shared service.
-  xcrun simctl list devices | grep -F "$CANDIDATE" || true
-done
-if [ -z "$DEVICE" ]; then
-  echo "::group::CoreSimulator failure diagnostics"
-  xcrun simctl list runtimes || true
-  xcrun simctl list devices available || true
-  ps -axo pid,stat,etime,command | grep -E "[C]oreSimulator|[S]imLaunch|[s]imctl|[S]imulator.app" | head -60 || true
-  echo "::endgroup::"
-  echo "::error::No available iPhone simulator reached boot readiness; CoreSimulator host failure, not an app compilation error"
+DEVICE="${OUTPOST_ZERO_SIMULATOR_UDID:-}"
+if [ -n "$DEVICE" ]; then
+  echo "Reusing boot-ready simulator $DEVICE; skipping CoreSimulator enumeration"
+else
+  echo "::error::No prewarmed simulator UUID supplied by the workflow"
   exit 1
 fi
 echo "Simulator ready: $DEVICE"
