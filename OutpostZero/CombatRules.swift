@@ -26,6 +26,29 @@ enum CombatRules {
         return best
     }
 
+    /// Deterministic telemetry for comparing combat playtests. A test
+    /// records observations from the actual scene; it must not infer
+    /// victories from idealized XP or assume the player dodged attacks.
+    struct PlaytestMetrics: Equatable {
+        var elapsedSeconds: TimeInterval = 0
+        var roomsCompleted = 0
+        var enemiesDefeated = 0
+        var damageTaken = 0
+        var movementDistance: CGFloat = 0
+        var upgradesChosen = 0
+        var playerDefeated = false
+        var worldCompleted = false
+
+        var isStationary: Bool { movementDistance < 1 }
+        var hasValidOutcome: Bool { !(playerDefeated && worldCompleted) }
+        var meetsStationaryFailureGoal: Bool {
+            isStationary && playerDefeated && !worldCompleted
+        }
+        var meetsActiveCompletionGoal: Bool {
+            !isStationary && worldCompleted && !playerDefeated
+        }
+    }
+
     /// Ranged enemies are introduced gently rather than replacing half the
     /// enemy population the instant shooters appear. The threat increases
     /// through late rooms, with mixed melee enemies still present.
