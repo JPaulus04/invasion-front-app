@@ -75,6 +75,29 @@ jobs:
           xcrun simctl list runtimes
           xcrun simctl list devices available
       # Artwork uploaded: verify all 12 production menu sprites before capture.
+      - name: Boot iPhone simulator before resource-heavy compilation
+        timeout-minutes: 6
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, sys
+          def call(cmd, limit):
+              return subprocess.run(cmd, text=True, capture_output=True, timeout=limit)
+          devices=json.loads(call(["xcrun","simctl","list","devices","available","-j"],30).stdout)["devices"]
+          candidates=[v["udid"] for vs in devices.values() for v in vs if v.get("isAvailable",True) and v.get("name","").startswith("iPhone")]
+          if not candidates:
+              sys.exit("No available iPhone simulator")
+          u=candidates[0]
+          print("Prewarming iPhone simulator",u,flush=True)
+          boot=call(["xcrun","simctl","boot",u],45)
+          print("Boot command:",boot.returncode,boot.stderr[-500:],flush=True)
+          ready=call(["xcrun","simctl","bootstatus",u,"-b"],180)
+          print("Boot readiness:",ready.returncode,ready.stderr[-500:],flush=True)
+          if ready.returncode: sys.exit("Simulator could not prewarm")
+          state=json.loads(call(["xcrun","simctl","list","devices","-j"],30).stdout)["devices"]
+          current=next((v.get("state") for vs in state.values() for v in vs if v.get("udid")==u),None)
+          print("Prewarmed state:",current,flush=True)
+          if current!="Booted": sys.exit("Simulator is not Booted after prewarm")
+          PY
       - name: Audit production menu sprite assets
         run: |
           set -o pipefail
