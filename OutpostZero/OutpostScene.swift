@@ -625,7 +625,7 @@ final class OutpostScene: SKScene {
         // existing passageGate interaction and room-transition behavior.
         passageGate.name = "campaignExitPortal"
         passageGate.path = CGPath(ellipseIn: CGRect(
-            x: -43, y: 5, width: 86, height: 112), transform: nil)
+            x: -43, y: 19, width: 86, height: 86), transform: nil)
         passageGate.fillColor = SKColor(red: 0.07, green: 0.24, blue: 0.64, alpha: 0.94)
         passageGate.strokeColor = SKColor(red: 0.55, green: 0.88, blue: 1, alpha: 1)
         passageGate.lineWidth = 5
@@ -634,21 +634,32 @@ final class OutpostScene: SKScene {
         passageGate.isHidden = true
         arena.addChild(passageGate)
 
-        let base = SKShapeNode(ellipseOf: CGSize(width: 100, height: 24))
-        base.name = "exitPortalBase"
-        base.position = CGPoint(x: 0, y: 2)
-        base.fillColor = SKColor(red: 0.12, green: 0.19, blue: 0.30, alpha: 1)
-        base.strokeColor = .systemCyan
-        base.lineWidth = 3
-        passageGate.addChild(base)
+        // The ring sits against the far boundary rather than in the playfield.
+        let portalMount = SKShapeNode(rectOf: CGSize(width: 104, height: 118),
+                                      cornerRadius: 16)
+        portalMount.name = "exitPortalWallMount"
+        portalMount.position = CGPoint(x: 0, y: 62)
+        portalMount.fillColor = SKColor(red: 0.13, green: 0.20, blue: 0.30, alpha: 1)
+        portalMount.strokeColor = SKColor(red: 0.40, green: 0.58, blue: 0.72, alpha: 1)
+        portalMount.lineWidth = 4
+        portalMount.zPosition = -1
+        passageGate.addChild(portalMount)
 
-        let energy = SKShapeNode(ellipseOf: CGSize(width: 64, height: 94))
+        let portalBase = SKShapeNode(ellipseOf: CGSize(width: 100, height: 18))
+        portalBase.name = "exitPortalBase"
+        portalBase.position = CGPoint(x: 0, y: 0)
+        portalBase.fillColor = SKColor(red: 0.12, green: 0.19, blue: 0.30, alpha: 1)
+        portalBase.strokeColor = .systemCyan
+        portalBase.lineWidth = 3
+        passageGate.addChild(portalBase)
+
+        let energy = SKShapeNode(circleOfRadius: 34)
         energy.name = "portalEnergy"
-        energy.position = CGPoint(x: 0, y: 61)
-        energy.fillColor = SKColor(red: 0.19, green: 0.66, blue: 1, alpha: 0.65)
+        energy.position = CGPoint(x: 0, y: 62)
+        energy.fillColor = SKColor(red: 0.19, green: 0.66, blue: 1, alpha: 0.75)
         energy.strokeColor = .cyan
-        energy.lineWidth = 2
-        energy.glowWidth = 7
+        energy.lineWidth = 3
+        energy.glowWidth = 8
         passageGate.addChild(energy)
 
         let gateText = SKLabelNode(fontNamed: "AvenirNext-Heavy")
@@ -1845,8 +1856,9 @@ final class OutpostScene: SKScene {
             precondition(!passageGate.isHidden && extractionPortal.isHidden,
                          "Normal campaign exit must never coexist with survival orb")
             // Reject a regression to the tiny, unreadable exit beacon.
-            precondition((passageGate.path?.boundingBox.height ?? 0) >= 100 &&
+            precondition((passageGate.path?.boundingBox.height ?? 0) >= 80 &&
                          passageGate.childNode(withName: "exitPortalBase") != nil &&
+                         passageGate.childNode(withName: "exitPortalWallMount") != nil &&
                          passageGate.childNode(withName: "portalEnergy") != nil,
                          "Campaign exit must render as a visible upright energy portal")
             // Keep the exit fully visible for a stable visual regression frame.
@@ -2217,7 +2229,7 @@ final class OutpostScene: SKScene {
 
     private func layout() {
         if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 110)
+        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 62)
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
