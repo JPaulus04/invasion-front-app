@@ -9105,29 +9105,30 @@ final class OutpostScene: SKScene {
         lockMenuBriefly()
         clearOverlay()
         let stars = progress.stars(forWorld: worldMapIndex)
-        overlayText("\(selectedWorld.title) CLEARED", y: 85, fontSize: 18)
-        overlayText("LEVEL \(progress.level)  •  \(progress.damageTaken) DAMAGE TAKEN", y: 40, fontSize: 16)
-        // A prominent star display makes the permanent world reward legible.
+        // Keep rewards and actions in distinct vertical zones on small phones.
+        overlayText("\(selectedWorld.title) CLEARED", y: 176, fontSize: 22)
+        overlayText("LEVEL \(progress.level)  •  \(progress.damageTaken) DAMAGE TAKEN", y: 143, fontSize: 13)
         for index in 0..<3 {
             let star = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             star.text = index < stars ? "★" : "☆"
-            star.fontSize = 35
+            star.fontSize = 39
             star.fontColor = index < stars ? .systemYellow : .lightGray
-            star.position = CGPoint(x: CGFloat(index - 1) * 51, y: -11)
+            star.position = CGPoint(x: CGFloat(index - 1) * 56, y: 91)
             star.zPosition = 3
             overlay.addChild(star)
         }
-        overlayText("PLAYER \(health) HP  •  +\(salvageBankedThisRun) SALVAGE", y: -30, fontSize: 13)
+        overlayText("SURVIVED WITH \(health) HP", y: 53, fontSize: 13)
+        overlayText("+\(salvageBankedThisRun) SALVAGE", y: 25, fontSize: 15)
         if lastWorldCoreReward > 0 {
-            overlayText("NEW REWARD: +\(lastWorldCoreReward) CORES", y: -78, fontSize: 14)
+            overlayText("+\(lastWorldCoreReward) NEW POWER CORES", y: -6, fontSize: 14)
         } else {
-            overlayText("NO NEW CORES — EARN MORE STARS", y: -75, fontSize: 12)
+            overlayText("NO NEW CORES — EARN MORE STARS", y: -6, fontSize: 11)
         }
-        overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -53, fontSize: 13)
-        actionButton("HEADQUARTERS", key: "headquarters", y: -105, tint: .systemIndigo)
-        actionButton("PLAY AGAIN", key: "restart", y: -160, tint: .systemTeal)
+        overlayText("POWER CORES AVAILABLE: \(availableCores)", y: -34, fontSize: 11)
+        actionButton("HEADQUARTERS", key: "headquarters", y: -91, tint: .systemIndigo)
+        actionButton("PLAY AGAIN", key: "restart", y: -149, tint: .systemTeal)
         if WorldCatalog.unlocked(worldMapIndex + 1) {
-            actionButton("NEXT WORLD", key: "next_world", y: -212, tint: .systemGreen)
+            actionButton("NEXT WORLD", key: "next_world", y: -207, tint: .systemGreen)
         }
     }
 
