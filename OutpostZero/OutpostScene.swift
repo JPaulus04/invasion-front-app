@@ -4782,8 +4782,8 @@ final class OutpostScene: SKScene {
 
         let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         label.name = "fieldReactorLabel"
-        label.text = "DEFEND"
-        label.fontSize = 11
+        label.text = "REACTOR INTEGRITY"
+        label.fontSize = 9
         label.fontColor = .white
         label.position.y = 65
         label.zPosition = 7
@@ -4844,7 +4844,7 @@ final class OutpostScene: SKScene {
             (ratio > 0.25 ? .systemYellow : .systemRed)
         let critical = EquipmentDefenseRules.criticalIntegrity(defenseIntegrity)
         if let label = defenseDevice.childNode(withName: "fieldReactorLabel") as? SKLabelNode {
-            label.text = critical ? "REACTOR CRITICAL" : "DEFEND"
+            label.text = critical ? "REACTOR CRITICAL" : "REACTOR INTEGRITY"
             label.fontColor = critical ? .systemRed : .white
         }
         if let core = defenseDevice.childNode(withName: "fieldReactorCore") as? SKShapeNode {
@@ -4918,6 +4918,8 @@ final class OutpostScene: SKScene {
     }
 
     private func startWave() {
+        arena.isHidden = false
+        settingsShortcut.isHidden = false
         hud.isHidden = false
         // Returning from Home/World Map must restore the actual playable
         // pilot, not just the home preview art.
@@ -8474,7 +8476,7 @@ final class OutpostScene: SKScene {
         slotCaption.text = "TACTICAL SLOTS"
         slotCaption.fontSize = 9
         slotCaption.fontColor = SKColor(white: 0.83, alpha: 1)
-        slotCaption.position = CGPoint(x: 0, y: -202)
+        slotCaption.position = CGPoint(x: 0, y: -233)
         overlay.addChild(slotCaption)
         for index in 0..<slots {
             let circle = SKShapeNode(circleOfRadius: 16)
@@ -9168,6 +9170,8 @@ final class OutpostScene: SKScene {
         fflush(stdout)
         #endif
         hud.isHidden = true
+        arena.isHidden = true
+        settingsShortcut.isHidden = true
         phase = .worldComplete
         ArcadeMusic.shared.play(.headquarters)
         lockMenuBriefly()
@@ -9187,19 +9191,11 @@ final class OutpostScene: SKScene {
         }
         overlayText("PLAYER \(health) HP  •  +\(salvageBankedThisRun) SALVAGE", y: -30, fontSize: 13)
         if lastWorldCoreReward > 0 {
-            let core = SKShapeNode(circleOfRadius: 13)
-            core.fillColor = .systemCyan
-            core.strokeColor = .white
-            core.lineWidth = 2
-            core.glowWidth = 5
-            core.position = CGPoint(x: -105, y: -76)
-            core.zPosition = 3
-            overlay.addChild(core)
-            overlayText("NEW REWARD: +\(lastWorldCoreReward) CORES", y: -81, fontSize: 14)
+            overlayText("NEW REWARD: +\(lastWorldCoreReward) CORES", y: -78, fontSize: 14)
         } else {
             overlayText("NO NEW CORES — EARN MORE STARS", y: -75, fontSize: 12)
         }
-        overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -48, fontSize: 15)
+        overlayText("AVAILABLE POWER CORES: \(availableCores)", y: -53, fontSize: 13)
         actionButton("HEADQUARTERS", key: "headquarters", y: -105, tint: .systemIndigo)
         actionButton("PLAY AGAIN", key: "restart", y: -160, tint: .systemTeal)
         if WorldCatalog.unlocked(worldMapIndex + 1) {
