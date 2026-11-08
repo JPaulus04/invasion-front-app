@@ -651,7 +651,7 @@ final class OutpostScene: SKScene {
         gateText.text = "ENTER"
         gateText.fontSize = 15
         gateText.fontColor = .white
-        gateText.position.y = 128
+        gateText.position.y = 139
         gateText.verticalAlignmentMode = .center
         gateText.zPosition = 4
         passageGate.addChild(gateText)
@@ -4710,7 +4710,8 @@ final class OutpostScene: SKScene {
         label.text = "REACTOR INTEGRITY"
         label.fontSize = 9
         label.fontColor = .white
-        label.position.y = 81
+        label.position.y = 103
+        label.verticalAlignmentMode = .center
         label.zPosition = 7
         defenseDevice.addChild(label)
 
@@ -4719,7 +4720,7 @@ final class OutpostScene: SKScene {
         track.fillColor = .black.withAlphaComponent(0.85)
         track.strokeColor = SKColor(white: 0.63, alpha: 1)
         track.lineWidth = 1.5
-        track.position = CGPoint(x: 0, y: 64)
+        track.position = CGPoint(x: 0, y: 84)
         track.zPosition = 7
         defenseDevice.addChild(track)
         defenseIntegrityBar.position = track.position
