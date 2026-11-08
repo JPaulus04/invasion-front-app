@@ -621,116 +621,45 @@ final class OutpostScene: SKScene {
         hazardScenery.zPosition = -0.6
         arena.addChild(pilot)
         refreshPilotAppearance()
-        // CAMPAIGN: upright circular portal anchored to the ground, not a
-        // flat round pad. Its tall energy plane faces the player from above.
-        passageGate.name = "campaignUprightPortal"
-        passageGate.fillColor = SKColor(red: 0.045, green: 0.12, blue: 0.25, alpha: 1)
-        passageGate.strokeColor = SKColor(red: 0.46, green: 0.84, blue: 0.97, alpha: 1)
-        passageGate.lineWidth = 9
-        passageGate.glowWidth = 3
+        // A compact physical extraction beacon replaces the oversized portal.
+        // Keep the passageGate node and its contact position unchanged so
+        // room-clear, touch, and proximity transitions retain their behavior.
+        passageGate.name = "campaignExitBeacon"
+        passageGate.path = CGPath(ellipseIn: CGRect(
+            x: -33, y: -10, width: 66, height: 23), transform: nil)
+        passageGate.fillColor = SKColor(red: 0.12, green: 0.21, blue: 0.25, alpha: 1)
+        passageGate.strokeColor = SKColor(red: 0.38, green: 0.75, blue: 0.73, alpha: 1)
+        passageGate.lineWidth = 3
+        passageGate.glowWidth = 0
         passageGate.zPosition = 5
         passageGate.isHidden = true
         arena.addChild(passageGate)
 
-        // The footplate and contact shadow show a physical structure resting
-        // vertically ON the terrain. They are behind the energy plane.
-        let groundShadow = SKShapeNode(ellipseOf: CGSize(width: 134, height: 26))
-        groundShadow.name = "campaignPortalGroundShadow"
-        groundShadow.position = CGPoint(x: 7, y: -4)
-        groundShadow.fillColor = SKColor.black.withAlphaComponent(0.36)
-        groundShadow.strokeColor = .clear
-        groundShadow.zPosition = -2
-        passageGate.addChild(groundShadow)
-        let footing = SKShapeNode(ellipseOf: CGSize(width: 118, height: 19))
-        footing.name = "campaignPortalFootplate"
-        footing.position = CGPoint(x: 0, y: 0)
-        footing.fillColor = SKColor(red: 0.20, green: 0.31, blue: 0.37, alpha: 1)
-        footing.strokeColor = .systemTeal
-        footing.lineWidth = 2
-        footing.zPosition = -1.4
-        passageGate.addChild(footing)
-        // The offset rear rim is structural thickness viewed in 3/4 perspective.
-        let rearRim = SKShapeNode(path: CGPath(ellipseIn: CGRect(
-            x: -49, y: 7, width: 104, height: 148), transform: nil))
-        rearRim.name = "campaignPortalRearRim"
-        rearRim.position = CGPoint(x: 8, y: -3)
-        rearRim.fillColor = SKColor(red: 0.10, green: 0.20, blue: 0.28, alpha: 1)
-        rearRim.strokeColor = SKColor(red: 0.20, green: 0.44, blue: 0.55, alpha: 1)
-        rearRim.lineWidth = 8
-        rearRim.zPosition = -0.9
-        passageGate.addChild(rearRim)
-        for side: CGFloat in [-1, 1] {
-            let leg = SKShapeNode(rectOf: CGSize(width: 13, height: 67),
-                                  cornerRadius: 4)
-            leg.position = CGPoint(x: side * 45, y: 33)
-            leg.fillColor = SKColor(red: 0.23, green: 0.37, blue: 0.43, alpha: 1)
-            leg.strokeColor = SKColor(red: 0.19, green: 0.68, blue: 0.77, alpha: 1)
-            leg.lineWidth = 2
-            leg.zPosition = -0.7
-            passageGate.addChild(leg)
-        }
-        let innerFrame = SKShapeNode(ellipseOf: CGSize(width: 88, height: 131))
-        innerFrame.name = "campaignPortalInnerFrame"
-        innerFrame.position = CGPoint(x: 0, y: 82)
-        innerFrame.fillColor = SKColor(red: 0.12, green: 0.20, blue: 0.30, alpha: 1)
-        innerFrame.strokeColor = SKColor(red: 0.30, green: 0.56, blue: 0.69, alpha: 1)
-        innerFrame.lineWidth = 4
-        innerFrame.zPosition = 0.5
-        passageGate.addChild(innerFrame)
-        let portalEnergy = SKShapeNode(ellipseOf: CGSize(width: 72, height: 113))
-        portalEnergy.name = "portalEnergy"
-        portalEnergy.position = CGPoint(x: 0, y: 82)
-        portalEnergy.fillColor = SKColor(red: 0.06, green: 0.24, blue: 0.58, alpha: 1)
-        portalEnergy.strokeColor = SKColor(red: 0.19, green: 0.69, blue: 0.97, alpha: 0.93)
-        portalEnergy.lineWidth = 2
-        portalEnergy.glowWidth = 5
-        portalEnergy.zPosition = 1
-        passageGate.addChild(portalEnergy)
-        // Currents rise inside the vertical energy field, rather than
-        // radiating outward like ripples on a horizontal puddle.
-        for index in 0..<5 {
-            let y = CGFloat(index - 2) * 19
-            let path = CGMutablePath()
-            path.move(to: CGPoint(x: -22, y: y - 7))
-            path.addQuadCurve(
-                to: CGPoint(x: 20, y: y + 10),
-                control: CGPoint(x: 2 + CGFloat(index % 2) * 7, y: y + 13))
-            let swirl = SKShapeNode(path: path)
-            swirl.name = "campaignEnergyCurrent"
-            swirl.strokeColor = index.isMultiple(of: 2)
-                ? SKColor(red: 0.43, green: 0.91, blue: 1, alpha: 0.79)
-                : SKColor(red: 0.16, green: 0.64, blue: 0.99, alpha: 0.89)
-            swirl.lineWidth = 3.1
-            swirl.lineCap = .round
-            swirl.glowWidth = 1.3
-            swirl.zPosition = 2
-            portalEnergy.addChild(swirl)
-            swirl.run(.repeatForever(.sequence([
-                .fadeAlpha(to: 0.37, duration: 0.55 + Double(index) * 0.10),
-                .fadeAlpha(to: 0.95, duration: 0.64 + Double(index) * 0.10)
-            ])))
-        }
-        // Clamps around a tall standing ring; their height makes the
-        // orientation readable even at phone size.
-        for anchor in [
-            CGPoint(x: -48, y: 86), CGPoint(x: 48, y: 86),
-            CGPoint(x: 0, y: 13), CGPoint(x: 0, y: 151)
-        ] {
-            let clasp = SKShapeNode(rectOf: CGSize(width: 16, height: 13),
-                                    cornerRadius: 3)
-            clasp.position = anchor
-            clasp.zRotation = abs(anchor.x) > 0 ? 0 : .pi / 2
-            clasp.fillColor = SKColor(red: 0.23, green: 0.36, blue: 0.43, alpha: 1)
-            clasp.strokeColor = .systemTeal
-            clasp.lineWidth = 2
-            clasp.zPosition = 3
-            passageGate.addChild(clasp)
-        }
+        let beaconPedestal = SKShapeNode(rectOf: CGSize(width: 35, height: 31),
+                                         cornerRadius: 6)
+        beaconPedestal.name = "exitBeaconPedestal"
+        beaconPedestal.position = CGPoint(x: 0, y: 19)
+        beaconPedestal.fillColor = SKColor(red: 0.18, green: 0.29, blue: 0.33, alpha: 1)
+        beaconPedestal.strokeColor = SKColor(red: 0.42, green: 0.55, blue: 0.56, alpha: 1)
+        beaconPedestal.lineWidth = 2
+        passageGate.addChild(beaconPedestal)
+
+        let beaconLens = SKShapeNode(rectOf: CGSize(width: 23, height: 9),
+                                     cornerRadius: 3)
+        beaconLens.name = "portalEnergy"
+        beaconLens.position = CGPoint(x: 0, y: 29)
+        beaconLens.fillColor = SKColor(red: 0.28, green: 0.91, blue: 0.75, alpha: 1)
+        beaconLens.strokeColor = .white.withAlphaComponent(0.65)
+        beaconLens.lineWidth = 1
+        beaconLens.glowWidth = 2
+        passageGate.addChild(beaconLens)
+
         let gateText = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        gateText.text = "ENTER"
-        gateText.fontSize = 12
+        gateText.name = "exitBeaconLabel"
+        gateText.text = "EXIT"
+        gateText.fontSize = 11
         gateText.fontColor = .white
-        gateText.position.y = 81
+        gateText.position.y = 48
         gateText.verticalAlignmentMode = .center
         gateText.zPosition = 4
         passageGate.addChild(gateText)
@@ -9079,7 +9008,7 @@ final class OutpostScene: SKScene {
         // upright campaign portal, never the timed-survival rescue orb.
         extractionPortal.isHidden = true
         passageGate.isHidden = false
-        passageGate.fillColor = SKColor(red: 0.045, green: 0.12, blue: 0.25, alpha: 1)
+        passageGate.fillColor = SKColor(red: 0.12, green: 0.21, blue: 0.25, alpha: 1)
         (passageGate.children.first(where: { $0 is SKLabelNode }) as? SKLabelNode)?.text = "ENTER"
         passageGate.childNode(withName: "gateArrow")?.isHidden = false
         passageGate.alpha = 1
@@ -9095,9 +9024,9 @@ final class OutpostScene: SKScene {
             .fadeAlpha(to: 0.88, duration: 0.65)
         ])))
         warning.text = activeEncounter == .equipmentDefense
-            ? (defenseIntegrity > 0 ? "REACTOR SECURED — ENTER PORTAL"
-                : "BONUS LOST — ENTER PORTAL")
-            : (wave == 1 ? "ROOM CLEAR — ENTER PORTAL" : "ROOM CLEAR — PORTAL OPEN")
+            ? (defenseIntegrity > 0 ? "REACTOR SECURED — REACH EXIT"
+                : "BONUS LOST — REACH EXIT")
+            : (wave == 1 ? "ROOM CLEAR — REACH EXIT" : "ROOM CLEAR — EXIT READY")
         controlsHint.isHidden = true
         warning.fontColor = activeEncounter == .equipmentDefense && defenseIntegrity == 0
             ? .systemOrange : .white
@@ -9110,7 +9039,7 @@ final class OutpostScene: SKScene {
             plate.path = CGPath(roundedRect: CGRect(x: -width / 2, y: -7, width: width, height: 29),
                                 cornerWidth: 10, cornerHeight: 10, transform: nil)
         }
-        warning.position = CGPoint(x: passageGate.position.x, y: passageGate.position.y - 52)
+        warning.position = CGPoint(x: passageGate.position.x, y: passageGate.position.y - 37)
         warning.removeAllActions()
         warning.alpha = 1
         warning.isHidden = false
