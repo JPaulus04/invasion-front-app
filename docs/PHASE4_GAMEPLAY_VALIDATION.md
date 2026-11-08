@@ -33,3 +33,7 @@ a driver navigation failure is not evidence that player difficulty is wrong.
 Local checks: source sanity, Python syntax, workflow YAML parsing, and positive /
 negative analyzer fixtures. iOS compilation and live simulator outcomes remain CI
 checks; parser fixtures are not gameplay evidence.
+
+## Phase 4 presentation acceptance checkpoint
+
+The compact physical campaign exit beacon replaces the oversized blue upright portal. Verify screenshots of the cleared tactical room exit, settled upgrade cards, reactor integrity label, and World 1 victory overlay. Source compilation alone does not establish visual approval; inspect screenshots for obscured text, gameplay bleed-through, and exit readability before closing Phase 4.
