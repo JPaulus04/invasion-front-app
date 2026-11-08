@@ -693,32 +693,51 @@ jobs:
               except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
                   if attempt == 2: raise
                   time.sleep(12)
-          choices=[d["udid"] for group in devices.values() for d in group if d.get("isAvailable",True) and d.get("name","").startswith("iPhone")]
+          choices=[(runtime,d) for runtime,group in devices.items()
+                   for d in group if d.get("isAvailable",True)
+                   and d.get("name","").startswith("iPhone")
+                   and d.get("deviceTypeIdentifier")]
           if not choices: raise SystemExit("No iPhone simulator available")
-          device=choices[0]
-          run(["xcrun","simctl","boot",device],45,False)
-          run(["xcrun","simctl","bootstatus",device,"-b"],300)
-          run(["xcrun","simctl","install",device,"simulator-app/OutpostZero.app"],120)
-          pathlib.Path("screenshots").mkdir(exist_ok=True)
-          captures=[
-              ("-captureGateScreenshot","exit-beacon"),
-              ("-captureLevelUpScreenshot","upgrade-cards"),
-              ("-captureEquipmentDefenseScreenshot","reactor"),
-              ("-captureVictoryScreenshot","victory"),
-          ]
-          for flag,name in captures:
-              # Restart atomically; standalone simctl terminate can hang on CI.
-              run(["xcrun","simctl","launch","--terminate-running-process",
-                   device,"com.paulus.laststandcommand",flag],90)
-              # Capture without repeated launchctl enumeration: on hosted macOS
-              # that query can stall despite the app running successfully.
-              time.sleep(9)
-              output=f"screenshots/phase4-{name}.png"
-              run(["xcrun","simctl","io",device,"screenshot",output],50)
-              # Check the actual foreground application, not just PNG validity.
-              # simctl ui cannot identify foreground apps; a scene-specific
-              # identity marker is checked by the screenshot validator below.
-              print("Captured",output,flush=True)
+          runtime,template=choices[0]
+          device=run(["xcrun","simctl","create","OutpostZero-Phase4-Visual",
+                      template["deviceTypeIdentifier"],runtime],90).stdout.strip()
+          print("Dedicated visual simulator:",device,flush=True)
+          try:
+              run(["xcrun","simctl","boot",device],90)
+              run(["xcrun","simctl","bootstatus",device,"-b"],300)
+              run(["xcrun","simctl","install",device,"simulator-app/OutpostZero.app"],150)
+              pathlib.Path("screenshots").mkdir(exist_ok=True)
+              captures=[
+                  ("-captureGateScreenshot","exit-beacon"),
+                  ("-captureLevelUpScreenshot","upgrade-cards"),
+                  ("-captureEquipmentDefenseScreenshot","reactor"),
+                  ("-captureVictoryScreenshot","victory"),
+              ]
+              for flag,name in captures:
+                  # A fresh simulator for each capture prevents an interrupted
+                  # scene from contaminating the next screenshot fixture.
+                  for attempt in range(2):
+                      try:
+                          result=run(["xcrun","simctl","launch",
+                                      "--terminate-running-process",device,
+                                      "com.paulus.laststandcommand",flag],90)
+                          print("Launch:",result.stdout.strip(),flush=True)
+                          break
+                      except (subprocess.TimeoutExpired,subprocess.CalledProcessError) as error:
+                          print(f"{name} launch attempt {attempt+1} failed: {error}",flush=True)
+                          if attempt: raise
+                          run(["xcrun","simctl","shutdown",device],45,False)
+                          run(["xcrun","simctl","boot",device],90)
+                          run(["xcrun","simctl","bootstatus",device,"-b"],300)
+                  time.sleep(9)
+                  output=f"screenshots/phase4-{name}.png"
+                  run(["xcrun","simctl","io",device,"screenshot",output],50)
+                  print("Captured",output,flush=True)
+          finally:
+              for action in ("shutdown","delete"):
+                  try: run(["xcrun","simctl",action,device],45,False)
+                  except (subprocess.TimeoutExpired,subprocess.CalledProcessError) as error:
+                      print(f"Simulator cleanup {action}: {error}",flush=True)
           PY
       - name: Validate captured frames
         run: python3 scripts/validate_simulator_screenshots.py screenshots/phase4-*.png
