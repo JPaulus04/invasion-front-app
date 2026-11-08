@@ -4671,7 +4671,8 @@ final class OutpostScene: SKScene {
         socket.zPosition = 4
         defenseDevice.addChild(socket)
 
-        let housingImage = productionImage(named: "field_reactor_polished")
+        let housingImage = productionImage(named: "outpost_zero_reactor_approved_transparent")
+            ?? productionImage(named: "field_reactor_polished")
         if let image = housingImage {
             // Keep the old chassis as a fallback, but render the authored
             // housing as one proportional image in the same depth band.
@@ -4680,15 +4681,18 @@ final class OutpostScene: SKScene {
             }
             let housing = SKSpriteNode(texture: SKTexture(image: image))
             housing.name = "fieldReactorHousingArt"
-            housing.size = CGSize(width: 112, height: 112)
+            housing.size = CGSize(width: 150, height: 140)
             // Visible base meets the existing grounded movement footprint.
-            housing.position.y = -8
+            housing.position.y = -7
             housing.zPosition = 4
             defenseDevice.addChild(housing)
         }
         let core = SKShapeNode(circleOfRadius: 15)
         core.name = "fieldReactorCore"
-        core.position.y = housingImage == nil ? 0 : -10
+        core.position.y = 0
+        // The approved artwork already contains the illuminated energy chamber.
+        // Do not cover it with a second flat, procedural circle.
+        core.isHidden = housingImage != nil
         core.fillColor = SKColor(red: 0.18, green: 0.80, blue: 0.96, alpha: 1)
         core.strokeColor = .white.withAlphaComponent(0.90)
         core.lineWidth = 2
@@ -4710,7 +4714,7 @@ final class OutpostScene: SKScene {
         label.text = "REACTOR INTEGRITY"
         label.fontSize = 9
         label.fontColor = .white
-        label.position.y = 103
+        label.position.y = 115
         label.verticalAlignmentMode = .center
         label.zPosition = 7
         defenseDevice.addChild(label)
@@ -4720,7 +4724,7 @@ final class OutpostScene: SKScene {
         track.fillColor = .black.withAlphaComponent(0.85)
         track.strokeColor = SKColor(white: 0.63, alpha: 1)
         track.lineWidth = 1.5
-        track.position = CGPoint(x: 0, y: 84)
+        track.position = CGPoint(x: 0, y: 96)
         track.zPosition = 7
         defenseDevice.addChild(track)
         defenseIntegrityBar.position = track.position
