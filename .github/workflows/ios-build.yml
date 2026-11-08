@@ -39,8 +39,9 @@ jobs:
           "$RUNNER_TEMP/room-tests"
       - name: Test reactive simulator combat driver
         run: |
-          swiftc OutpostZero/QACombatDriver.swift tests/QACombatDriverTests.swift -o "$RUNNER_TEMP/qa-driver-tests"
-          "$RUNNER_TEMP/qa-driver-tests"
+          set -o pipefail
+          swiftc OutpostZero/QACombatDriver.swift tests/QACombatDriverTests.swift -o "$RUNNER_TEMP/qa-driver-tests" 2>&1 | tee qa-driver-tests.log
+          "$RUNNER_TEMP/qa-driver-tests" 2>&1 | tee -a qa-driver-tests.log
       - name: Test character motion and recoil
         run: |
           swiftc OutpostZero/CharacterMotion.swift tests/CharacterMotionTests.swift -o "$RUNNER_TEMP/motion-tests"
@@ -173,6 +174,7 @@ jobs:
           path: |
             xcodebuild.log
             source-check.log
+            qa-driver-tests.log
           if-no-files-found: ignore
   defense-visual-review:
     # Run expensive simulator captures only at full review checkpoints.

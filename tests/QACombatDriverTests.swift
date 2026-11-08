@@ -16,7 +16,29 @@ struct QACombatDriverTests {
         let shot = QACombatDriver.Threat(position: CGPoint(x: 300, y: 250),
                                         velocity: CGVector(dx: -145, dy: 0), radius: 24)
         let dodge = target([shot], goal: CGPoint(x: 400, y: 250))
-        precondition(abs(dodge.y - origin.y) > 20, "Sidestep incoming fire instead of chasing XP")
+        // Test the entire relative-motion segment, not a preferred direction.
+        // Retreat is valid when the pilot can outrun the projectile.
+        func clearance(endpoint: CGPoint, shot: QACombatDriver.Threat) -> CGFloat {
+            let horizon: CGFloat = 0.45
+            let rx = origin.x - shot.position.x
+            let ry = origin.y - shot.position.y
+            let vx = (endpoint.x - origin.x) / horizon - shot.velocity.dx
+            let vy = (endpoint.y - origin.y) / horizon - shot.velocity.dy
+            let speedSquared = vx * vx + vy * vy
+            let closest = speedSquared > 0
+                ? min(horizon, max(0, -(rx * vx + ry * vy) / speedSquared)) : 0
+            return hypot(rx + vx * closest, ry + vy * closest) - shot.radius
+        }
+        precondition(clearance(endpoint: dodge, shot: shot) > 0,
+                     "Avoid incoming fire throughout the movement, including retreat")
+        precondition(clearance(endpoint: pickup, shot: shot) < 0,
+                     "Fixture must make directly chasing XP unsafe")
+        let fastShot = QACombatDriver.Threat(position: CGPoint(x: 330, y: 250),
+                                            velocity: CGVector(dx: -300, dy: 0), radius: 24)
+        let fastDodge = target([fastShot], goal: CGPoint(x: 400, y: 250))
+        precondition(clearance(endpoint: fastDodge, shot: fastShot) > 0,
+                     "Avoid a projectile that is faster than the pilot")
+        print("Dodge clearance: slow=\(clearance(endpoint: dodge, shot: shot)), fast=\(clearance(endpoint: fastDodge, shot: fastShot))")
         let mortar = QACombatDriver.Threat(position: origin, velocity: .zero, radius: 45)
         let escape = target([mortar])
         precondition(hypot(escape.x - origin.x, escape.y - origin.y) > 45,
