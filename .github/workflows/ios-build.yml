@@ -663,7 +663,7 @@ jobs:
     if: >-
       github.event_name == 'push' && contains(github.event.head_commit.message, '[phase4-review]')
     needs: build
-    runs-on: macos-26
+    runs-on: macos-15
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -675,7 +675,7 @@ jobs:
           mkdir -p simulator-app
           ditto -x -k OutpostZero-simulator-app.zip simulator-app
           test -x simulator-app/OutpostZero.app/OutpostZero
-      - name: Capture four Phase 4 acceptance screens
+      - name: Capture three Phase 4 acceptance screens
         timeout-minutes: 24
         shell: bash
         run: |
@@ -684,7 +684,15 @@ jobs:
           import json, subprocess, time, pathlib
           def run(args, limit=40, check=True):
               return subprocess.run(args, timeout=limit, check=check, capture_output=True, text=True)
-          devices=json.loads(run(["xcrun","simctl","list","devices","available","-j"],45).stdout)["devices"]
+          # CoreSimulator can be slow to initialize on fresh hosted runners.
+          # Retry discovery instead of failing after the first 45 seconds.
+          for attempt in range(3):
+              try:
+                  devices=json.loads(run(["xcrun","simctl","list","devices","available","-j"],120).stdout)["devices"]
+                  break
+              except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+                  if attempt == 2: raise
+                  time.sleep(12)
           choices=[d["udid"] for group in devices.values() for d in group if d.get("isAvailable",True) and d.get("name","").startswith("iPhone")]
           if not choices: raise SystemExit("No iPhone simulator available")
           device=choices[0]
