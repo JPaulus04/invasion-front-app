@@ -626,41 +626,25 @@ final class OutpostScene: SKScene {
         passageGate.name = "campaignExitPortal"
         passageGate.path = CGPath(ellipseIn: CGRect(
             x: -43, y: 19, width: 86, height: 86), transform: nil)
-        passageGate.fillColor = SKColor(red: 0.07, green: 0.24, blue: 0.64, alpha: 0.94)
-        passageGate.strokeColor = SKColor(red: 0.55, green: 0.88, blue: 1, alpha: 1)
+        passageGate.fillColor = .clear
+        passageGate.strokeColor = .clear
         passageGate.lineWidth = 5
-        passageGate.glowWidth = 9
+        passageGate.glowWidth = 0
         passageGate.zPosition = 5
         passageGate.isHidden = true
         arena.addChild(passageGate)
 
-        // The ring sits against the far boundary rather than in the playfield.
-        let portalMount = SKShapeNode(rectOf: CGSize(width: 104, height: 118),
-                                      cornerRadius: 16)
-        portalMount.name = "exitPortalWallMount"
-        portalMount.position = CGPoint(x: 0, y: 62)
-        portalMount.fillColor = SKColor(red: 0.13, green: 0.20, blue: 0.30, alpha: 1)
-        portalMount.strokeColor = SKColor(red: 0.40, green: 0.58, blue: 0.72, alpha: 1)
-        portalMount.lineWidth = 4
-        portalMount.zPosition = -1
-        passageGate.addChild(portalMount)
-
-        let portalBase = SKShapeNode(ellipseOf: CGSize(width: 100, height: 18))
-        portalBase.name = "exitPortalBase"
-        portalBase.position = CGPoint(x: 0, y: 0)
-        portalBase.fillColor = SKColor(red: 0.12, green: 0.19, blue: 0.30, alpha: 1)
-        portalBase.strokeColor = .systemCyan
-        portalBase.lineWidth = 3
-        passageGate.addChild(portalBase)
-
-        let energy = SKShapeNode(circleOfRadius: 34)
-        energy.name = "portalEnergy"
-        energy.position = CGPoint(x: 0, y: 62)
-        energy.fillColor = SKColor(red: 0.19, green: 0.66, blue: 1, alpha: 0.75)
-        energy.strokeColor = .cyan
-        energy.lineWidth = 3
-        energy.glowWidth = 8
-        passageGate.addChild(energy)
+        // Art-backed campaign exit. Keep passageGate as the independent interaction target.
+        // The sprite is anchored to the far wall and never participates in player collision.
+        if let portalImage = UIImage(named: "outpost_zero_portal_approved_transparent")
+            ?? UIImage(named: "ArtAssets/outpost_zero_portal_approved_transparent") {
+            let portalArtwork = SKSpriteNode(texture: SKTexture(image: portalImage))
+            portalArtwork.name = "campaignPortalArtwork"
+            portalArtwork.size = CGSize(width: 126, height: 126)
+            portalArtwork.position = CGPoint(x: 0, y: 62)
+            portalArtwork.zPosition = 1
+            passageGate.addChild(portalArtwork)
+        }
 
         let gateText = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         gateText.name = "exitPortalLabel"
