@@ -4,7 +4,12 @@ Push one completed batch with `[phase4-review]` to run the existing compile gate
 then the dedicated reusable `phase4-gameplay.yml` workflow. Both simulator jobs
 consume the app artifact from that same workflow run; no older binary is selected.
 
-Each profile gets a clean app installation and starts through `enterSelectedWorld`.
+Each profile creates a disposable iPhone simulator with empty app data, waits for
+boot readiness, installs the app, and starts through `enterSelectedWorld`.
+This avoids the first-boot uninstall timeout observed in run 42418889345.
+Setup command output and device identity are retained with the artifacts.
+Shutdown/delete are bounded, restricted to the new device, and cannot mask
+a setup or gameplay failure.
 Both select earned upgrades through card hit testing and buy checkpoint repairs
 through the same guarded function as player input. Cleared-room exits use ordinary
 collision-resolved movement. No kills, room clears, XP or victories are injected.

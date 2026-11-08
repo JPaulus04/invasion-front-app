@@ -12,6 +12,8 @@ jobs:
         profile: [stationary, moving]
     steps:
       - uses: actions/checkout@v4
+      - name: Test simulator setup failure handling
+        run: python3 -m unittest discover -s tests -p test_phase4_simulator.py
       - uses: actions/download-artifact@v4
         with:
           name: outpost-zero-simulator-app
@@ -23,7 +25,10 @@ jobs:
           git rev-parse HEAD | tee phase4/revision.txt
           lipo -info simulator-app/OutpostZero.app/OutpostZero
       - name: Run fresh campaign with real combat
-        run: python3 scripts/run_phase4_simulator.py '${{ matrix.profile }}'
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 scripts/run_phase4_simulator.py '${{ matrix.profile }}' 2>&1 | tee 'phase4/${{ matrix.profile }}-setup.log'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
