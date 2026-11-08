@@ -1828,6 +1828,14 @@ final class OutpostScene: SKScene {
             phase = .levelUp
             updateHUD()
         }
+        // Dedicated victory-screen fixture: render the real completion summary
+        // without relying on a full 20-room gameplay run.
+        if ProcessInfo.processInfo.arguments.contains("-captureVictoryScreenshot") {
+            showWorldCompleteSummary()
+            precondition(phase == .worldComplete && arena.isHidden &&
+                         hud.isHidden && settingsShortcut.isHidden,
+                         "Victory screenshot must show the clean reward summary")
+        }
         // CI-only room-clear screenshot: verify that combat hides the exit and
         // defeating the last foe exposes a readable ENTER gate.
         if ProcessInfo.processInfo.arguments.contains("-captureGateScreenshot") {
@@ -4713,7 +4721,7 @@ final class OutpostScene: SKScene {
         label.text = "REACTOR INTEGRITY"
         label.fontSize = 9
         label.fontColor = .white
-        label.position.y = 65
+        label.position.y = 81
         label.zPosition = 7
         defenseDevice.addChild(label)
 
@@ -4722,7 +4730,7 @@ final class OutpostScene: SKScene {
         track.fillColor = .black.withAlphaComponent(0.85)
         track.strokeColor = SKColor(white: 0.63, alpha: 1)
         track.lineWidth = 1.5
-        track.position = CGPoint(x: 0, y: 50)
+        track.position = CGPoint(x: 0, y: 64)
         track.zPosition = 7
         defenseDevice.addChild(track)
         defenseIntegrityBar.position = track.position
@@ -9038,7 +9046,7 @@ final class OutpostScene: SKScene {
             plate.path = CGPath(roundedRect: CGRect(x: -width / 2, y: -7, width: width, height: 29),
                                 cornerWidth: 10, cornerHeight: 10, transform: nil)
         }
-        warning.position = CGPoint(x: passageGate.position.x, y: passageGate.position.y - 37)
+        warning.position = CGPoint(x: passageGate.position.x, y: passageGate.position.y - 65)
         warning.removeAllActions()
         warning.alpha = 1
         warning.isHidden = false
