@@ -621,45 +621,42 @@ final class OutpostScene: SKScene {
         hazardScenery.zPosition = -0.6
         arena.addChild(pilot)
         refreshPilotAppearance()
-        // A compact physical extraction beacon replaces the oversized portal.
-        // Keep the passageGate node and its contact position unchanged so
-        // room-clear, touch, and proximity transitions retain their behavior.
-        passageGate.name = "campaignExitBeacon"
+        // Restore the recognizable upright energy portal, retaining the
+        // existing passageGate interaction and room-transition behavior.
+        passageGate.name = "campaignExitPortal"
         passageGate.path = CGPath(ellipseIn: CGRect(
-            x: -33, y: -10, width: 66, height: 23), transform: nil)
-        passageGate.fillColor = SKColor(red: 0.12, green: 0.21, blue: 0.25, alpha: 1)
-        passageGate.strokeColor = SKColor(red: 0.38, green: 0.75, blue: 0.73, alpha: 1)
-        passageGate.lineWidth = 3
-        passageGate.glowWidth = 0
+            x: -43, y: 5, width: 86, height: 112), transform: nil)
+        passageGate.fillColor = SKColor(red: 0.07, green: 0.24, blue: 0.64, alpha: 0.94)
+        passageGate.strokeColor = SKColor(red: 0.55, green: 0.88, blue: 1, alpha: 1)
+        passageGate.lineWidth = 5
+        passageGate.glowWidth = 9
         passageGate.zPosition = 5
         passageGate.isHidden = true
         arena.addChild(passageGate)
 
-        let beaconPedestal = SKShapeNode(rectOf: CGSize(width: 35, height: 31),
-                                         cornerRadius: 6)
-        beaconPedestal.name = "exitBeaconPedestal"
-        beaconPedestal.position = CGPoint(x: 0, y: 19)
-        beaconPedestal.fillColor = SKColor(red: 0.18, green: 0.29, blue: 0.33, alpha: 1)
-        beaconPedestal.strokeColor = SKColor(red: 0.42, green: 0.55, blue: 0.56, alpha: 1)
-        beaconPedestal.lineWidth = 2
-        passageGate.addChild(beaconPedestal)
+        let base = SKShapeNode(ellipseOf: CGSize(width: 100, height: 24))
+        base.name = "exitPortalBase"
+        base.position = CGPoint(x: 0, y: 2)
+        base.fillColor = SKColor(red: 0.12, green: 0.19, blue: 0.30, alpha: 1)
+        base.strokeColor = .systemCyan
+        base.lineWidth = 3
+        passageGate.addChild(base)
 
-        let beaconLens = SKShapeNode(rectOf: CGSize(width: 23, height: 9),
-                                     cornerRadius: 3)
-        beaconLens.name = "portalEnergy"
-        beaconLens.position = CGPoint(x: 0, y: 29)
-        beaconLens.fillColor = SKColor(red: 0.28, green: 0.91, blue: 0.75, alpha: 1)
-        beaconLens.strokeColor = .white.withAlphaComponent(0.65)
-        beaconLens.lineWidth = 1
-        beaconLens.glowWidth = 2
-        passageGate.addChild(beaconLens)
+        let energy = SKShapeNode(ellipseOf: CGSize(width: 64, height: 94))
+        energy.name = "portalEnergy"
+        energy.position = CGPoint(x: 0, y: 61)
+        energy.fillColor = SKColor(red: 0.19, green: 0.66, blue: 1, alpha: 0.65)
+        energy.strokeColor = .cyan
+        energy.lineWidth = 2
+        energy.glowWidth = 7
+        passageGate.addChild(energy)
 
         let gateText = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        gateText.name = "exitBeaconLabel"
-        gateText.text = "EXIT"
-        gateText.fontSize = 11
+        gateText.name = "exitPortalLabel"
+        gateText.text = "ENTER"
+        gateText.fontSize = 15
         gateText.fontColor = .white
-        gateText.position.y = 48
+        gateText.position.y = 128
         gateText.verticalAlignmentMode = .center
         gateText.zPosition = 4
         passageGate.addChild(gateText)
@@ -1847,13 +1844,11 @@ final class OutpostScene: SKScene {
             showZoneGate()
             precondition(!passageGate.isHidden && extractionPortal.isHidden,
                          "Normal campaign exit must never coexist with survival orb")
-            // The compact beacon has a ground-level footprint and a physical
-            // pedestal; reject accidental restoration of the old tall portal.
-            precondition((passageGate.path?.boundingBox.height ?? 0) < 40 &&
-                         (passageGate.path?.boundingBox.width ?? 0) < 90 &&
-                         passageGate.childNode(withName: "exitBeaconPedestal") != nil &&
+            // Reject a regression to the tiny, unreadable exit beacon.
+            precondition((passageGate.path?.boundingBox.height ?? 0) >= 100 &&
+                         passageGate.childNode(withName: "exitPortalBase") != nil &&
                          passageGate.childNode(withName: "portalEnergy") != nil,
-                         "Campaign exit must render as a compact physical beacon")
+                         "Campaign exit must render as a visible upright energy portal")
             // Keep the exit fully visible for a stable visual regression frame.
             passageGate.removeAllActions()
             passageGate.alpha = 1
@@ -9015,7 +9010,7 @@ final class OutpostScene: SKScene {
         // upright campaign portal, never the timed-survival rescue orb.
         extractionPortal.isHidden = true
         passageGate.isHidden = false
-        passageGate.fillColor = SKColor(red: 0.12, green: 0.21, blue: 0.25, alpha: 1)
+        passageGate.fillColor = SKColor(red: 0.07, green: 0.24, blue: 0.64, alpha: 0.94)
         (passageGate.children.first(where: { $0 is SKLabelNode }) as? SKLabelNode)?.text = "ENTER"
         passageGate.childNode(withName: "gateArrow")?.isHidden = false
         passageGate.alpha = 1
@@ -9046,7 +9041,7 @@ final class OutpostScene: SKScene {
             plate.path = CGPath(roundedRect: CGRect(x: -width / 2, y: -7, width: width, height: 29),
                                 cornerWidth: 10, cornerHeight: 10, transform: nil)
         }
-        warning.position = CGPoint(x: passageGate.position.x, y: passageGate.position.y - 65)
+        warning.position = CGPoint(x: passageGate.position.x, y: passageGate.position.y - 45)
         warning.removeAllActions()
         warning.alpha = 1
         warning.isHidden = false
