@@ -73,5 +73,30 @@ class SetupTests(unittest.TestCase):
                             if args[2] in ('shutdown', 'delete')))
 
 
+class CaptureTests(unittest.TestCase):
+    def test_capture_timeout_does_not_discard_real_terminal_outcome(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            log = root / 'moving.log'
+            log.write_text('[PHASE4 QA] profile=moving started world=1\n'
+                           '[PHASE4 PLAYTEST] outcome=complete world=1 room=20\n')
+            def command(*args, **kwargs):
+                if 'screenshot' in args:
+                    raise subprocess.TimeoutExpired(args, 45)
+                return subprocess.CompletedProcess(args, 0, '', '')
+            with patch.object(sim, 'command', side_effect=command):
+                sim.run_campaign('moving', 10, root, log, root / 'stderr.log', 'device')
+            self.assertTrue((root / 'moving-capture-errors.log').exists())
+
+    def test_missing_outcome_still_fails(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            log = root / 'moving.log'
+            log.write_text('[PHASE4 QA] profile=moving started world=1\n')
+            with patch.object(sim, 'command'):
+                with self.assertRaisesRegex(TimeoutError, 'no terminal outcome'):
+                    sim.run_campaign('moving', 0, root, log, root / 'stderr.log', 'device')
+
+
 if __name__ == '__main__':
     unittest.main()

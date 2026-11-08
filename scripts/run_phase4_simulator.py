@@ -87,8 +87,18 @@ def run_campaign(profile, limit, output, log, errors, device):
         content = log.read_text(errors='replace') if log.exists() else ''
         terminal = '[PHASE4 PLAYTEST] outcome=' in content
         if terminal or elapsed >= next_capture:
-            command('xcrun', 'simctl', 'io', device, 'screenshot',
-                    str(output / f'{profile}-{elapsed:04d}.png'), timeout=45)
+            capture = output / f'{profile}-{elapsed:04d}.png'
+            try:
+                command('xcrun', 'simctl', 'io', device, 'screenshot',
+                        str(capture), timeout=45)
+            except (subprocess.SubprocessError, OSError) as error:
+                # A diagnostic capture must not terminate a live campaign.
+                # Preserve the gap for visual review; terminal outcome checks
+                # below remain mandatory and are never inferred from images.
+                capture.unlink(missing_ok=True)
+                with (output / f'{profile}-capture-errors.log').open('a') as report:
+                    report.write(f'{elapsed}s {capture.name}: {error}\n')
+                print(f'::warning::Screenshot unavailable; gameplay continues: {error}', flush=True)
             next_capture = elapsed + 120
             print(f'{profile}: {elapsed}s; latest log: {content.splitlines()[-1:]}', flush=True)
         if terminal:
