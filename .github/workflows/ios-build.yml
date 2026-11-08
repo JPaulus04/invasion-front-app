@@ -707,9 +707,9 @@ jobs:
               ("-captureVictoryScreenshot","victory"),
           ]
           for flag,name in captures:
-              run(["xcrun","simctl","terminate",device,"com.paulus.laststandcommand"],20,False)
-              time.sleep(2)
-              run(["xcrun","simctl","launch",device,"com.paulus.laststandcommand",flag],50)
+              # Restart atomically; standalone simctl terminate can hang on CI.
+              run(["xcrun","simctl","launch","--terminate-running-process",
+                   device,"com.paulus.laststandcommand",flag],90)
               time.sleep(9)
               output=f"screenshots/phase4-{name}.png"
               run(["xcrun","simctl","io",device,"screenshot",output],50)
