@@ -1839,14 +1839,13 @@ final class OutpostScene: SKScene {
             showZoneGate()
             precondition(!passageGate.isHidden && extractionPortal.isHidden,
                          "Normal campaign exit must never coexist with survival orb")
-            // A true upright gate has a much taller silhouette than its
-            // footprint, with a base at the physical entry location.
-            precondition(passageGate.path?.boundingBox.height ?? 0 > 140 &&
-                         passageGate.path?.boundingBox.width ?? 0 < 120 &&
-                         (passageGate.path?.boundingBox.minY ?? -1) >= 0 &&
-                         passageGate.childNode(withName: "campaignPortalGroundShadow") != nil &&
-                         passageGate.childNode(withName: "campaignPortalRearRim") != nil,
-                         "Campaign exit must render as a grounded UPRIGHT portal")
+            // The compact beacon has a ground-level footprint and a physical
+            // pedestal; reject accidental restoration of the old tall portal.
+            precondition((passageGate.path?.boundingBox.height ?? 0) < 40 &&
+                         (passageGate.path?.boundingBox.width ?? 0) < 90 &&
+                         passageGate.childNode(withName: "exitBeaconPedestal") != nil &&
+                         passageGate.childNode(withName: "portalEnergy") != nil,
+                         "Campaign exit must render as a compact physical beacon")
             // Keep the exit fully visible for a stable visual regression frame.
             passageGate.removeAllActions()
             passageGate.alpha = 1
