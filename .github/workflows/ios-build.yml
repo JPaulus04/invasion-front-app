@@ -675,7 +675,7 @@ jobs:
           mkdir -p simulator-app
           ditto -x -k OutpostZero-simulator-app.zip simulator-app
           test -x simulator-app/OutpostZero.app/OutpostZero
-      - name: Capture three Phase 4 acceptance screens
+      - name: Capture four Phase 4 acceptance screens
         timeout-minutes: 24
         shell: bash
         run: |
@@ -704,6 +704,7 @@ jobs:
               ("-captureGateScreenshot","exit-beacon"),
               ("-captureLevelUpScreenshot","upgrade-cards"),
               ("-captureEquipmentDefenseScreenshot","reactor"),
+              ("-captureVictoryScreenshot","victory"),
           ]
           for flag,name in captures:
               run(["xcrun","simctl","terminate",device,"com.paulus.laststandcommand"],20,False)
