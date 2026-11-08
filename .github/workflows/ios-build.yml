@@ -658,3 +658,60 @@ jobs:
     needs: build
     if: github.event_name == 'push' && contains(github.event.head_commit.message, '[phase4-review]')
     uses: ./.github/workflows/phase4-gameplay.yml
+
+  phase4-presentation-review:
+    if: >-
+      github.event_name == 'push' && contains(github.event.head_commit.message, '[phase4-review]')
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+      - name: Restore compiled application
+        run: |
+          mkdir -p simulator-app
+          ditto -x -k OutpostZero-simulator-app.zip simulator-app
+          test -x simulator-app/OutpostZero.app/OutpostZero
+      - name: Capture four Phase 4 acceptance screens
+        timeout-minutes: 24
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, subprocess, time, pathlib
+          def run(args, limit=40, check=True):
+              return subprocess.run(args, timeout=limit, check=check, capture_output=True, text=True)
+          devices=json.loads(run(["xcrun","simctl","list","devices","available","-j"],45).stdout)["devices"]
+          choices=[d["udid"] for group in devices.values() for d in group if d.get("isAvailable",True) and d.get("name","").startswith("iPhone")]
+          if not choices: raise SystemExit("No iPhone simulator available")
+          device=choices[0]
+          run(["xcrun","simctl","boot",device],45,False)
+          run(["xcrun","simctl","bootstatus",device,"-b"],300)
+          run(["xcrun","simctl","install",device,"simulator-app/OutpostZero.app"],120)
+          pathlib.Path("screenshots").mkdir(exist_ok=True)
+          captures=[
+              ("-captureGateScreenshot","exit-beacon"),
+              ("-captureLevelUpScreenshot","upgrade-cards"),
+              ("-captureEquipmentDefenseScreenshot","reactor"),
+          ]
+          for flag,name in captures:
+              run(["xcrun","simctl","terminate",device,"com.paulus.laststandcommand"],20,False)
+              time.sleep(2)
+              run(["xcrun","simctl","launch",device,"com.paulus.laststandcommand",flag],50)
+              time.sleep(9)
+              output=f"screenshots/phase4-{name}.png"
+              run(["xcrun","simctl","io",device,"screenshot",output],50)
+              print("Captured",output,flush=True)
+          PY
+      - name: Validate captured frames
+        run: python3 scripts/validate_simulator_screenshots.py screenshots/phase4-*.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase4-presentation-screenshots
+          path: screenshots/phase4-*.png
+          if-no-files-found: warn
+          retention-days: 14
