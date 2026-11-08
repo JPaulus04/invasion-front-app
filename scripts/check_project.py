@@ -67,10 +67,10 @@ if '-captureSurvivalExtractionScreenshot' not in scene or 'extractionPortal.isHi
     errors.append("Simulator must capture extraction with enemies alive")
 if '-captureSurvivalTransitionScreenshot' not in scene or 'TerrainHazards.extractionPosition(' not in scene:
     errors.append("Simulator must verify reachable extraction and tactical-room transition")
-if 'campaignExitBeacon' not in scene or 'survivalExtractionOrb' not in scene or 'circleOfRadius: 21' not in scene:
-    errors.append("Campaign exit must use its own compact beacon separate from the survival extraction orb")
-if 'exitBeaconPedestal' not in scene or 'portalEnergy' not in scene or 'exitBeaconLabel' not in scene:
-    errors.append("Campaign exit must have a physical pedestal, illuminated indicator and EXIT label")
+if 'campaignExitPortal' not in scene or 'survivalExtractionOrb' not in scene or 'circleOfRadius: 21' not in scene:
+    errors.append("Campaign exit must use its own visible portal separate from the survival extraction orb")
+if 'exitPortalBase' not in scene or 'portalEnergy' not in scene or 'exitPortalLabel' not in scene:
+    errors.append("Campaign exit must have a grounded base, illuminated energy and ENTER label")
 if 'for vineIndex in 0..<2' in scene or 'floor.strokeColor = .clear' not in scene:
     errors.append("Stray tree wisps or rectangular survival floor lines remain")
 if 'zoneBanner.text = ""' not in scene:
