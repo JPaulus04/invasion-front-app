@@ -16,8 +16,12 @@ collision-resolved movement. No kills, room clears, XP or victories are injected
 
 Stationary means stationary during active rooms. Exit transit, including survival
 extraction, is permitted and is excluded from the existing active-room movement
-metric. Moving uses the existing deterministic weaving driver; this first run
-measures that policy, not human skill or statistical win rate.
+metric. Moving samples collision-resolved directions every 150 ms, avoids nearby enemies,
+incoming projectiles and visible mortar circles, and approaches XP when safe.
+Its 450 ms prediction uses current visible threats, not future spawn schedules.
+This measures that policy, not human skill or statistical win rate.
+Run 42431522703 confirmed setup recovery but failed moving acceptance in Room 5;
+the reactive policy replaces the fixed weave without changing game difficulty.
 
 The acceptance job requires one real terminal outcome per profile: stationary
 World 1 defeat, moving Room 20 completion, actual movement and earned upgrades.

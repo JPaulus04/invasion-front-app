@@ -353,6 +353,8 @@ final class OutpostScene: SKScene {
     private var qaNextTelemetryAt: TimeInterval = 10
     private var qaNextMenuActionAt: TimeInterval = 0
     private var qaExitWaypoints: [CGPoint] = []
+    private var qaNextSteeringAt: TimeInterval = 0
+    private var qaSteeringTarget: CGPoint?
 
     private var playtestUpgradesChosen = 0
     private var playtestLastPilotPosition: CGPoint?
@@ -7035,11 +7037,11 @@ final class OutpostScene: SKScene {
         } else if qaStationaryRun {
             movementTarget = nil
         } else if qaMovingRun && phase == .playing {
-            // Real collision-resolved pilot movement; no teleportation.
-            let t = CGFloat(combatTime)
-            movementTarget = CGPoint(
-                x: roomBounds.midX + sin(t * 0.86) * roomBounds.width * 0.25,
-                y: roomBounds.minY + roomBounds.height * (0.28 + 0.11 * sin(t * 0.49)))
+            if combatTime >= qaNextSteeringAt || qaSteeringTarget == nil {
+                qaSteeringTarget = qaCombatTarget()
+                qaNextSteeringAt = combatTime + 0.15
+            }
+            movementTarget = qaSteeringTarget
         }
         if (capturePilotMotion && (phase == .playing || phase == .gate)) ||
             (phase == .playing && (
@@ -8796,6 +8798,31 @@ final class OutpostScene: SKScene {
             }
             qaNextMenuActionAt = clock + 0.5
         }
+    }
+
+    private func qaCombatTarget() -> CGPoint {
+        var threats = enemies.filter { $0.health > 0 }.map { enemy -> QACombatDriver.Threat in
+            let dx = pilot.position.x - enemy.node.position.x
+            let dy = pilot.position.y - enemy.node.position.y
+            let length = max(1, hypot(dx, dy))
+            return QACombatDriver.Threat(position: enemy.node.position,
+                velocity: CGVector(dx: dx / length * enemy.speed, dy: dy / length * enemy.speed),
+                radius: enemy.radius + 20)
+        }
+        threats += projectiles.map {
+            QACombatDriver.Threat(position: $0.node.position, velocity: $0.velocity, radius: 24)
+        }
+        // Visible mortar warning circles are dangerous throughout the approach.
+        threats += lobs.map {
+            QACombatDriver.Threat(position: $0.target, velocity: .zero, radius: $0.radius + 16)
+        }
+        let goal = xpDrops.min(by: {
+            distance($0.node.position, pilot.position) < distance($1.node.position, pilot.position)
+        })?.node.position ?? CGPoint(x: roomBounds.midX, y: roomBounds.midY)
+        return QACombatDriver.target(origin: pilot.position, speed: pilotSpeed,
+            bounds: roomBounds.insetBy(dx: 16, dy: 16), threats: threats,
+            goal: goal, previous: qaSteeringTarget,
+            resolve: { [unowned self] from, to in self.resolvePilotMovement(from: from, to: to) })
     }
 
     private func qaExitTarget() -> CGPoint {
