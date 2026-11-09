@@ -385,6 +385,20 @@ jobs:
                 return 0
               fi
               echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT); retrying"
+              # A stalled screenshot service needs a fresh simulator boot.
+              # Repeating capture against the same wedged device is ineffective.
+              if [ "$ATTEMPT" != 3 ]; then
+                run_bounded 25 xcrun simctl shutdown "$DEVICE" || true
+                run_bounded 35 xcrun simctl boot "$DEVICE" || true
+                if ! run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b; then
+                  echo "::error::Simulator failed recovery boot for $FLAG"
+                  return 1
+                fi
+                if ! run_bounded 100 xcrun simctl install "$DEVICE" "$APP"; then
+                  echo "::error::Simulator failed recovery install for $FLAG"
+                  return 1
+                fi
+              fi
               sleep 4
             done
             echo "::error::Simulator never rendered a usable frame for $FLAG"
