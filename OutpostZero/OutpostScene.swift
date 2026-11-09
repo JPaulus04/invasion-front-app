@@ -9158,6 +9158,19 @@ final class OutpostScene: SKScene {
             star.position = CGPoint(x: CGFloat(index - 1) * 56, y: 91)
             star.zPosition = 3
             overlay.addChild(star)
+            // Reveal earned stars in sequence without changing the
+            // underlying WorldCatalog award or completion state.
+            star.setScale(0.35)
+            star.alpha = 0
+            let delay = 0.16 + Double(index) * 0.22
+            star.run(.sequence([
+                .wait(forDuration: delay),
+                .group([
+                    .fadeIn(withDuration: 0.18),
+                    .scale(to: 1.16, duration: 0.24)
+                ]),
+                .scale(to: 1.0, duration: 0.12)
+            ]))
         }
         overlayText("SURVIVED WITH \(health) HP", y: 53, fontSize: 13)
         overlayText("+\(salvageBankedThisRun) SALVAGE", y: 25, fontSize: 15)
