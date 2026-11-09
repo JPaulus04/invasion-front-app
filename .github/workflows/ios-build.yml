@@ -777,15 +777,35 @@ jobs:
                           run(["xcrun","simctl","bootstatus",device,"-b"],300)
                   time.sleep(9)
                   output=f"screenshots/phase4-{name}.png"
-                  run(["xcrun","simctl","io",device,"screenshot",output],50)
-                  print("Captured",output,flush=True)
-                  validation=run(["python3","scripts/validate_simulator_screenshots.py",output],120,False)
-                  print(validation.stdout,validation.stderr,flush=True)
-                  if validation.returncode:
-                      for stream in ("stdout","stderr"):
-                          log=pathlib.Path(f"screenshots/phase4-{name}-{stream}.log")
-                          if log.exists(): print(log.read_text(errors="replace")[-12000:],flush=True)
-                      raise RuntimeError(f"{name}: app did not render the requested scene")
+                  # Screenshot transport can hang even after a successful
+                  # launch. Retry with a clean boot and relaunch the same
+                  # fixture; never accept a zero-byte or stale PNG.
+                  for capture_attempt in range(3):
+                      pathlib.Path(output).unlink(missing_ok=True)
+                      try:
+                          run(["xcrun","simctl","io",device,"screenshot",output],65)
+                          if not pathlib.Path(output).is_file() or pathlib.Path(output).stat().st_size < 4096:
+                              raise RuntimeError(f"{name}: empty simulator screenshot")
+                          validation=run(["python3","scripts/validate_simulator_screenshots.py",output],120,False)
+                          print(validation.stdout,validation.stderr,flush=True)
+                          if validation.returncode:
+                              raise RuntimeError(f"{name}: screenshot failed image validation")
+                          print("Captured",output,flush=True)
+                          break
+                      except (subprocess.TimeoutExpired,subprocess.CalledProcessError,RuntimeError) as error:
+                          print(f"{name} capture attempt {capture_attempt+1}/3 failed: {error}",flush=True)
+                          if capture_attempt == 2:
+                              for stream in ("stdout","stderr"):
+                                  log=pathlib.Path(f"screenshots/phase4-{name}-{stream}.log")
+                                  if log.exists(): print(log.read_text(errors="replace")[-12000:],flush=True)
+                              raise
+                          run(["xcrun","simctl","shutdown",device],45,False)
+                          run(["xcrun","simctl","boot",device],90)
+                          run(["xcrun","simctl","bootstatus",device,"-b"],300)
+                          run(["xcrun","simctl","install",device,"simulator-app/OutpostZero.app"],150)
+                          run(["xcrun","simctl","launch","--terminate-running-process",
+                               device,"com.paulus.laststandcommand",flag],90)
+                          time.sleep(12)
           finally:
               diagnostic=pathlib.Path("screenshots/diagnostics")
               diagnostic.mkdir(parents=True,exist_ok=True)
