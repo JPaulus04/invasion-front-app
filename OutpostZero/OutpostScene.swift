@@ -5347,7 +5347,10 @@ final class OutpostScene: SKScene {
             }
             let artName = "world1_\(landscape)_floor_\(wave == 20 ? 1 : (wave - 1) % 3 + 1)"
             let stoneArenaTexture = worldOneTexture(named: "world1_overgrown_stone_arena")
-            let authoredFloorTexture = stoneArenaTexture ?? worldOneTexture(named: artName)
+            // Preserve landscape-specific stone, moss and ground scale instead of
+            // stretching one universal stone-arena painting across every room.
+            // The approved stone arena remains a fallback if a zone asset is absent.
+            let authoredFloorTexture = worldOneTexture(named: artName) ?? stoneArenaTexture
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
                authoredFloorTexture == nil {
                 preconditionFailure("Missing authored World 1 floor: \(artName)")
