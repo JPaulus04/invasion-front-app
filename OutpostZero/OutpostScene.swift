@@ -4542,10 +4542,14 @@ final class OutpostScene: SKScene {
     private func updateReactorOcclusion() {
         pilotHealthTrack.position = CGPoint(x: 0, y: 36)
         guard defenseDevice.parent === arena else { return }
-        // Separate the pilot bar from the reactor integrity stack when close.
+        // Keep the pilot health bar readable beside the reactor's own status
+        // indicators. Offset toward the open side of the objective instead
+        // of stacking both bars directly over the reactor chassis.
         if abs(pilot.position.x - defenseDevice.position.x) < 85 &&
            abs(pilot.position.y - defenseDevice.position.y) < 95 {
             pilotHealthTrack.position.y = max(36, defenseDevice.position.y + 100 - pilot.position.y)
+            let side: CGFloat = pilot.position.x < defenseDevice.position.x ? -1 : 1
+            pilotHealthTrack.position.x = side * 26
         }
         // Feet are 27 points below the pilot origin; the reactor base is -37.
         let behind = pilot.position.y - 27 > defenseDevice.position.y - 37
