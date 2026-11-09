@@ -48,6 +48,10 @@ def verify(path: Path) -> None:
     previous = bytearray(stride)
     colors = set()
     arena_marker = None
+    focused_marker = None
+    focused_codes = {f"phase4-{name}.png": index for index, name in enumerate((
+        "exit-beacon", "upgrade-cards", "reactor", "victory", "combat-hud",
+        "reactor-secured", "reactor-lost"), start=1)}
     expected_markers = {
         "outpost-zero-pilot-directions.png": 2,
         "outpost-zero-arena-west.png": 0,
@@ -105,6 +109,9 @@ def verify(path: Path) -> None:
         if (path.name in expected_markers or path.name in world_one_markers or is_survival) and y == round(height * 0.40):
             cx = round(width * 0.90)
             arena_marker = tuple(row[cx * channels:cx * channels + 3])
+        if path.name in focused_codes and y == round(height * 0.54):
+            cx = round(width * 0.94)
+            focused_marker = tuple(row[cx * channels:cx * channels + 3])
         if height // 7 < y < height * 13 // 14 and y % y_step == 0:
             colors.update(bytes(row[x * channels:x * channels + 3]) for x in x_positions)
         previous = row
@@ -114,6 +121,12 @@ def verify(path: Path) -> None:
     # legitimately produce fewer colors than dense forest/gate screenshots.
     if len(colors) < 15:
         raise ValueError(f"blank or unrendered simulator capture ({len(colors)} sampled colors)")
+    if path.name in focused_codes:
+        code = focused_codes[path.name]
+        if focused_marker is None or any(
+            (focused_marker[channel] < 170 if code & (1 << channel)
+             else focused_marker[channel] > 90) for channel in range(3)):
+            raise ValueError(f"missing focused scene identity {code}: sampled {focused_marker}; app may have exited or shown a stale scene")
     if path.name in expected_markers:
         # The simulator sometimes captures the colorful iOS home screen when
         # the game crashed after a successful simctl launch. It must NEVER

@@ -2068,6 +2068,27 @@ final class OutpostScene: SKScene {
             phase = .levelUp
             updateHUD()
         }
+        #if targetEnvironment(simulator)
+        // Added after every fixture finishes setup. Root ownership keeps the
+        // identity visible when victory deliberately hides the HUD and arena.
+        let reviewFlags = ["-captureGateScreenshot", "-captureLevelUpScreenshot",
+            "-captureEquipmentDefenseScreenshot", "-captureVictoryScreenshot",
+            "-captureCombatScreenshot", "-captureEquipmentDefenseClearScreenshot",
+            "-captureEquipmentDefenseFailureScreenshot"]
+        if let index = reviewFlags.firstIndex(where: { ProcessInfo.processInfo.arguments.contains($0) }) {
+            let code = index + 1
+            let marker = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
+            marker.name = "focusedReviewIdentity"
+            marker.fillColor = SKColor(red: code & 1 != 0 ? 1 : 0,
+                green: code & 2 != 0 ? 1 : 0, blue: code & 4 != 0 ? 1 : 0, alpha: 1)
+            marker.strokeColor = .clear
+            marker.position = CGPoint(x: size.width * 0.94, y: size.height * 0.46)
+            marker.zPosition = 999
+            addChild(marker)
+            print("[FOCUSED REVIEW] ready code=\(code) flag=\(reviewFlags[index])")
+            fflush(stdout)
+        }
+        #endif
     }
 
     /// The floor travels with the camera: a static screen backdrop would
@@ -2382,14 +2403,20 @@ final class OutpostScene: SKScene {
                   let track = chrome.childNode(withName: name + "Track") as? SKShapeNode else {
                 preconditionFailure("Missing combat HUD meter")
             }
-            let savedScale = fill.xScale
+            // Layout also runs before the chrome is visible. Validate path
+            // geometry directly, without querying render-dependent frames or
+            // temporarily mutating a live meter during scene startup.
+            guard let fillBounds = fill.path?.boundingBoxOfPath,
+                  let trackBounds = track.path?.boundingBoxOfPath else {
+                preconditionFailure("Missing combat HUD meter path")
+            }
             for fraction in [CGFloat(0.001), 0.5, 1] {
-                fill.xScale = fraction
-                precondition(abs(fill.frame.minX - track.frame.minX) < 1 &&
-                             fill.frame.maxX <= track.frame.maxX + 1,
+                let left = fill.position.x + fillBounds.minX * fraction
+                let right = fill.position.x + fillBounds.maxX * fraction
+                precondition(abs(left - (track.position.x + trackBounds.minX)) < 1 &&
+                             right <= track.position.x + trackBounds.maxX + 1,
                              "Depleted HUD fill must stay anchored inside its track")
             }
-            fill.xScale = savedScale
         }
         #endif
     }

@@ -31,6 +31,8 @@ jobs:
         run: |
           set -o pipefail
           python3 scripts/check_project.py 2>&1 | tee source-check.log
+      - name: Test focused screenshot identity rejection
+        run: python3 -m unittest discover -s tests -p test_focused_screenshots.py
       - name: Validate production sprite assets
         run: python3 scripts/check_art_sprites.py
       - name: Test room rules
@@ -719,7 +721,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, subprocess, time, pathlib
+          import json, subprocess, time, pathlib, shutil
           def run(args, limit=40, check=True):
               return subprocess.run(args, timeout=limit, check=check, capture_output=True, text=True)
           # CoreSimulator can be slow to initialize on fresh hosted runners.
@@ -760,7 +762,9 @@ jobs:
                   for attempt in range(2):
                       try:
                           result=run(["xcrun","simctl","launch",
-                                      "--terminate-running-process",device,
+                                      "--terminate-running-process",
+                                      "--stdout="+str(pathlib.Path(f"screenshots/phase4-{name}-stdout.log").resolve()),
+                                      "--stderr="+str(pathlib.Path(f"screenshots/phase4-{name}-stderr.log").resolve()),device,
                                       "com.paulus.laststandcommand",flag],90)
                           print("Launch:",result.stdout.strip(),flush=True)
                           break
@@ -774,7 +778,18 @@ jobs:
                   output=f"screenshots/phase4-{name}.png"
                   run(["xcrun","simctl","io",device,"screenshot",output],50)
                   print("Captured",output,flush=True)
+                  validation=run(["python3","scripts/validate_simulator_screenshots.py",output],120,False)
+                  print(validation.stdout,validation.stderr,flush=True)
+                  if validation.returncode:
+                      for stream in ("stdout","stderr"):
+                          log=pathlib.Path(f"screenshots/phase4-{name}-{stream}.log")
+                          if log.exists(): print(log.read_text(errors="replace")[-12000:],flush=True)
+                      raise RuntimeError(f"{name}: app did not render the requested scene")
           finally:
+              diagnostic=pathlib.Path("screenshots/diagnostics")
+              diagnostic.mkdir(parents=True,exist_ok=True)
+              for report in (pathlib.Path.home()/"Library/Logs/DiagnosticReports").glob("OutpostZero*"):
+                  if report.is_file(): shutil.copy2(report,diagnostic/report.name)
               for action in ("shutdown","delete"):
                   try: run(["xcrun","simctl",action,device],45,False)
                   except (subprocess.TimeoutExpired,subprocess.CalledProcessError) as error:
@@ -786,6 +801,6 @@ jobs:
         if: always()
         with:
           name: phase4-presentation-screenshots
-          path: screenshots/phase4-*.png
+          path: screenshots/
           if-no-files-found: warn
           retention-days: 14
