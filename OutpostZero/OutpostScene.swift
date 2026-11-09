@@ -634,6 +634,34 @@ final class OutpostScene: SKScene {
         passageGate.isHidden = true
         arena.addChild(passageGate)
 
+        // Stone wall portal surround: the art is inset into an architectural
+        // opening rather than standing on the walkable floor.
+        let wallShadow = SKShapeNode(rect: CGRect(x: -74, y: 42,
+            width: 148, height: 126), cornerRadius: 17)
+        wallShadow.name = "portalWallRecess"
+        wallShadow.fillColor = SKColor(red: 0.075, green: 0.13, blue: 0.12, alpha: 0.96)
+        wallShadow.strokeColor = SKColor(red: 0.30, green: 0.39, blue: 0.30, alpha: 1)
+        wallShadow.lineWidth = 7
+        wallShadow.zPosition = -2
+        passageGate.addChild(wallShadow)
+        for side: CGFloat in [-1, 1] {
+            let pier = SKShapeNode(rect: CGRect(x: side < 0 ? -85 : 64,
+                y: 35, width: 21, height: 143), cornerRadius: 5)
+            pier.name = "portalStonePier"
+            pier.fillColor = SKColor(red: 0.31, green: 0.39, blue: 0.32, alpha: 1)
+            pier.strokeColor = SKColor(red: 0.16, green: 0.24, blue: 0.18, alpha: 1)
+            pier.lineWidth = 2
+            pier.zPosition = 2
+            passageGate.addChild(pier)
+        }
+        let lintel = SKShapeNode(rect: CGRect(x: -86, y: 157,
+            width: 172, height: 23), cornerRadius: 5)
+        lintel.name = "portalStoneLintel"
+        lintel.fillColor = SKColor(red: 0.34, green: 0.43, blue: 0.34, alpha: 1)
+        lintel.strokeColor = SKColor(red: 0.15, green: 0.24, blue: 0.17, alpha: 1)
+        lintel.lineWidth = 2
+        lintel.zPosition = 3
+        passageGate.addChild(lintel)
         // Art-backed campaign exit. Keep passageGate as the independent interaction target.
         // The sprite is anchored to the far wall and never participates in player collision.
         if let portalImage = UIImage(named: "outpost_zero_portal_approved_transparent")
@@ -641,7 +669,7 @@ final class OutpostScene: SKScene {
             let portalArtwork = SKSpriteNode(texture: SKTexture(image: portalImage))
             portalArtwork.name = "campaignPortalArtwork"
             portalArtwork.size = CGSize(width: 126, height: 126)
-            portalArtwork.position = CGPoint(x: 0, y: 112)
+            portalArtwork.position = CGPoint(x: 0, y: 103)
             portalArtwork.zPosition = 1
             passageGate.addChild(portalArtwork)
         }
@@ -651,7 +679,7 @@ final class OutpostScene: SKScene {
         gateText.text = "ENTER"
         gateText.fontSize = 15
         gateText.fontColor = .white
-        gateText.position.y = 173
+        gateText.position.y = 181
         gateText.verticalAlignmentMode = .center
         gateText.zPosition = 4
         passageGate.addChild(gateText)
@@ -4825,6 +4853,14 @@ final class OutpostScene: SKScene {
             .text = secured ? "SECURED" : "BONUS LOST"
         (defenseDevice.childNode(withName: "fieldReactorLabel") as? SKLabelNode)?
             .fontColor = secured ? .systemGreen : .systemOrange
+        // The approved housing includes a baked-in blue glow. Dim and tint
+        // that actual sprite on failure; changing only the hidden core had
+        // left a fully powered-looking reactor after destruction.
+        if let housing = defenseDevice.childNode(withName: "fieldReactorHousingArt") as? SKSpriteNode {
+            housing.color = secured ? .white : SKColor(red: 0.48, green: 0.20, blue: 0.15, alpha: 1)
+            housing.colorBlendFactor = secured ? 0 : 0.88
+            housing.alpha = secured ? 1 : 0.66
+        }
         defenseDevice.childNode(withName: "fieldReactorIntegrityTrack")?.isHidden = true
         defenseIntegrityBar.isHidden = true
     }
@@ -9194,7 +9230,7 @@ final class OutpostScene: SKScene {
         // Give the title, star reveal, rewards and actions their own bands.
         let cardWidth = min(size.width - 28, 390)
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -cardWidth / 2, y: -245,
-            width: cardWidth, height: 465), cornerWidth: 24, cornerHeight: 24, transform: nil)
+            width: cardWidth, height: 535), cornerWidth: 24, cornerHeight: 24, transform: nil)
         overlayBackdrop.fillColor = SKColor(red: 0.035, green: 0.085, blue: 0.13, alpha: 0.98)
         // Layered celebratory header and star-stage make the victory screen
         // a reward moment rather than a plain diagnostic summary.
@@ -9246,8 +9282,23 @@ final class OutpostScene: SKScene {
             ]))
         }
         overlayText("MISSION COMPLETE  •  \(health) HP REMAINING", y: 43, fontSize: 12)
+        let medal = SKShapeNode(circleOfRadius: 29)
+        medal.name = "victoryMedal"
+        medal.position = CGPoint(x: 0, y: 8)
+        medal.fillColor = SKColor(red: 0.18, green: 0.34, blue: 0.32, alpha: 1)
+        medal.strokeColor = SKColor(red: 0.96, green: 0.77, blue: 0.32, alpha: 1)
+        medal.lineWidth = 4
+        medal.zPosition = 2
+        overlay.addChild(medal)
+        let medalIcon = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        medalIcon.text = "✓"
+        medalIcon.fontSize = 33
+        medalIcon.fontColor = .systemYellow
+        medalIcon.position = CGPoint(x: 0, y: -4)
+        medalIcon.zPosition = 3
+        overlay.addChild(medalIcon)
         let rewardWidth = min(cardWidth - 32, 320)
-        let rewards = SKShapeNode(rect: CGRect(x: -rewardWidth / 2, y: -30,
+        let rewards = SKShapeNode(rect: CGRect(x: -rewardWidth / 2, y: -91,
             width: rewardWidth, height: 66), cornerRadius: 14)
         rewards.fillColor = SKColor(red: 0.075, green: 0.16, blue: 0.22, alpha: 1)
         rewards.strokeColor = .systemCyan.withAlphaComponent(0.24)
@@ -9259,24 +9310,24 @@ final class OutpostScene: SKScene {
             value.text = reward.0
             value.fontSize = 23
             value.fontColor = index == 0 ? .systemYellow : .systemCyan
-            value.position = CGPoint(x: x, y: 7)
+            value.position = CGPoint(x: x, y: -54)
             value.zPosition = 2
             overlay.addChild(value)
             let caption = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
             caption.text = reward.1
             caption.fontSize = 9
             caption.fontColor = .white
-            caption.position = CGPoint(x: x, y: -13)
+            caption.position = CGPoint(x: x, y: -74)
             caption.zPosition = 2
             overlay.addChild(caption)
         }
         overlayText(lastWorldCoreReward > 0
             ? "\(availableCores) CORES AVAILABLE TO UPGRADE"
-            : "EARN MORE STARS FOR NEW CORES", y: -51, fontSize: 10)
-        actionButton("HEADQUARTERS", key: "headquarters", y: -91, tint: .systemIndigo)
-        actionButton("PLAY AGAIN", key: "restart", y: -149, tint: .systemTeal)
+            : "EARN MORE STARS FOR NEW CORES", y: -108, fontSize: 10)
+        actionButton("HEADQUARTERS", key: "headquarters", y: -149, tint: .systemIndigo)
+        actionButton("PLAY AGAIN", key: "restart", y: -207, tint: .systemTeal)
         if WorldCatalog.unlocked(worldMapIndex + 1) {
-            actionButton("NEXT WORLD", key: "next_world", y: -207, tint: .systemGreen)
+            actionButton("NEXT WORLD", key: "next_world", y: -265, tint: .systemGreen)
         }
     }
 
