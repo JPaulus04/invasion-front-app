@@ -4685,7 +4685,10 @@ final class OutpostScene: SKScene {
             }
             let housing = SKSpriteNode(texture: SKTexture(image: image))
             housing.name = "fieldReactorHousingArt"
-            housing.size = CGSize(width: 150, height: 140)
+            // Keep the visible housing close to the 96-point grounded
+            // collision base. The previous 150-point sprite overhung the
+            // blocking footprint and visually swallowed nearby pilots.
+            housing.size = CGSize(width: 124, height: 120)
             // Visible base meets the existing grounded movement footprint.
             housing.position.y = -7
             housing.zPosition = 4
