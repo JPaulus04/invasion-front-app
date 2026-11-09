@@ -5336,13 +5336,14 @@ final class OutpostScene: SKScene {
             case 20: landscapeVisit = 0
             default: landscapeVisit = 0
             }
-            if wave != 20 {
+            if wave != 20 && worldOneTexture(named: "world1_overgrown_stone_arena") == nil {
                 zoneScenery.addChild(WorldShowcase.frontierRoom(bounds: roomBounds,
                     room: wave, family: landscape,
                     texture: { [weak self] in self?.worldOneTexture(named: $0) }))
             }
             let artName = "world1_\(landscape)_floor_\(wave == 20 ? 1 : (wave - 1) % 3 + 1)"
-            let authoredFloorTexture = worldOneTexture(named: artName)
+            let stoneArenaTexture = worldOneTexture(named: "world1_overgrown_stone_arena")
+            let authoredFloorTexture = stoneArenaTexture ?? worldOneTexture(named: artName)
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
                authoredFloorTexture == nil {
                 preconditionFailure("Missing authored World 1 floor: \(artName)")
@@ -5368,12 +5369,14 @@ final class OutpostScene: SKScene {
                 floorArt.zPosition = -18.5
                 if floorArt.parent == nil { roomArt?.addChild(floorArt) }
                 floorArt.childNode(withName: "materialRelief")?.removeFromParent()
+                if stoneArenaTexture == nil {
                 let relief = SKSpriteNode(texture: ProductionPresentation.terrain(
                     size: paintedBounds.size, landscape: landscape, visit: landscapeVisit))
                 relief.name = "materialRelief"
                 relief.size = paintedBounds.size
                 relief.zPosition = 0.1
                 floorArt.addChild(relief)
+                }
                 // Two broad, non-colliding lighting zones add depth to the
                 // painted floor while leaving the middle of the arena open.
                 // Remove previous nodes when changing rooms to avoid buildup.
