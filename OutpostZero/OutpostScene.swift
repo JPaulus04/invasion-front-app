@@ -5349,7 +5349,7 @@ final class OutpostScene: SKScene {
                     room: wave, family: landscape,
                     texture: { [weak self] in self?.worldOneTexture(named: $0) }))
             }
-            let artName = "world1_\(landscape)_floor_\(wave == 20 ? 1 : (wave - 1) % 3 + 1)"
+            let artName = "world1_\(landscape)_floor_\(wave == 20 ? 1 : landscapeVisit % 3 + 1)"
             let stoneArenaTexture = worldOneTexture(named: "world1_overgrown_stone_arena")
             // Preserve landscape-specific stone, moss and ground scale instead of
             // stretching one universal stone-arena painting across every room.
