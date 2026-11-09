@@ -435,7 +435,7 @@ final class OutpostScene: SKScene {
         hud.addChild(survivalClock)
         pilotHealthTrack.fillColor = SKColor.black.withAlphaComponent(0.8)
         pilotHealthTrack.strokeColor = .white.withAlphaComponent(0.5)
-        pilotHealthTrack.position = CGPoint(x: 0, y: 36)
+        pilotHealthTrack.position = CGPoint(x: 0, y: -44)
         pilotHealthTrack.zPosition = 15
         pilot.addChild(pilotHealthTrack)
         pilotHealthFill.fillColor = .systemGreen
@@ -641,7 +641,7 @@ final class OutpostScene: SKScene {
             let portalArtwork = SKSpriteNode(texture: SKTexture(image: portalImage))
             portalArtwork.name = "campaignPortalArtwork"
             portalArtwork.size = CGSize(width: 126, height: 126)
-            portalArtwork.position = CGPoint(x: 0, y: 62)
+            portalArtwork.position = CGPoint(x: 0, y: 112)
             portalArtwork.zPosition = 1
             passageGate.addChild(portalArtwork)
         }
@@ -651,7 +651,7 @@ final class OutpostScene: SKScene {
         gateText.text = "ENTER"
         gateText.fontSize = 15
         gateText.fontColor = .white
-        gateText.position.y = 139
+        gateText.position.y = 173
         gateText.verticalAlignmentMode = .center
         gateText.zPosition = 4
         passageGate.addChild(gateText)
@@ -4598,16 +4598,14 @@ final class OutpostScene: SKScene {
     }
 
     private func updateReactorOcclusion() {
-        pilotHealthTrack.position = CGPoint(x: 0, y: 36)
+        // Health is consistently below the pilot's feet, never across the face.
+        pilotHealthTrack.position = CGPoint(x: 0, y: -44)
         guard defenseDevice.parent === arena else { return }
-        // Keep the pilot health bar readable beside the reactor's own status
-        // indicators. Offset toward the open side of the objective instead
-        // of stacking both bars directly over the reactor chassis.
-        if abs(pilot.position.x - defenseDevice.position.x) < 85 &&
+        // Shift sideways only if the reactor occupies the same ground strip.
+        if abs(pilot.position.x - defenseDevice.position.x) < 75 &&
            abs(pilot.position.y - defenseDevice.position.y) < 95 {
-            pilotHealthTrack.position.y = max(36, defenseDevice.position.y + 100 - pilot.position.y)
             let side: CGFloat = pilot.position.x < defenseDevice.position.x ? -1 : 1
-            pilotHealthTrack.position.x = side * 26
+            pilotHealthTrack.position.x = side * 38
         }
         // Feet are 27 points below the pilot origin; the reactor base is -37.
         let behind = pilot.position.y - 27 > defenseDevice.position.y - 37
@@ -5404,12 +5402,15 @@ final class OutpostScene: SKScene {
             // stretching one universal stone-arena painting across every room.
             // The approved stone arena remains a fallback if a zone asset is absent.
             let landscapeFloorTexture = worldOneTexture(named: artName)
-            let authoredFloorTexture = landscapeFloorTexture ?? stoneArenaTexture
+            // Approved mossy stone arena is the World 1 foundation. Previously
+            // the landscape-specific paintings took priority, so the approved
+            // stone asset was never displayed even when bundled correctly.
+            let authoredFloorTexture = stoneArenaTexture ?? landscapeFloorTexture
             #if DEBUG
-            print("[WORLD1 FLOOR] requested=\(artName) selected=\(landscapeFloorTexture == nil ? "fallback_stone_arena" : artName)")
+            print("[WORLD1 FLOOR] requested=\(artName) selected=\(stoneArenaTexture != nil ? "world1_overgrown_stone_arena" : (landscapeFloorTexture == nil ? "missing" : artName))")
             #endif
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
-               landscapeFloorTexture == nil {
+               authoredFloorTexture == nil {
                 preconditionFailure("Missing authored World 1 floor: \(artName)")
             }
             if let texture = authoredFloorTexture {
@@ -5433,14 +5434,7 @@ final class OutpostScene: SKScene {
                 floorArt.zPosition = -18.5
                 if floorArt.parent == nil { roomArt?.addChild(floorArt) }
                 floorArt.childNode(withName: "materialRelief")?.removeFromParent()
-                if stoneArenaTexture == nil {
-                let relief = SKSpriteNode(texture: ProductionPresentation.terrain(
-                    size: paintedBounds.size, landscape: landscape, visit: landscapeVisit))
-                relief.name = "materialRelief"
-                relief.size = paintedBounds.size
-                relief.zPosition = 0.1
-                floorArt.addChild(relief)
-                }
+                // Never cover the approved floor with procedural relief.
                 // Two broad, non-colliding lighting zones add depth to the
                 // painted floor while leaving the middle of the arena open.
                 // Remove previous nodes when changing rooms to avoid buildup.
@@ -9202,7 +9196,24 @@ final class OutpostScene: SKScene {
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -cardWidth / 2, y: -245,
             width: cardWidth, height: 465), cornerWidth: 24, cornerHeight: 24, transform: nil)
         overlayBackdrop.fillColor = SKColor(red: 0.035, green: 0.085, blue: 0.13, alpha: 0.98)
-        overlayText("WORLD SECURED", y: 183, fontSize: 24, name: "victoryHeading")
+        // Layered celebratory header and star-stage make the victory screen
+        // a reward moment rather than a plain diagnostic summary.
+        let victoryGlow = SKSpriteNode(texture: ProductionPresentation.glow(
+            SKColor(red: 0.23, green: 0.78, blue: 0.96, alpha: 0.4)))
+        victoryGlow.name = "victoryHalo"
+        victoryGlow.size = CGSize(width: cardWidth * 0.94, height: 255)
+        victoryGlow.position = CGPoint(x: 0, y: 109)
+        victoryGlow.zPosition = 0
+        overlay.addChild(victoryGlow)
+        let headerBand = SKShapeNode(rect: CGRect(x: -cardWidth / 2 + 10,
+            y: 119, width: cardWidth - 20, height: 91), cornerRadius: 18)
+        headerBand.name = "victoryHeaderBand"
+        headerBand.fillColor = SKColor(red: 0.07, green: 0.28, blue: 0.34, alpha: 0.95)
+        headerBand.strokeColor = SKColor(red: 0.38, green: 0.89, blue: 0.91, alpha: 0.65)
+        headerBand.lineWidth = 2
+        headerBand.zPosition = 1
+        overlay.addChild(headerBand)
+        overlayText("★  WORLD SECURED  ★", y: 183, fontSize: 23, name: "victoryHeading")
         overlayText(selectedWorld.title.uppercased(), y: 155, fontSize: 14, name: "victoryWorld")
         overlayText("LEVEL \(progress.level)  •  \(progress.damageTaken) DAMAGE TAKEN", y: 132, fontSize: 11)
         for name in ["victoryHeading", "victoryWorld"] {
@@ -9215,9 +9226,9 @@ final class OutpostScene: SKScene {
         for index in 0..<3 {
             let star = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             star.text = index < stars ? "★" : "☆"
-            star.fontSize = 39
+            star.fontSize = 48
             star.fontColor = index < stars ? .systemYellow : .lightGray
-            star.position = CGPoint(x: CGFloat(index - 1) * 56, y: 91)
+            star.position = CGPoint(x: CGFloat(index - 1) * 70, y: 91)
             star.zPosition = 3
             overlay.addChild(star)
             // Reveal earned stars in sequence without changing the
@@ -9234,7 +9245,7 @@ final class OutpostScene: SKScene {
                 .scale(to: 1.0, duration: 0.12)
             ]))
         }
-        overlayText("SURVIVED WITH \(health) HP", y: 53, fontSize: 13)
+        overlayText("MISSION COMPLETE  •  \(health) HP REMAINING", y: 43, fontSize: 12)
         let rewardWidth = min(cardWidth - 32, 320)
         let rewards = SKShapeNode(rect: CGRect(x: -rewardWidth / 2, y: -30,
             width: rewardWidth, height: 66), cornerRadius: 14)
