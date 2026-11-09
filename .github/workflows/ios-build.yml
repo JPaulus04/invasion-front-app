@@ -695,8 +695,11 @@ jobs:
     uses: ./.github/workflows/phase4-gameplay.yml
 
   phase4-presentation-review:
+    name: Focused gameplay presentation
     if: >-
-      github.event_name == 'push' && contains(github.event.head_commit.message, '[phase4-review]')
+      github.event_name == 'push' &&
+      (contains(github.event.head_commit.message, '[phase4-review]') ||
+       contains(github.event.head_commit.message, '[phase5-review]'))
     needs: build
     runs-on: macos-15
     timeout-minutes: 30
@@ -710,7 +713,7 @@ jobs:
           mkdir -p simulator-app
           ditto -x -k OutpostZero-simulator-app.zip simulator-app
           test -x simulator-app/OutpostZero.app/OutpostZero
-      - name: Capture four Phase 4 acceptance screens
+      - name: Capture focused HUD, objectives, upgrades and victory
         timeout-minutes: 24
         shell: bash
         run: |
@@ -747,10 +750,13 @@ jobs:
                   ("-captureLevelUpScreenshot","upgrade-cards"),
                   ("-captureEquipmentDefenseScreenshot","reactor"),
                   ("-captureVictoryScreenshot","victory"),
+                  ("-captureCombatScreenshot","combat-hud"),
+                  ("-captureEquipmentDefenseClearScreenshot","reactor-secured"),
+                  ("-captureEquipmentDefenseFailureScreenshot","reactor-lost"),
               ]
               for flag,name in captures:
-                  # A fresh simulator for each capture prevents an interrupted
-                  # scene from contaminating the next screenshot fixture.
+                  # Terminate the prior scene before launching each fixture.
+                  # The disposable device belongs only to this review job.
                   for attempt in range(2):
                       try:
                           result=run(["xcrun","simctl","launch",
@@ -775,7 +781,7 @@ jobs:
                       print(f"Simulator cleanup {action}: {error}",flush=True)
           PY
       - name: Validate captured frames
-        run: python3 scripts/validate_simulator_screenshots.py screenshots/phase4-*.png
+        run: python3 scripts/validate_simulator_screenshots.py screenshots/phase4-{exit-beacon,upgrade-cards,reactor,victory,combat-hud,reactor-secured,reactor-lost}.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:

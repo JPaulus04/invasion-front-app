@@ -2226,8 +2226,8 @@ final class OutpostScene: SKScene {
         hud.addChild(chrome)
         // Portrait, world-route, and coin wallet share one deliberate visual grid.
         let leftX: CGFloat = 8
-        let leftWidth: CGFloat = 112
-        let rightWidth: CGFloat = 92
+        let leftWidth: CGFloat = 136
+        let rightWidth: CGFloat = 78
         let rightX = size.width - rightWidth - 8
         let centerLeft = leftX + leftWidth + 5
         let centerWidth = max(60, rightX - centerLeft - 5)
@@ -2266,26 +2266,37 @@ final class OutpostScene: SKScene {
             portrait.addChild(character)
         }
         for (name, y, height, fillColor) in [
-            ("hudPortraitHP", top - 29, CGFloat(8), SKColor.systemGreen),
-            ("hudPortraitXP", top - 45, CGFloat(5), SKColor.systemCyan)
+            ("hudPortraitHP", top - 31, CGFloat(12), SKColor.systemGreen),
+            ("hudPortraitXP", top - 45, CGFloat(6), SKColor.systemCyan)
         ] {
-            let track = SKShapeNode(rect: CGRect(x: leftX + 52, y: y, width: 52, height: height),
+            let track = SKShapeNode(rect: CGRect(x: 0, y: 0, width: 76, height: height),
                                     cornerRadius: 2)
+            track.position = CGPoint(x: leftX + 52, y: y)
+            track.name = name + "Track"
             track.fillColor = .black.withAlphaComponent(0.85)
             track.strokeColor = .white.withAlphaComponent(0.16)
             chrome.addChild(track)
-            let fill = SKShapeNode(rect: CGRect(x: leftX + 52, y: y, width: 52, height: height),
+            let fill = SKShapeNode(rect: CGRect(x: 0, y: 0, width: 76, height: height),
                                    cornerRadius: 2)
             fill.name = name
+            fill.position = track.position
             fill.fillColor = fillColor
             fill.strokeColor = .clear
             chrome.addChild(fill)
         }
+        let hpValue = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        hpValue.name = "hudHealthValue"
+        hpValue.fontSize = 9
+        hpValue.fontColor = .white
+        hpValue.verticalAlignmentMode = .center
+        hpValue.position = CGPoint(x: leftX + 90, y: top - 13)
+        hpValue.zPosition = 2
+        chrome.addChild(hpValue)
         let level = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         level.name = "hudPortraitLevel"
         level.fontSize = 10
         level.fontColor = .white
-        level.position = CGPoint(x: leftX + 78, y: top - 59)
+        level.position = CGPoint(x: leftX + 90, y: top - 59)
         chrome.addChild(level)
         let world = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         world.name = "hudWorldLabel"
@@ -2299,15 +2310,19 @@ final class OutpostScene: SKScene {
         route.fontColor = SKColor(white: 0.86, alpha: 1)
         route.position = CGPoint(x: centerX, y: top - 39)
         chrome.addChild(route)
-        let dotSpacing = min(CGFloat(12), (centerWidth - 12) / 6)
-        for index in 0..<7 {
-            let dot = SKShapeNode(circleOfRadius: 3)
-            dot.name = "hudRouteDot_\(index)"
-            dot.position = CGPoint(x: centerX + CGFloat(index - 3) * dotSpacing,
-                                   y: top - 55)
-            dot.strokeColor = .white.withAlphaComponent(0.3)
-            chrome.addChild(dot)
-        }
+        // A continuous bar maps directly to the displayed 20-room count.
+        let routeWidth = max(32, centerWidth - 16)
+        let routeTrack = SKShapeNode(rect: CGRect(x: 0, y: 0, width: routeWidth, height: 5), cornerRadius: 2)
+        routeTrack.position = CGPoint(x: centerX - routeWidth / 2, y: top - 56)
+        routeTrack.fillColor = .white.withAlphaComponent(0.18)
+        routeTrack.strokeColor = .clear
+        chrome.addChild(routeTrack)
+        let routeFill = SKShapeNode(path: routeTrack.path!)
+        routeFill.name = "hudRouteProgress"
+        routeFill.position = routeTrack.position
+        routeFill.fillColor = .systemCyan
+        routeFill.strokeColor = .clear
+        chrome.addChild(routeFill)
         let coin = SKShapeNode(circleOfRadius: 11)
         coin.position = CGPoint(x: rightX + 15, y: top - 28)
         coin.fillColor = SKColor(red: 0.99, green: 0.69, blue: 0.11, alpha: 1)
@@ -2334,7 +2349,7 @@ final class OutpostScene: SKScene {
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         // Reserve the first HUD row for the objective, leaving the floor counter at left.
         // Keep the mission text clear of the counter and right-side controls.
-        subtitle.position = CGPoint(x: rightX + 54, y: top - 34)
+        subtitle.position = CGPoint(x: rightX + 49, y: top - 34)
         subtitle.fontSize = 15
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
@@ -2354,13 +2369,29 @@ final class OutpostScene: SKScene {
         xpFill.path = xpTrack.path
         xpTrack.position = CGPoint(x: 14, y: top)
         xpFill.position = xpTrack.position
-        xpLabel.position = CGPoint(x: leftX + 78, y: top - 59)
+        xpLabel.position = CGPoint(x: leftX + 90, y: top - 59)
         xpLabel.horizontalAlignmentMode = .center
         xpLabel.fontSize = 10
         checkpointButton.position = CGPoint(x: size.width / 2,
                                             y: RoomRules.bounds(for: size).minY + 25)
         settingsShortcut.position = CGPoint(x: 36, y: size.height - 195)
         updateHUD()
+        #if targetEnvironment(simulator)
+        for name in ["hudPortraitHP", "hudPortraitXP"] {
+            guard let fill = chrome.childNode(withName: name) as? SKShapeNode,
+                  let track = chrome.childNode(withName: name + "Track") as? SKShapeNode else {
+                preconditionFailure("Missing combat HUD meter")
+            }
+            let savedScale = fill.xScale
+            for fraction in [CGFloat(0.001), 0.5, 1] {
+                fill.xScale = fraction
+                precondition(abs(fill.frame.minX - track.frame.minX) < 1 &&
+                             fill.frame.maxX <= track.frame.maxX + 1,
+                             "Depleted HUD fill must stay anchored inside its track")
+            }
+            fill.xScale = savedScale
+        }
+        #endif
     }
 
     private func updateHUD() {
@@ -2432,10 +2463,14 @@ final class OutpostScene: SKScene {
         subtitle.fontColor = SKColor(red: 0.96, green: 0.81, blue: 0.46, alpha: 1)
         xpLabel.text = ""
         if let chrome = hud.childNode(withName: "combatChrome") {
-            (chrome.childNode(withName: "hudPortraitLevel") as? SKLabelNode)?.text = "LV \(progress.level)"
+            (chrome.childNode(withName: "hudPortraitLevel") as? SKLabelNode)?.text = "LV \(progress.level)  •  XP"
+            if let value = chrome.childNode(withName: "hudHealthValue") as? SKLabelNode {
+                value.text = "\(health)/\(maximumHealth) HP"
+                value.fontColor = health < maximumHealth / 3 ? .systemRed : .white
+            }
             if let world = chrome.childNode(withName: "hudWorldLabel") as? SKLabelNode {
                 world.text = selectedWorld.title.uppercased()
-                let available = max(CGFloat(45), size.width - 250)
+                let available = max(CGFloat(45), size.width - 248)
                 world.fontSize = 10
                 if world.frame.width > available {
                     world.fontSize = max(6, world.fontSize * available / world.frame.width)
@@ -2443,11 +2478,9 @@ final class OutpostScene: SKScene {
             }
             (chrome.childNode(withName: "hudRoomLabel") as? SKLabelNode)?.text =
                 "ROOM \(max(1, wave))/\(worldWaveCount)"
-            for index in 0..<7 {
-                if let dot = chrome.childNode(withName: "hudRouteDot_\(index)") as? SKShapeNode {
-                    let current = min(6, max(0, (max(1, wave) - 1) * 7 / max(1, worldWaveCount)))
-                    dot.fillColor = index <= current ? .systemCyan : SKColor(white: 0.3, alpha: 1)
-                }
+            if let route = chrome.childNode(withName: "hudRouteProgress") as? SKShapeNode {
+                let cleared = roomCleared ? wave : max(0, wave - 1)
+                route.xScale = max(0.001, min(1, CGFloat(cleared) / CGFloat(max(1, worldWaveCount))))
             }
             if let hp = chrome.childNode(withName: "hudPortraitHP") as? SKShapeNode {
                 hp.xScale = max(0.001, min(1, CGFloat(health) / CGFloat(max(1, maximumHealth))))
@@ -2460,7 +2493,7 @@ final class OutpostScene: SKScene {
         }
         speedButton.isHidden = true // Speed remains available in Settings.
         subtitle.fontSize = 15
-        let walletTextWidth: CGFloat = 60
+        let walletTextWidth: CGFloat = 48
         if subtitle.frame.width > walletTextWidth {
             subtitle.fontSize *= walletTextWidth / subtitle.frame.width
         }
@@ -2482,11 +2515,9 @@ final class OutpostScene: SKScene {
             if activeEncounter == .equipmentDefense {
                 survivalClock.text = roomCleared
                     ? (defenseIntegrity > 0 ? "REACTOR SECURED" : "REACTOR LOST")
-                    : (size.width < 390
-                       ? "\(time)"
-                       : "\(time)")
+                    : "DEFEND REACTOR  •  \(time)"
             } else if activeEncounter == .survival {
-                survivalClock.text = roomCleared ? "EXTRACTION READY" : time
+                survivalClock.text = roomCleared ? "EXTRACTION READY" : "SURVIVE  •  \(time)"
             } else {
                 survivalClock.text = roomCleared ? "AREA SECURED" : selectedWorld.boss.uppercased()
             }
@@ -2503,7 +2534,7 @@ final class OutpostScene: SKScene {
                 survivalClock.fontColor = .systemOrange
             }
             // Fit longer localized objectives within the viewport.
-            let available = max(1, size.width - 40)
+            let available = max(1, size.width - 104)
             if survivalClock.frame.width > available {
                 survivalClock.fontSize *= available / survivalClock.frame.width
             }
@@ -4781,7 +4812,7 @@ final class OutpostScene: SKScene {
             (ratio > 0.25 ? .systemYellow : .systemRed)
         let critical = EquipmentDefenseRules.criticalIntegrity(defenseIntegrity)
         if let label = defenseDevice.childNode(withName: "fieldReactorLabel") as? SKLabelNode {
-            label.text = critical ? "REACTOR CRITICAL" : "REACTOR INTEGRITY"
+            label.text = "\(critical ? "CRITICAL" : "INTEGRITY")  \(defenseIntegrity)/\(EquipmentDefenseRules.maximumIntegrity)"
             label.fontColor = critical ? .systemRed : .white
         }
         if let core = defenseDevice.childNode(withName: "fieldReactorCore") as? SKShapeNode {
@@ -9147,9 +9178,21 @@ final class OutpostScene: SKScene {
         lockMenuBriefly()
         clearOverlay()
         let stars = progress.stars(forWorld: worldMapIndex)
-        // Keep rewards and actions in distinct vertical zones on small phones.
-        overlayText("\(selectedWorld.title) CLEARED", y: 176, fontSize: 22)
-        overlayText("LEVEL \(progress.level)  •  \(progress.damageTaken) DAMAGE TAKEN", y: 143, fontSize: 13)
+        // Give the title, star reveal, rewards and actions their own bands.
+        let cardWidth = min(size.width - 28, 390)
+        overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -cardWidth / 2, y: -245,
+            width: cardWidth, height: 465), cornerWidth: 24, cornerHeight: 24, transform: nil)
+        overlayBackdrop.fillColor = SKColor(red: 0.035, green: 0.085, blue: 0.13, alpha: 0.98)
+        overlayText("WORLD SECURED", y: 183, fontSize: 24, name: "victoryHeading")
+        overlayText(selectedWorld.title.uppercased(), y: 155, fontSize: 14, name: "victoryWorld")
+        overlayText("LEVEL \(progress.level)  •  \(progress.damageTaken) DAMAGE TAKEN", y: 132, fontSize: 11)
+        for name in ["victoryHeading", "victoryWorld"] {
+            if let label = overlay.childNode(withName: name) as? SKLabelNode {
+                let available = cardWidth - 36
+                if label.frame.width > available { label.fontSize *= available / label.frame.width }
+                label.fontColor = name == "victoryHeading" ? .white : .systemCyan
+            }
+        }
         for index in 0..<3 {
             let star = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             star.text = index < stars ? "★" : "☆"
@@ -9173,13 +9216,33 @@ final class OutpostScene: SKScene {
             ]))
         }
         overlayText("SURVIVED WITH \(health) HP", y: 53, fontSize: 13)
-        overlayText("+\(salvageBankedThisRun) SALVAGE", y: 25, fontSize: 15)
-        if lastWorldCoreReward > 0 {
-            overlayText("+\(lastWorldCoreReward) NEW POWER CORES", y: -6, fontSize: 14)
-        } else {
-            overlayText("NO NEW CORES — EARN MORE STARS", y: -6, fontSize: 11)
+        let rewardWidth = min(cardWidth - 32, 320)
+        let rewards = SKShapeNode(rect: CGRect(x: -rewardWidth / 2, y: -30,
+            width: rewardWidth, height: 66), cornerRadius: 14)
+        rewards.fillColor = SKColor(red: 0.075, green: 0.16, blue: 0.22, alpha: 1)
+        rewards.strokeColor = .systemCyan.withAlphaComponent(0.24)
+        overlay.addChild(rewards)
+        for (index, reward) in [("+\(salvageBankedThisRun)", "SALVAGE BANKED"),
+                                ("+\(lastWorldCoreReward)", "NEW POWER CORES")].enumerated() {
+            let x = (index == 0 ? -1 : CGFloat(1)) * rewardWidth / 4
+            let value = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            value.text = reward.0
+            value.fontSize = 23
+            value.fontColor = index == 0 ? .systemYellow : .systemCyan
+            value.position = CGPoint(x: x, y: 7)
+            value.zPosition = 2
+            overlay.addChild(value)
+            let caption = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+            caption.text = reward.1
+            caption.fontSize = 9
+            caption.fontColor = .white
+            caption.position = CGPoint(x: x, y: -13)
+            caption.zPosition = 2
+            overlay.addChild(caption)
         }
-        overlayText("POWER CORES AVAILABLE: \(availableCores)", y: -34, fontSize: 11)
+        overlayText(lastWorldCoreReward > 0
+            ? "\(availableCores) CORES AVAILABLE TO UPGRADE"
+            : "EARN MORE STARS FOR NEW CORES", y: -51, fontSize: 10)
         actionButton("HEADQUARTERS", key: "headquarters", y: -91, tint: .systemIndigo)
         actionButton("PLAY AGAIN", key: "restart", y: -149, tint: .systemTeal)
         if WorldCatalog.unlocked(worldMapIndex + 1) {

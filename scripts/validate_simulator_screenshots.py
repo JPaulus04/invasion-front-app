@@ -58,7 +58,10 @@ def verify(path: Path) -> None:
         # a live reactor screenshot, despite the scene being incorrect.
         "outpost-zero-defense-active.png": 0,
         "outpost-zero-defense-cleared.png": 1,
-        "outpost-zero-defense-failed.png": 2
+        "outpost-zero-defense-failed.png": 2,
+        "phase4-reactor.png": 0,
+        "phase4-reactor-secured.png": 1,
+        "phase4-reactor-lost.png": 2
     }
     if path.name.startswith("outpost-zero-walk-preview-"):
         expected_markers[path.name] = 2
