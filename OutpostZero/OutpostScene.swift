@@ -634,6 +634,8 @@ final class OutpostScene: SKScene {
         passageGate.isHidden = true
         arena.addChild(passageGate)
 
+        // Keep the entire portal below the top boundary and HUD: the gate
+        // position is inset from the far wall, while its artwork rises into it.
         // Stone wall portal surround: the art is inset into an architectural
         // opening rather than standing on the walkable floor.
         let wallShadow = SKShapeNode(rect: CGRect(x: -74, y: 42,
@@ -654,7 +656,7 @@ final class OutpostScene: SKScene {
             pier.zPosition = 2
             passageGate.addChild(pier)
         }
-        let lintel = SKShapeNode(rect: CGRect(x: -86, y: 157,
+        let lintel = SKShapeNode(rect: CGRect(x: -86, y: 150,
             width: 172, height: 23), cornerRadius: 5)
         lintel.name = "portalStoneLintel"
         lintel.fillColor = SKColor(red: 0.34, green: 0.43, blue: 0.34, alpha: 1)
@@ -668,8 +670,8 @@ final class OutpostScene: SKScene {
             ?? UIImage(named: "ArtAssets/outpost_zero_portal_approved_transparent") {
             let portalArtwork = SKSpriteNode(texture: SKTexture(image: portalImage))
             portalArtwork.name = "campaignPortalArtwork"
-            portalArtwork.size = CGSize(width: 126, height: 126)
-            portalArtwork.position = CGPoint(x: 0, y: 103)
+            portalArtwork.size = CGSize(width: 104, height: 112)
+            portalArtwork.position = CGPoint(x: 0, y: 100)
             portalArtwork.zPosition = 1
             passageGate.addChild(portalArtwork)
         }
@@ -679,7 +681,7 @@ final class OutpostScene: SKScene {
         gateText.text = "ENTER"
         gateText.fontSize = 15
         gateText.fontColor = .white
-        gateText.position.y = 181
+        gateText.position.y = 140
         gateText.verticalAlignmentMode = .center
         gateText.zPosition = 4
         passageGate.addChild(gateText)
@@ -2260,7 +2262,7 @@ final class OutpostScene: SKScene {
 
     private func layout() {
         if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 62)
+        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 112)
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
@@ -4857,8 +4859,10 @@ final class OutpostScene: SKScene {
         // that actual sprite on failure; changing only the hidden core had
         // left a fully powered-looking reactor after destruction.
         if let housing = defenseDevice.childNode(withName: "fieldReactorHousingArt") as? SKSpriteNode {
-            housing.color = secured ? .white : SKColor(red: 0.48, green: 0.20, blue: 0.15, alpha: 1)
-            housing.colorBlendFactor = secured ? 0 : 0.88
+            housing.color = secured
+                ? SKColor(red: 0.12, green: 0.92, blue: 0.43, alpha: 1)
+                : SKColor(red: 0.48, green: 0.20, blue: 0.15, alpha: 1)
+            housing.colorBlendFactor = secured ? 0.48 : 0.88
             housing.alpha = secured ? 1 : 0.66
         }
         defenseDevice.childNode(withName: "fieldReactorIntegrityTrack")?.isHidden = true
@@ -5018,7 +5022,7 @@ final class OutpostScene: SKScene {
         arena.position = expandedArenaPreview
             ? ArenaLayout.offset(for: pilot.position, viewportSize: size) : .zero
         // Seat the exit against the far boundary rather than in the arena center.
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 62)
+        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 112)
         extractionPortal.isHidden = true
         checkpointButton.position = CGPoint(
             x: size.width / 2, y: RoomRules.bounds(for: size).minY + 25)
@@ -9303,8 +9307,16 @@ final class OutpostScene: SKScene {
         rewards.fillColor = SKColor(red: 0.075, green: 0.16, blue: 0.22, alpha: 1)
         rewards.strokeColor = .systemCyan.withAlphaComponent(0.24)
         overlay.addChild(rewards)
-        for (index, reward) in [("+\(salvageBankedThisRun)", "SALVAGE BANKED"),
-                                ("+\(lastWorldCoreReward)", "NEW POWER CORES")].enumerated() {
+        // Screenshot fixtures bypass completeWorld(), so they have no
+        // banked rewards. Display an explicit preview placeholder rather than
+        // misleading +0 rewards; live runs still display actual earnings.
+        let previewRewards = isCaptureMode && salvageBankedThisRun == 0 &&
+            lastWorldCoreReward == 0
+        let rewardItems = [
+            (previewRewards ? "—" : "+\(salvageBankedThisRun)", "SALVAGE BANKED"),
+            (previewRewards ? "—" : "+\(lastWorldCoreReward)", "NEW POWER CORES")
+        ]
+        for (index, reward) in rewardItems.enumerated() {
             let x = (index == 0 ? -1 : CGFloat(1)) * rewardWidth / 4
             let value = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             value.text = reward.0
@@ -9321,9 +9333,10 @@ final class OutpostScene: SKScene {
             caption.zPosition = 2
             overlay.addChild(caption)
         }
-        overlayText(lastWorldCoreReward > 0
-            ? "\(availableCores) CORES AVAILABLE TO UPGRADE"
-            : "EARN MORE STARS FOR NEW CORES", y: -108, fontSize: 10)
+        overlayText(previewRewards ? "REWARDS CALCULATED AFTER A FULL RUN"
+            : lastWorldCoreReward > 0
+                ? "\(availableCores) CORES AVAILABLE TO UPGRADE"
+                : "EARN MORE STARS FOR NEW CORES", y: -108, fontSize: 10)
         actionButton("HEADQUARTERS", key: "headquarters", y: -149, tint: .systemIndigo)
         actionButton("PLAY AGAIN", key: "restart", y: -207, tint: .systemTeal)
         if WorldCatalog.unlocked(worldMapIndex + 1) {
