@@ -106,6 +106,22 @@ capture_scene() {
       return 0
     fi
     echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT); retrying"
+    # A timed-out simctl screenshot usually means CoreSimulator's render
+    # service is wedged, not that the game failed to draw. Reboot before
+    # another attempt; repeating screenshot against the same booted device
+    # only burns the remaining job budget.
+    if [ "$ATTEMPT" != 3 ]; then
+      run_bounded 25 xcrun simctl shutdown "$DEVICE" || true
+      run_bounded 35 xcrun simctl boot "$DEVICE" || true
+      if ! run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b; then
+        echo "::error::Simulator failed recovery boot for $FLAG"
+        return 1
+      fi
+      if ! run_bounded 100 xcrun simctl install "$DEVICE" "$APP"; then
+        echo "::error::Simulator failed recovery install for $FLAG"
+        return 1
+      fi
+    fi
     sleep 4
   done
   echo "::error::Simulator never rendered a usable frame for $FLAG"
