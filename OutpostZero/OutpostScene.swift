@@ -4871,21 +4871,8 @@ final class OutpostScene: SKScene {
         nextDefenseHitAt = combatTime + EquipmentDefenseRules.hitCooldown
         defenseIntegrity = EquipmentDefenseRules.applyHit(integrity: defenseIntegrity)
         let core = defenseDevice.childNode(withName: "fieldReactorCore")
-        // Ground-level impact shockwave communicates damage at a glance,
-        // independent of the floating numerical label.
-        let shockwave = SKShapeNode(ellipseOf: CGSize(width: 96, height: 32))
-        shockwave.fillColor = .clear
-        shockwave.strokeColor = .systemOrange
-        shockwave.lineWidth = 4
-        shockwave.glowWidth = 4
-        shockwave.position = CGPoint(x: 0, y: -36)
-        shockwave.zPosition = 9
-        defenseDevice.addChild(shockwave)
-        shockwave.run(.sequence([
-            .group([.scale(to: 1.65, duration: 0.32),
-                    .fadeOut(withDuration: 0.32)]),
-            .removeFromParent()
-        ]))
+        // Keep damage feedback on the reactor itself. The former orange
+        // ground ring read as a second objective beneath the authored housing.
         core?.removeAction(forKey: "objectiveHit")
         core?.run(.sequence([.fadeAlpha(to: 0.2, duration: 0.08),
                              .fadeAlpha(to: 1, duration: 0.18)]), withKey: "objectiveHit")
@@ -4996,7 +4983,8 @@ final class OutpostScene: SKScene {
         pilot.position = entryPoint
         arena.position = expandedArenaPreview
             ? ArenaLayout.offset(for: pilot.position, viewportSize: size) : .zero
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 110)
+        // Seat the exit against the far boundary rather than in the arena center.
+        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 62)
         extractionPortal.isHidden = true
         checkpointButton.position = CGPoint(
             x: size.width / 2, y: RoomRules.bounds(for: size).minY + 25)
@@ -5415,9 +5403,13 @@ final class OutpostScene: SKScene {
             // Preserve landscape-specific stone, moss and ground scale instead of
             // stretching one universal stone-arena painting across every room.
             // The approved stone arena remains a fallback if a zone asset is absent.
-            let authoredFloorTexture = worldOneTexture(named: artName) ?? stoneArenaTexture
+            let landscapeFloorTexture = worldOneTexture(named: artName)
+            let authoredFloorTexture = landscapeFloorTexture ?? stoneArenaTexture
+            #if DEBUG
+            print("[WORLD1 FLOOR] requested=\(artName) selected=\(landscapeFloorTexture == nil ? "fallback_stone_arena" : artName)")
+            #endif
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
-               authoredFloorTexture == nil {
+               landscapeFloorTexture == nil {
                 preconditionFailure("Missing authored World 1 floor: \(artName)")
             }
             if let texture = authoredFloorTexture {
