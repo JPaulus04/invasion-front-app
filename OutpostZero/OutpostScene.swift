@@ -4966,6 +4966,10 @@ final class OutpostScene: SKScene {
         defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
         nextDefenseHitAt = combatTime + 1.5
         if activeEncounter == .equipmentDefense { installDefenseDevice() }
+        if qaStationaryRun || qaMovingRun {
+            print("[PHASE4 ROOM] entered=\(wave) encounter=\(activeEncounter) hp=\(health) level=\(progress.level)")
+            fflush(stdout)
+        }
         nextAcidDamageAt = combatTime + 1.0
         enemyAcidDamageAt.removeAll()
         if wave == 1 || (wave - 1) % 5 == 0 || wave == worldWaveCount ||
@@ -6859,7 +6863,13 @@ final class OutpostScene: SKScene {
         node.addChild(spawnRing)
         node.zPosition = 5
         arena.addChild(node)
-        if isBoss { bossNode = node }
+        if isBoss {
+            bossNode = node
+            if qaStationaryRun || qaMovingRun {
+                print("[PHASE4 BOSS] spawned room=\(wave)")
+                fflush(stdout)
+            }
+        }
         let scaling = max(0, wave - 1)
         // World pacing: a fresh pilot gets breathing room early, while
         // late rooms demand more from upgraded loadouts. Boss health and
@@ -8245,7 +8255,13 @@ final class OutpostScene: SKScene {
             lastOrbitalHit.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             enemyAcidDamageAt.removeValue(forKey: ObjectIdentifier(enemies[index].node))
             let defeatedBoss = enemies[index].node === bossNode
-            if defeatedBoss { bossNode = nil }
+            if defeatedBoss {
+                bossNode = nil
+                if qaStationaryRun || qaMovingRun {
+                    print("[PHASE4 BOSS] defeated room=\(wave)")
+                    fflush(stdout)
+                }
+            }
             EnemyCombatFeedback.defeat(in: arena, enemy: enemies[index].node,
                                        radius: enemies[index].radius,
                                        role: enemies[index].behavior,
@@ -8343,6 +8359,10 @@ final class OutpostScene: SKScene {
     private func completeWave() {
         guard !roomCleared else { return }
         roomCleared = true
+        if qaStationaryRun || qaMovingRun {
+            print("[PHASE4 ROOM] cleared=\(wave) encounter=\(activeEncounter) hp=\(health) level=\(progress.level) integrity=\(defenseIntegrity)")
+            fflush(stdout)
+        }
         if activeEncounter == .survival {
             survivalSpawnPhaseFinished = true
         }
@@ -8715,7 +8735,7 @@ final class OutpostScene: SKScene {
         guard clock >= qaNextMenuActionAt else { return }
         if phase == .levelUp {
             guard !abilityRevealActive else { return }
-            let priorities = health < maximumHealth / 2
+            let priorities = health <= maximumHealth - 40
                 ? ["heal", "damage", "rate", "orbit", "chain", "explosive", "incendiary", "frost", "armor", "mobility", "supplies"]
                 : ["damage", "rate", "orbit", "chain", "explosive", "incendiary", "frost", "armor", "mobility", "heal", "supplies"]
             guard let choice = priorities.first(where: { levelChoices.contains($0) }) ?? levelChoices.first,
@@ -8737,11 +8757,18 @@ final class OutpostScene: SKScene {
 
     private func qaCombatTarget() -> CGPoint {
         var threats = enemies.filter { $0.health > 0 }.map { enemy -> QACombatDriver.Threat in
-            let dx = pilot.position.x - enemy.node.position.x
-            let dy = pilot.position.y - enemy.node.position.y
-            let length = max(1, hypot(dx, dy))
+            // Predict the same visible steering used by combat, including
+            // ranged strafing, aiming pauses and accelerated flank raiders.
+            let pursuit = activeEncounter == .equipmentDefense && enemy.behavior < 4
+                ? defenseDevice.position : pilot.position
+            let intent = CombatRules.enemySteering(behavior: enemy.behavior,
+                origin: enemy.node.position, pilot: pursuit, elapsed: combatTime,
+                phase: enemy.weavePhase, ranged: enemy.behavior >= 4 || enemy.node === bossNode,
+                aiming: enemy.shotTarget != nil)
+            let speed = enemy.speed * (enemy.node.name == "flankRaider"
+                ? FlankSwarmRules.speedMultiplier : 1)
             return QACombatDriver.Threat(position: enemy.node.position,
-                velocity: CGVector(dx: dx / length * enemy.speed, dy: dy / length * enemy.speed),
+                velocity: CGVector(dx: intent.dx * speed, dy: intent.dy * speed),
                 radius: enemy.radius + 20)
         }
         threats += projectiles.map {

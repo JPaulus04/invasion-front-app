@@ -72,13 +72,16 @@ def run(profile, limit):
     # Truncate any host logs left by a local retry before starting a new run.
     log.write_text('')
     errors.write_text('')
+    command('xcodebuild', '-version')
     with fresh_simulator(profile, output) as device:
         run_campaign(profile, limit, output, log, errors, device)
 
 
 def run_campaign(profile, limit, output, log, errors, device):
     flag = '-qaStationaryRun' if profile == 'stationary' else '-qaMovingRun'
-    command('xcrun', 'simctl', 'launch', '--terminate-running-process',
+    # This device is fresh: there is no running app to terminate. A launch
+    # failure remains a failure; never restart a partially played campaign.
+    command('xcrun', 'simctl', 'launch',
             '--stdout=' + str(log), '--stderr=' + str(errors), device, BUNDLE, flag, timeout=90)
     start = time.monotonic()
     next_capture = 15

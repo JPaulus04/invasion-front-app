@@ -78,8 +78,14 @@ for path in files:
         errors.append(f"{label}: invalid PNG header")
         continue
     width, height, depth, color, compression, filtering, interlace = struct.unpack(">IIBBBBB", data[16:29])
+    is_arena_background = path.stem == "world1_overgrown_stone_arena"
     is_world_one_floor = path.stem.startswith("world1_") and "_floor_" in path.stem
-    if is_world_one_floor:
+    if is_arena_background:
+        # The approved arena painting is landscape and fitted by the scene.
+        # Keep the portrait contract for the separate full-screen floor sets.
+        if min(width, height) < 1024:
+            errors.append(f"{label}: arena backdrop too small ({width}x{height}); need both sides >=1024")
+    elif is_world_one_floor:
         # Full-screen portrait artwork must have enough pixels to avoid
         # obvious upscaling and must not be supplied in landscape orientation.
         if width < 512 or height < 768:
@@ -91,7 +97,7 @@ for path in files:
     # Floor illustrations are full-bleed opaque backgrounds; props and
     # characters must have transparent cutout edges. Do not reject valid
     # authored floor artwork for lacking transparency.
-    is_floor = "_floor_" in path.stem or path.stem.endswith("_floor")
+    is_floor = "_floor_" in path.stem or path.stem.endswith("_floor") or is_arena_background
     allowed_colors = (2, 6) if is_floor else (4, 6)
     if color not in allowed_colors:
         errors.append(f"{label}: unexpected PNG color type {color} for {'floor' if is_floor else 'sprite'}")

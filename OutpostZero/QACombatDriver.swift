@@ -12,7 +12,7 @@ enum QACombatDriver {
     static func target(origin: CGPoint, speed: CGFloat, bounds: CGRect,
                        threats: [Threat], goal: CGPoint,
                        previous: CGPoint?, resolve: (CGPoint, CGPoint) -> CGPoint) -> CGPoint {
-        let horizon: CGFloat = 0.45
+        let horizon: CGFloat = 0.9
         var best = origin
         var bestScore = -CGFloat.greatestFiniteMagnitude
         // Include standing still so avoiding fire does not require constant motion.
@@ -22,8 +22,8 @@ enum QACombatDriver {
                 : CGVector(dx: cos(angle) * speed, dy: sin(angle) * speed)
             var point = origin
             var risk: CGFloat = 0
-            for sample in 1...6 {
-                let dt = horizon / 6
+            for sample in 1...12 {
+                let dt = horizon / 12
                 let requested = CGPoint(x: point.x + velocity.dx * dt,
                                         y: point.y + velocity.dy * dt)
                 let clamped = CGPoint(x: min(max(requested.x, bounds.minX), bounds.maxX),
@@ -41,7 +41,9 @@ enum QACombatDriver {
             let edge = min(point.x - bounds.minX, bounds.maxX - point.x,
                            point.y - bounds.minY, bounds.maxY - point.y)
             var score = -risk - hypot(point.x - goal.x, point.y - goal.y) * 0.12
-                - max(0, 35 - edge) * 2
+                // Leave space to turn before a pursuing crowd pins the pilot
+                // in a corner. Immediate collisions still dominate this cost.
+                - max(0, 90 - edge) * 12
             if let previous {
                 score -= hypot(point.x - previous.x, point.y - previous.y) * 0.04
             }

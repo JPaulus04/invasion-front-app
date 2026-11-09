@@ -19,7 +19,7 @@ struct QACombatDriverTests {
         // Test the entire relative-motion segment, not a preferred direction.
         // Retreat is valid when the pilot can outrun the projectile.
         func clearance(endpoint: CGPoint, shot: QACombatDriver.Threat) -> CGFloat {
-            let horizon: CGFloat = 0.45
+            let horizon: CGFloat = 0.9
             let rx = origin.x - shot.position.x
             let ry = origin.y - shot.position.y
             let vx = (endpoint.x - origin.x) / horizon - shot.velocity.dx
@@ -45,7 +45,12 @@ struct QACombatDriverTests {
                      "Leave visible blast radius")
         let blocked = target([], goal: CGPoint(x: 400, y: 250), resolve: { from, _ in from })
         precondition(blocked == origin, "Never bypass collision resolution")
-        precondition(hypot(dodge.x - origin.x, dodge.y - origin.y) <= 180 * 0.45 + 0.001,
+        let corner = CGPoint(x: 18, y: 18)
+        let leaveCorner = QACombatDriver.target(origin: corner, speed: 180, bounds: bounds,
+            threats: [], goal: corner, previous: nil, resolve: { _, to in to })
+        precondition(leaveCorner.x > 90 && leaveCorner.y > 90,
+                     "Do not chase an edge pickup into a corner with no escape space")
+        precondition(hypot(dodge.x - origin.x, dodge.y - origin.y) <= 180 * 0.9 + 0.001,
                      "Never exceed normal movement speed")
         print("PASS: QA steering threat avoidance, pickups, collision and speed")
     }
