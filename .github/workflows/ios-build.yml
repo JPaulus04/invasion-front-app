@@ -338,6 +338,27 @@ jobs:
             exit 1
           fi
           echo "Simulator ready: $DEVICE"
+          # Verify CoreSimulator can actually deliver pixels before the expensive review.
+          # Boot readiness alone is insufficient on cold GitHub macOS hosts.
+          PREFLIGHT_OK=0
+          for PREFLIGHT_ATTEMPT in 1 2; do
+            if run_bounded 35 xcrun simctl io "$DEVICE" screenshot /tmp/outpost-simulator-preflight.png &&
+               python3 -c 'from PIL import Image; im=Image.open("/tmp/outpost-simulator-preflight.png"); im.verify()'; then
+              PREFLIGHT_OK=1
+              break
+            fi
+            echo "::warning::Simulator pixel preflight failed ($PREFLIGHT_ATTEMPT/2)"
+            if [ "$PREFLIGHT_ATTEMPT" = 1 ]; then
+              run_bounded 20 xcrun simctl shutdown "$DEVICE" || true
+              run_bounded 35 xcrun simctl boot "$DEVICE" || true
+              run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b || true
+            fi
+          done
+          if [ "$PREFLIGHT_OK" != 1 ]; then
+            echo "::error::CoreSimulator cannot capture a frame; skipping expensive scene review"
+            xcrun simctl list devices || true
+            exit 1
+          fi
           APP="simulator-app/OutpostZero.app"
           # If CoreSimulatorService is cold, allow a generous first install.
           # On failure restart only the simulator rather than recompiling iOS.
