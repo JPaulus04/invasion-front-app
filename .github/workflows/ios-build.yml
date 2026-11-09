@@ -698,10 +698,11 @@ jobs:
 
   phase4-presentation-review:
     name: Focused gameplay presentation
+    # Standard visual acceptance: every pushed build captures the same
+    # gameplay presentation scenes. Full reviews remain release checkpoints.
     if: >-
       github.event_name == 'push' &&
-      (contains(github.event.head_commit.message, '[phase4-review]') ||
-       contains(github.event.head_commit.message, '[phase5-review]'))
+      !contains(github.event.head_commit.message, '[home-review]')
     needs: build
     runs-on: macos-15
     timeout-minutes: 30
