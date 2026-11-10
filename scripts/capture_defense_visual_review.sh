@@ -37,29 +37,34 @@ capture_scene() {
         -captureWorldOne*Screenshot) EXTRA_FLAGS=(-requireWorldOneAuthoredArt) ;;
       esac
     fi
-    if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG" "${EXTRA_FLAGS[@]}"; then
-      echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
-      if [ "$ATTEMPT" != 3 ]; then
-        # A cold CoreSimulatorService can become unresponsive even
-        # after installation. Reboot the simulator before retrying
-        # rather than issuing launch to the same wedged instance.
-        sim_recover || return 1
+    if run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG" "${EXTRA_FLAGS[@]}"; then
+      :
+    else
+      rc=$?
+      if [ "$rc" -ne 70 ]; then
+        echo "::error::Game launch failed for $FLAG (exit $rc); refusing infrastructure retry"
+        return "$rc"
       fi
+      echo "::warning::Simulator infrastructure failed during $FLAG (attempt $ATTEMPT)"
+      if [ "$ATTEMPT" != 3 ]; then sim_recover || return 1; fi
       sleep 4
       continue
     fi
     sleep 8
-    if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT" &&
-       python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
+    if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT"; then
+      python3 scripts/validate_simulator_screenshots.py "$OUTPUT" || {
+        echo "::error::Invalid game screenshot for $FLAG; not a simulator infrastructure failure"
+        return 1
+      }
       return 0
-    fi
-    echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT); retrying"
-    # A timed-out simctl screenshot usually means CoreSimulator's render
-    # service is wedged, not that the game failed to draw. Reboot before
-    # another attempt; repeating screenshot against the same booted device
-    # only burns the remaining job budget.
-    if [ "$ATTEMPT" != 3 ]; then
-      sim_recover || return 1
+    else
+      rc=$?
+      if [ "$rc" -ne 70 ]; then
+        echo "::error::Screenshot command failed for $FLAG (exit $rc)"
+        return "$rc"
+      fi
+      echo "::warning::Screenshot infrastructure failure for $FLAG (attempt $ATTEMPT)"
+      if [ "$ATTEMPT" != 3 ]; then sim_recover || return 1; fi
     fi
     sleep 4
   done
