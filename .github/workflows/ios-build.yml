@@ -34,6 +34,8 @@ jobs:
           python3 scripts/check_project.py 2>&1 | tee source-check.log
       - name: Test shared simulator failure classification
         run: python3 -m unittest discover -s tests -p test_simulator_command.py
+      - name: Test disposable simulator lifecycle recovery
+        run: python3 -m unittest discover -s tests -p test_simulator_lifecycle.py
       - name: Test focused screenshot identity rejection
         run: python3 -m unittest discover -s tests -p test_focused_screenshots.py
       - name: Validate production sprite assets
