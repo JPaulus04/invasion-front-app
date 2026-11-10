@@ -1,7 +1,7 @@
 name: iOS Compile Check
 on:
   push:
-    branches: [outpost-zero, build-327]
+    branches: [outpost-zero, build-327, feature/bounded-follow-camera]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -39,6 +39,10 @@ jobs:
         run: |
           swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
           "$RUNNER_TEMP/room-tests"
+      - name: Test bounded follow camera geometry
+        run: |
+          swiftc OutpostZero/RoomRules.swift tests/BoundedCombatCameraTests.swift -o "$RUNNER_TEMP/camera-tests"
+          "$RUNNER_TEMP/camera-tests"
       - name: Test reactive simulator combat driver
         run: |
           set -o pipefail
