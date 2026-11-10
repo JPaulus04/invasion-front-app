@@ -1082,6 +1082,58 @@ final class OutpostScene: SKScene {
                          phase == .levelUp && levelChoices.count == 3,
                          "First ability choice must be an in-game XP draw")
         }
+        // Production bounded-camera review: verify three camera positions
+        // without relying on the legacy survival-preview offset path.
+        let boundedFlags = [
+            "-captureBoundedCameraLeftScreenshot",
+            "-captureBoundedCameraCenterScreenshot",
+            "-captureBoundedCameraRightScreenshot"
+        ]
+        if let slot = boundedFlags.firstIndex(where: {
+            ProcessInfo.processInfo.arguments.contains($0)
+        }) {
+            worldMapIndex = 0
+            gateUnlocked = true
+            startWave()
+            useBoundedCombatCamera = true
+            expandedArenaPreview = false
+            installArenaPreviewGround()
+            let world = roomBounds
+            let fractions: [CGFloat] = [0.12, 0.50, 0.88]
+            pilot.position = CGPoint(
+                x: world.minX + world.width * fractions[slot],
+                y: world.minY + world.height * 0.53)
+            let configuration = combatCameraConfiguration
+            var offset = CGPoint(x: configuration.viewport.midX - world.midX,
+                                 y: configuration.viewport.midY - world.midY)
+            for _ in 0..<180 {
+                offset = BoundedCombatCamera.step(
+                    current: offset, player: pilot.position,
+                    delta: 1.0 / 60, configuration: configuration)
+            }
+            arena.position = offset
+            let visible = configuration.viewport.offsetBy(
+                dx: -offset.x, dy: -offset.y)
+            precondition(world.insetBy(dx: -1, dy: -1).contains(visible),
+                         "Bounded camera exposed outside the world")
+            precondition(abs(pilot.position.x + offset.x -
+                             configuration.viewport.midX) <
+                         configuration.viewport.width * 0.45,
+                         "Bounded camera lost the player")
+            let marker = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
+            marker.name = "boundedCameraReviewIdentity"
+            marker.position = CGPoint(x: size.width * 0.94,
+                                      y: size.height * 0.46)
+            marker.fillColor = [SKColor.red, SKColor.green, SKColor.blue][slot]
+            marker.strokeColor = .clear
+            marker.zPosition = 999
+            addChild(marker)
+            arena.isPaused = true
+            phase = .levelUp
+            updateHUD()
+            print("[BOUNDED CAMERA REVIEW] position=\(slot) ready")
+            fflush(stdout)
+        }
         // Expanded arena camera QA: three independently captured positions.
         // Not yet a shipped timed-survival encounter. Validate full arena
         // coverage, HUD anchoring, and distinct scenery in each viewport.
