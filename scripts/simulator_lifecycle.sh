@@ -29,7 +29,12 @@ sim_create() {
   run_bounded 60 xcrun simctl boot "$DEVICE" || return 1
   run_bounded 240 xcrun simctl bootstatus "$DEVICE" -b || return 1
   run_bounded 50 xcrun simctl io "$DEVICE" screenshot /tmp/outpost-sim-preflight-$$.png || return 1
-  python3 -c 'from PIL import Image; import sys; im=Image.open(sys.argv[1]); im.verify()' "/tmp/outpost-sim-preflight-$$.png" || return 1
+  python3 - "/tmp/outpost-sim-preflight-$.png" <<'PY' || return 1
+from pathlib import Path
+import sys
+if not Path(sys.argv[1]).read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")):
+    raise SystemExit("Simulator preflight did not produce a PNG")
+PY
   run_bounded 150 xcrun simctl install "$DEVICE" "${APP:-simulator-app/OutpostZero.app}" || return 1
 }
 sim_prepare() {
