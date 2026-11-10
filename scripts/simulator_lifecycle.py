@@ -6,15 +6,24 @@ Once gameplay starts, never restart the campaign or fabricate an outcome.
 import json
 from pathlib import Path
 import subprocess
+import os
+import time
 from contextlib import contextmanager
 
 
 def command(*argv, timeout=60, check=True):
+    start = time.monotonic()
     try:
         result = subprocess.run(argv, timeout=timeout, check=False,
                                 capture_output=True, text=True)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise RuntimeError(f"SIMULATOR_INFRASTRUCTURE: {exc}") from exc
+    if os.environ.get("OUTPOST_SIM_DIAGNOSTICS"):
+        destination = Path(os.environ["OUTPOST_SIM_DIAGNOSTICS"])
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with destination.open("a") as handle:
+            handle.write(json.dumps({"command": list(argv[:3]), "exit_code": result.returncode,
+                                     "duration_seconds": round(time.monotonic() - start, 2)}) + "\n")
     if check and result.returncode:
         detail = (result.stderr or result.stdout).strip()
         if any(s in detail.lower() for s in
