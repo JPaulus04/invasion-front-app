@@ -445,6 +445,9 @@ jobs:
           capture_scene -captureFrostWraithScreenshot screenshots/build327-frost-wraith.png
           capture_scene -captureDodgeAcceptanceScreenshot screenshots/outpost-zero-dodge-acceptance.png
           capture_scene -capturePilotDirectionsScreenshot screenshots/outpost-zero-pilot-directions.png
+          capture_scene -captureBoundedCameraLeftScreenshot screenshots/outpost-zero-bounded-west.png
+          capture_scene -captureBoundedCameraCenterScreenshot screenshots/outpost-zero-bounded-center.png
+          capture_scene -captureBoundedCameraRightScreenshot screenshots/outpost-zero-bounded-east.png
           capture_scene -captureExpandedArenaLeftScreenshot screenshots/outpost-zero-arena-west.png
           capture_scene -captureExpandedArenaCenterScreenshot screenshots/outpost-zero-arena-center.png
           capture_scene -captureExpandedArenaRightScreenshot screenshots/outpost-zero-arena-east.png
