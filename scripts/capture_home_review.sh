@@ -43,10 +43,7 @@ capture_scene() {
         # A cold CoreSimulatorService can become unresponsive even
         # after installation. Reboot the simulator before retrying
         # rather than issuing launch to the same wedged instance.
-        run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
-        run_bounded 45 xcrun simctl boot "$DEVICE" || true
-        run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b || true
-        run_bounded 65 xcrun simctl install "$DEVICE" "$APP" || true
+        sim_recover || return 1
       fi
       sleep 4
       continue
