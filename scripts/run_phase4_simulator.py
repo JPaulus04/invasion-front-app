@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run one fresh simulator campaign; never manufacture gameplay outcomes."""
 import argparse
+import os
 import json
 from pathlib import Path
 import subprocess
@@ -16,6 +17,7 @@ from simulator_lifecycle import command, fresh_simulator
 def run(profile, limit):
     output = Path('phase4')
     output.mkdir(exist_ok=True)
+    os.environ.setdefault('OUTPOST_SIM_DIAGNOSTICS', str(output / f'{profile}-simulator-diagnostics.jsonl'))
     log = (output / f'{profile}.log').resolve()
     errors = (output / f'{profile}-stderr.log').resolve()
     # Truncate any host logs left by a local retry before starting a new run.
