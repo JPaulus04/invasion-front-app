@@ -5512,7 +5512,10 @@ final class OutpostScene: SKScene {
                 // even in standard rooms. A small camera offset previously
                 // exposed the flat fallback ground as a straight strip along
                 // the lower edge of the first Toxic Caves capture.
-                let paintedBounds = expandedArenaPreview
+                // The painted floor must cover the *world*, not just the
+                // device viewport. Otherwise the following camera reveals
+                // the procedural fallback when the pilot walks away.
+                let paintedBounds = (useBoundedCombatCamera || expandedArenaPreview)
                     ? roomBounds.insetBy(dx: -80, dy: -80)
                     : CGRect(origin: .zero, size: size).insetBy(dx: -80, dy: -80)
                 let textureSize = texture.size()
