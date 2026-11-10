@@ -43,10 +43,7 @@ capture_scene() {
         # A cold CoreSimulatorService can become unresponsive even
         # after installation. Reboot the simulator before retrying
         # rather than issuing launch to the same wedged instance.
-        run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
-        run_bounded 45 xcrun simctl boot "$DEVICE" || true
-        run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b || true
-        run_bounded 65 xcrun simctl install "$DEVICE" "$APP" || true
+        sim_recover || return 1
       fi
       sleep 4
       continue
@@ -62,16 +59,7 @@ capture_scene() {
     # another attempt; repeating screenshot against the same booted device
     # only burns the remaining job budget.
     if [ "$ATTEMPT" != 3 ]; then
-      run_bounded 25 xcrun simctl shutdown "$DEVICE" || true
-      run_bounded 35 xcrun simctl boot "$DEVICE" || true
-      if ! run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b; then
-        echo "::error::Simulator failed recovery boot for $FLAG"
-        return 1
-      fi
-      if ! run_bounded 100 xcrun simctl install "$DEVICE" "$APP"; then
-        echo "::error::Simulator failed recovery install for $FLAG"
-        return 1
-      fi
+      sim_recover || return 1
     fi
     sleep 4
   done
