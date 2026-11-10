@@ -47,11 +47,22 @@ def command(*argv, timeout=60, check=True):
 
 @contextmanager
 def fresh_simulator(profile, output, app="simulator-app/OutpostZero.app"):
-    try:
-        devices = json.loads(command("xcrun", "simctl", "list", "devices", "available", "-j",
-                                     timeout=65).stdout)
-    except (ValueError, KeyError) as exc:
-        raise RuntimeError(f"SIMULATOR_INFRASTRUCTURE: invalid device inventory: {exc}") from exc
+    devices = None
+    for attempt in range(3):
+        try:
+            inventory = command("xcrun", "simctl", "list", "devices", "available", "-j",
+                                timeout=65).stdout
+            devices = json.loads(inventory)
+            if not isinstance(devices.get("devices"), dict):
+                raise ValueError("missing devices object")
+            break
+        except (ValueError, KeyError, RuntimeError) as exc:
+            if isinstance(exc, RuntimeError) and not str(exc).startswith("SIMULATOR_INFRASTRUCTURE:"):
+                raise
+            print(f"::warning::Simulator inventory attempt {attempt + 1}/3: {exc}", flush=True)
+            if attempt == 2:
+                raise RuntimeError("SIMULATOR_INFRASTRUCTURE: inventory unavailable after 3 attempts") from exc
+            time.sleep(5)
     candidates = [(runtime, device["deviceTypeIdentifier"])
                   for runtime, group in sorted(devices["devices"].items(), reverse=True)
                   for device in group if device.get("isAvailable", True)
