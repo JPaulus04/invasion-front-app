@@ -5057,9 +5057,8 @@ final class OutpostScene: SKScene {
                 $0 == "-captureSurvivalSwarmFrames"
         }
         expandedArenaPreview = activeEncounter == .survival || retainQACamera
-        // All live encounters share the bounded world camera. The existing
-        // isolated expanded-arena fixtures retain their legacy contract until
-        // the new camera regression suite replaces them.
+        // All live encounters share the bounded world camera. Isolated
+        // screenshot fixtures preserve their existing fixed framing.
         useBoundedCombatCamera = !isCaptureMode
         arena.childNode(withName: "expandedArenaPreviewGround")?.removeFromParent()
         if useBoundedCombatCamera || expandedArenaPreview { installArenaPreviewGround() }
@@ -9504,6 +9503,7 @@ final class OutpostScene: SKScene {
         activeEncounter = .tactical
         survivalSpawnPhaseFinished = false
         expandedArenaPreview = false
+        useBoundedCombatCamera = false
         arena.position = .zero
         arena.childNode(withName: "expandedArenaPreviewGround")?.removeFromParent()
         extractionPortal.isHidden = true
