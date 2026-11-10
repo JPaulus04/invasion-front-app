@@ -98,3 +98,64 @@ enum ArenaLayout {
                        y: current.y + (target.y - current.y) * alpha)
     }
 }
+
+
+/// Bounded follow-camera geometry for the next-generation combat arena.
+/// Pure world-space math: the arena translates, while the HUD remains in
+/// SKScene screen coordinates. No legacy preview flags are consulted.
+enum BoundedCombatCamera {
+    struct Configuration {
+        let arena: CGRect
+        let viewport: CGRect
+        let deadZone: CGSize
+        let responsiveness: CGFloat
+
+        static func standard(for size: CGSize, arenaScale: CGFloat = 1.75) -> Configuration {
+            let viewport = RoomRules.bounds(for: size)
+            let scale = max(1.25, arenaScale)
+            let width = viewport.width * scale
+            let height = viewport.height * scale
+            return Configuration(
+                arena: CGRect(x: viewport.midX - width / 2,
+                              y: viewport.midY - height / 2,
+                              width: width, height: height),
+                viewport: viewport,
+                deadZone: CGSize(width: viewport.width * 0.13,
+                               height: viewport.height * 0.10),
+                responsiveness: 8)
+        }
+    }
+
+    static func target(player: CGPoint, current: CGPoint,
+                       configuration: Configuration) -> CGPoint {
+        let viewport = configuration.viewport
+        let arena = configuration.arena
+        let onScreen = CGPoint(x: player.x + current.x, y: player.y + current.y)
+        let deltaX = onScreen.x - viewport.midX
+        let deltaY = onScreen.y - viewport.midY
+        let halfX = configuration.deadZone.width / 2
+        let halfY = configuration.deadZone.height / 2
+        let moveX = abs(deltaX) <= halfX ? 0 : deltaX - (deltaX > 0 ? halfX : -halfX)
+        let moveY = abs(deltaY) <= halfY ? 0 : deltaY - (deltaY > 0 ? halfY : -halfY)
+        let requested = CGPoint(x: current.x - moveX, y: current.y - moveY)
+        return CGPoint(
+            x: clampOffset(requested.x, minimum: viewport.maxX - arena.maxX,
+                           maximum: viewport.minX - arena.minX),
+            y: clampOffset(requested.y, minimum: viewport.maxY - arena.maxY,
+                           maximum: viewport.minY - arena.minY))
+    }
+
+    static func step(current: CGPoint, player: CGPoint, delta: TimeInterval,
+                     configuration: Configuration) -> CGPoint {
+        let destination = target(player: player, current: current, configuration: configuration)
+        let alpha = 1 - exp(-configuration.responsiveness * CGFloat(max(0, min(delta, 0.1))))
+        return CGPoint(x: current.x + (destination.x - current.x) * alpha,
+                       y: current.y + (destination.y - current.y) * alpha)
+    }
+
+    private static func clampOffset(_ value: CGFloat, minimum: CGFloat,
+                                    maximum: CGFloat) -> CGFloat {
+        guard minimum <= maximum else { return (minimum + maximum) / 2 }
+        return min(max(value, minimum), maximum)
+    }
+}
