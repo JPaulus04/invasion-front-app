@@ -391,6 +391,11 @@ final class OutpostScene: SKScene {
     // First validate three camera positions in isolated simulator captures.
     // Enabling live survival mode waits for encounter/recovery integration.
     private var expandedArenaPreview = false
+    // New camera is independent of the legacy expanded-arena preview flag.
+    private var useBoundedCombatCamera = false
+    private var combatCameraConfiguration: BoundedCombatCamera.Configuration {
+        BoundedCombatCamera.Configuration.standard(for: size)
+    }
     // Live survival spawning is first exercised through the simulator QA
     // fixture. Normal campaign progression stays tactical until extraction
     // and save recovery are implemented and validated together.
@@ -402,10 +407,11 @@ final class OutpostScene: SKScene {
         phase == .gate && activeEncounter == .survival && roomCleared
     }
     private var roomBounds: CGRect {
-        expandedArenaPreview ? ArenaLayout.bounds(for: size) : RoomRules.bounds(for: size)
+        useBoundedCombatCamera ? combatCameraConfiguration.arena :
+            (expandedArenaPreview ? ArenaLayout.bounds(for: size) : RoomRules.bounds(for: size))
     }
     private var entryPoint: CGPoint {
-        expandedArenaPreview
+        (useBoundedCombatCamera || expandedArenaPreview)
             ? CGPoint(x: roomBounds.midX, y: roomBounds.minY + 48)
             : RoomRules.entryPoint(for: size)
     }
@@ -2278,6 +2284,12 @@ final class OutpostScene: SKScene {
     }
 
     private func updateArenaCamera(delta: TimeInterval) {
+        if useBoundedCombatCamera {
+            arena.position = BoundedCombatCamera.step(
+                current: arena.position, player: pilot.position,
+                delta: delta, configuration: combatCameraConfiguration)
+            return
+        }
         guard expandedArenaPreview else {
             if arena.position != .zero { arena.position = .zero }
             return
@@ -5045,11 +5057,21 @@ final class OutpostScene: SKScene {
                 $0 == "-captureSurvivalSwarmFrames"
         }
         expandedArenaPreview = activeEncounter == .survival || retainQACamera
+        // All live encounters share the bounded world camera. The existing
+        // isolated expanded-arena fixtures retain their legacy contract until
+        // the new camera regression suite replaces them.
+        useBoundedCombatCamera = !isCaptureMode
         arena.childNode(withName: "expandedArenaPreviewGround")?.removeFromParent()
-        if expandedArenaPreview { installArenaPreviewGround() }
+        if useBoundedCombatCamera || expandedArenaPreview { installArenaPreviewGround() }
         pilot.position = entryPoint
-        arena.position = expandedArenaPreview
-            ? ArenaLayout.offset(for: pilot.position, viewportSize: size) : .zero
+        arena.position = useBoundedCombatCamera
+            ? BoundedCombatCamera.target(
+                player: pilot.position,
+                current: CGPoint(x: size.width / 2 - pilot.position.x,
+                                 y: size.height / 2 - pilot.position.y),
+                configuration: combatCameraConfiguration)
+            : expandedArenaPreview
+                ? ArenaLayout.offset(for: pilot.position, viewportSize: size) : .zero
         // Seat the exit against the far boundary rather than in the arena center.
         passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 112)
         extractionPortal.isHidden = true
