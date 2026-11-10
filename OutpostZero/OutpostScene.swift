@@ -1898,8 +1898,10 @@ final class OutpostScene: SKScene {
                          "Normal campaign exit must never coexist with survival orb")
             // Reject a regression to the tiny, unreadable exit beacon.
             precondition((passageGate.path?.boundingBox.height ?? 0) >= 80 &&
-                         passageGate.childNode(withName: "campaignPortalArtwork") != nil,
-                         "Campaign exit must render the approved portal sprite")
+                         passageGate.childNode(withName: "portalRecessOpening") != nil &&
+                         passageGate.childNode(withName: "portalRecessEnergy") != nil &&
+                         passageGate.childNode(withName: "exitPortalLabel") != nil,
+                         "Campaign exit must render its recessed wall doorway and ENTER label")
             // Keep the exit fully visible for a stable visual regression frame.
             passageGate.removeAllActions()
             passageGate.alpha = 1
