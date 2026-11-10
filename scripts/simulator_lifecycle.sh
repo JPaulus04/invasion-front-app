@@ -43,7 +43,7 @@ sim_create() {
   echo "Created disposable simulator: $DEVICE" >&2
   run_bounded 60 xcrun simctl boot "$DEVICE" || return 1
   run_bounded 240 xcrun simctl bootstatus "$DEVICE" -b || return 1
-  run_bounded 50 xcrun simctl io "$DEVICE" screenshot /tmp/outpost-sim-preflight-$$.png || return 1
+  run_bounded 80 xcrun simctl io "$DEVICE" screenshot /tmp/outpost-sim-preflight-$.png || return 1
   python3 - "/tmp/outpost-sim-preflight-$.png" <<'PY' || return 1
 from pathlib import Path
 import sys
