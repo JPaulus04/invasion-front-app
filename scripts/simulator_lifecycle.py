@@ -50,9 +50,10 @@ def fresh_simulator(profile, output, app="simulator-app/OutpostZero.app"):
                 preflight = Path(output) / f"{profile}-preflight.png"
                 command("xcrun", "simctl", "io", device, "screenshot",
                         str(preflight), timeout=50)
-                from PIL import Image
-                with Image.open(preflight) as image:
-                    image.verify()
+                if not preflight.read_bytes().startswith(b"\\x89PNG\\r\
+\\x1a\
+"):
+                    raise RuntimeError("SIMULATOR_INFRASTRUCTURE: invalid preflight PNG")
                 command("xcrun", "simctl", "install", device, app, timeout=150)
                 (Path(output) / f"{profile}-device.json").write_text(json.dumps({
                     "udid": device, "runtime": runtime, "device_type": device_type,
