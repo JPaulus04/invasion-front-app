@@ -69,8 +69,14 @@ if '-captureSurvivalTransitionScreenshot' not in scene or 'TerrainHazards.extrac
     errors.append("Simulator must verify reachable extraction and tactical-room transition")
 if 'campaignExitPortal' not in scene or 'survivalExtractionOrb' not in scene or 'circleOfRadius: 21' not in scene:
     errors.append("Campaign exit must use its own visible portal separate from the survival extraction orb")
-if 'campaignPortalArtwork' not in scene or 'outpost_zero_portal_approved_transparent' not in scene or 'exitPortalLabel' not in scene:
-    errors.append("Campaign exit must use the approved portal sprite and ENTER label")
+# The campaign exit is now a recessed doorway in the far wall, rather
+# than the old freestanding portal sprite. Guard the new presentation and
+# the ENTER interaction label against accidental removal.
+if not all(token in scene for token in (
+    'portalRecessOpening', 'portalRecessEnergy', 'portalWallJamb',
+    'portalWallLintel', 'portalThresholdLight', 'exitPortalLabel'
+)):
+    errors.append("Campaign exit must retain its wall-integrated energy doorway and ENTER label")
 if 'for vineIndex in 0..<2' in scene or 'floor.strokeColor = .clear' not in scene:
     errors.append("Stray tree wisps or rectangular survival floor lines remain")
 if 'zoneBanner.text = ""' not in scene:
