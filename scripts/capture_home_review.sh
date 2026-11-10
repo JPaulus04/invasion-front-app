@@ -7,29 +7,11 @@ run_bounded() {
   local limit="$1"; shift
   python3 scripts/simulator_command.py --timeout "$limit" --label "${1##*/} ${2:-command}" -- "$@"
 }
-# Let a fresh service finish first-boot data migration. Killing it
-# before listing devices made the migrations restart on some hosts.
-# Fallback to a second available iPhone only after bounded readiness.
-DEVICE="${OUTPOST_ZERO_SIMULATOR_UDID:-}"
-if [ -n "$DEVICE" ]; then
-  echo "Reusing boot-ready simulator $DEVICE; skipping CoreSimulator enumeration"
-else
-  echo "::error::No prewarmed simulator UUID supplied by the workflow"
-  exit 1
-fi
-echo "Simulator ready: $DEVICE"
 APP="simulator-app/OutpostZero.app"
-# If CoreSimulatorService is cold, allow a generous first install.
-# On failure restart only the simulator rather than recompiling iOS.
-if ! run_bounded 150 xcrun simctl install "$DEVICE" "$APP"; then
-  # A slow initial install may recover after a single service reset.
-  # Do not loop forever on a damaged simulator installation.
-  echo "::warning::Simulator install failed; one bounded reinstall attempt"
-  run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
-  run_bounded 40 xcrun simctl boot "$DEVICE" || true
-  run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b
-  run_bounded 150 xcrun simctl install "$DEVICE" "$APP"
-fi
+SIM_PROFILE=home
+source scripts/simulator_lifecycle.sh
+trap 'sim_destroy' EXIT
+sim_prepare
 mkdir -p screenshots
 export REQUIRE_WORLD_ONE_ART="${REQUIRE_WORLD_ONE_ART:-0}"
 # A cold-booted simulator can show a gray launch screen for several
