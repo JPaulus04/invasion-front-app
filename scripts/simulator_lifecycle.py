@@ -13,22 +13,33 @@ from contextlib import contextmanager
 
 def command(*argv, timeout=60, check=True):
     start = time.monotonic()
+    result = None
+    failure = None
     try:
         result = subprocess.run(argv, timeout=timeout, check=False,
                                 capture_output=True, text=True)
     except (OSError, subprocess.TimeoutExpired) as exc:
-        raise RuntimeError(f"SIMULATOR_INFRASTRUCTURE: {exc}") from exc
-    if os.environ.get("OUTPOST_SIM_DIAGNOSTICS"):
-        destination = Path(os.environ["OUTPOST_SIM_DIAGNOSTICS"])
+        failure = exc
+    destination_name = os.environ.get("OUTPOST_SIM_DIAGNOSTICS")
+    if destination_name:
+        destination = Path(destination_name)
         destination.parent.mkdir(parents=True, exist_ok=True)
         with destination.open("a") as handle:
-            handle.write(json.dumps({"command": list(argv[:3]), "exit_code": result.returncode,
-                                     "duration_seconds": round(time.monotonic() - start, 2)}) + "\n")
+            handle.write(json.dumps({
+                "command": list(argv[:3]),
+                "exit_code": result.returncode if result is not None else 70,
+                "category": "infrastructure" if failure else "completed",
+                "duration_seconds": round(time.monotonic() - start, 2),
+                "error": str(failure) if failure else None
+            }) + "\n")
+    if failure is not None:
+        raise RuntimeError(f"SIMULATOR_INFRASTRUCTURE: {failure}") from failure
     if check and result.returncode:
         detail = (result.stderr or result.stdout).strip()
-        if any(s in detail.lower() for s in
-               ("coresimulator", "device unavailable", "service connection",
-                "unable to boot", "device not found", "timed out")):
+        if any(term in detail.lower() for term in (
+                "coresimulator", "device unavailable", "service connection",
+                "unable to boot", "device not found", "timed out",
+                "data migration failed")):
             raise RuntimeError(f"SIMULATOR_INFRASTRUCTURE: {detail}")
         raise RuntimeError(f"GAME_OR_HARNESS_FAILURE: {argv}: {detail}")
     return result
@@ -36,8 +47,11 @@ def command(*argv, timeout=60, check=True):
 
 @contextmanager
 def fresh_simulator(profile, output, app="simulator-app/OutpostZero.app"):
-    devices = json.loads(command("xcrun", "simctl", "list", "devices", "available", "-j",
-                                 timeout=45).stdout)
+    try:
+        devices = json.loads(command("xcrun", "simctl", "list", "devices", "available", "-j",
+                                     timeout=65).stdout)
+    except (ValueError, KeyError) as exc:
+        raise RuntimeError(f"SIMULATOR_INFRASTRUCTURE: invalid device inventory: {exc}") from exc
     candidates = [(runtime, device["deviceTypeIdentifier"])
                   for runtime, group in sorted(devices["devices"].items(), reverse=True)
                   for device in group if device.get("isAvailable", True)
@@ -56,9 +70,10 @@ def fresh_simulator(profile, output, app="simulator-app/OutpostZero.app"):
                     raise RuntimeError("SIMULATOR_INFRASTRUCTURE: empty device UUID")
                 command("xcrun", "simctl", "boot", device, timeout=60)
                 command("xcrun", "simctl", "bootstatus", device, "-b", timeout=240)
+                Path(output).mkdir(parents=True, exist_ok=True)
                 preflight = Path(output) / f"{profile}-preflight.png"
                 command("xcrun", "simctl", "io", device, "screenshot",
-                        str(preflight), timeout=50)
+                        str(preflight), timeout=80)
                 if not preflight.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")):
                     raise RuntimeError("SIMULATOR_INFRASTRUCTURE: invalid preflight PNG")
                 command("xcrun", "simctl", "install", device, app, timeout=150)
