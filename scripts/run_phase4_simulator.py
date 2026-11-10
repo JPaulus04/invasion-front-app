@@ -10,58 +10,7 @@ from contextlib import contextmanager
 BUNDLE = 'com.paulus.laststandcommand'
 
 
-def command(*args, timeout=60, check=True):
-    print(f"Simulator command ({timeout}s limit): {' '.join(args)}", flush=True)
-    try:
-        result = subprocess.run(args, timeout=timeout, check=check, text=True,
-                                capture_output=True)
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
-        print(f"Simulator command failed: {error}", flush=True)
-        for detail in (error.stdout, error.stderr):
-            if detail:
-                print(detail, flush=True)
-        raise
-    if result.stdout:
-        print(result.stdout, flush=True)
-    if result.stderr:
-        print(result.stderr, flush=True)
-    return result
-
-
-@contextmanager
-def fresh_simulator(profile, output):
-    devices = json.loads(command('xcrun', 'simctl', 'list', 'devices', 'available', '-j').stdout)
-    candidates = [(runtime, device) for runtime, group in devices['devices'].items()
-                  for device in group if device.get('isAvailable', True)
-                  and device['name'].startswith('iPhone')
-                  and device.get('deviceTypeIdentifier')]
-    if not candidates:
-        raise RuntimeError('No available iPhone device type/runtime for a fresh simulator')
-    runtime, template = candidates[0]
-    # A new device has no app data. Do not uninstall an absent app on a
-    # just-booted shared device: that operation stalled before gameplay in CI.
-    device = command('xcrun', 'simctl', 'create', f'OutpostZero-Phase4-{profile}',
-                     template['deviceTypeIdentifier'], runtime).stdout.strip()
-    if not device:
-        raise RuntimeError('simctl create returned no device UUID')
-    try:
-        (output / f'{profile}-device.json').write_text(json.dumps({
-            'udid': device, 'runtime': runtime,
-            'device_type': template['deviceTypeIdentifier'], 'fresh_device': True,
-        }, indent=2))
-        command('xcrun', 'simctl', 'boot', device)
-        command('xcrun', 'simctl', 'bootstatus', device, '-b', timeout=240)
-        command('xcrun', 'simctl', 'install', device,
-                'simulator-app/OutpostZero.app', timeout=150)
-        yield device
-    finally:
-        # Cleanup is bounded and must never replace a gameplay/setup failure.
-        # Only touch the disposable device created by this invocation.
-        for action in ('shutdown', 'delete'):
-            try:
-                command('xcrun', 'simctl', action, device, timeout=30)
-            except (subprocess.SubprocessError, OSError) as error:
-                print(f'::warning::Simulator cleanup {action}: {error}', flush=True)
+from simulator_lifecycle import command, fresh_simulator
 
 
 def run(profile, limit):
@@ -94,7 +43,7 @@ def run_campaign(profile, limit, output, log, errors, device):
             try:
                 command('xcrun', 'simctl', 'io', device, 'screenshot',
                         str(capture), timeout=45)
-            except (subprocess.SubprocessError, OSError) as error:
+            except RuntimeError as error:
                 # A diagnostic capture must not terminate a live campaign.
                 # Preserve the gap for visual review; terminal outcome checks
                 # below remain mandatory and are never inferred from images.
