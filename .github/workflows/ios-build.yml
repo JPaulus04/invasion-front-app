@@ -627,7 +627,9 @@ jobs:
 
   phase4-gameplay:
     needs: build
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[phase4-review]')
+    if: >-
+      (github.event_name == 'push' && (contains(github.event.head_commit.message, '[phase4-review]') || contains(github.event.head_commit.message, '[full-review]'))) ||
+      (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full')
     uses: ./.github/workflows/phase4-gameplay.yml
 
   phase4-presentation-review:
