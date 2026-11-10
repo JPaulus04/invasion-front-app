@@ -2,16 +2,31 @@
 # Shared disposable CoreSimulator lifecycle. Source after run_bounded is defined.
 # Every caller gets a newly created device; never borrow a runner's preexisting device.
 sim_candidates() {
-  run_bounded 45 xcrun simctl list devices available -j | python3 -c '
+  local inventory
+  local attempt
+  for attempt in 1 2 3; do
+    if inventory="$(run_bounded 65 xcrun simctl list devices available -j)"; then
+      if printf '%s' "$inventory" | python3 -c '
 import json,sys
-data=json.load(sys.stdin)["devices"]
+try:
+ data=json.load(sys.stdin)["devices"]
+except (ValueError,KeyError) as exc:
+ sys.exit("Invalid simulator inventory: "+str(exc))
 items=[]
 for runtime, devices in sorted(data.items(),reverse=True):
  for d in devices:
   if d.get("isAvailable",True) and d.get("name","").startswith("iPhone") and d.get("deviceTypeIdentifier"):
    items.append((runtime,d["deviceTypeIdentifier"]))
 for runtime,device_type in items[:3]: print(runtime+" "+device_type)
-'
+'; then
+        return 0
+      fi
+    fi
+    echo "::warning::CoreSimulator inventory unavailable (attempt $attempt/3)" >&2
+    sleep 5
+  done
+  echo "::error::CoreSimulator inventory unavailable after bounded retries" >&2
+  return 70
 }
 sim_destroy() {
   if [ -n "${DEVICE:-}" ]; then
