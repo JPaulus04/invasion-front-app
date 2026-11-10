@@ -51,19 +51,25 @@ capture_scene() {
       continue
     fi
     sleep 8
-    if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT" &&
-       python3 scripts/validate_simulator_screenshots.py "$OUTPUT" &&
-       python3 scripts/validate_home_capture.py "$OUTPUT"; then
-      # A healthy PNG can still be the iOS home screen if the app exited
-      # after launch. Treat that as a retriable capture failure here.
-      if [ -f screenshots/springboard-reference.png ] &&
-         ! verify_game_foreground "$OUTPUT"; then
-        echo "::warning::Game exited to SpringBoard during $FLAG (attempt $ATTEMPT)"
-      else
-        return 0
+    if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT"; then
+      python3 scripts/validate_simulator_screenshots.py "$OUTPUT" || return 1
+      python3 scripts/validate_home_capture.py "$OUTPUT" || return 1
+      if [ -f screenshots/springboard-reference.png ]; then
+        verify_game_foreground "$OUTPUT" || {
+          echo "::error::Game is not foreground during $FLAG; refusing simulator retry"
+          return 1
+        }
       fi
+      return 0
+    else
+      rc=$?
+      if [ "$rc" -ne 70 ]; then
+        echo "::error::Screenshot command failed for $FLAG (exit $rc)"
+        return "$rc"
+      fi
+      echo "::warning::Screenshot infrastructure failure for $FLAG (attempt $ATTEMPT)"
+      if [ "$ATTEMPT" != 3 ]; then sim_recover || return 1; fi
     fi
-    echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT); retrying"
     sleep 4
   done
   echo "::error::Simulator never rendered a usable frame for $FLAG"
