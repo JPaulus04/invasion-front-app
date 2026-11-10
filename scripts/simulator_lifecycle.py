@@ -45,8 +45,10 @@ def command(*argv, timeout=60, check=True):
     return result
 
 
-@contextmanager
-def fresh_simulator(profile, output, app="simulator-app/OutpostZero.app"):
+def prepare_simulator(profile, output, app="simulator-app/OutpostZero.app"):
+    """Create, verify and install a disposable simulator; caller owns cleanup."""
+    output = Path(output)
+    output.mkdir(parents=True, exist_ok=True)
     devices = None
     for attempt in range(3):
         try:
@@ -70,41 +72,42 @@ def fresh_simulator(profile, output, app="simulator-app/OutpostZero.app"):
                   and device.get("deviceTypeIdentifier")][:3]
     if not candidates:
         raise RuntimeError("SIMULATOR_INFRASTRUCTURE: no iPhone runtime available")
-    device = None
+    for runtime, device_type in candidates:
+        device = None
+        try:
+            device = command("xcrun", "simctl", "create",
+                             f"OutpostZero-{profile}-{os.getpid()}", device_type, runtime,
+                             timeout=60).stdout.strip()
+            if not device:
+                raise RuntimeError("SIMULATOR_INFRASTRUCTURE: empty device UUID")
+            command("xcrun", "simctl", "boot", device, timeout=60)
+            command("xcrun", "simctl", "bootstatus", device, "-b", timeout=240)
+            preflight = output / f"{profile}-preflight.png"
+            command("xcrun", "simctl", "io", device, "screenshot",
+                    str(preflight), timeout=80)
+            if not preflight.is_file() or not preflight.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")):
+                raise RuntimeError("SIMULATOR_INFRASTRUCTURE: invalid preflight PNG")
+            command("xcrun", "simctl", "install", device, app, timeout=150)
+            (output / f"{profile}-device.json").write_text(json.dumps({
+                "udid": device, "runtime": runtime, "device_type": device_type,
+                "fresh_device": True}, indent=2))
+            return device
+        except RuntimeError as exc:
+            if device:
+                _cleanup(device)
+            if not str(exc).startswith("SIMULATOR_INFRASTRUCTURE:"):
+                raise
+            print(f"::warning::Replacing failed simulator: {exc}", flush=True)
+    raise RuntimeError("SIMULATOR_INFRASTRUCTURE: all disposable devices failed")
+
+
+@contextmanager
+def fresh_simulator(profile, output, app="simulator-app/OutpostZero.app"):
+    device = prepare_simulator(profile, output, app)
     try:
-        for runtime, device_type in candidates:
-            try:
-                device = command("xcrun", "simctl", "create",
-                                 f"OutpostZero-{profile}", device_type, runtime,
-                                 timeout=60).stdout.strip()
-                if not device:
-                    raise RuntimeError("SIMULATOR_INFRASTRUCTURE: empty device UUID")
-                command("xcrun", "simctl", "boot", device, timeout=60)
-                command("xcrun", "simctl", "bootstatus", device, "-b", timeout=240)
-                Path(output).mkdir(parents=True, exist_ok=True)
-                preflight = Path(output) / f"{profile}-preflight.png"
-                command("xcrun", "simctl", "io", device, "screenshot",
-                        str(preflight), timeout=80)
-                if not preflight.read_bytes().startswith(bytes.fromhex("89504e470d0a1a0a")):
-                    raise RuntimeError("SIMULATOR_INFRASTRUCTURE: invalid preflight PNG")
-                command("xcrun", "simctl", "install", device, app, timeout=150)
-                (Path(output) / f"{profile}-device.json").write_text(json.dumps({
-                    "udid": device, "runtime": runtime, "device_type": device_type,
-                    "fresh_device": True}, indent=2))
-                break
-            except RuntimeError as exc:
-                if not str(exc).startswith("SIMULATOR_INFRASTRUCTURE:"):
-                    raise
-                print(f"::warning::Replacing failed simulator: {exc}", flush=True)
-                if device:
-                    _cleanup(device)
-                    device = None
-        else:
-            raise RuntimeError("SIMULATOR_INFRASTRUCTURE: all disposable devices failed")
         yield device
     finally:
-        if device:
-            _cleanup(device)
+        _cleanup(device)
 
 
 def _cleanup(device):
@@ -113,3 +116,30 @@ def _cleanup(device):
             command("xcrun", "simctl", action, device, timeout=35)
         except RuntimeError as exc:
             print(f"::warning::Simulator cleanup {action}: {exc}", flush=True)
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("action", choices=["prepare", "destroy"])
+    parser.add_argument("--profile", default="visual")
+    parser.add_argument("--output", default="screenshots")
+    parser.add_argument("--app", default="simulator-app/OutpostZero.app")
+    parser.add_argument("--device")
+    args = parser.parse_args()
+    if args.action == "prepare":
+        try:
+            device = prepare_simulator(args.profile, args.output, args.app)
+        except RuntimeError as exc:
+            print(f"::error::{exc}", file=__import__("sys").stderr)
+            return 70 if str(exc).startswith("SIMULATOR_INFRASTRUCTURE:") else 71
+        print(device)
+        return 0
+    if not args.device:
+        parser.error("--device required for destroy")
+    _cleanup(args.device)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
