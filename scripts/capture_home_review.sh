@@ -1,18 +1,11 @@
 #!/usr/bin/env bash
 set -eo pipefail
+export OUTPOST_SIM_DIAGNOSTICS=${OUTPOST_SIM_DIAGNOSTICS:-screenshots/simulator-diagnostics.jsonl}
 # Every simulator subprocess is bounded so a stalled simctl cannot
 # pin the macOS runner until the whole job times out.
 run_bounded() {
-  LIMIT="$1"; shift
-  python3 - "$LIMIT" "$@" <<'PY'
-import subprocess
-import sys
-try:
-    subprocess.run(sys.argv[2:], check=True, timeout=int(sys.argv[1]))
-except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
-    print(f"Simulator command unavailable: {error}", file=sys.stderr)
-    sys.exit(1)
-PY
+  local limit="$1"; shift
+  python3 scripts/simulator_command.py --timeout "$limit" --label "${1##*/} ${2:-command}" -- "$@"
 }
 # Let a fresh service finish first-boot data migration. Killing it
 # before listing devices made the migrations restart on some hosts.
