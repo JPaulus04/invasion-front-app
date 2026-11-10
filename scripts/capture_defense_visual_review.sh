@@ -7,74 +7,11 @@ run_bounded() {
   local limit="$1"; shift
   python3 scripts/simulator_command.py --timeout "$limit" --label "${1##*/} ${2:-command}" -- "$@"
 }
-# Let a fresh service finish first-boot data migration. Killing it
-# before listing devices made the migrations restart on some hosts.
-# Fallback to a second available iPhone only after bounded readiness.
-DEVICE=""
-DEVICE_CANDIDATES="$(xcrun simctl list devices available -j | python3 -c '
-import json, sys
-data=json.load(sys.stdin)["devices"]
-found=[]
-for runtime, devices in sorted(data.items(), reverse=True):
-    for device in devices:
-        if device.get("isAvailable", True) and device.get("name", "").startswith("iPhone"):
-            found.append(device["udid"])
-print(chr(10).join(found[:2]))
-')"
-for CANDIDATE in $DEVICE_CANDIDATES; do
-  echo "Preparing simulator $CANDIDATE"
-  run_bounded 35 xcrun simctl boot "$CANDIDATE" || true
-  # Data migration often needs more than 90 seconds on a cold VM.
-  if run_bounded 200 xcrun simctl bootstatus "$CANDIDATE" -b; then
-    # bootstatus can return success while CoreSimulator has already shut down.
-    STATE="$(xcrun simctl list devices -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; u=sys.argv[1]; print(next((v.get("state","") for vs in d.values() for v in vs if v.get("udid")==u), "missing"))' "$CANDIDATE")"
-    if [ "$STATE" = "Booted" ]; then
-      DEVICE="$CANDIDATE"
-      break
-    fi
-    echo "::warning::Simulator $CANDIDATE reported boot ready but state is $STATE"
-  fi
-  echo "::warning::Simulator $CANDIDATE failed boot readiness; trying alternate device"
-  run_bounded 20 xcrun simctl shutdown "$CANDIDATE" || true
-done
-if [ -z "$DEVICE" ]; then
-  echo "::error::No available iPhone simulator reached boot readiness"
-  exit 1
-fi
-echo "Simulator ready: $DEVICE"
-# Verify CoreSimulator can actually deliver pixels before the expensive review.
-# Boot readiness alone is insufficient on cold GitHub macOS hosts.
-PREFLIGHT_OK=0
-for PREFLIGHT_ATTEMPT in 1 2; do
-  if run_bounded 35 xcrun simctl io "$DEVICE" screenshot /tmp/outpost-simulator-preflight.png &&
-     python3 -c 'from PIL import Image; im=Image.open("/tmp/outpost-simulator-preflight.png"); im.verify()'; then
-    PREFLIGHT_OK=1
-    break
-  fi
-  echo "::warning::Simulator pixel preflight failed ($PREFLIGHT_ATTEMPT/2)"
-  if [ "$PREFLIGHT_ATTEMPT" = 1 ]; then
-    run_bounded 20 xcrun simctl shutdown "$DEVICE" || true
-    run_bounded 35 xcrun simctl boot "$DEVICE" || true
-    run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b || true
-  fi
-done
-if [ "$PREFLIGHT_OK" != 1 ]; then
-  echo "::error::CoreSimulator cannot capture a frame; skipping expensive scene review"
-  xcrun simctl list devices || true
-  exit 1
-fi
 APP="simulator-app/OutpostZero.app"
-# If CoreSimulatorService is cold, allow a generous first install.
-# On failure restart only the simulator rather than recompiling iOS.
-if ! run_bounded 150 xcrun simctl install "$DEVICE" "$APP"; then
-  # A slow initial install may recover after a single service reset.
-  # Do not loop forever on a damaged simulator installation.
-  echo "::warning::Simulator install failed; one bounded reinstall attempt"
-  run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
-  run_bounded 40 xcrun simctl boot "$DEVICE" || true
-  run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b
-  run_bounded 150 xcrun simctl install "$DEVICE" "$APP"
-fi
+SIM_PROFILE=defense
+source scripts/simulator_lifecycle.sh
+trap 'sim_destroy' EXIT
+sim_prepare
 mkdir -p screenshots
 export REQUIRE_WORLD_ONE_ART="${REQUIRE_WORLD_ONE_ART:-0}"
 # A cold-booted simulator can show a gray launch screen for several
