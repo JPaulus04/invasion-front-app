@@ -634,62 +634,89 @@ final class OutpostScene: SKScene {
         passageGate.isHidden = true
         arena.addChild(passageGate)
 
-        // Keep the entire portal below the top boundary and HUD: the gate
-        // position is inset from the far wall, while its artwork rises into it.
-        // Stone wall portal surround: the art is inset into an architectural
-        // opening rather than standing on the walkable floor.
-        let wallShadow = SKShapeNode(rect: CGRect(x: -74, y: 42,
-            width: 148, height: 126), cornerRadius: 17)
-        wallShadow.name = "portalWallRecess"
-        wallShadow.fillColor = SKColor(red: 0.075, green: 0.13, blue: 0.12, alpha: 0.96)
-        wallShadow.strokeColor = SKColor(red: 0.30, green: 0.39, blue: 0.30, alpha: 1)
-        wallShadow.lineWidth = 7
-        wallShadow.zPosition = -2
-        passageGate.addChild(wallShadow)
+        // World exit is an opening cut into the north wall, not a freestanding
+        // portal prop. All geometry stays within the far-wall depth band.
+        // Its lower edge is the walkable threshold and its upper edge stays
+        // below the HUD. The invisible gate remains the interaction target.
+        let wallMortar = SKShapeNode(rect: CGRect(x: -102, y: 38,
+            width: 204, height: 84), cornerRadius: 8)
+        wallMortar.name = "portalWallMortar"
+        wallMortar.fillColor = SKColor(red: 0.18, green: 0.25, blue: 0.21, alpha: 1)
+        wallMortar.strokeColor = SKColor(red: 0.11, green: 0.18, blue: 0.14, alpha: 1)
+        wallMortar.lineWidth = 3
+        wallMortar.zPosition = -3
+        passageGate.addChild(wallMortar)
+
+        // The dark doorway reads as actual depth through the wall.
+        let opening = SKShapeNode(rect: CGRect(x: -43, y: 30,
+            width: 86, height: 88), cornerRadius: 34)
+        opening.name = "portalRecessOpening"
+        opening.fillColor = SKColor(red: 0.018, green: 0.065, blue: 0.10, alpha: 1)
+        opening.strokeColor = SKColor(red: 0.09, green: 0.15, blue: 0.13, alpha: 1)
+        opening.lineWidth = 7
+        opening.zPosition = -2
+        passageGate.addChild(opening)
+
+        let energy = SKShapeNode(rect: CGRect(x: -34, y: 34,
+            width: 68, height: 76), cornerRadius: 29)
+        energy.name = "portalRecessEnergy"
+        energy.fillColor = SKColor(red: 0.07, green: 0.40, blue: 0.76, alpha: 0.92)
+        energy.strokeColor = SKColor(red: 0.36, green: 0.88, blue: 0.98, alpha: 0.92)
+        energy.lineWidth = 3
+        energy.glowWidth = 7
+        energy.zPosition = -1
+        passageGate.addChild(energy)
+        energy.run(.repeatForever(.sequence([
+            .fadeAlpha(to: 0.73, duration: 1.15),
+            .fadeAlpha(to: 1.0, duration: 1.15)
+        ])), withKey: "portalRecessPulse")
+
+        // Stone jambs and lintel overlap the energy edges, making the
+        // opening visibly recessed into the wall rather than mounted on it.
         for side: CGFloat in [-1, 1] {
-            let pier = SKShapeNode(rect: CGRect(x: side < 0 ? -85 : 64,
-                y: 35, width: 21, height: 143), cornerRadius: 5)
-            pier.name = "portalStonePier"
-            pier.fillColor = SKColor(red: 0.31, green: 0.39, blue: 0.32, alpha: 1)
-            pier.strokeColor = SKColor(red: 0.16, green: 0.24, blue: 0.18, alpha: 1)
-            pier.lineWidth = 2
-            pier.zPosition = 2
-            passageGate.addChild(pier)
+            let jamb = SKShapeNode(rect: CGRect(
+                x: side < 0 ? -60 : 44, y: 29, width: 16, height: 88),
+                cornerRadius: 3)
+            jamb.name = "portalWallJamb"
+            jamb.fillColor = SKColor(red: 0.36, green: 0.44, blue: 0.36, alpha: 1)
+            jamb.strokeColor = SKColor(red: 0.19, green: 0.27, blue: 0.20, alpha: 1)
+            jamb.lineWidth = 2
+            jamb.zPosition = 1
+            passageGate.addChild(jamb)
         }
-        let lintel = SKShapeNode(rect: CGRect(x: -86, y: 150,
-            width: 172, height: 23), cornerRadius: 5)
-        lintel.name = "portalStoneLintel"
-        lintel.fillColor = SKColor(red: 0.34, green: 0.43, blue: 0.34, alpha: 1)
-        lintel.strokeColor = SKColor(red: 0.15, green: 0.24, blue: 0.17, alpha: 1)
+        let lintel = SKShapeNode(rect: CGRect(x: -64, y: 107,
+            width: 128, height: 15), cornerRadius: 4)
+        lintel.name = "portalWallLintel"
+        lintel.fillColor = SKColor(red: 0.39, green: 0.47, blue: 0.38, alpha: 1)
+        lintel.strokeColor = SKColor(red: 0.18, green: 0.27, blue: 0.19, alpha: 1)
         lintel.lineWidth = 2
-        lintel.zPosition = 3
+        lintel.zPosition = 2
         passageGate.addChild(lintel)
-        // Art-backed campaign exit. Keep passageGate as the independent interaction target.
-        // The sprite is anchored to the far wall and never participates in player collision.
-        if let portalImage = UIImage(named: "outpost_zero_portal_approved_transparent")
-            ?? UIImage(named: "ArtAssets/outpost_zero_portal_approved_transparent") {
-            let portalArtwork = SKSpriteNode(texture: SKTexture(image: portalImage))
-            portalArtwork.name = "campaignPortalArtwork"
-            portalArtwork.size = CGSize(width: 104, height: 112)
-            portalArtwork.position = CGPoint(x: 0, y: 100)
-            portalArtwork.zPosition = 1
-            passageGate.addChild(portalArtwork)
-        }
+
+        // A shallow light spill ends at the wall threshold; there is no
+        // circular floor pedestal or freestanding portal base.
+        let thresholdLight = SKShapeNode(ellipseOf: CGSize(width: 80, height: 14))
+        thresholdLight.name = "portalThresholdLight"
+        thresholdLight.position = CGPoint(x: 0, y: 25)
+        thresholdLight.fillColor = SKColor(red: 0.18, green: 0.75, blue: 0.94, alpha: 0.25)
+        thresholdLight.strokeColor = .clear
+        thresholdLight.zPosition = 0
+        passageGate.addChild(thresholdLight)
 
         let gateText = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         gateText.name = "exitPortalLabel"
         gateText.text = "ENTER"
-        gateText.fontSize = 15
+        gateText.fontSize = 13
         gateText.fontColor = .white
-        gateText.position.y = 140
+        gateText.position.y = 66
         gateText.verticalAlignmentMode = .center
         gateText.zPosition = 4
         passageGate.addChild(gateText)
         let gateArrow = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         gateArrow.text = "▲"
-        gateArrow.fontSize = 17
+        gateArrow.fontSize = 15
         gateArrow.fontColor = .systemCyan
-        gateArrow.position = CGPoint(x: 0, y: -24)
+        gateArrow.position = CGPoint(x: 0, y: 7)
         gateArrow.zPosition = 4
         gateArrow.name = "gateArrow"
         passageGate.addChild(gateArrow)
