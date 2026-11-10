@@ -37,14 +37,16 @@ capture_scene() {
         -captureWorldOne*Screenshot) EXTRA_FLAGS=(-requireWorldOneAuthoredArt) ;;
       esac
     fi
-    if ! run_bounded 65 xcrun simctl launch --terminate-running-process "$DEVICE" com.paulus.laststandcommand "$FLAG" "${EXTRA_FLAGS[@]}"; then
-      echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
-      if [ "$ATTEMPT" != 3 ]; then
-        # A cold CoreSimulatorService can become unresponsive even
-        # after installation. Reboot the simulator before retrying
-        # rather than issuing launch to the same wedged instance.
-        sim_recover || return 1
+    if run_bounded 65 xcrun simctl launch --terminate-running-process "$DEVICE" com.paulus.laststandcommand "$FLAG" "${EXTRA_FLAGS[@]}"; then
+      :
+    else
+      rc=$?
+      if [ "$rc" -ne 70 ]; then
+        echo "::error::Game launch failed for $FLAG (exit $rc); refusing infrastructure retry"
+        return "$rc"
       fi
+      echo "::warning::Simulator launch infrastructure failure for $FLAG (attempt $ATTEMPT)"
+      if [ "$ATTEMPT" != 3 ]; then sim_recover || return 1; fi
       sleep 4
       continue
     fi
