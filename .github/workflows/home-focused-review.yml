@@ -74,34 +74,6 @@ jobs:
           xcrun simctl list runtimes
           xcrun simctl list devices available
       # Artwork uploaded: verify all 12 production menu sprites before capture.
-      - name: Boot iPhone simulator before resource-heavy compilation
-        timeout-minutes: 7
-        run: |
-          python3 - <<'PY'
-          import json, subprocess, sys
-          def call(cmd, limit):
-              return subprocess.run(cmd, text=True, capture_output=True, timeout=limit)
-          devices=json.loads(call(["xcrun","simctl","list","devices","available","-j"],30).stdout)["devices"]
-          candidates=[v["udid"] for vs in devices.values() for v in vs if v.get("isAvailable",True) and v.get("name","").startswith("iPhone")]
-          if not candidates:
-              sys.exit("No available iPhone simulator")
-          u=candidates[0]
-          print("Prewarming iPhone simulator",u,flush=True)
-          boot=call(["xcrun","simctl","boot",u],45)
-          print("Boot command:",boot.returncode,boot.stderr[-500:],flush=True)
-          try:
-              ready=call(["xcrun","simctl","bootstatus",u,"-b"],240)
-              print("Boot readiness:",ready.returncode,ready.stderr[-500:],flush=True)
-              if ready.returncode: sys.exit("Simulator could not prewarm")
-          except subprocess.TimeoutExpired:
-              print("::error::CoreSimulator readiness timed out after 240 seconds; aborting before costly compilation",flush=True)
-              sys.exit(1)
-          # bootstatus returning zero is the readiness signal. Re-querying the
-          # entire CoreSimulator device database has hung after successful boot.
-          with open("/tmp/outpost-zero-ci-device","w") as handle:
-              handle.write(u)
-          print("Simulator ready for screenshot capture:",u,flush=True)
-          PY
       - name: Audit production menu sprite assets
         run: |
           set -o pipefail
@@ -167,7 +139,6 @@ jobs:
         timeout-minutes: 25
         run: |
           set -o pipefail
-          export OUTPOST_ZERO_SIMULATOR_UDID="$(cat /tmp/outpost-zero-ci-device)"
           bash scripts/capture_home_review.sh 2>&1 | tee diagnostics/simulator-capture.log
       - name: Verify unified Home and World Selector captures
         run: |
@@ -190,4 +161,5 @@ jobs:
           path: |
             xcodebuild-home.log
             diagnostics/
+            screenshots/simulator-diagnostics.jsonl
           if-no-files-found: ignore
