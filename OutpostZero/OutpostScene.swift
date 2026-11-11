@@ -739,8 +739,11 @@ final class OutpostScene: SKScene {
                 .forEach { $0.isHidden = true }
             let artwork = SKSpriteNode(texture: SKTexture(image: approvedPortal))
             artwork.name = "approvedWallPortalArtwork"
-            artwork.size = CGSize(width: 140, height: 140)
-            artwork.position = CGPoint(x: 0, y: 62)
+            // The gate's collision target stays reachable on the floor, but
+            // the illustrated doorway is mounted at the north-wall seam.
+            // Moving the gate itself would put the interaction outside bounds.
+            artwork.size = CGSize(width: 112, height: 112)
+            artwork.position = CGPoint(x: 0, y: 180)
             artwork.zPosition = 3
             passageGate.addChild(artwork)
         }
