@@ -1,6 +1,8 @@
 name: TestFlight Release
 
 on:
+  push:
+    branches: [build-327]
   workflow_dispatch:
     inputs:
       build_number:
@@ -8,8 +10,71 @@ on:
         required: true
         default: "330"
 
+env:
+  RELEASE_BUILD_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.build_number || '332' }}
+
 jobs:
+  release-gate:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[testflight-332]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Require same-SHA gameplay and presentation success before releasing
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, time, urllib.request
+          repo, sha = os.environ["REPOSITORY"], os.environ["RELEASE_SHA"]
+          def get(path):
+              request = urllib.request.Request(
+                  "https://api.github.com/repos/" + repo + "/" + path,
+                  headers={"Authorization": "Bearer " + os.environ["GITHUB_TOKEN"],
+                           "Accept": "application/vnd.github+json",
+                           "X-GitHub-Api-Version": "2022-11-28"})
+              with urllib.request.urlopen(request, timeout=35) as response:
+                  return json.load(response)
+          required = {"build", "Focused gameplay presentation",
+                      "phase4-gameplay / Fresh World 1 — stationary",
+                      "phase4-gameplay / Fresh World 1 — moving",
+                      "phase4-gameplay / Assess World 1 gameplay outcomes"}
+          for attempt in range(135):
+              if get("branches/build-327")["commit"]["sha"] != sha:
+                  sys.exit("Release blocked: branch moved after release candidate")
+              runs = [r for r in get("actions/runs?head_sha=" + sha +
+                                     "&per_page=100").get("workflow_runs", [])
+                      if r["name"] == "iOS Compile Check"
+                      and r["event"] == "push" and r["head_sha"] == sha]
+              if runs:
+                  run = max(runs, key=lambda r: r["id"])
+                  if run["status"] == "completed":
+                      if run["conclusion"] != "success":
+                          sys.exit("Release blocked: iOS/gameplay validation failed: "
+                                   + run["html_url"])
+                      jobs = get("actions/runs/" + str(run["id"]) + "/jobs?per_page=100")
+                      status = {j["name"]: j["conclusion"] for j in jobs["jobs"]}
+                      failed = {name: status.get(name) for name in required
+                                if status.get(name) != "success"}
+                      if failed:
+                          sys.exit("Release blocked: required jobs missing/failed: " + repr(failed))
+                      print("Build 332 approved for TestFlight from", run["html_url"])
+                      break
+                  print("Validating:", run["html_url"], flush=True)
+              else:
+                  print("Awaiting compile workflow for", sha, flush=True)
+              time.sleep(20)
+          else:
+              sys.exit("Release blocked: validation exceeded gate window")
+          PY
+
   testflight:
+    needs: release-gate
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.release-gate.result == 'success')
     runs-on: macos-26
     permissions:
       contents: read
@@ -45,7 +110,7 @@ jobs:
           done
       - name: Validate TestFlight build number
         env:
-          BUILD_NUMBER: ${{ inputs.build_number }}
+          BUILD_NUMBER: ${{ env.RELEASE_BUILD_NUMBER }}
         run: |
           if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]] || [ "$BUILD_NUMBER" -lt 317 ]; then
             echo "::error::Build number must be numeric and at least 317."
@@ -115,7 +180,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -o pipefail
-          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/OutpostZero.xcarchive" -derivedDataPath "$RUNNER_TEMP/DerivedData" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CURRENT_PROJECT_VERSION="${{ inputs.build_number }}" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" OTHER_CODE_SIGN_FLAGS="--keychain build.keychain" archive 2>&1 | tee archive.log
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/OutpostZero.xcarchive" -derivedDataPath "$RUNNER_TEMP/DerivedData" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CURRENT_PROJECT_VERSION="${{ env.RELEASE_BUILD_NUMBER }}" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" OTHER_CODE_SIGN_FLAGS="--keychain build.keychain" archive 2>&1 | tee archive.log
       - name: Export App Store IPA
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -135,7 +200,7 @@ jobs:
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/OutpostZero.xcarchive" -exportPath "$RUNNER_TEMP/export" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" 2>&1 | tee export.log
       - name: Verify exported IPA identity
         env:
-          EXPECTED_BUILD: ${{ inputs.build_number }}
+          EXPECTED_BUILD: ${{ env.RELEASE_BUILD_NUMBER }}
         run: |
           python3 - <<'PY'
           import glob, os, plistlib, zipfile
@@ -186,7 +251,7 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_API_KEY: ${{ secrets.ASC_API_KEY }}
-          EXPECTED_BUILD: ${{ inputs.build_number }}
+          EXPECTED_BUILD: ${{ env.RELEASE_BUILD_NUMBER }}
         run: |
           node <<'NODE'
           const crypto = require('node:crypto');

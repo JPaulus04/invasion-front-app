@@ -9,8 +9,16 @@ enum QACombatDriver {
         let radius: CGFloat
     }
 
+    /// Read only visible, locked enemy warnings; never alter real combat.
+    struct AimWarning {
+        let origin: CGPoint
+        let target: CGPoint
+        let radius: CGFloat
+        let firesIn: CGFloat
+    }
+
     static func target(origin: CGPoint, speed: CGFloat, bounds: CGRect,
-                       threats: [Threat], goal: CGPoint,
+                       threats: [Threat], aimWarnings: [AimWarning] = [], goal: CGPoint,
                        previous: CGPoint?, resolve: (CGPoint, CGPoint) -> CGPoint) -> CGPoint {
         let horizon: CGFloat = 0.9
         var best = origin
@@ -36,6 +44,24 @@ enum QACombatDriver {
                     let clearance = hypot(point.x - x, point.y - y) - threat.radius
                     risk += max(0, 55 - clearance) * 2
                     if clearance < 0 { risk += 2000 }
+                }
+                // Forecast the corridor shown by each active targeting line.
+                // Act before the shot launches, then react to the projectile.
+                for aim in aimWarnings {
+                    let dx = aim.target.x - aim.origin.x
+                    let dy = aim.target.y - aim.origin.y
+                    let length = hypot(dx, dy)
+                    guard length > 1 else { continue }
+                    let ux = dx / length, uy = dy / length
+                    let distanceAlong = min(length + 80, max(0,
+                        (point.x - aim.origin.x) * ux +
+                        (point.y - aim.origin.y) * uy))
+                    let nearX = aim.origin.x + ux * distanceAlong
+                    let nearY = aim.origin.y + uy * distanceAlong
+                    let clearance = hypot(point.x - nearX, point.y - nearY) - aim.radius
+                    let urgency: CGFloat = aim.firesIn <= horizon ? 1 : 0.65
+                    risk += max(0, 55 - clearance) * 3 * urgency
+                    if clearance < 0 { risk += 550 * urgency }
                 }
             }
             let edge = min(point.x - bounds.minX, bounds.maxX - point.x,

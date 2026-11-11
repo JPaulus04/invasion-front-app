@@ -8960,6 +8960,22 @@ final class OutpostScene: SKScene {
         threats += projectiles.map {
             QACombatDriver.Threat(position: $0.node.position, velocity: $0.velocity, radius: 24)
         }
+        // These locked aiming lines are visibly telegraphed in real play.
+        // The simulator driver must dodge them BEFORE their shots launch.
+        var aimWarnings: [QACombatDriver.AimWarning] = []
+        for enemy in enemies where enemy.health > 0 {
+            guard let lockedTarget = enemy.shotTarget else { continue }
+            let origin = enemy.node.position
+            let lanes = enemy.node === bossNode &&
+                (selectedWorld.bossStyle == 1 || selectedWorld.bossStyle == 3)
+                ? CombatRules.wardenVolleyTargets(origin: origin, target: lockedTarget)
+                : [lockedTarget]
+            for lane in lanes {
+                aimWarnings.append(QACombatDriver.AimWarning(
+                    origin: origin, target: lane, radius: 28,
+                    firesIn: CGFloat(max(0, enemy.fireAt - combatTime))))
+            }
+        }
         // Visible mortar warning circles are dangerous throughout the approach.
         threats += lobs.map {
             QACombatDriver.Threat(position: $0.target, velocity: .zero, radius: $0.radius + 16)
@@ -8969,7 +8985,7 @@ final class OutpostScene: SKScene {
         })?.node.position ?? CGPoint(x: roomBounds.midX, y: roomBounds.midY)
         return QACombatDriver.target(origin: pilot.position, speed: pilotSpeed,
             bounds: roomBounds.insetBy(dx: 16, dy: 16), threats: threats,
-            goal: goal, previous: qaSteeringTarget,
+            aimWarnings: aimWarnings, goal: goal, previous: qaSteeringTarget,
             resolve: { [unowned self] from, to in self.resolvePilotMovement(from: from, to: to) })
     }
 

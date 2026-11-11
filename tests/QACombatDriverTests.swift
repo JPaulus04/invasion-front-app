@@ -6,10 +6,13 @@ struct QACombatDriverTests {
     static func main() {
         let origin = CGPoint(x: 250, y: 250)
         let bounds = CGRect(x: 0, y: 0, width: 500, height: 500)
-        func target(_ threats: [QACombatDriver.Threat], goal: CGPoint = CGPoint(x: 250, y: 250),
+        func target(_ threats: [QACombatDriver.Threat],
+                    warnings: [QACombatDriver.AimWarning] = [],
+                    goal: CGPoint = CGPoint(x: 250, y: 250),
                     resolve: (CGPoint, CGPoint) -> CGPoint = { _, to in to }) -> CGPoint {
             QACombatDriver.target(origin: origin, speed: 180, bounds: bounds,
-                                  threats: threats, goal: goal, previous: nil, resolve: resolve)
+                                  threats: threats, aimWarnings: warnings,
+                                  goal: goal, previous: nil, resolve: resolve)
         }
         let pickup = target([], goal: CGPoint(x: 400, y: 250))
         precondition(pickup.x > origin.x, "Approach XP when safe")
@@ -43,6 +46,20 @@ struct QACombatDriverTests {
         let escape = target([mortar])
         precondition(hypot(escape.x - origin.x, escape.y - origin.y) > 45,
                      "Leave visible blast radius")
+        // A visible locked aiming line must change the planned route.
+        let warning = QACombatDriver.AimWarning(
+            origin: CGPoint(x: 250, y: 425), target: origin,
+            radius: 28, firesIn: 0.45)
+        let unaware = target([], goal: CGPoint(x: 250, y: 400))
+        let warned = target([], warnings: [warning], goal: CGPoint(x: 250, y: 400))
+        func laneClearance(_ point: CGPoint) -> CGFloat {
+            let nearestY = min(505, max(250, point.y))
+            return hypot(point.x - 250, point.y - nearestY) - warning.radius
+        }
+        precondition(laneClearance(warned) > laneClearance(unaware) + 15,
+                     "React to the visible aiming line before firing")
+        precondition(hypot(warned.x - origin.x, warned.y - origin.y) <= 180 * 0.9 + 0.001,
+                     "Warning dodge must respect player speed")
         let blocked = target([], goal: CGPoint(x: 400, y: 250), resolve: { from, _ in from })
         precondition(blocked == origin, "Never bypass collision resolution")
         let corner = CGPoint(x: 18, y: 18)
