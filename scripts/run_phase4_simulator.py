@@ -11,6 +11,12 @@ from contextlib import contextmanager
 BUNDLE = 'com.paulus.laststandcommand'
 
 
+import sys
+
+# Also support importlib-based loading by the regression test suite.
+SCRIPT_DIR = str(Path(__file__).resolve().parent)
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
 from simulator_lifecycle import command, fresh_simulator
 
 
