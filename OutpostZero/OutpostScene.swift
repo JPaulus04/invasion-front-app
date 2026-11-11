@@ -743,7 +743,7 @@ final class OutpostScene: SKScene {
             // the illustrated doorway is mounted at the north-wall seam.
             // Moving the gate itself would put the interaction outside bounds.
             artwork.size = CGSize(width: 112, height: 112)
-            artwork.position = CGPoint(x: 0, y: 180)
+            artwork.position = CGPoint(x: 0, y: 105)
             artwork.zPosition = 3
             passageGate.addChild(artwork)
         }
@@ -2356,6 +2356,61 @@ final class OutpostScene: SKScene {
         arena.addChild(floor)
     }
 
+    // North-wall scenery is world-space, so it scrolls naturally with the
+    // following camera instead of being painted onto the device viewport.
+    private func rebuildNorthWallEnvironment() {
+        arena.childNode(withName: "northWallEnvironment")?.removeFromParent()
+        let scenery = SKNode()
+        scenery.name = "northWallEnvironment"
+        scenery.zPosition = -3.5
+        let bounds = roomBounds
+        let wallY = bounds.maxY - 32
+
+        // Exterior continues beyond the collision boundary. The camera can
+        // reveal this foliage as the commander advances toward the exit.
+        let exterior = SKShapeNode(rect: CGRect(
+            x: bounds.minX - 180, y: wallY + 8,
+            width: bounds.width + 360, height: 280))
+        exterior.fillColor = SKColor(red: 0.09, green: 0.20, blue: 0.15, alpha: 1)
+        exterior.strokeColor = .clear
+        exterior.zPosition = -2
+        scenery.addChild(exterior)
+        for index in 0..<19 {
+            let fraction = CGFloat(index) / 18
+            let x = bounds.minX - 125 + fraction * (bounds.width + 250)
+            let y = wallY + 42 + CGFloat((index * 37) % 110)
+            let canopy = SKShapeNode(ellipseOf: CGSize(
+                width: CGFloat(48 + (index * 11) % 39),
+                height: CGFloat(34 + (index * 7) % 30)))
+            canopy.position = CGPoint(x: x, y: y)
+            canopy.fillColor = SKColor(
+                red: 0.10 + CGFloat(index % 3) * 0.025,
+                green: 0.25 + CGFloat(index % 4) * 0.025,
+                blue: 0.16, alpha: 1)
+            canopy.strokeColor = SKColor(red: 0.06, green: 0.16, blue: 0.10, alpha: 1)
+            canopy.lineWidth = 2
+            canopy.zPosition = -1
+            scenery.addChild(canopy)
+        }
+
+        // Leave an actual gap in the wall for the approved circular portal.
+        let portalGap: CGFloat = 116
+        for (x, width) in [
+            (bounds.minX - 28, bounds.midX - portalGap / 2 - (bounds.minX - 28)),
+            (bounds.midX + portalGap / 2, bounds.maxX + 28 - (bounds.midX + portalGap / 2))
+        ] {
+            let wall = SKShapeNode(rect: CGRect(x: x, y: wallY - 13,
+                                                width: width, height: 32),
+                                   cornerRadius: 4)
+            wall.fillColor = SKColor(red: 0.32, green: 0.39, blue: 0.34, alpha: 1)
+            wall.strokeColor = SKColor(red: 0.16, green: 0.24, blue: 0.19, alpha: 1)
+            wall.lineWidth = 3
+            wall.zPosition = 2
+            scenery.addChild(wall)
+        }
+        arena.addChild(scenery)
+    }
+
     private func updateArenaCamera(delta: TimeInterval) {
         if useBoundedCombatCamera {
             arena.position = BoundedCombatCamera.step(
@@ -2377,6 +2432,7 @@ final class OutpostScene: SKScene {
     private func layout() {
         if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
         passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 125)
+        rebuildNorthWallEnvironment()
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
@@ -5151,6 +5207,7 @@ final class OutpostScene: SKScene {
                 ? ArenaLayout.offset(for: pilot.position, viewportSize: size) : .zero
         // Seat the exit against the far boundary rather than in the arena center.
         passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 125)
+        rebuildNorthWallEnvironment()
         extractionPortal.isHidden = true
         checkpointButton.position = CGPoint(
             x: size.width / 2, y: RoomRules.bounds(for: size).minY + 25)
