@@ -8856,6 +8856,10 @@ final class OutpostScene: SKScene {
             rarity.horizontalAlignmentMode = .left
             rarity.position = CGPoint(x: textLeft, y: 34)
             root.addChild(rarity)
+            // Keep the rarity/acquisition ribbon inside narrow phone cards.
+            if rarity.frame.width > textWidth {
+                rarity.fontSize *= textWidth / rarity.frame.width
+            }
             let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             titleLabel.text = (label.components(separatedBy: " • ").last ?? label)
                 .replacingOccurrences(of: "  LV ", with: "  +")
@@ -8869,7 +8873,7 @@ final class OutpostScene: SKScene {
             }
             let detailLabel = SKLabelNode(fontNamed: "AvenirNext-Medium")
             detailLabel.text = detail
-            detailLabel.fontSize = 11
+            detailLabel.fontSize = 10
             detailLabel.fontColor = SKColor(white: 0.83, alpha: 1)
             detailLabel.horizontalAlignmentMode = .left
             detailLabel.verticalAlignmentMode = .top
@@ -8893,6 +8897,17 @@ final class OutpostScene: SKScene {
             context.horizontalAlignmentMode = .left
             context.position = CGPoint(x: textLeft, y: -41)
             root.addChild(context)
+            if context.frame.width > textWidth {
+                context.fontSize *= textWidth / context.frame.width
+            }
+            // Limit the two-line description to the space above the footer.
+            // Long synergy previews must not paint over the rank/slot status.
+            let detailBottom = detailLabel.frame.minY
+            let footerTop = context.frame.maxY + 3
+            if detailBottom < footerTop {
+                let availableHeight = max(12, detailLabel.frame.height - (footerTop - detailBottom))
+                detailLabel.fontSize *= availableHeight / max(1, detailLabel.frame.height)
+            }
             // A short reveal happens outside the paused arena. The draw is
             // already fixed; skipping never rerolls or consumes a choice.
             if !UIAccessibility.isReduceMotionEnabled {
