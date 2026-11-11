@@ -6,6 +6,18 @@ struct RoomRulesTests {
     static func main() {
         for size in [CGSize(width: 320, height: 568), CGSize(width: 393, height: 852), CGSize(width: 768, height: 1024)] {
             let room = RoomRules.bounds(for: size)
+            let startOffset = CampaignCamera.offset(for: RoomRules.entryPoint(for: size), viewportSize: size)
+            let endOffset = CampaignCamera.offset(for: CGPoint(x: room.midX, y: room.maxY - 65), viewportSize: size)
+            precondition(startOffset.y > endOffset.y, "Camera must reveal the north wall during traversal")
+            var previous = startOffset.y
+            for step in 0...100 {
+                let p = CGPoint(x: room.midX, y: room.minY + room.height * CGFloat(step) / 100)
+                let offset = CampaignCamera.offset(for: p, viewportSize: size)
+                precondition(offset.y <= previous + 0.01, "Northbound camera must not reverse direction")
+                let screen = CGPoint(x: p.x + offset.x, y: p.y + offset.y)
+                precondition(abs((screen.y - offset.y) - p.y) < 0.001)
+                previous = offset.y
+            }
             let entry = RoomRules.entryPoint(for: size)
             precondition(room.contains(entry), "Entry must be inside room")
             precondition(entry.y < room.midY, "Every new room starts at the bottom")

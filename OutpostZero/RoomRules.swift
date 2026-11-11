@@ -98,3 +98,16 @@ enum ArenaLayout {
                        y: current.y + (target.y - current.y) * alpha)
     }
 }
+
+/// Tactical camera keeps combat coordinates unchanged and leaves HUD in screen space.
+enum CampaignCamera {
+    static func offset(for pilot: CGPoint, viewportSize: CGSize) -> CGPoint {
+        let room = RoomRules.bounds(for: viewportSize)
+        let top = viewportSize.height - 140
+        let bottom: CGFloat = 40
+        let requested = viewportSize.height * 0.42 - pilot.y
+        let lower = top - (room.maxY + 145)
+        let upper = bottom - (room.minY - 110)
+        return CGPoint(x: 0, y: min(max(requested, lower), upper))
+    }
+}

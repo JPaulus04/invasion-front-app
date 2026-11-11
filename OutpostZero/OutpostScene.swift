@@ -391,6 +391,7 @@ final class OutpostScene: SKScene {
     // First validate three camera positions in isolated simulator captures.
     // Enabling live survival mode waits for encounter/recovery integration.
     private var expandedArenaPreview = false
+    private var cameraReviewLastSecond = -1
     // Live survival spawning is first exercised through the simulator QA
     // fixture. Normal campaign progression stays tactical until extraction
     // and save recovery are implemented and validated together.
@@ -1439,7 +1440,7 @@ final class OutpostScene: SKScene {
             update(1_000)
             precondition(wave == 7 && activeEncounter == .tactical &&
                          phase == .playing && !expandedArenaPreview &&
-                         arena.position == .zero && enemies.isEmpty &&
+                         distance(arena.position, CampaignCamera.offset(for: pilot.position, viewportSize: size)) < 1 && enemies.isEmpty &&
                          extractionPortal.isHidden && passageGate.isHidden &&
                          zoneBanner.text != "EXTRACTION OPEN",
                          "Room 7 must reset camera, enemies and extraction UI")
@@ -2128,6 +2129,26 @@ final class OutpostScene: SKScene {
             updateHUD()
         }
         #if targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-captureGateScreenshot") {
+            let args = ProcessInfo.processInfo.arguments
+            if args.contains("-cameraReviewEntry") || args.contains("-cameraReviewMotion") {
+                pilot.position = entryPoint
+            } else if args.contains("-cameraReviewMiddle") {
+                pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY)
+            } else {
+                pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 65)
+            }
+            updateArenaCamera(delta: 1)
+            precondition(hud.parent === self && pilot.parent === arena,
+                         "Camera must move world content independently of HUD")
+            let screenPoint = arena.convert(pilot.position, to: self)
+            let roundTrip = arena.convert(screenPoint, from: self)
+            precondition(distance(roundTrip, pilot.position) < 0.01,
+                         "Camera world/screen conversion must preserve targeting")
+            print("[CAMERA REVIEW] pilot=\(pilot.position) offset=\(arena.position) gate=\(passageGate.position)")
+        }
+        #endif
+        #if targetEnvironment(simulator)
         // Added after every fixture finishes setup. Root ownership keeps the
         // identity visible when victory deliberately hides the HUD and arena.
         let reviewFlags = ["-captureGateScreenshot", "-captureLevelUpScreenshot",
@@ -2278,11 +2299,14 @@ final class OutpostScene: SKScene {
     }
 
     private func updateArenaCamera(delta: TimeInterval) {
-        guard expandedArenaPreview else {
-            if arena.position != .zero { arena.position = .zero }
-            return
+        let target: CGPoint
+        if expandedArenaPreview {
+            target = ArenaLayout.offset(for: pilot.position, viewportSize: size)
+        } else if worldMapIndex == 0 && wave > 0 {
+            target = CampaignCamera.offset(for: pilot.position, viewportSize: size)
+        } else {
+            target = .zero
         }
-        let target = ArenaLayout.offset(for: pilot.position, viewportSize: size)
         arena.position = ArenaLayout.follow(
             current: arena.position, target: target, frameDelta: delta)
     }
@@ -2291,7 +2315,7 @@ final class OutpostScene: SKScene {
 
     private func layout() {
         if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 112)
+        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - (worldMapIndex == 0 ? 14 : 112))
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
@@ -4670,9 +4694,11 @@ final class OutpostScene: SKScene {
         let behind = pilot.position.y - 27 > defenseDevice.position.y - 37
         defenseDevice.zPosition = behind ? 10 : 8
         // Occlude naturally by depth instead of fading the entire reactor.
-        // Transparency made the objective look intangible when the pilot
-        // passed behind it and also dimmed its integrity indicators.
+        // Fade only the housing near the pilot; integrity labels stay opaque.
         defenseDevice.alpha = 1
+        defenseDevice.childNode(withName: "fieldReactorHousingArt")?.alpha =
+            behind && abs(pilot.position.x - defenseDevice.position.x) < 65 &&
+            abs(pilot.position.y - defenseDevice.position.y) < 90 ? 0.58 : 1
     }
 
     private func installDefenseDevice() {
@@ -5048,10 +5074,9 @@ final class OutpostScene: SKScene {
         arena.childNode(withName: "expandedArenaPreviewGround")?.removeFromParent()
         if expandedArenaPreview { installArenaPreviewGround() }
         pilot.position = entryPoint
-        arena.position = expandedArenaPreview
-            ? ArenaLayout.offset(for: pilot.position, viewportSize: size) : .zero
+        updateArenaCamera(delta: 1)
         // Seat the exit against the far boundary rather than in the arena center.
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 112)
+        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - (worldMapIndex == 0 ? 14 : 112))
         extractionPortal.isHidden = true
         checkpointButton.position = CGPoint(
             x: size.width / 2, y: RoomRules.bounds(for: size).minY + 25)
@@ -5422,6 +5447,30 @@ final class OutpostScene: SKScene {
         // distinct opaque industrial and toxic environment palettes.
         let roomArt = arena.childNode(withName: "roomArtwork")
         let nonForestWorld = worldMapIndex != 0
+        arena.childNode(withName: "campaignExterior")?.removeFromParent()
+        if worldMapIndex == 0 {
+            let exterior = SKNode()
+            exterior.name = "campaignExterior"
+            exterior.zPosition = -50
+            let ground = SKShapeNode(rect: roomBounds.insetBy(dx: -size.width, dy: -size.height))
+            ground.fillColor = SKColor(red: 0.08, green: 0.18, blue: 0.12, alpha: 1)
+            ground.strokeColor = .clear
+            exterior.addChild(ground)
+            for index in 0..<36 {
+                let north = index < 18
+                let column = index % 9
+                let row = (index % 18) / 9
+                let tree = SKSpriteNode(texture: productionTexture(
+                    named: index.isMultiple(of: 3) ? "forest_broadleaf" : "forest_pine",
+                    fallback: forestPineTexture))
+                tree.size = CGSize(width: 95 + CGFloat(index % 3) * 14, height: 110)
+                tree.position = CGPoint(x: roomBounds.minX - 100 + CGFloat(column) * (roomBounds.width + 200) / 8,
+                    y: north ? roomBounds.maxY + 155 + CGFloat(row) * 70
+                             : roomBounds.minY - 105 - CGFloat(row) * 70)
+                exterior.addChild(tree)
+            }
+            arena.addChild(exterior)
+        }
         if selectedWorld.biome == 4 {
             let frost = SKSpriteNode(texture: FrostFloorArt.texture(for: size))
             frost.name = "frostAmbientBackdrop"
@@ -5493,12 +5542,14 @@ final class OutpostScene: SKScene {
                 // the lower edge of the first Toxic Caves capture.
                 let paintedBounds = expandedArenaPreview
                     ? roomBounds.insetBy(dx: -80, dy: -80)
-                    : CGRect(origin: .zero, size: size).insetBy(dx: -80, dy: -80)
+                    : CGRect(x: roomBounds.minX - 55, y: roomBounds.minY - 55,
+                             width: roomBounds.width + 110, height: roomBounds.height + 200)
                 let textureSize = texture.size()
                 let coverScale = max(paintedBounds.width / max(1, textureSize.width),
                                      paintedBounds.height / max(1, textureSize.height))
-                floorArt.size = CGSize(width: textureSize.width * coverScale,
-                                       height: textureSize.height * coverScale)
+                floorArt.size = expandedArenaPreview
+                    ? CGSize(width: textureSize.width * coverScale, height: textureSize.height * coverScale)
+                    : paintedBounds.size
                 floorArt.position = CGPoint(x: paintedBounds.midX, y: paintedBounds.midY)
                 floorArt.zPosition = -18.5
                 if floorArt.parent == nil { roomArt?.addChild(floorArt) }
@@ -7124,6 +7175,18 @@ final class OutpostScene: SKScene {
                 y: roomBounds.minY + roomBounds.height * (0.28 + 0.11 * sin(t * 0.49))
             )
         }
+        #if targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-cameraReviewMotion"), phase == .gate {
+            // Real movement and collision, stopping short of the transition trigger.
+            movementTarget = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 65)
+            let second = Int(clock)
+            if cameraReviewLastSecond != second {
+                cameraReviewLastSecond = second
+                print("[CAMERA MOTION] pilotY=\(pilot.position.y) cameraY=\(arena.position.y)")
+                fflush(stdout)
+            }
+        }
+        #endif
         if let heldTouch, let movementOrigin {
             let point = heldTouch.location(in: self)
             let dx = point.x - movementOrigin.x
@@ -9193,7 +9256,8 @@ final class OutpostScene: SKScene {
             plate.path = CGPath(roundedRect: CGRect(x: -width / 2, y: -7, width: width, height: 29),
                                 cornerWidth: 10, cornerHeight: 10, transform: nil)
         }
-        warning.position = CGPoint(x: passageGate.position.x, y: passageGate.position.y - 45)
+        warning.position = CGPoint(x: size.width / 2,
+            y: size.height - max(16, view?.safeAreaInsets.top ?? 0) - 112)
         warning.removeAllActions()
         warning.alpha = 1
         warning.isHidden = false

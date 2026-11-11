@@ -722,7 +722,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, subprocess, time, pathlib, shutil
+          import json, subprocess, time, pathlib, shutil, signal, re
           def run(args, limit=40, check=True):
               return subprocess.run(args, timeout=limit, check=check, capture_output=True, text=True)
           # CoreSimulator can be slow to initialize on fresh hosted runners.
@@ -749,6 +749,9 @@ jobs:
               ("-captureCombatScreenshot","combat-hud"),
               ("-captureEquipmentDefenseClearScreenshot","reactor-secured"),
               ("-captureEquipmentDefenseFailureScreenshot","reactor-lost"),
+              ("-cameraReviewEntry","camera-entry"),
+              ("-cameraReviewMiddle","camera-middle"),
+              ("-cameraReviewMotion","camera-motion"),
           ]
           def new_device():
               created=run(["xcrun","simctl","create","OutpostZero-Phase4-Visual",
@@ -771,18 +774,46 @@ jobs:
           device=None
           try:
               for flag,name in captures:
-                  output=pathlib.Path(f"screenshots/phase4-{name}.png")
+                  camera_review = name.startswith("camera-")
+                  output=pathlib.Path(f"screenshots/{name}/phase4-exit-beacon.png" if camera_review else f"screenshots/phase4-{name}.png")
+                  output.parent.mkdir(parents=True, exist_ok=True)
                   for attempt in range(3):
                       output.unlink(missing_ok=True)
                       try:
                           if device is None: device=new_device()
                           stdout=pathlib.Path(f"screenshots/phase4-{name}-stdout.log").resolve()
                           stderr=pathlib.Path(f"screenshots/phase4-{name}-stderr.log").resolve()
-                          result=run(["xcrun","simctl","launch","--terminate-running-process",
+                          launch_flags = ["-captureGateScreenshot", flag] if camera_review else [flag]
+                          recording = None
+                          video = pathlib.Path("screenshots/camera-traversal.mov")
+                          if name == "camera-motion":
+                              video.unlink(missing_ok=True)
+                              recording = subprocess.Popen(["xcrun","simctl","io",device,"recordVideo",str(video)],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                          try:
+                              result=run(["xcrun","simctl","launch","--terminate-running-process",
                                       "--stdout="+str(stdout),"--stderr="+str(stderr),
-                                      device,"com.paulus.laststandcommand",flag],90)
-                          print("Launch:",result.stdout.strip(),flush=True)
-                          time.sleep(9)
+                                          device,"com.paulus.laststandcommand",*launch_flags],90)
+                              print("Launch:",result.stdout.strip(),flush=True)
+                              time.sleep(12 if recording else 9)
+                          finally:
+                              if recording is not None:
+                                  recording.send_signal(signal.SIGINT)
+                                  try: recording.wait(timeout=30)
+                                  except subprocess.TimeoutExpired:
+                                      recording.kill()
+                                      recording.wait()
+                                      raise RuntimeError("Camera video recorder failed to finalize")
+                          if name == "camera-motion":
+                              if recording.returncode != 0 or not video.exists() or video.stat().st_size < 4096:
+                                  raise RuntimeError("Camera traversal video missing")
+                              samples = re.findall(r"\[CAMERA MOTION\] pilotY=([-\d.]+) cameraY=([-\d.]+)", stdout.read_text())
+                              if len(samples) < 3:
+                                  raise RuntimeError("Missing camera motion samples")
+                              for column in (0, 1):
+                                  values = [float(row[column]) for row in samples]
+                                  if max(values)-min(values) < 40:
+                                      raise RuntimeError("Pilot or camera failed to traverse")
                           run(["xcrun","simctl","io",device,"screenshot",str(output)],65)
                           if not output.is_file() or output.stat().st_size < 4096:
                               raise RuntimeError(f"{name}: missing or empty screenshot")
