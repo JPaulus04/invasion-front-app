@@ -2411,7 +2411,7 @@ final class OutpostScene: SKScene {
         }
         for (name, y, height, fillColor) in [
             ("hudPortraitHP", top - 31, CGFloat(12), SKColor.systemGreen),
-            ("hudPortraitXP", top - 45, CGFloat(6), SKColor.systemCyan)
+            ("hudPortraitXP", top - 45, CGFloat(8), SKColor.systemCyan)
         ] {
             let track = SKShapeNode(rect: CGRect(x: 0, y: 0, width: 76, height: height),
                                     cornerRadius: 2)
@@ -2430,7 +2430,7 @@ final class OutpostScene: SKScene {
         }
         let hpValue = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         hpValue.name = "hudHealthValue"
-        hpValue.fontSize = 9
+        hpValue.fontSize = 11
         hpValue.fontColor = .white
         hpValue.verticalAlignmentMode = .center
         hpValue.position = CGPoint(x: leftX + 90, y: top - 13)
@@ -2438,7 +2438,7 @@ final class OutpostScene: SKScene {
         chrome.addChild(hpValue)
         let level = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         level.name = "hudPortraitLevel"
-        level.fontSize = 10
+        level.fontSize = 11
         level.fontColor = .white
         level.position = CGPoint(x: leftX + 90, y: top - 59)
         chrome.addChild(level)
@@ -2617,6 +2617,11 @@ final class OutpostScene: SKScene {
             if let value = chrome.childNode(withName: "hudHealthValue") as? SKLabelNode {
                 value.text = "\(health)/\(maximumHealth) HP"
                 value.fontColor = health < maximumHealth / 3 ? .systemRed : .white
+                // Large health totals must stay within the portrait column.
+                value.fontSize = 11
+                if value.frame.width > 74 {
+                    value.fontSize *= 74 / value.frame.width
+                }
             }
             if let world = chrome.childNode(withName: "hudWorldLabel") as? SKLabelNode {
                 world.text = selectedWorld.title.uppercased()
