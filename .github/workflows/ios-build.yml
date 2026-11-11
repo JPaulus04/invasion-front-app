@@ -1,4 +1,5 @@
 name: iOS Compile Check
+# Consolidated full simulator acceptance checkpoint after Python lifecycle migration.
 on:
   push:
     branches: [outpost-zero, build-327, feature/bounded-follow-camera]
