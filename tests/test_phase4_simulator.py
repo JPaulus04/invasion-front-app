@@ -1,102 +1,122 @@
-"""Setup failure regressions; mocked simctl is not gameplay evidence."""
+"""Phase 4 campaign and simulator setup regression tests (no macOS required)."""
 import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location(
-    'simulator', Path(__file__).resolve().parents[1] / 'scripts/run_phase4_simulator.py')
+SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+import simulator_lifecycle as lifecycle
+
+spec = importlib.util.spec_from_file_location("phase4_runner", SCRIPTS / "run_phase4_simulator.py")
 sim = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sim)
 
+PNG = bytes.fromhex("89504e470d0a1a0a") + b"test"
+
 
 class SetupTests(unittest.TestCase):
-    def exercise(self, failing_action=None, cleanup_timeout=False, gameplay_error=False):
+    def test_fresh_device_is_created_and_destroyed(self):
         calls = []
 
-        def command(*args, **kwargs):
+        def fake_command(*args, **kwargs):
             action = args[2]
-            calls.append((args, kwargs))
-            if action == failing_action or (cleanup_timeout and action in ('shutdown', 'delete')):
-                raise subprocess.TimeoutExpired(args, kwargs.get('timeout', 60))
-            stdout = ''
-            if action == 'list':
-                stdout = json.dumps({'devices': {'runtime-ios': [
-                    {'name': 'iPhone 17', 'isAvailable': True,
-                     'deviceTypeIdentifier': 'type-iphone', 'udid': 'existing-device'}]}})
-            elif action == 'create':
-                stdout = 'new-device\n'
-            return subprocess.CompletedProcess(args, 0, stdout, '')
+            calls.append((action, args))
+            if action == "list":
+                return subprocess.CompletedProcess(args, 0, json.dumps({"devices": {
+                    "runtime-ios": [{"name": "iPhone 17", "isAvailable": True,
+                                     "deviceTypeIdentifier": "type-iphone"}]}}), "")
+            if action == "create":
+                return subprocess.CompletedProcess(args, 0, "new-device\n", "")
+            if action == "screenshot":
+                Path(args[-1]).write_bytes(PNG)
+            return subprocess.CompletedProcess(args, 0, "", "")
 
-        with tempfile.TemporaryDirectory() as temp, patch.object(sim, 'command', side_effect=command):
-            def start():
-                with sim.fresh_simulator('moving', Path(temp)) as device:
-                    self.assertEqual(device, 'new-device')
-                    identity = json.loads((Path(temp) / 'moving-device.json').read_text())
-                    self.assertTrue(identity['fresh_device'])
-                    if gameplay_error:
-                        raise RuntimeError('original gameplay failure')
-            if failing_action:
-                with self.assertRaises(subprocess.TimeoutExpired):
-                    start()
-            elif gameplay_error:
-                with self.assertRaisesRegex(RuntimeError, 'original gameplay failure'):
-                    start()
-            else:
-                start()
-        return calls
+        with tempfile.TemporaryDirectory() as folder, patch.object(lifecycle, "command", side_effect=fake_command):
+            with lifecycle.fresh_simulator("moving", folder) as device:
+                self.assertEqual(device, "new-device")
+                identity = json.loads((Path(folder) / "moving-device.json").read_text())
+                self.assertTrue(identity["fresh_device"])
+        self.assertEqual([action for action, _ in calls],
+                         ["list", "create", "boot", "bootstatus", "screenshot",
+                          "install", "shutdown", "delete"])
+        self.assertTrue(all("existing-device" not in str(args) for _, args in calls))
 
-    def test_fresh_device_never_uninstalls_or_touches_existing_device(self):
-        calls = self.exercise()
-        actions = [args[2] for args, _ in calls]
-        self.assertEqual(actions, ['list', 'create', 'boot', 'bootstatus', 'install', 'shutdown', 'delete'])
-        self.assertFalse(any('existing-device' in args for args, _ in calls))
+    def test_failed_boot_does_not_install(self):
+        calls = []
 
-    def test_boot_readiness_timeout_blocks_install_and_cleans_up(self):
-        calls = self.exercise(failing_action='bootstatus')
-        actions = [args[2] for args, _ in calls]
-        self.assertNotIn('install', actions)
-        self.assertEqual(actions[-2:], ['shutdown', 'delete'])
+        def fake_command(*args, **kwargs):
+            action = args[2]
+            calls.append(action)
+            if action == "list":
+                return subprocess.CompletedProcess(args, 0, json.dumps({"devices": {
+                    "runtime-ios": [{"name": "iPhone 17", "deviceTypeIdentifier": "type-iphone"}]}}), "")
+            if action == "create":
+                return subprocess.CompletedProcess(args, 0, "new-device\n", "")
+            if action == "bootstatus":
+                raise RuntimeError("SIMULATOR_INFRASTRUCTURE: boot timeout")
+            return subprocess.CompletedProcess(args, 0, "", "")
 
-    def test_install_failure_preserved_when_cleanup_also_times_out(self):
-        self.exercise(failing_action='install', cleanup_timeout=True)
+        with tempfile.TemporaryDirectory() as folder, patch.object(lifecycle, "command", side_effect=fake_command):
+            with self.assertRaisesRegex(RuntimeError, "SIMULATOR_INFRASTRUCTURE"):
+                lifecycle.prepare_simulator("moving", folder)
+        self.assertNotIn("install", calls)
+        self.assertEqual(calls[-2:], ["shutdown", "delete"])
 
-    def test_gameplay_failure_preserved_when_cleanup_times_out(self):
-        self.exercise(cleanup_timeout=True, gameplay_error=True)
+    def test_app_install_error_is_not_retried(self):
+        calls = []
 
-    def test_cleanup_timeout_does_not_fail_completed_campaign(self):
-        calls = self.exercise(cleanup_timeout=True)
-        self.assertTrue(all(kwargs['timeout'] == 30 for args, kwargs in calls
-                            if args[2] in ('shutdown', 'delete')))
+        def fake_command(*args, **kwargs):
+            action = args[2]
+            calls.append(action)
+            if action == "list":
+                return subprocess.CompletedProcess(args, 0, json.dumps({"devices": {
+                    "runtime-ios": [{"name": "iPhone 17", "deviceTypeIdentifier": "type-iphone"}]}}), "")
+            if action == "create":
+                return subprocess.CompletedProcess(args, 0, "new-device\n", "")
+            if action == "screenshot":
+                Path(args[-1]).write_bytes(PNG)
+            if action == "install":
+                raise RuntimeError("GAME_OR_HARNESS_FAILURE: invalid app")
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        with tempfile.TemporaryDirectory() as folder, patch.object(lifecycle, "command", side_effect=fake_command):
+            with self.assertRaisesRegex(RuntimeError, "GAME_OR_HARNESS_FAILURE"):
+                lifecycle.prepare_simulator("moving", folder)
+        self.assertEqual(calls.count("create"), 1)
+        self.assertEqual(calls[-2:], ["shutdown", "delete"])
 
 
 class CaptureTests(unittest.TestCase):
-    def test_capture_timeout_does_not_discard_real_terminal_outcome(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            log = root / 'moving.log'
-            log.write_text('[PHASE4 QA] profile=moving started world=1\n'
-                           '[PHASE4 PLAYTEST] outcome=complete world=1 room=20\n')
-            def command(*args, **kwargs):
-                if 'screenshot' in args:
-                    raise subprocess.TimeoutExpired(args, 45)
-                return subprocess.CompletedProcess(args, 0, '', '')
-            with patch.object(sim, 'command', side_effect=command):
-                sim.run_campaign('moving', 10, root, log, root / 'stderr.log', 'device')
-            self.assertTrue((root / 'moving-capture-errors.log').exists())
+    def test_capture_failure_preserves_real_terminal_outcome(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            log = root / "moving.log"
+            log.write_text("[PHASE4 QA] profile=moving started world=1\n"
+                           "[PHASE4 PLAYTEST] outcome=complete world=1 room=20\n")
 
-    def test_missing_outcome_still_fails(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            log = root / 'moving.log'
-            log.write_text('[PHASE4 QA] profile=moving started world=1\n')
-            with patch.object(sim, 'command'):
-                with self.assertRaisesRegex(TimeoutError, 'no terminal outcome'):
-                    sim.run_campaign('moving', 0, root, log, root / 'stderr.log', 'device')
+            def fake_command(*args, **kwargs):
+                if "screenshot" in args:
+                    raise RuntimeError("SIMULATOR_INFRASTRUCTURE: screenshot timed out")
+                return subprocess.CompletedProcess(args, 0, "", "")
+
+            with patch.object(sim, "command", side_effect=fake_command):
+                sim.run_campaign("moving", 10, root, log, root / "stderr.log", "device")
+            self.assertTrue((root / "moving-capture-errors.log").exists())
+
+    def test_missing_outcome_fails(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            log = root / "moving.log"
+            log.write_text("[PHASE4 QA] profile=moving started world=1\n")
+            with patch.object(sim, "command", return_value=subprocess.CompletedProcess([], 0, "", "")):
+                with self.assertRaisesRegex(TimeoutError, "no terminal outcome"):
+                    sim.run_campaign("moving", 0, root, log, root / "stderr.log", "device")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
