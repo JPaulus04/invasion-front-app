@@ -727,6 +727,24 @@ final class OutpostScene: SKScene {
         gateArrow.name = "gateArrow"
         passageGate.addChild(gateArrow)
 
+        // The approved portal illustration is the production-facing artwork.
+        // The procedural recess remains only as a fallback if the asset is absent.
+        if let approvedPortal = productionImage(named: "outpost_zero_portal_approved_transparent") {
+            for nodeName in ["portalWallMortar", "portalRecessOpening",
+                             "portalRecessEnergy", "portalWallLintel",
+                             "portalThresholdLight", "exitPortalLabel", "gateArrow"] {
+                passageGate.childNode(withName: nodeName)?.isHidden = true
+            }
+            passageGate.children.filter { $0.name == "portalWallJamb" }
+                .forEach { $0.isHidden = true }
+            let artwork = SKSpriteNode(texture: SKTexture(image: approvedPortal))
+            artwork.name = "approvedWallPortalArtwork"
+            artwork.size = CGSize(width: 140, height: 140)
+            artwork.position = CGPoint(x: 0, y: 62)
+            artwork.zPosition = 3
+            passageGate.addChild(artwork)
+        }
+
         // Survival: a modest energy orb and thin vertical rescue beacon.
         extractionPortal.name = "survivalExtractionOrb"
         extractionPortal.fillColor = SKColor(red: 0.08, green: 0.51, blue: 0.82, alpha: 0.95)
@@ -2355,7 +2373,7 @@ final class OutpostScene: SKScene {
 
     private func layout() {
         if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 112)
+        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 125)
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
@@ -5129,7 +5147,7 @@ final class OutpostScene: SKScene {
             : expandedArenaPreview
                 ? ArenaLayout.offset(for: pilot.position, viewportSize: size) : .zero
         // Seat the exit against the far boundary rather than in the arena center.
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 112)
+        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 125)
         extractionPortal.isHidden = true
         checkpointButton.position = CGPoint(
             x: size.width / 2, y: RoomRules.bounds(for: size).minY + 25)
@@ -9260,7 +9278,8 @@ final class OutpostScene: SKScene {
         passageGate.isHidden = false
         passageGate.fillColor = SKColor(red: 0.07, green: 0.24, blue: 0.64, alpha: 0.94)
         (passageGate.children.first(where: { $0 is SKLabelNode }) as? SKLabelNode)?.text = "ENTER"
-        passageGate.childNode(withName: "gateArrow")?.isHidden = false
+        passageGate.childNode(withName: "gateArrow")?.isHidden =
+            passageGate.childNode(withName: "approvedWallPortalArtwork") != nil
         passageGate.alpha = 1
         passageGate.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
