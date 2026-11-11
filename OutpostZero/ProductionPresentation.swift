@@ -112,6 +112,29 @@ enum ProductionPresentation {
                 lip.lineWidth = 1
                 lip.stroke()
             }
+            // World-one overgrowth: small grass clusters break up the stone
+            // without cluttering the central combat lane or adding collision.
+            if !wet && !cave {
+                for i in 0..<48 {
+                    let seed = i * 131 + visit * 47
+                    let left = i.isMultiple(of: 2)
+                    let x = size.width * (left ? 0.055 : 0.80)
+                        + CGFloat(seed % max(1, Int(size.width * 0.12)))
+                    let y = CGFloat((seed * 29) % max(1, Int(size.height)))
+                    let height = CGFloat(5 + seed % 9)
+                    let tuft = UIBezierPath()
+                    tuft.lineCapStyle = .round
+                    tuft.lineWidth = 1.5
+                    for blade in -1...1 {
+                        let offset = CGFloat(blade) * 3
+                        tuft.move(to: CGPoint(x: x + offset, y: y))
+                        tuft.addQuadCurve(to: CGPoint(x: x + offset * 1.6, y: y + height),
+                            controlPoint: CGPoint(x: x + offset * 0.4, y: y + height * 0.65))
+                    }
+                    UIColor(red: 0.28, green: 0.47, blue: 0.22, alpha: 0.40).setStroke()
+                    tuft.stroke()
+                }
+            }
             if wet || cave {
                 // Shallow reflective stains, never collision or damage zones.
                 for i in 0..<5 {
