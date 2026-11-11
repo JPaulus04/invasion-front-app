@@ -9353,8 +9353,13 @@ final class OutpostScene: SKScene {
         let stars = progress.stars(forWorld: worldMapIndex)
         // Give the title, star reveal, rewards and actions their own bands.
         let cardWidth = min(size.width - 28, 390)
-        overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -cardWidth / 2, y: -245,
-            width: cardWidth, height: 535), cornerWidth: 24, cornerHeight: 24, transform: nil)
+        // The third action sits below -245 on unlocked worlds. Reserve its
+        // full touch area inside the panel instead of clipping NEXT WORLD.
+        let hasNextWorld = WorldCatalog.unlocked(worldMapIndex + 1)
+        let panelBottom: CGFloat = hasNextWorld ? -300 : -255
+        overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -cardWidth / 2, y: panelBottom,
+            width: cardWidth, height: 290 - panelBottom), cornerWidth: 24,
+            cornerHeight: 24, transform: nil)
         overlayBackdrop.fillColor = SKColor(red: 0.035, green: 0.085, blue: 0.13, alpha: 0.98)
         // Layered celebratory header and star-stage make the victory screen
         // a reward moment rather than a plain diagnostic summary.
@@ -9459,7 +9464,7 @@ final class OutpostScene: SKScene {
                 : "EARN MORE STARS FOR NEW CORES", y: -108, fontSize: 10)
         actionButton("HEADQUARTERS", key: "headquarters", y: -149, tint: .systemIndigo)
         actionButton("PLAY AGAIN", key: "restart", y: -207, tint: .systemTeal)
-        if WorldCatalog.unlocked(worldMapIndex + 1) {
+        if hasNextWorld {
             actionButton("NEXT WORLD", key: "next_world", y: -265, tint: .systemGreen)
         }
     }
