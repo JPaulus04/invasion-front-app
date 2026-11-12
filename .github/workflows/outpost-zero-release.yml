@@ -1,0 +1,19 @@
+name: Legacy TestFlight Release (disabled)
+
+# This legacy entry point previously pinned an obsolete source SHA and validation run.
+# It is intentionally non-deploying. Use the reviewed TestFlight Release workflow
+# after validating the exact release commit and its packaged assets.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-release-disabled:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Block obsolete release path
+        run: |
+          echo "::error::Legacy release disabled. Use the validated TestFlight Release workflow."
+          exit 1
