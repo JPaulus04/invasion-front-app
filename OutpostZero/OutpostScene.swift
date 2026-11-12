@@ -2536,8 +2536,9 @@ final class OutpostScene: SKScene {
         pilotHealthFill.xScale = max(0.001, min(1,
             CGFloat(health) / CGFloat(max(1, maximumHealth))))
         pilotHealthFill.fillColor = health <= maximumHealth / 3 ? .systemRed : .systemGreen
-        // Health is represented by the persistent HUD; never render a second bar on the pilot.
-        pilotHealthTrack.isHidden = true
+        // Keep local combat feedback directly beneath the pilot as well as in the HUD.
+        // Hide it outside active combat and while choosing an upgrade.
+        pilotHealthTrack.isHidden = phase != .playing || abilityRevealActive
         let speedText = fastForward ? "2× SPEED" : "1× SPEED"
         if speedLabel.text != speedText { speedLabel.text = speedText }
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
@@ -5537,9 +5538,9 @@ final class OutpostScene: SKScene {
             // Approved mossy stone arena is the World 1 foundation. Previously
             // the landscape-specific paintings took priority, so the approved
             // stone asset was never displayed even when bundled correctly.
-            let authoredFloorTexture = stoneArenaTexture ?? landscapeFloorTexture
+            let authoredFloorTexture = landscapeFloorTexture ?? stoneArenaTexture
             #if DEBUG
-            print("[WORLD1 FLOOR] requested=\(artName) selected=\(stoneArenaTexture != nil ? "world1_overgrown_stone_arena" : (landscapeFloorTexture == nil ? "missing" : artName))")
+            print("[WORLD1 FLOOR] requested=\(artName) selected=\(landscapeFloorTexture != nil ? artName : (stoneArenaTexture == nil ? "missing" : "world1_overgrown_stone_arena"))")
             #endif
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
                authoredFloorTexture == nil {
