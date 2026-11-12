@@ -5558,10 +5558,16 @@ final class OutpostScene: SKScene {
                 // even in standard rooms. A small camera offset previously
                 // exposed the flat fallback ground as a straight strip along
                 // the lower edge of the first Toxic Caves capture.
-                let paintedBounds = expandedArenaPreview
-                    ? roomBounds.insetBy(dx: -80, dy: -80)
-                    : CGRect(x: roomBounds.minX - 55, y: roomBounds.minY - 55,
-                             width: roomBounds.width + 110, height: roomBounds.height + 200)
+                // World 1 must not re-size the authored paving when the encounter
+                // switches between the tactical viewport and survival camera.
+                // Keep the artwork in one stable world-space frame and let the
+                // camera reveal/crop that frame as appropriate.
+                let artworkArena = worldMapIndex == 0
+                    ? ArenaLayout.bounds(for: size) : roomBounds
+                let paintedBounds = CGRect(
+                    x: artworkArena.minX - 80, y: artworkArena.minY - 80,
+                    width: artworkArena.width + 160,
+                    height: artworkArena.height + 160)
                 let textureSize = texture.size()
                 let coverScale = max(paintedBounds.width / max(1, textureSize.width),
                                      paintedBounds.height / max(1, textureSize.height))
