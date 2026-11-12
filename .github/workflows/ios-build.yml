@@ -434,6 +434,13 @@ jobs:
           }
           # Prioritize the two new playable worlds, so simulator trouble
           # cannot hide their first actual render behind older art captures.
+          # Prioritize the current World 1 acceptance scenes before legacy worlds.
+          # If CoreSimulator stalls, the review fails on the relevant release
+          # blocker rather than on an unrelated World 4 scene.
+          capture_scene -captureOvergrownScreenshot screenshots/outpost-zero-overgrown-path.png
+          capture_scene -captureSurvivalExtractionScreenshot screenshots/outpost-zero-extraction-open.png
+          capture_scene -captureSurvivalTransitionScreenshot screenshots/outpost-zero-after-extraction.png
+          capture_scene -captureEquipmentDefenseScreenshot screenshots/outpost-zero-defense-active.png
           capture_scene -captureFourthWorldTransitionScreenshot screenshots/build327-frost-expanse.png
           capture_scene -captureRootLordScreenshot screenshots/build327-root-lord.png
           capture_scene -captureToxicMatriarchScreenshot screenshots/build327-toxic-matriarch.png
@@ -464,12 +471,8 @@ jobs:
           capture_scene -capturePausedRunScreenshot screenshots/outpost-zero-paused-run.png
           capture_scene -captureSettingsScreenshot screenshots/outpost-zero-settings.png
           capture_scene -captureLoadoutScreenshot screenshots/outpost-zero-loadout.png
-          capture_scene -captureOvergrownScreenshot screenshots/outpost-zero-overgrown-path.png
           capture_scene -captureTerrainHazardsScreenshot screenshots/outpost-zero-terrain.png
           capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
-          capture_scene -captureSurvivalExtractionScreenshot screenshots/outpost-zero-extraction-open.png
-          capture_scene -captureSurvivalTransitionScreenshot screenshots/outpost-zero-after-extraction.png
-          capture_scene -captureEquipmentDefenseScreenshot screenshots/outpost-zero-defense-active.png
           capture_scene -captureEquipmentDefenseClearScreenshot screenshots/outpost-zero-defense-cleared.png
           capture_scene -captureEquipmentDefenseFailureScreenshot screenshots/outpost-zero-defense-failed.png
           capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
