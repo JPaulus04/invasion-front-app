@@ -1,7 +1,7 @@
 name: iOS Compile Check
 on:
   push:
-    branches: [outpost-zero, build-327]
+    branches: [outpost-zero, build-327, main]
   pull_request:
   workflow_dispatch:
     inputs:
