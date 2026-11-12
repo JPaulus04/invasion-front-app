@@ -1,21 +1,19 @@
 name: TestFlight Release
 
 on:
-  push:
-    branches: [build-327]
   workflow_dispatch:
     inputs:
       build_number:
         description: "Unique TestFlight build number"
         required: true
-        default: "330"
+        default: "333"
 
 env:
-  RELEASE_BUILD_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.build_number || '332' }}
+  RELEASE_BUILD_NUMBER: ${{ inputs.build_number }}
 
 jobs:
   release-gate:
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[testflight-332]'))
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -44,7 +42,7 @@ jobs:
                       "phase4-gameplay / Fresh World 1 — moving",
                       "phase4-gameplay / Assess World 1 gameplay outcomes"}
           for attempt in range(135):
-              if get("branches/build-327")["commit"]["sha"] != sha:
+              if get("branches/main")["commit"]["sha"] != sha:
                   sys.exit("Release blocked: branch moved after release candidate")
               runs = [r for r in get("actions/runs?head_sha=" + sha +
                                      "&per_page=100").get("workflow_runs", [])
@@ -62,7 +60,7 @@ jobs:
                                 if status.get(name) != "success"}
                       if failed:
                           sys.exit("Release blocked: required jobs missing/failed: " + repr(failed))
-                      print("Build 332 approved for TestFlight from", run["html_url"])
+                      print("Validated release commit for TestFlight:", sha, run["html_url"])
                       break
                   print("Validating:", run["html_url"], flush=True)
               else:
