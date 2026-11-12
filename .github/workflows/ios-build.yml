@@ -1,0 +1,853 @@
+name: iOS Compile Check
+on:
+  push:
+    branches: [outpost-zero, build-327, main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      validation_scope:
+        description: "Choose focused development checks or the full pre-release review"
+        required: true
+        type: choice
+        default: focused
+        options:
+          - focused
+          - full
+# Build 328 consolidated integration gate: navigation, combat feedback, and boss visuals.
+# Avoid wasting macOS runners on obsolete revisions during rapid iteration.
+concurrency:
+  group: ios-build-${{ github.workflow }}-${{ github.ref }}-${{ (github.event_name == 'pull_request' || inputs.validation_scope == 'full' || contains(github.event.head_commit.message, '[full-review]')) && 'full' || 'focused' }}
+  cancel-in-progress: true
+jobs:
+  build:
+    if: >-
+      !(github.event_name == 'push' && contains(github.event.head_commit.message, '[home-review]'))
+    runs-on: macos-15-intel
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate source tree
+        # Build 328 full visual review: verify authored-floor overscan and Toxic Caves edge.
+        run: |
+          set -o pipefail
+          python3 scripts/check_project.py 2>&1 | tee source-check.log
+      - name: Test focused screenshot identity rejection
+        run: python3 -m unittest discover -s tests -p test_focused_screenshots.py
+      - name: Validate production sprite assets
+        run: python3 scripts/check_art_sprites.py
+      - name: Test room rules
+        run: |
+          swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
+          "$RUNNER_TEMP/room-tests"
+      - name: Test reactive simulator combat driver
+        run: |
+          set -o pipefail
+          swiftc OutpostZero/QACombatDriver.swift tests/QACombatDriverTests.swift -o "$RUNNER_TEMP/qa-driver-tests" 2>&1 | tee qa-driver-tests.log
+          "$RUNNER_TEMP/qa-driver-tests" 2>&1 | tee -a qa-driver-tests.log
+      - name: Test character motion and recoil
+        run: |
+          swiftc OutpostZero/CharacterMotion.swift tests/CharacterMotionTests.swift -o "$RUNNER_TEMP/motion-tests"
+          "$RUNNER_TEMP/motion-tests"
+      - name: Test XP and combat rules
+        run: |
+          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/CampaignPacing.swift OutpostZero/AbilityLoadout.swift OutpostZero/PersistentProgression.swift OutpostZero/RunRecovery.swift tests/CombatEvolutionGeometryTests.swift tests/ProgressCombatTests.swift -o "$RUNNER_TEMP/combat-tests"
+          "$RUNNER_TEMP/combat-tests"
+      - name: Test full twenty-room campaign pacing
+        run: |
+          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/CampaignPacing.swift OutpostZero/PersistentProgression.swift tests/CampaignPacingTests.swift -o "$RUNNER_TEMP/campaign-tests"
+          "$RUNNER_TEMP/campaign-tests"
+      - name: Test world unlocks, individual core rewards and enemy mixes
+        run: |
+          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift tests/WorldCatalogTests.swift -o "$RUNNER_TEMP/world-tests"
+          "$RUNNER_TEMP/world-tests"
+      - name: Generate original app icon
+        run: python3 scripts/generate_icon.py
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Validate generated forest artwork
+        run: |
+          python3 scripts/generate_forest_art.py
+          python3 scripts/generate_pilot_art.py
+          python3 scripts/generate_enemy_art.py
+          python3 scripts/check_art_sprites.py
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Compile iOS simulator app
+        run: |
+          set -o pipefail
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build 2>&1 | tee xcodebuild.log
+      - name: Verify production character PNGs are bundled
+        run: |
+          set -e
+          APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
+          test -d "$APP"
+          for FRAME in 0 1 2 3; do
+            test -n "$(find "$APP" -type f -name "pilot_walk_s_$FRAME.png" -print -quit)"
+            test -n "$(find "$APP" -type f -name "pilot_walk_n_$FRAME.png" -print -quit)"
+            test -n "$(find "$APP" -type f -name "pilot_walk_e_$FRAME.png" -print -quit)"
+            test -n "$(find "$APP" -type f -name "pilot_walk_w_$FRAME.png" -print -quit)"
+            test -n "$(find "$APP" -type f -name "pilot_walk_ne_$FRAME.png" -print -quit)"
+            test -n "$(find "$APP" -type f -name "pilot_walk_nw_$FRAME.png" -print -quit)"
+            test -n "$(find "$APP" -type f -name "pilot_walk_se_$FRAME.png" -print -quit)"
+            test -n "$(find "$APP" -type f -name "pilot_walk_sw_$FRAME.png" -print -quit)"
+          done
+          for ASSET in boss_root_lord.png boss_toxic_matriarch.png boss_warforge.png boss_frost_wraith.png pilot_ene.png pilot_nne.png pilot_nnw.png pilot_wnw.png pilot_wsw.png pilot_ssw.png pilot_sse.png pilot_ese.png forest_undergrowth_polished.png field_reactor_polished.png shooter_polished.png lobber_polished.png heavy_polished.png raider_polished.png scout_polished.png grunt_polished.png forest_pine_polished.png forest_broadleaf_polished.png pilot_e.png pilot_ne.png pilot_n.png pilot_nw.png pilot_w.png pilot_sw.png pilot_s.png pilot_se.png pilot_idle.png grunt_idle.png scout_idle.png raider_idle.png heavy_idle.png shooter_idle.png lobber_idle.png forest_pine.png forest_broadleaf.png; do
+            FOUND="$(find "$APP" -type f -name "$ASSET" -print -quit)"
+            if [ -z "$FOUND" ]; then
+              echo "::error::$ASSET is missing from the compiled iOS app bundle"
+              exit 1
+            fi
+            echo "Verified bundled asset: $FOUND"
+          done
+      - name: Verify World 1 authored art source and compiled asset catalog
+        run: |
+          set -euo pipefail
+          APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
+          test -d "$APP"
+          # Xcode compiles .imageset PNG payloads into Assets.car. Individual
+          # PNG files are not guaranteed to exist in the final app bundle.
+          test -s "$APP/Assets.car" || {
+            echo "::error::Compiled asset catalog Assets.car is missing or empty"
+            exit 1
+          }
+          python3 scripts/audit_world1_art.py ruined_outpost
+          # Make missing authored landscapes visible on every build, even
+          # when procedural fallback is intentionally permitted.
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.audit_world1_art import resolve_png, PROPS
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary.open("a") as report:
+              report.write("### World 1 authored artwork coverage\n\n")
+              report.write("| Landscape | PNGs | Readiness |\n|---|---:|---|\n")
+              for landscape in ("ruined_outpost", "swamp_basin", "toxic_caves", "boss_arena"):
+                  names = [f"world1_{landscape}_floor_{i}" for i in (1, 2, 3)]
+                  names += [f"world1_{landscape}_{kind}" for kind in PROPS]
+                  count = sum(resolve_png(name) is not None for name in names)
+                  status = "Source complete; visual review pending" if count == 9 else "INCOMPLETE: fallback scenery"
+                  report.write(f"| {landscape} | {count}/9 | {status} |\n")
+              report.write("\nA green build does not establish visual approval.\n")
+          PY
+          # assetutil inspects the actual compiled catalog rather than
+          # assuming .imageset PNGs remain as loose files in the .app.
+          xcrun --find assetutil >/dev/null
+          xcrun assetutil --info "$APP/Assets.car" > "$RUNNER_TEMP/world1-asset-catalog.json"
+          python3 - "$RUNNER_TEMP/world1-asset-catalog.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          records = json.loads(Path(sys.argv[1]).read_text())
+          compiled = {item.get("Name") for item in records if isinstance(item, dict)}
+          required = set()
+          for landscape in ("ruined_outpost", "swamp_basin", "toxic_caves", "boss_arena"):
+              required.update(f"world1_{landscape}_floor_{i}" for i in (1, 2, 3))
+              required.update(f"world1_{landscape}_{p}" for p in
+                              ("wall", "boulder", "vegetation", "debris", "lantern", "crate"))
+          missing = sorted(required - compiled)
+          if missing:
+              raise SystemExit(f"Missing authored World 1 textures from Assets.car: {missing}")
+          print("PASS: all 36 World 1 textures present in compiled Assets.car")
+          PY
+      - name: Verify complete World 1 authored artwork
+        run: |
+          set -euo pipefail
+          REQUIRE_WORLD_ONE_ART=1 python3 scripts/check_art_sprites.py
+          python3 scripts/audit_world1_art.py
+          # Source completeness plus Assets.car is a packaging sanity check,
+          # not proof of individual runtime texture loading or visual quality.
+      - name: Package compiled simulator app
+        run: |
+          set -e
+          APP="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
+          test -x "$APP/OutpostZero"
+          ditto -c -k --keepParent "$APP" OutpostZero-simulator-app.zip
+          test -s OutpostZero-simulator-app.zip
+      - name: Upload compiled simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+          path: OutpostZero-simulator-app.zip
+          retention-days: 5
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-log
+          path: |
+            xcodebuild.log
+            source-check.log
+            qa-driver-tests.log
+          if-no-files-found: ignore
+  defense-visual-review:
+    # Run expensive simulator captures only at full review checkpoints.
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[full-review]'))
+    # Small parallel image pass for rapid visual correction of this mission.
+    # Full campaign screenshots remain in the separate simulator-review job.
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download compiled simulator app
+        uses: actions/download-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+      - name: Install native PNG decoder
+        run: |
+          python3 -m venv "$RUNNER_TEMP/visual-review-python"
+          "$RUNNER_TEMP/visual-review-python/bin/python" -m pip install Pillow
+          "$RUNNER_TEMP/visual-review-python/bin/python" -c "from PIL import Image; print('Native PNG decoder ready')"
+          echo "$RUNNER_TEMP/visual-review-python/bin" >> "$GITHUB_PATH"
+      - name: Restore executable app bundle
+        run: |
+          set -e
+          mkdir -p simulator-app
+          ditto -x -k OutpostZero-simulator-app.zip simulator-app
+          test -x simulator-app/OutpostZero.app/OutpostZero
+      - name: Capture equipment-defense states and live walk prototype
+        # Cold macOS runners spend 3-5 minutes booting and installing the app.
+        # Seven landscapes, defense states and eight motion videos need a
+        # separate realistic budget; each simctl operation is already bounded.
+        timeout-minutes: 30
+        env:
+          REQUIRE_WORLD_ONE_ART: ${{ vars.REQUIRE_WORLD_ONE_ART == 'true' && '1' || '0' }}
+        run: bash scripts/capture_defense_visual_review.sh
+      - name: Upload World 1 landscape review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-world1-landscape-review
+          path: screenshots/outpost-zero-world1-*.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload live pilot walk preview
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-walk-preview
+          path: |
+            screenshots/outpost-zero-walk-preview-*.png
+            screenshots/outpost-zero-walk-preview*.mp4
+            screenshots/outpost-zero-walk-preview-north.png
+            screenshots/outpost-zero-walk-preview-east.png
+            screenshots/outpost-zero-walk-preview-west.png
+            screenshots/outpost-zero-walk-preview-ne.png
+            screenshots/outpost-zero-walk*video.log
+          if-no-files-found: ignore
+      - name: Validate independent equipment-defense frames
+        run: |
+          set -e
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-defense-active.png \
+            screenshots/outpost-zero-defense-cleared.png \
+            screenshots/outpost-zero-defense-failed.png
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          names = ["active", "cleared", "failed"]
+          images = [Path(f"screenshots/outpost-zero-defense-{name}.png").read_bytes()
+                    for name in names]
+          assert len(set(sha256(image).digest() for image in images)) == 3, (
+              "Active, secured, and failed defense must render independently")
+          print("PASS: three distinct reactor mission visuals with state markers")
+          PY
+      - name: Upload focused equipment-defense screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-defense-visual-review
+          path: screenshots/outpost-zero-defense-*.png
+          if-no-files-found: ignore
+          retention-days: 7
+  simulator-review:
+    # Full campaign captures are reserved for milestones and release review.
+    # Build 328 release gate: full simulator capture must pass before TestFlight.
+    # Fast tests, compilation and focused motion captures still run every time.
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[full-review]'))
+    needs: build
+    # Newer hosted image avoids the slower first-boot migration seen on macOS 15.
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download compiled simulator app
+        uses: actions/download-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+      - name: Install native PNG decoder
+        run: |
+          python3 -m venv "$RUNNER_TEMP/visual-review-python"
+          "$RUNNER_TEMP/visual-review-python/bin/python" -m pip install Pillow
+          "$RUNNER_TEMP/visual-review-python/bin/python" -c "from PIL import Image; print('Native PNG decoder ready')"
+          echo "$RUNNER_TEMP/visual-review-python/bin" >> "$GITHUB_PATH"
+      - name: Restore executable app bundle
+        run: |
+          set -e
+          mkdir -p simulator-app
+          ditto -x -k OutpostZero-simulator-app.zip simulator-app
+          test -x simulator-app/OutpostZero.app/OutpostZero
+      - name: Capture actual simulator screenshot
+        timeout-minutes: 28
+        run: |
+          set -e
+          # Every simulator subprocess is bounded so a stalled simctl cannot
+          # pin the macOS runner until the whole job times out.
+          run_bounded() {
+            LIMIT="$1"; shift
+            python3 - "$LIMIT" "$@" <<'PY'
+          import subprocess
+          import sys
+          try:
+              subprocess.run(sys.argv[2:], check=True, timeout=int(sys.argv[1]))
+          except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
+              print(f"Simulator command unavailable: {error}", file=sys.stderr)
+              sys.exit(1)
+          PY
+          }
+          # Let a fresh service finish first-boot data migration. Killing it
+          # before listing devices made the migrations restart on some hosts.
+          # Fallback to a second available iPhone only after bounded readiness.
+          DEVICE=""
+          DEVICE_CANDIDATES="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data=json.load(sys.stdin)["devices"]
+          found=[]
+          for runtime, devices in sorted(data.items(), reverse=True):
+              for device in devices:
+                  if device.get("isAvailable", True) and device.get("name", "").startswith("iPhone"):
+                      found.append(device["udid"])
+          print(chr(10).join(found[:2]))
+          ')"
+          for CANDIDATE in $DEVICE_CANDIDATES; do
+            echo "Preparing simulator $CANDIDATE"
+            run_bounded 35 xcrun simctl boot "$CANDIDATE" || true
+            # Data migration often needs more than 90 seconds on a cold VM.
+            if run_bounded 200 xcrun simctl bootstatus "$CANDIDATE" -b; then
+              DEVICE="$CANDIDATE"
+              break
+            fi
+            echo "::warning::Simulator $CANDIDATE failed boot readiness; trying alternate device"
+            run_bounded 20 xcrun simctl shutdown "$CANDIDATE" || true
+          done
+          if [ -z "$DEVICE" ]; then
+            echo "::error::No available iPhone simulator reached boot readiness"
+            exit 1
+          fi
+          echo "Simulator ready: $DEVICE"
+          # Verify CoreSimulator can actually deliver pixels before the expensive review.
+          # Boot readiness alone is insufficient on cold GitHub macOS hosts.
+          PREFLIGHT_OK=0
+          for PREFLIGHT_ATTEMPT in 1 2; do
+            if run_bounded 35 xcrun simctl io "$DEVICE" screenshot /tmp/outpost-simulator-preflight.png &&
+               python3 -c 'from PIL import Image; im=Image.open("/tmp/outpost-simulator-preflight.png"); im.verify()'; then
+              PREFLIGHT_OK=1
+              break
+            fi
+            echo "::warning::Simulator pixel preflight failed ($PREFLIGHT_ATTEMPT/2)"
+            if [ "$PREFLIGHT_ATTEMPT" = 1 ]; then
+              run_bounded 20 xcrun simctl shutdown "$DEVICE" || true
+              run_bounded 35 xcrun simctl boot "$DEVICE" || true
+              run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b || true
+            fi
+          done
+          if [ "$PREFLIGHT_OK" != 1 ]; then
+            echo "::error::CoreSimulator cannot capture a frame; skipping expensive scene review"
+            xcrun simctl list devices || true
+            exit 1
+          fi
+          APP="simulator-app/OutpostZero.app"
+          # If CoreSimulatorService is cold, allow a generous first install.
+          # On failure restart only the simulator rather than recompiling iOS.
+          if ! run_bounded 150 xcrun simctl install "$DEVICE" "$APP"; then
+            # A slow initial install may recover after a single service reset.
+            # Do not loop forever on a damaged simulator installation.
+            echo "::warning::Simulator install failed; one bounded reinstall attempt"
+            run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
+            run_bounded 40 xcrun simctl boot "$DEVICE" || true
+            run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b
+            run_bounded 150 xcrun simctl install "$DEVICE" "$APP"
+          fi
+          mkdir -p screenshots
+          # A cold-booted simulator can show a gray launch screen for several
+          # seconds while still returning success from 'simctl launch'.
+          # Retry until a decoded screenshot contains actual rendered colors.
+          capture_scene() {
+            FLAG="$1"
+            OUTPUT="$2"
+            for ATTEMPT in 1 2 3; do
+              run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+              # Give SpringBoard time to remove the previous game's surface
+              # before launching a different QA flag. Without this the
+              # simulator occasionally screenshots the previous scene.
+              sleep 2
+              # Cold-booted CoreSimulator can accept the app but not yet
+              # serve pixels. Launch/screenshot timeout is retriable too.
+              if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+                echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
+                if [ "$ATTEMPT" != 3 ]; then
+                  # A cold CoreSimulatorService can become unresponsive even
+                  # after installation. Reboot the simulator before retrying
+                  # rather than issuing launch to the same wedged instance.
+                  run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
+                  run_bounded 45 xcrun simctl boot "$DEVICE" || true
+                  run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b || true
+                  run_bounded 65 xcrun simctl install "$DEVICE" "$APP" || true
+                fi
+                sleep 4
+                continue
+              fi
+              sleep 8
+              if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT" &&
+                 python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
+                return 0
+              fi
+              echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT); retrying"
+              # A stalled screenshot service needs a fresh simulator boot.
+              # Repeating capture against the same wedged device is ineffective.
+              if [ "$ATTEMPT" != 3 ]; then
+                run_bounded 25 xcrun simctl shutdown "$DEVICE" || true
+                run_bounded 35 xcrun simctl boot "$DEVICE" || true
+                if ! run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b; then
+                  echo "::error::Simulator failed recovery boot for $FLAG"
+                  return 1
+                fi
+                if ! run_bounded 100 xcrun simctl install "$DEVICE" "$APP"; then
+                  echo "::error::Simulator failed recovery install for $FLAG"
+                  return 1
+                fi
+              fi
+              sleep 4
+            done
+            echo "::error::Simulator never rendered a usable frame for $FLAG"
+            # Leave a useful reason in CI when the app exits after launch.
+            run_bounded 25 xcrun simctl spawn "$DEVICE" log show \
+              --last 90s --style compact \
+              --predicate 'process == "OutpostZero" AND messageType == error' \
+              2>/dev/null | tail -35 || true
+            return 1
+          }
+          # Prioritize the two new playable worlds, so simulator trouble
+          # cannot hide their first actual render behind older art captures.
+          capture_scene -captureFourthWorldTransitionScreenshot screenshots/build327-frost-expanse.png
+          capture_scene -captureRootLordScreenshot screenshots/build327-root-lord.png
+          capture_scene -captureToxicMatriarchScreenshot screenshots/build327-toxic-matriarch.png
+          capture_scene -captureWarforgeScreenshot screenshots/build327-warforge.png
+          capture_scene -captureFrostWraithScreenshot screenshots/build327-frost-wraith.png
+          capture_scene -captureDodgeAcceptanceScreenshot screenshots/outpost-zero-dodge-acceptance.png
+          capture_scene -capturePilotDirectionsScreenshot screenshots/outpost-zero-pilot-directions.png
+          capture_scene -captureExpandedArenaLeftScreenshot screenshots/outpost-zero-arena-west.png
+          capture_scene -captureExpandedArenaCenterScreenshot screenshots/outpost-zero-arena-center.png
+          capture_scene -captureExpandedArenaRightScreenshot screenshots/outpost-zero-arena-east.png
+          capture_scene -captureWorldExpansionScreenshot screenshots/outpost-zero-flooded-outpost.png
+          capture_scene -captureWorldTransitionScreenshot screenshots/outpost-zero-toxic-crossing.png
+          capture_scene -captureAcidActiveScreenshot screenshots/outpost-zero-acid-active.png
+          capture_scene -captureFrontierGuardianScreenshot screenshots/outpost-zero-frontier-guardian-armored.png
+          capture_scene -captureFrontierGuardianExposedScreenshot screenshots/outpost-zero-frontier-guardian-exposed.png
+          capture_scene -captureFrontierGuardianResolvedScreenshot screenshots/outpost-zero-frontier-guardian-resolved.png
+          capture_scene -captureWarforgeScreenshot screenshots/outpost-zero-tidal-warden.png
+          capture_scene -captureToxicMatriarchScreenshot screenshots/outpost-zero-toxic-sentinel.png
+          capture_scene -captureHomeNavigationScreenshot screenshots/outpost-zero-home-navigation.png
+          capture_scene -captureToxicTerrainScreenshot screenshots/outpost-zero-terrain-toxic.png
+          capture_scene -captureIronTerrainScreenshot screenshots/outpost-zero-terrain-iron.png
+          capture_scene -captureFrostTerrainScreenshot screenshots/outpost-zero-terrain-frost.png
+          capture_scene -captureWorldSelectorScreenshot screenshots/outpost-zero-world-selector.png
+          capture_scene -captureHeadquartersScreenshot screenshots/outpost-zero-headquarters.png
+          capture_scene -captureGearBayScreenshot screenshots/outpost-zero-gear-bay.png
+          capture_scene -captureAbilityLabScreenshot screenshots/outpost-zero-ability-lab.png
+          capture_scene -captureRecoveryScreenshot screenshots/outpost-zero-recovery.png
+          capture_scene -capturePausedRunScreenshot screenshots/outpost-zero-paused-run.png
+          capture_scene -captureSettingsScreenshot screenshots/outpost-zero-settings.png
+          capture_scene -captureLoadoutScreenshot screenshots/outpost-zero-loadout.png
+          capture_scene -captureOvergrownScreenshot screenshots/outpost-zero-overgrown-path.png
+          capture_scene -captureTerrainHazardsScreenshot screenshots/outpost-zero-terrain.png
+          capture_scene -captureGateScreenshot screenshots/outpost-zero-gate-open.png
+          capture_scene -captureSurvivalExtractionScreenshot screenshots/outpost-zero-extraction-open.png
+          capture_scene -captureSurvivalTransitionScreenshot screenshots/outpost-zero-after-extraction.png
+          capture_scene -captureEquipmentDefenseScreenshot screenshots/outpost-zero-defense-active.png
+          capture_scene -captureEquipmentDefenseClearScreenshot screenshots/outpost-zero-defense-cleared.png
+          capture_scene -captureEquipmentDefenseFailureScreenshot screenshots/outpost-zero-defense-failed.png
+          capture_scene -captureCombatScreenshot screenshots/outpost-zero-simulator.png
+          capture_scene -captureCombatFeedbackScreenshot screenshots/outpost-zero-combat-feedback.png
+          capture_scene -captureTacticalFXScreenshot screenshots/outpost-zero-tactical-abilities.png
+          capture_scene -captureFlankWarningScreenshot screenshots/outpost-zero-flank-warning.png
+          capture_scene -captureFlankArrivalScreenshot screenshots/outpost-zero-flank-arrival.png
+          capture_scene -captureFrostRoundsScreenshot screenshots/outpost-zero-frost-rounds.png
+          capture_scene -captureLevelUpScreenshot screenshots/outpost-zero-level-up.png
+          capture_scene -captureLevelUpResumeScreenshot screenshots/outpost-zero-level-up-resumed.png
+          # The live gameplay launch is especially prone to timing out after
+          # four rapid cold-state art captures. Retry it just like the static
+          # screenshots rather than mistaking a slow CoreSimulator for a crash.
+          launch_live_scene() {
+            FLAG="$1"
+            for ATTEMPT in 1 2 3; do
+              run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+              if run_bounded 50 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+                return 0
+              fi
+              echo "::warning::Live simulator launch for $FLAG timed out (attempt $ATTEMPT)"
+              sleep 5
+            done
+            echo "::error::Cannot launch live QA scene $FLAG after three attempts"
+            return 1
+          }
+          capture_live_frame() {
+            OUTPUT="$1"
+            for ATTEMPT in 1 2; do
+              if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT"; then
+                return 0
+              fi
+              echo "::warning::Timed out capturing $OUTPUT (attempt $ATTEMPT)"
+              sleep 4
+            done
+            echo "::error::Cannot capture live QA frame $OUTPUT"
+            return 1
+          }
+          # Three real frames exercise movement and auto-fire, without relying
+          # on the simulator video recorder, which can hang on macOS runners.
+          launch_live_scene -captureGameplayFrames
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-motion-1.png
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-motion-2.png
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-motion-3.png
+          # Room 11: observe both shooters and lobbers under live AI control.
+          launch_live_scene -captureSurvivalSwarmFrames
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-survival-1.png
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-survival-2.png
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-survival-3.png
+          launch_live_scene -captureRangedCombatFrames
+          sleep 2
+          capture_live_frame screenshots/outpost-zero-ranged-1.png
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-ranged-2.png
+          sleep 3
+          capture_live_frame screenshots/outpost-zero-ranged-3.png
+      - name: Validate simulator screenshot was captured
+        run: |
+          set -e
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-arena-west.png \
+            screenshots/outpost-zero-arena-center.png \
+            screenshots/outpost-zero-arena-east.png
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          names = ["west", "center", "east"]
+          frames = [Path(f"screenshots/outpost-zero-arena-{n}.png").read_bytes()
+                    for n in names]
+          assert len({sha256(frame).digest() for frame in frames}) == 3, (
+              "Expanded arena camera must produce three different views")
+          print("PASS: expanded arena has distinct west, center, east screenshots")
+          PY
+          test -s screenshots/outpost-zero-settings.png
+          test -s screenshots/outpost-zero-paused-run.png
+          test -s screenshots/outpost-zero-home-navigation.png
+          test -s screenshots/outpost-zero-world-selector.png
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-home-navigation.png \
+            screenshots/outpost-zero-world-selector.png
+          test -s screenshots/outpost-zero-headquarters.png
+          test -s screenshots/outpost-zero-recovery.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-headquarters.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-settings.png screenshots/outpost-zero-paused-run.png
+          test -s screenshots/outpost-zero-loadout.png
+          test -s screenshots/outpost-zero-overgrown-path.png
+          test -s screenshots/outpost-zero-terrain.png
+          test -s screenshots/outpost-zero-frontier-guardian-armored.png
+          test -s screenshots/outpost-zero-frontier-guardian-exposed.png
+          test -s screenshots/outpost-zero-frontier-guardian-resolved.png
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-frontier-guardian-armored.png \
+            screenshots/outpost-zero-frontier-guardian-exposed.png \
+            screenshots/outpost-zero-frontier-guardian-resolved.png
+          test "$(shasum -a 256 screenshots/outpost-zero-frontier-guardian-armored.png | cut -d ' ' -f 1)" != "$(shasum -a 256 screenshots/outpost-zero-frontier-guardian-exposed.png | cut -d ' ' -f 1)"
+          test "$(shasum -a 256 screenshots/outpost-zero-frontier-guardian-exposed.png | cut -d ' ' -f 1)" != "$(shasum -a 256 screenshots/outpost-zero-frontier-guardian-resolved.png | cut -d ' ' -f 1)"
+          test -s screenshots/outpost-zero-tidal-warden.png
+          test -s screenshots/outpost-zero-toxic-sentinel.png
+          test -s screenshots/outpost-zero-flooded-outpost.png
+          test -s screenshots/outpost-zero-toxic-crossing.png
+          test -s screenshots/outpost-zero-acid-active.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-acid-active.png
+          python3 - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          resting = Path("screenshots/outpost-zero-flooded-outpost.png").read_bytes()
+          active = Path("screenshots/outpost-zero-acid-active.png").read_bytes()
+          assert sha256(resting).digest() != sha256(active).digest(), (
+              "Active acid presentation must visibly differ from inactive runoff")
+          print("PASS: World 3 acid has distinct active-phase imagery")
+          PY
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-terrain.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-tidal-warden.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-toxic-sentinel.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-flooded-outpost.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-toxic-crossing.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-loadout.png screenshots/outpost-zero-overgrown-path.png
+          test -s screenshots/outpost-zero-simulator.png
+          test -s screenshots/outpost-zero-combat-feedback.png
+          test -s screenshots/outpost-zero-tactical-abilities.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-tactical-abilities.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-combat-feedback.png
+          test -s screenshots/outpost-zero-gate-open.png
+          test -s screenshots/outpost-zero-defense-active.png
+          test -s screenshots/outpost-zero-defense-cleared.png
+          test -s screenshots/outpost-zero-defense-failed.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-defense-active.png screenshots/outpost-zero-defense-cleared.png screenshots/outpost-zero-defense-failed.png
+          test -s screenshots/outpost-zero-flank-warning.png
+          test -s screenshots/outpost-zero-flank-arrival.png
+          test -s screenshots/outpost-zero-frost-rounds.png
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-flank-warning.png \
+            screenshots/outpost-zero-flank-arrival.png
+          test "$(shasum -a 256 screenshots/outpost-zero-flank-warning.png | cut -d ' ' -f 1)" != "$(shasum -a 256 screenshots/outpost-zero-flank-arrival.png | cut -d ' ' -f 1)"
+          test -s screenshots/outpost-zero-level-up.png
+          test -s screenshots/outpost-zero-level-up-resumed.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-frost-rounds.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-simulator.png screenshots/outpost-zero-gate-open.png
+          python3 scripts/validate_simulator_screenshots.py screenshots/outpost-zero-level-up.png screenshots/outpost-zero-level-up-resumed.png
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          paused = Path("screenshots/outpost-zero-level-up.png").read_bytes()
+          resumed = Path("screenshots/outpost-zero-level-up-resumed.png").read_bytes()
+          assert sha256(paused).digest() != sha256(resumed).digest(), "Level-up selection did not change scene"
+          print("PASS: XP-on-kill level-up menu and resumed combat frames differ")
+          PY
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-motion-1.png \
+            screenshots/outpost-zero-motion-2.png \
+            screenshots/outpost-zero-motion-3.png
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          frames = [Path(f"screenshots/outpost-zero-motion-{index}.png").read_bytes() for index in (1, 2, 3)]
+          hashes = {sha256(frame).digest() for frame in frames}
+          assert len(hashes) >= 2, "Live combat snapshots are identical: scene may be frozen"
+          print(f"PASS: {len(hashes)} different live combat captures")
+          PY
+          # A successful screenshot command can still capture SpringBoard after
+          # the app exits. Verify the live frame has substantial battlefield detail.
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          for path in sorted(Path("screenshots").glob("outpost-zero-survival-*.png")):
+              image = Image.open(path).convert("RGB")
+              colors = len(image.resize((120, 260)).getcolors(120 * 260) or [])
+              assert colors >= 100, f"{path}: suspiciously empty live scene ({colors} colors)"
+          print("PASS: survival captures contain detailed gameplay imagery")
+          PY
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-survival-1.png \
+            screenshots/outpost-zero-survival-2.png \
+            screenshots/outpost-zero-survival-3.png
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          data = [Path(f"screenshots/outpost-zero-survival-{i}.png").read_bytes()
+                  for i in (1, 2, 3)]
+          assert len({sha256(frame).digest() for frame in data}) >= 2, (
+              "Survival gameplay frames must change over time")
+          print("PASS: actual changing survival-swarm combat frames")
+          PY
+          python3 scripts/validate_simulator_screenshots.py \
+            screenshots/outpost-zero-ranged-1.png \
+            screenshots/outpost-zero-ranged-2.png \
+            screenshots/outpost-zero-ranged-3.png
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          files = [Path(f"screenshots/outpost-zero-ranged-{i}.png").read_bytes() for i in (1, 2, 3)]
+          assert len({sha256(data).digest() for data in files}) >= 2, "Ranged combat scene did not change over time"
+          print("PASS: three live ranged enemy screenshots")
+          PY
+      - name: Build consolidated Build 331 visual review board
+        if: always()
+        run: |
+          python3 scripts/create_visual_review_board.py
+      - name: Upload visual review manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-visual-review-manifest
+          path: screenshots/outpost-zero-review-manifest.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload actual simulator screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-simulator-screenshot
+          path: screenshots/outpost-zero-*.png
+          if-no-files-found: ignore
+
+
+  phase4-gameplay:
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || contains(github.event.head_commit.message, '[phase4-review]'))
+    uses: ./.github/workflows/phase4-gameplay.yml
+
+  phase4-presentation-review:
+    name: Focused gameplay presentation
+    # Standard visual acceptance: every pushed build captures the same
+    # gameplay presentation scenes. Full reviews remain release checkpoints.
+    if: >-
+      github.event_name == 'push' &&
+      !contains(github.event.head_commit.message, '[home-review]')
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+      - name: Restore compiled application
+        run: |
+          mkdir -p simulator-app
+          ditto -x -k OutpostZero-simulator-app.zip simulator-app
+          test -x simulator-app/OutpostZero.app/OutpostZero
+      - name: Capture focused HUD, objectives, upgrades and victory
+        timeout-minutes: 24
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, subprocess, time, pathlib, shutil, signal, re
+          def run(args, limit=40, check=True):
+              return subprocess.run(args, timeout=limit, check=check, capture_output=True, text=True)
+          # CoreSimulator can be slow to initialize on fresh hosted runners.
+          # Retry discovery instead of failing after the first 45 seconds.
+          for attempt in range(3):
+              try:
+                  devices=json.loads(run(["xcrun","simctl","list","devices","available","-j"],120).stdout)["devices"]
+                  break
+              except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+                  if attempt == 2: raise
+                  time.sleep(12)
+          choices=[(runtime,d) for runtime,group in devices.items()
+                   for d in group if d.get("isAvailable",True)
+                   and d.get("name","").startswith("iPhone")
+                   and d.get("deviceTypeIdentifier")]
+          if not choices: raise SystemExit("No iPhone simulator available")
+          runtime,template=choices[0]
+          pathlib.Path("screenshots").mkdir(exist_ok=True)
+          captures=[
+              ("-captureGateScreenshot","exit-beacon"),
+              ("-captureLevelUpScreenshot","upgrade-cards"),
+              ("-captureEquipmentDefenseScreenshot","reactor"),
+              ("-captureVictoryScreenshot","victory"),
+              ("-captureCombatScreenshot","combat-hud"),
+              ("-captureEquipmentDefenseClearScreenshot","reactor-secured"),
+              ("-captureEquipmentDefenseFailureScreenshot","reactor-lost"),
+              ("-cameraReviewEntry","camera-entry"),
+              ("-cameraReviewMiddle","camera-middle"),
+              ("-cameraReviewMotion","camera-motion"),
+          ]
+          def new_device():
+              created=run(["xcrun","simctl","create","OutpostZero-Phase4-Visual",
+                           template["deviceTypeIdentifier"],runtime],90).stdout.strip()
+              print("New visual simulator:",created,flush=True)
+              try:
+                  run(["xcrun","simctl","boot",created],90)
+                  run(["xcrun","simctl","bootstatus",created,"-b"],300)
+                  run(["xcrun","simctl","install",created,"simulator-app/OutpostZero.app"],150)
+                  return created
+              except Exception:
+                  discard(created)
+                  raise
+          def discard(udid):
+              if not udid: return
+              for action in ("shutdown","delete"):
+                  try: run(["xcrun","simctl",action,udid],30,False)
+                  except (subprocess.TimeoutExpired,subprocess.CalledProcessError) as error:
+                      print(f"Simulator {action} failed: {error}",flush=True)
+          device=None
+          try:
+              for flag,name in captures:
+                  camera_review = name.startswith("camera-")
+                  output=pathlib.Path(f"screenshots/{name}/phase4-exit-beacon.png" if camera_review else f"screenshots/phase4-{name}.png")
+                  output.parent.mkdir(parents=True, exist_ok=True)
+                  for attempt in range(3):
+                      output.unlink(missing_ok=True)
+                      try:
+                          if device is None: device=new_device()
+                          stdout=pathlib.Path(f"screenshots/phase4-{name}-stdout.log").resolve()
+                          stderr=pathlib.Path(f"screenshots/phase4-{name}-stderr.log").resolve()
+                          launch_flags = ["-captureGateScreenshot", flag] if camera_review else [flag]
+                          recording = None
+                          video = pathlib.Path("screenshots/camera-traversal.mov")
+                          if name == "camera-motion":
+                              video.unlink(missing_ok=True)
+                              recording = subprocess.Popen(["xcrun","simctl","io",device,"recordVideo",str(video)],
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                          try:
+                              result=run(["xcrun","simctl","launch","--terminate-running-process",
+                                      "--stdout="+str(stdout),"--stderr="+str(stderr),
+                                          device,"com.paulus.laststandcommand",*launch_flags],90)
+                              print("Launch:",result.stdout.strip(),flush=True)
+                              time.sleep(12 if recording else 9)
+                          finally:
+                              if recording is not None:
+                                  recording.send_signal(signal.SIGINT)
+                                  try: recording.wait(timeout=30)
+                                  except subprocess.TimeoutExpired:
+                                      recording.kill()
+                                      recording.wait()
+                                      raise RuntimeError("Camera video recorder failed to finalize")
+                          if name == "camera-motion":
+                              if recording.returncode != 0 or not video.exists() or video.stat().st_size < 4096:
+                                  raise RuntimeError("Camera traversal video missing")
+                              samples = re.findall(r"\[CAMERA MOTION\] pilotY=([-\d.]+) cameraY=([-\d.]+)", stdout.read_text())
+                              if len(samples) < 3:
+                                  raise RuntimeError("Missing camera motion samples")
+                              for column in (0, 1):
+                                  values = [float(row[column]) for row in samples]
+                                  if max(values)-min(values) < 40:
+                                      raise RuntimeError("Pilot or camera failed to traverse")
+                          run(["xcrun","simctl","io",device,"screenshot",str(output)],65)
+                          if not output.is_file() or output.stat().st_size < 4096:
+                              raise RuntimeError(f"{name}: missing or empty screenshot")
+                          validation=run(["python3","scripts/validate_simulator_screenshots.py",str(output)],120,False)
+                          print(validation.stdout,validation.stderr,flush=True)
+                          if validation.returncode:
+                              raise RuntimeError(f"{name}: screenshot validation failed")
+                          print("Captured",output,flush=True)
+                          break
+                      except (subprocess.TimeoutExpired,subprocess.CalledProcessError,RuntimeError) as error:
+                          print(f"{name} attempt {attempt+1}/3 failed: {error}",flush=True)
+                          if attempt == 2:
+                              for stream in ("stdout","stderr"):
+                                  log=pathlib.Path(f"screenshots/phase4-{name}-{stream}.log")
+                                  if log.exists(): print(log.read_text(errors="replace")[-12000:],flush=True)
+                              raise
+                          # A hung CoreSimulator instance is not recoverable
+                          # reliably. Discard it and use a new device UUID.
+                          discard(device)
+                          device=None
+                          time.sleep(5)
+          finally:
+              diagnostic=pathlib.Path("screenshots/diagnostics")
+              diagnostic.mkdir(parents=True,exist_ok=True)
+              for report in (pathlib.Path.home()/"Library/Logs/DiagnosticReports").glob("OutpostZero*"):
+                  if report.is_file(): shutil.copy2(report,diagnostic/report.name)
+              discard(device)
+          PY
+      - name: Validate captured frames
+        run: python3 scripts/validate_simulator_screenshots.py screenshots/phase4-{exit-beacon,upgrade-cards,reactor,victory,combat-hud,reactor-secured,reactor-lost}.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase4-presentation-screenshots
+          path: screenshots/
+          if-no-files-found: warn
+          retention-days: 14

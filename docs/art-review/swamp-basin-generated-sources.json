@@ -1,0 +1,83 @@
+[
+  {
+    "asset": "world1_swamp_basin_floor_1",
+    "source": "exec-961e3cdb-ade3-4eaa-a8dc-349df101b391.png",
+    "size": [
+      512,
+      768
+    ],
+    "transparent_border_px": null
+  },
+  {
+    "asset": "world1_swamp_basin_floor_2",
+    "source": "exec-cf1924bc-60b1-427b-b52c-2b38a76ce487.png",
+    "size": [
+      512,
+      768
+    ],
+    "transparent_border_px": null
+  },
+  {
+    "asset": "world1_swamp_basin_floor_3",
+    "source": "exec-f9fd4fda-fb4d-4638-b99c-5787ff8e9ef4.png",
+    "size": [
+      512,
+      768
+    ],
+    "transparent_border_px": null
+  },
+  {
+    "asset": "world1_swamp_basin_wall",
+    "source": "exec-10b3d9e0-a4cb-42ab-80e2-e19942879eaf.png",
+    "size": [
+      512,
+      491
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_swamp_basin_boulder",
+    "source": "exec-fce0762d-56d4-4ff1-a6d8-19130089b58f.png",
+    "size": [
+      485,
+      506
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_swamp_basin_vegetation",
+    "source": "exec-ba13939d-cec8-4a7a-a71d-79ab9732508b.png",
+    "size": [
+      429,
+      486
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_swamp_basin_debris",
+    "source": "exec-9d78f05b-dd6c-40c4-959b-8db8bb4d7d42.png",
+    "size": [
+      509,
+      486
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_swamp_basin_lantern",
+    "source": "exec-b5e6199a-78a9-4ba7-80a4-55cda78fb975.png",
+    "size": [
+      494,
+      489
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_swamp_basin_crate",
+    "source": "exec-e1e2f87f-abda-411f-9efd-f92aa899be1d.png",
+    "size": [
+      483,
+      493
+    ],
+    "transparent_border_px": 20
+  }
+]

@@ -1,0 +1,457 @@
+import Foundation
+import CoreGraphics
+
+/// Deterministic battlefield patches, independent of SpriteKit. The central
+/// entrance-to-gate lane stays free of every hazard and obstacle.
+enum TerrainHazards {
+    enum Kind: String { case water, acid, rubble }
+
+    struct Patch {
+        let kind: Kind
+        let frame: CGRect
+        /// Shoreline coordinates in local half-frame units (-0.5 ... +0.5).
+        /// Shared by drawing and hit testing: no circular graphic hiding an
+        /// invisible rectangle, and no damage outside the actual spill.
+        let outline: [CGPoint]
+        // Computed once per room layout; hit detection, enemy navigation and
+        // artwork all reuse this immutable CGPath. Rebuilding paths on every
+        // movement sample would cause CPU spikes with crowded rooms.
+        private let collisionPath: CGPath
+
+        init(kind: Kind, frame: CGRect, outline: [CGPoint]) {
+            self.kind = kind
+            self.frame = frame
+            self.outline = outline
+            let path = CGMutablePath()
+            if let first = outline.first {
+                path.move(to: CGPoint(x: first.x * frame.width,
+                                      y: first.y * frame.height))
+                for vertex in outline.dropFirst() {
+                    path.addLine(to: CGPoint(x: vertex.x * frame.width,
+                                             y: vertex.y * frame.height))
+                }
+                path.closeSubpath()
+            }
+            collisionPath = path
+        }
+
+        func outlinePath() -> CGPath { collisionPath }
+
+        func contains(_ point: CGPoint, margin: CGFloat = 0) -> Bool {
+            if kind == .rubble {
+                return frame.insetBy(dx: -margin, dy: -margin).contains(point)
+            }
+            let local = CGPoint(x: point.x - frame.midX,
+                                y: point.y - frame.midY)
+            if collisionPath.contains(local) { return true }
+            guard margin > 0, outline.count >= 3 else { return false }
+            // Clearance around the polygon is the distance to its real
+            // shoreline, not an enlarged bounding rectangle.
+            for index in outline.indices {
+                let a = outline[index]
+                let b = outline[(index + 1) % outline.count]
+                let ax = a.x * frame.width
+                let ay = a.y * frame.height
+                let dx = (b.x - a.x) * frame.width
+                let dy = (b.y - a.y) * frame.height
+                let lengthSquared = dx * dx + dy * dy
+                if lengthSquared < 0.0001 { continue }
+                let fraction = max(0, min(1,
+                    ((local.x - ax) * dx + (local.y - ay) * dy) / lengthSquared))
+                let closeX = ax + fraction * dx
+                let closeY = ay + fraction * dy
+                if hypot(local.x - closeX, local.y - closeY) <= margin {
+                    return true
+                }
+            }
+            return false
+        }
+    }
+
+    /// The first world intentionally stays hazard-free for baseline balance.
+    /// Further worlds and the simulator preview use the same runtime rules.
+    static func patches(world: Int, room: Int, bounds: CGRect,
+                        preview: Bool = false) -> [Patch] {
+        guard preview || world > 0 else { return [] }
+        // Compact, separated terrain pockets preserve a navigable center
+        // corridor. Each pocket has the same shoreline for art and physics.
+        // Four repeatable tactical layouts rather than alternating the same
+        // two arenas. Keep every patch on its original side of the central
+        // entrance-to-exit corridor for consistent player navigation.
+        let layout = (max(1, room) - 1) % 4
+        let alternate = layout == 1 || layout == 3
+        let upperPocketY: CGFloat = layout == 0 ? 0.64 :
+            (layout == 1 ? 0.62 : (layout == 2 ? 0.68 : 0.67))
+        let lowerPocketY: CGFloat = layout == 0 ? 0.22 :
+            (layout == 1 ? 0.30 : (layout == 2 ? 0.17 : 0.36))
+        let barrierY: CGFloat = layout == 0 ? 0.79 :
+            (layout == 1 ? 0.80 : (layout == 2 ? 0.86 : 0.86))
+        let water = patch(.water, x: 0.145, y: 0.425,
+                          width: 0.24, height: 0.22,
+                          bounds: bounds, alternate: alternate)
+        let acid = patch(.acid, x: 0.855, y: 0.535,
+                         width: 0.22, height: 0.20,
+                         bounds: bounds, alternate: alternate)
+        // A second, detached spill makes the crossing tactical instead of
+        // presenting one continuous flat pool across the arena.
+        let acidPocket = patch(.acid, x: 0.79, y: lowerPocketY,
+                               width: 0.15, height: 0.13,
+                               bounds: bounds, alternate: !alternate)
+        let waterPocket = patch(.water, x: 0.18, y: upperPocketY,
+                                width: 0.15, height: 0.12,
+                                bounds: bounds, alternate: !alternate)
+        let barrier = patch(.rubble, x: alternate ? 0.18 : 0.21,
+                            y: barrierY, width: 0.24, height: 0.11,
+                            bounds: bounds, alternate: alternate)
+        switch world {
+        case 2: return [water, waterPocket, barrier] // Iron Wastes: coolant pools and debris
+        case 1: return [acid, acidPocket, barrier] // Toxic Crossing: pulsing acid and blocked paths
+        case 3: return [water, waterPocket, barrier] // Frost Expanse: icy pools and debris
+        default: return [water, acid, barrier]
+        }
+    }
+
+    private static func patch(_ kind: Kind, x: CGFloat, y: CGFloat,
+                              width: CGFloat, height: CGFloat,
+                              bounds: CGRect, alternate: Bool) -> Patch {
+        let w = bounds.width * width
+        let h = bounds.height * height
+        return Patch(kind: kind, frame: CGRect(
+            x: bounds.minX + bounds.width * x - w / 2,
+            y: bounds.minY + bounds.height * y - h / 2,
+            width: w, height: h),
+            outline: profile(for: kind, alternate: alternate))
+    }
+
+    private static func profile(for kind: Kind, alternate: Bool) -> [CGPoint] {
+        func vertices(_ points: [(CGFloat, CGFloat)]) -> [CGPoint] {
+            points.map { CGPoint(x: $0.0, y: $0.1) }
+        }
+        switch kind {
+        case .water:
+            // The bank is broken into bays and narrow inlets rather than
+            // forming a symmetric oval. Water runs off the left room edge.
+            return vertices(alternate ? [
+                (-0.50, -0.50), (-0.23, -0.48), (0.13, -0.39),
+                (0.39, -0.31), (0.30, -0.16), (0.46, 0.04),
+                (0.29, 0.20), (0.42, 0.34), (0.17, 0.49),
+                (-0.14, 0.44), (-0.36, 0.50), (-0.50, 0.43)
+            ] : [
+                (-0.50, -0.48), (-0.31, -0.50), (0.10, -0.42),
+                (0.42, -0.32), (0.25, -0.14), (0.44, 0.02),
+                (0.30, 0.17), (0.40, 0.36), (0.12, 0.48),
+                (-0.10, 0.45), (-0.38, 0.50), (-0.50, 0.39)
+            ])
+        case .acid:
+            // A ruptured containment route connected to the right-hand
+            // machinery. Jagged interior edge gives tactical banks.
+            return vertices(alternate ? [
+                (-0.08, -0.50), (0.34, -0.46), (0.50, -0.49),
+                (0.50, 0.48), (0.22, 0.43), (0.01, 0.50),
+                (-0.32, 0.33), (-0.16, 0.18), (-0.44, -0.02),
+                (-0.24, -0.13), (-0.43, -0.27), (-0.18, -0.39)
+            ] : [
+                (-0.18, -0.47), (0.27, -0.50), (0.50, -0.44),
+                (0.50, 0.50), (0.26, 0.44), (0.04, 0.49),
+                (-0.27, 0.36), (-0.13, 0.20), (-0.46, 0.03),
+                (-0.24, -0.12), (-0.39, -0.30), (-0.12, -0.36)
+            ])
+        case .rubble:
+            return []
+        }
+    }
+
+    /// Deep water is a solid terrain boundary, not a slowdown zone. The
+    /// same geometric outline controls collision and the visible shoreline.
+    static func blocksMovement(_ point: CGPoint, patches: [Patch],
+                               radius: CGFloat = 10) -> Bool {
+        patches.contains {
+            ($0.kind == .water || $0.kind == .rubble) &&
+                $0.contains(point, margin: radius)
+        }
+    }
+
+    /// Sample the full straight approach at player collision width; checking
+    /// only the destination can place extraction behind impassable water.
+    static func extractionApproachIsClear(
+        from pilot: CGPoint, to portal: CGPoint,
+        patches: [Patch], collisionRadius: CGFloat = 12
+    ) -> Bool {
+        let length = hypot(portal.x - pilot.x, portal.y - pilot.y)
+        guard length > 0 else { return true }
+        let steps = max(1, Int(ceil(length / 7)))
+        for index in 1...steps {
+            let t = CGFloat(index) / CGFloat(steps)
+            let point = CGPoint(x: pilot.x + (portal.x - pilot.x) * t,
+                                y: pilot.y + (portal.y - pilot.y) * t)
+            if blocksMovement(point, patches: patches, radius: collisionRadius) {
+                return false
+            }
+        }
+        return true
+    }
+
+    /// Prefer the arena center for survival extraction, then progressively
+    /// offset around blocked ground. A nearby fallback avoids softlocking
+    /// a pilot behind impassable water or rubble.
+    static func extractionPosition(
+        near pilot: CGPoint, in bounds: CGRect, patches: [Patch]
+    ) -> CGPoint {
+        let safe = bounds.insetBy(dx: 53, dy: 53)
+        let center = CGPoint(x: bounds.midX, y: bounds.midY)
+        let directions: [CGPoint] = [
+            CGPoint(x: 0, y: 1),
+            CGPoint(x: 1, y: 1),
+            CGPoint(x: 1, y: 0),
+            CGPoint(x: -1, y: 1),
+            CGPoint(x: -1, y: 0),
+            CGPoint(x: 1, y: -1),
+            CGPoint(x: 0, y: -1),
+            CGPoint(x: -1, y: -1)
+        ]
+        for radius: CGFloat in [0, 55, 105, 155, 210] {
+            let steps = radius == 0 ? 1 : 16
+            for step in 0..<steps {
+                let angle = CGFloat(step) * 2 * .pi / CGFloat(steps)
+                let desired = CGPoint(x: center.x + cos(angle) * radius,
+                                      y: center.y + sin(angle) * radius)
+                let candidate = CGPoint(
+                    x: min(max(desired.x, safe.minX), safe.maxX),
+                    y: min(max(desired.y, safe.minY), safe.maxY))
+                guard hypot(candidate.x - pilot.x,
+                            candidate.y - pilot.y) >= 43 else { continue }
+                if !blocksMovement(candidate, patches: patches, radius: 14) &&
+                    extractionApproachIsClear(
+                        from: pilot, to: candidate, patches: patches) {
+                    return candidate
+                }
+            }
+        }
+        // Last resort only: preserve short-range evacuation in a blocked maze.
+        for distance: CGFloat in [125, 100, 75, 52] {
+            for direction in directions {
+                let magnitude = hypot(direction.x, direction.y)
+                let requested = CGPoint(
+                    x: pilot.x + direction.x / magnitude * distance,
+                    y: pilot.y + direction.y / magnitude * distance)
+                let candidate = CGPoint(
+                    x: min(max(requested.x, safe.minX), safe.maxX),
+                    y: min(max(requested.y, safe.minY), safe.maxY))
+                guard hypot(candidate.x - pilot.x,
+                            candidate.y - pilot.y) >= 45 else { continue }
+                if !blocksMovement(candidate, patches: patches, radius: 14) &&
+                    extractionApproachIsClear(
+                        from: pilot, to: candidate, patches: patches) {
+                    return candidate
+                }
+            }
+        }
+        // Search the remaining reachable arena at a finer resolution before
+        // accepting an extraction directly on the pilot. This catches narrow
+        // safe pockets missed by the fixed radial candidates above.
+        let spacing: CGFloat = 18
+        let columns = max(1, Int(ceil(safe.width / spacing)))
+        let rows = max(1, Int(ceil(safe.height / spacing)))
+        var nearest: CGPoint?
+        var nearestDistance = CGFloat.greatestFiniteMagnitude
+        for row in 0...rows {
+            for column in 0...columns {
+                let candidate = CGPoint(
+                    x: safe.minX + safe.width * CGFloat(column) / CGFloat(columns),
+                    y: safe.minY + safe.height * CGFloat(row) / CGFloat(rows))
+                let separation = hypot(candidate.x - pilot.x,
+                                       candidate.y - pilot.y)
+                guard separation >= 45,
+                      !blocksMovement(candidate, patches: patches, radius: 14),
+                      extractionApproachIsClear(from: pilot, to: candidate,
+                                                patches: patches) else { continue }
+                if separation < nearestDistance {
+                    nearest = candidate
+                    nearestDistance = separation
+                }
+            }
+        }
+        // A truly enclosed pilot has no reachable destination; do not place
+        // extraction behind an impassable obstacle just to force separation.
+        return nearest ?? pilot
+    }
+
+    /// Redirect pursuers around the nearest blocked shoreline instead of
+    /// letting their movement repeatedly collide with the lake or rubble.
+    static func navigationTarget(from current: CGPoint, toward pilot: CGPoint,
+                                 patches: [Patch], bounds: CGRect,
+                                 radius: CGFloat) -> CGPoint {
+        let distance = hypot(pilot.x - current.x, pilot.y - current.y)
+        guard distance > radius else { return pilot }
+        // Keep direct pursuit when the entire corridor is unobstructed.
+        // Side-steering on clear ground causes visible enemy zigzagging.
+        if extractionApproachIsClear(from: current, to: pilot,
+                                      patches: patches,
+                                      collisionRadius: radius) {
+            return pilot
+        }
+        let padding = radius + 9
+        for patch in patches where patch.kind != .acid {
+            let margin = patch.frame.insetBy(dx: -padding, dy: -padding)
+            let corridor = CGRect(x: min(current.x, pilot.x),
+                                  y: min(current.y, pilot.y),
+                                  width: max(1, abs(pilot.x - current.x)),
+                                  height: max(1, abs(pilot.y - current.y)))
+            guard corridor.intersects(margin) else { continue }
+            let samples = min(24, max(4, Int(ceil(distance / 14))))
+            let obstructed = (1..<samples).contains { sample in
+                let t = CGFloat(sample) / CGFloat(samples)
+                let point = CGPoint(x: current.x + (pilot.x - current.x) * t,
+                                    y: current.y + (pilot.y - current.y) * t)
+                return patch.contains(point, margin: padding)
+            }
+            if !obstructed { continue }
+            let accessible = bounds.insetBy(dx: radius + 2, dy: radius + 2)
+            let ends = [patch.frame.maxY + padding + 8,
+                        patch.frame.minY - padding - 8].filter {
+                $0 >= accessible.minY && $0 <= accessible.maxY
+            }
+            guard let around = ends.min(by: {
+                abs($0 - current.y) + abs($0 - pilot.y) <
+                abs($1 - current.y) + abs($1 - pilot.y)
+            }) else { continue }
+            let side = current.x <= patch.frame.midX
+                ? patch.frame.minX - padding - 5
+                : patch.frame.maxX + padding + 5
+            let waypoint = CGPoint(
+                x: max(accessible.minX, min(accessible.maxX, side)),
+                y: around)
+            // A waypoint must be reachable from the enemy's current position.
+            // Otherwise a pursuer can repeatedly steer through another bank
+            // or rubble patch and remain stuck against the same obstacle.
+            if !blocksMovement(waypoint, patches: patches, radius: radius) &&
+                (blocksMovement(current, patches: patches, radius: radius) ||
+                 extractionApproachIsClear(from: current, to: waypoint,
+                                           patches: patches,
+                                           collisionRadius: radius)) {
+                return waypoint
+            }
+        }
+        // If the preferred side is blocked, try short, reachable steering
+        // offsets. These give pursuers a way to move around compound terrain
+        // instead of repeatedly targeting the pilot through a solid barrier.
+        let heading = atan2(pilot.y - current.y, pilot.x - current.x)
+        let accessible = bounds.insetBy(dx: radius + 2, dy: radius + 2)
+        var bestWaypoint: CGPoint?
+        var bestScore = CGFloat.greatestFiniteMagnitude
+        let steeringDistances: [CGFloat] = [radius * 3 + 18, radius * 2 + 12]
+        let pi = CGFloat.pi
+        let steeringOffsets: [CGFloat] = [
+            pi / 3, -pi / 3, pi / 2, -pi / 2,
+            (2 * pi) / 3, -(2 * pi) / 3
+        ]
+        for steeringDistance in steeringDistances {
+            for offset in steeringOffsets {
+                let angle = heading + offset
+                let waypoint = CGPoint(
+                    x: current.x + cos(angle) * steeringDistance,
+                    y: current.y + sin(angle) * steeringDistance)
+                guard accessible.contains(waypoint),
+                      !blocksMovement(waypoint, patches: patches, radius: radius),
+                      extractionApproachIsClear(from: current, to: waypoint,
+                                                patches: patches,
+                                                collisionRadius: radius) else { continue }
+                // Prefer the reachable detour that leaves the shortest
+                // remaining distance to the player, rather than always
+                // favoring the first (counterclockwise) steering option.
+                let remaining = hypot(pilot.x - waypoint.x,
+                                      pilot.y - waypoint.y)
+                let score = remaining + steeringDistance * 0.05
+                if score < bestScore {
+                    bestScore = score
+                    bestWaypoint = waypoint
+                }
+            }
+        }
+        return bestWaypoint ?? pilot
+    }
+
+    /// 2 seconds of visible warning, 3 seconds active, 1 second recovery.
+    /// The same game clock controls visuals and damage at 1× and 2× speed.
+    static func acidActive(at time: TimeInterval) -> Bool {
+        let phase = max(0, time).truncatingRemainder(dividingBy: 6)
+        return phase >= 2 && phase < 5
+    }
+
+    static func acidTouches(_ point: CGPoint, patches: [Patch],
+                            at time: TimeInterval) -> Bool {
+        acidActive(at: time) &&
+            patches.contains { $0.kind == .acid && $0.contains(point) }
+    }
+
+    static func hitsObstacle(_ point: CGPoint, patches: [Patch],
+                             radius: CGFloat = 10) -> Bool {
+        blocksMovement(point, patches: patches, radius: radius)
+    }
+
+    static func spawnAllowed(_ point: CGPoint, radius: CGFloat,
+                             patches: [Patch]) -> Bool {
+        !blocksMovement(point, patches: patches, radius: radius + 8)
+    }
+
+    /// Continuous swept collision checks prevent walking through narrow
+    /// shoreline tips at 2× speed or when the game briefly drops a frame.
+    /// Preserve smooth sliding along the water and rubble boundaries.
+    static func resolveMovement(from current: CGPoint, to target: CGPoint,
+                                patches: [Patch], radius: CGFloat = 10) -> CGPoint {
+        let dx = target.x - current.x
+        let dy = target.y - current.y
+        let distance = hypot(dx, dy)
+        if distance < 0.001 { return current }
+
+        // Players who resume a save from the old slowdown implementation
+        // must be able to walk out of water instead of being trapped inside.
+        if let submerged = patches.first(where: {
+            $0.kind == .water && $0.contains(current, margin: radius)
+        }) {
+            let oldDistance = hypot(current.x - submerged.frame.midX,
+                                    current.y - submerged.frame.midY)
+            let newDistance = hypot(target.x - submerged.frame.midX,
+                                    target.y - submerged.frame.midY)
+            if newDistance > oldDistance + 0.001 &&
+                !patches.contains(where: {
+                    $0.kind == .rubble && $0.contains(target, margin: radius)
+                }) {
+                return target
+            }
+        }
+
+        func advance(from start: CGPoint, to end: CGPoint) -> CGPoint {
+            let span = hypot(end.x - start.x, end.y - start.y)
+            let steps = max(1, Int(ceil(span / max(3, radius * 0.4))))
+            var last = start
+            for index in 1...steps {
+                let t = CGFloat(index) / CGFloat(steps)
+                let p = CGPoint(x: start.x + (end.x - start.x) * t,
+                                y: start.y + (end.y - start.y) * t)
+                if blocksMovement(p, patches: patches, radius: radius) {
+                    break
+                }
+                last = p
+            }
+            return last
+        }
+        let direct = advance(from: current, to: target)
+        if hypot(direct.x - target.x, direct.y - target.y) < 0.001 {
+            return direct
+        }
+        // After reaching the shoreline, spend unused motion sliding along
+        // the longer requested axis rather than freezing at the edge.
+        let remainingX = target.x - direct.x
+        let remainingY = target.y - direct.y
+        let firstX = abs(remainingX) >= abs(remainingY)
+        let first = firstX
+            ? CGPoint(x: target.x, y: direct.y)
+            : CGPoint(x: direct.x, y: target.y)
+        let slid = advance(from: direct, to: first)
+        let second = firstX
+            ? CGPoint(x: slid.x, y: target.y)
+            : CGPoint(x: target.x, y: slid.y)
+        return advance(from: slid, to: second)
+    }
+}

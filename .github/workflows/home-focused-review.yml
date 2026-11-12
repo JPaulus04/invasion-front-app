@@ -1,0 +1,193 @@
+name: Focused Home Visual Review
+on:
+  push:
+    branches: [build-327]
+  workflow_dispatch:
+jobs:
+  simulator-smoke:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[sim-smoke]')
+    runs-on: macos-26-intel
+    timeout-minutes: 12
+    steps:
+      - name: Check simulator service without building the game
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -uo pipefail
+          echo "Runner: $(sw_vers -productVersion)"
+          xcodebuild -version
+          xcrun simctl list runtimes
+          xcrun simctl list devices available
+          UDID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next((v["udid"] for vs in d.values() for v in vs if v.get("isAvailable",True) and v.get("name","").startswith("iPhone")), ""))')"
+          if [ -z "$UDID" ]; then echo "::error::No iPhone simulator available"; exit 1; fi
+          echo "Selected $UDID"
+          python3 - "$UDID" <<'PY'
+          import subprocess,sys
+          u=sys.argv[1]
+          for name,cmd,seconds in [
+            ("boot",["xcrun","simctl","boot",u],40),
+            ("bootstatus",["xcrun","simctl","bootstatus",u,"-b"],160),
+            ("state",["xcrun","simctl","list","devices","-j"],30),
+          ]:
+            print("Starting",name,flush=True)
+            try:
+              r=subprocess.run(cmd,timeout=seconds,text=True,capture_output=True)
+              print(name,"exit",r.returncode,"stdout",r.stdout[-2500:],"stderr",r.stderr[-2500:],flush=True)
+              if r.returncode: sys.exit(1)
+              if name=="state":
+                import json
+                d=json.loads(r.stdout)["devices"]
+                state=next((v.get("state") for vs in d.values() for v in vs if v.get("udid")==u),None)
+                print("Verified device state:",state,flush=True)
+                if state!="Booted": sys.exit(1)
+            except subprocess.TimeoutExpired:
+              print("::error::",name,"timed out after",seconds,"seconds",flush=True)
+              sys.exit(1)
+          PY
+  home-screens:
+    concurrency:
+      group: home-focused-${{ github.ref }}
+      cancel-in-progress: true
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[home-review]'))
+    # Intel hosts repeatedly time out during CoreSimulator readiness.
+    # Test the Apple Silicon runner pool with a precompiled app artifact.
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record runner and revision diagnostics
+        run: |
+          mkdir -p diagnostics
+          { git rev-parse HEAD; uname -m; sw_vers; xcodebuild -version; xcrun simctl list runtimes; } 2>&1 | tee diagnostics/environment.log
+      - name: Validate source tree
+        run: |
+          set -o pipefail
+          python3 scripts/check_project.py 2>&1 | tee diagnostics/source-check.log
+      - name: Inspect simulator runtime before compiling
+        timeout-minutes: 5
+        run: |
+          # Do not restart CoreSimulator on a freshly provisioned runner.
+          # The previous workflow called shutdown all before first boot,
+          # which can race with runtime initialization and migrations.
+          xcrun simctl list runtimes
+          xcrun simctl list devices available
+      # Artwork uploaded: verify all 12 production menu sprites before capture.
+      - name: Boot iPhone simulator before resource-heavy compilation
+        timeout-minutes: 7
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, sys
+          def call(cmd, limit):
+              return subprocess.run(cmd, text=True, capture_output=True, timeout=limit)
+          devices=json.loads(call(["xcrun","simctl","list","devices","available","-j"],30).stdout)["devices"]
+          candidates=[v["udid"] for vs in devices.values() for v in vs if v.get("isAvailable",True) and v.get("name","").startswith("iPhone")]
+          if not candidates:
+              sys.exit("No available iPhone simulator")
+          u=candidates[0]
+          print("Prewarming iPhone simulator",u,flush=True)
+          boot=call(["xcrun","simctl","boot",u],45)
+          print("Boot command:",boot.returncode,boot.stderr[-500:],flush=True)
+          try:
+              ready=call(["xcrun","simctl","bootstatus",u,"-b"],240)
+              print("Boot readiness:",ready.returncode,ready.stderr[-500:],flush=True)
+              if ready.returncode: sys.exit("Simulator could not prewarm")
+          except subprocess.TimeoutExpired:
+              print("::error::CoreSimulator readiness timed out after 240 seconds; aborting before costly compilation",flush=True)
+              sys.exit(1)
+          # bootstatus returning zero is the readiness signal. Re-querying the
+          # entire CoreSimulator device database has hung after successful boot.
+          with open("/tmp/outpost-zero-ci-device","w") as handle:
+              handle.write(u)
+          print("Simulator ready for screenshot capture:",u,flush=True)
+          PY
+      - name: Audit production menu sprite assets
+        run: |
+          set -o pipefail
+          python3 scripts/audit_menu_art.py --require-all 2>&1 | tee diagnostics/menu-art.log
+      - name: Select compatible successful build artifact
+        timeout-minutes: 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess, sys
+          def api(path):
+              result=subprocess.run(["gh","api",path],capture_output=True,text=True,check=True,timeout=45)
+              return json.loads(result.stdout)
+          repo=os.environ["REPOSITORY"]
+          target=os.environ["TARGET_SHA"]
+          branch=os.environ["BRANCH"]
+          runs=api(f"repos/{repo}/actions/workflows/ios-build.yml/runs?branch={branch}&status=success&per_page=30")["workflow_runs"]
+          approved_prefixes=(".github/workflows/",)
+          approved_files={"scripts/capture_home_review.sh","scripts/validate_world_selector_distinction.py","scripts/validate_home_capture.py","scripts/validate_simulator_screenshots.py"}
+          for run in runs:
+              base=run["head_sha"]
+              if base!=target:
+                  comparison=api(f"repos/{repo}/compare/{base}...{target}")
+                  if comparison.get("status") not in ("ahead","identical"):
+                      continue
+                  changed=[item["filename"] for item in comparison.get("files",[])]
+                  if comparison.get("total_commits",0)>250 or len(comparison.get("files",[]))>=300:
+                      continue
+                  if any(not name.startswith(approved_prefixes) and name not in approved_files for name in changed):
+                      continue
+              artifacts=api(f"repos/{repo}/actions/runs/{run['id']}/artifacts?per_page=100")["artifacts"]
+              if any(a["name"]=="outpost-zero-simulator-app" and not a["expired"] for a in artifacts):
+                  with open(os.environ["GITHUB_ENV"],"a") as output:
+                      output.write(f"OUTPOST_BUILD_RUN_ID={run['id']}\n")
+                      output.write(f"OUTPOST_BUILD_SHA={base}\n")
+                  print(f"Compatible compiled app: run {run['id']} commit {base}")
+                  sys.exit(0)
+          sys.exit("::error::No compatible successful simulator build artifact. Run the iOS Compile Check before requesting screenshots; stale game binaries are prohibited.")
+          PY
+      - name: Reuse verified simulator app
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh run download "$OUTPOST_BUILD_RUN_ID" --repo "${{ github.repository }}" --name outpost-zero-simulator-app --dir "$RUNNER_TEMP/compiled"
+          mkdir -p simulator-app
+          ditto -x -k "$RUNNER_TEMP/compiled/OutpostZero-simulator-app.zip" simulator-app
+          test -x simulator-app/OutpostZero.app/OutpostZero
+          echo "Screenshot source app: $OUTPOST_BUILD_SHA (build run $OUTPOST_BUILD_RUN_ID)" | tee diagnostics/build-provenance.log
+          echo "Requested review commit: $GITHUB_SHA" | tee -a diagnostics/build-provenance.log
+          echo "Phase 3 visual acceptance: commander, armory, and mastery" | tee -a diagnostics/build-provenance.log
+      - name: Install screenshot decoder
+        run: |
+          python3 -m venv "$RUNNER_TEMP/home-review-python"
+          "$RUNNER_TEMP/home-review-python/bin/python" -m pip install Pillow
+          echo "$RUNNER_TEMP/home-review-python/bin" >> "$GITHUB_PATH"
+      - name: Capture Home, World Selector and all menu screens
+        timeout-minutes: 25
+        run: |
+          set -o pipefail
+          export OUTPOST_ZERO_SIMULATOR_UDID="$(cat /tmp/outpost-zero-ci-device)"
+          bash scripts/capture_home_review.sh 2>&1 | tee diagnostics/simulator-capture.log
+      - name: Verify unified Home and World Selector captures
+        run: |
+          python3 scripts/validate_world_selector_distinction.py \
+            screenshots/outpost-zero-home-navigation.png \
+            screenshots/outpost-zero-world-selector.png
+      - name: Upload focused screenshots
+        if: always() && hashFiles('screenshots/outpost-zero-*.png') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: outpost-zero-home-focused-review
+          path: screenshots/outpost-zero-*.png
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload focused build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-focused-build-log
+          path: |
+            xcodebuild-home.log
+            diagnostics/
+          if-no-files-found: ignore

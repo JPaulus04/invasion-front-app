@@ -1,0 +1,83 @@
+[
+  {
+    "asset": "world1_boss_arena_floor_1",
+    "source": "exec-f36c22a0-12f2-443c-8365-76371dfbf014.png",
+    "size": [
+      512,
+      768
+    ],
+    "transparent_border_px": null
+  },
+  {
+    "asset": "world1_boss_arena_floor_2",
+    "source": "exec-f2e20bbe-49e8-451f-b82d-d188030ce842.png",
+    "size": [
+      512,
+      768
+    ],
+    "transparent_border_px": null
+  },
+  {
+    "asset": "world1_boss_arena_floor_3",
+    "source": "exec-46a2af9c-daab-45e5-b42b-b55a16b3486b.png",
+    "size": [
+      512,
+      768
+    ],
+    "transparent_border_px": null
+  },
+  {
+    "asset": "world1_boss_arena_wall",
+    "source": "exec-eef74884-76e4-43f5-bd99-fb7184a85064.png",
+    "size": [
+      485,
+      506
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_boss_arena_boulder",
+    "source": "exec-e2702553-cb88-4a65-a816-89f76bf28f42.png",
+    "size": [
+      485,
+      491
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_boss_arena_vegetation",
+    "source": "exec-f79976a3-3ce2-4c04-be9c-d7df640fd5aa.png",
+    "size": [
+      496,
+      457
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_boss_arena_debris",
+    "source": "exec-7fcc23fe-1d68-452f-822a-832086df2910.png",
+    "size": [
+      472,
+      485
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_boss_arena_lantern",
+    "source": "exec-89a3996d-7f8b-4111-9b64-30c9fc319582.png",
+    "size": [
+      496,
+      504
+    ],
+    "transparent_border_px": 20
+  },
+  {
+    "asset": "world1_boss_arena_crate",
+    "source": "exec-892f8134-dfd0-484c-b897-790249fb4515.png",
+    "size": [
+      447,
+      447
+    ],
+    "transparent_border_px": 20
+  }
+]

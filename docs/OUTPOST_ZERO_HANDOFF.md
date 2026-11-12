@@ -1,0 +1,470 @@
+# Outpost Zero — Current handoff (October 17, 2026)
+
+## October 25 — Benchmark-led home and world navigation foundation
+- Based on remote `5d2ce5f` (Build 325 economy/rarity), isolated branch `home-world-redesign`. Do not merge the stale local `deb8190` Build 323 branch wholesale: newer remote work supersedes it.
+- User approved brighter Archero-inspired organization, distinct destination previews, richer room layouts, and eventual progression/ability depth. This checkpoint implements navigation foundation only; it is not final art acceptance or the complete requested milestone.
+- Shared opaque sky/outpost shell across Home, Gear, Abilities, Pilot, restoration and loadout. Four labeled SF Symbol tabs with selected-state highlight. Pilot contains restoration/profile switching; gear and mastery purchase logic and saved progress retained. Secondary pages scale on short screens; overlay scale/background reset before combat menus.
+- Home and world selection use one destination presentation, arrows plus swiping, explicit saved world/room resume label, existing unlock concealment and star/core rules. Flooded and toxic destinations use distinct industrial props rather than forest trees. Destination artwork is still procedural and needs actual simulator review before polish acceptance.
+- Updated misleading gear descriptions for existing tapered post-rank-five bonuses. Updated stale source assertions that assumed the old armor formula and old world panel coordinates.
+- Added real simulator navigation bounds/overlap assertions and separate Gear/Ability screenshot captures to the milestone workflow.
+- Local source checks, 61 PNG asset checks and diff whitespace pass. No local Swift/Xcode toolchain; iOS compilation, gameplay tests, and simulator visual review remain pending. Do not call this validated or upload to TestFlight.
+- Earlier automatic review rejected publication to the repository. This checkpoint is local only; require explicit permission to push this prepared redesign to `JPaulus04/invasion-front-app`, `outpost-zero`, before publishing or triggering hosted validation. Do not retry via another tool.
+- Remaining: item-card/equipment presentation, illustrated home art, brighter arena/room variety, W2 boss art and encounter, ability evolutions and milestone economics review; follow with full current-revision simulator validation and actual image inspection. Preserve fresh-vs-overpowered balancing distinction.
+
+
+## October 24 — Rig motion review and settling refinement
+- Run 40118187753 passed compilation and focused captures; broad campaign skipped. Inspected artifact 12569848209, rig-sw still and 4fps samples of its recorded movement/idle passes with square aspect-preserving crops.
+- Fixed upper body holds its silhouette through movement without the earlier generated-sheet narrowing. No conspicuous torso cut was visible at sampled gameplay scale. Leg motion remains a restrained shuffle; this is not final walk acceptance, and subtle seams/sliding still need close review.
+- Refined prototype start/stop: scale leg swing by the existing displacement-driven pilotWalkBlend and retain the rig until blend falls below 0.01. Legs now converge to original pixel registration before restoring the intact idle sprite, rather than switching immediately at arbitrary stride phase. No new timing source or collision changes.
+- New settling refinement requires fresh focused compilation/capture. Next review settling, then improve knee/ankle articulation and planted-foot behavior before expanding directions. No upload/reset.
+
+
+## October 24 — Fixed-upper-body southwest rig prototype
+- Added isolated simulator flag -previewPilotLegRigSW, using existing SW route, displacement-driven stride and save suppression. Ordinary gameplay and existing authored preview flags are unchanged.
+- New PilotLegRigPreview.swift partitions the original 256px southwest idle texture into masked torso and two leg pieces. Torso/helmet/weapon pixels remain fixed; each leg rotates/translates around a registered hip. Original idle sprite returns when stopping. No new raster generation or mirrored art.
+- This is a technical prototype, not accepted animation: inspect hip seams, rigid boot motion, foot sliding and idle transitions. Swing amplitudes are intentionally small. Mask boundaries are hand-positioned and require actual visual review.
+- Focused workflow adds a distinct rig-sw still and bounded MP4 alongside existing eight directions. Local YAML/embedded Python and source delimiter checks passed; Swift compile and simulator footage pending.
+- No TestFlight upload or reset. Next decide whether this articulation approach improves stability before adding directions or detailed knee/ankle joints.
+
+
+## October 24 — SE/SW replacement motion review: do not integrate
+- Review run 40105303609 (1fb6863) passed build and focused capture; full campaign skipped. Downloaded artifact 12565070844, sampled SE/SW videos at 4fps using 250px square crops resized uniformly to 150px. Inspected repeated walking/idle passes.
+- SE candidate still visibly crouches/shortens during stride, particularly extended leg poses. SW walking silhouette remains narrower than idle, with feet appearing detached from the ground shadow. Candidate assets from 396d0bf are not accepted and were NOT copied to outpost-zero.
+- Main stays on corrected NW asset acc51b9; NW run 40094649889 passed and prior recorded review confirmed the new side-view boot.
+- Repeated whole-character generation is not reliably preserving torso/leg registration. Next prototype: preserve the original upper body and use separately articulated/generated leg poses, with explicit hip and planted-foot registration. Keep this isolated to simulator QA, compare one direction first, then expand only if it improves continuity. Do not keep regenerating complete sheets without addressing this cause.
+- Review-only documentation update; no repeated CI, upload or reset.
+
+
+## October 24 — Northwest boot correction
+- Replaced only pilot_walk_nw_2.png with a targeted built-in image edit: bottom-left sheet cell's lower-right boot now has a left-pointing toe, right heel and narrow outsole edge instead of a broad sole facing the camera. Source exec-3e0c62b0-1a73-45e9-a6c0-84c2d3117967.png. Preserved 44% extraction scale and idle helmet registration. Other three NW frames unchanged.
+- Inspected 256px output; RGBA bounds (37,16,218,237), no clipping. Static pose improves the reported foot-angle defect. Continuous motion acceptance remains pending focused CI.
+- Generated SE/SW proportion revisions and an initial NW edit were rejected: they did not convincingly resolve the identified defects. No SE/SW replacement integrated. Walk/idle proportion continuity remains open and is next priority.
+- Simulator-only animation remains in effect. No TestFlight upload or reset.
+
+
+## October 24 — Diagonal batch motion review
+- Revision 5b50708 passed build and focused visual jobs in run 40061393479; broad campaign capture correctly skipped. Downloaded walk artifact 12548390074 and reviewed NW, SE and SW MP4 samples at 4fps, using square crops and uniform resizing.
+- All three show changing leg poses while moving, consistent facing/weapon side, and restoration of the matching idle pose. This establishes working preview selection, not final animation quality.
+- Remaining visible defects: SW has a noticeably narrower walking silhouette than its idle pose and a pronounced raised-foot pose; SE changes helmet/torso proportions at the idle transition; NW's lifted sole reads strongly toward camera and needs comparison with the intended rear-facing foot angle. Do not mark these cycles production-ready or extend the same defects to intermediate headings.
+- Next batch should polish primary-direction walk/idle proportions and foot contact before authoring the remaining eight intermediate cycles. Keep authored selection simulator-only until motion acceptance.
+- Review-only checkpoint; no new runtime code or assets and no repeat CI needed. No TestFlight upload or progression reset.
+
+
+## October 23 — Batched remaining diagonal walk candidates
+- Verified scoped workflow run 40046564065: build and defense-visual-review passed; broad simulator-review skipped as intended. Earlier full NE run 40045774250 passed all jobs.
+- Prepared NW, SE and SW together: twelve authored RGBA frames, independent original-direction references, targeted leg-phase corrections, common scale per direction and helmet registration. Prompt/provenance and limitations are in docs/art-review/pilot-walk-diagonals/README.md.
+- Added simulator-only NW/SE/SW fixtures, sectors 6/14/10, equal-axis routes with heading derived from displacement, bundle checks and continuous captures. All eight primary directions now have preview candidates; intermediate eight directions remain static.
+- Local PNG transparency/bounds, YAML/embedded Python and diagonal route checks pass. New batch iOS compilation and in-game motion acceptance pending. Ordinary gameplay does not select authored cycles.
+- Next inspect new footage and polish foot contact and walk/idle size continuity. Keep development validation focused; full campaign review at milestones/pre-release. No TestFlight upload or reset.
+
+
+## October 23 — Validation scoped to development milestones
+- User approved reducing repeated full validation. Normal pushes now run fast source/gameplay tests, iOS compilation, resource checks and focused reactor/motion captures. The broad simulator-review campaign sweep is skipped.
+- Full campaign review runs on pull requests, workflow_dispatch with validation_scope=full, or push commits containing [full-review]. Manual scope defaults to focused. Full and focused runs have separate concurrency groups, so a focused update does not cancel a full milestone review. Existing active NE review is allowed to finish.
+- A green focused run is not full release acceptance. Before TestFlight, run full validation on the intended source revision and inspect its visual evidence. No upload is authorized by this workflow change.
+- Batch remaining authored animation directions into coherent groups before CI; run local asset checks while preparing them. Keep gameplay tests on every compile because their cost is small.
+- Scope YAML and trigger cases checked locally. Hosted execution of new scoped workflow pending. NE revision f3fc1a1 compiled successfully; its focused and broad captures were still running at this checkpoint.
+
+## October 23 — Northeast simulator integration
+- Integrated candidate frames from review commit 5ca1a9d as pilot_walk_ne_0...3.png. Original generated assets and prompt notes remain under docs/art-review/pilot-walk-ne.
+- Added simulator-only -previewPilotWalkNE with initial heading pi/4, NE direction sector 2, displacement-selected authored frames, neutral preview transforms and normal idle restoration. Route uses equal world-space X/Y displacements (not unequal fractions of a portrait room), through existing movement/collision code.
+- Compiled-bundle assertions cover all 20 authored preview images. Focused CI captures a dedicated northeast still and bounded MP4 alongside the four cardinal previews. Ordinary gameplay still does not select authored walk frames.
+- Local YAML, five embedded recorder Python scripts, brace check and 45-degree in-bounds route checks for portrait/landscape dimensions pass. Swift compilation and actual northeast motion review remain pending.
+- West revision c093984 passed all jobs in run 40043302955; its continuous video was reviewed in the previous work session. Next review NE foot contact, facing stability, weapon registration and idle transition. Other diagonals/intermediate cycles and cardinal scale polish remain open.
+- Build 322 stays development-only; no TestFlight upload or reset.
+
+## October 23 — West candidate integrated for validation
+- East revision 9dab9de passed all three jobs in run 40041043342. Downloaded walk artifact 12539776791 and inspected east MP4 at 8fps, preserving aspect ratio and a fixed vertical crop. Four poses appear during horizontal movement; the weapon stays steady and stopping returns to east idle. A small walk-to-idle scale difference remains a polish item. Do not treat all-direction animation as accepted.
+- User approved the west-facing design. Integrated review commit 044ab3b (four west RGBA frames, west-only simulator fixture, bundle assertions and bounded west MP4 capture) without resetting progression or enabling authored walking in ordinary gameplay.
+- West source compilation and gameplay visuals still pending. Next review the west cycle, then refine cardinal continuity and add diagonals/intermediate views. Cardinal candidate coverage is four directions; sixteen-direction authored animation remains incomplete.
+- Build 322 remains development-only; no TestFlight upload.
+
+## October 23 — West walk prepared on review branch
+- East candidate 9dab9de passed iOS build in run 40041043342; focused and broad simulator captures still running at this checkpoint. East continuous motion has NOT yet been visually accepted.
+- Prepared four west-facing authored poses from pilot_w.png with built-in image generation, never mirroring east artwork. First sheet repeated the leading leg; targeted bottom-row edit reverses near/far leg phase. Revised source exec-9e75d2dc-6dfb-4a25-836c-a2792c36c6b6.png.
+- Extracted 256px RGBA frames pilot_walk_w_0...3.png at common 43% scale with helmet registration to original west view. All alpha bounds stay inside canvas.
+- Added isolated simulator-only -previewPilotWalkWest, moving from 70% to 30% room width and returning to west idle. Bundle checks cover all sixteen cardinal walk PNGs. Focused workflow captures a west still/video after east.
+- Local alpha/bounds, source brace, YAML and four embedded recorder Python checks pass. West source has not compiled or rendered yet. Saved off the main development branch to avoid cancelling east captures. Before advancing outpost-zero, review east and check whether head has moved.
+- Next: review east footage, then integrate west candidate for CI and actual in-game review. Diagonal/intermediate cycles remain unfinished. Ordinary gameplay uses directional idle art; no upload or reset.
+
+## October 23 — East-facing walk candidate
+- Rear-cycle revision c2efd50 passed all three jobs in run 40037101410. Inspected north video from artifact 12537728150 at 8fps with aspect-preserving crops: alternating steps, steady backpack and return to north idle. Small scale difference remains a final continuity-review item, not a reason to expand this into full production acceptance.
+- Generated east-facing 2x2 sheet using pilot_e.png reference. First sheet repeated the same leading leg in both extended poses; rejected that lower half and requested targeted bottom-row leg reversal. Revised source exec-399f5700-228d-4902-884d-86617fb5fc3d.png. Four extracted 256px RGBA resources pilot_walk_e_0...3.png use common 43% scale and helmet top/center registration; PNGs remain unclipped.
+- New simulator-only -previewPilotWalkEast moves horizontally from 30% to 70% room width through normal collision/movement, then idles. North/south previews share start/target helpers. Ordinary gameplay still does not use authored walk cycles.
+- CI asserts all 12 walk resources in the bundle, then captures separate east still and bounded continuous MP4 alongside south/north. Source brace, YAML, all three recorder Python blocks and PNG alpha/bounds checks pass locally; iOS compilation and east visual acceptance pending.
+- Next inspect east foot contact, cadence, upper-body scale and stop transition before generating west. No TestFlight upload or character reset; Build 322 development only.
+
+## October 23 — Rear-facing authored walk candidate
+- Run 40029607674 passed all jobs. Downloaded walk artifact 12533958891 and inspected 8fps samples from the neutral-transform continuous video at preserved aspect ratio. South cycle has visible alternating legs, stable upper body and return to idle; this supports extending the prototype, not final all-direction animation acceptance.
+- Generated four north-facing walk poses with the built-in image-generation tool using current pilot_n.png as identity reference. Extracted 627px sheet cells to 256px RGBA canvases at a common 45% scale, registered helmet top/center, no independent per-frame scaling. Output resources: pilot_walk_n_0...3.png. Sheet source exec-81ea011c-3dc1-48aa-9f95-1cd7313425c5.png.
+- Added simulator-only -previewPilotWalkNorth. It travels north through normal movement/collision code, uses displacement-driven frames and returns to directional idle. Existing south preview remains separate. All eight resources are asserted and checked in the compiled bundle.
+- Focused CI now records a separate rear-facing still and bounded MP4 after the south review. Both use existing blue identity markers and save suppression. Normal gameplay remains unchanged; other directions do not have authored walks yet.
+- Local PNG bounds/transparency, workflow YAML and embedded recorder Python checks passed. iOS compile and rear-cycle gameplay acceptance remain pending for this revision. Next inspect helmet/backpack stability, alternating soles, ground contact and stop transition.
+- Build 322 remains development-only; no TestFlight upload and no reset.
+
+## October 23 — Walk review capture reliability
+- Commit `74e8bcc` compiled successfully, but run 40018776951 did not pass: defense screenshot command timed out during the walk sequence, and the broad campaign capture exceeded its 28-minute step limit. Only three walk stills were available; no new continuous video. Do not describe this run as green.
+- Compared original south idle and front walk frame 0 directly: both 256px RGBA, alpha bounds (41,16,214,240) and (41,16,215,243). Helmet registration is close. Earlier strong claims of a major proportion mismatch were overstated; undistorted continuous evidence is needed. Authored preview retains neutral transforms from 74e8bcc.
+- Added optional Pillow native PNG decoding, retaining the dependency-free fallback and identical sampling/scene-marker rules. Both visual CI jobs install Pillow. Local real-capture results match exactly (355 colors), native path 0.096s versus fallback 2.578s; both reject blank and incorrect scene-marker fixtures.
+- Move bounded continuous video recording immediately after the first validated walk still, before the 15 repeated screenshot subprocesses. A later still timeout must not prevent motion evidence from being recorded.
+- Next: review fresh continuous preview; refine art only against actual evidence, then expand authored walking to other directions. Normal gameplay still uses directional idle poses. Build 322 remains development-only, no upload or character reset.
+
+## October 23 — Front walk preview, development only
+- Sixteen-direction commit `73762d0` passed build, defense and full simulator jobs in run **39998812646**. Inspected actual compass grid plus motion-1/motion-3 from artifact **12522596564**. Armor identity and gameplay readability hold; adjacent NW/WNW views are too similar for final turn acceptance. Static captures do not establish smooth animation.
+- User liked the four-pose front walk prototype from review commit `16192bf`. Copied its registered RGBA frames into production resources as `pilot_walk_s_0...3.png`, but selection is gated by simulator-only `-previewPilotWalk`. Normal gameplay retains the sixteen directional poses. No new generated art in this pass.
+- Preview alternates two seconds of real southward movement with two seconds of idle. The normal movement/collision path advances the authored cycle by displacement; stationary presentation restores directional idle even without a heading change. Preview mode suppresses progression saving, just like existing screenshot fixtures.
+- CI checks all four bundle resources and samples sixteen live preview frames with a blue scene identity marker. Frame diversity detects frozen captures, not visual quality. Review foot sliding, helmet/weapon stability, pose timing and idle transition before authoring other directions. New preview iOS validation and screenshot review are pending at this checkpoint; local source/33-PNG checks pass.
+- Build 321 previously uploaded successfully. **Build 322 stays development-only; no upload approval and no character reset.** Remaining art: authored walk cycles beyond south, turn-sector refinements, bosses, ground/industrial props and portal polish. Fresh-profile balance comparison remains separate from the user's heavily invested character.
+
+## October 23 — Sixteen-direction player candidate
+- Created eight new transparent intermediate pilot views in `OutpostZero/ArtAssets`: `pilot_ene.png`, `pilot_nne.png`, `pilot_nnw.png`, `pilot_wnw.png`, `pilot_wsw.png`, `pilot_ssw.png`, `pilot_sse.png`, `pilot_ese.png`. Preserved original eight endpoints. New sprites normalized to 256px RGBA with visible content fitting 224px and cleaned near-transparent edge noise. All eight are required in the compiled bundle.
+- Built-in image-generation prompt set used each pair of adjacent original pilot views as identity/camera/material references. Requested true midpoint yaw, identical blue armor/white helmet trim/orange visor and core, backpack battery, original short dark pistol in the same hand, same elevated orthographic camera and ready stance, full body centered on transparent square, no floor/shadow/text. Four front intermediates and four rear intermediates; rear-right candidates were revised to separate side-dominant ENE and rear-dominant NNE views. Generated angle/proportion/weapon continuity is a visual candidate, not a guaranteed physically exact turntable.
+- Direction switching now uses sixteen 22.5-degree sectors and a three-degree hysteresis band. Updated south/default/reset and home preview indices. Movement-facing versus stationary target-facing logic, turn speed, joystick, collision and combat are untouched. Updated direction tests cover all sixteen centers, wraparound, cardinal directions and boundary hysteresis.
+- Simulator direction review now captures all sixteen views in a 4x4 grid through the actual presentation function, asserting each selected sector. Local source/PNG checks pass; Swift tests, simulator grid and real motion captures must pass before visual acceptance. Authored walking frames are NOT implemented; existing displacement-driven bob/lean/recoil remains.
+- Tree root-shadow run 39994673256 completed with all three jobs passing. Inspected overgrown-path from artifact 12520986078; shadows now meet the broadleaf roots more closely, with shrubs retaining their ground contact. Build 322 remains development-only; no upload or character reset.
+
+## October 23 — Undergrowth review and tree-root registration
+- a87dee3 passed all three jobs in run 39990848062. Downloaded artifact 12518996878 and inspected tactical-abilities and overgrown-path captures. Shaded shrubs fit the tree style, remain low along the perimeter and leave the central movement lane clear. No new shrub collision was introduced.
+- Actual frames exposed a remaining gap between some tree roots and their shadows. The prior assumed 16px lower padding included nearly transparent edge pixels. Measured visible alpha bounds in the 256px sprites: broadleaf bottom near pixel 229, pine near 235. Updated root depths to 0.395 and 0.42 of sprite height respectively; rotation/size-aware shadow placement remains intact. Overgrown broadleaf shadows use the same visible-root depth.
+- Local source/PNG validation passes; a fresh simulator frame must confirm tree contact. Player work still requires genuine intermediate directions for a 16-view system and authored walking frames; these have not been implemented. Remaining environment/portal and boss art is still pending. No Build 322 upload.
+
+## October 23 — Dimensional forest undergrowth
+- ab38aff passed all three jobs in run 39897785410. Inspected extraction-open and motion-2 in artifact 12478785203: the close-contact star-like muzzle flash no longer covers the pilot, and the XP summary remains readable above combat. This is screenshot evidence, not a final device-animation assessment.
+- Added `OutpostZero/ArtAssets/forest_undergrowth_polished.png`, required in the compiled bundle. Replaces flat fern leaf shapes along the forest approach and oval thickets on Overgrown Path when available; original geometry remains fallback. Varied small sizes, stable upper-left highlights, rooted anchors and contact shadows preserve grounding. Decoration only; no new collision or movement changes.
+- Built-in image-generation prompt: one low asymmetric shrub of overlapping rounded leaf masses and a few curled base leaves, tiny stems, emerald/teal shade with yellow-green upper-left highlights, elevated orthographic camera matching forest_broadleaf_polished and forest_pine_polished, transparent square canvas, no trunk/flowers/rocks/floor/shadow/text. Normalized to 256px RGBA; removed only near-transparent alpha noise before trimming so the rooted anchor is reliable. Content fits 224px wide with a 57px lower canvas margin.
+- Local source/PNG checks pass. New tactical/overgrown simulator captures must confirm density, scale and ground contact. Ground material, industrial props, portal/boss artwork, 16-direction pilot and authored walking frames remain unfinished. No Build 322 upload.
+
+## October 22 — Close-contact firing visibility
+- Optional reactor correction 7b6893e passed all three jobs in run 39895038418. Inspected failed-defense artifact 12476548019: living player, BONUS LOST state, open normal campaign portal, no defeat menu. Reward and zero-integrity recovery tests passed. Found a floating -4 overlapping the resolved reactor label; resolving the reactor now removes its transient hit labels and hit-flash action.
+- Rifle visuals now start 28 points away from pilot center, use a smaller flash without the white outline, thinner/shorter tracers, and replace the previous tracer/flash on each shot. Targets within 30 points use existing hit feedback without a muzzle cue overlapping the player. This affects only rendering; instant-hit damage, range, cooldown, aiming and impact processing are unchanged.
+- Local source/PNG checks pass. New actual extraction-combat and motion captures must establish whether this resolves the large close-contact flashes; do not claim visual acceptance in advance. Pilot still uses eight static direction views; sixteen views/authored walk frames, bosses and environment/portal art remain pending. No Build 322 upload.
+
+## October 22 — Optional reactor failure correction
+- Reactor loss now resolves the room to the normal campaign portal instead of Game Over. Existing foes/hostile attacks are discarded without kill rewards; player health and previously earned rewards are retained. Normal room coins/XP still pay; the existing defense-room Salvage payout is the forfeited objective bonus. Successful-defense payouts are unchanged; no new bonus amount was introduced.
+- Failed reactor displays a dark/orange core, BONUS LOST label and matching exit instruction instead of SECURED. Zero-integrity saves are valid; recovery preserves a failed cleared gate, and a zero-integrity battle snapshot resolves to that gate. Existing schema-4 saves remain compatible.
+- Updated pure reward/recovery tests and the real failure screenshot fixture: it now asserts a living pilot, visible campaign exit, no leftover foes, retained earned rewards and no defense Salvage bonus. Source validation no longer requires the incorrect Game Over call. Updated captures must show the failed objective with an accessible exit, not the old defeat menu.
+- Local source/PNG checks pass. Swift/iOS execution is unavailable on this Linux host; CI must run updated campaign/recovery tests and all simulator captures before this correction is accepted. Build 322 remains development only.
+
+## October 22 — Reactor housing artwork candidate
+- Prepared `OutpostZero/ArtAssets/field_reactor_polished.png` and integrated it locally around the existing live core. The former vector chassis stays as fallback; animated core, critical/secured colors, label, integrity bar, front/back depth and occlusion are retained. No collision, objective AI, damage or reward changes.
+- Built-in image-generation prompt: one squat upright field-reactor housing, slate-teal armored side pillars with recessed vents, charcoal/navy center, yellow top bolts, thick rounded metal footplate, a centered dark circular empty socket with steel-blue bezel, elevated nearly front-on orthographic camera and upper-left soft light matching pilot_s/grunt_polished; transparent square canvas, no floor/shadow/core glow/text/characters. Normalized to 256px RGBA with content fitting 224px. Rendered at 112 square, y=-8; live core aligned at y=-10. These placements require actual front/rear simulator inspection.
+- Orb run 39885569918 completed with all three jobs passing. Downloaded artifact 12473043297 and inspected gate-open/extraction-open frames: orbit cores and wakes are defined, and extraction remains distinct through its vertical beacon and ground base. Existing orbit-follow assertions passed. Close-combat kinetic flashes still obscure the pilot and need a separate correction; do not claim all combat clutter is solved.
+- Publishing this reactor candidate after the orb review. Local source/PNG checks pass; new defense active/secured/failed captures must verify live-core alignment, footplate contact, player occlusion and status visibility before accepting the artwork. No reactor simulator acceptance claim yet.
+- Build 322 remains development only. Bosses, remaining environment/portal artwork, 16-direction pilot and authored walking frames remain pending.
+
+## October 22 — Energy Orbit definition and extraction polish
+- Run 39872665362 for 0c54874 passed all three jobs. Downloaded artifact 12467364798 and inspected tactical-abilities, combat-feedback and extraction-open captures. Lightning is narrower, shooter detail remains visible, and extraction combat shows one +27 XP summary above the player rather than labels over each enemy. Kinetic tracer/muzzle effects still need further review; this does not establish final animation acceptance.
+- Energy Orbit now has a dark teal shell, crisp pale core, small glint and three short fading wake dots. Reduced broad bloom preserves orb edges. Wake follows the existing tangential orientation. Orb count, orbit radius (82), speed, damage, contact geometry, paused clock and portal-follow behavior remain unchanged.
+- Extraction keeps its distinct ground base and vertical rescue beacon; reduced orb/core bloom and a smaller bright center improve edge definition. Reachability and interaction geometry remain unchanged. These native SpriteKit visual edits need new actual gate/extraction screenshots before acceptance.
+- Local source and PNG checks pass. No Build 322 upload, character reset or balance changes. Remaining large art items: bosses, reactor/portal/environment props and 16-direction player views plus authored walk frames.
+
+## October 22 — Standard roster review and combat readability
+- Run 39857498702 for 86f63fa passed all three jobs. Downloaded screenshot artifact 12460259900 and inspected tactical-abilities and live ranged-1/ranged-3 captures. All six standard enemies now share dimensional shading. Heavy's broad shape and lobber's mortar remain readable; shooter body was too thin at phone scale, so its illustration is enlarged 12% with an upward foot-registration adjustment. Collision/AI remain unchanged.
+- Replaced large filled explosive stars with smaller open warm-colored shock rings, reduced generic impact rings/flashes and narrowed chain-lightning bloom. Colors remain differentiated. These are visual sizes only; damage radii and timing are unchanged.
+- Kill XP is still awarded immediately per enemy, including replay-safe credits. Visual feedback now uses one accumulating, smaller XP toast above the player per active burst instead of overlapping labels at every defeated enemy. Zero newly paid XP produces no toast; reward accounting remains unchanged.
+- Local source/sprite checks pass. This new readability pass requires iOS compile and fresh simulator inspection before acceptance. Boss/environment artwork, orb/extraction polish and 16-direction pilot/walk frames remain pending. No TestFlight 322 upload or character reset.
+
+## October 22 — Complete standard enemy artwork candidates
+- Added `OutpostZero/ArtAssets/heavy_polished.png`, `shooter_polished.png` and `lobber_polished.png`, normalized to 256px RGBA with content fitting 224px. Authored asset precedence protects them from procedural regeneration; all six standard enemy illustrations now use proportional square rendering. CI requires the new files in the compiled bundle. Collision radius, AI, damage, speed and progression are unchanged.
+- Built-in image-generation prompts used existing polished enemies as camera/material/upper-left-light references. Heavy: squat broad charcoal/red chassis, inset amber visor, thick legs, large shoulder plates/gauntlets, orange-red core; no fins/antennae/weapons. Shooter: slim steel-blue/teal chassis, cyan visor/core, sensor antennae and a long right-forearm cyan railgun ending near the feet. Lobber: stout ochre/orange chassis, bronze inset helmet, amber core and one tall rear mortar with visible dark bore above viewer-right shoulder. Each: full body, slightly viewer-left facing, transparent square canvas, no floor/shadow/text, rounded glossy cartoon armor matching grunt/scout.
+- All three candidates were inspected at normalized resolution and local source/sprite checks passed. Their own actual simulator review is still required; do not treat generated previews as gameplay evidence.
+- Scout/raider run 39853589678 completed with all three jobs passing. Downloaded artifact 12459094691 and inspected tactical-abilities, combat-feedback and extraction-open frames, plus the separate active-defense capture. Scout antennae/red armor and raider fins/violet armor remain distinct and consistent with the pilot/grunt at gameplay size. No clipping or stretched proportions observed. Large hit-star and XP overlays still obscure characters during clustered combat; effects cleanup remains open. Reactor behind-player transparency and health visibility are present. Allowed this run to finish before publishing these three new candidates.
+- Standard enemy artwork candidates are complete; boss art, environment props, effects, 16-direction pilot views and authored walking frames remain open. No Build 322 upload or character reset.
+
+## October 22 — Violet raider art pass
+- Added `OutpostZero/ArtAssets/raider_polished.png` via authored-asset precedence with square rendering and a required bundle check. Retains violet visor/core and swept shoulder fins to distinguish it from the red antenna scout and olive grunt. No combat or progression changes.
+- Built-in image-generation prompt: one transparent full-body violet raider using scout_polished and grunt_polished as finish/camera/light references; rounded glossy purple armor, charcoal joints, narrow lilac visor, violet circular core, medium agile frame, swept shoulder fins, compact helmet without antennae, aggressive ready stance slightly toward viewer left, no weapon/floor/shadow/text. Normalized to 256px RGBA with content fitting 224px. Candidate requires its own actual simulator review.
+- Scout run 39852863644: iOS build passed; simulator jobs were still running when this pass began. Do not infer visual approval from compile success.
+- Next individual enemies: heavy, shooter and lobber; bosses, environment props, 16 player directions and authored walking frames remain pending. Build 322 is development only.
+
+## October 22 — Scout art pass
+- e7681fd passed all three jobs in run 39819920774. Reviewed the actual tactical-abilities capture: variable-size tree shadows now meet the roots rather than floating away from small trees.
+- Added `OutpostZero/ArtAssets/scout_polished.png` through authored-asset precedence, preserving the generated fallback. Square rendering preserves proportions; bundle validation requires the new sprite. No changes to enemy radius, speed, damage, AI or progression.
+- Built-in image-generation prompt: one transparent full-body red scout, narrow agile frame, slim legs, two swept-back antennae, angular amber visor and small amber chest core, charcoal joints, rounded glossy scarlet armor, elevated orthographic camera, upper-left light matching grunt_polished and pilot_s references; centered ready stance slightly toward viewer left, no weapon/text/floor/shadow. Normalized to 256px RGBA with content fitting 224px. This is a production candidate pending new simulator review at gameplay scale.
+- Remaining enemies to review individually: violet raider, heavy, shooter, lobber, then bosses. Sixteen player directions and walking frames remain pending. No Build 322 upload.
+
+## October 22 — First production art consistency pass
+- Actual simulator review of f661b00: all three jobs passed in run 39779680124. Inspected home, overgrown path, defense active/cleared, tactical abilities, extraction and pilot directions. Grunt/trees have improved dimensional shading; reactor rear transparency/front depth and pilot health visibility are visible in the captures. Collision assertions passed; screenshots alone do not establish movement feel.
+- Found floating tree roots: fixed legacy shadow offsets did not track the new variable-size sprites. Shadows now follow each tree's rotated root; ordinary forest shadows also scale with the sprite. This correction needs its own CI and screenshot review.
+- Remaining visual gaps are clear in the mixed-enemy capture: five other enemy types remain flat beside the new grunt; shrubs/crates/portal and ground presentation need separate passes. Eight pilot views remain; 16 views and authored walk frames are not implemented. Do not treat the green workflow as full visual acceptance.
+- Reactor commit f32f13f passed all three CI jobs in run 39712016506. Inspected defense active/secured screenshots; capture positions previously did not directly show rear/front overlap. Updated those fixtures to show those positions explicitly for next visual review.
+- Built-in image generation produced separate transparent grunt, broadleaf and pine sprites from the shared pilot/forest concept. Integrated `grunt_polished.png`, `forest_broadleaf_polished.png`, and `forest_pine_polished.png` through authored asset precedence; procedural generators cannot overwrite these files. Normalized to 256px RGBA, kept square rendering proportions and removed tree mirroring to preserve common upper-left lighting. Bundle gate requires all three assets.
+- Prompt specifications: grunt = compact olive armor, narrow lime visor/core, dark joints, chunky fists, elevated orthographic camera, rounded highlights matching blue pilot, no ground shadow; broadleaf = rounded overlapping green canopy masses, short brown branching trunk; pine = irregular rounded foliage tiers, no straight triangular plates. All: same camera/light, phone-scale forms, true transparency, no text/ground/other subjects. Source reference is the generated grunt/forest concept; these are first-pass production assets pending actual simulator review, not final art sign-off.
+- Other enemies, ground composition, rocks, portals, 16 player directions and authored walk cycle remain pending. No difficulty or progression changes, no TestFlight 322 release.
+
+## October 22 — Build 322 reactor physical presence (validation pending)
+- Build 321 TestFlight workflow 39678421057 completed successfully, including upload to App Store Connect. User supplied device recordings; current character has max Level 5 gear/abilities and unusually high core investment. Do not increase baseline difficulty based on these recordings. Preserve progress; a separate fresh test profile is planned, not implemented.
+- Device review confirmed the player can overlap the reactor. Added a player-only grounded-base collision footprint using the existing swept/sliding terrain resolver, front/back artwork depth, and transparency when the reactor hides the pilot. Player health remains above the reactor. Legacy overlapping positions recover to the nearest clear edge. Enemy objective attacks and balance remain unchanged.
+- Existing defense simulator fixtures assert four-sided collision, depth/occlusion, health visibility and legacy recovery. Local source validation passes; fresh CI and screenshot inspection are still required.
+- Remaining art plan: individually review enemies and forest props against the blue pilot; generated grunt/forest scene is concept-only. Sixteen genuine player directions plus authored walking frames are proposed, not yet integrated. Orb definition/hit feedback and extraction distinction also remain planned. No Build 322 upload authorized.
+
+## Why this file exists
+ChatGPT project discussions have become extremely long. Open this file and inspect the live `outpost-zero` branch before coding in a new conversation. Never assume the last conversation's build number or green status is current.
+
+## Repository / release
+- GitHub: `JPaulus04/invasion-front-app`
+- Active implementation branch: `outpost-zero` (do **not** edit `main` for gameplay).
+- Latest verified TestFlight upload: **321**, successful release workflow 39678421057. Current work targets Build 322; no upload approval has been given.
+- Baseline examined here: `596dcf201f697f272d2ae6cc177665075460ad82`, workflow 341: compile tests **pass**, iOS simulator compile **pass**, and simulator capture validation **pass**. Workflow: https://github.com/JPaulus04/invasion-front-app/actions/runs/39053735827
+- QA is automated screenshot/content/freshness checking, **not** human artwork approval. Inspect real frames against the artistic reference before releasing.
+
+## Non-negotiable design choices
+- Genre: polished, stylized 3/4 top-down cartoon sci-fi, with visual quality benchmarked to Archero 2. Avoid horizontal terrain seams and flat procedural-looking props. Pilot and trees must be readable at actual phone size.
+- Player starts *inside* each room at the bottom; auto-fire with full movement freedom. Enter a gate to proceed after combat.
+- Separate *angled circular deep-blue* entry/combat gate vs **visually distinct extraction portal**. Shared portal silhouette across biomes with biome-specific materials/lighting and a brief entry energy effect.
+- 20 rooms per world, with a final boss. World 1 Frontier Forest; World 2 Flooded Outpost (water blocks movement); World 3 Toxic Crossing (acid/terrain hazard). The first 50 levels restore original systems; later cores unlock specialization/modules/builds, not endless raw core upgrades.
+- Around **3–5 timed survival encounters** per world, usually **90–120 seconds**. At most 0–1 equipment-defense mission/world. Timed swarms should not become nonstop bullet-sponge fights.
+- On survival timeout: **stop new spawns, open extraction, allow immediate exit even if enemies remain**, and allow only normal coins/XP from enemies actually killed before exiting. Never invent extraction-time XP/coin bonuses.
+- Clear rooms do **not** grant an automatic combat upgrade. XP from enemy kills (+ small room rewards) accumulates; upgrades are selected when the character levels up.
+- Ordinary players should often reach the world boss with practiced skill. Challenge should be fun, not punitive. Early waves reduced and contact hits tuned; avoid unavoidable mass ranged fire.
+- Production art sprites are individual properly transparent RGBA with stable animation registration, matching the approved look. Art acceptance gate in `docs/build-314-art-acceptance.md`.
+
+## Verified development as of baseline
+- Full three-world campaign rules, enemy formation compositions, ranged telegraphs, water movement collision/navigation, character motion, ability synergies and enemy visual feedback present.
+- Expanded survival arena & tracking camera are validated in **QA scenarios**; ordinary campaign still uses traditional tactical room flow.
+- A live timed-swarm simulator QA fixture spawns real enemies, including screenshots captured over time.
+- The currently missing production handoff is **real timed-survival extraction / equipment-defense completion and save/recovery integration**. Do not claim the production timed encounters are enabled.
+- Pure rules explicitly distinguish `combatGate` from `extractionPortal` and verify the latter can open with living enemies at timer expiry (this handoff's extraction contract).
+
+## October 17 continuation — production survival extraction
+- Playable scheduled survival rooms now use expanded arenas, active swarm limits, the combat-clock timer and a distinct round extraction portal. The portal opens when the timer ends even while foes remain; exiting removes un-killed enemies without paying their XP/coins.
+- Survival pays earned kill XP/coins and standard room Salvage, but no timed completion XP/coin bonus. Tactical clear rewards are unchanged.
+- An optional elapsed-time value is encoded in schema-4 run snapshots without invalidating old TestFlight saves. Recovery resumes the timer and reopens cleared extraction portals.
+- CI includes an actual production-path screenshot flag: -captureSurvivalExtractionScreenshot, with live enemies still in the room.
+- Equipment-defense rooms are still ordinary tactical rooms until proper defense objective mechanics arrive.
+- IMPORTANT: confirm CI pass and human visual review before release; no new TestFlight upload was requested.
+
+## October 17 — extraction accessibility and UI acceptance
+- Baseline extraction screenshot from workflow #343 (run 39059362674) passed but revealed overlapping status/portal instructions. Original workflow run: https://github.com/JPaulus04/invasion-front-app/actions/runs/39059362674
+- Corrected extraction UI: position the banner below HUD corner controls, remove the redundant overlaid instruction, and clear banner state on entry to the next room.
+- Added pure collision-safe portal placement that samples the full 12-point-radius walking approach and chooses a nearby accessible position; a trapped pilot evacuates from their current location rather than softlocking.
+- Added geometry tests across screen sizes/biomes, live extraction path assertion, and an end-to-end screenshot fixture that starts Room 6, opens the timed portal while four enemies remain, enters it, and asserts Room 7 is tactical with a reset camera and no stale enemies/UI.
+- No TestFlight upload. CI checks and screenshot inspection required before claiming this pass complete.
+
+## October 17 follow-up — extraction combat and recovery
+- Confirmed previous run 39063786781 fully passed simulator and iOS validation and inspected real extraction/Room 7 screenshots; visual cleanup succeeded. Art-sprite production approval remains separate.
+- Fixed active combat after survival timeout: normal kill XP/coins, gunfire, damage and timed save continue while walking toward the portal; new spawns remain forbidden. The standard tactical gate remains peaceful.
+- Survival snapshots now persist optional elapsed, spawned count and living count (schema-4 backward compatible). On resume, only the saved bounded living swarm is reconstructed; retained XP/coin/Salvage replay credits prevent duplicate farming. A missing legacy count is safely accepted.
+- Extraction simulator capture now kills a real live enemy after opening the exit and asserts XP/coins gained, no additional spawns, and portal remains visible. ProgressCombatTests covers valid saved count and impossible swarm values.
+- Final CI and simulator screenshot pass required; next milestone after validation is deeper extraction save/recovery lifecycle QA.
+
+## October 17 — user-confirmed visual corrections
+- Normal campaign exit: large elliptical/circular blue energy portal with in-world metallic mounting, swirling internal energy and visible ENTER prompt. Rectangular gate art removed.
+- Survival timeout: small glowing orb with narrow vertical beacon, preferably at the arena center and repositioned only to a reachable nearby spot when terrain obstructs the direct route. Enemies still award ordinary kill XP/coins and do not respawn after timeout.
+- Remove procedural dangling broadleaf vines and straight survival-arena floor outline. Hide forest room edge strokes.
+- Simulator captures must show actual updated normal portal, survival orb and clean overgrown forest. No generic image substitutions and no TestFlight upload.
+
+## Visual QA correction following the first October 17 simulator pass
+- Full CI 39075581821 passed, but manual inspection found the survival extraction screenshot was actually the iOS home screen! The prior validator incorrectly accepted any colorful PNG at this filename. A magenta simulator-only identity square must now be present, just as in the live swarm QA frames; crashed apps cannot pass review.
+- Fixed the QA-only extraction fixture's completion flag (direct completeWave now marks survival spawning finished as real expiry does); keep the legitimate post-extraction kill+reward assertion.
+- Even without a border stroke, the opaque expanded-arena ground showed a horizontal lower edge. Oversize visual ground far outside collision bounds so its cutoff is never inside the visible gameplay viewport.
+- Require a second genuine screenshot/artifact inspection before final approval.
+
+## October 17 — Upright campaign portal (user confirmed)
+- Previous circular campaign portal in run 39075581821 was too flat; user explicitly requires a **standing, upright ring** rather than an oval laid on the ground.
+- Campaign portal now has a vertically extended elliptical ring with a grounded footplate, rear rim showing depth, side legs, tall blue energy field, vertically distributed swirling currents, and physical entry at the base. Separate small center-area survival extraction orb unchanged.
+- The gate QA fixture checks the actual rendered ring's >140-point standing height, <120-point width, and base/structural elements before screenshot capture.
+- Keep checking the *actual* simulator screenshot instead of judging by source assertions. No TestFlight upload.
+
+## October 17/18 — survivor-only recovery rewards and lifecycle QA
+- In modern survival saves, only still-living foes are recreated on resume. Previously earned coins and XP remain in the snapshot, and previously killed enemies never return. Their old kill reward credits **must not** suppress XP/coins from first-time kills of surviving enemies. Clear only XP/coin replay credits when an explicit saved living population is restored; retain Salvage credit and original replay protection for ordinary tactical and legacy saves.
+- Added pure progression regression checks for full payouts of newly defeated survivors and tactical anti-duplication behavior.
+- Expanded the existing **actual iOS simulator recovery fixture** to cover mid-timer interruption, an expired clock saved as battle state, a saved open extraction with live enemies remaining, and recovery with a pending level-up. It asserts timer, population, coins, XP, UI phase and portal recovery, without user save changes.
+- Development commits: `685afbc2`, `ff5e587b`, `de80595f`, `8307ada3` on `outpost-zero`. CI run for final scene QA commit: https://github.com/JPaulus04/invasion-front-app/actions/runs/39096816547 . Unit tests passed as of initial inspection; **full CI and actual simulator screenshots still require verification**.
+- No new TestFlight release. Continue with full simulator and screenshot acceptance; then implement actual equipment-defense mechanics as a separately named change.
+
+## October 17/18 — Equipment Defense first playable implementation (pending full CI and art review)
+- Scheduled 0–1/world equipment-defense missions are activated as **real defend-the-field-reactor objectives**, not renamed tactical rooms: World 1 Room 12, World 3 Room 15. World 2 has none.
+- The ordinary tactical-size battlefield now presents a protected reactor with an on-device integrity meter and a HUD countdown. Melee units pursue the objective; ranged threats continue targeting the pilot. Reactor contact has bounded damage and grace period; reactor destruction ends the run with a distinct "DEFENSE OBJECTIVE LOST" reason. Enemy concurrency and spawn cadence are capped.
+- Holding the reactor to the encounter deadline ends the attack, despawns un-killed enemies **without awarding kill rewards**, pays standard room completion rewards, and opens the normal **upright campaign portal** (never the small survival orb). Previous survival and boss routes remain separate. Equipment defense pauses during level-up and interruption.
+- RunRecovery schema-4 optional `defenseObjectiveIntegrity` saves reactor HP and the timed population/clock; missing fields remain compatible. Survival/defense survivor-only reconstruction permits new legitimate kill payouts without duplicating previously killed enemies.
+- Pure tests verify mode schedule, object integrity/defeat, spawn limits and separate exit routes; progress tests verify persisted integrity validity and backwards compatibility.
+- Added real simulator screenshots for active reactor contact (`outpost-zero-defense-active.png`) and successful defense opening a normal portal (`outpost-zero-defense-cleared.png`); require a simulator identity marker so iOS home-screen captures cannot pass by mistake.
+- **Status:** changes committed on `outpost-zero`; CI validation and actual screenshot/art inspection are **not yet complete**, so no TestFlight upload or release approval. Continue by checking the latest HEAD workflow first, resolving any compile/simulator failures, and inspecting both actual frames before adding new work.
+
+## October 18 — reactor art review, stale-frame QA fix
+- Reactor visual pass is now grounded in actual simulator captures: more dimensional armored reactor with vents, circular glowing energy cell, grounded footplate, green **SECURED** state and objective-loss overlay. The screenshots from completed workflow `39100387421` were unpacked and inspected.
+- **Critical evidence issue:** `outpost-zero-defense-active.png` from that successful workflow actually showed **World 1 Room 6 survival extraction**, not defense. The old generic magenta QA identity marker mistakenly accepted the stale screen. Successful CI alone therefore did **not** establish active-defense visual approval. `outpost-zero-defense-cleared.png` and `outpost-zero-defense-failed.png` did correctly show the redesigned reactor.
+- Corrective commits `0e8dae56` and `99676f48`: defense-active, secured and failed now use distinct red/green/blue simulator-only marker squares; screenshot PNG validator demands the right channel and rejects other defense states, old magenta survival frames and unrelated screenshots. Restored the reusable integrity bar's visibility at every new defense start.
+- Verified on the previous artifacts that all three old frames sample RGB `(255,0,255)` at the expected marker location. Thus the new per-defense marker checks reject those stale captures. Separate CI run for `99676f48` is pending iOS/screenshot completion; do not claim new screenshots passed until inspected.
+- No TestFlight upload. **Next checkpoint:** examine fresh active/secured/failed images from new run and confirm active room 12, integrity lower than maximum, green secured text and objective-loss overlay. Keep normal upright campaign gate after successful defense and separate survival orb.
+- In future CI iterations, consider a fast, focused three-scene equipment screenshot job to avoid waiting for the full 35-image regression suite; preserve the comprehensive nightly/full-run coverage.
+
+## October 18 — Equipment Defense accepted screenshots + first combat-fairness pass
+- GitHub Actions green on commit `882a3ab5`: **build**, **full simulator-review**, **focused defense-visual-review**, https://github.com/JPaulus04/invasion-front-app/actions/runs/39102726936 .
+- Downloaded actual focused artifact `outpost-zero-defense-visual-review` (artifact ID `12127138589`): active image correctly shows World 1 Room 12, reactor at **146/150** with three enemies; cleared image shows green **SECURED** reactor, upright regular campaign portal, no active attackers; failed image shows **DEFENSE OBJECTIVE LOST** overlay. State-specific red/green/blue pixels were independently inspected, correcting stale image acceptance. This clears automated visual capture; **user art taste/sign-off still pending**.
+- Next named work: **Reactor Combat Fairness**. Original `spawnEnemy` could generate attack reinforcements directly against device; added `EquipmentDefenseRules.safeSpawn(distanceFromReactor:enemyRadius:)` with minimum 155pt + unit-radius exclusion, and filtered candidate positions. Added QA assertion that four defense enemies spawned outside this range. Added explicit on-hit floating damage feedback and **REACTOR CRITICAL** indication at/below 50 of 150 health, while keeping initial cap, hit amount, cooldown and 90–120sec timer unchanged until real device playtesting.
+- Regression tests now assert exclusion boundaries and critical health threshold. **Latest combat-fairness CI after the pass must still be checked**, and active screenshot must show fair attacker positioning.
+- Branch `outpost-zero`, latest TestFlight 317; **do not upload a new TestFlight build per subtask**. User review and performance/difficulty remain necessary before next release.
+
+## October 18 — User-approved exclusive exit visuals
+- User approves the current upright campaign portal and small survival extraction orb appearance, but asks that **they never appear together in the same gameplay room**. Composite comparisons are acceptable for review only; future screenshots should be large/readable and show one encounter at a time.
+- Confirmed survival `showExtractionPortal()` already hides the campaign gate. Hardened ordinary `showZoneGate()` so it explicitly hides the extraction orb before revealing the upright campaign portal (also used after successful equipment defense).
+- The actual iOS campaign gate fixture now deliberately exposes a stale orb first and asserts that normal portal activation hides it, preventing this state leak from regressing. Commit `6f797ee0` on `outpost-zero`; CI run https://github.com/JPaulus04/invasion-front-app/actions/runs/39130079392 pending at edit time. No TestFlight upload.
+
+## October 18 — Reactor defense spawn safety on smaller screens
+- Spawn review identified a fallback defect: random lane samples could all fail the reactor standoff rule, after which ordinary room fallback ignored the reactor entirely. Compact displays are especially vulnerable.
+- Defender enemies now use a 9×9 deterministic safety search in addition to broader upper/lower random arrival lanes. Search filters terrain, keeps the pilot's 75pt + radius clearance, and prefers the full 155pt + radius reactor standoff when the geometry permits. On very compact rooms it chooses the furthest feasible approach, never closer than 105pt + radius; no valid location means deferring the reinforcement rather than spawning on the reactor.
+- Normal tactical/survival spawns are unchanged. Pure regression tests cover 320×568, 393×852, 768×1024, and an impossible spawn. CI + physical frame review required; no TestFlight upload.
+
+## October 18 — World 1 test-readiness scope lock / campaign CI compile correction
+- User directed development to **World 1 (Frontier Forest) exclusively** until its 20-room loop, survival, reactor defense, boss, recovery, visual quality and controls are ready for an actual new TestFlight playtest. Freeze new Worlds 2–3 gameplay additions and other speculative features; only shared bug fixes necessary for World 1 are permitted.
+- Latest head `ac315ed2` was **red**, workflow 39131013024, because the campaign test file referenced `RoomRules` (excluded from that pure Swift compile target) and used overly complex Swift collection expressions. Replace those dependencies with explicit test-local CGRect geometry/loops; no production-gameplay change in this fix. Check new CI rather than assuming success.
+- **World 1 release gate:** compile/unit tests green; simulator review including real tactical/6/10/14/17 survival frames, Room 12 reactor defend/secure/fail, portal/orb exclusivity, Room 20 boss, saves/recovery; inspect actual frames, then user TestFlight playtest. No mini-step TestFlight uploads.
+
+## October 18 — World 1 playtest: Guardian phase/art + star scoring
+- User completed World 1 (Room 20) with upgraded gear; Guardian died in ~4 seconds. User reported no observed gameplay freeze, so presumed freeze in screen recording is not a confirmed gameplay bug. World 1's 112 total damage earned one star under old 10/50 damage cutoffs, judged excessively harsh.
+- Focused World 1 changes: Guardian gains named armor/roots/foliage/core silhouette in actual SpriteKit boss; at half health its armor visibly breaks, core lights orange, and a warning mortar fires. Short 1.45s armor-break transition prevents a heavily upgraded gun from skipping phase two; exposed boss follows with telegraphed split mortar attacks. Worlds 2–3 boss rules unchanged. No global boss HP multiplier.
+- World 1 stars are now 3 at <=75 damage, 2 at <=180, otherwise 1 (112 damage => 2 stars). Other worlds retain original scoring. WorldCoreRewards still awards only the difference against historical best stars, max 3 per world, so previous 3/3 scores cannot be farmed.
+- Tests assert Guardian phase rules, World 1 scoring and unchanged star-based anti-duplication. This is a code update; actual simulator screenshot and real iPhone gameplay acceptance pending. No TestFlight upload.
+
+## October 18 — World 1 reactor pressure and live Guardian QA
+- Room 12 defense uses 1.75-second reinforcement cadence (rather than 2 seconds) and a durable armored melee every eighth attacker. World 2 and 3 defense values unchanged. Must test with starter gear before declaring balance.
+- Real Room 20 simulator QA now captures armored Guardian and glowing exposed-core states separately. Each scene asserts its own gameplay state and has a distinct screenshot identity marker; screenshot workflow validates both frames differ. Final screenshot inspection remains necessary.
+- No TestFlight upload; check latest branch CI before judging this update.
+
+## October 18 — Future equipment progression rules (approved direction; not World 1 scope)
+- User wants a **long-lived legendary equipment grind**: Legendary Level 50 must represent substantial gameplay over many complete runs and later-world content, not something attainable by replaying Frontier Forest a few times. A fully upgraded Legendary should be an uncommon long-term achievement, with individually upgraded named weapons retained permanently when swapped out.
+- **All rarities share Level 50 cap.** Rarity determines the number, character and milestones of weapon-specific ability unlocks (proposal: Basic 1, Rare 2, Epic 3, Legendary 4); rarity and progress should change playstyle, not just inflate base damage. These ability counts/milestone levels remain provisional pending balance.
+- Keep existing Gear Bay Level 5 purchased **shared technology** as a separate always-on global bonus, and preserve old progress. Future individual weapon ranks are per item, never reset or transferred on weapon swap; a new weapon starts its own track, with a usable base state and fair early ranks.
+- **Pacing requirement:** quick first few weapon levels, steadily slower afterward, and expensive/meaningful final Legendary ranks 40–50. Tentative *design benchmark only* for one Legendary to Lv 50: many dozens of hours across varied worlds (e.g. 40–60+ active-play hours), to be adjusted with actual time-to-level telemetry and reasonable player expectations. Never commit the entire curve to fixed Salvage costs without testing earning rates and replay behavior.
+- Progress should reward actually *equipping/using* the weapon and clearing appropriately challenging content, not cheap repetitive farming of early rooms or collecting passive currency. Avoid arbitrary hard gates to a specific world if progression across content supplies good difficulty scaling; consider diminishing low-world XP, per-weapon mastery XP, and progressively rarer material sources. No destructive resets; weapon level 50 is a long-term aspiration.
+- **World 1 scope remains locked:** document the future economy and schema, but do NOT implement new equipment types / rarity rolls / late-tier levels until World 1 vertical slice and next TestFlight playtest are accepted.
+
+## October 18 — Rarity-scaled per-weapon upgrade resources (user clarification)
+- **User requirement:** Level 10 of a Legendary weapon must require **substantially more resources** (RSS) than Level 10 of a Basic weapon. Equal maximum level of 50 does **not** mean equal cumulative resource/time cost. This is fundamental to the equipment economy, alongside rarity-specific ability unlock milestones.
+- Each item has its own permanent level and expenditure ledger. All rarities level 1–50 with the same displayed maximum, but each rarity has its **own increasing per-level cost curve**, Legendary >> Epic > Rare > Basic at the same level. Costs apply to upgrading that specific weapon; switching gear preserves levels and does not transfer invested resources.
+- **Initial relative-cost benchmark only, pending economic simulations:** for cumulative level 1→10 cost, Basic=1×, Rare≈1.6×, Epic≈2.5×, Legendary≈4–5×; higher ranks become progressively more expensive, especially Legendary 40–50. Example: if Basic costs 1,000 Salvage total to level 10, Legendary should take around 4,000–5,000 Salvage-equivalent, not the same 1,000. These are examples, **not yet production prices**.
+- Later Legendary ranks should additionally draw on appropriate later-world materials / weapon mastery from using the item; avoid pure currency farming of easy World 1 rooms. Keep lower-rarity gear practical and useful, Legendary Level 1 immediately usable, and each rarity's distinctive abilities actually valuable. Do not rely on equal cost + an arbitrarily slower XP bar as a substitute for actual rarer/more costly resource investment.
+- Preserve previously purchased Gear Bay Level 5 **shared weapon technology**, distinct from individual item upgrading; no resets. Keep the World 1 quality-gate scope lock: record design only, implement future equipment economy after World 1 is accepted.
+
+## October 18 — Home navigation redesign benchmark
+- User provided a benchmark screenshot of a mobile game's campaign home showing central world diorama + prominent Start, resource header, persistent bottom navigation, and quick upgrade destinations. Reconfigure *functional* Outpost Zero home accordingly, not identical art, notifications or fake social/store sections.
+- World 1-focused new home layout: compact OUTPOST ZERO + real Salvage/Cores bar, current-world progress, stylized world preview using actual forest/pilot assets and upright blue circular ring, single START CAMPAIGN or saved RESUME, five bottom shortcuts: WORLDS, GEAR, HQ, ABILITIES, RESTORE. Existing world-map card retained as separate selectable swipe-enabled screen with BACK TO HOME; other destinations use existing functions and preserve saved run.
+- Responsive sizing for compact iPhones; QA launch flags for true SpriteKit home and world selector screenshots, and assertions that live navigational hit targets exist. No spurious notification badges, no gameplay equipment changes, and no TestFlight upload. Review frames and ensure current-head CI succeeds before release.
+
+## October 18 — Home screenshot inspection and polish
+- Inspected real iPhone simulator frames captured in workflow 39145778590 (all three jobs green) rather than treating screenshot generation as visual sign-off. Home hub/navigation is readable and functional, but physical combat pilot leaked below the dock as a second character. The region caption "FRONTIER" intersected the decorative platform border; home portal energy was too flat.
+- Fixed menu presentation: hide real in-arena pilot on Home and World Selector; explicitly show it when combat starts/recovery resumes; keep staged home pilot separate. Move region caption to open sky above the upright portal. Add animated translucent blue currents to the existing upright circular portal (no rectangular gate or floor circle).
+- Hardened home simulator fixture: asserts physical pilot hidden, staged pilot present, energy currents present, five working dock routes and one primary Start. New CI and screenshots required. The current pass is visual/navigational only, no TestFlight upload.
+
+## October 18 — World 1 Guardian legibility / live-frame illustration pass
+- Actual latest run 39148788312 **all three green**; inspected home and boss captures, confirmed home duplicate-pilot, label overlap and portal fixes. Earlier Guardian QA froze enemy during 0.28-alpha spawning, which misleadingly made boss translucent; fixed fixture to show a materialized fully opaque boss without spawn-warning circle.
+- Replaced World 1 Guardian's generic color-circle/rectangles with a single intentionally composed fully opaque layered forest automaton silhouette built from angular mossy stone, bark roots, glowing green eyes, foliage, separate armor shoulders and a prominent reactor, while keeping existing SpriteKit node hierarchy, gameplay collision radius and phase timing. Increased only the Guardian HP bar's art offset; other-world bosses untouched.
+- Existing phase-2 still breaks named left/right armor and turns nested reactor orange, with telegraphed attacks. Inspect both actual simulator frames before claiming visual acceptance; gameplay screenshots do not substitute for user TestFlight judgment.
+- No TestFlight upload. Continue World 1 only.
+
+## October 18 — Guardian Clearing arena and boss readability
+- Workflow 39163122128 **all three jobs passed**. Inspected actual screenshot archive: Frontier Guardian is now an opaque, recognizable forest automaton, and both armor/core phases render distinctly; home fixes look clean.
+- Actual Room 20 screenshot exposed remaining issue: boss looked small relative to sparse brown scene with repetitive red posts (also noted in user's World 1 playtest). Focused follow-up: enlarge only World 1 Guardian artwork 14% via separate visual-only art node; preserve collision and behavior. Move phase armor lookup to named descendant nodes.
+- Room 16–20 World 1 Guardian Clearing props changed from red posts to illustrated forest pines/broadleaf trees on arena perimeter with stone/soft mint highlights and subtle foliage scatter. No collision/hazard changes; other-world marker visuals unchanged.
+- World 1 Guardian gains a clearer wide boss health meter and named identifier above its art, leaving other bosses' meters unchanged. Screenshot fixtures assert stage art and boss identifier. Latest build/simulator screenshots must pass before any readiness claims.
+- Do not upload TestFlight on this pass; next hands-on real-device round after visual acceptance.
+
+## October 19 — World 1 Guardian phase-two dodgeable attack review
+- Last World 1 presentation commit `df56a817` had all three GitHub CI jobs green (workflow 39185104069). Reviewed actual simulator frames: Guardian silhouette, colored core, forest environment and new health bar read correctly; home navigation remains intact.
+- This pass targets boss gameplay, not cosmetic expansion. At half health the Guardian transitions to its exposed core for **2.95 combat-clock seconds** instead of 1.45, so an over-geared pilot cannot erase it before the telegraphed phase-two volley resolves. This is **not** an arbitrary HP inflation and remains paused in menus.
+- Its first exposed-core warning places two fixed orange countdown impact circles, at the pilot's locked position and 92px laterally (clamped to room bounds). Ordinary follow-up exposed-core attacks use the same flank placement. The player can evade both by moving once the signals appear. Enemy/boss timing in other worlds unchanged.
+- Simulator fixture validates that both actual mortars warn at distinct locations. Pure Swift tests validate left/right offset within compact iPhone bounds and finite phase transition. Inspect new phase-two screen and re-evaluate actual boss difficulty in a later real-device TestFlight playtest; no upload in this mini-step.
+
+## October 19 — World 1 Guardian fully resolved attack QA
+- The previous World 1 commit `5eb22afd` / workflow 39202729760 passed all three CI jobs and actual simulator review: intact and exposed-core Guardian frames show legible 2-zone warned attacks, no home regression.
+- Added a **third genuine SpriteKit Room 20 QA state** `-captureFrontierGuardianResolvedScreenshot`: after triggering armor break and confirming both live countdown circles, move the pilot into a safe lateral dodge lane, advance the existing paused combat clock past both impacts and the 2.95s protection, process actual lobs, confirm both are gone and pilot HP unchanged, then apply damage below the half-health threshold and confirm Guardian remains vulnerable (no unintended immunity). This does not run in normal builds.
+- CI now captures and image-validates separate intact / warnings active / warning impacts resolved screenshots, asserting each differs. Pure Swift pacing test confirms a safe lane even on the compact 320px room.
+- Do not treat passing screenshots as a substitute for player-led TestFlight fun/difficulty acceptance. No TestFlight upload in mini-steps. Keep further content to World 1.
+
+## October 19 — TestFlight build 319 successfully uploaded
+- User explicitly authorized next internal TestFlight release. GitHub Actions **TestFlight Release** workflow run 39240125855 completed **success**, including the signing/export/identity and **Upload to App Store Connect** step; uploader log: `UPLOAD SUCCEEDED with no errors`.
+- Signed IPA verified `com.paulus.laststandcommand` with `CFBundleVersion=319` and nine required production sprites. Code pinned to latest fully validated World 1 source `b11c3e8514e6315da1693ca286983f95a1695b29` (all three iOS CI jobs green at workflow 39204717870).
+- Prior signed build **318** had been uploaded in run 39133359063, so **319** is the correct new build number. Allow Apple processing time before declaring the build visible to testers; upload succeeded, processing status not yet verified.
+- GitHub Actions integration did not expose manual workflow dispatch; a narrow single-use push trigger in `.github/workflows/testflight.yml` launched the validated release, and **is restored to its manual-only original state after success**. No additional auto-release trigger should remain.
+
+## October 19 — Ability and mastery rule foundation (no new TestFlight)
+- Approved direction: stats (damage/fire-rate/HP/heal) do not consume tactical slots. Start each world without preselected abilities; discover random fixed-rarity traits during combat. Rarity weights must make Common more attainable than Rare/Epic/Legendary, and players may choose stats to wait for better abilities. Slots begin at 2; Mastery Level 20 permanently unlocks slot 3; ranks cap at 3; acquired skills cannot be swapped during a run.
+- New rule layer includes `AbilityLoadout.acquire(... capacity:)`, weighted pick, 15 fixed-rarity roadmap entries, and separately persisted `PlayerMastery` with 8-ish full World 1 runs' worth of XP to reach rank 20. Only 4 actual effects are presently implemented; never draw nonexistent skills. `RunProgress.masteryCreditedRooms` is optional for backward-compatible saves.
+- World 1 combat UI integration and timed warned flanking swarms follow as separate changes with CI validation. **Never upload to TestFlight until user explicitly approves next build** (current tested build 319).
+
+## October 19 — Phase 2: playable direct entry and rarity-weighted in-run drafts
+- Home/World Selector START now enters Room 1 directly with no preselected abilities. New game/next-world/retry starts reset tactical choices. Old three-skill TestFlight saves remain valid. Legacy loadout screen code still exists but is not on any normal gameplay route; QA's former pre-run screenshot now captures real in-game Level 2 random cards.
+- Level-up: three unique, weighted random options; common Incendiary > rare Explosive/Orbit > epic Chain, plus stat/healing choices which never consume tactical slots. New abilities commit on selection to first two beginner slots; existing abilities may upgrade to rank 3, third new ability becomes eligible after persistent mastery level 20. The other 11 of planned 15 abilities are NOT randomly offered until their effects are implemented.
+- Once-per-room-per-run mastery XP credits on genuine room completion and uses backward-compatible snapshot tracking. Existing persistent Gear Bay remains unchanged. Next focus World 1 warned high-speed flanking swarms with visual validation.
+- Must pass full current-head iOS and simulator checks; no TestFlight upload until user approves.
+
+## October 19 — Phase 3: World 1 warned flanking raiders
+- Added actual World 1 tactical-room flank bursts starting at Room 5, excluding timed survival and defense rooms and all other worlds. Up to two raiders early, three later; at most two selected burst points per late room, drawn from normal remaining room enemy counts rather than extra hidden population.
+- Orange side indicators and a FLANK ATTACK banner warn for 1.65 **real presentation seconds**, including at 2x gameplay speed; arena pause also freezes their countdown. Raider positions are staggered left/right around the warned pilot location with >=95px spawn clearance; fast raiders move ~28% quicker after entry, encouraging player repositioning instead of stationary auto-fire. Existing contact damage and room clear counts unchanged.
+- World 1 actual SpriteKit screenshots now include separate pre-arrival warning and post-arrival enemies with assertions, plus tests for encounter exclusions and safe compact-device spawn geometry. Current-head CI and screenshot review required before playtest readiness.
+- User-facing Build 319 stays unchanged. No new TestFlight upload without user approval.
+
+## October 19 — Phase 4: first new implemented tactical skill, Common Frost Rounds
+- Following screenshot review of fully green combined branch `ada8423c`, the ordinary Home->Room1 and fresh level-up screenshots looked good, as did distinct warned/flank-raider arrivals. Old Level 2 QA fixture erroneously showed TACTICAL 3/2; it now starts with empty ability selection, matching the real gameplay.
+- Implemented **Common Frost Rounds** as a fifth *real* ability, not a concept-only card. Its three ranks slow non-boss enemy movement to 78% / 69% / 58% briefly, with an independent visible icy ring and cyan hit effect. Does not stack extra damage or stun the Forest Guardian. Continues through the run once chosen, occupies one tactical slot, and rerolls at Common weight for rank upgrades.
+- Frost rank is optional in schema-4 saved snapshots to preserve old TestFlight recovery, and status timers use the combat clock (pause-safe); expiry, room changes, defeat, and retry clear temporary effects. Added unit tests, a genuine live SpriteKit Frost screenshot fixture, and screenshot validation in CI.
+- Still *no TestFlight upload*: user wants chat screenshot review before release. Next: inspect new frost imagery and test fairness of rarity/late-run option count, then select next skill to implement.
+
+## October 19 — UI consistency and late-run stat choice polish
+- Review found flank-warning arrow asymmetry: iOS rendered the old right-arrow glyph as a blue emoji while the left was orange. Both now use orange/yellow vector SKShapeNode arrows pointing inward with identical dimensions. This changes no collision, warning time, or enemy count.
+- Random ability draw cards now display **rarity-colored rims** (Common silver / Rare blue / Epic purple / Legendary gold). The center icon keeps its effect color; stat cards keep their original functional category colors.
+- Added a small capped **Mobility** stat option (+6 movement units per rank, max 5) and an always-available **Supply Cache** stat option (+40 in-run coins for healing/checkpoint costs). Together with damage and armor, these ensure at least three meaningful stat choices at late run levels even after two tactical abilities and regular fire-rate upgrades hit caps. No new tactical ability slots, no large DPS power increase.
+- Mobility rank is optional in schema-4 run recovery (pre-existing saves load as 0), persists between rooms, and resets between runs; rank bounds tested. Unmodified existing TestFlight upload **319**. Review iOS CI/screenshots again before further work.
+- Balance note: supply pick spends a full level-up choice for limited in-run cash, preserving the tradeoff between combat power and recovery. Frost remains a common control ability, not more damage.
+
+## Next development sequence (no TestFlight upload per mini-step)
+1. **Timed Encounter Completion** — wire true time-based extraction and different extraction structure into ordinary `OutpostScene` gameplay, with no live enemy requirement, no new spawns after timer, clean transit with remaining enemies, and correct rewards. Keep room combat intact. Avoid gate/phase paths that strand the player.
+2. **Save/recovery** — verify resume during timed encounter, after timer but before extraction, and while level-up modal is present; no reward/XP duplication and no accidentally refilled active swarm.
+3. **Screenshot review** — capture normal tactical room, timed survival early/mid/late, extraction-open with enemies remaining, transition back to room, one boss, and world-biome comparisons. Review scale, camera, pilot visibility, effects, terrain, UI. Distinguish CI capture from visual art sign-off.
+4. **Equipment defense validation** — inspect live reactor gameplay, failure and successful normal-portal exit; tune density/HP from evidence.
+5. **Combat feel and performance**, **multi-stage bosses**, **progression/specialization**, **art acceptance** as separately reviewed passes.
+6. Only after all relevant iOS/logic/screenshots pass and user reviews current visuals, prepare next numbered TestFlight bundle.
+
+## Chat rhythm
+- On each "Continue": inspect branch HEAD, make *one coherent named-area improvement*, run relevant tests/CI, report what changed, pass/fail, remaining blocker, whether the user must act, and current TestFlight readiness grounded in evidence.
+- Do not label mini-steps as numeric builds. Reserve iOS build numbers for TestFlight uploads.
+- When context gets long, update this document; in a fresh project chat user can say: "Continue Outpost Zero from `docs/OUTPOST_ZERO_HANDOFF.md` on `outpost-zero`."
+
+## October 19 — Approved survival-format direction
+- User approved **both** formats: occasional timed encounters in regular 20-room campaign worlds, plus **optional dedicated endurance missions** unlocked through campaign progression. Dedicated missions must not replace campaign worlds or disrupt the 50+ level restoration progression.
+- **Campaign target: 2–3 timed survival encounters per 20-room world**, 90–120 seconds each, spaced to avoid repetitive back-to-back endurance. Existing timed extraction contract remains: no new spawns after expiry, small central orb, immediate exit even with surviving enemies, and only earned kill XP/coins.
+- **Dedicated endurance target: 4–5 minutes**, escalating waves, meaningful in-mission upgrades, and a distinct optional entry point and rewards. Design/implement as a separate reviewed feature; do not silently convert campaign rooms or upload to TestFlight.
+- **Immediate next work:** inspect the real `SurvivalEncounterRules.kind(world:room:)` scheduling, especially World 2 (Flooded Outpost), audit all 20 rooms in every playable world, implement a maximum 3 well-spaced campaign survival encounters, and add deterministic per-world schedule tests. Then design the optional endurance mode separately, with screenshots and validation. Continue playable tactical abilities as an independent development sequence.
+- This section records the approved design only; **the encounter schedule and dedicated mode are not yet implemented or validated by this note**.
+
+## October 20 — Campaign survival pacing correction and CI checkpoint
+- Confirmed actual prior schedule: World 1 four survival rooms [6,10,14,17], World 2 five [5,8,11,15,18], World 3 four [6,9,13,17]. Player correctly noticed World 2's repetition.
+- Implemented **three campaign survival rooms each**: World 1 [6,9,17], World 2 [5,11,17], World 3 [6,12,18]. Existing equipment defense remains World 1 room 12 and World 3 room 15; final boss remains room 20. At least two regular rooms separate any timed encounters.
+- Updated deterministic `tests/CampaignPacingTests.swift` to assert counts, spacing, timer/extraction behavior. Branch HEAD for gameplay correction `c93d385c58d6286397edd82002dbf905a8319054`.
+- GitHub Actions run 39367625913: iOS build, project checks, combat/world/pacing unit tests, and equipment-defense screenshot capture/validation **passed**; general simulator screenshot review **in progress** at last check. Do not mark whole workflow green until it completes. Link: https://github.com/JPaulus04/invasion-front-app/actions/runs/39367625913
+- Next: finish current-head screenshot validation, inspect actual gameplay images for visual approval, confirm release build in App Store Connect, and request user approval before any TestFlight upload. Dedicated 4–5 minute optional endurance mode remains separately planned, not a blocker for the next TestFlight review.
+
+## October 20 — Build 320 video review / Build 321 approved scope
+User reviewed two actual Build 320 gameplay recordings. Approved Build 321 corrections: (1) replace ineffective square orbital blades with luminous circular Energy Orbit orbs, wider orbit, continuously following pilot even after exit portal opens; later elemental fire/lightning variations; (2) improve projectile hit and enemy impact feedback; (3) HUD large current FLOOR number **only** (no /20), health bar immediately above pilot and visible before/after clear, large survival countdown switching to EXTRACTION READY at zero; (4) show two circular tactical ability slots on left of upgrade selection, filled with selected ability icons, stat upgrades do not fill, third slot at mastery unlock; (5) validate survival pacing and extraction, inspect simulator gameplay screenshots. Later: environment density/biome detail, character/enemy readability, UI simplification and ability variants. No TestFlight upload without approval.
+First implementation commit `88e8c8e9703e0e77bd7a4e256e06238a0b4ef6b4` changes orbital geometry from 10x23 rectangles to 10-radius circles, glow 2→7, orbit radius 46→82, updates while roomCleared; **not yet validated**. Check whether orbit update is called after clear and whether arena paused; visual QA required. Remaining Build 321 items above still pending implementation; do not report complete.
+
+### Build 321 implementation checkpoint (October 20)
+- `b07079cd`: fixes peaceful portal gate orbit animation by updating orbs before early return and using live scene clock during gate phase.
+- `ca1f77ad`: adds large standalone floor number, player-attached HP bar, prominent survival MM:SS timer and EXTRACTION READY label; renames upgrade card Energy Orbit.
+- `f18dea8f`: draws 2 (or mastery-unlocked 3) circular tactical-slot indicators on level-up overlay, showing selected ability icons; stats don't consume slots.
+- `8969858c`: projectile impact tint distinguishes normal/chain/incendiary/explosive.
+All changes require fresh CI build and actual simulator screenshot review on latest SHA. Inspect header spacing, slot circles/card overlap, HP bar positioning/scale, survival timer overlapping controls, orbit animation in peaceful gate. No TestFlight upload until user approves. Note earlier CI on previous commits was cancelled by newer commits.
+
+
+## October 20 — Build 321 eight-direction pilot integration
+- Added eight generated transparent 256px pilot views (`pilot_e/ne/n/nw/w/sw/s/se.png`) with consistent blue armor/orange visor and registered feet. Runtime textures are cached; no per-frame image loading. Built-in image generation prompt: same armored pilot, fixed elevated orthographic camera, eight compass headings, consistent scale/light, transparent background, no labels/floor.
+- Actual displacement selects travel heading; existing stationary target heading selects firing view. Removed horizontal flipping and fake back-view tint; directional recoil and existing bounded stride/breath motion affect artwork only. Joystick, collision, speed and combat rules unchanged. Six-degree sector hysteresis reduces boundary flicker.
+- Added compass/wraparound/hysteresis tests and simulator-only `-capturePilotDirectionsScreenshot` showing all eight production views in-world. CI validates a blue identity marker and requires all eight PNGs in compiled bundle.
+- Local source/PNG checks pass. **iOS CI and simulator artifacts not yet reviewed at this checkpoint.** No TestFlight upload. Existing motion is procedural bob/lean/recoil, not an authored multi-frame walk cycle; judge it in motion before claiming final animation acceptance.
+- Next: inspect current-head CI, directional simulator frame plus live gameplay sequence, HUD, orbit, survival orb and upright campaign portal. Build 321 remains held for user approval.
+
+## October 21 — Directional simulator review and presentation corrections
+- Verified `eaaa0395a654ae7055e7916ae399284fd2d80779` against workflow **39506569276**: build, defense visual review and full simulator review all **passed**. Downloaded artifact **12305780176** and inspected actual eight-direction, motion, gate, extraction, survival and level-up images. Front/side/back pilot silhouettes are distinct at gameplay scale; upright campaign portal and separate survival orb remain intact.
+- Review found tactical circles overlapping the level-up footer, duplicate EXTRACTION READY text, and an excessive pilot/health-bar gap. This pass reserves separate slot/footer rows, preserves the single prominent extraction-ready announcement with foes/coins retained in the header, and lowers the health bar by 8 points. Simulator asserts slots cannot intersect the footer.
+- Found a presentation-clock defect: the combat clock freezes at peaceful gates, freezing stride and potentially recoil while walking to the exit. Added a separate real-time pilot animation clock advanced only in gameplay/gate phases; combat, movement speed and collision rules remain unchanged.
+- Gate screenshot fixture now equips two Energy Orbit orbs and verifies angular movement and 82-point following radius after clear; previous gate captures had no equipped orbs and could not demonstrate this visually.
+- These corrections require fresh current-head iOS/simulator validation. No TestFlight upload. Animation remains eight directional views with procedural stride/breath/recoil; no authored limb walk cycle or continuous 3D turn is claimed.
+
+## October 21 — Turning and stop/start motion
+- Confirmed `b77a822` workflow **39610619688** passed all three jobs. Inspected artifact **12351172280**: level-up circles and footer have clear separation, one prominent EXTRACTION READY announcement remains, the health bar sits closer to the pilot, and two circular Energy Orbit orbs are visible by the upright portal. Orb movement/following assertions passed.
+- Next motion pass uses a shortest-arc visual turn (maximum 20 radians/second, roughly 0.16s for a reversal), leaving movement and aiming mechanics immediate. The eight textures pass through intermediate headings instead of instantly jumping from front to back.
+- Stride phase now follows actual distance traveled; blocked terrain does not advance it. A brief exponential blend settles walking into idle and eases starts. The presentation clock continues at peaceful gates and pauses with menus.
+- Added unit coverage for angle-wrap direction, no overshoot, zero-delta pause, equal turning at 30/120 FPS, and walking-to-idle pose blending. Fresh CI and simulator review required for this motion pass. Build 321 remains held for explicit user release approval.
+- Home screenshot review exposed the old flat pilot still in the campaign preview. It now uses the same southwest-facing production sprite as gameplay, with square proportions; the live motion capture also keeps moving after room clear to cover portal approach.

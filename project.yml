@@ -1,0 +1,26 @@
+name: OutpostZero
+options:
+  bundleIdPrefix: com.jpaulus04
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  OutpostZero:
+    type: application
+    platform: iOS
+    sources:
+      - path: OutpostZero
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.paulus.laststandcommand
+        SWIFT_VERSION: "5.9"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "Apple Distribution"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "333"
+        INFOPLIST_KEY_CFBundleDisplayName: Outpost Zero
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UIRequiresFullScreen: YES
