@@ -2462,6 +2462,9 @@ final class OutpostScene: SKScene {
         floorNumber.position = CGPoint(x: centerX, y: top - 39)
         // Compact benchmark-style encounter timer, directly beneath the route.
         survivalClock.position = CGPoint(x: size.width / 2, y: top - 85)
+        // Reserve horizontal space for controls and keep long objective labels
+        // from running through the neighboring HUD elements.
+        survivalClock.fontSize = 15
         survivalClock.childNode(withName: "objectivePlate")?.removeFromParent()
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         // Reserve the first HUD row for the objective, leaving the floor counter at left.
@@ -5562,9 +5565,11 @@ final class OutpostScene: SKScene {
                 let textureSize = texture.size()
                 let coverScale = max(paintedBounds.width / max(1, textureSize.width),
                                      paintedBounds.height / max(1, textureSize.height))
-                floorArt.size = expandedArenaPreview
-                    ? CGSize(width: textureSize.width * coverScale, height: textureSize.height * coverScale)
-                    : paintedBounds.size
+                // Use one aspect-preserving cover rule for every encounter type.
+                // Stretching the floor to paintedBounds independently in X and Y
+                // distorted the paving whenever the room/camera dimensions changed.
+                floorArt.size = CGSize(width: textureSize.width * coverScale,
+                                       height: textureSize.height * coverScale)
                 floorArt.position = CGPoint(x: paintedBounds.midX, y: paintedBounds.midY)
                 floorArt.zPosition = -18.5
                 if floorArt.parent == nil { roomArt?.addChild(floorArt) }
