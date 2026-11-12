@@ -15,7 +15,7 @@ env:
 
 jobs:
   release-gate:
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[testflight-332]')
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[testflight-332]'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -74,7 +74,7 @@ jobs:
 
   testflight:
     needs: release-gate
-    if: always() && (github.event_name == 'workflow_dispatch' || needs.release-gate.result == 'success')
+    if: needs.release-gate.result == 'success'
     runs-on: macos-26
     permissions:
       contents: read
