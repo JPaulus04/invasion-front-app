@@ -2536,7 +2536,8 @@ final class OutpostScene: SKScene {
         pilotHealthFill.xScale = max(0.001, min(1,
             CGFloat(health) / CGFloat(max(1, maximumHealth))))
         pilotHealthFill.fillColor = health <= maximumHealth / 3 ? .systemRed : .systemGreen
-        pilotHealthTrack.isHidden = phase == .ready || phase == .loadout
+        // Health is represented by the persistent HUD; never render a second bar on the pilot.
+        pilotHealthTrack.isHidden = true
         let speedText = fastForward ? "2× SPEED" : "1× SPEED"
         if speedLabel.text != speedText { speedLabel.text = speedText }
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
