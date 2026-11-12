@@ -153,7 +153,7 @@ def verify(path: Path) -> None:
         arena_marker[1] > 90 or arena_marker[2] < 170
     ):
         raise ValueError(
-            f"not a live survival/extraction capture, marker {arena_marker}")
+            f"{path.name}: not a live survival/extraction capture; expected magenta identity at 90% width / 40% height, sampled {arena_marker}")
     print(f"PASS: {path} {width}x{height}, {len(colors)} battlefield colors")
 
 if __name__ == "__main__":
