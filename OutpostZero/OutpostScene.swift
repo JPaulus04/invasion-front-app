@@ -672,6 +672,19 @@ final class OutpostScene: SKScene {
             .fadeAlpha(to: 1.0, duration: 1.15)
         ])), withKey: "portalRecessPulse")
 
+        // Prefer the approved authored portal artwork. The procedural energy
+        // remains behind it as a fallback if the PNG is not bundled.
+        if let approvedPortal = productionImage(named: "outpost_zero_portal_approved_transparent"),
+           let cgImage = approvedPortal.cgImage {
+            let portalArt = SKSpriteNode(texture: SKTexture(cgImage: cgImage))
+            portalArt.name = "approvedCampaignPortalArt"
+            portalArt.size = CGSize(width: 102, height: 102)
+            portalArt.position = CGPoint(x: 0, y: 73)
+            portalArt.zPosition = 0
+            passageGate.addChild(portalArt)
+            energy.isHidden = true
+        }
+
         // Stone jambs and lintel overlap the energy edges, making the
         // opening visibly recessed into the wall rather than mounted on it.
         for side: CGFloat in [-1, 1] {
