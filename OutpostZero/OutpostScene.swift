@@ -2538,7 +2538,9 @@ final class OutpostScene: SKScene {
         // states; do not overwrite it here with the legacy survival-only HUD.
         pilotHealthFill.xScale = max(0.001, min(1,
             CGFloat(health) / CGFloat(max(1, maximumHealth))))
-        pilotHealthFill.fillColor = health <= maximumHealth / 3 ? .systemRed : .systemGreen
+        let pilotHealthFraction = CGFloat(health) / CGFloat(max(1, maximumHealth))
+        pilotHealthFill.fillColor = pilotHealthFraction <= 0.25 ? .systemRed
+            : (pilotHealthFraction <= 0.5 ? .systemYellow : .systemGreen)
         // Keep local combat feedback directly beneath the pilot as well as in the HUD.
         // Hide it outside active combat and while choosing an upgrade.
         pilotHealthTrack.isHidden = phase != .playing || abilityRevealActive
