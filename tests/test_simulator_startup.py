@@ -91,6 +91,20 @@ class LaunchTests(unittest.TestCase):
 
 
 class RecoveryTests(unittest.TestCase):
+    def test_cold_readiness_polls_same_device_without_installing_or_launching(self):
+        with patch.object(sim, 'command', side_effect=[subprocess.TimeoutExpired('spawn', 60),
+                subprocess.CompletedProcess('spawn', 0, 'PID Status Label', '')]) as calls:
+            result = sim.ready_command('xcrun', 'simctl', 'spawn', 'owned-device', 'launchctl', 'list')
+        self.assertIn('PID', result.stdout)
+        self.assertEqual([c.kwargs['timeout'] for c in calls.call_args_list], [60, 30])
+        self.assertTrue(all(c.args == calls.call_args_list[0].args for c in calls.call_args_list))
+
+    def test_readiness_exhaustion_fails_after_two_bounded_probes(self):
+        with patch.object(sim, 'command', side_effect=subprocess.TimeoutExpired('spawn', 60)) as calls:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                sim.ready_command('xcrun', 'simctl', 'spawn', 'owned-device', 'launchctl', 'list')
+        self.assertEqual(calls.call_count, 2)
+
     def exercise(self, failure, late_output=False):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

@@ -15,6 +15,20 @@ from simulator_startup import RecoverableStartupError, content, launch_initial, 
 BUNDLE = 'com.paulus.laststandcommand'
 
 
+def ready_command(*args):
+    # bootstatus does not warm the first child-spawn/registration RPC. In
+    # run 43424711019 the first read-only probe timed out on BOTH fresh
+    # devices, then the diagnostic repeat immediately succeeded. Poll the
+    # same device before abandoning it; never launch or install in this loop.
+    for timeout in (60, 30):
+        try:
+            return command(*args, timeout=timeout)
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+            if timeout == 30:
+                raise
+            print('::warning::Cold simulator readiness RPC; one bounded read-only poll remains', flush=True)
+
+
 def command(*args, timeout=60, check=True):
     print(f"Simulator command ({timeout}s limit): {' '.join(args)}", flush=True)
     try:
@@ -83,13 +97,13 @@ def fresh_simulator(profile, output, controlled=False):
                     command(*args, timeout=240 if args[2] == 'bootstatus' else
                             150 if stage == 'install' else 60)
                 if stage == 'boot':
-                    command('xcrun', 'simctl', 'spawn', device,
-                            'launchctl', 'list', timeout=30)
+                    ready_command('xcrun', 'simctl', 'spawn', device,
+                                  'launchctl', 'list')
                 if stage == 'install':
                     # Installation returning is not proof that launch services
                     # can resolve the bundle. Fail before asking it to launch.
-                    command('xcrun', 'simctl', 'get_app_container', device,
-                            BUNDLE, 'app', timeout=30)
+                    ready_command('xcrun', 'simctl', 'get_app_container', device,
+                                  BUNDLE, 'app')
             except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
                 snapshot(command, device, output, f'{stage}-failure', began)
                 raise RecoverableStartupError(f'{stage} failed before launch: {error}') from error
