@@ -22,6 +22,53 @@ def started(log):
     return any(marker in content(log) for marker in START_MARKERS)
 
 
+def registered_app(info):
+    """Positive installed-app identity, not just a container on disk."""
+    return (isinstance(info, dict) and
+            info.get('CFBundleIdentifier') == BUNDLE and
+            info.get('CFBundleExecutable') == 'OutpostZero' and
+            info.get('ApplicationType') == 'User' and
+            not info.get('IsPlaceholder', False) and
+            not info.get('isPlaceholder', False))
+
+
+def wait_for_app_registration(command, device, output):
+    # Run 43434500196 returned an app container before LaunchServices had
+    # finished placeholder -> installed registration. Launching in that gap
+    # stalled twice. Read appinfo instead; never launch/reinstall in this loop.
+    root = output / 'registration'
+    root.mkdir(exist_ok=True)
+    deadline = time.monotonic() + 180
+    stable, attempt = 0, 0
+    while time.monotonic() < deadline:
+        attempt += 1
+        raw = root / f'appinfo-{attempt}.plist'
+        try:
+            reply = command('xcrun', 'simctl', 'appinfo', device, BUNDLE,
+                            timeout=min(20, max(1, deadline - time.monotonic())), check=False)
+            raw.write_text(reply.stdout)
+            (root / f'appinfo-{attempt}-stderr.log').write_text(reply.stderr)
+            info = None
+            if reply.returncode == 0:
+                # simctl emits an OpenStep plist, not XML/JSON. macOS plutil
+                # parses it without brittle regexes or executing its content.
+                parsed = command('plutil', '-convert', 'json', '-o', '-', str(raw),
+                                 timeout=min(10, max(1, deadline - time.monotonic())))
+                info = json.loads(parsed.stdout)
+                (root / f'appinfo-{attempt}.json').write_text(json.dumps(info, indent=2))
+            stable = stable + 1 if registered_app(info) else 0
+            if stable == 2 and time.monotonic() < deadline:
+                (root / 'ready.json').write_text(json.dumps({
+                    'device': device, 'polls': attempt, 'stable_samples': stable,
+                    'bundle': BUNDLE, 'ready': True}, indent=2))
+                return
+        except (subprocess.SubprocessError, OSError, ValueError) as error:
+            stable = 0
+            (root / f'appinfo-{attempt}-error.log').write_text(str(error))
+        time.sleep(min(5, max(0, deadline - time.monotonic())))
+    raise RecoverableStartupError('App registration not ready within 180s; no launch attempted')
+
+
 def snapshot(command, device, output, label, since):
     """Diagnostics must not mask the original failure; unknown state fails closed."""
     root = output / label
