@@ -5,10 +5,12 @@ import json
 import hashlib
 import os
 import platform
+import shutil
 from pathlib import Path
 import subprocess
 import time
 from contextlib import contextmanager
+from simulator_startup import RecoverableStartupError, content, launch_initial, snapshot
 
 BUNDLE = 'com.paulus.laststandcommand'
 
@@ -63,24 +65,50 @@ def fresh_simulator(profile, output, controlled=False):
                      template['deviceTypeIdentifier'], runtime).stdout.strip()
     if not device:
         raise RuntimeError('simctl create returned no device UUID')
+    startup_failed = False
     try:
         (output / f'{profile}-device.json').write_text(json.dumps({
             'udid': device, 'runtime': runtime,
             'device_type': template['deviceTypeIdentifier'], 'fresh_device': True,
         }, indent=2))
-        command('xcrun', 'simctl', 'boot', device)
-        command('xcrun', 'simctl', 'bootstatus', device, '-b', timeout=240)
-        command('xcrun', 'simctl', 'install', device,
-                'simulator-app/OutpostZero.app', timeout=150)
+        for stage, actions in (
+            ('boot', [('xcrun', 'simctl', 'boot', device),
+                      ('xcrun', 'simctl', 'bootstatus', device, '-b')]),
+            ('install', [('xcrun', 'simctl', 'install', device,
+                          'simulator-app/OutpostZero.app')]),
+        ):
+            began = time.time()
+            try:
+                for args in actions:
+                    command(*args, timeout=240 if args[2] == 'bootstatus' else
+                            150 if stage == 'install' else 60)
+                if stage == 'boot':
+                    command('xcrun', 'simctl', 'spawn', device,
+                            'launchctl', 'list', timeout=30)
+                if stage == 'install':
+                    # Installation returning is not proof that launch services
+                    # can resolve the bundle. Fail before asking it to launch.
+                    command('xcrun', 'simctl', 'get_app_container', device,
+                            BUNDLE, 'app', timeout=30)
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
+                snapshot(command, device, output, f'{stage}-failure', began)
+                raise RecoverableStartupError(f'{stage} failed before launch: {error}') from error
         yield device
+    except RecoverableStartupError:
+        startup_failed = True
+        raise
     finally:
         # Cleanup is bounded and must never replace a gameplay/setup failure.
         # Only touch the disposable device created by this invocation.
+        cleanup_failed = False
         for action in ('shutdown', 'delete'):
             try:
                 command('xcrun', 'simctl', action, device, timeout=30)
             except (subprocess.SubprocessError, OSError) as error:
+                cleanup_failed = True
                 print(f'::warning::Simulator cleanup {action}: {error}', flush=True)
+        if startup_failed and cleanup_failed:
+            raise RuntimeError('Could not fence failed device; startup recovery forbidden')
 
 
 def run(profile, limit, seed, batch, output):
@@ -88,30 +116,63 @@ def run(profile, limit, seed, batch, output):
     output.mkdir(parents=True, exist_ok=True)
     log = (output / f'{profile}.log').resolve()
     errors = (output / f'{profile}-stderr.log').resolve()
-    # Truncate any host logs left by a local retry before starting a new run.
+    if (output / 'startup.json').exists() or (log.exists() and log.stat().st_size):
+        raise FileExistsError('Existing campaign evidence must not be overwritten or retried')
+    # New invocation only. Individual startup attempts retain separate files.
     log.write_text('')
     errors.write_text('')
     xcode = command('xcodebuild', '-version').stdout
     manifest = {'seed': seed, 'batch': batch, 'profile': profile, 'hz': 60,
-                'protocol': 1, 'source': os.environ.get('GITHUB_SHA') or
+                'protocol': 1, 'harness_source': os.environ.get('GITHUB_SHA') or
+                subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                'source': os.environ.get('QA_APP_SOURCE') or os.environ.get('GITHUB_SHA') or
                 subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                 'app_sha256': hashlib.sha256(Path('simulator-app/OutpostZero.app/OutpostZero').read_bytes()).hexdigest(),
                 'architecture': platform.machine(), 'os_version': platform.mac_ver()[0], 'xcode': xcode}
     (output / 'run.json').write_text(json.dumps(manifest, indent=2))
-    with fresh_simulator(profile, output, controlled=True) as device:
-        identity = json.loads((output / f'{profile}-device.json').read_text())
-        manifest.update(runtime=identity['runtime'], device_type=identity['device_type'])
-        (output / 'run.json').write_text(json.dumps(manifest, indent=2))
-        run_campaign(profile, limit, output, log, errors, device, seed, batch)
+    history = []
+    for attempt in (1, 2):
+        attempt_dir = output / f'startup-{attempt}'
+        attempt_dir.mkdir(exist_ok=False)
+        attempt_log = (attempt_dir / f'{profile}.log').resolve()
+        attempt_errors = (attempt_dir / f'{profile}-stderr.log').resolve()
+        attempt_log.write_text('')
+        attempt_errors.write_text('')
+        record = {'attempt': attempt, 'began_at': time.time()}
+        history.append(record)
+        try:
+            with fresh_simulator(profile, attempt_dir, controlled=True) as device:
+                identity = json.loads((attempt_dir / f'{profile}-device.json').read_text())
+                manifest.update(runtime=identity['runtime'], device_type=identity['device_type'])
+                (output / 'run.json').write_text(json.dumps(manifest, indent=2))
+                run_campaign(profile, limit, attempt_dir, attempt_log, attempt_errors,
+                             device, seed, batch)
+            record['result'] = 'campaign_completed'
+            return
+        except RecoverableStartupError as error:
+            # The old device has now been shut down/deleted. Recheck its files
+            # after that fence: any late output forbids starting another device.
+            if content(attempt_log) or content(attempt_errors):
+                record['result'] = 'late_output_recovery_forbidden'
+                raise RuntimeError('Late app output; refusing a startup retry') from error
+            record.update(result='startup_failed', error=str(error))
+            if attempt == 2:
+                raise
+            print(f'::warning::Startup-only recovery on a new disposable device: {error}', flush=True)
+        except BaseException as error:
+            record.update(result='failed_no_retry', error=str(error))
+            raise
+        finally:
+            record['ended_at'] = time.time()
+            (output / 'startup.json').write_text(json.dumps(history, indent=2))
+            # Preserve each attempt, and expose only this invocation's final
+            # observed campaign at the canonical paths used by strict analysis.
+            shutil.copyfile(attempt_log, log)
+            shutil.copyfile(attempt_errors, errors)
 
 
 def run_campaign(profile, limit, output, log, errors, device, seed=335, batch=2):
-    flag = '-qaStationaryRun' if profile == 'stationary' else '-qaMovingRun'
-    # This device is fresh: there is no running app to terminate. A launch
-    # failure remains a failure; never restart a partially played campaign.
-    command('xcrun', 'simctl', 'launch',
-            '--stdout=' + str(log), '--stderr=' + str(errors), device, BUNDLE, flag,
-            '-qaSeed', str(seed), '-qaTicksPerRender', str(batch), timeout=90)
+    launch_initial(command, profile, seed, batch, device, output, log, errors)
     start = time.monotonic()
     next_capture = 15
     while time.monotonic() - start < limit:

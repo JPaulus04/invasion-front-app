@@ -13,14 +13,22 @@ on:
         options:
           - focused
           - full
+          - startup-recovery
 # Build 328 consolidated integration gate: navigation, combat feedback, and boss visuals.
 # Avoid wasting macOS runners on obsolete revisions during rapid iteration.
 concurrency:
   group: ios-build-${{ github.workflow }}-${{ github.ref }}-${{ (github.event_name == 'pull_request' || inputs.validation_scope == 'full' || contains(github.event.head_commit.message, '[full-review]')) && 'full' || 'focused' }}
   cancel-in-progress: true
 jobs:
+  startup-recovery:
+    if: github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'startup-recovery'
+    uses: ./.github/workflows/simulator-startup-recovery.yml
+    permissions:
+      contents: read
+      actions: read
   build:
     if: >-
+      inputs.validation_scope != 'startup-recovery' &&
       !(github.event_name == 'push' && contains(github.event.head_commit.message, '[home-review]'))
     runs-on: macos-15-intel
     timeout-minutes: 40
