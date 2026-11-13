@@ -32,7 +32,7 @@ def command(*args, timeout=60, check=True):
 
 
 @contextmanager
-def fresh_simulator(profile, output):
+def fresh_simulator(profile, output, controlled=False):
     # Match the proven presentation setup: cold CoreSimulator discovery can
     # exceed 60 seconds before the app has even been installed. Retry setup
     # only; never restart a campaign or manufacture a missing outcome.
@@ -50,6 +50,10 @@ def fresh_simulator(profile, output):
                   for device in group if device.get('isAvailable', True)
                   and device['name'].startswith('iPhone')
                   and device.get('deviceTypeIdentifier')]
+    if controlled:
+        candidates = [(runtime, device) for runtime, device in candidates
+                      if runtime.endswith('.iOS-18-5') and
+                      device['deviceTypeIdentifier'].endswith('.iPhone-16-Pro')]
     if not candidates:
         raise RuntimeError('No available iPhone device type/runtime for a fresh simulator')
     runtime, template = candidates[0]
@@ -81,7 +85,7 @@ def fresh_simulator(profile, output):
 
 def run(profile, limit, seed, batch, output):
     output = Path(output)
-    output.mkdir(exist_ok=True)
+    output.mkdir(parents=True, exist_ok=True)
     log = (output / f'{profile}.log').resolve()
     errors = (output / f'{profile}-stderr.log').resolve()
     # Truncate any host logs left by a local retry before starting a new run.
@@ -92,9 +96,12 @@ def run(profile, limit, seed, batch, output):
                 'protocol': 1, 'source': os.environ.get('GITHUB_SHA') or
                 subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                 'app_sha256': hashlib.sha256(Path('simulator-app/OutpostZero.app/OutpostZero').read_bytes()).hexdigest(),
-                'architecture': platform.machine(), 'xcode': xcode}
+                'architecture': platform.machine(), 'os_version': platform.mac_ver()[0], 'xcode': xcode}
     (output / 'run.json').write_text(json.dumps(manifest, indent=2))
-    with fresh_simulator(profile, output) as device:
+    with fresh_simulator(profile, output, controlled=True) as device:
+        identity = json.loads((output / f'{profile}-device.json').read_text())
+        manifest.update(runtime=identity['runtime'], device_type=identity['device_type'])
+        (output / 'run.json').write_text(json.dumps(manifest, indent=2))
         run_campaign(profile, limit, output, log, errors, device, seed, batch)
 
 

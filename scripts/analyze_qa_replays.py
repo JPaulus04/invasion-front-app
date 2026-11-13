@@ -34,7 +34,7 @@ def evidence(root, profile, seed, batch):
             digest = ((digest ^ byte) * 0x100000001b3) & ((1 << 64) - 1)
         if int(match[3], 16) != digest:
             raise ValueError(f'{path}: corrupt replay digest at tick {previous_tick}')
-    if not re.fullmatch('[0-9a-f]{40}', manifest.get('source', '')) or not re.fullmatch('[0-9a-f]{64}', manifest.get('app_sha256', '')) or not manifest.get('architecture') or not manifest.get('xcode'):
+    if not re.fullmatch('[0-9a-f]{40}', manifest.get('source', '')) or not re.fullmatch('[0-9a-f]{64}', manifest.get('app_sha256', '')) or not all(manifest.get(key) for key in ('architecture', 'xcode', 'os_version', 'runtime', 'device_type')):
         raise ValueError(f'{path}: missing source/app/environment provenance')
     return path, manifest, trace
 
@@ -45,10 +45,11 @@ def evaluate(root):
         a, ma, ta = evidence(root, profile, seed, 2)
         b, mb, tb = evidence(root, profile, seed, 4)
         for manifest in (ma, mb):
-            fingerprints.add((manifest['source'], manifest['app_sha256'], manifest.get('architecture'), manifest.get('xcode')))
+            fingerprints.add(tuple(manifest[key] for key in ('source', 'app_sha256', 'architecture', 'xcode', 'os_version', 'runtime', 'device_type')))
         first_difference = next((i for i, (x, y) in enumerate(zip(ta, tb)) if x != y), None)
         identical = ta == tb
-        pair = {'profile': profile, 'seed': seed, 'identical': identical,
+        terminal_equal = parse(a / f'{profile}.log') == parse(b / f'{profile}.log')
+        pair = {'profile': profile, 'seed': seed, 'identical': identical, 'terminal_equal': terminal_equal,
                 'events': [len(ta), len(tb)], 'first_difference': first_difference,
                 'last_trace': [ta[-1], tb[-1]]}
         if first_difference is not None:
@@ -62,7 +63,7 @@ def evaluate(root):
             outcomes.append({'seed': seed, 'batch': batch, **result})
     return {'pairs': results, 'outcomes': outcomes,
             'same_source_app_environment': len(fingerprints) == 1,
-            'passed': len(fingerprints) == 1 and all(p['identical'] for p in results)
+            'passed': len(fingerprints) == 1 and all(p['identical'] and p['terminal_equal'] for p in results)
                       and all(r['passed'] for r in outcomes)}
 
 

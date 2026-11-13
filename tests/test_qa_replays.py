@@ -27,7 +27,9 @@ def fixture(root):
             case.mkdir()
             (case / 'run.json').write_text(json.dumps({'profile': profile, 'seed': seed, 'batch': batch,
                 'protocol': 1, 'hz': 60, 'source': 'a' * 40, 'app_sha256': 'b' * 64,
-                'architecture': 'arm64', 'xcode': 'Xcode test fixture'}))
+                'architecture': 'arm64', 'xcode': 'Xcode test fixture', 'os_version': '15.test',
+                'runtime': 'com.apple.CoreSimulator.SimRuntime.iOS-18-5',
+                'device_type': 'com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro'}))
             text = f'[QA CONFIG] protocol=1 seed={seed} hz=60 batch={batch} profile={profile}\n'
             text += f'[PHASE4 QA] profile={profile} started world=1\n'
             if profile == 'moving':
@@ -93,3 +95,12 @@ class ReplayAcceptanceTests(unittest.TestCase):
             value = json.loads(p.read_text()); value['app_sha256'] = 'c' * 64
             p.write_text(json.dumps(value))
         self.assertFalse(self.case(changed)['passed'])
+
+    def test_different_terminal_metrics_fail_even_with_equal_trace(self):
+        def mutate(root):
+            p = root / 'moving-335-4/moving.log'
+            p.write_text(p.read_text().replace('kills=500', 'kills=499'))
+        result = self.case(mutate)
+        self.assertTrue(result['pairs'][1]['identical'])
+        self.assertFalse(result['pairs'][1]['terminal_equal'])
+        self.assertFalse(result['passed'])
