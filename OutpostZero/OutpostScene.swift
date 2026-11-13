@@ -2550,6 +2550,12 @@ final class OutpostScene: SKScene {
     }
 
     private func updateHUD() {
+        // Modal rewards own the reading surface. These screen-space combat
+        // labels have higher inherited z than the overlay and must not paint
+        // through the title/footer. Keep their timers and text intact.
+        let rewardCardsVisible = overlay.childNode(withName: "upgradeModuleCard") != nil
+        zoneBanner.isHidden = rewardCardsVisible
+        if rewardCardsVisible { controlsHint.isHidden = true }
         warning.childNode(withName: "portalInstructionPlate")?.isHidden = phase != .gate || passageGate.isHidden
         // Full-health ordinary foes need their silhouette, not a second green
         // target. Reveal compact bars when injured; bosses remain persistent.
@@ -9000,6 +9006,10 @@ final class OutpostScene: SKScene {
         }
         #endif
         updateHUD()
+        #if targetEnvironment(simulator)
+        precondition(zoneBanner.isHidden && controlsHint.isHidden,
+                     "Combat banners and movement hints must not obscure reward card title/footer")
+        #endif
     }
 
     // Both profiles accept earned upgrades. Stationary means no movement
