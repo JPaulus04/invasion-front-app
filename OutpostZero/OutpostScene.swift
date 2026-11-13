@@ -1113,17 +1113,16 @@ final class OutpostScene: SKScene {
             pilot.position = CGPoint(
                 x: roomBounds.minX + roomBounds.width * fractions[slot],
                 y: roomBounds.minY + roomBounds.height * (slot == 1 ? 0.68 : 0.48))
-            let expected = ArenaLayout.offset(for: pilot.position,
-                                               viewportSize: size)
-            arena.position = expected
-            let visible = ArenaLayout.visibleWorldRect(
-                at: arena.position, viewportSize: size)
+            updateArenaCamera(delta: 1)
+            let visible = WorldOneFraming.visibleWorldRect(offset: arena.position,
+                size: size, safeTop: view?.safeAreaInsets.top ?? 0,
+                safeBottom: view?.safeAreaInsets.bottom ?? 0)
             // Rectangular boundary arithmetic has floating-point rounding:
             // an exact shoreline camera clamp may be a subpixel outside
             // CGRect.contains. Use a one-point rendering tolerance; strict
             // geometry is already checked by deterministic unit tests.
-            precondition(roomBounds.insetBy(dx: -1, dy: -1).contains(visible) &&
-                         abs(pilot.position.x + arena.position.x -
+            precondition(WorldOneFraming.worldFrame(room: roomBounds).insetBy(dx: -1, dy: -1).contains(visible) &&
+                         abs(pilot.position.x * arena.xScale + arena.position.x -
                              size.width / 2) < size.width * 0.41,
                          "Camera must show the pilot and keep world edges covered")
             for kind in [0, 2, 4, 1, 3] {
@@ -1191,8 +1190,7 @@ final class OutpostScene: SKScene {
                          "Survival capture must preserve the approved aspect-correct painted terrain and lighting")
             pilot.position = CGPoint(x: roomBounds.midX,
                                       y: roomBounds.midY - roomBounds.height * 0.13)
-            arena.position = ArenaLayout.offset(for: pilot.position,
-                                                 viewportSize: size)
+            updateArenaCamera(delta: 1)
             // Prime the battlefield with actual enemy objects before the
             // continuous spawn loop takes over. No extra art-only sprites.
             for index in 0..<9 {
@@ -1355,6 +1353,15 @@ final class OutpostScene: SKScene {
                                         y: size.height * 0.60)
             identity.zPosition = 65
             hud.addChild(identity)
+            updateArenaCamera(delta: 1)
+            if worldMapIndex == 0 && !passageGate.isHidden {
+                let top = arena.convert(CGPoint(x: passageGate.position.x,
+                    y: passageGate.position.y + 128), to: self).y
+                precondition(top <= WorldOneFraming.viewport(size: size,
+                    safeTop: view?.safeAreaInsets.top ?? 0,
+                    safeBottom: view?.safeAreaInsets.bottom ?? 0).maxY + 1,
+                    "Reactor exit portal must not intersect the HUD")
+            }
             arena.isPaused = true
             // SKScene.update runs even if arena actions are paused. Freeze this
             // QA-only frame after assertions so screenshots are deterministic.
@@ -1373,8 +1380,7 @@ final class OutpostScene: SKScene {
             // not outside the camera view at the southern arena entrance.
             pilot.position = CGPoint(x: roomBounds.midX - 105,
                                      y: roomBounds.midY - 85)
-            arena.position = ArenaLayout.offset(
-                for: pilot.position, viewportSize: size)
+            updateArenaCamera(delta: 1)
             precondition(activeEncounter == .survival && expandedArenaPreview,
                          "World 1 Room 6 must launch a playable timed arena")
             precondition(zoneScenery.childNode(withName: "worldOnePortalApproach") == nil,
@@ -2169,6 +2175,12 @@ final class OutpostScene: SKScene {
             let roundTrip = arena.convert(screenPoint, from: self)
             precondition(distance(roundTrip, pilot.position) < 0.01,
                          "Camera world/screen conversion must preserve targeting")
+            let portalTop = arena.convert(CGPoint(x: passageGate.position.x,
+                y: passageGate.position.y + 128), to: self).y
+            let safeViewport = WorldOneFraming.viewport(size: size,
+                safeTop: view?.safeAreaInsets.top ?? 0, safeBottom: view?.safeAreaInsets.bottom ?? 0)
+            precondition(portalTop <= safeViewport.maxY + 1,
+                         "Build 335 portal artwork must stay below HUD in entry, middle and exit framing")
             print("[CAMERA REVIEW] pilot=\(pilot.position) offset=\(arena.position) gate=\(passageGate.position)")
         }
         #endif
@@ -2324,11 +2336,17 @@ final class OutpostScene: SKScene {
 
     private func updateArenaCamera(delta: TimeInterval) {
         let target: CGPoint
-        if expandedArenaPreview {
+        if worldMapIndex == 0 && wave > 0 {
+            let safeTop = view?.safeAreaInsets.top ?? 0
+            let safeBottom = view?.safeAreaInsets.bottom ?? 0
+            arena.setScale(WorldOneFraming.scale(size: size, safeTop: safeTop, safeBottom: safeBottom))
+            target = WorldOneFraming.offset(pilot: pilot.position, room: roomBounds,
+                size: size, safeTop: safeTop, safeBottom: safeBottom)
+        } else if expandedArenaPreview {
+            arena.setScale(1)
             target = ArenaLayout.offset(for: pilot.position, viewportSize: size)
-        } else if worldMapIndex == 0 && wave > 0 {
-            target = CampaignCamera.offset(for: pilot.position, viewportSize: size)
         } else {
+            arena.setScale(1)
             target = .zero
         }
         arena.position = ArenaLayout.follow(
@@ -4751,6 +4769,24 @@ final class OutpostScene: SKScene {
         defenseDevice.lineWidth = 0
         defenseDevice.zPosition = 8
         defenseDevice.removeAllChildren()
+        if worldMapIndex == 0 {
+            let terrace = SKNode()
+            terrace.name = "reactorStoneTerrace"
+            terrace.zPosition = -3
+            for row in 0..<3 {
+                for column in 0..<4 {
+                    let slab = SKShapeNode(path: BattlefieldArt.terrainShape(
+                        width: 35, height: 18, variation: row * 4 + column))
+                    slab.position = CGPoint(x: CGFloat(column) * 34 - 51 + CGFloat(row % 2) * 7,
+                                            y: CGFloat(row) * 16 - 54)
+                    slab.fillColor = SKColor(red: 0.36, green: 0.39, blue: 0.31, alpha: 0.72)
+                    slab.strokeColor = SKColor(red: 0.16, green: 0.24, blue: 0.16, alpha: 0.52)
+                    slab.lineWidth = 1
+                    terrace.addChild(slab)
+                }
+            }
+            defenseDevice.addChild(terrace)
+        }
 
         let shadow = SKShapeNode(ellipseOf: CGSize(width: 110, height: 27))
         shadow.name = "reactorGroundContact"
@@ -5540,7 +5576,7 @@ final class OutpostScene: SKScene {
             case 20: landscapeVisit = 0
             default: landscapeVisit = 0
             }
-            if wave != 20 && worldOneTexture(named: "world1_overgrown_stone_arena") == nil {
+            if wave != 20 {
                 zoneScenery.addChild(WorldShowcase.frontierRoom(bounds: roomBounds,
                     room: wave, family: landscape,
                     texture: { [weak self] in self?.worldOneTexture(named: $0) }))
@@ -5554,9 +5590,9 @@ final class OutpostScene: SKScene {
             // Approved mossy stone arena is the World 1 foundation. Previously
             // the landscape-specific paintings took priority, so the approved
             // stone asset was never displayed even when bundled correctly.
-            let authoredFloorTexture = landscapeFloorTexture ?? stoneArenaTexture
+            let authoredFloorTexture = stoneArenaTexture ?? landscapeFloorTexture
             #if DEBUG
-            print("[WORLD1 FLOOR] requested=\(artName) selected=\(landscapeFloorTexture != nil ? artName : (stoneArenaTexture == nil ? "missing" : "world1_overgrown_stone_arena"))")
+            print("[WORLD1 FLOOR] requested=\(artName) selected=\(stoneArenaTexture != nil ? "world1_overgrown_stone_arena" : (landscapeFloorTexture == nil ? "missing" : artName))")
             #endif
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
                authoredFloorTexture == nil {
@@ -5567,6 +5603,12 @@ final class OutpostScene: SKScene {
                     ?? SKSpriteNode(texture: texture)
                 floorArt.name = "world1AuthoredFloor"
                 floorArt.texture = texture
+                floorArt.color = landscape == "swamp_basin"
+                    ? SKColor(red: 0.58, green: 0.75, blue: 0.65, alpha: 1)
+                    : landscape == "toxic_caves"
+                        ? SKColor(red: 0.61, green: 0.68, blue: 0.77, alpha: 1)
+                        : .white
+                floorArt.colorBlendFactor = landscape == "ruined_outpost" ? 0 : 0.16
                 // Extend the authored painting beyond the camera viewport
                 // even in standard rooms. A small camera offset previously
                 // exposed the flat fallback ground as a straight strip along
@@ -5578,9 +5620,9 @@ final class OutpostScene: SKScene {
                 let artworkArena = worldMapIndex == 0
                     ? ArenaLayout.bounds(for: size) : roomBounds
                 let paintedBounds = CGRect(
-                    x: artworkArena.minX - 80, y: artworkArena.minY - 80,
-                    width: artworkArena.width + 160,
-                    height: artworkArena.height + 160)
+                    x: artworkArena.minX - 180, y: artworkArena.minY - 180,
+                    width: artworkArena.width + 360,
+                    height: artworkArena.height + 360)
                 let textureSize = texture.size()
                 let coverScale = max(paintedBounds.width / max(1, textureSize.width),
                                      paintedBounds.height / max(1, textureSize.height))
@@ -5837,7 +5879,7 @@ final class OutpostScene: SKScene {
         // frame combat, not pile up on compact phones.
         let visibleWorldOneCount = min(worldOnePropCount,
             max(6, Int((roomBounds.height - 100) / 46)))
-        let count = worldMapIndex == 0 ? (wave == 20 ? visibleWorldOneCount : 4) :
+        let count = worldMapIndex == 0 ? visibleWorldOneCount :
             (selectedWorld.biome == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)))
         // Keep a landscape's perimeter composition stable for consecutive
         // waves; change the layout when the player enters another location.
@@ -5878,13 +5920,13 @@ final class OutpostScene: SKScene {
             // Keep the middle 55% of the arena free for evasive combat.
             let pocket = worldMapIndex == 0
                 ? CGFloat(((index / 2 + roomVariant) % 3) - 1) * 11 : 0
-            let rawX = size.width * side +
+            let rawX = (worldMapIndex == 0 ? roomBounds.minX + roomBounds.width * side : size.width * side) +
                 CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8 +
                 (leftSide ? pocket : -pocket)
             let x = worldMapIndex == 0
                 ? (leftSide
-                    ? min(size.width * 0.24, max(size.width * 0.06, rawX))
-                    : min(size.width * 0.94, max(size.width * 0.76, rawX)))
+                    ? min(roomBounds.minX + roomBounds.width * 0.24, max(roomBounds.minX + roomBounds.width * 0.06, rawX))
+                    : min(roomBounds.minX + roomBounds.width * 0.94, max(roomBounds.minX + roomBounds.width * 0.76, rawX)))
                 : rawX
             let spacing = max(18, (roomBounds.height - 120) /
                 CGFloat(worldMapIndex == 0 ? max(1, count - 1) : count))
@@ -8844,12 +8886,12 @@ final class OutpostScene: SKScene {
             light.position.x = -cardWidth / 2 + 58
             root.addChild(light)
             let icon = SKSpriteNode(texture: ProductionPresentation.abilityArtwork(choice, tint: tint))
-            icon.size = CGSize(width: 96, height: 96)
+            icon.size = CGSize(width: 72, height: 72)
             icon.position = .zero
             icon.zPosition = 2
             let artworkWindow = SKCropNode()
             artworkWindow.name = "abilityArtworkWindow"
-            artworkWindow.position = CGPoint(x: -cardWidth / 2 + 47, y: 0)
+            artworkWindow.position = CGPoint(x: -cardWidth / 2 + 40, y: 0)
             let mask = SKShapeNode(rectOf: CGSize(width: 96, height: 96), cornerRadius: 12)
             mask.fillColor = .white
             mask.strokeColor = .clear
@@ -8871,13 +8913,13 @@ final class OutpostScene: SKScene {
                 scroll.timingMode = .easeOut
                 reel.run(scroll, withKey: "artworkScroll")
             }
-            let textLeft = -cardWidth / 2 + 99
-            let textWidth = cardWidth - 116
+            let textLeft = -cardWidth / 2 + 82
+            let textWidth = cardWidth - 98
             let rarity = SKLabelNode(fontNamed: "AvenirNext-Bold")
             let acquisition = AbilityLoadout.catalog.contains(choice)
                 ? (lockedLoadout.contains(choice) ? "RANK UP" : "NEW SKILL") : category
             rarity.text = "\(rarityName)  ·  \(acquisition)"
-            rarity.fontSize = 9
+            rarity.fontSize = 10
             rarity.fontColor = rimTint
             rarity.horizontalAlignmentMode = .left
             rarity.position = CGPoint(x: textLeft, y: 34)
@@ -8886,13 +8928,14 @@ final class OutpostScene: SKScene {
             titleLabel.text = (label.components(separatedBy: " • ").last ?? label)
                 .replacingOccurrences(of: "  LV ", with: "  +")
             titleLabel.fontSize = 14
+            titleLabel.numberOfLines = 2
+            titleLabel.lineBreakMode = .byWordWrapping
+            titleLabel.preferredMaxLayoutWidth = textWidth
+            titleLabel.verticalAlignmentMode = .top
             titleLabel.fontColor = .white
             titleLabel.horizontalAlignmentMode = .left
-            titleLabel.position = CGPoint(x: textLeft, y: 14)
+            titleLabel.position = CGPoint(x: textLeft, y: 26)
             root.addChild(titleLabel)
-            if titleLabel.frame.width > textWidth {
-                titleLabel.fontSize *= textWidth / titleLabel.frame.width
-            }
             let detailLabel = SKLabelNode(fontNamed: "AvenirNext-Medium")
             detailLabel.text = detail
             detailLabel.fontSize = 11
@@ -8901,7 +8944,7 @@ final class OutpostScene: SKScene {
             detailLabel.verticalAlignmentMode = .top
             detailLabel.numberOfLines = 2
             detailLabel.preferredMaxLayoutWidth = textWidth
-            detailLabel.position = CGPoint(x: textLeft, y: -4)
+            detailLabel.position = CGPoint(x: textLeft, y: -10)
             root.addChild(detailLabel)
             let ranks = ["chain": chainLevel, "explosive": explosiveLevel,
                          "incendiary": incendiaryLevel, "orbit": orbitLevel, "frost": frostLevel]
@@ -8912,13 +8955,20 @@ final class OutpostScene: SKScene {
             } else if choice == "evolveOrbit" {
                 context.text = "EVOLUTION READY  ·  SLOT KEPT"
             } else {
-                context.text = "INSTANT BENEFIT  ·  NO SLOT USED"
+                context.text = "INSTANT  ·  NO SLOT USED"
             }
-            context.fontSize = 8.5
+            context.fontSize = 9.5
             context.fontColor = rimTint
             context.horizontalAlignmentMode = .left
-            context.position = CGPoint(x: textLeft, y: -41)
+            context.verticalAlignmentMode = .center
+            context.position = CGPoint(x: textLeft, y: -44)
             root.addChild(context)
+            #if targetEnvironment(simulator)
+            precondition(titleLabel.frame.width <= textWidth + 1 &&
+                         !titleLabel.frame.intersects(detailLabel.frame) &&
+                         !detailLabel.frame.intersects(context.frame),
+                         "Ability card text must fit without title/detail/context collisions")
+            #endif
             // A short reveal happens outside the paused arena. The draw is
             // already fixed; skipping never rerolls or consumes a choice.
             if !UIAccessibility.isReduceMotionEnabled {

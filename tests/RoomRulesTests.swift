@@ -18,6 +18,38 @@ struct RoomRulesTests {
                 precondition(abs((screen.y - offset.y) - p.y) < 0.001)
                 previous = offset.y
             }
+            // Build 335: the same world-to-screen scale across every encounter,
+            // with the full tactical room and north portal below safe-area HUD.
+            for safeTop: CGFloat in [0, 44, 62] {
+                let safeBottom: CGFloat = 34
+                let viewport = WorldOneFraming.viewport(size: size, safeTop: safeTop, safeBottom: safeBottom)
+                let zoom = WorldOneFraming.scale(size: size, safeTop: safeTop, safeBottom: safeBottom)
+                let first = WorldOneFraming.offset(pilot: RoomRules.entryPoint(for: size), room: room,
+                    size: size, safeTop: safeTop, safeBottom: safeBottom)
+                for step in 0...20 {
+                    let pilot = CGPoint(x: room.midX, y: room.minY + room.height * CGFloat(step) / 20)
+                    let offset = WorldOneFraming.offset(pilot: pilot, room: room,
+                        size: size, safeTop: safeTop, safeBottom: safeBottom)
+                    precondition(abs(offset.y - first.y) < 0.001, "Fitted tactical framing must not drift")
+                    let portalTop = (room.maxY - 14 + 128) * zoom + offset.y
+                    precondition(portalTop <= viewport.maxY, "Portal must not overlap HUD at any pilot position")
+                    let feet = (room.minY + 25 - 44) * zoom + offset.y
+                    precondition(feet >= viewport.minY, "Entry health bar must remain visible")
+                }
+                let expanded = ArenaLayout.bounds(for: size)
+                for fx: CGFloat in [0, 0.5, 1] {
+                    for fy: CGFloat in [0, 0.5, 1] {
+                        let pilot = CGPoint(x: expanded.minX + expanded.width * fx,
+                                            y: expanded.minY + expanded.height * fy)
+                        let offset = WorldOneFraming.offset(pilot: pilot, room: expanded,
+                            size: size, safeTop: safeTop, safeBottom: safeBottom)
+                        let visible = WorldOneFraming.visibleWorldRect(offset: offset, size: size,
+                            safeTop: safeTop, safeBottom: safeBottom)
+                        precondition(WorldOneFraming.worldFrame(room: expanded).insetBy(dx: -0.01, dy: -0.01).contains(visible),
+                                     "Survival follow must never reveal uncovered terrain")
+                    }
+                }
+            }
             let entry = RoomRules.entryPoint(for: size)
             precondition(room.contains(entry), "Entry must be inside room")
             precondition(entry.y < room.midY, "Every new room starts at the bottom")

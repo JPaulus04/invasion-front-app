@@ -111,3 +111,46 @@ enum CampaignCamera {
         return CGPoint(x: 0, y: min(max(requested, lower), upper))
     }
 }
+
+/// Build 335 presentation only. Never changes collision, spawn or encounter bounds.
+/// Tactical rooms fit below the HUD; larger survival rooms use the SAME scale
+/// and bounded follow. Portal headroom belongs to the world, not to HUD space.
+enum WorldOneFraming {
+    static func viewport(size: CGSize, safeTop: CGFloat, safeBottom: CGFloat) -> CGRect {
+        let bottom = max(18, safeBottom + 12)
+        return CGRect(x: 8, y: bottom, width: size.width - 16,
+                      height: max(160, size.height - safeTop - 106 - bottom))
+    }
+    static func worldFrame(room: CGRect) -> CGRect {
+        CGRect(x: room.minX - 20, y: room.minY - 34,
+               width: room.width + 40, height: room.height + 166)
+    }
+    static func scale(size: CGSize, safeTop: CGFloat, safeBottom: CGFloat) -> CGFloat {
+        let frame = worldFrame(room: RoomRules.bounds(for: size))
+        let view = viewport(size: size, safeTop: safeTop, safeBottom: safeBottom)
+        return min(0.90, min(view.width / frame.width, view.height / frame.height))
+    }
+    static func offset(pilot: CGPoint, room: CGRect, size: CGSize,
+                       safeTop: CGFloat, safeBottom: CGFloat) -> CGPoint {
+        let view = viewport(size: size, safeTop: safeTop, safeBottom: safeBottom)
+        let frame = worldFrame(room: room)
+        let zoom = scale(size: size, safeTop: safeTop, safeBottom: safeBottom)
+        func axis(_ p: CGFloat, _ low: CGFloat, _ high: CGFloat,
+                  _ vlow: CGFloat, _ vhigh: CGFloat) -> CGFloat {
+            if (high - low) * zoom <= vhigh - vlow {
+                return (vlow + vhigh) / 2 - (low + high) / 2 * zoom
+            }
+            return min(max((vlow + vhigh) / 2 - p * zoom, vhigh - high * zoom),
+                       vlow - low * zoom)
+        }
+        return CGPoint(x: axis(pilot.x, frame.minX, frame.maxX, view.minX, view.maxX),
+                       y: axis(pilot.y, frame.minY, frame.maxY, view.minY, view.maxY))
+    }
+    static func visibleWorldRect(offset: CGPoint, size: CGSize,
+                                 safeTop: CGFloat, safeBottom: CGFloat) -> CGRect {
+        let view = viewport(size: size, safeTop: safeTop, safeBottom: safeBottom)
+        let zoom = scale(size: size, safeTop: safeTop, safeBottom: safeBottom)
+        return CGRect(x: (view.minX - offset.x) / zoom, y: (view.minY - offset.y) / zoom,
+                      width: view.width / zoom, height: view.height / zoom)
+    }
+}

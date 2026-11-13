@@ -312,142 +312,37 @@ enum WorldShowcase {
 extension WorldShowcase {
     /// Composed ruins occupy boundary pockets; the central 56% remains open.
     /// Ground mosaics are flush and decorative, never fake collision ledges.
+    /// Presentation-only composition using the approved transparent cutouts.
+    /// Silhouettes frame an open combat lane; none of these nodes has physics.
     static func frontierRoom(bounds: CGRect, room: Int, family: String,
                              texture: (String) -> SKTexture?) -> SKNode {
         let root = SKNode()
         root.name = "frontierRoomComposition"
-        let variant = (max(1,room)-1) % 8
-        let center = CGPoint(x:bounds.midX,y:bounds.midY)
-        // Eight architectural footprints, with asymmetric prop placement and
-        // distinct ground treatments across a complete World 1 run.
-        let anchors: [[CGPoint]] = [
-            [CGPoint(x:0.10,y:0.28),CGPoint(x:0.87,y:0.70)],
-            [CGPoint(x:0.12,y:0.65),CGPoint(x:0.86,y:0.25)],
-            [CGPoint(x:0.10,y:0.48),CGPoint(x:0.89,y:0.50)],
-            [CGPoint(x:0.12,y:0.78),CGPoint(x:0.86,y:0.73)],
-            [CGPoint(x:0.14,y:0.23),CGPoint(x:0.83,y:0.82)],
-            [CGPoint(x:0.11,y:0.81),CGPoint(x:0.85,y:0.39)],
-            [CGPoint(x:0.16,y:0.46),CGPoint(x:0.81,y:0.77)],
-            [CGPoint(x:0.11,y:0.31),CGPoint(x:0.88,y:0.56)]]
-        let paving = SKNode()
-        paving.zPosition = -1
-        root.addChild(paving)
-        let stone = family == "toxic_caves"
-            ? SKColor(red:0.23,green:0.28,blue:0.32,alpha:0.68)
-            : SKColor(red:0.48,green:0.48,blue:0.35,alpha:0.55)
-        for row in 0..<7 {
-            for column in 0..<5 {
-                if (row*7+column*3+variant)%5 == 0 { continue }
-                let x = center.x + CGFloat(column-2)*32 + CGFloat(row%2)*12
-                    + (variant >= 4 ? CGFloat((row+variant)%3-1)*15 : 0)
-                let y = bounds.minY + bounds.height*0.27 + CGFloat(row)*28
-                    + (variant >= 4 ? CGFloat((column+variant)%3-1)*8 : 0)
-                if (variant == 1 || variant == 5) && column > 2 { continue }
-                if (variant == 2 || variant == 6) && row < 3 && column == 2 { continue }
-                if variant == 4 && row > 3 && column < 2 { continue }
-                if variant == 7 && row < 4 && column > 2 { continue }
-                let tile = polygon([CGPoint(x:-14,y:-8),CGPoint(x:10,y:-10),
-                    CGPoint(x:15,y:7),CGPoint(x:-9,y:11)],color:stone)
-                tile.position = CGPoint(x:x,y:y)
-                paving.addChild(tile)
-                let crack = SKShapeNode()
-                let path = CGMutablePath()
-                path.move(to:CGPoint(x:-8,y:7));path.addLine(to:CGPoint(x:0,y:1));path.addLine(to:CGPoint(x:4,y:-6))
-                crack.path = path
-                crack.strokeColor = .black.withAlphaComponent(0.18)
-                crack.lineWidth = 1
-                tile.addChild(crack)
-            }
-        }
-        for (group, anchor) in anchors[variant].enumerated() {
-            let origin = CGPoint(x:bounds.minX+bounds.width*anchor.x,
-                                 y:bounds.minY+bounds.height*anchor.y)
-            for index in 0..<3 {
-                let kind = index == 0 ? "wall" : index == 1 ? "vegetation" : "debris"
+        let variant = (max(1, room) - 1) % 8
+        for side in 0..<2 {
+            for row in 0..<3 {
+                let kind = row == variant % 3 ? "wall" : "vegetation"
                 let name = "world1_\(family)_\(kind)"
                 guard let art = texture(name) else { continue }
-                let node = SKSpriteNode(texture:art)
-                let maxWidth = bounds.width * (index == 0 ? 0.25 : 0.17)
-                let ratio = art.size().height / max(1,art.size().width)
-                node.size = CGSize(width:maxWidth,height:maxWidth*ratio)
-                node.anchorPoint = CGPoint(x:0.5,y:WorldOneArtMetrics.groundAnchorY(for:name))
-                let inward: CGFloat = group == 0 ? 1 : -1
-                node.position = CGPoint(x:origin.x+inward*CGFloat(index)*7,
-                                        y:origin.y-CGFloat(index)*22)
-                node.zPosition = 0.4+CGFloat(index)*0.1
-                root.addChild(node)
+                let sprite = SKSpriteNode(texture: art)
+                sprite.name = "world1PerimeterLandmark"
+                let height: CGFloat = kind == "wall" ? 94 : 78
+                sprite.size = CGSize(width: height * art.size().width / max(1, art.size().height),
+                                     height: height)
+                sprite.anchorPoint = CGPoint(x: 0.5, y: WorldOneArtMetrics.groundAnchorY(for: name))
+                let inset: CGFloat = kind == "wall" ? 0.04 : 0.01
+                let fraction = CGFloat(row + 1) / 4 + CGFloat((variant + side) % 3 - 1) * 0.035
+                sprite.position = CGPoint(x: side == 0 ? bounds.minX + bounds.width * inset
+                                                       : bounds.maxX - bounds.width * inset,
+                                          y: bounds.minY + bounds.height * fraction)
+                sprite.zPosition = 0.6 - fraction * 0.3
+                let shadow = SKSpriteNode(texture: ProductionPresentation.glow(.black.withAlphaComponent(0.30)))
+                shadow.size = CGSize(width: sprite.size.width * 0.9, height: 22)
+                shadow.position = CGPoint(x: sprite.position.x + 5, y: sprite.position.y - 3)
+                shadow.zPosition = -0.2
+                root.addChild(shadow)
+                root.addChild(sprite)
             }
-        }
-        // Build 331: architectural floor language changes per room rather than
-        // reusing the same square paving across the entire campaign.
-        // Keep the middle open: these are visual ground treatments, not collisions.
-        let approach = SKNode()
-        approach.name = "environmentalApproach"
-        approach.zPosition = -0.8
-        root.addChild(approach)
-        let accent: SKColor = family == "toxic_caves"
-            ? SKColor(red:0.42,green:0.81,blue:0.39,alpha:0.45)
-            : family == "swamp_basin"
-                ? SKColor(red:0.23,green:0.69,blue:0.67,alpha:0.38)
-                : SKColor(red:0.78,green:0.67,blue:0.40,alpha:0.45)
-        let bend: CGFloat = variant.isMultiple(of: 2) ? 1 : -1
-        for step in 0..<7 {
-            let progress = CGFloat(step) / 6
-            let x = center.x + bend * sin(progress * .pi) * bounds.width
-                * (variant >= 4 ? 0.24 : 0.15)
-            let y = bounds.minY + bounds.height * (0.19 + progress * 0.57)
-            let halfWidth: CGFloat = 12 + (1-progress) * 8
-            let fragment = polygon([
-                CGPoint(x:-halfWidth,y:-5),CGPoint(x:halfWidth*0.63,y:-7),
-                CGPoint(x:halfWidth,y:2),CGPoint(x:-halfWidth*0.35,y:8)
-            ],color:accent.withAlphaComponent(0.18+progress*0.22))
-            fragment.position = CGPoint(x:x + CGFloat(step%3-1)*11,y:y)
-            fragment.zRotation = CGFloat((step*17)%11-5) * .pi / 180
-            approach.addChild(fragment)
-        }
-        // Stronger boundary silhouettes frame the play space without covering
-        // the pilot or turning the central arena into a corridor.
-        for side in [-1, 1] {
-            let sign = CGFloat(side)
-            let x = center.x + sign * bounds.width * 0.39
-            let y = bounds.minY + bounds.height *
-                (variant == 2 || variant == 6 ? 0.52 :
-                 (variant == 5 || variant == 7 ? 0.63 : 0.39))
-            let shadow = SKShapeNode(ellipseOf:CGSize(width:bounds.width*0.18,height:24))
-            shadow.position = CGPoint(x:x,y:y-9)
-            shadow.fillColor = SKColor.black.withAlphaComponent(0.18)
-            shadow.strokeColor = .clear
-            shadow.zPosition = 0.15
-            root.addChild(shadow)
-            let monument = polygon([
-                CGPoint(x:-16,y:0),CGPoint(x:-13,y:27),
-                CGPoint(x:-7,y:39),CGPoint(x:6,y:35),
-                CGPoint(x:15,y:0)
-            ],color:family == "toxic_caves"
-                ? SKColor(red:0.25,green:0.30,blue:0.32,alpha:0.88)
-                : SKColor(red:0.37,green:0.40,blue:0.34,alpha:0.85))
-            monument.position = CGPoint(x:x,y:y)
-            monument.zPosition = 0.25
-            root.addChild(monument)
-            let edge = SKShapeNode()
-            let path = CGMutablePath()
-            path.move(to:CGPoint(x:-7,y:5))
-            path.addLine(to:CGPoint(x:-5,y:27))
-            path.addLine(to:CGPoint(x:0,y:33))
-            edge.path = path
-            edge.strokeColor = accent.withAlphaComponent(0.75)
-            edge.lineWidth = 2
-            monument.addChild(edge)
-        }
-        // Ruined gate shoulders frame the exit and establish its destination.
-        for side in [-1,1] {
-            guard let art = texture("world1_\(family)_boulder") else { continue }
-            let node = SKSpriteNode(texture:art)
-            node.size = CGSize(width:58,height:58*art.size().height/max(1,art.size().width))
-            node.position = CGPoint(x:bounds.midX+CGFloat(side)*bounds.width*0.29,
-                                    y:bounds.maxY-102)
-            node.zPosition = 0.8
-            root.addChild(node)
         }
         return root
     }

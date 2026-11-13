@@ -836,10 +836,15 @@ jobs:
                               samples = re.findall(r"\[CAMERA MOTION\] pilotY=([-\d.]+) cameraY=([-\d.]+)", stdout.read_text())
                               if len(samples) < 3:
                                   raise RuntimeError("Missing camera motion samples")
-                              for column in (0, 1):
-                                  values = [float(row[column]) for row in samples]
-                                  if max(values)-min(values) < 40:
-                                      raise RuntimeError("Pilot or camera failed to traverse")
+                              pilot = [float(row[0]) for row in samples]
+                              camera = [float(row[1]) for row in samples]
+                              if max(pilot)-min(pilot) < 40:
+                                  raise RuntimeError("Pilot failed to traverse the real collision map")
+                              # Build 335 fits the full tactical room + north portal
+                              # below the HUD. Its camera must stay stable while the
+                              # pilot moves; expanded survival follow is tested separately.
+                              if max(camera)-min(camera) > 1:
+                                  raise RuntimeError("Fitted tactical framing drifted during traversal")
                           run(["xcrun","simctl","io",device,"screenshot",str(output)],65)
                           if not output.is_file() or output.stat().st_size < 4096:
                               raise RuntimeError(f"{name}: missing or empty screenshot")
