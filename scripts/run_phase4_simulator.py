@@ -2,6 +2,9 @@
 """Run one fresh simulator campaign; never manufacture gameplay outcomes."""
 import argparse
 import json
+import hashlib
+import os
+import platform
 from pathlib import Path
 import subprocess
 import time
@@ -76,25 +79,32 @@ def fresh_simulator(profile, output):
                 print(f'::warning::Simulator cleanup {action}: {error}', flush=True)
 
 
-def run(profile, limit):
-    output = Path('phase4')
+def run(profile, limit, seed, batch, output):
+    output = Path(output)
     output.mkdir(exist_ok=True)
     log = (output / f'{profile}.log').resolve()
     errors = (output / f'{profile}-stderr.log').resolve()
     # Truncate any host logs left by a local retry before starting a new run.
     log.write_text('')
     errors.write_text('')
-    command('xcodebuild', '-version')
+    xcode = command('xcodebuild', '-version').stdout
+    manifest = {'seed': seed, 'batch': batch, 'profile': profile, 'hz': 60,
+                'protocol': 1, 'source': os.environ.get('GITHUB_SHA') or
+                subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                'app_sha256': hashlib.sha256(Path('simulator-app/OutpostZero.app/OutpostZero').read_bytes()).hexdigest(),
+                'architecture': platform.machine(), 'xcode': xcode}
+    (output / 'run.json').write_text(json.dumps(manifest, indent=2))
     with fresh_simulator(profile, output) as device:
-        run_campaign(profile, limit, output, log, errors, device)
+        run_campaign(profile, limit, output, log, errors, device, seed, batch)
 
 
-def run_campaign(profile, limit, output, log, errors, device):
+def run_campaign(profile, limit, output, log, errors, device, seed=335, batch=2):
     flag = '-qaStationaryRun' if profile == 'stationary' else '-qaMovingRun'
     # This device is fresh: there is no running app to terminate. A launch
     # failure remains a failure; never restart a partially played campaign.
     command('xcrun', 'simctl', 'launch',
-            '--stdout=' + str(log), '--stderr=' + str(errors), device, BUNDLE, flag, timeout=90)
+            '--stdout=' + str(log), '--stderr=' + str(errors), device, BUNDLE, flag,
+            '-qaSeed', str(seed), '-qaTicksPerRender', str(batch), timeout=90)
     start = time.monotonic()
     next_capture = 15
     while time.monotonic() - start < limit:
@@ -119,6 +129,12 @@ def run_campaign(profile, limit, output, log, errors, device):
         if terminal:
             if f'profile={profile} started world=1' not in content:
                 raise RuntimeError('Missing matching QA start marker')
+            expected = f'[QA CONFIG] protocol=1 seed={seed} hz=60 batch={batch} profile={profile}'
+            if expected not in content:
+                raise RuntimeError('Missing/mismatched controlled QA configuration')
+            wanted = 'complete' if profile == 'moving' else 'defeat'
+            if f'[PHASE4 PLAYTEST] outcome={wanted} ' not in content:
+                raise RuntimeError(f'{profile}: real gameplay outcome failed acceptance (no retry)')
             return
         time.sleep(2)
     raise TimeoutError(f'{profile}: no terminal outcome within {limit}s; incomplete runs fail')
@@ -128,5 +144,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('profile', choices=['stationary', 'moving'])
     parser.add_argument('--limit', type=int, default=1500)
+    parser.add_argument('--seed', type=int, required=True)
+    parser.add_argument('--batch', type=int, choices=[2, 4], required=True)
+    parser.add_argument('--output', required=True)
     args = parser.parse_args()
-    run(args.profile, args.limit)
+    if not 0 <= args.seed <= 2**64 - 1:
+        parser.error('seed must be an unsigned 64-bit integer')
+    run(args.profile, args.limit, args.seed, args.batch, args.output)

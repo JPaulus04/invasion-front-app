@@ -350,6 +350,22 @@ final class OutpostScene: SKScene {
         return false
         #endif
     }
+    private lazy var qaReplay: QAReplay? = {
+        #if targetEnvironment(simulator)
+        do {
+            return try QAReplayConfiguration.parse(ProcessInfo.processInfo.arguments).map { QAReplay($0) }
+        } catch {
+            preconditionFailure("QA replay requires one profile, -qaSeed UInt64 and -qaTicksPerRender 2 or 4")
+        }
+        #else
+        return nil
+        #endif
+    }()
+    // Separate streams prevent presentation/order of upgrade draws from consuming spawn entropy.
+    private lazy var spawnRandom = GameplayRandom(seed: qaReplay.map { $0.configuration.seed ^ 0x535041574E })
+    private lazy var upgradeRandom = GameplayRandom(seed: qaReplay.map { $0.configuration.seed ^ 0x4452414654 })
+    private var qaRevealUntil: TimeInterval = 0
+    private var qaFlankDue: TimeInterval?
     private var qaNextTelemetryAt: TimeInterval = 10
     private var qaNextMenuActionAt: TimeInterval = 0
     private var qaExitWaypoints: [CGPoint] = []
@@ -1965,6 +1981,7 @@ final class OutpostScene: SKScene {
         if qaStationaryRun || qaMovingRun {
             // Fresh combat begins through the same production entry path.
             // QA is intentionally not allowed to skip room clears.
+            qaReplay?.header()
             precondition(enterSelectedWorld(), "QA requires a fresh, ready pilot")
             print("[PHASE4 QA] profile=\(qaStationaryRun ? "stationary" : "moving") started world=\(worldMapIndex + 1)")
             fflush(stdout)
@@ -5109,6 +5126,7 @@ final class OutpostScene: SKScene {
         scrapyardWardenEnraged = false
         guardianTransitionUntil = 0
         pendingFlankSwarm = nil
+        qaFlankDue = nil
         arena.children.filter { $0.name == "flankSwarmWarning" }
             .forEach { $0.removeFromParent() }
         burns.removeAll()
@@ -5185,6 +5203,7 @@ final class OutpostScene: SKScene {
         nextDefenseHitAt = combatTime + 1.5
         if activeEncounter == .equipmentDefense { installDefenseDevice() }
         if qaStationaryRun || qaMovingRun {
+            qaRecordState("enter")
             print("[PHASE4 ROOM] entered=\(wave) encounter=\(activeEncounter) hp=\(health) level=\(progress.level)")
             fflush(stdout)
         }
@@ -6826,11 +6845,17 @@ final class OutpostScene: SKScene {
         alert.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 58)
         notice.addChild(alert)
         arena.addChild(notice)
-        notice.run(.sequence([
-            .wait(forDuration: FlankSwarmRules.warningSeconds),
-            .run { [weak self] in self?.deployFlankSwarm() },
-            .removeFromParent()
-        ]))
+        if qaReplay != nil {
+            // Normal play retains its existing SpriteKit scheduling. Replay
+            // must not let a render-thread SKAction choose the combat tick.
+            qaFlankDue = combatTime + FlankSwarmRules.warningSeconds
+        } else {
+            notice.run(.sequence([
+                .wait(forDuration: FlankSwarmRules.warningSeconds),
+                .run { [weak self] in self?.deployFlankSwarm() },
+                .removeFromParent()
+            ]))
+        }
     }
 
     private func deployFlankSwarm() {
@@ -7070,13 +7095,13 @@ final class OutpostScene: SKScene {
             let lane = EncounterDirector.spawnLane(room: wave, slot: spawned)
             let x: CGFloat
             switch lane {
-            case .left: x = CGFloat.random(in: 0.08...0.36)
-            case .right: x = CGFloat.random(in: 0.64...0.92)
-            case .center: x = CGFloat.random(in: 0.34...0.66)
+            case .left: x = CGFloat.random(in: 0.08...0.36, using: &spawnRandom)
+            case .right: x = CGFloat.random(in: 0.64...0.92, using: &spawnRandom)
+            case .center: x = CGFloat.random(in: 0.34...0.66, using: &spawnRandom)
             }
             let vertical: ClosedRange<CGFloat> = activeEncounter == .equipmentDefense
                 ? 0.06...0.94 : 0.48...0.94
-            let sample = CGPoint(x: x, y: CGFloat.random(in: vertical))
+            let sample = CGPoint(x: x, y: CGFloat.random(in: vertical, using: &spawnRandom))
             let location = CGPoint(
                 x: candidateBounds.minX + candidateBounds.width * sample.x,
                 y: candidateBounds.minY + candidateBounds.height * sample.y)
@@ -7183,10 +7208,24 @@ final class OutpostScene: SKScene {
             nameplate.zPosition = 2
             node.addChild(nameplate)
         }
-        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi)), nextAttack: combatTime + 1.7))
+        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi), using: &spawnRandom), nextAttack: combatTime + 1.7))
+        qaRecordState("spawn type=\(type)")
     }
 
     override func update(_ currentTime: TimeInterval) {
+        if let replay = qaReplay {
+            // Same 1/60 simulation steps, independent of host frame deltas.
+            // Different batches exercise render-cadence independence in CI.
+            for _ in 0..<replay.configuration.batch {
+                updateSimulation(replay.nextTime())
+                if phase == .gameOver || phase == .worldComplete { break }
+            }
+        } else {
+            updateSimulation(currentTime)
+        }
+    }
+
+    private func updateSimulation(_ currentTime: TimeInterval) {
         if holdDefenseQAScreenshot { return }
         if lastUpdate == 0 { lastUpdate = currentTime; clock = currentTime }
         let dt = min(0.05, max(0, currentTime - lastUpdate))
@@ -7194,10 +7233,16 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing || extractionCombatActive)
+        if let due = qaFlankDue, phase == .playing, combatTime >= due {
+            qaFlankDue = nil
+            deployFlankSwarm()
+            arena.childNode(withName: "flankSwarmWarning")?.removeFromParent()
+        }
         updateQAMenus()
         if (qaStationaryRun || qaMovingRun), phase == .playing,
            combatTime >= qaNextTelemetryAt {
             qaNextTelemetryAt = combatTime + 10
+            qaRecordState("checkpoint")
             print("[PHASE4 QA] profile=\(qaStationaryRun ? "stationary" : "moving") room=\(wave) elapsed=\(Int(combatTime)) hp=\(health) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen)")
             fflush(stdout)
         }
@@ -8633,6 +8678,7 @@ final class OutpostScene: SKScene {
         guard !roomCleared else { return }
         roomCleared = true
         if qaStationaryRun || qaMovingRun {
+            qaRecordState("clear")
             print("[PHASE4 ROOM] cleared=\(wave) encounter=\(activeEncounter) hp=\(health) level=\(progress.level) integrity=\(defenseIntegrity)")
             fflush(stdout)
         }
@@ -8749,11 +8795,12 @@ final class OutpostScene: SKScene {
         var available = pool
         while choices.count < 3 && !available.isEmpty {
             guard let next = TacticalDraftRules.pick(
-                from: available, roll: Int.random(in: 0..<100_000)) else { break }
+                from: available, roll: Int.random(in: 0..<100_000, using: &upgradeRandom)) else { break }
             choices.append(next)
             available.removeAll { $0 == next }
         }
-        levelChoices = choices.shuffled()
+        levelChoices = choices.shuffled(using: &upgradeRandom)
+        qaReplay?.record("offer room=\(wave) level=\(progress.level) cards=\(levelChoices.joined(separator: ",")) rng=\(upgradeRandom.draws)")
         // Module-style choices use role colors rather than highlighting the
         // first random choice. No rarity tiers are implied by these accents.
         // Tappable rectangles match the full illustrated card exactly.
@@ -8987,11 +9034,15 @@ final class OutpostScene: SKScene {
             }
             overlayButtons[choice] = frame
         }
-        abilityRevealActive = !UIAccessibility.isReduceMotionEnabled
+        abilityRevealActive = qaReplay != nil || !UIAccessibility.isReduceMotionEnabled
         if abilityRevealActive {
-            overlay.run(.sequence([.wait(forDuration: 1.35), .run { [weak self] in
-                self?.finishAbilityReveal()
-            }]), withKey: "abilityRevealCompletion")
+            if qaReplay != nil {
+                qaRevealUntil = clock + 1.35
+            } else {
+                overlay.run(.sequence([.wait(forDuration: 1.35), .run { [weak self] in
+                    self?.finishAbilityReveal()
+                }]), withKey: "abilityRevealCompletion")
+            }
         }
         overlayText(abilityRevealActive ? "TAP TO REVEAL ALL" : "COMBAT PAUSED  •  SELECT TO RESUME", y: -298,
                     fontSize: 11, name: "levelUpFooter")
@@ -9019,6 +9070,7 @@ final class OutpostScene: SKScene {
         if phase == .playing { qaExitWaypoints.removeAll() }
         guard clock >= qaNextMenuActionAt else { return }
         if phase == .levelUp {
+            if qaReplay != nil && abilityRevealActive && clock >= qaRevealUntil { finishAbilityReveal() }
             guard !abilityRevealActive else { return }
             let priorities = health <= maximumHealth - 40
                 ? ["heal", "damage", "rate", "orbit", "chain", "explosive", "incendiary", "frost", "armor", "mobility", "supplies"]
@@ -9026,6 +9078,7 @@ final class OutpostScene: SKScene {
             guard let choice = priorities.first(where: { levelChoices.contains($0) }) ?? levelChoices.first,
                   let frame = overlayButtons[choice] else { return }
             let before = playtestUpgradesChosen
+            qaReplay?.record("choose room=\(wave) choice=\(choice) hp=\(health)")
             _ = activateLevelUp(at: CGPoint(x: frame.midX, y: frame.midY))
             print("[PHASE4 QA] choice=\(choice) accepted=\(playtestUpgradesChosen > before) room=\(wave)")
             fflush(stdout)
@@ -9038,6 +9091,21 @@ final class OutpostScene: SKScene {
             }
             qaNextMenuActionAt = clock + 0.5
         }
+    }
+
+    private func qaRecordState(_ event: String) {
+        guard let replay = qaReplay else { return }
+        func n(_ v: CGFloat) -> String { QAReplay.number(Double(v)) }
+        let foes = enemies.map { "\(n($0.node.position.x)),\(n($0.node.position.y)),\($0.health),\($0.behavior)" }.joined(separator: ";")
+        let shots = projectiles.map { "\(n($0.node.position.x)),\(n($0.node.position.y)),\(n($0.velocity.dx)),\(n($0.velocity.dy))" }.joined(separator: ";")
+        let fields: [String] = [event, "room=\(wave)", "phase=\(phase)",
+            "t=\(QAReplay.number(combatTime))", "pilot=\(n(pilot.position.x)),\(n(pilot.position.y))",
+            "hp=\(health)/\(maximumHealth)", "xp=\(progress.xp)", "level=\(progress.level)",
+            "damage=\(damage)", "rate=\(fireRate)",
+            "ranks=\(chainLevel),\(explosiveLevel),\(incendiaryLevel),\(orbitLevel),\(frostLevel)",
+            "spawned=\(spawned)", "integrity=\(defenseIntegrity)",
+            "rng=\(spawnRandom.draws),\(upgradeRandom.draws)", "foes=\(foes)", "shots=\(shots)"]
+        replay.record(fields.joined(separator: " "))
     }
 
     private func qaCombatTarget() -> CGPoint {
@@ -9082,10 +9150,13 @@ final class OutpostScene: SKScene {
         let goal = xpDrops.min(by: {
             distance($0.node.position, pilot.position) < distance($1.node.position, pilot.position)
         })?.node.position ?? CGPoint(x: roomBounds.midX, y: roomBounds.midY)
-        return QACombatDriver.target(origin: pilot.position, speed: pilotSpeed,
+        qaRecordState("steer")
+        let target = QACombatDriver.target(origin: pilot.position, speed: pilotSpeed,
             bounds: roomBounds.insetBy(dx: 16, dy: 16), threats: threats,
             aimWarnings: aimWarnings, goal: goal, previous: qaSteeringTarget,
             resolve: { [unowned self] from, to in self.resolvePilotMovement(from: from, to: to) })
+        qaReplay?.record("input x=\(QAReplay.number(Double(target.x))) y=\(QAReplay.number(Double(target.y)))")
+        return target
     }
 
     private func qaExitTarget() -> CGPoint {
@@ -9428,6 +9499,7 @@ final class OutpostScene: SKScene {
 
     private func showWorldCompleteSummary() {
         #if DEBUG
+        qaRecordState("terminal=complete")
         print("[PHASE4 PLAYTEST] outcome=complete world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen) level=\(progress.level)")
         fflush(stdout)
         #endif
@@ -9620,6 +9692,7 @@ final class OutpostScene: SKScene {
 
     private func endGame(_ reason: String = "PILOT DEFEATED") {
         #if DEBUG
+        qaRecordState("terminal=defeat")
         print("[PHASE4 PLAYTEST] outcome=defeat world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen) level=\(progress.level)")
         fflush(stdout)
         #endif
@@ -9648,6 +9721,7 @@ final class OutpostScene: SKScene {
         for enemy in enemies { enemy.node.removeFromParent() }
         enemies.removeAll()
         pendingFlankSwarm = nil
+        qaFlankDue = nil
         arena.children.filter { $0.name == "flankSwarmWarning" }
             .forEach { $0.removeFromParent() }
         bossNode = nil

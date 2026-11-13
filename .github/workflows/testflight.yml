@@ -38,9 +38,11 @@ jobs:
               with urllib.request.urlopen(request, timeout=35) as response:
                   return json.load(response)
           required = {"build", "Focused gameplay presentation",
-                      "phase4-gameplay / Fresh World 1 — stationary",
-                      "phase4-gameplay / Fresh World 1 — moving",
                       "phase4-gameplay / Assess World 1 gameplay outcomes"}
+          required.update(
+              f"phase4-gameplay / Fresh World 1 — {profile} seed {seed} batch {batch}"
+              for profile, seed in (("stationary", 335), ("moving", 335), ("moving", 336))
+              for batch in (2, 4))
           for attempt in range(135):
               if get("branches/main")["commit"]["sha"] != sha:
                   sys.exit("Release blocked: branch moved after release candidate")

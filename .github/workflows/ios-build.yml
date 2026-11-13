@@ -39,6 +39,10 @@ jobs:
         run: |
           swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
           "$RUNNER_TEMP/room-tests"
+      - name: Test controlled replay RNG, configuration and tick clock
+        run: |
+          swiftc OutpostZero/QAReplay.swift tests/QAReplayTests.swift -o "$RUNNER_TEMP/replay-tests"
+          "$RUNNER_TEMP/replay-tests"
       - name: Test reactive simulator combat driver
         run: |
           set -o pipefail

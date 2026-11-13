@@ -98,7 +98,8 @@ class CaptureTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             log = root / 'moving.log'
-            log.write_text('[PHASE4 QA] profile=moving started world=1\n'
+            log.write_text('[QA CONFIG] protocol=1 seed=335 hz=60 batch=2 profile=moving\n'
+                           '[PHASE4 QA] profile=moving started world=1\n'
                            '[PHASE4 PLAYTEST] outcome=complete world=1 room=20\n')
             def command(*args, **kwargs):
                 if 'screenshot' in args:
@@ -107,6 +108,21 @@ class CaptureTests(unittest.TestCase):
             with patch.object(sim, 'command', side_effect=command):
                 sim.run_campaign('moving', 10, root, log, root / 'stderr.log', 'device')
             self.assertTrue((root / 'moving-capture-errors.log').exists())
+
+    def test_real_defeat_or_wrong_seed_fails_without_relaunch(self):
+        for outcome, seed in [('defeat', 335), ('complete', 999)]:
+            with self.subTest(outcome=outcome, seed=seed), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                log = root / 'moving.log'
+                log.write_text(f'[QA CONFIG] protocol=1 seed={seed} hz=60 batch=2 profile=moving\n'
+                               '[PHASE4 QA] profile=moving started world=1\n'
+                               f'[PHASE4 PLAYTEST] outcome={outcome} world=1 room=9\n')
+                with patch.object(sim, 'command') as command:
+                    with self.assertRaises(RuntimeError):
+                        sim.run_campaign('moving', 10, root, log, root / 'stderr.log', 'device')
+                    launches = [call for call in command.call_args_list if 'launch' in call.args]
+                    self.assertEqual(len(launches), 1)
+                    self.assertIn('-qaSeed', launches[0].args)
 
     def test_missing_outcome_still_fails(self):
         with tempfile.TemporaryDirectory() as temp:
