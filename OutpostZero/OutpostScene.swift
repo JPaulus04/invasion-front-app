@@ -1115,8 +1115,8 @@ final class OutpostScene: SKScene {
                 y: roomBounds.minY + roomBounds.height * (slot == 1 ? 0.68 : 0.48))
             updateArenaCamera(delta: 1)
             let visible = WorldOneFraming.visibleWorldRect(offset: arena.position,
-                size: size, safeTop: view?.safeAreaInsets.top ?? 0,
-                safeBottom: view?.safeAreaInsets.bottom ?? 0)
+                size: size, safeTop: self.view?.safeAreaInsets.top ?? 0,
+                safeBottom: self.view?.safeAreaInsets.bottom ?? 0)
             // Rectangular boundary arithmetic has floating-point rounding:
             // an exact shoreline camera clamp may be a subpixel outside
             // CGRect.contains. Use a one-point rendering tolerance; strict
@@ -1358,8 +1358,8 @@ final class OutpostScene: SKScene {
                 let top = arena.convert(CGPoint(x: passageGate.position.x,
                     y: passageGate.position.y + 128), to: self).y
                 precondition(top <= WorldOneFraming.viewport(size: size,
-                    safeTop: view?.safeAreaInsets.top ?? 0,
-                    safeBottom: view?.safeAreaInsets.bottom ?? 0).maxY + 1,
+                    safeTop: self.view?.safeAreaInsets.top ?? 0,
+                    safeBottom: self.view?.safeAreaInsets.bottom ?? 0).maxY + 1,
                     "Reactor exit portal must not intersect the HUD")
             }
             arena.isPaused = true
@@ -2178,7 +2178,7 @@ final class OutpostScene: SKScene {
             let portalTop = arena.convert(CGPoint(x: passageGate.position.x,
                 y: passageGate.position.y + 128), to: self).y
             let safeViewport = WorldOneFraming.viewport(size: size,
-                safeTop: view?.safeAreaInsets.top ?? 0, safeBottom: view?.safeAreaInsets.bottom ?? 0)
+                safeTop: self.view?.safeAreaInsets.top ?? 0, safeBottom: self.view?.safeAreaInsets.bottom ?? 0)
             precondition(portalTop <= safeViewport.maxY + 1,
                          "Build 335 portal artwork must stay below HUD in entry, middle and exit framing")
             print("[CAMERA REVIEW] pilot=\(pilot.position) offset=\(arena.position) gate=\(passageGate.position)")
@@ -8934,7 +8934,7 @@ final class OutpostScene: SKScene {
             titleLabel.verticalAlignmentMode = .top
             titleLabel.fontColor = .white
             titleLabel.horizontalAlignmentMode = .left
-            titleLabel.position = CGPoint(x: textLeft, y: 26)
+            titleLabel.position = CGPoint(x: textLeft, y: 28)
             root.addChild(titleLabel)
             let detailLabel = SKLabelNode(fontNamed: "AvenirNext-Medium")
             detailLabel.text = detail
@@ -8944,7 +8944,7 @@ final class OutpostScene: SKScene {
             detailLabel.verticalAlignmentMode = .top
             detailLabel.numberOfLines = 2
             detailLabel.preferredMaxLayoutWidth = textWidth
-            detailLabel.position = CGPoint(x: textLeft, y: -10)
+            detailLabel.position = CGPoint(x: textLeft, y: -12)
             root.addChild(detailLabel)
             let ranks = ["chain": chainLevel, "explosive": explosiveLevel,
                          "incendiary": incendiaryLevel, "orbit": orbitLevel, "frost": frostLevel]
@@ -8961,7 +8961,7 @@ final class OutpostScene: SKScene {
             context.fontColor = rimTint
             context.horizontalAlignmentMode = .left
             context.verticalAlignmentMode = .center
-            context.position = CGPoint(x: textLeft, y: -44)
+            context.position = CGPoint(x: textLeft, y: -46)
             root.addChild(context)
             #if targetEnvironment(simulator)
             precondition(titleLabel.frame.width <= textWidth + 1 &&
