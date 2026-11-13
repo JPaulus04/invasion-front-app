@@ -31,8 +31,8 @@ jobs:
         run: |
           set -o pipefail
           python3 scripts/check_project.py 2>&1 | tee source-check.log
-      - name: Test focused screenshot identity rejection
-        run: python3 -m unittest discover -s tests -p test_focused_screenshots.py
+      - name: Test screenshot rejection and simulator failure handling
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
       - name: Validate production sprite assets
         run: python3 scripts/check_art_sprites.py
       - name: Test room rules
@@ -715,7 +715,10 @@ jobs:
 
   phase4-gameplay:
     needs: build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || contains(github.event.head_commit.message, '[phase4-review]'))
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
+      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || contains(github.event.head_commit.message, '[phase4-review]')))
     uses: ./.github/workflows/phase4-gameplay.yml
 
   phase4-presentation-review:
@@ -723,8 +726,9 @@ jobs:
     # Standard visual acceptance: every pushed build captures the same
     # gameplay presentation scenes. Full reviews remain release checkpoints.
     if: >-
-      github.event_name == 'push' &&
-      !contains(github.event.head_commit.message, '[home-review]')
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
+      (github.event_name == 'push' && !contains(github.event.head_commit.message, '[home-review]'))
     needs: build
     runs-on: macos-15
     timeout-minutes: 30
