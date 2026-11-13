@@ -98,8 +98,11 @@ def fresh_simulator(profile, output, controlled=False):
                     command(*args, timeout=240 if args[2] == 'bootstatus' else
                             150 if stage == 'install' else 60)
                 if stage == 'boot':
+                    # Probe process-control responsiveness without enumerating
+                    # every launchd service on a cold simulator. A full
+                    # launchctl list stalled during defense visual review.
                     ready_command('xcrun', 'simctl', 'spawn', device,
-                                  'launchctl', 'list')
+                                  '/usr/bin/true')
                 if stage == 'install':
                     # Installation returning is not proof that launch services
                     # can resolve the bundle. Fail before asking it to launch.
