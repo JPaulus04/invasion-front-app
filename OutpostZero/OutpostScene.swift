@@ -1173,11 +1173,22 @@ final class OutpostScene: SKScene {
             startWave()  // Room 6: same encounter entry path as real gameplay.
             precondition(activeEncounter == .survival && expandedArenaPreview,
                          "Survival capture must use the scheduled production encounter")
+            // Validate the approved painted floor, not the retired procedural
+            // relief layer. Requiring materialRelief crashed this fixture before
+            // its identity marker could render (CI captured SpringBoard).
+            guard let survivalFloor = arena.childNode(withName: "roomArtwork")?
+                .childNode(withName: "world1AuthoredFloor") as? SKSpriteNode,
+                let survivalTexture = survivalFloor.texture else {
+                preconditionFailure("Survival capture requires the authored floor texture")
+            }
             precondition(arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden == true &&
-                         arena.childNode(withName: "roomArtwork")?
-                            .childNode(withName: "world1AuthoredFloor")?
-                            .childNode(withName: "materialRelief") != nil,
-                         "Survival capture must preserve the production terrain stack")
+                         survivalFloor.frame.contains(roomBounds) &&
+                         survivalFloor.childNode(withName: "materialRelief") == nil &&
+                         survivalFloor.childNode(withName: "canopyLight") != nil &&
+                         survivalFloor.childNode(withName: "ambientBounceLight") != nil &&
+                         abs(survivalFloor.size.width / survivalFloor.size.height -
+                             survivalTexture.size().width / survivalTexture.size().height) < 0.001,
+                         "Survival capture must preserve the approved aspect-correct painted terrain and lighting")
             pilot.position = CGPoint(x: roomBounds.midX,
                                       y: roomBounds.midY - roomBounds.height * 0.13)
             arena.position = ArenaLayout.offset(for: pilot.position,

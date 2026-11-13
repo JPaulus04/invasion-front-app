@@ -214,7 +214,17 @@ jobs:
         timeout-minutes: 30
         env:
           REQUIRE_WORLD_ONE_ART: ${{ vars.REQUIRE_WORLD_ONE_ART == 'true' && '1' || '0' }}
-        run: bash scripts/capture_defense_visual_review.sh
+        run: |
+          set -o pipefail
+          mkdir -p diagnostics
+          python3 scripts/run_defense_visual_review.py 2>&1 | tee diagnostics/defense-capture.log
+      - name: Upload defense simulator diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: defense-simulator-diagnostics
+          path: diagnostics/
+          if-no-files-found: error
       - name: Upload World 1 landscape review screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -490,7 +500,8 @@ jobs:
             FLAG="$1"
             for ATTEMPT in 1 2 3; do
               run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
-              if run_bounded 50 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+              mkdir -p diagnostics
+              if run_bounded 50 xcrun simctl launch --stdout="$PWD/diagnostics/${FLAG#-}.log" --stderr="$PWD/diagnostics/${FLAG#-}-stderr.log" "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
                 return 0
               fi
               echo "::warning::Live simulator launch for $FLAG timed out (attempt $ATTEMPT)"
@@ -502,7 +513,8 @@ jobs:
           capture_live_frame() {
             OUTPUT="$1"
             for ATTEMPT in 1 2; do
-              if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT"; then
+              if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT" &&
+                 python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
                 return 0
               fi
               echo "::warning::Timed out capturing $OUTPUT (attempt $ATTEMPT)"
@@ -535,6 +547,13 @@ jobs:
           capture_live_frame screenshots/outpost-zero-ranged-2.png
           sleep 3
           capture_live_frame screenshots/outpost-zero-ranged-3.png
+      - name: Upload live scene launch diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-launch-diagnostics
+          path: diagnostics/
+          if-no-files-found: ignore
       - name: Validate simulator screenshot was captured
         run: |
           set -e

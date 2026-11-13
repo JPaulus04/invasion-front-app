@@ -17,6 +17,10 @@ PY
 # Let a fresh service finish first-boot data migration. Killing it
 # before listing devices made the migrations restart on some hosts.
 # Fallback to a second available iPhone only after bounded readiness.
+# CI supplies a freshly created, booted and installed disposable simulator.
+# Keep the standalone local fallback for developers invoking this shell script.
+DEVICE="${OUTPOST_ZERO_SIMULATOR_UDID:-}"
+if [ -z "$DEVICE" ]; then
 DEVICE=""
 DEVICE_CANDIDATES="$(xcrun simctl list devices available -j | python3 -c '
 import json, sys
@@ -47,6 +51,7 @@ done
 if [ -z "$DEVICE" ]; then
   echo "::error::No available iPhone simulator reached boot readiness"
   exit 1
+fi
 fi
 echo "Simulator ready: $DEVICE"
 # Verify CoreSimulator can actually deliver pixels before the expensive review.
