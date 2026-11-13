@@ -10,7 +10,8 @@ from pathlib import Path
 import subprocess
 import time
 from contextlib import contextmanager
-from simulator_startup import RecoverableStartupError, content, launch_initial, snapshot
+from simulator_startup import (RecoverableStartupError, content, launch_initial,
+                               snapshot, wait_for_app_registration)
 
 BUNDLE = 'com.paulus.laststandcommand'
 
@@ -104,7 +105,10 @@ def fresh_simulator(profile, output, controlled=False):
                     # can resolve the bundle. Fail before asking it to launch.
                     ready_command('xcrun', 'simctl', 'get_app_container', device,
                                   BUNDLE, 'app')
-            except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
+                    if controlled:
+                        wait_for_app_registration(command, device, output)
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError,
+                    RecoverableStartupError) as error:
                 snapshot(command, device, output, f'{stage}-failure', began)
                 raise RecoverableStartupError(f'{stage} failed before launch: {error}') from error
         yield device
