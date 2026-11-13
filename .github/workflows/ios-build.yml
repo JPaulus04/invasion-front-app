@@ -13,14 +13,22 @@ on:
         options:
           - focused
           - full
+          - startup-recovery
 # Build 328 consolidated integration gate: navigation, combat feedback, and boss visuals.
 # Avoid wasting macOS runners on obsolete revisions during rapid iteration.
 concurrency:
   group: ios-build-${{ github.workflow }}-${{ github.ref }}-${{ (github.event_name == 'pull_request' || inputs.validation_scope == 'full' || contains(github.event.head_commit.message, '[full-review]')) && 'full' || 'focused' }}
   cancel-in-progress: true
 jobs:
+  startup-recovery:
+    if: github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'startup-recovery'
+    uses: ./.github/workflows/simulator-startup-recovery.yml
+    permissions:
+      contents: read
+      actions: read
   build:
     if: >-
+      inputs.validation_scope != 'startup-recovery' &&
       !(github.event_name == 'push' && contains(github.event.head_commit.message, '[home-review]'))
     runs-on: macos-15-intel
     timeout-minutes: 40
@@ -39,6 +47,10 @@ jobs:
         run: |
           swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
           "$RUNNER_TEMP/room-tests"
+      - name: Test controlled replay RNG, configuration and tick clock
+        run: |
+          swiftc OutpostZero/QAReplay.swift tests/QAReplayTests.swift -o "$RUNNER_TEMP/replay-tests"
+          "$RUNNER_TEMP/replay-tests"
       - name: Test reactive simulator combat driver
         run: |
           set -o pipefail
@@ -836,10 +848,15 @@ jobs:
                               samples = re.findall(r"\[CAMERA MOTION\] pilotY=([-\d.]+) cameraY=([-\d.]+)", stdout.read_text())
                               if len(samples) < 3:
                                   raise RuntimeError("Missing camera motion samples")
-                              for column in (0, 1):
-                                  values = [float(row[column]) for row in samples]
-                                  if max(values)-min(values) < 40:
-                                      raise RuntimeError("Pilot or camera failed to traverse")
+                              pilot = [float(row[0]) for row in samples]
+                              camera = [float(row[1]) for row in samples]
+                              if max(pilot)-min(pilot) < 40:
+                                  raise RuntimeError("Pilot failed to traverse the real collision map")
+                              # Build 335 fits the full tactical room + north portal
+                              # below the HUD. Its camera must stay stable while the
+                              # pilot moves; expanded survival follow is tested separately.
+                              if max(camera)-min(camera) > 1:
+                                  raise RuntimeError("Fitted tactical framing drifted during traversal")
                           run(["xcrun","simctl","io",device,"screenshot",str(output)],65)
                           if not output.is_file() or output.stat().st_size < 4096:
                               raise RuntimeError(f"{name}: missing or empty screenshot")

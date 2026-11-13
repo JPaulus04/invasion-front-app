@@ -293,7 +293,7 @@ if not all(fragment in choice_section for fragment in (
         "RoomRules.isCleared(", "SurvivalEncounterRules.extractionActive(",
         "levelUpReturnPhase == .playing && !roomCleared")):
     errors.append("Level-up completion must recheck tactical clear AND timed extraction")
-if 'levelChoices = choices.shuffled()' not in scene or 'TacticalDraftRules.pick(' not in scene:
+if 'levelChoices = choices.shuffled(using: &upgradeRandom)' not in scene or 'TacticalDraftRules.pick(' not in scene:
     errors.append("Level-up must use three weighted, nonduplicate random options")
 # Ranged attacks must communicate both the selected shot target and
 # the mortar's time-to-impact without changing actual combat damage.

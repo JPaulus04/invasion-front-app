@@ -4,6 +4,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 import json
 import os
+import re
 
 ROOT = Path("screenshots")
 SCENES = [
@@ -33,7 +34,10 @@ rows = (len(SCENES) + COLS - 1) // COLS
 board = Image.new("RGB", (COLS * (W + PAD) + PAD,
                           rows * (H + LABEL + PAD) + PAD + 75), "#101c29")
 draw = ImageDraw.Draw(board)
-draw.text((PAD, 18), "OUTPOST ZERO  |  BUILD 331  |  SIMULATOR VISUAL REVIEW",
+project = Path("project.yml").read_text()
+match = re.search(r'CURRENT_PROJECT_VERSION:\s*"?(\d+)', project)
+build = match.group(1) if match else "UNKNOWN"
+draw.text((PAD, 18), f"OUTPOST ZERO  |  BUILD {build}  |  SIMULATOR VISUAL REVIEW",
           fill="#ffffff")
 draw.text((PAD, 44), "Actual simulator captures • missing images explicitly marked",
           fill="#aabccc")
@@ -59,6 +63,6 @@ for index, (title, filename) in enumerate(SCENES):
 ROOT.mkdir(exist_ok=True)
 board.save(ROOT / "outpost-zero-review-board.png", optimize=True)
 (ROOT / "outpost-zero-review-manifest.json").write_text(
-    json.dumps({"commit": os.environ.get("GITHUB_SHA", "unknown"),
+    json.dumps({"build": build, "commit": os.environ.get("GITHUB_SHA", "unknown"),
                 "scenes": manifest}, indent=2) + "\n")
 print(f"Review board: {sum(x['captured'] for x in manifest)}/{len(manifest)} scenes")

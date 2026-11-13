@@ -1,0 +1,52 @@
+name: Build 335 focused simulator startup recovery
+on:
+  workflow_call:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  recover:
+    name: Recover startup and require all seeded gameplay acceptance
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Test startup recovery and strict replay rejection
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
+      - uses: actions/download-artifact@v4
+        with:
+          name: outpost-zero-simulator-app
+          run-id: 43417058233
+          github-token: ${{ github.token }}
+          path: compiled
+      - uses: actions/download-artifact@v4
+        with:
+          # Only the five completed, predeclared cases. No failed attempt,
+          # previous assessment, screenshot fixture or winning-run selection.
+          artifact-ids: '14033377392,14032579413,14033324323,14034880014,14032814760'
+          run-id: 43417058233
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: baseline
+      - name: Unpack original app without rebuilding
+        run: |
+          mkdir simulator-app
+          ditto -x -k compiled/OutpostZero-simulator-app.zip simulator-app
+      - name: Recover missing startup and require unchanged six-case acceptance
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 scripts/run_startup_recovery.py 2>&1 | tee startup-recovery.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build335-startup-recovery
+          path: |
+            phase4/
+            startup-recovery.log
+          if-no-files-found: error
+          retention-days: 14

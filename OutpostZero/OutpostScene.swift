@@ -350,6 +350,22 @@ final class OutpostScene: SKScene {
         return false
         #endif
     }
+    private lazy var qaReplay: QAReplay? = {
+        #if targetEnvironment(simulator)
+        do {
+            return try QAReplayConfiguration.parse(ProcessInfo.processInfo.arguments).map { QAReplay($0) }
+        } catch {
+            preconditionFailure("QA replay requires one profile, -qaSeed UInt64 and -qaTicksPerRender 2 or 4")
+        }
+        #else
+        return nil
+        #endif
+    }()
+    // Separate streams prevent presentation/order of upgrade draws from consuming spawn entropy.
+    private lazy var spawnRandom = GameplayRandom(seed: qaReplay.map { $0.configuration.seed ^ 0x535041574E })
+    private lazy var upgradeRandom = GameplayRandom(seed: qaReplay.map { $0.configuration.seed ^ 0x4452414654 })
+    private var qaRevealUntil: TimeInterval = 0
+    private var qaFlankDue: TimeInterval?
     private var qaNextTelemetryAt: TimeInterval = 10
     private var qaNextMenuActionAt: TimeInterval = 0
     private var qaExitWaypoints: [CGPoint] = []
@@ -1113,17 +1129,16 @@ final class OutpostScene: SKScene {
             pilot.position = CGPoint(
                 x: roomBounds.minX + roomBounds.width * fractions[slot],
                 y: roomBounds.minY + roomBounds.height * (slot == 1 ? 0.68 : 0.48))
-            let expected = ArenaLayout.offset(for: pilot.position,
-                                               viewportSize: size)
-            arena.position = expected
-            let visible = ArenaLayout.visibleWorldRect(
-                at: arena.position, viewportSize: size)
+            updateArenaCamera(delta: 1)
+            let visible = WorldOneFraming.visibleWorldRect(offset: arena.position,
+                size: size, safeTop: self.view?.safeAreaInsets.top ?? 0,
+                safeBottom: self.view?.safeAreaInsets.bottom ?? 0)
             // Rectangular boundary arithmetic has floating-point rounding:
             // an exact shoreline camera clamp may be a subpixel outside
             // CGRect.contains. Use a one-point rendering tolerance; strict
             // geometry is already checked by deterministic unit tests.
-            precondition(roomBounds.insetBy(dx: -1, dy: -1).contains(visible) &&
-                         abs(pilot.position.x + arena.position.x -
+            precondition(WorldOneFraming.worldFrame(room: roomBounds).insetBy(dx: -1, dy: -1).contains(visible) &&
+                         abs(pilot.position.x * arena.xScale + arena.position.x -
                              size.width / 2) < size.width * 0.41,
                          "Camera must show the pilot and keep world edges covered")
             for kind in [0, 2, 4, 1, 3] {
@@ -1191,8 +1206,7 @@ final class OutpostScene: SKScene {
                          "Survival capture must preserve the approved aspect-correct painted terrain and lighting")
             pilot.position = CGPoint(x: roomBounds.midX,
                                       y: roomBounds.midY - roomBounds.height * 0.13)
-            arena.position = ArenaLayout.offset(for: pilot.position,
-                                                 viewportSize: size)
+            updateArenaCamera(delta: 1)
             // Prime the battlefield with actual enemy objects before the
             // continuous spawn loop takes over. No extra art-only sprites.
             for index in 0..<9 {
@@ -1355,6 +1369,15 @@ final class OutpostScene: SKScene {
                                         y: size.height * 0.60)
             identity.zPosition = 65
             hud.addChild(identity)
+            updateArenaCamera(delta: 1)
+            if worldMapIndex == 0 && !passageGate.isHidden {
+                let top = arena.convert(CGPoint(x: passageGate.position.x,
+                    y: passageGate.position.y + 128), to: self).y
+                precondition(top <= WorldOneFraming.viewport(size: size,
+                    safeTop: self.view?.safeAreaInsets.top ?? 0,
+                    safeBottom: self.view?.safeAreaInsets.bottom ?? 0).maxY + 1,
+                    "Reactor exit portal must not intersect the HUD")
+            }
             arena.isPaused = true
             // SKScene.update runs even if arena actions are paused. Freeze this
             // QA-only frame after assertions so screenshots are deterministic.
@@ -1373,8 +1396,7 @@ final class OutpostScene: SKScene {
             // not outside the camera view at the southern arena entrance.
             pilot.position = CGPoint(x: roomBounds.midX - 105,
                                      y: roomBounds.midY - 85)
-            arena.position = ArenaLayout.offset(
-                for: pilot.position, viewportSize: size)
+            updateArenaCamera(delta: 1)
             precondition(activeEncounter == .survival && expandedArenaPreview,
                          "World 1 Room 6 must launch a playable timed arena")
             precondition(zoneScenery.childNode(withName: "worldOnePortalApproach") == nil,
@@ -1959,6 +1981,7 @@ final class OutpostScene: SKScene {
         if qaStationaryRun || qaMovingRun {
             // Fresh combat begins through the same production entry path.
             // QA is intentionally not allowed to skip room clears.
+            qaReplay?.header()
             precondition(enterSelectedWorld(), "QA requires a fresh, ready pilot")
             print("[PHASE4 QA] profile=\(qaStationaryRun ? "stationary" : "moving") started world=\(worldMapIndex + 1)")
             fflush(stdout)
@@ -2169,6 +2192,12 @@ final class OutpostScene: SKScene {
             let roundTrip = arena.convert(screenPoint, from: self)
             precondition(distance(roundTrip, pilot.position) < 0.01,
                          "Camera world/screen conversion must preserve targeting")
+            let portalTop = arena.convert(CGPoint(x: passageGate.position.x,
+                y: passageGate.position.y + 128), to: self).y
+            let safeViewport = WorldOneFraming.viewport(size: size,
+                safeTop: self.view?.safeAreaInsets.top ?? 0, safeBottom: self.view?.safeAreaInsets.bottom ?? 0)
+            precondition(portalTop <= safeViewport.maxY + 1,
+                         "Build 335 portal artwork must stay below HUD in entry, middle and exit framing")
             print("[CAMERA REVIEW] pilot=\(pilot.position) offset=\(arena.position) gate=\(passageGate.position)")
         }
         #endif
@@ -2324,11 +2353,17 @@ final class OutpostScene: SKScene {
 
     private func updateArenaCamera(delta: TimeInterval) {
         let target: CGPoint
-        if expandedArenaPreview {
+        if worldMapIndex == 0 && wave > 0 {
+            let safeTop = view?.safeAreaInsets.top ?? 0
+            let safeBottom = view?.safeAreaInsets.bottom ?? 0
+            arena.setScale(WorldOneFraming.scale(size: size, safeTop: safeTop, safeBottom: safeBottom))
+            target = WorldOneFraming.offset(pilot: pilot.position, room: roomBounds,
+                size: size, safeTop: safeTop, safeBottom: safeBottom)
+        } else if expandedArenaPreview {
+            arena.setScale(1)
             target = ArenaLayout.offset(for: pilot.position, viewportSize: size)
-        } else if worldMapIndex == 0 && wave > 0 {
-            target = CampaignCamera.offset(for: pilot.position, viewportSize: size)
         } else {
+            arena.setScale(1)
             target = .zero
         }
         arena.position = ArenaLayout.follow(
@@ -2532,6 +2567,12 @@ final class OutpostScene: SKScene {
     }
 
     private func updateHUD() {
+        // Modal rewards own the reading surface. These screen-space combat
+        // labels have higher inherited z than the overlay and must not paint
+        // through the title/footer. Keep their timers and text intact.
+        let rewardCardsVisible = overlay.childNode(withName: "upgradeModuleCard") != nil
+        zoneBanner.isHidden = rewardCardsVisible
+        if rewardCardsVisible { controlsHint.isHidden = true }
         warning.childNode(withName: "portalInstructionPlate")?.isHidden = phase != .gate || passageGate.isHidden
         // Full-health ordinary foes need their silhouette, not a second green
         // target. Reveal compact bars when injured; bosses remain persistent.
@@ -4751,6 +4792,24 @@ final class OutpostScene: SKScene {
         defenseDevice.lineWidth = 0
         defenseDevice.zPosition = 8
         defenseDevice.removeAllChildren()
+        if worldMapIndex == 0 {
+            let terrace = SKNode()
+            terrace.name = "reactorStoneTerrace"
+            terrace.zPosition = -3
+            for row in 0..<3 {
+                for column in 0..<4 {
+                    let slab = SKShapeNode(path: BattlefieldArt.terrainShape(
+                        width: 35, height: 18, variation: row * 4 + column))
+                    slab.position = CGPoint(x: CGFloat(column) * 34 - 51 + CGFloat(row % 2) * 7,
+                                            y: CGFloat(row) * 16 - 54)
+                    slab.fillColor = SKColor(red: 0.36, green: 0.39, blue: 0.31, alpha: 0.72)
+                    slab.strokeColor = SKColor(red: 0.16, green: 0.24, blue: 0.16, alpha: 0.52)
+                    slab.lineWidth = 1
+                    terrace.addChild(slab)
+                }
+            }
+            defenseDevice.addChild(terrace)
+        }
 
         let shadow = SKShapeNode(ellipseOf: CGSize(width: 110, height: 27))
         shadow.name = "reactorGroundContact"
@@ -5067,6 +5126,7 @@ final class OutpostScene: SKScene {
         scrapyardWardenEnraged = false
         guardianTransitionUntil = 0
         pendingFlankSwarm = nil
+        qaFlankDue = nil
         arena.children.filter { $0.name == "flankSwarmWarning" }
             .forEach { $0.removeFromParent() }
         burns.removeAll()
@@ -5143,6 +5203,7 @@ final class OutpostScene: SKScene {
         nextDefenseHitAt = combatTime + 1.5
         if activeEncounter == .equipmentDefense { installDefenseDevice() }
         if qaStationaryRun || qaMovingRun {
+            qaRecordState("enter")
             print("[PHASE4 ROOM] entered=\(wave) encounter=\(activeEncounter) hp=\(health) level=\(progress.level)")
             fflush(stdout)
         }
@@ -5540,7 +5601,7 @@ final class OutpostScene: SKScene {
             case 20: landscapeVisit = 0
             default: landscapeVisit = 0
             }
-            if wave != 20 && worldOneTexture(named: "world1_overgrown_stone_arena") == nil {
+            if wave != 20 {
                 zoneScenery.addChild(WorldShowcase.frontierRoom(bounds: roomBounds,
                     room: wave, family: landscape,
                     texture: { [weak self] in self?.worldOneTexture(named: $0) }))
@@ -5554,9 +5615,9 @@ final class OutpostScene: SKScene {
             // Approved mossy stone arena is the World 1 foundation. Previously
             // the landscape-specific paintings took priority, so the approved
             // stone asset was never displayed even when bundled correctly.
-            let authoredFloorTexture = landscapeFloorTexture ?? stoneArenaTexture
+            let authoredFloorTexture = stoneArenaTexture ?? landscapeFloorTexture
             #if DEBUG
-            print("[WORLD1 FLOOR] requested=\(artName) selected=\(landscapeFloorTexture != nil ? artName : (stoneArenaTexture == nil ? "missing" : "world1_overgrown_stone_arena"))")
+            print("[WORLD1 FLOOR] requested=\(artName) selected=\(stoneArenaTexture != nil ? "world1_overgrown_stone_arena" : (landscapeFloorTexture == nil ? "missing" : artName))")
             #endif
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
                authoredFloorTexture == nil {
@@ -5567,6 +5628,12 @@ final class OutpostScene: SKScene {
                     ?? SKSpriteNode(texture: texture)
                 floorArt.name = "world1AuthoredFloor"
                 floorArt.texture = texture
+                floorArt.color = landscape == "swamp_basin"
+                    ? SKColor(red: 0.58, green: 0.75, blue: 0.65, alpha: 1)
+                    : landscape == "toxic_caves"
+                        ? SKColor(red: 0.61, green: 0.68, blue: 0.77, alpha: 1)
+                        : .white
+                floorArt.colorBlendFactor = landscape == "ruined_outpost" ? 0 : 0.16
                 // Extend the authored painting beyond the camera viewport
                 // even in standard rooms. A small camera offset previously
                 // exposed the flat fallback ground as a straight strip along
@@ -5578,9 +5645,9 @@ final class OutpostScene: SKScene {
                 let artworkArena = worldMapIndex == 0
                     ? ArenaLayout.bounds(for: size) : roomBounds
                 let paintedBounds = CGRect(
-                    x: artworkArena.minX - 80, y: artworkArena.minY - 80,
-                    width: artworkArena.width + 160,
-                    height: artworkArena.height + 160)
+                    x: artworkArena.minX - 180, y: artworkArena.minY - 180,
+                    width: artworkArena.width + 360,
+                    height: artworkArena.height + 360)
                 let textureSize = texture.size()
                 let coverScale = max(paintedBounds.width / max(1, textureSize.width),
                                      paintedBounds.height / max(1, textureSize.height))
@@ -5837,7 +5904,7 @@ final class OutpostScene: SKScene {
         // frame combat, not pile up on compact phones.
         let visibleWorldOneCount = min(worldOnePropCount,
             max(6, Int((roomBounds.height - 100) / 46)))
-        let count = worldMapIndex == 0 ? (wave == 20 ? visibleWorldOneCount : 4) :
+        let count = worldMapIndex == 0 ? visibleWorldOneCount :
             (selectedWorld.biome == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)))
         // Keep a landscape's perimeter composition stable for consecutive
         // waves; change the layout when the player enters another location.
@@ -5878,13 +5945,13 @@ final class OutpostScene: SKScene {
             // Keep the middle 55% of the arena free for evasive combat.
             let pocket = worldMapIndex == 0
                 ? CGFloat(((index / 2 + roomVariant) % 3) - 1) * 11 : 0
-            let rawX = size.width * side +
+            let rawX = (worldMapIndex == 0 ? roomBounds.minX + roomBounds.width * side : size.width * side) +
                 CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8 +
                 (leftSide ? pocket : -pocket)
             let x = worldMapIndex == 0
                 ? (leftSide
-                    ? min(size.width * 0.24, max(size.width * 0.06, rawX))
-                    : min(size.width * 0.94, max(size.width * 0.76, rawX)))
+                    ? min(roomBounds.minX + roomBounds.width * 0.24, max(roomBounds.minX + roomBounds.width * 0.06, rawX))
+                    : min(roomBounds.minX + roomBounds.width * 0.94, max(roomBounds.minX + roomBounds.width * 0.76, rawX)))
                 : rawX
             let spacing = max(18, (roomBounds.height - 120) /
                 CGFloat(worldMapIndex == 0 ? max(1, count - 1) : count))
@@ -6778,11 +6845,17 @@ final class OutpostScene: SKScene {
         alert.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 58)
         notice.addChild(alert)
         arena.addChild(notice)
-        notice.run(.sequence([
-            .wait(forDuration: FlankSwarmRules.warningSeconds),
-            .run { [weak self] in self?.deployFlankSwarm() },
-            .removeFromParent()
-        ]))
+        if qaReplay != nil {
+            // Normal play retains its existing SpriteKit scheduling. Replay
+            // must not let a render-thread SKAction choose the combat tick.
+            qaFlankDue = combatTime + FlankSwarmRules.warningSeconds
+        } else {
+            notice.run(.sequence([
+                .wait(forDuration: FlankSwarmRules.warningSeconds),
+                .run { [weak self] in self?.deployFlankSwarm() },
+                .removeFromParent()
+            ]))
+        }
     }
 
     private func deployFlankSwarm() {
@@ -7022,13 +7095,13 @@ final class OutpostScene: SKScene {
             let lane = EncounterDirector.spawnLane(room: wave, slot: spawned)
             let x: CGFloat
             switch lane {
-            case .left: x = CGFloat.random(in: 0.08...0.36)
-            case .right: x = CGFloat.random(in: 0.64...0.92)
-            case .center: x = CGFloat.random(in: 0.34...0.66)
+            case .left: x = CGFloat.random(in: 0.08...0.36, using: &spawnRandom)
+            case .right: x = CGFloat.random(in: 0.64...0.92, using: &spawnRandom)
+            case .center: x = CGFloat.random(in: 0.34...0.66, using: &spawnRandom)
             }
             let vertical: ClosedRange<CGFloat> = activeEncounter == .equipmentDefense
                 ? 0.06...0.94 : 0.48...0.94
-            let sample = CGPoint(x: x, y: CGFloat.random(in: vertical))
+            let sample = CGPoint(x: x, y: CGFloat.random(in: vertical, using: &spawnRandom))
             let location = CGPoint(
                 x: candidateBounds.minX + candidateBounds.width * sample.x,
                 y: candidateBounds.minY + candidateBounds.height * sample.y)
@@ -7135,10 +7208,24 @@ final class OutpostScene: SKScene {
             nameplate.zPosition = 2
             node.addChild(nameplate)
         }
-        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi)), nextAttack: combatTime + 1.7))
+        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi), using: &spawnRandom), nextAttack: combatTime + 1.7))
+        qaRecordState("spawn type=\(type)")
     }
 
     override func update(_ currentTime: TimeInterval) {
+        if let replay = qaReplay {
+            // Same 1/60 simulation steps, independent of host frame deltas.
+            // Different batches exercise render-cadence independence in CI.
+            for _ in 0..<replay.configuration.batch {
+                updateSimulation(replay.nextTime())
+                if phase == .gameOver || phase == .worldComplete { break }
+            }
+        } else {
+            updateSimulation(currentTime)
+        }
+    }
+
+    private func updateSimulation(_ currentTime: TimeInterval) {
         if holdDefenseQAScreenshot { return }
         if lastUpdate == 0 { lastUpdate = currentTime; clock = currentTime }
         let dt = min(0.05, max(0, currentTime - lastUpdate))
@@ -7146,10 +7233,16 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing || extractionCombatActive)
+        if let due = qaFlankDue, phase == .playing, combatTime >= due {
+            qaFlankDue = nil
+            deployFlankSwarm()
+            arena.childNode(withName: "flankSwarmWarning")?.removeFromParent()
+        }
         updateQAMenus()
         if (qaStationaryRun || qaMovingRun), phase == .playing,
            combatTime >= qaNextTelemetryAt {
             qaNextTelemetryAt = combatTime + 10
+            qaRecordState("checkpoint")
             print("[PHASE4 QA] profile=\(qaStationaryRun ? "stationary" : "moving") room=\(wave) elapsed=\(Int(combatTime)) hp=\(health) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen)")
             fflush(stdout)
         }
@@ -8585,6 +8678,7 @@ final class OutpostScene: SKScene {
         guard !roomCleared else { return }
         roomCleared = true
         if qaStationaryRun || qaMovingRun {
+            qaRecordState("clear")
             print("[PHASE4 ROOM] cleared=\(wave) encounter=\(activeEncounter) hp=\(health) level=\(progress.level) integrity=\(defenseIntegrity)")
             fflush(stdout)
         }
@@ -8701,11 +8795,12 @@ final class OutpostScene: SKScene {
         var available = pool
         while choices.count < 3 && !available.isEmpty {
             guard let next = TacticalDraftRules.pick(
-                from: available, roll: Int.random(in: 0..<100_000)) else { break }
+                from: available, roll: Int.random(in: 0..<100_000, using: &upgradeRandom)) else { break }
             choices.append(next)
             available.removeAll { $0 == next }
         }
-        levelChoices = choices.shuffled()
+        levelChoices = choices.shuffled(using: &upgradeRandom)
+        qaReplay?.record("offer room=\(wave) level=\(progress.level) cards=\(levelChoices.joined(separator: ",")) rng=\(upgradeRandom.draws)")
         // Module-style choices use role colors rather than highlighting the
         // first random choice. No rarity tiers are implied by these accents.
         // Tappable rectangles match the full illustrated card exactly.
@@ -8844,12 +8939,12 @@ final class OutpostScene: SKScene {
             light.position.x = -cardWidth / 2 + 58
             root.addChild(light)
             let icon = SKSpriteNode(texture: ProductionPresentation.abilityArtwork(choice, tint: tint))
-            icon.size = CGSize(width: 96, height: 96)
+            icon.size = CGSize(width: 72, height: 72)
             icon.position = .zero
             icon.zPosition = 2
             let artworkWindow = SKCropNode()
             artworkWindow.name = "abilityArtworkWindow"
-            artworkWindow.position = CGPoint(x: -cardWidth / 2 + 47, y: 0)
+            artworkWindow.position = CGPoint(x: -cardWidth / 2 + 40, y: 0)
             let mask = SKShapeNode(rectOf: CGSize(width: 96, height: 96), cornerRadius: 12)
             mask.fillColor = .white
             mask.strokeColor = .clear
@@ -8871,13 +8966,13 @@ final class OutpostScene: SKScene {
                 scroll.timingMode = .easeOut
                 reel.run(scroll, withKey: "artworkScroll")
             }
-            let textLeft = -cardWidth / 2 + 99
-            let textWidth = cardWidth - 116
+            let textLeft = -cardWidth / 2 + 82
+            let textWidth = cardWidth - 98
             let rarity = SKLabelNode(fontNamed: "AvenirNext-Bold")
             let acquisition = AbilityLoadout.catalog.contains(choice)
                 ? (lockedLoadout.contains(choice) ? "RANK UP" : "NEW SKILL") : category
             rarity.text = "\(rarityName)  ·  \(acquisition)"
-            rarity.fontSize = 9
+            rarity.fontSize = 10
             rarity.fontColor = rimTint
             rarity.horizontalAlignmentMode = .left
             rarity.position = CGPoint(x: textLeft, y: 34)
@@ -8886,13 +8981,14 @@ final class OutpostScene: SKScene {
             titleLabel.text = (label.components(separatedBy: " • ").last ?? label)
                 .replacingOccurrences(of: "  LV ", with: "  +")
             titleLabel.fontSize = 14
+            titleLabel.numberOfLines = 2
+            titleLabel.lineBreakMode = .byWordWrapping
+            titleLabel.preferredMaxLayoutWidth = textWidth
+            titleLabel.verticalAlignmentMode = .top
             titleLabel.fontColor = .white
             titleLabel.horizontalAlignmentMode = .left
-            titleLabel.position = CGPoint(x: textLeft, y: 14)
+            titleLabel.position = CGPoint(x: textLeft, y: 28)
             root.addChild(titleLabel)
-            if titleLabel.frame.width > textWidth {
-                titleLabel.fontSize *= textWidth / titleLabel.frame.width
-            }
             let detailLabel = SKLabelNode(fontNamed: "AvenirNext-Medium")
             detailLabel.text = detail
             detailLabel.fontSize = 11
@@ -8901,7 +8997,7 @@ final class OutpostScene: SKScene {
             detailLabel.verticalAlignmentMode = .top
             detailLabel.numberOfLines = 2
             detailLabel.preferredMaxLayoutWidth = textWidth
-            detailLabel.position = CGPoint(x: textLeft, y: -4)
+            detailLabel.position = CGPoint(x: textLeft, y: -12)
             root.addChild(detailLabel)
             let ranks = ["chain": chainLevel, "explosive": explosiveLevel,
                          "incendiary": incendiaryLevel, "orbit": orbitLevel, "frost": frostLevel]
@@ -8912,13 +9008,20 @@ final class OutpostScene: SKScene {
             } else if choice == "evolveOrbit" {
                 context.text = "EVOLUTION READY  ·  SLOT KEPT"
             } else {
-                context.text = "INSTANT BENEFIT  ·  NO SLOT USED"
+                context.text = "INSTANT  ·  NO SLOT USED"
             }
-            context.fontSize = 8.5
+            context.fontSize = 9.5
             context.fontColor = rimTint
             context.horizontalAlignmentMode = .left
-            context.position = CGPoint(x: textLeft, y: -41)
+            context.verticalAlignmentMode = .center
+            context.position = CGPoint(x: textLeft, y: -46)
             root.addChild(context)
+            #if targetEnvironment(simulator)
+            precondition(titleLabel.frame.width <= textWidth + 1 &&
+                         !titleLabel.frame.intersects(detailLabel.frame) &&
+                         !detailLabel.frame.intersects(context.frame),
+                         "Ability card text must fit without title/detail/context collisions")
+            #endif
             // A short reveal happens outside the paused arena. The draw is
             // already fixed; skipping never rerolls or consumes a choice.
             if !UIAccessibility.isReduceMotionEnabled {
@@ -8931,11 +9034,15 @@ final class OutpostScene: SKScene {
             }
             overlayButtons[choice] = frame
         }
-        abilityRevealActive = !UIAccessibility.isReduceMotionEnabled
+        abilityRevealActive = qaReplay != nil || !UIAccessibility.isReduceMotionEnabled
         if abilityRevealActive {
-            overlay.run(.sequence([.wait(forDuration: 1.35), .run { [weak self] in
-                self?.finishAbilityReveal()
-            }]), withKey: "abilityRevealCompletion")
+            if qaReplay != nil {
+                qaRevealUntil = clock + 1.35
+            } else {
+                overlay.run(.sequence([.wait(forDuration: 1.35), .run { [weak self] in
+                    self?.finishAbilityReveal()
+                }]), withKey: "abilityRevealCompletion")
+            }
         }
         overlayText(abilityRevealActive ? "TAP TO REVEAL ALL" : "COMBAT PAUSED  •  SELECT TO RESUME", y: -298,
                     fontSize: 11, name: "levelUpFooter")
@@ -8950,6 +9057,10 @@ final class OutpostScene: SKScene {
         }
         #endif
         updateHUD()
+        #if targetEnvironment(simulator)
+        precondition(zoneBanner.isHidden && controlsHint.isHidden,
+                     "Combat banners and movement hints must not obscure reward card title/footer")
+        #endif
     }
 
     // Both profiles accept earned upgrades. Stationary means no movement
@@ -8959,6 +9070,7 @@ final class OutpostScene: SKScene {
         if phase == .playing { qaExitWaypoints.removeAll() }
         guard clock >= qaNextMenuActionAt else { return }
         if phase == .levelUp {
+            if qaReplay != nil && abilityRevealActive && clock >= qaRevealUntil { finishAbilityReveal() }
             guard !abilityRevealActive else { return }
             let priorities = health <= maximumHealth - 40
                 ? ["heal", "damage", "rate", "orbit", "chain", "explosive", "incendiary", "frost", "armor", "mobility", "supplies"]
@@ -8966,6 +9078,7 @@ final class OutpostScene: SKScene {
             guard let choice = priorities.first(where: { levelChoices.contains($0) }) ?? levelChoices.first,
                   let frame = overlayButtons[choice] else { return }
             let before = playtestUpgradesChosen
+            qaReplay?.record("choose room=\(wave) choice=\(choice) hp=\(health)")
             _ = activateLevelUp(at: CGPoint(x: frame.midX, y: frame.midY))
             print("[PHASE4 QA] choice=\(choice) accepted=\(playtestUpgradesChosen > before) room=\(wave)")
             fflush(stdout)
@@ -8978,6 +9091,21 @@ final class OutpostScene: SKScene {
             }
             qaNextMenuActionAt = clock + 0.5
         }
+    }
+
+    private func qaRecordState(_ event: String) {
+        guard let replay = qaReplay else { return }
+        func n(_ v: CGFloat) -> String { QAReplay.number(Double(v)) }
+        let foes = enemies.map { "\(n($0.node.position.x)),\(n($0.node.position.y)),\($0.health),\($0.behavior)" }.joined(separator: ";")
+        let shots = projectiles.map { "\(n($0.node.position.x)),\(n($0.node.position.y)),\(n($0.velocity.dx)),\(n($0.velocity.dy))" }.joined(separator: ";")
+        let fields: [String] = [event, "room=\(wave)", "phase=\(phase)",
+            "t=\(QAReplay.number(combatTime))", "pilot=\(n(pilot.position.x)),\(n(pilot.position.y))",
+            "hp=\(health)/\(maximumHealth)", "xp=\(progress.xp)", "level=\(progress.level)",
+            "damage=\(damage)", "rate=\(fireRate)",
+            "ranks=\(chainLevel),\(explosiveLevel),\(incendiaryLevel),\(orbitLevel),\(frostLevel)",
+            "spawned=\(spawned)", "integrity=\(defenseIntegrity)",
+            "rng=\(spawnRandom.draws),\(upgradeRandom.draws)", "foes=\(foes)", "shots=\(shots)"]
+        replay.record(fields.joined(separator: " "))
     }
 
     private func qaCombatTarget() -> CGPoint {
@@ -9022,10 +9150,13 @@ final class OutpostScene: SKScene {
         let goal = xpDrops.min(by: {
             distance($0.node.position, pilot.position) < distance($1.node.position, pilot.position)
         })?.node.position ?? CGPoint(x: roomBounds.midX, y: roomBounds.midY)
-        return QACombatDriver.target(origin: pilot.position, speed: pilotSpeed,
+        qaRecordState("steer")
+        let target = QACombatDriver.target(origin: pilot.position, speed: pilotSpeed,
             bounds: roomBounds.insetBy(dx: 16, dy: 16), threats: threats,
             aimWarnings: aimWarnings, goal: goal, previous: qaSteeringTarget,
             resolve: { [unowned self] from, to in self.resolvePilotMovement(from: from, to: to) })
+        qaReplay?.record("input x=\(QAReplay.number(Double(target.x))) y=\(QAReplay.number(Double(target.y)))")
+        return target
     }
 
     private func qaExitTarget() -> CGPoint {
@@ -9368,6 +9499,7 @@ final class OutpostScene: SKScene {
 
     private func showWorldCompleteSummary() {
         #if DEBUG
+        qaRecordState("terminal=complete")
         print("[PHASE4 PLAYTEST] outcome=complete world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen) level=\(progress.level)")
         fflush(stdout)
         #endif
@@ -9560,6 +9692,7 @@ final class OutpostScene: SKScene {
 
     private func endGame(_ reason: String = "PILOT DEFEATED") {
         #if DEBUG
+        qaRecordState("terminal=defeat")
         print("[PHASE4 PLAYTEST] outcome=defeat world=\(worldMapIndex + 1) room=\(wave) elapsed=\(Int(combatTime)) damage=\(progress.damageTaken) movement=\(Int(playtestMovementDistance)) kills=\(playtestEnemiesDefeated) upgrades=\(playtestUpgradesChosen) level=\(progress.level)")
         fflush(stdout)
         #endif
@@ -9588,6 +9721,7 @@ final class OutpostScene: SKScene {
         for enemy in enemies { enemy.node.removeFromParent() }
         enemies.removeAll()
         pendingFlankSwarm = nil
+        qaFlankDue = nil
         arena.children.filter { $0.name == "flankSwarmWarning" }
             .forEach { $0.removeFromParent() }
         bossNode = nil

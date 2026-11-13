@@ -3,9 +3,12 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 
 spec = importlib.util.spec_from_file_location(
     'simulator', Path(__file__).resolve().parents[1] / 'scripts/run_phase4_simulator.py')
@@ -14,6 +17,15 @@ spec.loader.exec_module(sim)
 
 
 class SetupTests(unittest.TestCase):
+    def test_controlled_case_cannot_fall_back_to_another_device_or_runtime(self):
+        result = subprocess.CompletedProcess('list', 0, json.dumps({'devices': {'other-runtime': [
+            {'name': 'iPhone', 'deviceTypeIdentifier': 'other-type'}]}}), '')
+        with patch.object(sim, 'command', return_value=result) as command, tempfile.TemporaryDirectory() as temp:
+            with self.assertRaisesRegex(RuntimeError, 'No available iPhone'):
+                with sim.fresh_simulator('moving', Path(temp), controlled=True):
+                    self.fail('Wrong environment must not be used')
+            self.assertEqual(command.call_count, 1)
+
     def test_cold_discovery_retries_before_creating_any_device(self):
         with patch.object(sim, 'command') as command, patch.object(sim.time, 'sleep') as sleep:
             command.side_effect = [subprocess.TimeoutExpired('list', 120),
@@ -60,7 +72,7 @@ class SetupTests(unittest.TestCase):
                     if gameplay_error:
                         raise RuntimeError('original gameplay failure')
             if failing_action:
-                with self.assertRaises(subprocess.TimeoutExpired):
+                with self.assertRaises(RuntimeError):
                     start()
             elif gameplay_error:
                 with self.assertRaisesRegex(RuntimeError, 'original gameplay failure'):
@@ -72,7 +84,7 @@ class SetupTests(unittest.TestCase):
     def test_fresh_device_never_uninstalls_or_touches_existing_device(self):
         calls = self.exercise()
         actions = [args[2] for args, _ in calls]
-        self.assertEqual(actions, ['list', 'create', 'boot', 'bootstatus', 'install', 'shutdown', 'delete'])
+        self.assertEqual(actions, ['list', 'create', 'boot', 'bootstatus', 'spawn', 'install', 'get_app_container', 'shutdown', 'delete'])
         self.assertFalse(any('existing-device' in args for args, _ in calls))
 
     def test_boot_readiness_timeout_blocks_install_and_cleans_up(self):
@@ -98,7 +110,8 @@ class CaptureTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             log = root / 'moving.log'
-            log.write_text('[PHASE4 QA] profile=moving started world=1\n'
+            log.write_text('[QA CONFIG] protocol=1 seed=335 hz=60 batch=2 profile=moving\n'
+                           '[PHASE4 QA] profile=moving started world=1\n'
                            '[PHASE4 PLAYTEST] outcome=complete world=1 room=20\n')
             def command(*args, **kwargs):
                 if 'screenshot' in args:
@@ -108,12 +121,27 @@ class CaptureTests(unittest.TestCase):
                 sim.run_campaign('moving', 10, root, log, root / 'stderr.log', 'device')
             self.assertTrue((root / 'moving-capture-errors.log').exists())
 
+    def test_real_defeat_or_wrong_seed_fails_without_relaunch(self):
+        for outcome, seed in [('defeat', 335), ('complete', 999)]:
+            with self.subTest(outcome=outcome, seed=seed), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                log = root / 'moving.log'
+                log.write_text(f'[QA CONFIG] protocol=1 seed={seed} hz=60 batch=2 profile=moving\n'
+                               '[PHASE4 QA] profile=moving started world=1\n'
+                               f'[PHASE4 PLAYTEST] outcome={outcome} world=1 room=9\n')
+                with patch.object(sim, 'command', return_value=subprocess.CompletedProcess('launch', 0, 'pid', '')) as command:
+                    with self.assertRaises(RuntimeError):
+                        sim.run_campaign('moving', 10, root, log, root / 'stderr.log', 'device')
+                    launches = [call for call in command.call_args_list if 'launch' in call.args]
+                    self.assertEqual(len(launches), 1)
+                    self.assertIn('-qaSeed', launches[0].args)
+
     def test_missing_outcome_still_fails(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             log = root / 'moving.log'
             log.write_text('[PHASE4 QA] profile=moving started world=1\n')
-            with patch.object(sim, 'command'):
+            with patch.object(sim, 'command', return_value=subprocess.CompletedProcess('launch', 0, 'pid', '')):
                 with self.assertRaisesRegex(TimeoutError, 'no terminal outcome'):
                     sim.run_campaign('moving', 0, root, log, root / 'stderr.log', 'device')
 
