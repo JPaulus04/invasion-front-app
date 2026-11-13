@@ -30,7 +30,19 @@ def command(*args, timeout=60, check=True):
 
 @contextmanager
 def fresh_simulator(profile, output):
-    devices = json.loads(command('xcrun', 'simctl', 'list', 'devices', 'available', '-j').stdout)
+    # Match the proven presentation setup: cold CoreSimulator discovery can
+    # exceed 60 seconds before the app has even been installed. Retry setup
+    # only; never restart a campaign or manufacture a missing outcome.
+    for attempt in range(3):
+        try:
+            devices = json.loads(command(
+                'xcrun', 'simctl', 'list', 'devices', 'available', '-j',
+                timeout=120).stdout)
+            break
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+            if attempt == 2:
+                raise
+            time.sleep(12)
     candidates = [(runtime, device) for runtime, group in devices['devices'].items()
                   for device in group if device.get('isAvailable', True)
                   and device['name'].startswith('iPhone')

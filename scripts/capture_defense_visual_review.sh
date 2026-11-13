@@ -17,6 +17,10 @@ PY
 # Let a fresh service finish first-boot data migration. Killing it
 # before listing devices made the migrations restart on some hosts.
 # Fallback to a second available iPhone only after bounded readiness.
+# CI supplies a freshly created, booted and installed disposable simulator.
+# Keep the standalone local fallback for developers invoking this shell script.
+DEVICE="${OUTPOST_ZERO_SIMULATOR_UDID:-}"
+if [ -z "$DEVICE" ]; then
 DEVICE=""
 DEVICE_CANDIDATES="$(xcrun simctl list devices available -j | python3 -c '
 import json, sys
@@ -47,6 +51,7 @@ done
 if [ -z "$DEVICE" ]; then
   echo "::error::No available iPhone simulator reached boot readiness"
   exit 1
+fi
 fi
 echo "Simulator ready: $DEVICE"
 # Verify CoreSimulator can actually deliver pixels before the expensive review.
@@ -90,6 +95,7 @@ export REQUIRE_WORLD_ONE_ART="${REQUIRE_WORLD_ONE_ART:-0}"
 capture_scene() {
   FLAG="$1"
   OUTPUT="$2"
+  LAUNCHED=0
   for ATTEMPT in 1 2 3; do
     run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
     # Give SpringBoard time to remove the previous game's surface
@@ -121,6 +127,7 @@ capture_scene() {
       sleep 4
       continue
     fi
+    LAUNCHED=1
     sleep 8
     if run_bounded 55 xcrun simctl io "$DEVICE" screenshot "$OUTPUT" &&
        python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
@@ -145,6 +152,10 @@ capture_scene() {
     fi
     sleep 4
   done
+  if [ "$LAUNCHED" = 0 ]; then
+    echo "::error::Simulator never completed launch for $FLAG; infrastructure failure"
+    return 75
+  fi
   echo "::error::Simulator never rendered a usable frame for $FLAG"
   # Leave a useful reason in CI when the app exits after launch.
   run_bounded 25 xcrun simctl spawn "$DEVICE" log show \

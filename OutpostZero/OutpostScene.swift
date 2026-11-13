@@ -1173,11 +1173,22 @@ final class OutpostScene: SKScene {
             startWave()  // Room 6: same encounter entry path as real gameplay.
             precondition(activeEncounter == .survival && expandedArenaPreview,
                          "Survival capture must use the scheduled production encounter")
+            // Validate the approved painted floor, not the retired procedural
+            // relief layer. Requiring materialRelief crashed this fixture before
+            // its identity marker could render (CI captured SpringBoard).
+            guard let survivalFloor = arena.childNode(withName: "roomArtwork")?
+                .childNode(withName: "world1AuthoredFloor") as? SKSpriteNode,
+                let survivalTexture = survivalFloor.texture else {
+                preconditionFailure("Survival capture requires the authored floor texture")
+            }
             precondition(arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden == true &&
-                         arena.childNode(withName: "roomArtwork")?
-                            .childNode(withName: "world1AuthoredFloor")?
-                            .childNode(withName: "materialRelief") != nil,
-                         "Survival capture must preserve the production terrain stack")
+                         survivalFloor.frame.contains(roomBounds) &&
+                         survivalFloor.childNode(withName: "materialRelief") == nil &&
+                         survivalFloor.childNode(withName: "canopyLight") != nil &&
+                         survivalFloor.childNode(withName: "ambientBounceLight") != nil &&
+                         abs(survivalFloor.size.width / survivalFloor.size.height -
+                             survivalTexture.size().width / survivalTexture.size().height) < 0.001,
+                         "Survival capture must preserve the approved aspect-correct painted terrain and lighting")
             pilot.position = CGPoint(x: roomBounds.midX,
                                       y: roomBounds.midY - roomBounds.height * 0.13)
             arena.position = ArenaLayout.offset(for: pilot.position,
@@ -2462,6 +2473,9 @@ final class OutpostScene: SKScene {
         floorNumber.position = CGPoint(x: centerX, y: top - 39)
         // Compact benchmark-style encounter timer, directly beneath the route.
         survivalClock.position = CGPoint(x: size.width / 2, y: top - 85)
+        // Reserve horizontal space for controls and keep long objective labels
+        // from running through the neighboring HUD elements.
+        survivalClock.fontSize = 15
         survivalClock.childNode(withName: "objectivePlate")?.removeFromParent()
         title.position = CGPoint(x: size.width / 2, y: size.height - 99)
         // Reserve the first HUD row for the objective, leaving the floor counter at left.
@@ -2535,9 +2549,12 @@ final class OutpostScene: SKScene {
         // states; do not overwrite it here with the legacy survival-only HUD.
         pilotHealthFill.xScale = max(0.001, min(1,
             CGFloat(health) / CGFloat(max(1, maximumHealth))))
-        pilotHealthFill.fillColor = health <= maximumHealth / 3 ? .systemRed : .systemGreen
-        // Health is represented by the persistent HUD; never render a second bar on the pilot.
-        pilotHealthTrack.isHidden = true
+        let pilotHealthFraction = CGFloat(health) / CGFloat(max(1, maximumHealth))
+        pilotHealthFill.fillColor = pilotHealthFraction <= 0.25 ? .systemRed
+            : (pilotHealthFraction <= 0.5 ? .systemYellow : .systemGreen)
+        // Keep local combat feedback directly beneath the pilot as well as in the HUD.
+        // Hide it outside active combat and while choosing an upgrade.
+        pilotHealthTrack.isHidden = phase != .playing || abilityRevealActive
         let speedText = fastForward ? "2× SPEED" : "1× SPEED"
         if speedLabel.text != speedText { speedLabel.text = speedText }
         speedButton.fillColor = fastForward ? .systemOrange : .systemBlue
@@ -5537,9 +5554,9 @@ final class OutpostScene: SKScene {
             // Approved mossy stone arena is the World 1 foundation. Previously
             // the landscape-specific paintings took priority, so the approved
             // stone asset was never displayed even when bundled correctly.
-            let authoredFloorTexture = stoneArenaTexture ?? landscapeFloorTexture
+            let authoredFloorTexture = landscapeFloorTexture ?? stoneArenaTexture
             #if DEBUG
-            print("[WORLD1 FLOOR] requested=\(artName) selected=\(stoneArenaTexture != nil ? "world1_overgrown_stone_arena" : (landscapeFloorTexture == nil ? "missing" : artName))")
+            print("[WORLD1 FLOOR] requested=\(artName) selected=\(landscapeFloorTexture != nil ? artName : (stoneArenaTexture == nil ? "missing" : "world1_overgrown_stone_arena"))")
             #endif
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
                authoredFloorTexture == nil {
@@ -5554,16 +5571,24 @@ final class OutpostScene: SKScene {
                 // even in standard rooms. A small camera offset previously
                 // exposed the flat fallback ground as a straight strip along
                 // the lower edge of the first Toxic Caves capture.
-                let paintedBounds = expandedArenaPreview
-                    ? roomBounds.insetBy(dx: -80, dy: -80)
-                    : CGRect(x: roomBounds.minX - 55, y: roomBounds.minY - 55,
-                             width: roomBounds.width + 110, height: roomBounds.height + 200)
+                // World 1 must not re-size the authored paving when the encounter
+                // switches between the tactical viewport and survival camera.
+                // Keep the artwork in one stable world-space frame and let the
+                // camera reveal/crop that frame as appropriate.
+                let artworkArena = worldMapIndex == 0
+                    ? ArenaLayout.bounds(for: size) : roomBounds
+                let paintedBounds = CGRect(
+                    x: artworkArena.minX - 80, y: artworkArena.minY - 80,
+                    width: artworkArena.width + 160,
+                    height: artworkArena.height + 160)
                 let textureSize = texture.size()
                 let coverScale = max(paintedBounds.width / max(1, textureSize.width),
                                      paintedBounds.height / max(1, textureSize.height))
-                floorArt.size = expandedArenaPreview
-                    ? CGSize(width: textureSize.width * coverScale, height: textureSize.height * coverScale)
-                    : paintedBounds.size
+                // Use one aspect-preserving cover rule for every encounter type.
+                // Stretching the floor to paintedBounds independently in X and Y
+                // distorted the paving whenever the room/camera dimensions changed.
+                floorArt.size = CGSize(width: textureSize.width * coverScale,
+                                       height: textureSize.height * coverScale)
                 floorArt.position = CGPoint(x: paintedBounds.midX, y: paintedBounds.midY)
                 floorArt.zPosition = -18.5
                 if floorArt.parent == nil { roomArt?.addChild(floorArt) }
