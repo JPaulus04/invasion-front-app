@@ -14,6 +14,26 @@ spec.loader.exec_module(sim)
 
 
 class SetupTests(unittest.TestCase):
+    def test_cold_discovery_retries_before_creating_any_device(self):
+        with patch.object(sim, 'command') as command, patch.object(sim.time, 'sleep') as sleep:
+            command.side_effect = [subprocess.TimeoutExpired('list', 120),
+                                   subprocess.CompletedProcess('list', 0, '{"devices": {}}', '')]
+            with tempfile.TemporaryDirectory() as temp:
+                with self.assertRaisesRegex(RuntimeError, 'No available iPhone'):
+                    with sim.fresh_simulator('stationary', Path(temp)):
+                        self.fail('No device should be created')
+            self.assertEqual(command.call_count, 2)
+            self.assertTrue(all(c.kwargs['timeout'] == 120 for c in command.call_args_list))
+            sleep.assert_called_once_with(12)
+
+    def test_discovery_exhaustion_is_a_failure(self):
+        with patch.object(sim, 'command', side_effect=subprocess.TimeoutExpired('list', 120)) as command, patch.object(sim.time, 'sleep'):
+            with tempfile.TemporaryDirectory() as temp:
+                with self.assertRaises(subprocess.TimeoutExpired):
+                    with sim.fresh_simulator('stationary', Path(temp)):
+                        self.fail('Unready simulator must fail')
+            self.assertEqual(command.call_count, 3)
+
     def exercise(self, failing_action=None, cleanup_timeout=False, gameplay_error=False):
         calls = []
 
