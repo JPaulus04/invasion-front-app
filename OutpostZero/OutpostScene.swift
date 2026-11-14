@@ -7603,7 +7603,9 @@ final class OutpostScene: SKScene {
                     let motion: WorldOneEnemyAnimation.Motion = advancing ? .move : .idle
                     let state = "build337.mossbot.\(motion.rawValue)"
                     let activeMotion = enemyArt.userData?["build337Motion"] as? String
-                    if activeMotion != "build337.mossbot.hit" && activeMotion != state {
+                    if activeMotion != "build337.mossbot.hit" &&
+                        activeMotion != "build337.mossbot.attack" &&
+                        activeMotion != state {
                         if WorldOneEnemyAnimation.play(motion, enemy: "mossbot", on: enemyArt) {
                             if enemyArt.userData == nil {
                                 enemyArt.userData = NSMutableDictionary()
@@ -7665,10 +7667,12 @@ final class OutpostScene: SKScene {
             }
             if activeEncounter == .equipmentDefense && enemy.behavior < 4 &&
                 distance(enemy.node.position, defenseDevice.position) < enemy.radius + 28 {
+                reviewMossbotAttack(on: enemy)
                 damageDefenseDevice()
                 if phase != .playing { return }
             }
             if distance(enemy.node.position, pilot.position) < enemy.radius + 14 {
+                reviewMossbotAttack(on: enemy)
                 damagePilot(enemy.node === bossNode ? 12 : (enemy.behavior == 3 ? 8 : 5))
             }
         }
@@ -8264,6 +8268,34 @@ final class OutpostScene: SKScene {
         energyWheelNode = wheel
         lastEnergyWheelHit.removeAll()
         return true
+    }
+
+    // Build 337: art-only contact attack cue. The existing contact damage
+    // remains authoritative; animation never delays or multiplies damage.
+    private func reviewMossbotAttack(on enemy: Enemy) {
+        guard worldMapIndex == 0,
+              enemy.behavior == 0,
+              ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot"),
+              let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode,
+              let frames = WorldOneEnemyAnimation.textures(enemy: "mossbot", motion: .attack)
+        else { return }
+        if art.userData == nil { art.userData = NSMutableDictionary() }
+        let current = art.userData?["build337Motion"] as? String
+        if current == "build337.mossbot.hit" || current == "build337.mossbot.attack" {
+            return
+        }
+        let previous = art.userData?["build337LastAttackAt"] as? Double ?? -100
+        guard combatTime - previous >= 0.75 else { return }
+        art.userData?["build337LastAttackAt"] = combatTime
+        art.userData?["build337Motion"] = "build337.mossbot.attack"
+        art.removeAction(forKey: "build337.enemy.motion")
+        art.run(.sequence([
+            .animate(with: frames,
+                     timePerFrame: 1.0 / WorldOneEnemyAnimation.Motion.attack.framesPerSecond),
+            .run { [weak art] in
+                art?.userData?.removeObject(forKey: "build337Motion")
+            }
+        ]), withKey: "build337.enemy.motion")
     }
 
     // Build 337: optional hit reaction for the World 1 basic enemy.
