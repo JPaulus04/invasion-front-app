@@ -787,6 +787,14 @@ jobs:
               ("-captureCombatScreenshot","combat-hud"),
               ("-captureEquipmentDefenseClearScreenshot","reactor-secured"),
               ("-captureEquipmentDefenseFailureScreenshot","reactor-lost"),
+              ("-captureWorldOneOutpostScreenshot -baselineStoneScale","floor-short-before"),
+              ("-captureWorldOneOutpostScreenshot","floor-short-after"),
+              ("-captureSurvivalExtractionScreenshot -baselineStoneScale","floor-arena-before"),
+              ("-captureSurvivalExtractionScreenshot","floor-arena-after"),
+              ("-captureSurvivalTransitionScreenshot -baselineStoneScale","floor-transition-before"),
+              ("-captureSurvivalTransitionScreenshot","floor-transition-after"),
+              ("-captureEquipmentDefenseScreenshot -baselineStoneScale","floor-reactor-before"),
+              ("-captureEquipmentDefenseScreenshot","floor-reactor-after"),
               ("-cameraReviewEntry","camera-entry"),
               ("-cameraReviewMiddle","camera-middle"),
               ("-cameraReviewMotion","camera-motion"),
@@ -821,7 +829,7 @@ jobs:
                           if device is None: device=new_device()
                           stdout=pathlib.Path(f"screenshots/phase4-{name}-stdout.log").resolve()
                           stderr=pathlib.Path(f"screenshots/phase4-{name}-stderr.log").resolve()
-                          launch_flags = ["-captureGateScreenshot", flag] if camera_review else [flag]
+                          launch_flags = ["-captureGateScreenshot", flag] if camera_review else flag.split()
                           recording = None
                           video = pathlib.Path("screenshots/camera-traversal.mov")
                           if name == "camera-motion":
@@ -886,7 +894,7 @@ jobs:
               discard(device)
           PY
       - name: Validate captured frames
-        run: python3 scripts/validate_simulator_screenshots.py screenshots/phase4-{exit-beacon,upgrade-cards,reactor,victory,combat-hud,reactor-secured,reactor-lost}.png
+        run: python3 scripts/validate_simulator_screenshots.py screenshots/phase4-{exit-beacon,upgrade-cards,reactor,victory,combat-hud,reactor-secured,reactor-lost}.png screenshots/phase4-floor-*.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:
