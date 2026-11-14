@@ -5155,6 +5155,24 @@ final class OutpostScene: SKScene {
         let scheduled = SurvivalEncounterRules.kind(world: worldMapIndex, room: wave)
         activeEncounter = scheduled == .survival || scheduled == .equipmentDefense
             ? scheduled : .tactical
+        // Build 337: observe the actual encounter schedule before enabling
+        // authored geometry. The planner does not yet change collision, camera
+        // or live room bounds; this diagnostic is opt-in for simulator QA.
+        #if DEBUG
+        if worldMapIndex == 0 &&
+            ProcessInfo.processInfo.arguments.contains("-reviewBuild337Layouts") {
+            let encounter: WorldOneRoomGeometry.Encounter
+            switch activeEncounter {
+            case .survival: encounter = .survival
+            case .equipmentDefense: encounter = .equipmentDefense
+            default: encounter = .tactical
+            }
+            let planned = WorldOneRoomGeometry.make(
+                room: wave, playerWidth: 28, encounter: encounter)
+            print("[BUILD337 LAYOUT] room=\(wave) kind=\(planned.kind) " +
+                  "bounds=\(planned.bounds) approaches=\(planned.approachPoints.count)")
+        }
+        #endif
         // Only explicit expanded-arena review fixtures may retain a large
         // camera in a tactical room; live survival -> tactical must reset it.
         let retainQACamera = ProcessInfo.processInfo.arguments.contains {
