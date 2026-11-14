@@ -19,20 +19,24 @@ enum WorldOneRoomGeometry {
         let decorationExclusion: CGRect
     }
 
-    static func kind(room: Int, survivalRooms: Set<Int> = [5, 10, 15]) -> Kind {
+    static func kind(room: Int, encounter: Encounter) -> Kind {
         if room == 20 { return .rootLord }
-        if room == 12 { return .defense }
-        if survivalRooms.contains(room) { return .survival }
-        return .passage
+        switch encounter {
+        case .tactical: return .passage
+        case .survival: return .survival
+        case .equipmentDefense: return .defense
+        }
     }
+
+    enum Encounter { case tactical, survival, equipmentDefense }
 
     /// A layout contract, not an arena resizing operation. The caller supplies
     /// a fixed world-space unit (typically the live player's collision width).
     static func make(room: Int, playerWidth: CGFloat,
-                     survivalRooms: Set<Int> = [5, 10, 15]) -> Layout {
+                     encounter: Encounter) -> Layout {
         precondition((1...20).contains(room))
         precondition(playerWidth > 0 && playerWidth.isFinite)
-        let kind = kind(room: room, survivalRooms: survivalRooms)
+        let kind = kind(room: room, encounter: encounter)
         let u = playerWidth
         switch kind {
         case .passage:
