@@ -7594,6 +7594,23 @@ final class OutpostScene: SKScene {
                 phase: enemy.weavePhase, moving: advancing,
                 aiming: enemies[index].shotTarget != nil)
             if let enemyArt = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                // Build 337: preview the new Mossbot animations only when the
+                // complete frame sets exist. The visual controller never
+                // changes movement, collisions, attacks, or enemy statistics.
+                // Restrict this first integration to World 1's grunt class.
+                if worldMapIndex == 0 && enemy.behavior == 0 &&
+                    ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot") {
+                    let motion: WorldOneEnemyAnimation.Motion = advancing ? .move : .idle
+                    let state = "build337.mossbot.\(motion.rawValue)"
+                    if enemyArt.userData?["build337Motion"] as? String != state {
+                        if WorldOneEnemyAnimation.play(motion, enemy: "mossbot", on: enemyArt) {
+                            if enemyArt.userData == nil {
+                                enemyArt.userData = NSMutableDictionary()
+                            }
+                            enemyArt.userData?["build337Motion"] = state
+                        }
+                    }
+                }
                 // Let momentum register in the illustration without rotating
                 // collision geometry, health bars or attack telegraphs.
                 let travelDX = enemy.node.position.x - current.x
