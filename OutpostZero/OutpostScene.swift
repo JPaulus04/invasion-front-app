@@ -5171,6 +5171,11 @@ final class OutpostScene: SKScene {
                 room: wave, playerWidth: 28, encounter: encounter)
             print("[BUILD337 LAYOUT] room=\(wave) kind=\(planned.kind) " +
                   "bounds=\(planned.bounds) approaches=\(planned.approachPoints.count)")
+            // The review overlay is intentionally opt-in and visual only.
+            // It cannot change live gameplay or falsely imply that the
+            // new room geometry has been enabled for players.
+            arena.childNode(withName: "build337LayoutReview")?.removeFromParent()
+            arena.addChild(WorldOneLayoutReview.make(planned))
         }
         #endif
         // Only explicit expanded-arena review fixtures may retain a large
