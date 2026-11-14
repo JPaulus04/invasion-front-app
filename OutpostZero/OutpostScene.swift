@@ -8624,6 +8624,29 @@ final class OutpostScene: SKScene {
                                        radius: enemies[index].radius,
                                        role: enemies[index].behavior,
                                        isBoss: defeatedBoss)
+            // Build 337: optional art-only defeat sequence. The enemy is
+            // removed from the authoritative combat array immediately, so
+            // rewards, room completion, and collisions remain unchanged.
+            // If the final PNG set is absent, retain existing defeat feedback.
+            if worldMapIndex == 0 && !defeatedBoss &&
+                enemies[index].behavior == 0 &&
+                ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot"),
+                let frames = WorldOneEnemyAnimation.textures(
+                    enemy: "mossbot", motion: .defeat),
+                let source = enemies[index].node.childNode(
+                    withName: "enemyArt") as? SKSpriteNode {
+                let visual = SKSpriteNode(texture: frames[0], size: source.size)
+                visual.position = enemies[index].node.position
+                visual.zPosition = enemies[index].node.zPosition + 0.1
+                visual.xScale = source.xScale
+                visual.yScale = source.yScale
+                arena.addChild(visual)
+                visual.run(.sequence([
+                    .animate(with: frames,
+                             timePerFrame: 1.0 / WorldOneEnemyAnimation.Motion.defeat.framesPerSecond),
+                    .removeFromParent()
+                ]))
+            }
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
         }
