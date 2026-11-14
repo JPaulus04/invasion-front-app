@@ -7602,7 +7602,8 @@ final class OutpostScene: SKScene {
                     ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot") {
                     let motion: WorldOneEnemyAnimation.Motion = advancing ? .move : .idle
                     let state = "build337.mossbot.\(motion.rawValue)"
-                    if enemyArt.userData?["build337Motion"] as? String != state {
+                    let activeMotion = enemyArt.userData?["build337Motion"] as? String
+                    if activeMotion != "build337.mossbot.hit" && activeMotion != state {
                         if WorldOneEnemyAnimation.play(motion, enemy: "mossbot", on: enemyArt) {
                             if enemyArt.userData == nil {
                                 enemyArt.userData = NSMutableDictionary()
