@@ -8265,6 +8265,29 @@ final class OutpostScene: SKScene {
         return true
     }
 
+    // Build 337: optional hit reaction for the World 1 basic enemy.
+    // Playback is art-only; all damage and death decisions remain authoritative.
+    private func reviewMossbotHit(at index: Int) {
+        guard worldMapIndex == 0,
+              ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot"),
+              enemies.indices.contains(index),
+              enemies[index].behavior == 0,
+              enemies[index].health > 0,
+              let art = enemies[index].node.childNode(withName: "enemyArt") as? SKSpriteNode,
+              let frames = WorldOneEnemyAnimation.textures(enemy: "mossbot", motion: .hit)
+        else { return }
+        art.removeAction(forKey: "build337.enemy.motion")
+        if art.userData == nil { art.userData = NSMutableDictionary() }
+        art.userData?["build337Motion"] = "build337.mossbot.hit"
+        art.run(.sequence([
+            .animate(with: frames,
+                     timePerFrame: 1.0 / WorldOneEnemyAnimation.Motion.hit.framesPerSecond),
+            .run { [weak art] in
+                art?.userData?.removeObject(forKey: "build337Motion")
+            }
+        ]), withKey: "build337.enemy.motion")
+    }
+
     private func updateEnergyWheel() {
         guard energyWheelEvolved, let wheel = energyWheelNode else { return }
         wheel.position = pilot.position
@@ -8284,6 +8307,7 @@ final class OutpostScene: SKScene {
             impact(at: enemy.node.position, color: .systemCyan,
                    destroyed: enemies[index].health <= 0)
             EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
+            reviewMossbotHit(at: index)
             updateEnemyHealthBar(at: index)
             // Retain the Arc Blades combination when the individual orbiting
             // projectiles evolve. Evolution must not remove earned synergies.
@@ -8440,6 +8464,7 @@ final class OutpostScene: SKScene {
                destroyed: enemies[index].health <= totalBulletDamage)
         enemies[index].health -= totalBulletDamage
         EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
+        reviewMossbotHit(at: index)
         if incendiaryLevel > 0 {
             burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus + gearReactorBonus + permanent.rank("incendiary"), until: combatTime + AbilitySynergies.burnDuration(
                 incendiary: incendiaryLevel, explosive: explosiveLevel),
