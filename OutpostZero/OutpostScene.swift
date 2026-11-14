@@ -1486,7 +1486,10 @@ final class OutpostScene: SKScene {
             update(1_000)
             precondition(wave == 7 && activeEncounter == .tactical &&
                          phase == .playing && !expandedArenaPreview &&
-                         distance(arena.position, CampaignCamera.offset(for: pilot.position, viewportSize: size)) < 1 && enemies.isEmpty &&
+                         distance(arena.position, WorldOneFraming.offset(pilot: pilot.position,
+                             room: roomBounds, size: size,
+                             safeTop: view?.safeAreaInsets.top ?? 0,
+                             safeBottom: view?.safeAreaInsets.bottom ?? 0)) < 1 && enemies.isEmpty &&
                          extractionPortal.isHidden && passageGate.isHidden &&
                          zoneBanner.text != "EXTRACTION OPEN",
                          "Room 7 must reset camera, enemies and extraction UI")
@@ -5608,14 +5611,13 @@ final class OutpostScene: SKScene {
             }
             let artName = "world1_\(landscape)_floor_\(wave == 20 ? 1 : landscapeVisit % 3 + 1)"
             let stoneArenaTexture = worldOneTexture(named: "world1_overgrown_stone_arena")
-            // Preserve landscape-specific stone, moss and ground scale instead of
-            // stretching one universal stone-arena painting across every room.
-            // The approved stone arena remains a fallback if a zone asset is absent.
             let landscapeFloorTexture = worldOneTexture(named: artName)
-            // Approved mossy stone arena is the World 1 foundation. Previously
-            // the landscape-specific paintings took priority, so the approved
-            // stone asset was never displayed even when bundled correctly.
-            let authoredFloorTexture = stoneArenaTexture ?? landscapeFloorTexture
+            // Keep the approved perimeter and independently resample its paving.
+            // A fixed expanded-arena cover previously magnified stones in every
+            // short encounter. Only the floor pixels change, never world geometry.
+            let authoredFloorTexture = stoneArenaTexture.map {
+                WorldOneStoneFloor.texture(from: $0, expanded: expandedArenaPreview)
+            } ?? landscapeFloorTexture
             #if DEBUG
             print("[WORLD1 FLOOR] requested=\(artName) selected=\(stoneArenaTexture != nil ? "world1_overgrown_stone_arena" : (landscapeFloorTexture == nil ? "missing" : artName))")
             #endif
