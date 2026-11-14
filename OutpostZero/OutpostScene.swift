@@ -1488,8 +1488,8 @@ final class OutpostScene: SKScene {
                          phase == .playing && !expandedArenaPreview &&
                          distance(arena.position, WorldOneFraming.offset(pilot: pilot.position,
                              room: roomBounds, size: size,
-                             safeTop: view?.safeAreaInsets.top ?? 0,
-                             safeBottom: view?.safeAreaInsets.bottom ?? 0)) < 1 && enemies.isEmpty &&
+                             safeTop: view.safeAreaInsets.top,
+                             safeBottom: view.safeAreaInsets.bottom)) < 1 && enemies.isEmpty &&
                          extractionPortal.isHidden && passageGate.isHidden &&
                          zoneBanner.text != "EXTRACTION OPEN",
                          "Room 7 must reset camera, enemies and extraction UI")
