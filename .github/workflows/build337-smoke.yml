@@ -53,18 +53,24 @@ jobs:
               run("xcrun","simctl","list","devices","booted",timeout=30,check=False)
               run("xcrun","simctl","io",device,"screenshot","diagnostics/install-timeout.png",timeout=35,check=False)
               raise
-          try:
-              run("xcrun","simctl","launch",device,"com.paulus.laststandcommand","-captureWorldOneOutpostScreenshot","-reviewBuild337Mossbot",timeout=65)
-              time.sleep(10)
-              run("xcrun","simctl","io",device,"screenshot","screenshots/build337-world1-smoke.png",timeout=65)
-          except Exception:
-              run("xcrun","simctl","spawn",device,"log","show","--last","3m","--style","compact","--predicate",'process == "OutpostZero"',timeout=40,check=False)
-              raise
+          def capture(label, flag, mossbot=False):
+              run("xcrun","simctl","terminate",device,"com.paulus.laststandcommand",timeout=25,check=False)
+              args=["xcrun","simctl","launch",device,"com.paulus.laststandcommand",flag]
+              if mossbot: args.append("-reviewBuild337Mossbot")
+              try:
+                  run(*args,timeout=55)
+                  time.sleep(8)
+                  run("xcrun","simctl","io",device,"screenshot",f"screenshots/build337-{label}.png",timeout=45)
+              except Exception as exc:
+                  pathlib.Path(f"diagnostics/{label}-failure.txt").write_text(str(exc))
+                  run("xcrun","simctl","list","devices","booted",timeout=25,check=False)
+                  run("xcrun","simctl","io",device,"screenshot",f"diagnostics/{label}-simulator.png",timeout=25,check=False)
+                  raise
+          # Baseline without opt-in artwork distinguishes simulator launch from animation initialization.
+          capture("world1-baseline","-captureWorldOneOutpostScreenshot")
+          capture("world1-mossbot","-captureWorldOneOutpostScreenshot",True)
           for label,flag in [("swamp","-captureWorldOneSwampScreenshot"),("caves","-captureWorldOneCavesScreenshot"),("boss","-captureWorldOneBossScreenshot")]:
-                  run("xcrun","simctl","terminate",device,"com.paulus.laststandcommand",timeout=30,check=False)
-                  run("xcrun","simctl","launch",device,"com.paulus.laststandcommand",flag,"-reviewBuild337Mossbot",timeout=65)
-                  time.sleep(7)
-                  run("xcrun","simctl","io",device,"screenshot",f"screenshots/build337-{label}.png",timeout=65)
+              capture(label,flag,True)
           PY
           python3 scripts/validate_simulator_screenshots.py screenshots/*.png
       - name: Upload smoke screenshot and diagnostics
