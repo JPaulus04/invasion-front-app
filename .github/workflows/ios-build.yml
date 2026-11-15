@@ -878,11 +878,18 @@ jobs:
                               camera = [float(row[1]) for row in samples]
                               if max(pilot)-min(pilot) < 40:
                                   raise RuntimeError("Pilot failed to traverse the real collision map")
-                              # Build 335 fits the full tactical room + north portal
-                              # below the HUD. Its camera must stay stable while the
-                              # pilot moves; expanded survival follow is tested separately.
-                              if max(camera)-min(camera) > 1:
-                                  raise RuntimeError("Fitted tactical framing drifted during traversal")
+                              # Build 337 passage rooms are taller than the viewport:
+                              # following the pilot is intentional, unlike Build 335's
+                              # fitted-room camera. Reject sudden jumps or camera motion
+                              # opposite to forward traversal rather than requiring a
+                              # stationary camera through a scrolling corridor.
+                              for index in range(1, len(samples)):
+                                  pilot_delta = pilot[index] - pilot[index - 1]
+                                  camera_delta = camera[index] - camera[index - 1]
+                                  if abs(camera_delta) > 260:
+                                      raise RuntimeError("Camera jumped during corridor traversal")
+                                  if pilot_delta > 1 and camera_delta > 2:
+                                      raise RuntimeError("Camera moved opposite to forward traversal")
                           run(["xcrun","simctl","io",device,"screenshot",str(output)],65)
                           if not output.is_file() or output.stat().st_size < 4096:
                               raise RuntimeError(f"{name}: missing or empty screenshot")
