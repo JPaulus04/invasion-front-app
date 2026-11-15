@@ -30,7 +30,7 @@ jobs:
           set -euo pipefail
           xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build > smoke-build.log 2>&1 || { tail -100 smoke-build.log; exit 1; }
       - name: Launch World 1 and capture five review frames
-        if: github.event_name == 'workflow_dispatch'
+        if: (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[visual-review]'))
         run: |
           set -euo pipefail
           mkdir -p screenshots diagnostics
@@ -95,7 +95,7 @@ jobs:
           PY
           python3 scripts/validate_simulator_screenshots.py screenshots/*.png
       - name: Upload smoke screenshot and diagnostics
-        if: always() && github.event_name == 'workflow_dispatch'
+        if: always() && (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[visual-review]'))
         uses: actions/upload-artifact@v4
         with:
           name: build337-simulator-smoke
