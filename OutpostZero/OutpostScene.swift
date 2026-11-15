@@ -444,6 +444,16 @@ final class OutpostScene: SKScene {
         }
         return expandedArenaPreview ? ArenaLayout.bounds(for: size) : RoomRules.bounds(for: size)
     }
+    // One shared exit anchor for initial layout and subsequent room transitions.
+    // The artwork stays inset against the far wall, rather than floating in combat.
+    private var authoredGatePosition: CGPoint {
+        if let layout = worldOneLiveLayout, let exit = layout.exit {
+            return CGPoint(x: roomBounds.minX + exit.x,
+                           y: roomBounds.minY + exit.y)
+        }
+        return CGPoint(x: roomBounds.midX,
+                       y: roomBounds.maxY - (worldMapIndex == 0 ? 14 : 112))
+    }
     private var entryPoint: CGPoint {
         if let layout = worldOneLiveLayout {
             let b = roomBounds
@@ -2401,7 +2411,7 @@ final class OutpostScene: SKScene {
 
     private func layout() {
         if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - (worldMapIndex == 0 ? 14 : 112))
+        passageGate.position = authoredGatePosition
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
@@ -4803,8 +4813,16 @@ final class OutpostScene: SKScene {
     private func installDefenseDevice() {
         // A readable field-power reactor, not a flat blue prototype tile.
         // All parts are visual children of the unchanged objective hit target.
-        let desired = CGPoint(x: roomBounds.midX,
+        // Respect the authored defense objective; retain the legacy placement
+        // for other worlds, where Build 337 layouts are not active.
+        let desired: CGPoint
+        if let layout = worldOneLiveLayout, let objective = layout.objective {
+            desired = CGPoint(x: roomBounds.minX + objective.x,
+                              y: roomBounds.minY + objective.y)
+        } else {
+            desired = CGPoint(x: roomBounds.midX,
                               y: roomBounds.midY + roomBounds.height * 0.08)
+        }
         defenseDevice.position = TerrainHazards.extractionPosition(
             near: desired, in: roomBounds, patches: roomHazards)
         // Collision in pilot-origin coordinates: the visible feet sit at -27.
@@ -5205,7 +5223,7 @@ final class OutpostScene: SKScene {
         pilot.position = entryPoint
         updateArenaCamera(delta: 1)
         // Seat the exit against the far boundary rather than in the arena center.
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - (worldMapIndex == 0 ? 14 : 112))
+        passageGate.position = authoredGatePosition
         extractionPortal.isHidden = true
         checkpointButton.position = CGPoint(
             x: size.width / 2, y: RoomRules.bounds(for: size).minY + 25)
