@@ -1,0 +1,64 @@
+name: Build 337 Simulator Smoke Test
+on:
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate art and project
+        run: |
+          set -euo pipefail
+          python3 scripts/generate_icon.py
+          python3 scripts/generate_forest_art.py
+          python3 scripts/generate_pilot_art.py
+          python3 scripts/generate_enemy_art.py
+          xcodegen generate
+      - name: Compile simulator app
+        run: |
+          set -euo pipefail
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build > smoke-build.log 2>&1 || { tail -100 smoke-build.log; exit 1; }
+      - name: Launch World 1 and capture one frame
+        run: |
+          set -euo pipefail
+          mkdir -p screenshots diagnostics
+          python3 - <<'PY'
+          import json,subprocess,sys,time,pathlib
+          def run(*args, timeout=60, check=True):
+              print("RUN", " ".join(args), flush=True)
+              p=subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+              print((p.stdout+p.stderr)[-2500:], flush=True)
+              if check and p.returncode: raise RuntimeError(f"exit {p.returncode}: {args}")
+              return p
+          devices=json.loads(run("xcrun","simctl","list","devices","available","-j").stdout)["devices"]
+          candidates=[d["udid"] for _,ds in sorted(devices.items(),reverse=True) for d in ds if d.get("isAvailable",True) and d["name"].startswith("iPhone")]
+          if not candidates: raise RuntimeError("No available iPhone simulator")
+          device=candidates[0]
+          pathlib.Path("diagnostics/device.txt").write_text(device+"\n")
+          run("xcrun","simctl","boot",device,timeout=45,check=False)
+          run("xcrun","simctl","bootstatus",device,"-b",timeout=210)
+          app="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
+          run("xcrun","simctl","install",device,app,timeout=120)
+          try:
+              run("xcrun","simctl","launch",device,"com.paulus.laststandcommand","-captureWorldOneOutpostScreenshot",timeout=65)
+              time.sleep(10)
+              run("xcrun","simctl","io",device,"screenshot","screenshots/build337-world1-smoke.png",timeout=65)
+          except Exception:
+              run("xcrun","simctl","spawn",device,"log","show","--last","3m","--style","compact","--predicate",'process == "OutpostZero"',timeout=40,check=False)
+              raise
+          PY
+          python3 scripts/validate_simulator_screenshots.py screenshots/build337-world1-smoke.png
+      - name: Upload smoke screenshot and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build337-simulator-smoke
+          path: |
+            screenshots/
+            diagnostics/
+            smoke-build.log
+          if-no-files-found: ignore
+          retention-days: 7
