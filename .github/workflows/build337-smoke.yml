@@ -9,6 +9,14 @@ on:
       - OutpostZero/OutpostScene.swift
       - OutpostZero/WorldOneRoomGeometry.swift
       - OutpostZero/WorldOneLayoutReview.swift
+      - OutpostZero/WorldOneEnemyAnimation.swift
+      - OutpostZero/EnemyAnimationRules.swift
+      - OutpostZero/EnemyCombatFeedback.swift
+      - OutpostZero/Assets.xcassets/mossbot_*/**
+      - scripts/audit_build337_enemies.py
+      - scripts/run_build337_enemy_review.py
+      - tests/test_build337_enemy_assets.py
+      - tests/EnemyAnimationRulesTests.swift
       - OutpostZero/WorldShowcase.swift
       - OutpostZero/RoomRules.swift
       - OutpostZero/TerrainHazards.swift
@@ -16,6 +24,12 @@ on:
       - tests/test_focused_screenshots.py
       - scripts/validate_simulator_screenshots.py
   workflow_dispatch:
+    inputs:
+      review:
+        description: Focused visual milestone
+        type: choice
+        default: environments
+        options: [environments, enemies]
 jobs:
   smoke:
     runs-on: macos-15-intel
@@ -25,6 +39,9 @@ jobs:
       - name: Validate geometry and gameplay rules without simulator startup
         run: |
           set -euo pipefail
+          python3 scripts/audit_build337_enemies.py
+          swiftc OutpostZero/EnemyAnimationRules.swift tests/EnemyAnimationRulesTests.swift -o "$RUNNER_TEMP/enemy-animation-tests"
+          "$RUNNER_TEMP/enemy-animation-tests"
           python3 -m unittest discover -s tests -p 'test_*.py'
           swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
           "$RUNNER_TEMP/room-tests"
@@ -45,7 +62,7 @@ jobs:
           set -euo pipefail
           xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build > smoke-build.log 2>&1 || { tail -100 smoke-build.log; exit 1; }
       - name: Launch World 1 and capture five review frames
-        if: (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[visual-review]'))
+        if: ((github.event_name == 'workflow_dispatch' && inputs.review != 'enemies') || contains(github.event.head_commit.message, '[visual-review]'))
         run: |
           set -euo pipefail
           mkdir -p screenshots diagnostics
@@ -91,7 +108,7 @@ jobs:
                       # A stalled terminate may leave the previous app alive; do not claim a fresh capture.
                       raise RuntimeError("Simulator termination stalled; cannot guarantee capture isolation") from exc
               args=["xcrun","simctl","launch",device,"com.paulus.laststandcommand",flag]
-              if mossbot: args.append("-reviewBuild337Mossbot")
+              if mossbot: args.append("-captureBuild337CorridorExit")
               args.append("-requireWorldOneAuthoredArt")
               try:
                   run(*args,timeout=55)
@@ -110,8 +127,20 @@ jobs:
               capture(label,flag,True)
           PY
           python3 scripts/validate_simulator_screenshots.py screenshots/*.png
+      - name: Capture continuous enemy states in the live game scene
+        if: github.event_name == 'workflow_dispatch' && inputs.review == 'enemies'
+        run: python3 scripts/run_build337_enemy_review.py
+      - name: Upload enemy sequence and diagnostics
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.review == 'enemies'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build337-enemy-review
+          path: |
+            enemy-review/
+            smoke-build.log
+          retention-days: 7
       - name: Upload smoke screenshot and diagnostics
-        if: always() && (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[visual-review]'))
+        if: always() && ((github.event_name == 'workflow_dispatch' && inputs.review != 'enemies') || contains(github.event.head_commit.message, '[visual-review]'))
         uses: actions/upload-artifact@v4
         with:
           name: build337-simulator-smoke

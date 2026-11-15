@@ -474,6 +474,7 @@ final class OutpostScene: SKScene {
 
 
     override func didMove(to view: SKView) {
+        WorldOneEnemyAnimation.preload()
         scaleMode = .resizeFill
         backgroundColor = SKColor(red: 0.07, green: 0.15, blue: 0.21, alpha: 1)
         addChild(arena)
@@ -1906,7 +1907,7 @@ final class OutpostScene: SKScene {
                                  "Landscape review requires all six bundled props")
                 }
             }
-            if selection.1 == 1 && ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot") {
+            if selection.1 == 1 && ProcessInfo.processInfo.arguments.contains("-captureBuild337CorridorExit") {
                 for enemy in enemies { enemy.node.removeFromParent() }
                 enemies.removeAll()
                 spawned = waveTarget
@@ -1927,7 +1928,7 @@ final class OutpostScene: SKScene {
             // Seven distinct binary RGB identities reject a stale frame from
             // a different landscape, even when that frame looks like gameplay.
             let corridorExitReview = selection.1 == 1 &&
-                ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot")
+                ProcessInfo.processInfo.arguments.contains("-captureBuild337CorridorExit")
             let captureIndex = corridorExitReview ? 5 :
                 worldOneCaptures.firstIndex(where: { $0.0 == selection.0 })! + 1
             let identity = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
@@ -5240,6 +5241,7 @@ final class OutpostScene: SKScene {
         enemies.removeAll()
         for drop in xpDrops { drop.node.removeFromParent() }
         xpDrops.removeAll()
+        arena.enumerateChildNodes(withName: "enemyDefeatVisual") { node, _ in node.removeFromParent() }
         bossNode = nil
         guardianArmorBroken = false
         guardianSupportDeployed = false
@@ -7028,8 +7030,11 @@ final class OutpostScene: SKScene {
             armor.size = CGSize(
                 width: radius * (hasProductionArt ? 2.48 : 2.3) * illustrationScale,
                 height: radius * (hasProductionArt ? 2.74 : 2.55) * illustrationScale)
-            if (0...5).contains(type) && hasProductionArt {
-                armor.size.width = armor.size.height
+            if hasProductionArt, let image = productionImage(named: assetName) {
+                armor.size.width = armor.size.height * image.size.width / max(1, image.size.height)
+            }
+            if worldMapIndex == 0 && type == 0 {
+                _ = WorldOneEnemyAnimation.install(on: armor, facingLeft: pilot.position.x < roomBounds.midX)
             }
             if type == 4 && hasProductionArt {
                 // The long railgun and antennae leave a narrow body inside
@@ -7261,6 +7266,10 @@ final class OutpostScene: SKScene {
                                         y: min(roomBounds.maxY - 140, roomBounds.midY + 70))
             }
         }
+        if let art = node.childNode(withName: "enemyArt") as? SKSpriteNode,
+           WorldOneEnemyAnimation.isMossbot(art) {
+            art.xScale = pilot.position.x < node.position.x ? -1 : 1
+        }
         node.alpha = 0.28
         let spawnRing = SKShapeNode(circleOfRadius: radius + 9)
         spawnRing.name = "spawnWarning"
@@ -7296,8 +7305,10 @@ final class OutpostScene: SKScene {
             ? 70 : max(1, Int((Double(baseEnemyHP) * healthFactor).rounded()))
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         // Keep the track and fill together above the larger illustrated sprite.
-        let healthBarOffset: CGFloat = isBoss ? 118 :
-            (usesIllustratedEnemy ? radius * (type == 3 ? 1.66 : 1.60) + 5 : radius + 8)
+        let animatedGrunt = (node.childNode(withName: "enemyArt") as? SKSpriteNode)
+            .map { WorldOneEnemyAnimation.isMossbot($0) } ?? false
+        let healthBarOffset: CGFloat = isBoss ? 118 : (animatedGrunt ? 47 :
+            (usesIllustratedEnemy ? radius * (type == 3 ? 1.66 : 1.60) + 5 : radius + 8))
         let barWidth: CGFloat = isBoss ? 148 : min(48, radius * 2.0)
         let barHeight: CGFloat = isBoss ? 8 : 4
         let healthTrack = SKShapeNode(rectOf: CGSize(
@@ -7333,6 +7344,117 @@ final class OutpostScene: SKScene {
         qaRecordState("spawn type=\(type)")
     }
 
+    #if DEBUG
+    private var enemyReviewStart: TimeInterval?
+    private var enemyReviewStage = -1
+    private weak var enemyReviewSubject: SKShapeNode?
+    private let enemyReviewEnabled = ProcessInfo.processInfo.arguments.contains("-captureBuild337EnemySequence")
+
+    /// Staged inputs on real gameplay entities. Pursuit, contact damage, rifle
+    /// hits and kill cleanup run their production paths; this is not a balance trial.
+    private func updateEnemyReview() {
+        guard enemyReviewEnabled else { return }
+        if enemyReviewStart == nil { enemyReviewStart = clock }
+        let elapsed = clock - enemyReviewStart!
+        let boundaries: [TimeInterval] = [0.8, 1.8, 3.3, 4.5, 5.3, 6.2, 8.2, 10.2, 12.2, 14.2]
+        let stage = boundaries.filter { elapsed >= $0 }.count
+        guard stage != enemyReviewStage else { return }
+        enemyReviewStage = stage
+        let names = ["spawn", "idle", "movement", "attack", "hit", "defeat",
+                     "crowded", "survival", "reactor", "boss", "done"]
+        func enter(_ room: Int, roles: [Int]) {
+            worldMapIndex = 0
+            wave = room - 1
+            gateUnlocked = true
+            startWave()
+            pilot.position = worldOneLiveLayout?.kind == .passage
+                ? CGPoint(x: roomBounds.midX, y: roomBounds.minY + 12*28)
+                : CGPoint(x: roomBounds.midX, y: roomBounds.midY - 145)
+            movementTarget = nil
+            for (slot, role) in roles.enumerated() {
+                spawned += 1
+                spawnEnemy(artReviewType: role)
+                let index = enemies.count - 1
+                let x = CGFloat(slot % 3 - 1) * (room == 7 ? 65 : 100)
+                let y = CGFloat(slot / 3) * 90 + (room == 7 ? 65 : 90)
+                let candidate = CGPoint(x: pilot.position.x + x, y: pilot.position.y + y)
+                if TerrainHazards.spawnAllowed(candidate, radius: enemies[index].radius, patches: roomHazards) {
+                    enemies[index].node.position = candidate
+                }
+                enemies[index].activeAt = combatTime + (room == 7 ? 100 : 0)
+            }
+            lastShot = combatTime + 1000
+            updateArenaCamera(delta: 1)
+            zoneBanner.removeAllActions()
+            zoneBanner.alpha = 0
+            controlsHint.isHidden = true
+        }
+        switch stage {
+        case 0:
+            precondition(WorldOneEnemyAnimation.mossbotAvailable)
+            enter(7, roles: [0, 0, 0])
+            enemyReviewSubject = enemies[0].node
+            print("[ENEMY REVIEW READY] frames=40 normalGameplayArt=true")
+        case 1:
+            for enemy in enemies {
+                enemy.node.alpha = 1
+                enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
+            }
+        case 2:
+            for index in enemies.indices { enemies[index].activeAt = combatTime }
+        case 3:
+            if let subject = enemyReviewSubject {
+                subject.position = CGPoint(x: pilot.position.x + 24, y: pilot.position.y)
+                pilotShieldUntil = 0
+            }
+        case 4:
+            if let index = enemies.firstIndex(where: { $0.node === enemyReviewSubject }) {
+                lastShot = -100
+                shoot(at: enemies[index].node.position, selectedIndex: index)
+                lastShot = combatTime + 1000
+            }
+        case 5:
+            if let index = enemies.firstIndex(where: { $0.node === enemyReviewSubject }) {
+                enemies[index].health = 0
+                removeDefeatedEnemies()
+                precondition(arena.childNode(withName: "enemyDefeatVisual") != nil)
+            }
+        case 6:
+            precondition(arena.childNode(withName: "enemyDefeatVisual") == nil,
+                         "The complete eight-frame defeat must finish before removal")
+            enter(6, roles: [0, 0, 0, 0, 0, 1, 2, 3, 4, 5])
+        case 7:
+            movementTarget = CGPoint(x: pilot.position.x + 70, y: pilot.position.y + 100)
+        case 8:
+            enter(12, roles: [0, 0, 1, 2, 3, 4, 5])
+        case 9:
+            enter(20, roles: [])
+            pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY - 100)
+            spawned = 1
+            spawnEnemy()
+            updateArenaCamera(delta: 1)
+        default:
+            print("[ENEMY REVIEW DONE] stages=10")
+            holdDefenseQAScreenshot = true
+        }
+        var label = childNode(withName: "enemyReviewStatus") as? SKLabelNode
+        if label == nil {
+            let node = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            node.name = "enemyReviewStatus"
+            node.fontSize = 12
+            node.fontColor = .cyan
+            node.zPosition = 100
+            addChild(node)
+            label = node
+        }
+        label?.text = "ENEMY QA: \(names[stage].uppercased())"
+        label?.position = CGPoint(x: size.width/2,
+            y: size.height - (view?.safeAreaInsets.top ?? 0) - 150)
+        print("[ENEMY REVIEW] stage=\(names[stage]) room=\(wave) liveEnemies=\(enemies.count)")
+        fflush(stdout)
+    }
+    #endif
+
     override func update(_ currentTime: TimeInterval) {
         if let replay = qaReplay {
             // Same 1/60 simulation steps, independent of host frame deltas.
@@ -7354,6 +7476,9 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing || extractionCombatActive)
+        #if DEBUG
+        updateEnemyReview()
+        #endif
         if let due = qaFlankDue, phase == .playing, combatTime >= due {
             qaFlankDue = nil
             deployFlankSwarm()
@@ -7692,26 +7817,8 @@ final class OutpostScene: SKScene {
                 phase: enemy.weavePhase, moving: advancing,
                 aiming: enemies[index].shotTarget != nil)
             if let enemyArt = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
-                // Build 337: preview the new Mossbot animations only when the
-                // complete frame sets exist. The visual controller never
-                // changes movement, collisions, attacks, or enemy statistics.
-                // Restrict this first integration to World 1's grunt class.
-                if worldMapIndex == 0 && enemy.behavior == 0 &&
-                    ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot") {
-                    let motion: WorldOneEnemyAnimation.Motion = advancing ? .move : .idle
-                    let state = "build337.mossbot.\(motion.rawValue)"
-                    let activeMotion = enemyArt.userData?["build337Motion"] as? String
-                    if activeMotion != "build337.mossbot.hit" &&
-                        activeMotion != "build337.mossbot.attack" &&
-                        activeMotion != state {
-                        if WorldOneEnemyAnimation.play(motion, enemy: "mossbot", on: enemyArt) {
-                            if enemyArt.userData == nil {
-                                enemyArt.userData = NSMutableDictionary()
-                            }
-                            enemyArt.userData?["build337Motion"] = state
-                        }
-                    }
-                }
+                WorldOneEnemyAnimation.updateLocomotion(on: enemyArt, moving: advancing,
+                    dx: enemy.node.position.x - current.x)
                 // Let momentum register in the illustration without rotating
                 // collision geometry, health bars or attack telegraphs.
                 let travelDX = enemy.node.position.x - current.x
@@ -7720,9 +7827,11 @@ final class OutpostScene: SKScene {
                 let directionLean = advancing
                     ? max(-0.055, min(0.055, travelDX / travelLength * 0.055))
                     : 0
-                enemyArt.position.y = enemyPose.verticalOffset
-                enemyArt.zRotation = enemyPose.lean + directionLean
-                enemyArt.yScale = enemyPose.heightScale
+                if !WorldOneEnemyAnimation.isMossbot(enemyArt) {
+                    enemyArt.position.y = enemyPose.verticalOffset
+                    enemyArt.zRotation = enemyPose.lean + directionLean
+                    enemyArt.yScale = enemyPose.heightScale
+                }
             }
             if let ground = enemy.node.childNode(withName: "enemyGroundShadow") as? SKShapeNode {
                 ground.xScale = enemyPose.shadowScale
@@ -7765,13 +7874,23 @@ final class OutpostScene: SKScene {
             }
             if activeEncounter == .equipmentDefense && enemy.behavior < 4 &&
                 distance(enemy.node.position, defenseDevice.position) < enemy.radius + 28 {
-                reviewMossbotAttack(on: enemy)
+                let previousIntegrity = defenseIntegrity
                 damageDefenseDevice()
+                if defenseIntegrity < previousIntegrity,
+                   let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    WorldOneEnemyAnimation.attack(on: art,
+                        towardX: defenseDevice.position.x - enemy.node.position.x)
+                }
                 if phase != .playing { return }
             }
             if distance(enemy.node.position, pilot.position) < enemy.radius + 14 {
-                reviewMossbotAttack(on: enemy)
+                let previousHealth = health
                 damagePilot(enemy.node === bossNode ? 12 : (enemy.behavior == 3 ? 8 : 5))
+                if health < previousHealth,
+                   let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    WorldOneEnemyAnimation.attack(on: art,
+                        towardX: pilot.position.x - enemy.node.position.x)
+                }
             }
         }
         updateHostileAttacks(delta: gameDt)
@@ -8368,57 +8487,6 @@ final class OutpostScene: SKScene {
         return true
     }
 
-    // Build 337: art-only contact attack cue. The existing contact damage
-    // remains authoritative; animation never delays or multiplies damage.
-    private func reviewMossbotAttack(on enemy: Enemy) {
-        guard worldMapIndex == 0,
-              enemy.behavior == 0,
-              ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot"),
-              let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode,
-              let frames = WorldOneEnemyAnimation.textures(enemy: "mossbot", motion: .attack)
-        else { return }
-        if art.userData == nil { art.userData = NSMutableDictionary() }
-        let current = art.userData?["build337Motion"] as? String
-        if current == "build337.mossbot.hit" || current == "build337.mossbot.attack" {
-            return
-        }
-        let previous = art.userData?["build337LastAttackAt"] as? Double ?? -100
-        guard combatTime - previous >= 0.75 else { return }
-        art.userData?["build337LastAttackAt"] = combatTime
-        art.userData?["build337Motion"] = "build337.mossbot.attack"
-        art.removeAction(forKey: "build337.enemy.motion")
-        art.run(.sequence([
-            .animate(with: frames,
-                     timePerFrame: 1.0 / WorldOneEnemyAnimation.Motion.attack.framesPerSecond),
-            .run { [weak art] in
-                art?.userData?.removeObject(forKey: "build337Motion")
-            }
-        ]), withKey: "build337.enemy.motion")
-    }
-
-    // Build 337: optional hit reaction for the World 1 basic enemy.
-    // Playback is art-only; all damage and death decisions remain authoritative.
-    private func reviewMossbotHit(at index: Int) {
-        guard worldMapIndex == 0,
-              ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot"),
-              enemies.indices.contains(index),
-              enemies[index].behavior == 0,
-              enemies[index].health > 0,
-              let art = enemies[index].node.childNode(withName: "enemyArt") as? SKSpriteNode,
-              let frames = WorldOneEnemyAnimation.textures(enemy: "mossbot", motion: .hit)
-        else { return }
-        art.removeAction(forKey: "build337.enemy.motion")
-        if art.userData == nil { art.userData = NSMutableDictionary() }
-        art.userData?["build337Motion"] = "build337.mossbot.hit"
-        art.run(.sequence([
-            .animate(with: frames,
-                     timePerFrame: 1.0 / WorldOneEnemyAnimation.Motion.hit.framesPerSecond),
-            .run { [weak art] in
-                art?.userData?.removeObject(forKey: "build337Motion")
-            }
-        ]), withKey: "build337.enemy.motion")
-    }
-
     private func updateEnergyWheel() {
         guard energyWheelEvolved, let wheel = energyWheelNode else { return }
         wheel.position = pilot.position
@@ -8438,7 +8506,6 @@ final class OutpostScene: SKScene {
             impact(at: enemy.node.position, color: .systemCyan,
                    destroyed: enemies[index].health <= 0)
             EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
-            reviewMossbotHit(at: index)
             updateEnemyHealthBar(at: index)
             // Retain the Arc Blades combination when the individual orbiting
             // projectiles evolve. Evolution must not remove earned synergies.
@@ -8595,7 +8662,6 @@ final class OutpostScene: SKScene {
                destroyed: enemies[index].health <= totalBulletDamage)
         enemies[index].health -= totalBulletDamage
         EnemyCombatFeedback.hit(enemies[index].node, from: pilot.position)
-        reviewMossbotHit(at: index)
         if incendiaryLevel > 0 {
             burns[ObjectIdentifier(enemies[index].node)] = (damage: incendiaryLevel + permanentReactorBonus + gearReactorBonus + permanent.rank("incendiary"), until: combatTime + AbilitySynergies.burnDuration(
                 incendiary: incendiaryLevel, explosive: explosiveLevel),
@@ -8780,28 +8846,10 @@ final class OutpostScene: SKScene {
                                        radius: enemies[index].radius,
                                        role: enemies[index].behavior,
                                        isBoss: defeatedBoss)
-            // Build 337: optional art-only defeat sequence. The enemy is
-            // removed from the authoritative combat array immediately, so
-            // rewards, room completion, and collisions remain unchanged.
-            // If the final PNG set is absent, retain existing defeat feedback.
-            if worldMapIndex == 0 && !defeatedBoss &&
-                enemies[index].behavior == 0 &&
-                ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot"),
-                let frames = WorldOneEnemyAnimation.textures(
-                    enemy: "mossbot", motion: .defeat),
-                let source = enemies[index].node.childNode(
-                    withName: "enemyArt") as? SKSpriteNode {
-                let visual = SKSpriteNode(texture: frames[0], size: source.size)
-                visual.position = enemies[index].node.position
-                visual.zPosition = enemies[index].node.zPosition + 0.1
-                visual.xScale = source.xScale
-                visual.yScale = source.yScale
-                arena.addChild(visual)
-                visual.run(.sequence([
-                    .animate(with: frames,
-                             timePerFrame: 1.0 / WorldOneEnemyAnimation.Motion.defeat.framesPerSecond),
-                    .removeFromParent()
-                ]))
+            if let source = enemies[index].node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                WorldOneEnemyAnimation.defeatCopy(of: source,
+                    at: enemies[index].node.position, in: arena,
+                    depth: enemies[index].node.zPosition + 0.1)
             }
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
@@ -9943,6 +9991,7 @@ final class OutpostScene: SKScene {
         qaFlankDue = nil
         arena.children.filter { $0.name == "flankSwarmWarning" }
             .forEach { $0.removeFromParent() }
+        arena.enumerateChildNodes(withName: "enemyDefeatVisual") { node, _ in node.removeFromParent() }
         bossNode = nil
         guardianArmorBroken = false
         guardianSupportDeployed = false

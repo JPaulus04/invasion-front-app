@@ -1,0 +1,490 @@
+{
+  "mossbot_sequences": {
+    "idle": [
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_idle_00.imageset/mossbot_idle_00.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "7dbdc64af65d5539d98c4daa9ca5cb0de73b368bbb301dc18f2077968bd1955d"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_idle_01.imageset/mossbot_idle_01.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "e58c392e87c382a818c2d273e320ae9afb9283038c58e9a4f1a18cee6722f372"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_idle_02.imageset/mossbot_idle_02.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "0d0b4b6884746fbf68b67db9064b5011dfc715e07beecd47aaa8f36843926bd3"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_idle_03.imageset/mossbot_idle_03.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "e58c392e87c382a818c2d273e320ae9afb9283038c58e9a4f1a18cee6722f372"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_idle_04.imageset/mossbot_idle_04.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "7dbdc64af65d5539d98c4daa9ca5cb0de73b368bbb301dc18f2077968bd1955d"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_idle_05.imageset/mossbot_idle_05.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "ca0601a4759bb2312d177e38a31ffa884a56add0338900c8fb9386e1cf17becc"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_idle_06.imageset/mossbot_idle_06.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "26267c1c1e3406f21848f99fab815616d0e2dcdddcd925d248482bb6ccb37b57"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_idle_07.imageset/mossbot_idle_07.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "ca0601a4759bb2312d177e38a31ffa884a56add0338900c8fb9386e1cf17becc"
+      }
+    ],
+    "move": [
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_move_00.imageset/mossbot_move_00.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "1869f2000693439c01c680bb1273fbb4d4ba31734ca090a8b661ddddbabca3be"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_move_01.imageset/mossbot_move_01.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "5e6d33223e5ca7cc64188c5d06c875bb2d3d8b6efbc8578b723b4b638291e042"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_move_02.imageset/mossbot_move_02.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "372ef70ab01cd2f8ab783e9daa229fa027aa052bf7b3ebe94e39744a7b989083"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_move_03.imageset/mossbot_move_03.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "4e55c39a7f8ef7a176f3fb5264441f9f211ca8edc3ce79dbbc5068356b0c2e29"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_move_04.imageset/mossbot_move_04.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "1869f2000693439c01c680bb1273fbb4d4ba31734ca090a8b661ddddbabca3be"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_move_05.imageset/mossbot_move_05.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "5e6d33223e5ca7cc64188c5d06c875bb2d3d8b6efbc8578b723b4b638291e042"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_move_06.imageset/mossbot_move_06.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "372ef70ab01cd2f8ab783e9daa229fa027aa052bf7b3ebe94e39744a7b989083"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_move_07.imageset/mossbot_move_07.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "4e55c39a7f8ef7a176f3fb5264441f9f211ca8edc3ce79dbbc5068356b0c2e29"
+      }
+    ],
+    "attack": [
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_attack_00.imageset/mossbot_attack_00.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "7dbdc64af65d5539d98c4daa9ca5cb0de73b368bbb301dc18f2077968bd1955d"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_attack_01.imageset/mossbot_attack_01.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "3aab0587394b86aff7d701c440ba55e0ce4d8c5bd5629c9e90219d3ca5531884"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_attack_02.imageset/mossbot_attack_02.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "c35e03b7e335b1feff7b53c254438753e1d778bcde4f29cc4cd61c167d00f7cd"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_attack_03.imageset/mossbot_attack_03.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "8c7419440b187b5349157673cebcd89c40758182d6f917ea312ef4cc2afc111f"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_attack_04.imageset/mossbot_attack_04.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "0a061646184dcef51d959f9f468dca7963faaaef53ad243ba95d306c805504c9"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_attack_05.imageset/mossbot_attack_05.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "ae7c6d448e1a58bee0bc8b58bdb312c91250d4d1cadb27b0c520372b7c9f9a95"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_attack_06.imageset/mossbot_attack_06.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "db51222f7e59bcfef735dcbc7d25dd0a317ebfc0b6baeed381becaf073abab3f"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_attack_07.imageset/mossbot_attack_07.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "1552b15472e7f77669f4bbdc7c6bfdda05108ce91a63ca23265ac5c0046afca1"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_attack_08.imageset/mossbot_attack_08.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "7dbdc64af65d5539d98c4daa9ca5cb0de73b368bbb301dc18f2077968bd1955d"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_attack_09.imageset/mossbot_attack_09.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "7dbdc64af65d5539d98c4daa9ca5cb0de73b368bbb301dc18f2077968bd1955d"
+      }
+    ],
+    "hit": [
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_hit_00.imageset/mossbot_hit_00.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "f46f91eb18691e2f93bd625c29539dfc46d6b772202c1aea325abf3b4e036704"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_hit_01.imageset/mossbot_hit_01.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "9effcd799c1bcea79aa5c3b515ceeab4d1abfc45e7d01bdfb7d1fb6799a67668"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_hit_02.imageset/mossbot_hit_02.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "2ad540f5a68df14d6d88d1f710e6f8f4e6c9cdabed5a1d97c3185852a6769063"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_hit_03.imageset/mossbot_hit_03.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "04488aa9863cf20068a58bfbc00ffe8d8ed5f5e67d7260e80efdc0ce3811c27b"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_hit_04.imageset/mossbot_hit_04.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "7dbdc64af65d5539d98c4daa9ca5cb0de73b368bbb301dc18f2077968bd1955d"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_hit_05.imageset/mossbot_hit_05.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "7dbdc64af65d5539d98c4daa9ca5cb0de73b368bbb301dc18f2077968bd1955d"
+      }
+    ],
+    "defeat": [
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_defeat_00.imageset/mossbot_defeat_00.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "7dbdc64af65d5539d98c4daa9ca5cb0de73b368bbb301dc18f2077968bd1955d"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_defeat_01.imageset/mossbot_defeat_01.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "c7c44f11ba0d3077ba8ddbbff4dac1ed0cd42ab5d45298816b4333e32a14147b"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_defeat_02.imageset/mossbot_defeat_02.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "cea4286941cc59c245fecfa301db130e3da58be1b1c0daaa615241b10f7b81f2"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_defeat_03.imageset/mossbot_defeat_03.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "4f029bc0129031d28f919f5c35145aa88eee2cebf95d95989530637868a97c4a"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_defeat_04.imageset/mossbot_defeat_04.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "52d3c3a94b5e0070de37a5e0bfeef4740db34c3e8ffa1f8121fff6565a44dcc9"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_defeat_05.imageset/mossbot_defeat_05.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "7e090c6390e6e6f26c37476a96a20e19ab4a6a73555bc3550f222c98d32750cc"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_defeat_06.imageset/mossbot_defeat_06.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "bbb9068712f99b663da557ad85b9219b5647319ee27be73e9ff3fcfa50a9c935"
+      },
+      {
+        "path": "OutpostZero/Assets.xcassets/mossbot_defeat_07.imageset/mossbot_defeat_07.png",
+        "width": 512,
+        "height": 512,
+        "depth": 8,
+        "color_type": 6,
+        "sha256": "9b04f10d403456a5dc17495d1e558b3c412862e34be805faae06e263a2668920"
+      }
+    ]
+  },
+  "native_portraits": {
+    "grunt": {
+      "path": "OutpostZero/ArtAssets/grunt_polished.png",
+      "width": 256,
+      "height": 256,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "1762f05673c0d4a44ae07810f7639f36ef4f6726d2c8ae97e9d9e0cabb0fc806"
+    },
+    "scout": {
+      "path": "OutpostZero/ArtAssets/scout_polished.png",
+      "width": 256,
+      "height": 256,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "bf5efec9c3f316a3da2c0b34e301442008811054415feafaca365145cce224dd"
+    },
+    "raider": {
+      "path": "OutpostZero/ArtAssets/raider_polished.png",
+      "width": 256,
+      "height": 256,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "bfba24e628ceda60f41882711f2e477ae463c60dd155c5bc6e77029d146062d0"
+    },
+    "heavy": {
+      "path": "OutpostZero/ArtAssets/heavy_polished.png",
+      "width": 256,
+      "height": 256,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "aabc0248167cbd4073c365a0da0906878e623bb6aeb0acab179e564c17e42d5f"
+    },
+    "shooter": {
+      "path": "OutpostZero/ArtAssets/shooter_polished.png",
+      "width": 256,
+      "height": 256,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "9d2fc0fc6816196393a2346bae71dc2dedf1601cfdb170f4cca72a0c9e5ed40a"
+    },
+    "lobber": {
+      "path": "OutpostZero/ArtAssets/lobber_polished.png",
+      "width": 256,
+      "height": 256,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "0c00362922eb1081b3451aaa5598a703fbaad09e9b1667bdceea171893c87148"
+    }
+  },
+  "boss_portraits": {
+    "root_lord": {
+      "path": "OutpostZero/ArtAssets/boss_root_lord.png",
+      "width": 512,
+      "height": 468,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "43f0912eacd1f437e85808cb8c2d79f475393449b235e4f447044de154f75ea3"
+    },
+    "toxic_matriarch": {
+      "path": "OutpostZero/ArtAssets/boss_toxic_matriarch.png",
+      "width": 512,
+      "height": 410,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "fec24d399e1d881a7a1aec7fcfb5309d98aff1d5a291e598c560ef0cb4e33220"
+    },
+    "warforge": {
+      "path": "OutpostZero/ArtAssets/boss_warforge.png",
+      "width": 512,
+      "height": 427,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "599dba55597af6d504b323cc728ad64b0fb4bbce74e38dc67bdd90de606b7e75"
+    },
+    "frost_wraith": {
+      "path": "OutpostZero/ArtAssets/boss_frost_wraith.png",
+      "width": 512,
+      "height": 427,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "a386b9c9e2e0721c1a71c02df48ea1015235024da9d4f6e11fc07b9d4f2e25d3"
+    }
+  },
+  "browser_enemy_portraits_not_native_entities": [
+    {
+      "path": "assets/enemies/enemy_breacher.png",
+      "width": 128,
+      "height": 128,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "a5310c15c26a41fba8b8ecc8fbc155227d0cc36e1f4704639ff16c90b2fa1b87"
+    },
+    {
+      "path": "assets/enemies/enemy_conscript.png",
+      "width": 128,
+      "height": 128,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "86b936b6ba392864c97feb12b2f55f3a947a67abd5a2c0eb606910a9a56a83e2"
+    },
+    {
+      "path": "assets/enemies/enemy_juggernaut.png",
+      "width": 128,
+      "height": 128,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "3c12d0f5e3e94d1ac14e0eea9841afcf71361aa7d71800c96a3fb7fb676d3b46"
+    },
+    {
+      "path": "assets/enemies/enemy_overwatch.png",
+      "width": 128,
+      "height": 128,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "7b08f805adacc692f00369d2cc6f7c1e295a4f62df1a4354743d0623227ea535"
+    },
+    {
+      "path": "assets/enemies/enemy_phalanx.png",
+      "width": 128,
+      "height": 128,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "b964f569736c9302c9342f155bd8706c9e359fd51ef55e7e7cac4ff7e761a10b"
+    },
+    {
+      "path": "assets/enemies/enemy_warden.png",
+      "width": 128,
+      "height": 128,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "6c60c9146e9ce469b40dd4e875ef7b60aab866dedafc8352cbe7f76207c35c6e"
+    }
+  ],
+  "other_sources": [
+    "assets/unit-animation-atlas.png",
+    "assets/prototype4/Zombie-Scout.fbx"
+  ],
+  "source_defects": {
+    "move_00_to_07": "Left arm clipped at x=56; unrelated right-edge fragments beyond x=416. Runtime masks only the unrelated strip; artist re-export required for lost arm pixels.",
+    "attack_03_to_06": "Character/effect abruptly cut along left boundary x=54/56; cannot reconstruct missing approved pixels.",
+    "defeat_03_to_06": "Collapse intersects canvas bottom; confirm sinking/cropping is intentional with artist.",
+    "defeat_07": "Fully transparent final frame, retained as authored terminal disappearance."
+  },
+  "unavailable_authored_sequences": {
+    "grunt": "Only one portrait; no idle/move/attack/hit/defeat frame sequences or directional sheets found.",
+    "scout": "Only one portrait; no idle/move/attack/hit/defeat frame sequences or directional sheets found.",
+    "raider": "Only one portrait; no idle/move/attack/hit/defeat frame sequences or directional sheets found.",
+    "heavy": "Only one portrait; no idle/move/attack/hit/defeat frame sequences or directional sheets found.",
+    "shooter": "Only one portrait; no idle/move/attack/hit/defeat frame sequences or directional sheets found.",
+    "lobber": "Only one portrait; no idle/move/attack/hit/defeat frame sequences or directional sheets found.",
+    "root_lord": "Only one portrait; no idle/move/attack/hit/defeat frame sequences or directional sheets found.",
+    "toxic_matriarch": "Only one portrait; no idle/move/attack/hit/defeat frame sequences or directional sheets found.",
+    "warforge": "Only one portrait; no idle/move/attack/hit/defeat frame sequences or directional sheets found.",
+    "frost_wraith": "Only one portrait; no idle/move/attack/hit/defeat frame sequences or directional sheets found."
+  }
+}
