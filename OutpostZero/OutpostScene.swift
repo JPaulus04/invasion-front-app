@@ -1917,6 +1917,9 @@ final class OutpostScene: SKScene {
             if selection.0 == "-captureWorldOneCavesScreenshot" {
                 precondition(activeEncounter == .equipmentDefense && defenseDevice.parent === arena)
                 precondition(distance(pilot.position, defenseDevice.position) >= 95)
+                let objective = worldOneLiveLayout!.objective!
+                precondition(defenseDevice.position == CGPoint(
+                    x: roomBounds.minX + objective.x, y: roomBounds.minY + objective.y))
             }
             // Seven distinct binary RGB identities reject a stale frame from
             // a different landscape, even when that frame looks like gameplay.
@@ -4852,8 +4855,14 @@ final class OutpostScene: SKScene {
             desired = CGPoint(x: roomBounds.midX,
                               y: roomBounds.midY + roomBounds.height * 0.08)
         }
-        defenseDevice.position = TerrainHazards.extractionPosition(
-            near: desired, in: roomBounds, patches: roomHazards)
+        // Extraction deliberately avoids its `near` argument by >=43 points.
+        // A reactor must use the exact authored objective, not that portal rule.
+        if worldOneLiveLayout?.kind == .defense {
+            defenseDevice.position = desired
+        } else {
+            defenseDevice.position = TerrainHazards.extractionPosition(
+                near: desired, in: roomBounds, patches: roomHazards)
+        }
         // Collision in pilot-origin coordinates: the visible feet sit at -27.
         // Only the grounded base blocks walking, not the tall illustration.
         reactorMovementPatch = TerrainHazards.Patch(kind: .rubble,
@@ -6933,7 +6942,10 @@ final class OutpostScene: SKScene {
             guard enemies.count > before else { continue }
             let target = FlankSwarmRules.entry(bounds: roomBounds,
                 warnedPilot: pending.warnedPilot, index: index)
-            enemies[enemies.count - 1].node.position = target
+            if TerrainHazards.spawnAllowed(target,
+                radius: enemies[enemies.count - 1].radius, patches: roomHazards) {
+                enemies[enemies.count - 1].node.position = target
+            }
             enemies[enemies.count - 1].node.name = "flankRaider"
             enemies[enemies.count - 1].activeAt = combatTime + 0.35
         }
