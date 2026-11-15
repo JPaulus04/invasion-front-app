@@ -692,8 +692,10 @@ final class OutpostScene: SKScene {
         // portal prop. All geometry stays within the far-wall depth band.
         // Its lower edge is the walkable threshold and its upper edge stays
         // below the HUD. The invisible gate remains the interaction target.
-        let wallMortar = SKShapeNode(rect: CGRect(x: -102, y: 38,
-            width: 204, height: 84), cornerRadius: 8)
+        // Keep the existing top/headroom while extending masonry down to
+        // the threshold. The former y=38 left a visible gap above the shoulders.
+        let wallMortar = SKShapeNode(rect: CGRect(x: -102, y: 10,
+            width: 204, height: 112), cornerRadius: 8)
         wallMortar.name = "portalWallMortar"
         wallMortar.fillColor = SKColor(red: 0.18, green: 0.25, blue: 0.21, alpha: 1)
         wallMortar.strokeColor = SKColor(red: 0.11, green: 0.18, blue: 0.14, alpha: 1)
