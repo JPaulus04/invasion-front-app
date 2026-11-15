@@ -9,6 +9,11 @@ on:
       - OutpostZero/OutpostScene.swift
       - OutpostZero/WorldOneRoomGeometry.swift
       - OutpostZero/WorldOneLayoutReview.swift
+      - OutpostZero/WorldShowcase.swift
+      - OutpostZero/RoomRules.swift
+      - OutpostZero/TerrainHazards.swift
+      - tests/WorldOneEnvironmentTests.swift
+      - scripts/validate_simulator_screenshots.py
   workflow_dispatch:
 jobs:
   smoke:
@@ -16,6 +21,14 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+      - name: Validate geometry and gameplay rules without simulator startup
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_*.py'
+          swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
+          "$RUNNER_TEMP/room-tests"
+          swiftc OutpostZero/WorldOneRoomGeometry.swift OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift OutpostZero/CampaignPacing.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/RunProgress.swift OutpostZero/PersistentProgression.swift tests/WorldOneEnvironmentTests.swift -o "$RUNNER_TEMP/environment-tests"
+          "$RUNNER_TEMP/environment-tests"
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate art and project
@@ -78,6 +91,7 @@ jobs:
                       raise RuntimeError("Simulator termination stalled; cannot guarantee capture isolation") from exc
               args=["xcrun","simctl","launch",device,"com.paulus.laststandcommand",flag]
               if mossbot: args.append("-reviewBuild337Mossbot")
+              args.append("-requireWorldOneAuthoredArt")
               try:
                   run(*args,timeout=55)
                   time.sleep(8)

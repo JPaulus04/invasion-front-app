@@ -9,6 +9,31 @@ enum WorldOneRoomGeometry {
     }
 
     struct Layout {
+        var artFamily: String {
+            switch kind {
+            case .passage: return "ruined_outpost"
+            case .survival: return "swamp_basin"
+            case .defense: return "toxic_caves"
+            case .rootLord: return "boss_arena"
+            }
+        }
+
+        /// Solid boundary shoulders leave a continuous central route and open
+        /// into the authored combat pockets. Rendering and navigation share these.
+        var boundaryObstacles: [CGRect] {
+            guard kind == .passage else { return [] }
+            let u = bounds.width / 13
+            let segments: [(CGFloat, CGFloat, CGFloat)] = [
+                (0, 9*u, 3*u), (9*u, 16*u, u),
+                (16*u, 24*u, 3*u), (24*u, 31*u, u),
+                (31*u, bounds.height, 3*u)
+            ]
+            return segments.flatMap { low, high, inset in
+                [CGRect(x: bounds.minX, y: bounds.minY + low, width: inset, height: high-low),
+                 CGRect(x: bounds.maxX-inset, y: bounds.minY + low, width: inset, height: high-low)]
+            }
+        }
+
         let kind: Kind
         let bounds: CGRect
         let entry: CGPoint

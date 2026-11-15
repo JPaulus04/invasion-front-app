@@ -1851,14 +1851,14 @@ final class OutpostScene: SKScene {
         // These exercise the same scene and authored-art lookup as gameplay.
         let worldOneCaptures: [(String, Int)] = [
             ("-captureWorldOneOutpostScreenshot", 1),
-            ("-captureWorldOneSwampScreenshot", 4),
-            ("-captureWorldOneCavesScreenshot", 9),
+            ("-captureWorldOneSwampScreenshot", 6),
+            ("-captureWorldOneCavesScreenshot", 12),
             ("-captureWorldOneBossScreenshot", 20),
             // Revisit captures exercise alternate authored floor compositions,
             // not only the first appearance of each landscape.
             ("-captureWorldOneOutpostRevisitScreenshot", 7),
-            ("-captureWorldOneSwampRevisitScreenshot", 12),
-            ("-captureWorldOneCavesRevisitScreenshot", 15)
+            ("-captureWorldOneSwampRevisitScreenshot", 17),
+            ("-captureWorldOneCavesRevisitScreenshot", 12)
         ]
         if let selection = worldOneCaptures.first(where: {
             ProcessInfo.processInfo.arguments.contains($0.0)
@@ -1867,6 +1867,14 @@ final class OutpostScene: SKScene {
             wave = selection.1 - 1
             gateUnlocked = true
             startWave()
+            if let layout = worldOneLiveLayout {
+                if layout.kind == .passage {
+                    pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 12*28)
+                } else {
+                    pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY - 100)
+                }
+                updateArenaCamera(delta: 1)
+            }
             // Hold an actual production room before combat can damage the
             // pilot or change rooms while simctl waits for the screenshot.
             for _ in 0..<min(3, waveTarget) {
@@ -1881,8 +1889,8 @@ final class OutpostScene: SKScene {
             let requiredCaptureLandscape: String?
             switch wave {
             case 1, 7: requiredCaptureLandscape = "ruined_outpost"
-            case 4, 12: requiredCaptureLandscape = "swamp_basin"
-            case 9, 15: requiredCaptureLandscape = "toxic_caves"
+            case 6, 17: requiredCaptureLandscape = "swamp_basin"
+            case 12: requiredCaptureLandscape = "toxic_caves"
             case 20: requiredCaptureLandscape = "boss_arena"
             default: requiredCaptureLandscape = nil
             }
@@ -1894,6 +1902,21 @@ final class OutpostScene: SKScene {
                     precondition(worldOneTexture(named: "world1_" + landscape + "_" + kind) != nil,
                                  "Landscape review requires all six bundled props")
                 }
+            }
+            if selection.1 == 1 && ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot") {
+                for enemy in enemies { enemy.node.removeFromParent() }
+                enemies.removeAll()
+                spawned = waveTarget
+                showZoneGate()
+                pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 140)
+                updateArenaCamera(delta: 1)
+            }
+            if selection.0 == "-captureWorldOneSwampScreenshot" {
+                precondition(activeEncounter == .survival)
+            }
+            if selection.0 == "-captureWorldOneCavesScreenshot" {
+                precondition(activeEncounter == .equipmentDefense && defenseDevice.parent === arena)
+                precondition(distance(pilot.position, defenseDevice.position) >= 95)
             }
             // Seven distinct binary RGB identities reject a stale frame from
             // a different landscape, even when that frame looks like gameplay.
@@ -4245,6 +4268,12 @@ final class OutpostScene: SKScene {
         roomHazards = TerrainHazards.patches(
             world: worldMapIndex, room: wave, bounds: roomBounds,
             preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
+        if let layout = worldOneLiveLayout {
+            roomHazards += layout.boundaryObstacles.map {
+                TerrainHazards.Patch(kind: .rubble,
+                    frame: $0.offsetBy(dx: roomBounds.minX, dy: roomBounds.minY), outline: [])
+            }
+        }
         for (hazardIndex, patch) in roomHazards.enumerated() {
             // Shared polygon outline drives both visuals and physical
             // slowdown/damage. Only solid rubble retains the block silhouette.
@@ -5631,17 +5660,7 @@ final class OutpostScene: SKScene {
         // through the campaign. An illustration must be shipped before this
         // path replaces the legacy backdrop; never substitute a placeholder.
         if worldMapIndex == 0 {
-            let landscape: String
-            // Choose the environment by the live encounter, not the old
-            // wave-number landscape rotation. Each authored room has its own
-            // gameplay bounds and matching environmental identity.
-            switch worldOneLiveLayout?.kind {
-            case .passage: landscape = "ruined_outpost"
-            case .survival: landscape = "swamp_basin"
-            case .defense: landscape = "toxic_caves"
-            case .rootLord: landscape = "boss_arena"
-            case nil: landscape = "ruined_outpost"
-            }
+            let landscape = worldOneLiveLayout?.artFamily ?? "ruined_outpost"
             // Keep the same illustrated floor for consecutive rooms in a
             // landscape, while rotating its three compositions on revisits.
             // Global wave modulo would change the floor every room and make
@@ -5669,15 +5688,12 @@ final class OutpostScene: SKScene {
             // stretching one universal stone-arena painting across every room.
             // The approved stone arena remains a fallback if a zone asset is absent.
             let landscapeFloorTexture = worldOneTexture(named: artName)
-            // Approved mossy stone arena is the World 1 foundation. Previously
-            // the landscape-specific paintings took priority, so the approved
-            // stone asset was never displayed even when bundled correctly.
             let authoredFloorTexture = landscapeFloorTexture ?? stoneArenaTexture
             #if DEBUG
             print("[WORLD1 FLOOR] requested=\(artName) selected=\(landscapeFloorTexture != nil ? artName : (stoneArenaTexture == nil ? "missing" : "world1_overgrown_stone_arena"))")
             #endif
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
-               authoredFloorTexture == nil {
+               landscapeFloorTexture == nil {
                 preconditionFailure("Missing authored World 1 floor: \(artName)")
             }
             if let texture = authoredFloorTexture {
@@ -5699,12 +5715,10 @@ final class OutpostScene: SKScene {
                 // switches between the tactical viewport and survival camera.
                 // Keep the artwork in one stable world-space frame and let the
                 // camera reveal/crop that frame as appropriate.
-                let artworkArena = worldMapIndex == 0
-                    ? ArenaLayout.bounds(for: size) : roomBounds
-                let paintedBounds = CGRect(
-                    x: artworkArena.minX - 180, y: artworkArena.minY - 180,
-                    width: artworkArena.width + 360,
-                    height: artworkArena.height + 360)
+                // Fixed world-space art frame covers the largest authored room
+                // and camera headroom. Device size never changes ground density.
+                let paintedBounds = CGRect(x: roomBounds.midX - 720,
+                    y: roomBounds.midY - 1080, width: 1440, height: 2160)
                 let textureSize = texture.size()
                 let coverScale = max(paintedBounds.width / max(1, textureSize.width),
                                      paintedBounds.height / max(1, textureSize.height))
@@ -6092,15 +6106,7 @@ final class OutpostScene: SKScene {
             // illustrated transparent sprites. Keep gameplay geometry and
             // placement independent of the image artwork.
             if worldMapIndex == 0 {
-                let landscape: String
-                switch wave {
-                case 4...5, 11...13: landscape = "swamp_basin"
-                case 9...10, 14...15: landscape = "toxic_caves"
-                case 16...19:
-                    landscape = ["ruined_outpost", "swamp_basin", "toxic_caves"][(wave - 16) % 3]
-                case 20: landscape = "boss_arena"
-                default: landscape = "ruined_outpost"
-                }
+                let landscape = worldOneLiveLayout?.artFamily ?? "ruined_outpost"
                 let propKinds = ["wall", "boulder", "vegetation", "debris", "lantern", "crate"]
                 // Keep prop identity stable within a landscape sequence.
                 // Otherwise the same perimeter location switches from a
@@ -6150,10 +6156,10 @@ final class OutpostScene: SKScene {
                     // Keep their full silhouette within the playable arena
                     // without moving any collision or encounter geometry.
                     let halfWidth = sprite.size.width * 0.5
-                    let minimumX = roomBounds.minX + halfWidth + 4
-                    let maximumX = roomBounds.maxX - halfWidth - 4
+                    let minimumX = roomBounds.minX - halfWidth * 0.35
+                    let maximumX = roomBounds.maxX + halfWidth * 0.35
                     if minimumX <= maximumX {
-                        prop.position.x = min(max(prop.position.x, minimumX), maximumX)
+                        prop.position.x = leftSide ? minimumX : maximumX
                     } else {
                         prop.position.x = roomBounds.midX
                     }
@@ -7156,7 +7162,7 @@ final class OutpostScene: SKScene {
             case .right: x = CGFloat.random(in: 0.64...0.92, using: &spawnRandom)
             case .center: x = CGFloat.random(in: 0.34...0.66, using: &spawnRandom)
             }
-            let vertical: ClosedRange<CGFloat> = activeEncounter == .equipmentDefense
+            let vertical: ClosedRange<CGFloat> = activeEncounter.isTimed
                 ? 0.06...0.94 : 0.48...0.94
             let sample = CGPoint(x: x, y: CGFloat.random(in: vertical, using: &spawnRandom))
             let location = CGPoint(
@@ -7191,11 +7197,19 @@ final class OutpostScene: SKScene {
         } else {
             node.position = RoomRules.spawnPoint(
                 in: roomBounds, radius: radius,
-                pilot: pilot.position, candidates: candidates)
+                pilot: pilot.position, candidates: candidates +
+                    (worldOneLiveLayout?.kind == .passage
+                        ? [CGPoint(x: 0.5, y: 0.80), CGPoint(x: 0.5, y: 0.55),
+                           CGPoint(x: 0.5, y: 0.25)] : []))
         }
         if isBoss {
-            node.position = CGPoint(x: roomBounds.midX,
-                                    y: min(roomBounds.maxY - 140, roomBounds.midY + 70))
+            if let objective = worldOneLiveLayout?.objective {
+                node.position = CGPoint(x: roomBounds.minX + objective.x,
+                                        y: roomBounds.minY + objective.y)
+            } else {
+                node.position = CGPoint(x: roomBounds.midX,
+                                        y: min(roomBounds.maxY - 140, roomBounds.midY + 70))
+            }
         }
         node.alpha = 0.28
         let spawnRing = SKShapeNode(circleOfRadius: radius + 9)
