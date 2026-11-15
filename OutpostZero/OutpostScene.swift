@@ -5614,14 +5614,15 @@ final class OutpostScene: SKScene {
         // path replaces the legacy backdrop; never substitute a placeholder.
         if worldMapIndex == 0 {
             let landscape: String
-            switch wave {
-            case 1...3, 6...8: landscape = "ruined_outpost"
-            case 4...5, 11...13: landscape = "swamp_basin"
-            case 9...10, 14...15: landscape = "toxic_caves"
-            case 16...19:
-                landscape = ["ruined_outpost", "swamp_basin", "toxic_caves"][(wave - 16) % 3]
-            case 20: landscape = "boss_arena"
-            default: landscape = "ruined_outpost"
+            // Choose the environment by the live encounter, not the old
+            // wave-number landscape rotation. Each authored room has its own
+            // gameplay bounds and matching environmental identity.
+            switch worldOneLiveLayout?.kind {
+            case .passage: landscape = "ruined_outpost"
+            case .survival: landscape = "swamp_basin"
+            case .defense: landscape = "toxic_caves"
+            case .rootLord: landscape = "boss_arena"
+            case nil: landscape = "ruined_outpost"
             }
             // Keep the same illustrated floor for consecutive rooms in a
             // landscape, while rotating its three compositions on revisits.
