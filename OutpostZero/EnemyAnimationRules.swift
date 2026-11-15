@@ -22,6 +22,10 @@ enum EnemyAnimationRules {
         var duration: TimeInterval { Double(expectedFrames) / framesPerSecond }
     }
 
+    static func allowsTravelFacing(during motion: Motion?) -> Bool {
+        motion == nil || motion == .idle || motion == .move
+    }
+
     static func canTransition(from current: Motion?, to next: Motion) -> Bool {
         guard current != .defeat, current != next else { return false }
         if next == .defeat || next == .hit { return true }

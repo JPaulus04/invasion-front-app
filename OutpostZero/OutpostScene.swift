@@ -7818,7 +7818,8 @@ final class OutpostScene: SKScene {
                 aiming: enemies[index].shotTarget != nil)
             if let enemyArt = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
                 WorldOneEnemyAnimation.updateLocomotion(on: enemyArt, moving: advancing,
-                    dx: enemy.node.position.x - current.x)
+                    dx: distance(current, pursuitTarget) > enemy.radius + 20
+                        ? enemy.node.position.x - current.x : 0)
                 // Let momentum register in the illustration without rotating
                 // collision geometry, health bars or attack telegraphs.
                 let travelDX = enemy.node.position.x - current.x

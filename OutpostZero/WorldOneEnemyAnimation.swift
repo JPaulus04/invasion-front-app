@@ -85,7 +85,10 @@ enum WorldOneEnemyAnimation {
         sprite.userData?["desiredLocomotion"] = next.rawValue
         // Only a right-facing three-quarter export exists. Mirror horizontally;
         // never rotate the chassis, health bar, collision body or attack cues.
-        if abs(dx) > 0.1 { sprite.xScale = dx < 0 ? -abs(sprite.xScale) : abs(sprite.xScale) }
+        let active = (sprite.userData?[motionKey] as? String).flatMap(Motion.init(rawValue:))
+        if abs(dx) > 0.1, EnemyAnimationRules.allowsTravelFacing(during: active) {
+            sprite.xScale = dx < 0 ? -abs(sprite.xScale) : abs(sprite.xScale)
+        }
         play(next, enemy: "mossbot", on: sprite)
     }
 

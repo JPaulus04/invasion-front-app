@@ -4,11 +4,14 @@
 No lifecycle retries. A failure preserves diagnostics and cannot claim approval.
 """
 import json
+import hashlib
+import shutil
 import os
 from pathlib import Path
 import signal
 import subprocess
 import time
+from run_phase4_simulator import fresh_simulator
 
 OUT = Path('enemy-review')
 OUT.mkdir(exist_ok=True)
@@ -23,18 +26,7 @@ def run(*args, timeout=45, check=True):
     return result
 
 
-def main():
-    devices = json.loads(run('xcrun', 'simctl', 'list', 'devices', 'available', '-j').stdout)['devices']
-    candidates = [d for _, ds in sorted(devices.items(), reverse=True) for d in ds
-                  if d.get('isAvailable', True) and d['name'].startswith('iPhone')]
-    if not candidates:
-        raise RuntimeError('No available iPhone simulator')
-    device = candidates[0]['udid']
-    (OUT / 'device.json').write_text(json.dumps(candidates[0], indent=2))
-    run('xcrun', 'simctl', 'boot', device, check=False)
-    run('xcrun', 'simctl', 'bootstatus', device, '-b', timeout=210)
-    run('xcrun', 'simctl', 'install', device,
-        'DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app', timeout=150)
+def capture(device):
     run('xcrun', 'simctl', 'io', device, 'screenshot', str(OUT / 'prelaunch.png'))
     video_log = (OUT / 'recording.log').open('w')
     recording = subprocess.Popen(['xcrun', 'simctl', 'io', device, 'recordVideo',
@@ -83,6 +75,22 @@ def main():
                 application.kill()
         if not (OUT / 'enemy-states.mp4').is_file():
             raise RuntimeError('No simulator video produced')
+
+
+def main():
+    app = Path('DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app')
+    destination = Path('simulator-app/OutpostZero.app')
+    destination.parent.mkdir(exist_ok=True)
+    shutil.copytree(app, destination)
+    (OUT / 'manifest.json').write_text(json.dumps({
+        'source_commit': os.environ.get('GITHUB_SHA'),
+        'app_sha256': hashlib.sha256((app / 'OutpostZero').read_bytes()).hexdigest(),
+        'recovery': 'one disposable iPhone 16 Pro / iOS 18.5; no outer lifecycle retry',
+    }, indent=2))
+    # Reuse the existing tested lifecycle, including cold-RPC readiness and
+    # positive app registration. One new device only; never retry gameplay.
+    with fresh_simulator('enemy-review', OUT, controlled=True) as device:
+        capture(device)
 
 
 if __name__ == '__main__':
