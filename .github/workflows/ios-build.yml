@@ -399,11 +399,34 @@ jobs:
           # A cold-booted simulator can show a gray launch screen for several
           # seconds while still returning success from 'simctl launch'.
           # Retry until a decoded screenshot contains actual rendered colors.
+          # A successful bootstatus does not guarantee a healthy CoreSimulator
+          # service. If simctl hangs, rebooting the same simulator repeatedly
+          # cannot recover it. Restart the service and reselect a clean device.
+          recover_simulator_service() {
+            echo "::warning::Restarting unresponsive CoreSimulator service"
+            pkill -f 'CoreSimulatorService' || true
+            sleep 8
+            # Avoid a stale device ID after the service restarts.
+            run_bounded 40 xcrun simctl boot "$DEVICE" || true
+            if ! run_bounded 150 xcrun simctl bootstatus "$DEVICE" -b; then
+              echo "::error::CoreSimulator service did not recover"
+              return 1
+            fi
+            run_bounded 100 xcrun simctl install "$DEVICE" "$APP" || return 1
+            run_bounded 35 xcrun simctl io "$DEVICE" screenshot /tmp/outpost-recovery-preflight.png || return 1
+          }
           capture_scene() {
             FLAG="$1"
             OUTPUT="$2"
             for ATTEMPT in 1 2 3; do
-              run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+              # Failure to terminate is a service-health failure, not a game
+              # failure. Recover before attempting another launch.
+              if ! run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand; then
+                echo "::warning::App termination unavailable; checking simulator health"
+                if ! run_bounded 15 xcrun simctl io "$DEVICE" screenshot /tmp/outpost-health.png; then
+                  recover_simulator_service || return 1
+                fi
+              fi
               # Give SpringBoard time to remove the previous game's surface
               # before launching a different QA flag. Without this the
               # simulator occasionally screenshots the previous scene.
@@ -412,6 +435,9 @@ jobs:
               # serve pixels. Launch/screenshot timeout is retriable too.
               if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
                 echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
+                # Restart the service instead of repeatedly rebooting a
+                # device whose simctl launch/terminate calls both time out.
+                recover_simulator_service || return 1
                 if [ "$ATTEMPT" != 3 ]; then
                   # A cold CoreSimulatorService can become unresponsive even
                   # after installation. Reboot the simulator before retrying

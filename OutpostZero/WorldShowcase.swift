@@ -330,10 +330,9 @@ extension WorldShowcase {
                 sprite.size = CGSize(width: height * art.size().width / max(1, art.size().height),
                                      height: height)
                 sprite.anchorPoint = CGPoint(x: 0.5, y: WorldOneArtMetrics.groundAnchorY(for: name))
-                let inset: CGFloat = kind == "wall" ? 0.04 : 0.01
                 let fraction = CGFloat(row + 1) / 4 + CGFloat((variant + side) % 3 - 1) * 0.035
-                sprite.position = CGPoint(x: side == 0 ? bounds.minX + bounds.width * inset
-                                                       : bounds.maxX - bounds.width * inset,
+                sprite.position = CGPoint(x: side == 0 ? bounds.minX - sprite.size.width * 0.35
+                                                       : bounds.maxX + sprite.size.width * 0.35,
                                           y: bounds.minY + bounds.height * fraction)
                 sprite.zPosition = 0.6 - fraction * 0.3
                 let shadow = SKSpriteNode(texture: ProductionPresentation.glow(.black.withAlphaComponent(0.30)))

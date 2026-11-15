@@ -4,6 +4,11 @@ import SpriteKit
 /// OutpostScene. Bounded fragments keep late-game effects mobile-friendly.
 enum EnemyCombatFeedback {
     static func hit(_ enemy: SKShapeNode, from origin: CGPoint) {
+        if let art = enemy.childNode(withName: "enemyArt") as? SKSpriteNode,
+           WorldOneEnemyAnimation.isMossbot(art) {
+            WorldOneEnemyAnimation.play(.hit, enemy: "mossbot", on: art)
+            return
+        }
         enemy.removeAction(forKey: "enemyHitFeedback")
         enemy.run(.sequence([
             .colorize(with: .white, colorBlendFactor: 0.72, duration: 0.035),
@@ -142,7 +147,7 @@ enum EnemyCombatFeedback {
              (role == 5 ? .systemOrange :
               (role == 2 ? .systemPurple : .systemRed)))
         if let sprite = (enemy.childNode(withName: "enemyArt") ?? enemy.childNode(withName: "bossArt")) as? SKSpriteNode,
-           let texture = sprite.texture {
+           !WorldOneEnemyAnimation.isMossbot(sprite), let texture = sprite.texture {
             let echo = SKSpriteNode(texture: texture)
             echo.name = "enemyDefeatEcho"
             echo.size = sprite.size

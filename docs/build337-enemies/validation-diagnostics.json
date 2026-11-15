@@ -1,0 +1,28 @@
+{
+  "app_source_commit": "5d4474cde3a7d84a6e7db51896b4abc3f801a0f0",
+  "compiled_app_sha256": "308eb99a248d8d94656f9484ad3a0274906583f49abc6de87d53cc599bc15795",
+  "gameplay_visual_approval": false,
+  "gameplay_video_or_screenshot_obtained": false,
+  "attempts": [
+    {
+      "run_id": 43723510145,
+      "artifact_id": 14165957481,
+      "source_commit": "425e99fc98b45f7317a8d602e37ba8163dd98d55",
+      "device": "pre-existing iPhone 17 Pro",
+      "failure": "simctl bootstatus timeout",
+      "timeout_seconds": 210,
+      "app_install_or_launch_command_reached": false
+    },
+    {
+      "run_id": 43724609382,
+      "artifact_id": 14166044210,
+      "source_commit": "5d4474cde3a7d84a6e7db51896b4abc3f801a0f0",
+      "device": "one disposable iPhone 16 Pro / iOS 18.5",
+      "failure": "simctl bootstatus timeout; subsequent devices/services/log probes timed out",
+      "timeout_seconds": 240,
+      "app_install_or_launch_command_reached": false,
+      "startup_probes_could_not_prove_app_absence": true
+    }
+  ],
+  "further_infrastructure_retry": false
+}

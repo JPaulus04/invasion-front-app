@@ -418,11 +418,48 @@ final class OutpostScene: SKScene {
     private var extractionCombatActive: Bool {
         phase == .gate && activeEncounter == .survival && roomCleared
     }
+    // Build 337: the authored World 1 geometry is now the live room boundary.
+    // Its center is aligned with the existing arena coordinate system so
+    // spawning, collision clamping, scenery and camera use one shared frame.
+    private var worldOneLiveLayout: WorldOneRoomGeometry.Layout? {
+        guard worldMapIndex == 0, wave > 0, phase != .worldSelect else { return nil }
+        let encounter: WorldOneRoomGeometry.Encounter
+        if wave == worldWaveCount {
+            encounter = .tactical
+        } else {
+            switch activeEncounter {
+            case .survival: encounter = .survival
+            case .equipmentDefense: encounter = .equipmentDefense
+            default: encounter = .tactical
+            }
+        }
+        return WorldOneRoomGeometry.make(room: wave, playerWidth: 28, encounter: encounter)
+    }
     private var roomBounds: CGRect {
-        expandedArenaPreview ? ArenaLayout.bounds(for: size) : RoomRules.bounds(for: size)
+        if let layout = worldOneLiveLayout {
+            let original = RoomRules.bounds(for: size)
+            return CGRect(x: original.midX - layout.bounds.width / 2,
+                          y: original.midY - layout.bounds.height / 2,
+                          width: layout.bounds.width, height: layout.bounds.height)
+        }
+        return expandedArenaPreview ? ArenaLayout.bounds(for: size) : RoomRules.bounds(for: size)
+    }
+    // One shared exit anchor for initial layout and subsequent room transitions.
+    // The artwork stays inset against the far wall, rather than floating in combat.
+    private var authoredGatePosition: CGPoint {
+        if let layout = worldOneLiveLayout, let exit = layout.exit {
+            return CGPoint(x: roomBounds.minX + exit.x,
+                           y: roomBounds.minY + exit.y)
+        }
+        return CGPoint(x: roomBounds.midX,
+                       y: roomBounds.maxY - (worldMapIndex == 0 ? 14 : 112))
     }
     private var entryPoint: CGPoint {
-        expandedArenaPreview
+        if let layout = worldOneLiveLayout {
+            let b = roomBounds
+            return CGPoint(x: b.minX + layout.entry.x, y: b.minY + layout.entry.y)
+        }
+        return expandedArenaPreview
             ? CGPoint(x: roomBounds.midX, y: roomBounds.minY + 48)
             : RoomRules.entryPoint(for: size)
     }
@@ -437,6 +474,7 @@ final class OutpostScene: SKScene {
 
 
     override func didMove(to view: SKView) {
+        WorldOneEnemyAnimation.preload()
         scaleMode = .resizeFill
         backgroundColor = SKColor(red: 0.07, green: 0.15, blue: 0.21, alpha: 1)
         addChild(arena)
@@ -655,8 +693,10 @@ final class OutpostScene: SKScene {
         // portal prop. All geometry stays within the far-wall depth band.
         // Its lower edge is the walkable threshold and its upper edge stays
         // below the HUD. The invisible gate remains the interaction target.
-        let wallMortar = SKShapeNode(rect: CGRect(x: -102, y: 38,
-            width: 204, height: 84), cornerRadius: 8)
+        // Keep the existing top/headroom while extending masonry down to
+        // the threshold. The former y=38 left a visible gap above the shoulders.
+        let wallMortar = SKShapeNode(rect: CGRect(x: -102, y: 10,
+            width: 204, height: 112), cornerRadius: 8)
         wallMortar.name = "portalWallMortar"
         wallMortar.fillColor = SKColor(red: 0.18, green: 0.25, blue: 0.21, alpha: 1)
         wallMortar.strokeColor = SKColor(red: 0.11, green: 0.18, blue: 0.14, alpha: 1)
@@ -1814,14 +1854,14 @@ final class OutpostScene: SKScene {
         // These exercise the same scene and authored-art lookup as gameplay.
         let worldOneCaptures: [(String, Int)] = [
             ("-captureWorldOneOutpostScreenshot", 1),
-            ("-captureWorldOneSwampScreenshot", 4),
-            ("-captureWorldOneCavesScreenshot", 9),
+            ("-captureWorldOneSwampScreenshot", 6),
+            ("-captureWorldOneCavesScreenshot", 12),
             ("-captureWorldOneBossScreenshot", 20),
             // Revisit captures exercise alternate authored floor compositions,
             // not only the first appearance of each landscape.
             ("-captureWorldOneOutpostRevisitScreenshot", 7),
-            ("-captureWorldOneSwampRevisitScreenshot", 12),
-            ("-captureWorldOneCavesRevisitScreenshot", 15)
+            ("-captureWorldOneSwampRevisitScreenshot", 17),
+            ("-captureWorldOneCavesRevisitScreenshot", 12)
         ]
         if let selection = worldOneCaptures.first(where: {
             ProcessInfo.processInfo.arguments.contains($0.0)
@@ -1830,6 +1870,15 @@ final class OutpostScene: SKScene {
             wave = selection.1 - 1
             gateUnlocked = true
             startWave()
+            if let layout = worldOneLiveLayout {
+                if layout.kind == .passage {
+                    pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 12*28)
+                } else {
+                    pilot.position = CGPoint(x: roomBounds.midX,
+                        y: roomBounds.midY - (layout.kind == .defense ? 145 : 100))
+                }
+                updateArenaCamera(delta: 1)
+            }
             // Hold an actual production room before combat can damage the
             // pilot or change rooms while simctl waits for the screenshot.
             for _ in 0..<min(3, waveTarget) {
@@ -1844,8 +1893,8 @@ final class OutpostScene: SKScene {
             let requiredCaptureLandscape: String?
             switch wave {
             case 1, 7: requiredCaptureLandscape = "ruined_outpost"
-            case 4, 12: requiredCaptureLandscape = "swamp_basin"
-            case 9, 15: requiredCaptureLandscape = "toxic_caves"
+            case 6, 17: requiredCaptureLandscape = "swamp_basin"
+            case 12: requiredCaptureLandscape = "toxic_caves"
             case 20: requiredCaptureLandscape = "boss_arena"
             default: requiredCaptureLandscape = nil
             }
@@ -1858,9 +1907,30 @@ final class OutpostScene: SKScene {
                                  "Landscape review requires all six bundled props")
                 }
             }
+            if selection.1 == 1 && ProcessInfo.processInfo.arguments.contains("-captureBuild337CorridorExit") {
+                for enemy in enemies { enemy.node.removeFromParent() }
+                enemies.removeAll()
+                spawned = waveTarget
+                showZoneGate()
+                pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 140)
+                updateArenaCamera(delta: 1)
+            }
+            if selection.0 == "-captureWorldOneSwampScreenshot" {
+                precondition(activeEncounter == .survival)
+            }
+            if selection.0 == "-captureWorldOneCavesScreenshot" {
+                precondition(activeEncounter == .equipmentDefense && defenseDevice.parent === arena)
+                precondition(distance(pilot.position, defenseDevice.position) >= 95)
+                let objective = worldOneLiveLayout!.objective!
+                precondition(defenseDevice.position == CGPoint(
+                    x: roomBounds.minX + objective.x, y: roomBounds.minY + objective.y))
+            }
             // Seven distinct binary RGB identities reject a stale frame from
             // a different landscape, even when that frame looks like gameplay.
-            let captureIndex = worldOneCaptures.firstIndex(where: { $0.0 == selection.0 })! + 1
+            let corridorExitReview = selection.1 == 1 &&
+                ProcessInfo.processInfo.arguments.contains("-captureBuild337CorridorExit")
+            let captureIndex = corridorExitReview ? 5 :
+                worldOneCaptures.firstIndex(where: { $0.0 == selection.0 })! + 1
             let identity = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
             identity.fillColor = SKColor(
                 red: captureIndex & 1 != 0 ? 1 : 0,
@@ -2357,7 +2427,8 @@ final class OutpostScene: SKScene {
             let safeTop = view?.safeAreaInsets.top ?? 0
             let safeBottom = view?.safeAreaInsets.bottom ?? 0
             arena.setScale(WorldOneFraming.scale(size: size, safeTop: safeTop, safeBottom: safeBottom))
-            target = WorldOneFraming.offset(pilot: pilot.position, room: roomBounds,
+            let cameraTarget = worldOneLiveLayout?.cameraTarget(for: pilot.position) ?? pilot.position
+            target = WorldOneFraming.offset(pilot: cameraTarget, room: roomBounds,
                 size: size, safeTop: safeTop, safeBottom: safeBottom)
         } else if expandedArenaPreview {
             arena.setScale(1)
@@ -2374,7 +2445,7 @@ final class OutpostScene: SKScene {
 
     private func layout() {
         if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - (worldMapIndex == 0 ? 14 : 112))
+        passageGate.position = authoredGatePosition
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
         if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
@@ -4208,6 +4279,12 @@ final class OutpostScene: SKScene {
         roomHazards = TerrainHazards.patches(
             world: worldMapIndex, room: wave, bounds: roomBounds,
             preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
+        if let layout = worldOneLiveLayout {
+            roomHazards += layout.boundaryObstacles.map {
+                TerrainHazards.Patch(kind: .rubble,
+                    frame: $0.offsetBy(dx: roomBounds.minX, dy: roomBounds.minY), outline: [])
+            }
+        }
         for (hazardIndex, patch) in roomHazards.enumerated() {
             // Shared polygon outline drives both visuals and physical
             // slowdown/damage. Only solid rubble retains the block silhouette.
@@ -4240,7 +4317,37 @@ final class OutpostScene: SKScene {
                     ? SKColor(red: 0.12, green: 0.23, blue: 0.26, alpha: 1)
                     : SKColor(red: 0.13, green: 0.19, blue: 0.18, alpha: 1)
                 shape.lineWidth = 2
-                decorateRubbleObstacle(shape, size: patch.frame.size)
+                if worldOneLiveLayout?.kind == .passage,
+                   let stone = worldOneTexture(named: "world1_ruined_outpost_wall") {
+                    // Real ruined masonry, clipped to the exact solid shoulder.
+                    // Never stretch the generic obstacle's panel/braces along a wall.
+                    shape.fillColor = SKColor(red: 0.16, green: 0.20, blue: 0.15, alpha: 1)
+                    shape.lineWidth = 1
+                    let local = CGRect(x: -patch.frame.width/2, y: -patch.frame.height/2,
+                        width: patch.frame.width, height: patch.frame.height)
+                    let crop = SKCropNode()
+                    crop.name = "authoredCorridorMasonry"
+                    let mask = SKShapeNode(rect: local)
+                    mask.fillColor = .white
+                    mask.strokeColor = .clear
+                    crop.maskNode = mask
+                    let width = max(72, patch.frame.width + 24)
+                    let height = width * stone.size().height / max(1, stone.size().width)
+                    let spacing = height * 0.62
+                    for row in 0...Int(ceil(patch.frame.height / spacing)) {
+                        let course = SKSpriteNode(texture: stone)
+                        course.size = CGSize(width: width, height: height)
+                        course.anchorPoint = CGPoint(x: 0.5,
+                            y: WorldOneArtMetrics.groundAnchorY(for: "world1_ruined_outpost_wall"))
+                        course.position = CGPoint(x: row.isMultiple(of: 2) ? -5 : 5,
+                            y: local.minY - height * 0.35 + CGFloat(row) * spacing)
+                        course.xScale = row.isMultiple(of: 2) ? 1 : -1
+                        crop.addChild(course)
+                    }
+                    shape.addChild(crop)
+                } else {
+                    decorateRubbleObstacle(shape, size: patch.frame.size)
+                }
             }
             // Prefer authored transparent terrain illustrations when bundled.
             // They are presentation-only: the exact polygon above remains the
@@ -4776,10 +4883,24 @@ final class OutpostScene: SKScene {
     private func installDefenseDevice() {
         // A readable field-power reactor, not a flat blue prototype tile.
         // All parts are visual children of the unchanged objective hit target.
-        let desired = CGPoint(x: roomBounds.midX,
+        // Respect the authored defense objective; retain the legacy placement
+        // for other worlds, where Build 337 layouts are not active.
+        let desired: CGPoint
+        if let layout = worldOneLiveLayout, let objective = layout.objective {
+            desired = CGPoint(x: roomBounds.minX + objective.x,
+                              y: roomBounds.minY + objective.y)
+        } else {
+            desired = CGPoint(x: roomBounds.midX,
                               y: roomBounds.midY + roomBounds.height * 0.08)
-        defenseDevice.position = TerrainHazards.extractionPosition(
-            near: desired, in: roomBounds, patches: roomHazards)
+        }
+        // Extraction deliberately avoids its `near` argument by >=43 points.
+        // A reactor must use the exact authored objective, not that portal rule.
+        if worldOneLiveLayout?.kind == .defense {
+            defenseDevice.position = desired
+        } else {
+            defenseDevice.position = TerrainHazards.extractionPosition(
+                near: desired, in: roomBounds, patches: roomHazards)
+        }
         // Collision in pilot-origin coordinates: the visible feet sit at -27.
         // Only the grounded base blocks walking, not the tall illustration.
         reactorMovementPatch = TerrainHazards.Patch(kind: .rubble,
@@ -5120,6 +5241,7 @@ final class OutpostScene: SKScene {
         enemies.removeAll()
         for drop in xpDrops { drop.node.removeFromParent() }
         xpDrops.removeAll()
+        arena.enumerateChildNodes(withName: "enemyDefeatVisual") { node, _ in node.removeFromParent() }
         bossNode = nil
         guardianArmorBroken = false
         guardianSupportDeployed = false
@@ -5155,6 +5277,17 @@ final class OutpostScene: SKScene {
         let scheduled = SurvivalEncounterRules.kind(world: worldMapIndex, room: wave)
         activeEncounter = scheduled == .survival || scheduled == .equipmentDefense
             ? scheduled : .tactical
+        // Authored room geometry now drives live movement bounds and camera.
+        // Keep the QA outline opt-in; it must not appear in release gameplay.
+        #if DEBUG
+        arena.childNode(withName: "build337LayoutReview")?.removeFromParent()
+        if ProcessInfo.processInfo.arguments.contains("-reviewBuild337Layouts"),
+           let planned = worldOneLiveLayout {
+            let review = WorldOneLayoutReview.make(planned)
+            review.position = roomBounds.origin
+            arena.addChild(review)
+        }
+        #endif
         // Only explicit expanded-arena review fixtures may retain a large
         // camera in a tactical room; live survival -> tactical must reset it.
         let retainQACamera = ProcessInfo.processInfo.arguments.contains {
@@ -5167,7 +5300,7 @@ final class OutpostScene: SKScene {
         pilot.position = entryPoint
         updateArenaCamera(delta: 1)
         // Seat the exit against the far boundary rather than in the arena center.
-        passageGate.position = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - (worldMapIndex == 0 ? 14 : 112))
+        passageGate.position = authoredGatePosition
         extractionPortal.isHidden = true
         checkpointButton.position = CGPoint(
             x: size.width / 2, y: RoomRules.bounds(for: size).minY + 25)
@@ -5575,16 +5708,7 @@ final class OutpostScene: SKScene {
         // through the campaign. An illustration must be shipped before this
         // path replaces the legacy backdrop; never substitute a placeholder.
         if worldMapIndex == 0 {
-            let landscape: String
-            switch wave {
-            case 1...3, 6...8: landscape = "ruined_outpost"
-            case 4...5, 11...13: landscape = "swamp_basin"
-            case 9...10, 14...15: landscape = "toxic_caves"
-            case 16...19:
-                landscape = ["ruined_outpost", "swamp_basin", "toxic_caves"][(wave - 16) % 3]
-            case 20: landscape = "boss_arena"
-            default: landscape = "ruined_outpost"
-            }
+            let landscape = worldOneLiveLayout?.artFamily ?? "ruined_outpost"
             // Keep the same illustrated floor for consecutive rooms in a
             // landscape, while rotating its three compositions on revisits.
             // Global wave modulo would change the floor every room and make
@@ -5612,15 +5736,12 @@ final class OutpostScene: SKScene {
             // stretching one universal stone-arena painting across every room.
             // The approved stone arena remains a fallback if a zone asset is absent.
             let landscapeFloorTexture = worldOneTexture(named: artName)
-            // Approved mossy stone arena is the World 1 foundation. Previously
-            // the landscape-specific paintings took priority, so the approved
-            // stone asset was never displayed even when bundled correctly.
-            let authoredFloorTexture = stoneArenaTexture ?? landscapeFloorTexture
+            let authoredFloorTexture = landscapeFloorTexture ?? stoneArenaTexture
             #if DEBUG
-            print("[WORLD1 FLOOR] requested=\(artName) selected=\(stoneArenaTexture != nil ? "world1_overgrown_stone_arena" : (landscapeFloorTexture == nil ? "missing" : artName))")
+            print("[WORLD1 FLOOR] requested=\(artName) selected=\(landscapeFloorTexture != nil ? artName : (stoneArenaTexture == nil ? "missing" : "world1_overgrown_stone_arena"))")
             #endif
             if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
-               authoredFloorTexture == nil {
+               landscapeFloorTexture == nil {
                 preconditionFailure("Missing authored World 1 floor: \(artName)")
             }
             if let texture = authoredFloorTexture {
@@ -5642,12 +5763,10 @@ final class OutpostScene: SKScene {
                 // switches between the tactical viewport and survival camera.
                 // Keep the artwork in one stable world-space frame and let the
                 // camera reveal/crop that frame as appropriate.
-                let artworkArena = worldMapIndex == 0
-                    ? ArenaLayout.bounds(for: size) : roomBounds
-                let paintedBounds = CGRect(
-                    x: artworkArena.minX - 180, y: artworkArena.minY - 180,
-                    width: artworkArena.width + 360,
-                    height: artworkArena.height + 360)
+                // Fixed world-space art frame covers the largest authored room
+                // and camera headroom. Device size never changes ground density.
+                let paintedBounds = CGRect(x: roomBounds.midX - 550,
+                    y: roomBounds.midY - 825, width: 1100, height: 1650)
                 let textureSize = texture.size()
                 let coverScale = max(paintedBounds.width / max(1, textureSize.width),
                                      paintedBounds.height / max(1, textureSize.height))
@@ -5826,7 +5945,8 @@ final class OutpostScene: SKScene {
         // approach toward the portal. The middle remains completely free for
         // combat, dodging and alternative approaches. This is the procedural
         // fallback only; authored landscape paintings own their composition.
-        if worldMapIndex == 0 && activeEncounter != .survival && wave > 0 {
+        if worldMapIndex == 0 && activeEncounter != .survival && wave > 0 &&
+           roomArt?.childNode(withName: "world1AuthoredFloor") == nil {
             let guide = SKNode()
             guide.name = "worldOnePortalApproach"
             guide.zPosition = -0.7
@@ -6035,15 +6155,7 @@ final class OutpostScene: SKScene {
             // illustrated transparent sprites. Keep gameplay geometry and
             // placement independent of the image artwork.
             if worldMapIndex == 0 {
-                let landscape: String
-                switch wave {
-                case 4...5, 11...13: landscape = "swamp_basin"
-                case 9...10, 14...15: landscape = "toxic_caves"
-                case 16...19:
-                    landscape = ["ruined_outpost", "swamp_basin", "toxic_caves"][(wave - 16) % 3]
-                case 20: landscape = "boss_arena"
-                default: landscape = "ruined_outpost"
-                }
+                let landscape = worldOneLiveLayout?.artFamily ?? "ruined_outpost"
                 let propKinds = ["wall", "boulder", "vegetation", "debris", "lantern", "crate"]
                 // Keep prop identity stable within a landscape sequence.
                 // Otherwise the same perimeter location switches from a
@@ -6093,10 +6205,10 @@ final class OutpostScene: SKScene {
                     // Keep their full silhouette within the playable arena
                     // without moving any collision or encounter geometry.
                     let halfWidth = sprite.size.width * 0.5
-                    let minimumX = roomBounds.minX + halfWidth + 4
-                    let maximumX = roomBounds.maxX - halfWidth - 4
+                    let minimumX = roomBounds.minX - halfWidth * 0.35
+                    let maximumX = roomBounds.maxX + halfWidth * 0.35
                     if minimumX <= maximumX {
-                        prop.position.x = min(max(prop.position.x, minimumX), maximumX)
+                        prop.position.x = leftSide ? minimumX : maximumX
                     } else {
                         prop.position.x = roomBounds.midX
                     }
@@ -6870,7 +6982,10 @@ final class OutpostScene: SKScene {
             guard enemies.count > before else { continue }
             let target = FlankSwarmRules.entry(bounds: roomBounds,
                 warnedPilot: pending.warnedPilot, index: index)
-            enemies[enemies.count - 1].node.position = target
+            if TerrainHazards.spawnAllowed(target,
+                radius: enemies[enemies.count - 1].radius, patches: roomHazards) {
+                enemies[enemies.count - 1].node.position = target
+            }
             enemies[enemies.count - 1].node.name = "flankRaider"
             enemies[enemies.count - 1].activeAt = combatTime + 0.35
         }
@@ -6915,8 +7030,11 @@ final class OutpostScene: SKScene {
             armor.size = CGSize(
                 width: radius * (hasProductionArt ? 2.48 : 2.3) * illustrationScale,
                 height: radius * (hasProductionArt ? 2.74 : 2.55) * illustrationScale)
-            if (0...5).contains(type) && hasProductionArt {
-                armor.size.width = armor.size.height
+            if hasProductionArt, let image = productionImage(named: assetName) {
+                armor.size.width = armor.size.height * image.size.width / max(1, image.size.height)
+            }
+            if worldMapIndex == 0 && type == 0 {
+                _ = WorldOneEnemyAnimation.install(on: armor, facingLeft: pilot.position.x < roomBounds.midX)
             }
             if type == 4 && hasProductionArt {
                 // The long railgun and antennae leave a narrow body inside
@@ -7099,7 +7217,7 @@ final class OutpostScene: SKScene {
             case .right: x = CGFloat.random(in: 0.64...0.92, using: &spawnRandom)
             case .center: x = CGFloat.random(in: 0.34...0.66, using: &spawnRandom)
             }
-            let vertical: ClosedRange<CGFloat> = activeEncounter == .equipmentDefense
+            let vertical: ClosedRange<CGFloat> = activeEncounter.isTimed
                 ? 0.06...0.94 : 0.48...0.94
             let sample = CGPoint(x: x, y: CGFloat.random(in: vertical, using: &spawnRandom))
             let location = CGPoint(
@@ -7134,11 +7252,23 @@ final class OutpostScene: SKScene {
         } else {
             node.position = RoomRules.spawnPoint(
                 in: roomBounds, radius: radius,
-                pilot: pilot.position, candidates: candidates)
+                pilot: pilot.position, candidates: candidates +
+                    (worldOneLiveLayout?.kind == .passage
+                        ? [CGPoint(x: 0.5, y: 0.80), CGPoint(x: 0.5, y: 0.55),
+                           CGPoint(x: 0.5, y: 0.25)] : []))
         }
         if isBoss {
-            node.position = CGPoint(x: roomBounds.midX,
-                                    y: min(roomBounds.maxY - 140, roomBounds.midY + 70))
+            if let objective = worldOneLiveLayout?.objective {
+                node.position = CGPoint(x: roomBounds.minX + objective.x,
+                                        y: roomBounds.minY + objective.y)
+            } else {
+                node.position = CGPoint(x: roomBounds.midX,
+                                        y: min(roomBounds.maxY - 140, roomBounds.midY + 70))
+            }
+        }
+        if let art = node.childNode(withName: "enemyArt") as? SKSpriteNode,
+           WorldOneEnemyAnimation.isMossbot(art) {
+            art.xScale = pilot.position.x < node.position.x ? -1 : 1
         }
         node.alpha = 0.28
         let spawnRing = SKShapeNode(circleOfRadius: radius + 9)
@@ -7175,8 +7305,10 @@ final class OutpostScene: SKScene {
             ? 70 : max(1, Int((Double(baseEnemyHP) * healthFactor).rounded()))
         let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
         // Keep the track and fill together above the larger illustrated sprite.
-        let healthBarOffset: CGFloat = isBoss ? 118 :
-            (usesIllustratedEnemy ? radius * (type == 3 ? 1.66 : 1.60) + 5 : radius + 8)
+        let animatedGrunt = (node.childNode(withName: "enemyArt") as? SKSpriteNode)
+            .map { WorldOneEnemyAnimation.isMossbot($0) } ?? false
+        let healthBarOffset: CGFloat = isBoss ? 118 : (animatedGrunt ? 47 :
+            (usesIllustratedEnemy ? radius * (type == 3 ? 1.66 : 1.60) + 5 : radius + 8))
         let barWidth: CGFloat = isBoss ? 148 : min(48, radius * 2.0)
         let barHeight: CGFloat = isBoss ? 8 : 4
         let healthTrack = SKShapeNode(rectOf: CGSize(
@@ -7212,6 +7344,117 @@ final class OutpostScene: SKScene {
         qaRecordState("spawn type=\(type)")
     }
 
+    #if DEBUG
+    private var enemyReviewStart: TimeInterval?
+    private var enemyReviewStage = -1
+    private weak var enemyReviewSubject: SKShapeNode?
+    private let enemyReviewEnabled = ProcessInfo.processInfo.arguments.contains("-captureBuild337EnemySequence")
+
+    /// Staged inputs on real gameplay entities. Pursuit, contact damage, rifle
+    /// hits and kill cleanup run their production paths; this is not a balance trial.
+    private func updateEnemyReview() {
+        guard enemyReviewEnabled else { return }
+        if enemyReviewStart == nil { enemyReviewStart = clock }
+        let elapsed = clock - enemyReviewStart!
+        let boundaries: [TimeInterval] = [0.8, 1.8, 3.3, 4.5, 5.3, 6.2, 8.2, 10.2, 12.2, 14.2]
+        let stage = boundaries.filter { elapsed >= $0 }.count
+        guard stage != enemyReviewStage else { return }
+        enemyReviewStage = stage
+        let names = ["spawn", "idle", "movement", "attack", "hit", "defeat",
+                     "crowded", "survival", "reactor", "boss", "done"]
+        func enter(_ room: Int, roles: [Int]) {
+            worldMapIndex = 0
+            wave = room - 1
+            gateUnlocked = true
+            startWave()
+            pilot.position = worldOneLiveLayout?.kind == .passage
+                ? CGPoint(x: roomBounds.midX, y: roomBounds.minY + 12*28)
+                : CGPoint(x: roomBounds.midX, y: roomBounds.midY - 145)
+            movementTarget = nil
+            for (slot, role) in roles.enumerated() {
+                spawned += 1
+                spawnEnemy(artReviewType: role)
+                let index = enemies.count - 1
+                let x = CGFloat(slot % 3 - 1) * (room == 7 ? 65 : 100)
+                let y = CGFloat(slot / 3) * 90 + (room == 7 ? 65 : 90)
+                let candidate = CGPoint(x: pilot.position.x + x, y: pilot.position.y + y)
+                if TerrainHazards.spawnAllowed(candidate, radius: enemies[index].radius, patches: roomHazards) {
+                    enemies[index].node.position = candidate
+                }
+                enemies[index].activeAt = combatTime + (room == 7 ? 100 : 0)
+            }
+            lastShot = combatTime + 1000
+            updateArenaCamera(delta: 1)
+            zoneBanner.removeAllActions()
+            zoneBanner.alpha = 0
+            controlsHint.isHidden = true
+        }
+        switch stage {
+        case 0:
+            precondition(WorldOneEnemyAnimation.mossbotAvailable)
+            enter(7, roles: [0, 0, 0])
+            enemyReviewSubject = enemies[0].node
+            print("[ENEMY REVIEW READY] frames=40 normalGameplayArt=true")
+        case 1:
+            for enemy in enemies {
+                enemy.node.alpha = 1
+                enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
+            }
+        case 2:
+            for index in enemies.indices { enemies[index].activeAt = combatTime }
+        case 3:
+            if let subject = enemyReviewSubject {
+                subject.position = CGPoint(x: pilot.position.x + 24, y: pilot.position.y)
+                pilotShieldUntil = 0
+            }
+        case 4:
+            if let index = enemies.firstIndex(where: { $0.node === enemyReviewSubject }) {
+                lastShot = -100
+                shoot(at: enemies[index].node.position, selectedIndex: index)
+                lastShot = combatTime + 1000
+            }
+        case 5:
+            if let index = enemies.firstIndex(where: { $0.node === enemyReviewSubject }) {
+                enemies[index].health = 0
+                removeDefeatedEnemies()
+                precondition(arena.childNode(withName: "enemyDefeatVisual") != nil)
+            }
+        case 6:
+            precondition(arena.childNode(withName: "enemyDefeatVisual") == nil,
+                         "The complete eight-frame defeat must finish before removal")
+            enter(6, roles: [0, 0, 0, 0, 0, 1, 2, 3, 4, 5])
+        case 7:
+            movementTarget = CGPoint(x: pilot.position.x + 70, y: pilot.position.y + 100)
+        case 8:
+            enter(12, roles: [0, 0, 1, 2, 3, 4, 5])
+        case 9:
+            enter(20, roles: [])
+            pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY - 100)
+            spawned = 1
+            spawnEnemy()
+            updateArenaCamera(delta: 1)
+        default:
+            print("[ENEMY REVIEW DONE] stages=10")
+            holdDefenseQAScreenshot = true
+        }
+        var label = childNode(withName: "enemyReviewStatus") as? SKLabelNode
+        if label == nil {
+            let node = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+            node.name = "enemyReviewStatus"
+            node.fontSize = 12
+            node.fontColor = .cyan
+            node.zPosition = 100
+            addChild(node)
+            label = node
+        }
+        label?.text = "ENEMY QA: \(names[stage].uppercased())"
+        label?.position = CGPoint(x: size.width/2,
+            y: size.height - (view?.safeAreaInsets.top ?? 0) - 150)
+        print("[ENEMY REVIEW] stage=\(names[stage]) room=\(wave) liveEnemies=\(enemies.count)")
+        fflush(stdout)
+    }
+    #endif
+
     override func update(_ currentTime: TimeInterval) {
         if let replay = qaReplay {
             // Same 1/60 simulation steps, independent of host frame deltas.
@@ -7233,6 +7476,9 @@ final class OutpostScene: SKScene {
         lastUpdate = currentTime
         clock += dt
         combatClock.advance(gameDt, playing: phase == .playing || extractionCombatActive)
+        #if DEBUG
+        updateEnemyReview()
+        #endif
         if let due = qaFlankDue, phase == .playing, combatTime >= due {
             qaFlankDue = nil
             deployFlankSwarm()
@@ -7571,6 +7817,9 @@ final class OutpostScene: SKScene {
                 phase: enemy.weavePhase, moving: advancing,
                 aiming: enemies[index].shotTarget != nil)
             if let enemyArt = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                WorldOneEnemyAnimation.updateLocomotion(on: enemyArt, moving: advancing,
+                    dx: distance(current, pursuitTarget) > enemy.radius + 20
+                        ? enemy.node.position.x - current.x : 0)
                 // Let momentum register in the illustration without rotating
                 // collision geometry, health bars or attack telegraphs.
                 let travelDX = enemy.node.position.x - current.x
@@ -7579,9 +7828,11 @@ final class OutpostScene: SKScene {
                 let directionLean = advancing
                     ? max(-0.055, min(0.055, travelDX / travelLength * 0.055))
                     : 0
-                enemyArt.position.y = enemyPose.verticalOffset
-                enemyArt.zRotation = enemyPose.lean + directionLean
-                enemyArt.yScale = enemyPose.heightScale
+                if !WorldOneEnemyAnimation.isMossbot(enemyArt) {
+                    enemyArt.position.y = enemyPose.verticalOffset
+                    enemyArt.zRotation = enemyPose.lean + directionLean
+                    enemyArt.yScale = enemyPose.heightScale
+                }
             }
             if let ground = enemy.node.childNode(withName: "enemyGroundShadow") as? SKShapeNode {
                 ground.xScale = enemyPose.shadowScale
@@ -7624,11 +7875,23 @@ final class OutpostScene: SKScene {
             }
             if activeEncounter == .equipmentDefense && enemy.behavior < 4 &&
                 distance(enemy.node.position, defenseDevice.position) < enemy.radius + 28 {
+                let previousIntegrity = defenseIntegrity
                 damageDefenseDevice()
+                if defenseIntegrity < previousIntegrity,
+                   let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    WorldOneEnemyAnimation.attack(on: art,
+                        towardX: defenseDevice.position.x - enemy.node.position.x)
+                }
                 if phase != .playing { return }
             }
             if distance(enemy.node.position, pilot.position) < enemy.radius + 14 {
+                let previousHealth = health
                 damagePilot(enemy.node === bossNode ? 12 : (enemy.behavior == 3 ? 8 : 5))
+                if health < previousHealth,
+                   let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    WorldOneEnemyAnimation.attack(on: art,
+                        towardX: pilot.position.x - enemy.node.position.x)
+                }
             }
         }
         updateHostileAttacks(delta: gameDt)
@@ -8584,6 +8847,11 @@ final class OutpostScene: SKScene {
                                        radius: enemies[index].radius,
                                        role: enemies[index].behavior,
                                        isBoss: defeatedBoss)
+            if let source = enemies[index].node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                WorldOneEnemyAnimation.defeatCopy(of: source,
+                    at: enemies[index].node.position, in: arena,
+                    depth: enemies[index].node.zPosition + 0.1)
+            }
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
         }
@@ -9724,6 +9992,7 @@ final class OutpostScene: SKScene {
         qaFlankDue = nil
         arena.children.filter { $0.name == "flankSwarmWarning" }
             .forEach { $0.removeFromParent() }
+        arena.enumerateChildNodes(withName: "enemyDefeatVisual") { node, _ in node.removeFromParent() }
         bossNode = nil
         guardianArmorBroken = false
         guardianSupportDeployed = false
