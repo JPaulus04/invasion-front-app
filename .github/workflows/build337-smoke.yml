@@ -1,5 +1,10 @@
 name: Build 337 Simulator Smoke Test
 on:
+  push:
+    branches:
+      - feature/build337-environment-layouts
+    paths:
+      - .github/workflows/build337-smoke.yml
   workflow_dispatch:
 jobs:
   smoke:
