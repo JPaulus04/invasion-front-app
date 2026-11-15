@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 jobs:
   smoke:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
@@ -51,10 +51,17 @@ jobs:
           app="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
           try:
               run("xcrun","simctl","install",device,app,timeout=150)
-          except subprocess.TimeoutExpired:
+          except subprocess.TimeoutExpired as exc:
               print("INSTALL TIMEOUT: collecting simulator diagnostics", flush=True)
-              run("xcrun","simctl","list","devices","booted",timeout=30,check=False)
-              run("xcrun","simctl","io",device,"screenshot","diagnostics/install-timeout.png",timeout=35,check=False)
+              pathlib.Path("diagnostics/install-timeout.txt").write_text(str(exc))
+              for cmd in [("xcrun","simctl","list","devices","booted"),
+                          ("xcrun","simctl","io",device,"screenshot","diagnostics/install-timeout.png")]:
+                  try:
+                      run(*cmd,timeout=25,check=False)
+                  except subprocess.TimeoutExpired as diagnostic_error:
+                      print("DIAGNOSTIC TIMEOUT",str(diagnostic_error),flush=True)
+                      with pathlib.Path("diagnostics/diagnostic-timeouts.txt").open("a") as out:
+                          out.write(str(diagnostic_error)+"\\n")
               raise
           # Confirm the simulator can render before launching the application.
           run("xcrun","simctl","io",device,"screenshot","diagnostics/prelaunch-ready.png",timeout=45)
