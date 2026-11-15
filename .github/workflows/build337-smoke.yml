@@ -53,8 +53,17 @@ jobs:
               run("xcrun","simctl","list","devices","booted",timeout=30,check=False)
               run("xcrun","simctl","io",device,"screenshot","diagnostics/install-timeout.png",timeout=35,check=False)
               raise
-          def capture(label, flag, mossbot=False):
-              run("xcrun","simctl","terminate",device,"com.paulus.laststandcommand",timeout=25,check=False)
+          # Confirm the simulator can render before launching the application.
+          run("xcrun","simctl","io",device,"screenshot","diagnostics/prelaunch-ready.png",timeout=45)
+          def capture(label, flag, mossbot=False, terminate_first=True):
+              if terminate_first:
+                  try:
+                      run("xcrun","simctl","terminate",device,"com.paulus.laststandcommand",timeout=20,check=False)
+                  except subprocess.TimeoutExpired as exc:
+                      print(f"WARNING: best-effort terminate timed out: {exc}", flush=True)
+                      pathlib.Path(f"diagnostics/{label}-terminate-timeout.txt").write_text(str(exc))
+                      # A stalled terminate may leave the previous app alive; do not claim a fresh capture.
+                      raise RuntimeError("Simulator termination stalled; cannot guarantee capture isolation") from exc
               args=["xcrun","simctl","launch",device,"com.paulus.laststandcommand",flag]
               if mossbot: args.append("-reviewBuild337Mossbot")
               try:
@@ -63,11 +72,12 @@ jobs:
                   run("xcrun","simctl","io",device,"screenshot",f"screenshots/build337-{label}.png",timeout=45)
               except Exception as exc:
                   pathlib.Path(f"diagnostics/{label}-failure.txt").write_text(str(exc))
-                  run("xcrun","simctl","list","devices","booted",timeout=25,check=False)
-                  run("xcrun","simctl","io",device,"screenshot",f"diagnostics/{label}-simulator.png",timeout=25,check=False)
+                  for cmd in [("xcrun","simctl","list","devices","booted"),("xcrun","simctl","io",device,"screenshot",f"diagnostics/{label}-simulator.png")]:
+                      try: run(*cmd,timeout=25,check=False)
+                      except subprocess.TimeoutExpired: print("Diagnostic command timed out:",cmd,flush=True)
                   raise
           # Baseline without opt-in artwork distinguishes simulator launch from animation initialization.
-          capture("world1-baseline","-captureWorldOneOutpostScreenshot")
+          capture("world1-baseline","-captureWorldOneOutpostScreenshot",terminate_first=False)
           capture("world1-mossbot","-captureWorldOneOutpostScreenshot",True)
           for label,flag in [("swamp","-captureWorldOneSwampScreenshot"),("caves","-captureWorldOneCavesScreenshot"),("boss","-captureWorldOneBossScreenshot")]:
               capture(label,flag,True)
