@@ -1871,7 +1871,8 @@ final class OutpostScene: SKScene {
                 if layout.kind == .passage {
                     pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.minY + 12*28)
                 } else {
-                    pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY - 100)
+                    pilot.position = CGPoint(x: roomBounds.midX,
+                        y: roomBounds.midY - (layout.kind == .defense ? 145 : 100))
                 }
                 updateArenaCamera(delta: 1)
             }
@@ -2423,7 +2424,8 @@ final class OutpostScene: SKScene {
             let safeTop = view?.safeAreaInsets.top ?? 0
             let safeBottom = view?.safeAreaInsets.bottom ?? 0
             arena.setScale(WorldOneFraming.scale(size: size, safeTop: safeTop, safeBottom: safeBottom))
-            target = WorldOneFraming.offset(pilot: pilot.position, room: roomBounds,
+            let cameraTarget = worldOneLiveLayout?.cameraTarget(for: pilot.position) ?? pilot.position
+            target = WorldOneFraming.offset(pilot: cameraTarget, room: roomBounds,
                 size: size, safeTop: safeTop, safeBottom: safeBottom)
         } else if expandedArenaPreview {
             arena.setScale(1)
@@ -4312,7 +4314,37 @@ final class OutpostScene: SKScene {
                     ? SKColor(red: 0.12, green: 0.23, blue: 0.26, alpha: 1)
                     : SKColor(red: 0.13, green: 0.19, blue: 0.18, alpha: 1)
                 shape.lineWidth = 2
-                decorateRubbleObstacle(shape, size: patch.frame.size)
+                if worldOneLiveLayout?.kind == .passage,
+                   let stone = worldOneTexture(named: "world1_ruined_outpost_wall") {
+                    // Real ruined masonry, clipped to the exact solid shoulder.
+                    // Never stretch the generic obstacle's panel/braces along a wall.
+                    shape.fillColor = SKColor(red: 0.16, green: 0.20, blue: 0.15, alpha: 1)
+                    shape.lineWidth = 1
+                    let local = CGRect(x: -patch.frame.width/2, y: -patch.frame.height/2,
+                        width: patch.frame.width, height: patch.frame.height)
+                    let crop = SKCropNode()
+                    crop.name = "authoredCorridorMasonry"
+                    let mask = SKShapeNode(rect: local)
+                    mask.fillColor = .white
+                    mask.strokeColor = .clear
+                    crop.maskNode = mask
+                    let width = max(72, patch.frame.width + 24)
+                    let height = width * stone.size().height / max(1, stone.size().width)
+                    let spacing = height * 0.62
+                    for row in 0...Int(ceil(patch.frame.height / spacing)) {
+                        let course = SKSpriteNode(texture: stone)
+                        course.size = CGSize(width: width, height: height)
+                        course.anchorPoint = CGPoint(x: 0.5,
+                            y: WorldOneArtMetrics.groundAnchorY(for: "world1_ruined_outpost_wall"))
+                        course.position = CGPoint(x: row.isMultiple(of: 2) ? -5 : 5,
+                            y: local.minY - height * 0.35 + CGFloat(row) * spacing)
+                        course.xScale = row.isMultiple(of: 2) ? 1 : -1
+                        crop.addChild(course)
+                    }
+                    shape.addChild(crop)
+                } else {
+                    decorateRubbleObstacle(shape, size: patch.frame.size)
+                }
             }
             // Prefer authored transparent terrain illustrations when bundled.
             // They are presentation-only: the exact polygon above remains the
@@ -5729,8 +5761,8 @@ final class OutpostScene: SKScene {
                 // camera reveal/crop that frame as appropriate.
                 // Fixed world-space art frame covers the largest authored room
                 // and camera headroom. Device size never changes ground density.
-                let paintedBounds = CGRect(x: roomBounds.midX - 720,
-                    y: roomBounds.midY - 1080, width: 1440, height: 2160)
+                let paintedBounds = CGRect(x: roomBounds.midX - 550,
+                    y: roomBounds.midY - 825, width: 1100, height: 1650)
                 let textureSize = texture.size()
                 let coverScale = max(paintedBounds.width / max(1, textureSize.width),
                                      paintedBounds.height / max(1, textureSize.height))
@@ -5909,7 +5941,8 @@ final class OutpostScene: SKScene {
         // approach toward the portal. The middle remains completely free for
         // combat, dodging and alternative approaches. This is the procedural
         // fallback only; authored landscape paintings own their composition.
-        if worldMapIndex == 0 && activeEncounter != .survival && wave > 0 {
+        if worldMapIndex == 0 && activeEncounter != .survival && wave > 0 &&
+           roomArt?.childNode(withName: "world1AuthoredFloor") == nil {
             let guide = SKNode()
             guide.name = "worldOnePortalApproach"
             guide.zPosition = -0.7

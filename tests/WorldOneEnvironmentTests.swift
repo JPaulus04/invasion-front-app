@@ -51,18 +51,28 @@ struct WorldOneEnvironmentTests {
         // Check framed objective, portal headroom and player health at phone/tablet sizes.
         for size in [CGSize(width: 320, height: 568), CGSize(width: 393, height: 852), CGSize(width: 768, height: 1024)] {
             for layout in [passage, swamp, defense, boss] {
-                let offset = WorldOneFraming.offset(pilot: layout.entry, room: layout.bounds,
+                let offset = WorldOneFraming.offset(pilot: layout.cameraTarget(for: layout.entry), room: layout.bounds,
                     size: size, safeTop: 62, safeBottom: 34)
                 let zoom = WorldOneFraming.scale(size: size, safeTop: 62, safeBottom: 34)
                 let view = WorldOneFraming.viewport(size: size, safeTop: 62, safeBottom: 34)
                 precondition(layout.entry.y * zoom + offset.y - 44*zoom >= view.minY)
                 if let exit = layout.exit {
-                    let end = WorldOneFraming.offset(pilot: exit, room: layout.bounds,
+                    let end = WorldOneFraming.offset(pilot: layout.cameraTarget(for: exit), room: layout.bounds,
                         size: size, safeTop: 62, safeBottom: 34)
                     precondition((exit.y + 128)*zoom + end.y <= view.maxY + 0.01)
                 }
             }
         }
+        let bossReviewPilot = CGPoint(x: boss.bounds.midX, y: boss.bounds.midY - 100)
+        let phone = CGSize(width: 393, height: 852)
+        let bossOffset = WorldOneFraming.offset(pilot: boss.cameraTarget(for: bossReviewPilot),
+            room: boss.bounds, size: phone, safeTop: 62, safeBottom: 34)
+        let bossZoom = WorldOneFraming.scale(size: phone, safeTop: 62, safeBottom: 34)
+        let bossViewport = WorldOneFraming.viewport(size: phone, safeTop: 62, safeBottom: 34)
+        precondition((boss.objective!.y + 148)*bossZoom + bossOffset.y <= bossViewport.maxY,
+            "Boss artwork and its name/health must fit below the HUD on approach")
+        precondition(swamp.cameraTarget(for: swamp.entry) == swamp.entry)
+        precondition(defense.cameraTarget(for: defense.entry) == defense.entry)
         print("Four environment identities, corridor traversal, pocket navigation and safe framing passed")
     }
 }

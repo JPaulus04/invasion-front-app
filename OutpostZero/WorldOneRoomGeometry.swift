@@ -18,6 +18,14 @@ enum WorldOneRoomGeometry {
             }
         }
 
+        /// Forward routes reserve more screen space for threats ahead. Open
+        /// survival/defense arenas retain centered, multidirectional tracking.
+        func cameraTarget(for pilot: CGPoint) -> CGPoint {
+            let u = bounds.width / (kind == .rootLord ? 37 : 13)
+            let lead: CGFloat = kind == .passage ? 2*u : (kind == .rootLord ? 4*u : 0)
+            return CGPoint(x: pilot.x, y: pilot.y + lead)
+        }
+
         /// Solid boundary shoulders leave a continuous central route and open
         /// into the authored combat pockets. Rendering and navigation share these.
         var boundaryObstacles: [CGRect] {
