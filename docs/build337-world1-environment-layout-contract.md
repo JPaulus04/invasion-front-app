@@ -1,8 +1,8 @@
 # Build 337 — World 1 Environment Layout Contract
 
-Status: Implementation specification. NOT simulator-validated or approved for release.
+Status: Authored geometry is integrated into live gameplay. See [validation evidence](build337-environment-validation.md). NOT visually approved for release.
 Baseline: main at branch creation.
-Design goal: 10/10; user approval threshold: 9/10.
+Design goal: 10/10; current user visual acceptance target: 9.5/10 or better, assessed only from actual evidence.
 
 ## Non-negotiable
 - Do not stretch a baked courtyard painting to room dimensions.
