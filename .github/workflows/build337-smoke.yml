@@ -5,6 +5,9 @@ on:
       - feature/build337-environment-layouts
     paths:
       - .github/workflows/build337-smoke.yml
+      - OutpostZero/OutpostScene.swift
+      - OutpostZero/WorldOneRoomGeometry.swift
+      - OutpostZero/WorldOneLayoutReview.swift
   workflow_dispatch:
 jobs:
   smoke:
