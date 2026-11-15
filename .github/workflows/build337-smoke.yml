@@ -46,7 +46,13 @@ jobs:
           run("xcrun","simctl","boot",device,timeout=45,check=False)
           run("xcrun","simctl","bootstatus",device,"-b",timeout=210)
           app="DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app"
-          run("xcrun","simctl","install",device,app,timeout=120)
+          try:
+              run("xcrun","simctl","install",device,app,timeout=150)
+          except subprocess.TimeoutExpired:
+              print("INSTALL TIMEOUT: collecting simulator diagnostics", flush=True)
+              run("xcrun","simctl","list","devices","booted",timeout=30,check=False)
+              run("xcrun","simctl","io",device,"screenshot","diagnostics/install-timeout.png",timeout=35,check=False)
+              raise
           try:
               run("xcrun","simctl","launch",device,"com.paulus.laststandcommand","-captureWorldOneOutpostScreenshot","-reviewBuild337Mossbot",timeout=65)
               time.sleep(10)
@@ -54,7 +60,7 @@ jobs:
           except Exception:
               run("xcrun","simctl","spawn",device,"log","show","--last","3m","--style","compact","--predicate",'process == "OutpostZero"',timeout=40,check=False)
               raise
-              for label,flag in [("swamp","-captureWorldOneSwampScreenshot"),("caves","-captureWorldOneCavesScreenshot"),("boss","-captureWorldOneBossScreenshot")]:
+          for label,flag in [("swamp","-captureWorldOneSwampScreenshot"),("caves","-captureWorldOneCavesScreenshot"),("boss","-captureWorldOneBossScreenshot")]:
                   run("xcrun","simctl","terminate",device,"com.paulus.laststandcommand",timeout=30,check=False)
                   run("xcrun","simctl","launch",device,"com.paulus.laststandcommand",flag,"-reviewBuild337Mossbot",timeout=65)
                   time.sleep(7)
