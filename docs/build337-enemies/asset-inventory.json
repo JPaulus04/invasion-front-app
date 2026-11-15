@@ -465,9 +465,49 @@
       "sha256": "6c60c9146e9ce469b40dd4e875ef7b60aab866dedafc8352cbe7f76207c35c6e"
     }
   ],
+  "browser_atlases": [
+    {
+      "path": "assets/unit-animation-atlas.png",
+      "width": 1254,
+      "height": 1254,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "b103dfea27cab37b2bf743f4193cfdeb087cdaa5e0e1c48395b241dcd28617eb"
+    },
+    {
+      "path": "assets/visual144/combat-atlas.png",
+      "width": 1536,
+      "height": 1024,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "63c4907dd53ca0dd8aa385d78aeca19b8a249e92ac097aabd69dd324441d65cd"
+    }
+  ],
+  "legacy_native_fallbacks": [
+    {
+      "path": "OutpostZero/ArtAssets/scout_idle.png",
+      "width": 128,
+      "height": 128,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "d5ce447bb24e89e0f196b57fa615f856be3494cf169d8cd465ae0fa5eaf90490"
+    },
+    {
+      "path": "OutpostZero/ArtAssets/heavy_idle.png",
+      "width": 128,
+      "height": 128,
+      "depth": 8,
+      "color_type": 6,
+      "sha256": "a3b734143dc21979d225d98163d57c2f52aaa964d293a639fb78dd01ec21e993"
+    }
+  ],
   "other_sources": [
-    "assets/unit-animation-atlas.png",
-    "assets/prototype4/Zombie-Scout.fbx"
+    "assets/prototype4/Zombie-Attack.fbx",
+    "assets/prototype4/Zombie-Death.fbx",
+    "assets/prototype4/Zombie-Punch.fbx",
+    "assets/prototype4/Zombie-Run.fbx",
+    "assets/prototype4/Zombie-Scout.fbx",
+    "assets/prototype4/Zombie-Soldier.fbx"
   ],
   "source_defects": {
     "move_00_to_07": "Left arm clipped at x=56; unrelated right-edge fragments beyond x=416. Runtime masks only the unrelated strip; artist re-export required for lost arm pixels.",
