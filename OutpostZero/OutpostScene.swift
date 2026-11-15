@@ -418,11 +418,38 @@ final class OutpostScene: SKScene {
     private var extractionCombatActive: Bool {
         phase == .gate && activeEncounter == .survival && roomCleared
     }
+    // Build 337: the authored World 1 geometry is now the live room boundary.
+    // Its center is aligned with the existing arena coordinate system so
+    // spawning, collision clamping, scenery and camera use one shared frame.
+    private var worldOneLiveLayout: WorldOneRoomGeometry.Layout? {
+        guard worldMapIndex == 0, wave > 0, phase != .worldSelect else { return nil }
+        let encounter: WorldOneRoomGeometry.Encounter
+        if wave == worldWaveCount {
+            encounter = .tactical
+        } else {
+            switch activeEncounter {
+            case .survival: encounter = .survival
+            case .equipmentDefense: encounter = .equipmentDefense
+            default: encounter = .tactical
+            }
+        }
+        return WorldOneRoomGeometry.make(room: wave, playerWidth: 28, encounter: encounter)
+    }
     private var roomBounds: CGRect {
-        expandedArenaPreview ? ArenaLayout.bounds(for: size) : RoomRules.bounds(for: size)
+        if let layout = worldOneLiveLayout {
+            let original = RoomRules.bounds(for: size)
+            return CGRect(x: original.midX - layout.bounds.width / 2,
+                          y: original.midY - layout.bounds.height / 2,
+                          width: layout.bounds.width, height: layout.bounds.height)
+        }
+        return expandedArenaPreview ? ArenaLayout.bounds(for: size) : RoomRules.bounds(for: size)
     }
     private var entryPoint: CGPoint {
-        expandedArenaPreview
+        if let layout = worldOneLiveLayout {
+            let b = roomBounds
+            return CGPoint(x: b.minX + layout.entry.x, y: b.minY + layout.entry.y)
+        }
+        return expandedArenaPreview
             ? CGPoint(x: roomBounds.midX, y: roomBounds.minY + 48)
             : RoomRules.entryPoint(for: size)
     }
@@ -5155,27 +5182,15 @@ final class OutpostScene: SKScene {
         let scheduled = SurvivalEncounterRules.kind(world: worldMapIndex, room: wave)
         activeEncounter = scheduled == .survival || scheduled == .equipmentDefense
             ? scheduled : .tactical
-        // Build 337: observe the actual encounter schedule before enabling
-        // authored geometry. The planner does not yet change collision, camera
-        // or live room bounds; this diagnostic is opt-in for simulator QA.
+        // Authored room geometry now drives live movement bounds and camera.
+        // Keep the QA outline opt-in; it must not appear in release gameplay.
         #if DEBUG
-        if worldMapIndex == 0 &&
-            ProcessInfo.processInfo.arguments.contains("-reviewBuild337Layouts") {
-            let encounter: WorldOneRoomGeometry.Encounter
-            switch activeEncounter {
-            case .survival: encounter = .survival
-            case .equipmentDefense: encounter = .equipmentDefense
-            default: encounter = .tactical
-            }
-            let planned = WorldOneRoomGeometry.make(
-                room: wave, playerWidth: 28, encounter: encounter)
-            print("[BUILD337 LAYOUT] room=\(wave) kind=\(planned.kind) " +
-                  "bounds=\(planned.bounds) approaches=\(planned.approachPoints.count)")
-            // The review overlay is intentionally opt-in and visual only.
-            // It cannot change live gameplay or falsely imply that the
-            // new room geometry has been enabled for players.
-            arena.childNode(withName: "build337LayoutReview")?.removeFromParent()
-            arena.addChild(WorldOneLayoutReview.make(planned))
+        arena.childNode(withName: "build337LayoutReview")?.removeFromParent()
+        if ProcessInfo.processInfo.arguments.contains("-reviewBuild337Layouts"),
+           let planned = worldOneLiveLayout {
+            let review = WorldOneLayoutReview.make(planned)
+            review.position = roomBounds.origin
+            arena.addChild(review)
         }
         #endif
         // Only explicit expanded-arena review fixtures may retain a large
