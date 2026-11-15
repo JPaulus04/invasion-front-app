@@ -1,4 +1,5 @@
 name: Build 337 Compile and Optional Simulator Review
+# Focused review requested after authored reactor and portal placement corrections.
 on:
   push:
     branches:
