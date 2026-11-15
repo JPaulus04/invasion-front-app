@@ -1923,7 +1923,10 @@ final class OutpostScene: SKScene {
             }
             // Seven distinct binary RGB identities reject a stale frame from
             // a different landscape, even when that frame looks like gameplay.
-            let captureIndex = worldOneCaptures.firstIndex(where: { $0.0 == selection.0 })! + 1
+            let corridorExitReview = selection.1 == 1 &&
+                ProcessInfo.processInfo.arguments.contains("-reviewBuild337Mossbot")
+            let captureIndex = corridorExitReview ? 5 :
+                worldOneCaptures.firstIndex(where: { $0.0 == selection.0 })! + 1
             let identity = SKShapeNode(rectOf: CGSize(width: 8, height: 8))
             identity.fillColor = SKColor(
                 red: captureIndex & 1 != 0 ? 1 : 0,

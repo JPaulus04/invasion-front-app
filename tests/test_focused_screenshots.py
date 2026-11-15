@@ -13,13 +13,16 @@ spec.loader.exec_module(validator)
 NAMES = ('exit-beacon', 'upgrade-cards', 'reactor', 'victory', 'combat-hud', 'reactor-secured', 'reactor-lost')
 
 
-def png(path, code):
+def png(path, code, world_code=None):
     width, height = 320, 568
     rows = [bytearray(v for x in range(width) for v in (x % 160, y % 160, (x + y) % 160)) for y in range(height)]
     def pixel(x, y, color):
         rows[y][x * 3:x * 3 + 3] = bytes(color)
     if code:
         pixel(round(width * .94), round(height * .54), [255 if code & (1 << c) else 0 for c in range(3)])
+    if world_code is not None:
+        pixel(round(width * .9), round(height * .4),
+              [255 if world_code & (1 << c) else 0 for c in range(3)])
     channel = {'reactor': 0, 'reactor-secured': 1, 'reactor-lost': 2}.get(path.stem.removeprefix('phase4-'))
     if channel is not None:
         pixel(round(width * .9), round(height * .4), [255 if c == channel else 0 for c in range(3)])
@@ -46,3 +49,19 @@ class IdentityTests(unittest.TestCase):
             png(path, None)
             with self.assertRaisesRegex(ValueError, 'focused scene identity'):
                 validator.verify(path)
+
+    def test_build337_smoke_requires_distinct_gameplay_frames(self):
+        scenes = {"world1-baseline": 1, "world1-mossbot": 5,
+                  "swamp": 2, "caves": 3, "boss": 4}
+        with tempfile.TemporaryDirectory() as temp:
+            for name, code in scenes.items():
+                with self.subTest(name=name):
+                    path = Path(temp) / f"build337-{name}.png"
+                    png(path, None, world_code=code)
+                    validator.verify(path)
+                    png(path, None, world_code=code % 5 + 1)
+                    with self.assertRaisesRegex(ValueError, "wrong World 1 landscape"):
+                        validator.verify(path)
+                    png(path, None)
+                    with self.assertRaisesRegex(ValueError, "wrong World 1 landscape"):
+                        validator.verify(path)

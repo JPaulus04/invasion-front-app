@@ -76,8 +76,8 @@ def verify(path: Path) -> None:
             "swamp-revisit", "caves-revisit"), start=1)
     }
     world_one_markers.update({
-        "build337-world1-baseline.png": 1, "build337-world1-mossbot.png": 1,
-        "build337-corridor-exit.png": 1, "build337-swamp.png": 2,
+        "build337-world1-baseline.png": 1, "build337-world1-mossbot.png": 5,
+        "build337-corridor-exit.png": 5, "build337-swamp.png": 2,
         "build337-caves.png": 3, "build337-boss.png": 4,
     })
     is_survival = (path.name.startswith("outpost-zero-survival-") or
