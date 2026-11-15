@@ -2439,6 +2439,21 @@ final class OutpostScene: SKScene {
         }
         arena.position = ArenaLayout.follow(
             current: arena.position, target: target, frameDelta: delta)
+        // A cleared World 1 room can reveal its far-wall exit while the
+        // camera still follows the pilot near the reactor. Keep the entire
+        // portal artwork below the fixed HUD without changing its world-space
+        // position or collision target. Clamp immediately so QA screenshots
+        // and the first visible gate frame use the same safe framing.
+        if worldMapIndex == 0 && wave > 0 && !passageGate.isHidden {
+            let safeViewport = WorldOneFraming.viewport(
+                size: size, safeTop: view?.safeAreaInsets.top ?? 0,
+                safeBottom: view?.safeAreaInsets.bottom ?? 0)
+            let gateTop = passageGate.position.y + 128
+            let renderedTop = gateTop * arena.yScale + arena.position.y
+            if renderedTop > safeViewport.maxY {
+                arena.position.y -= renderedTop - safeViewport.maxY
+            }
+        }
     }
 
     override func didChangeSize(_ oldSize: CGSize) { layout() }
