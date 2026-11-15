@@ -1,8 +1,8 @@
 import CoreGraphics
 
 /// Build 337 authored room geometry. All distances are in SpriteKit world points,
-/// never source-image pixels. This planner deliberately does not modify combat
-/// or collision until its camera and path clearances have been simulator-tested.
+/// never source-image pixels. These layouts now drive live room bounds,
+/// entry and authored objective placement; gameplay verification is required.
 enum WorldOneRoomGeometry {
     enum Kind: Equatable {
         case passage, survival, defense, rootLord
@@ -48,7 +48,7 @@ enum WorldOneRoomGeometry {
             ]
             return Layout(kind: kind, bounds: b,
                 entry: CGPoint(x: b.midX, y: 2*u),
-                exit: CGPoint(x: b.midX, y: 36*u),
+                exit: CGPoint(x: b.midX, y: b.maxY - 14),
                 combatPockets: pockets, objective: nil,
                 approachPoints: [CGPoint(x: b.midX, y: 12*u),
                                  CGPoint(x: b.midX, y: 27*u)],
