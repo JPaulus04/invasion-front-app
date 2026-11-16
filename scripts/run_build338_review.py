@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import signal
 import subprocess
+import sys
 import time
 
 OUT=Path('build338-review');OUT.mkdir(exist_ok=True)
@@ -32,13 +33,38 @@ def main():
     app=Path('DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app')
     (OUT/'manifest.json').write_text(json.dumps({'source_commit':os.environ.get('GITHUB_SHA'),
         'runtime':runtime,'template':template['deviceTypeIdentifier'],'device':device,
-        'app_sha256':hashlib.sha256((app/'OutpostZero').read_bytes()).hexdigest(),
+        'app_launcher_sha256':hashlib.sha256((app/'OutpostZero').read_bytes()).hexdigest(),
+        'code_payload_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(app.glob('*.dylib'))},
         'basis':'successful main ARM macos-15 presentation run 43768308294'},indent=2))
     recorder=None
     try:
         run(['xcrun','simctl','boot',device],90)
         run(['xcrun','simctl','bootstatus',device,'-b'],300)
         run(['xcrun','simctl','install',device,str(app)],150)
+        if '--fixtures' in sys.argv:
+            fixtures=[('-captureEquipmentDefenseFailureScreenshot','phase4-reactor-lost'),
+                      ('-captureSurvivalTransitionScreenshot','survival-transition'),
+                      ('-captureExpandedArenaCenterScreenshot','expanded-survival')]
+            for flag,name in fixtures:
+                stdout=(OUT/(name+'-stdout.log')).resolve();stderr=(OUT/(name+'-stderr.log')).resolve()
+                run(['xcrun','simctl','launch','--terminate-running-process','--stdout='+str(stdout),
+                    '--stderr='+str(stderr),device,'com.paulus.laststandcommand',flag],90)
+                deadline=time.monotonic()+65
+                while time.monotonic()<deadline:
+                    text=stdout.read_text() if stdout.exists() else ''
+                    errors=stderr.read_text() if stderr.exists() else ''
+                    if 'Precondition failed' in errors or 'Fatal error:' in errors:
+                        raise RuntimeError(f'Actual fixture assertion failed: {name}: {errors[-2000:]}')
+                    if f'[BUILD338 FIXTURE READY] flag={flag}' in text: break
+                    time.sleep(.25)
+                else: raise TimeoutError(f'Actual fixture never reached its assertions: {name}')
+                image=OUT/(name+'.png')
+                run(['xcrun','simctl','io',device,'screenshot',str(image)],65)
+                run(['python3','scripts/validate_simulator_screenshots.py',str(image)],120)
+            (OUT/'fixture-results.json').write_text(json.dumps({'assertions_completed':[x[0] for x in fixtures],
+                'visual_approval':False,'note':'Actual captured pixels still require review.'},indent=2))
+            return
         stdout=(OUT/'gameplay.log').resolve();stderr=(OUT/'stderr.log').resolve()
         with (OUT/'video.log').open('w') as log:
             recorder=subprocess.Popen(['xcrun','simctl','io',device,'recordVideo','--codec=h264',str(OUT/'world1-tour.mp4')],

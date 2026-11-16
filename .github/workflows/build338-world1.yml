@@ -66,6 +66,9 @@ jobs:
           set -euo pipefail
           python3 scripts/run_build338_review.py
           swift scripts/extract_build338_frames.swift
+      - name: Validate corrected legacy simulator fixtures
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[fixture-review]')
+        run: python3 scripts/run_build338_review.py --fixtures
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -1062,12 +1062,15 @@ final class OutpostScene: SKScene {
         }) {
             expandedArenaPreview = true
             worldMapIndex = 0
+            wave = 5
             gateUnlocked = true
             startWave()
             precondition(roomBounds.width > RoomRules.bounds(for: size).width &&
                          roomBounds.height > RoomRules.bounds(for: size).height,
                          "Survival field must be larger than a traditional room")
-            installArenaPreviewGround()
+            precondition(zoneScenery.childNode(withName: "build338World/unifiedGround") != nil &&
+                         arena.childNode(withName: "expandedArenaPreviewGround") == nil,
+                         "Expanded World 1 review must use the live unified survival environment")
             let fractions: [CGFloat] = [0.10, 0.50, 0.90]
             pilot.position = CGPoint(
                 x: roomBounds.minX + roomBounds.width * fractions[slot],
@@ -1303,9 +1306,24 @@ final class OutpostScene: SKScene {
             hud.addChild(identity)
             updateArenaCamera(delta: 1)
             if worldMapIndex == 0 && !passageGate.isHidden {
+                let reactorReviewPilot = pilot.position
+                pilot.position = CGPoint(x: passageGate.position.x,y: passageGate.position.y-85)
+                updateArenaCamera(delta: 1)
+                let portalViewport = WorldOneFraming.viewport(size: size,
+                    safeTop: self.view?.safeAreaInsets.top ?? 0,
+                    safeBottom: self.view?.safeAreaInsets.bottom ?? 0)
+                let approachTop = arena.convert(CGPoint(x: passageGate.position.x,
+                    y: passageGate.position.y+128),to: self).y
+                let approachFeet = arena.convert(CGPoint(x: pilot.position.x,
+                    y: pilot.position.y-44),to: self).y
+                precondition(passageGate.alpha == 1 && approachTop <= portalViewport.maxY+1 &&
+                             approachFeet >= portalViewport.minY-1,
+                             "Both reactor outcomes must expose an approachable portal below the HUD")
+                pilot.position = reactorReviewPilot
+                updateArenaCamera(delta: 1)
                 let top = arena.convert(CGPoint(x: passageGate.position.x,
                     y: passageGate.position.y + 128), to: self).y
-                precondition(top <= WorldOneFraming.viewport(size: size,
+                precondition(passageGate.alpha == 0 || top <= WorldOneFraming.viewport(size: size,
                     safeTop: self.view?.safeAreaInsets.top ?? 0,
                     safeBottom: self.view?.safeAreaInsets.bottom ?? 0).maxY + 1,
                     "Reactor exit portal must not intersect the HUD")
@@ -1414,9 +1432,15 @@ final class OutpostScene: SKScene {
                          "Extraction must stay open with four active enemies")
             pilot.position = extractionPortal.position
             update(1_000)
+            let authoredCamera = WorldOneFraming.offset(
+                pilot: worldOneLiveLayout!.cameraTarget(for: pilot.position),room: roomBounds,
+                size: size,safeTop: self.view?.safeAreaInsets.top ?? 0,
+                safeBottom: self.view?.safeAreaInsets.bottom ?? 0,horizontalMargin: 84)
             precondition(wave == 7 && activeEncounter == .tactical &&
                          phase == .playing && !expandedArenaPreview &&
-                         distance(arena.position, CampaignCamera.offset(for: pilot.position, viewportSize: size)) < 1 && enemies.isEmpty &&
+                         distance(arena.position, authoredCamera) < 1 && enemies.isEmpty &&
+                         zoneScenery.childNode(withName: "build338World/unifiedGround") != nil &&
+                         arena.childNode(withName: "expandedArenaPreviewGround") == nil &&
                          extractionPortal.isHidden && passageGate.isHidden &&
                          zoneBanner.text != "EXTRACTION OPEN",
                          "Room 7 must reset camera, enemies and extraction UI")
@@ -2173,6 +2197,11 @@ final class OutpostScene: SKScene {
             marker.zPosition = 999
             addChild(marker)
             print("[FOCUSED REVIEW] ready code=\(code) flag=\(reviewFlags[index])")
+            fflush(stdout)
+        }
+        for flag in ["-captureEquipmentDefenseFailureScreenshot", "-captureSurvivalTransitionScreenshot",
+                     "-captureExpandedArenaCenterScreenshot"] where ProcessInfo.processInfo.arguments.contains(flag) {
+            print("[BUILD338 FIXTURE READY] flag=\(flag)")
             fflush(stdout)
         }
         #endif

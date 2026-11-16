@@ -33,6 +33,9 @@ if hashlib.sha256(source.read_bytes()).hexdigest() != reference['portal_sha256']
     raise SystemExit('Approved portal source hash changed')
 portal_pixels=compare_portal_pixels(source,next(app.rglob(source.name)))
 report={'compiled_catalog_names':sorted(expected),'bundled_resource_sha256':raw_hashes,
-        'approved_portal_source_hash_matches':True,'bundled_portal_pixels':portal_pixels}
+        'approved_portal_source_hash_matches':True,'bundled_portal_pixels':portal_pixels,
+        'app_launcher_sha256':hashlib.sha256((app/'OutpostZero').read_bytes()).hexdigest(),
+        'code_payload_sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(app.glob('*.dylib'))}}
 Path('build338-bundle-report.json').write_text(json.dumps(report,indent=2)+'\n')
 print(f'PASS: {len(expected)} compiled catalog names and actual bundled portal appearance: {portal_pixels}')
