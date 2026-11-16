@@ -292,9 +292,16 @@ enum TerrainHazards {
         // Melee flanking adds lateral motion to that line. Reserve steering
         // clearance at shoulder corners before resuming it; a barely-clear
         // centerline otherwise points the flanking intent back into the wall.
+        // The last contact-length segment uses physical clearance only: the
+        // pilot may legitimately stand closer to a wall than the steering pad.
+        let approach = max(0, distance - radius - 24) / distance
+        let steeringEnd = CGPoint(x: current.x + (pilot.x-current.x)*approach,
+                                  y: current.y + (pilot.y-current.y)*approach)
         if extractionApproachIsClear(from: current, to: pilot,
                                       patches: patches,
-                                      collisionRadius: radius + (compoundPassage ? 9 : 0)) {
+                                      collisionRadius: radius) &&
+           (!compoundPassage || extractionApproachIsClear(from: current, to: steeringEnd,
+                patches: patches, collisionRadius: radius + 9)) {
             return pilot
         }
         // Authored passage shoulders form compound concave corners. Local
