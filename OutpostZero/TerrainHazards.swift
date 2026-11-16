@@ -283,11 +283,18 @@ enum TerrainHazards {
                                  radius: CGFloat) -> CGPoint {
         let distance = hypot(pilot.x - current.x, pilot.y - current.y)
         guard distance > radius else { return pilot }
+        let compoundPassage = !patches.isEmpty && patches.allSatisfy {
+            $0.kind == .rubble &&
+            ($0.frame.minX <= bounds.minX || $0.frame.maxX >= bounds.maxX)
+        }
         // Keep direct pursuit when the entire corridor is unobstructed.
         // Side-steering on clear ground causes visible enemy zigzagging.
+        // Melee flanking adds lateral motion to that line. Reserve steering
+        // clearance at shoulder corners before resuming it; a barely-clear
+        // centerline otherwise points the flanking intent back into the wall.
         if extractionApproachIsClear(from: current, to: pilot,
                                       patches: patches,
-                                      collisionRadius: radius) {
+                                      collisionRadius: radius + (compoundPassage ? 9 : 0)) {
             return pilot
         }
         // Authored passage shoulders form compound concave corners. Local
@@ -296,10 +303,7 @@ enum TerrainHazards {
         // including the final horizontal leg if the pilot is in a pocket.
         // Check all legs against the actual collision shapes; other terrain
         // keeps the general shoreline navigator below.
-        if !patches.isEmpty && patches.allSatisfy({
-            $0.kind == .rubble &&
-            ($0.frame.minX <= bounds.minX || $0.frame.maxX >= bounds.maxX)
-        }) {
+        if compoundPassage {
             let entry = CGPoint(x: bounds.midX, y: current.y)
             let exit = CGPoint(x: bounds.midX, y: pilot.y)
             let route = [current, entry, exit, pilot]
