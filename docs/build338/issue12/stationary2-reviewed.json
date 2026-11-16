@@ -1,0 +1,51 @@
+{
+  "run": 43906741184,
+  "artifact": 14246708278,
+  "case": "stationary-335-2",
+  "source": {
+    "seed": 335,
+    "batch": 2,
+    "profile": "stationary",
+    "hz": 60,
+    "protocol": 1,
+    "harness_source": "3acde2d2785ddcfa0ea580f65942a0cd798d4a1d",
+    "source": "3acde2d2785ddcfa0ea580f65942a0cd798d4a1d",
+    "app_sha256": "308eb99a248d8d94656f9484ad3a0274906583f49abc6de87d53cc599bc15795",
+    "architecture": "arm64",
+    "os_version": "15.8.2",
+    "xcode": "Xcode 16.4\nBuild version 16F6\n",
+    "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-18-5",
+    "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro"
+  },
+  "raw_screenshots": [
+    {
+      "name": "baseline: artifact14230338511/stationary-335-2/startup-1/stationary-1465.png",
+      "sha256": "7f9103cc1331bb9caa457b8c88f4d12660876cac6999da498be58c93074fc7fd"
+    },
+    {
+      "name": "artifact14246708278/stationary-335-2/startup-2/stationary-0016.png",
+      "sha256": "017f6c16e8a2ecfeb821f7d26ec305e267a7a5f2906b0e6da4007a9c7977d8ee"
+    },
+    {
+      "name": "artifact14246708278/stationary-335-2/startup-2/stationary-0057.png",
+      "sha256": "aa73e3bf84a72458708e9fc4c34313fdcaa627dad3f6b52f16ba605d35284c96"
+    }
+  ],
+  "room2_clear_trace": "[QA REPLAY] tick=2550 clear room=2 phase=playing t=34316667 pilot=195000000,-5500000 hp=58/100 xp=29 level=2 damage=1 rate=1 ranks=0,0,1,0,0 spawned=6 integrity=150 rng=715,5 foes= shots= digest=3c2cab7fb3cf7ecc",
+  "outcome": "[PHASE4 PLAYTEST] outcome=defeat world=1 room=5 elapsed=87 damage=140 movement=0 kills=29 upgrades=2 level=3",
+  "startup_history": [
+    {
+      "attempt": 1,
+      "began_at": 1794846719.668223,
+      "result": "startup_failed",
+      "error": "Initial launch never started: Command '('xcrun', 'simctl', 'launch', '--stdout=/Users/runner/work/invasion-front-app/invasion-front-app/phase4/stationary-335-2/startup-1/stationary.log', '--stderr=/Users/runner/work/invasion-front-app/invasion-front-app/phase4/stationary-335-2/startup-1/stationary-stderr.log', 'D35105A2-DB36-426C-96BD-58C3651CFD22', 'com.paulus.laststandcommand', '-qaStationaryRun', '-qaSeed', '335', '-qaTicksPerRender', '2')' timed out after 120 seconds",
+      "ended_at": 1794847037.424246
+    },
+    {
+      "attempt": 2,
+      "began_at": 1794847037.436053,
+      "result": "campaign_completed",
+      "ended_at": 1794847298.839026
+    }
+  ]
+}

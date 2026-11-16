@@ -1,0 +1,91 @@
+{
+  "release_source": "5453d2e3119576eb5ee18d2f07d6b3b75725f81f",
+  "failed_run": 43868500372,
+  "stationary": {
+    "seed": 335,
+    "batches": [
+      2,
+      4
+    ],
+    "artifact_ids": [
+      14230338511,
+      14230236010
+    ],
+    "common_identical_trace_events": 314,
+    "pilot": [
+      195,
+      -5.5
+    ],
+    "last_foe": {
+      "behavior": 2,
+      "hp": 3,
+      "y": 468.64444,
+      "x_observed": [
+        56.660038,
+        57.551506,
+        56.47625
+      ]
+    },
+    "last_player_hp": 58,
+    "kills": 10,
+    "phase": "playing",
+    "spawned": 6,
+    "note": "One living raider oscillates at compound shoulder; actual screenshots and replay checkpoints agree.",
+    "comparison": "baseline-stationary-stall.jpg",
+    "raw_screenshot_sha256": {
+      "batch-2": "7f9103cc1331bb9caa457b8c88f4d12660876cac6999da498be58c93074fc7fd",
+      "batch-4": "a4ce8d434138beb235c1b3538785a0b83a5182409031966f335289bdaddd5874"
+    }
+  },
+  "presentation": {
+    "job": 133307528422,
+    "artifact": 14229585880,
+    "attempt1": "Camera jumped during corridor traversal",
+    "attempt2": "Camera traversal video missing",
+    "recording_stderr": "Discarded by old workflow; cannot determine exact recorder failure retrospectively.",
+    "camera_observed_offsets": [
+      241.167831,
+      139.809051,
+      -196.74826
+    ],
+    "camera_observed_player_y": [
+      -131.5,
+      211.818466,
+      355.818115
+    ]
+  },
+  "startup": {
+    "job": 133307528811,
+    "artifact": 14227569003,
+    "attempts": 2,
+    "both_registered": true,
+    "both_no_app_output": true,
+    "both_app_proven_absent": true,
+    "both_crash_reports": [],
+    "launch_client_timeout_seconds": 120,
+    "same_process_observation_seconds": 60,
+    "recovery": "One disposable-device recovery exhausted; no gameplay ever started.",
+    "springboard_second_attempt_last_exit_status": -9
+  },
+  "simulator_review": {
+    "job": 133307528649,
+    "runner_name": "",
+    "steps": [],
+    "started_at": "2026-11-16T12:47:32Z",
+    "completed_at": "2026-11-16T13:18:02Z",
+    "conclusion": "cancelled",
+    "interpretation": "No runner or steps were assigned. This is not an app/simulator test failure; cancellation trigger unconfirmed."
+  },
+  "asset_and_geometry_preservation": {
+    "comparison_base": "5453d2e3119576eb5ee18d2f07d6b3b75725f81f",
+    "comparison_application_source": "054c3d756b10d64edcef4a9f0bc4e41c916c284e",
+    "unchanged_paths": [
+      "OutpostZero/Assets.xcassets",
+      "OutpostZero/ArtAssets",
+      "OutpostZero/WorldOneEnvironment.swift",
+      "OutpostZero/WorldOneEnvironmentPlan.swift",
+      "OutpostZero/WorldOneRoomGeometry.swift",
+      "OutpostZero/EnemyAnimationRules.swift"
+    ]
+  }
+}
