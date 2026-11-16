@@ -62,12 +62,16 @@ jobs:
         run: python3 scripts/verify_build338_bundle.py
       - name: Record live environment tour
         if: github.event_name == 'workflow_dispatch' && inputs.visual
-        run: python3 scripts/run_build338_review.py
+        run: |
+          set -euo pipefail
+          python3 scripts/run_build338_review.py
+          swift scripts/extract_build338_frames.swift
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: build338-validation
           path: |
             build338-build.log
+            build338-bundle-report.json
             build338-review/
           retention-days: 14

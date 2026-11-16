@@ -88,7 +88,9 @@ enum WorldOneEnvironmentPlan {
                 let height: CGFloat = 104 + random()*42
                 let width = height*aspect(tree)
                 let anchor = WorldOneArtMetrics.groundAnchorY(for: tree)
-                let distance = 8 + random()*30
+                // Set the forest back behind the north/south water shelves.
+                let wetShelf = (theme == .swamp || theme == .caves) && side >= 2 && t > 0.25 && t < 0.75
+                let distance = 8 + random()*30 + (wetShelf ? 100 : 0)
                 var x: CGFloat, y: CGFloat
                 switch side {
                 case 0: x = bounds.minX-distance-width/2; y = bounds.minY + length*t
@@ -110,7 +112,7 @@ enum WorldOneEnvironmentPlan {
         // A sprite's full frame must fit a blocked rectangle. No column courses,
         // repeated wall rails, new invisible obstacles or mid-lane decorations.
         for (index, patch) in blocked.enumerated() {
-            let rows = max(1, Int(patch.height/58))
+            let rows = max(1, Int(patch.height/34))
             for row in 0..<rows {
                 let kinds = ["vegetation", "boulder", "wall", "vegetation", "debris"]
                 let kind = kinds[(row+index+room)%kinds.count]
@@ -119,7 +121,7 @@ enum WorldOneEnvironmentPlan {
                 let y = patch.minY + CGFloat(row+1)*patch.height/CGFloat(rows+1)
                 add(name, x: patch.midX + (random()-0.5)*min(10, patch.width*0.2),
                     y: y, height: max(14, height), inside: patch)
-                if patch.width >= 70, row.isMultiple(of: 2) {
+                if patch.width >= 70 {
                     add("forest_broadleaf_polished", x: patch.midX, y: y,
                         height: min(105, patch.width/aspect("forest_broadleaf_polished")-4), inside: patch)
                 }
@@ -140,7 +142,9 @@ enum WorldOneEnvironmentPlan {
             ? [CGRect(x: bounds.minX-130, y: bounds.minY+bounds.height*0.25,
                       width: 130, height: 170),
                CGRect(x: bounds.maxX, y: bounds.minY+bounds.height*0.65,
-                      width: 120, height: 145)] : []
+                      width: 120, height: 145),
+               CGRect(x: bounds.midX-190, y: bounds.minY-120, width: 180, height: 120),
+               CGRect(x: bounds.midX+10, y: bounds.maxY, width: 180, height: 120)] : []
         return Plan(room: room, theme: theme, bounds: bounds, groundBounds: ground,
             blocked: blocked, props: props, pools: pools,
             groundOrigin: CGPoint(x: bounds.midX-256, y: bounds.minY-128))

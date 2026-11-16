@@ -2338,7 +2338,9 @@ final class OutpostScene: SKScene {
         if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena, includeForest: worldMapIndex != 0) }
         passageGate.position = authoredGatePosition
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
-        if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
+        // World 1 shoulders have no separate hazard drawing now. Their
+        // collision patches must still follow a resized room's new origin.
+        if (worldMapIndex == 0 && wave > 0) || !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
         updateArenaCamera(delta: 1)
         // One utility row and a slim progress row, below the device safe area.
@@ -6801,7 +6803,9 @@ final class OutpostScene: SKScene {
         guard build338ReviewEnabled else { return }
         if build338ReviewStart == nil { build338ReviewStart = clock }
         let elapsed = clock-build338ReviewStart!
-        let boundaries: [TimeInterval] = [2,4,6,8,10,12,14,16,20,23]
+        // Let recordVideo finish opening before leaving the entrance. The
+        // first capture lost that initial two-second presentation window.
+        let boundaries: [TimeInterval] = [5,8,11,14,17,20,23,26,31,34]
         let stage = boundaries.filter { elapsed >= $0 }.count
         guard stage != build338ReviewStage else { return }
         build338ReviewStage = stage
@@ -6875,13 +6879,14 @@ final class OutpostScene: SKScene {
             ?? SKLabelNode(fontNamed: "AvenirNext-Heavy")
         if label.parent == nil {
             label.name = "build338ReviewLabel"
-            label.fontSize = 11
+            label.fontSize = 9
+            label.horizontalAlignmentMode = .right
             label.fontColor = .cyan
             label.zPosition = 100
             addChild(label)
         }
         label.text = "BUILD 338 QA: \(names[stage].uppercased())"
-        label.position = CGPoint(x: size.width/2,y: size.height-(view?.safeAreaInsets.top ?? 0)-145)
+        label.position = CGPoint(x: size.width-12,y: max(12,(view?.safeAreaInsets.bottom ?? 0)+8))
         print("[BUILD338] stage=\(names[stage]) elapsed=\(elapsed) room=\(wave) pilot=\(pilot.position) camera=\(arena.position)")
         fflush(stdout)
     }

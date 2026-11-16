@@ -37,11 +37,20 @@ enum WorldOneEnvironment {
         if !plan.blocked.isEmpty {
             let grove = SKCropNode()
             grove.name = "solidForestShoulders"
-            let path = CGMutablePath()
-            for rect in plan.blocked { path.addRect(rect) }
-            let mask = SKShapeNode(path: path)
-            mask.fillColor = .white
-            mask.strokeColor = .clear
+            // Soft overlapping masks remove the rectangular soil panels seen
+            // in the first live capture. Actual collision remains rectangular;
+            // dense rooted foliage describes that footprint above the soil.
+            let mask = SKNode()
+            for rect in plan.blocked {
+                let count = max(1, Int(ceil(rect.height/65)))
+                for index in 0..<count {
+                    let lobe = SKSpriteNode(texture: ProductionPresentation.glow(.white))
+                    lobe.size = CGSize(width: rect.width*1.45, height: min(190,rect.height*1.6))
+                    lobe.position = CGPoint(x: rect.midX + CGFloat(index%3-1)*rect.width*0.08,
+                        y: rect.minY+(CGFloat(index)+0.5)*rect.height/CGFloat(count))
+                    mask.addChild(lobe)
+                }
+            }
             grove.maskNode = mask
             if let moss = texture("world1_\(plan.theme.family)_floor_1") {
                 for rect in plan.blocked {

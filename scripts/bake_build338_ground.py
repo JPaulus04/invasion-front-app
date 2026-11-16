@@ -41,20 +41,20 @@ def quilt(source, seed):
                     xx, yy = px+ox, py+oy
                     if xx < SIZE and yy < SIZE and xx+edge > 0 and yy+edge > 0:
                         canvas.paste(patch, (xx, yy), mask)
-    # Periodicize using the reflected four quadrants of the central material.
-    # The common collar below then guarantees all variants join one another.
+    # Each patch is pasted across the toroidal boundary in the same order.
+    # The common collar below guarantees that different variants also join.
     return canvas
 
 
 def periodic(image):
-    # Fold a half-size material patch into a periodic surface. The material
-    # is authored stone/grass; no floor geometry or rectangular stone stamps.
-    a = image.crop((256, 256, 768, 768))
-    out = Image.new('RGB', (SIZE, SIZE))
-    out.paste(a, (0, 0))
-    out.paste(a.transpose(Image.Transpose.FLIP_LEFT_RIGHT), (512, 0))
-    out.paste(a.transpose(Image.Transpose.FLIP_TOP_BOTTOM), (0, 512))
-    out.paste(a.transpose(Image.Transpose.FLIP_LEFT_RIGHT).transpose(Image.Transpose.FLIP_TOP_BOTTOM), (512, 512))
+    # The quilt already wraps; do not mirror quadrants. Mirroring introduced
+    # conspicuous paired stone seams in the first actual simulator capture.
+    # Match only the outermost samples to make filtering at cell edges exact.
+    out = image.copy()
+    column = Image.blend(out.crop((0,0,1,SIZE)),out.crop((SIZE-1,0,SIZE,SIZE)),0.5)
+    out.paste(column,(0,0));out.paste(column,(SIZE-1,0))
+    row = Image.blend(out.crop((0,0,SIZE,1)),out.crop((0,SIZE-1,SIZE,SIZE)),0.5)
+    out.paste(row,(0,0));out.paste(row,(0,SIZE-1))
     return out
 
 
@@ -65,6 +65,7 @@ def main():
     collar.putdata([round(255*min(1, max(0, (min(x, y, SIZE-1-x, SIZE-1-y)-24)/72)))
                     for y in range(SIZE) for x in range(SIZE)])
     outputs = []
+    secondary_sources = {}
     previews = Image.new('RGB', (4*256, 4*256))
     for row, (theme, tint) in enumerate(THEMES.items()):
         for variant in range(4):
@@ -75,6 +76,7 @@ def main():
             family = {'outpost':'ruined_outpost', 'swamp':'swamp_basin',
                       'caves':'toxic_caves', 'sanctuary':'boss_arena'}[theme]
             soil_path = ROOT / f'OutpostZero/Assets.xcassets/world1_{family}_floor_1.imageset/world1_{family}_floor_1.png'
+            secondary_sources[str(soil_path.relative_to(ROOT))] = hashlib.sha256(soil_path.read_bytes()).hexdigest()
             soil_source = Image.open(soil_path).convert('RGB').crop((32,100,480,660))
             soil = quilt(soil_source, 8338+variant*29)
             rng = random.Random(77338+variant*31)
@@ -102,6 +104,7 @@ def main():
     previews.save(target / 'derived-materials-source-preview.jpg', quality=92)
     (target / 'ground-provenance.json').write_text(json.dumps({'source': str(SOURCE.relative_to(ROOT)),
         'source_sha256': hashlib.sha256(SOURCE.read_bytes()).hexdigest(), 'source_crop': CROP,
+        'secondary_sources_sha256': secondary_sources,
         'pixels_per_world_point': 2, 'cell_world_size': 512, 'shared_edge_pixels': 24,
         'note': 'Derived material preview only; not simulator or gameplay evidence.', 'outputs': outputs}, indent=2)+'\n')
     print(f'Baked {len(outputs)} authored-pixel materials with shared periodic edges')

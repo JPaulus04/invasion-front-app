@@ -13,6 +13,12 @@ class MaterialTests(unittest.TestCase):
         manifest = json.loads((ROOT/'docs/build338/ground-provenance.json').read_text())
         self.assertEqual(hashlib.sha256((ROOT/manifest['source']).read_bytes()).hexdigest(), manifest['source_sha256'])
         self.assertEqual(manifest['pixels_per_world_point'],2)
+        for source, digest in manifest['secondary_sources_sha256'].items():
+            self.assertEqual(hashlib.sha256((ROOT/source).read_bytes()).hexdigest(),digest)
+        for entry in manifest['outputs']:
+            name=entry['name']
+            actual=ROOT/f'OutpostZero/Assets.xcassets/{name}.imageset/{name}.png'
+            self.assertEqual(hashlib.sha256(actual.read_bytes()).hexdigest(),entry['sha256'])
         for theme in ['outpost','swamp','caves','sanctuary']:
             images=[]
             for variant in range(4):

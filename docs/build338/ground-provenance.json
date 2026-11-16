@@ -14,67 +14,73 @@
   "outputs": [
     {
       "name": "build338_ground_outpost_0",
-      "sha256": "9decdf8ebf75309e2a05449362628cf76a55acd65d745852a10e8c544c21ca77"
+      "sha256": "d824a67770a22f8b00011db9eecc2f09c955415273801c983d29453bdfcd99dc"
     },
     {
       "name": "build338_ground_outpost_1",
-      "sha256": "5aeee0f4b560b76aee6b794be6462e2cadfec829d83602bdb329182a01214e0a"
+      "sha256": "ac72c5be6d2b84523158dc04856bdce31c70c7ae50551a8170f8bcb89b30f598"
     },
     {
       "name": "build338_ground_outpost_2",
-      "sha256": "daf1cac22aa49bcc29a9b8df7aeac3036257643df557ef0cf07d7f07dc09398e"
+      "sha256": "51609827f311e3a4dcd22638c21a4401574cc754074f18cf41e59cc0fa579047"
     },
     {
       "name": "build338_ground_outpost_3",
-      "sha256": "c0435e0f5333a7d9e6adc8987b1b8866b71d75b29c0b32a8aaeb3864931c1843"
+      "sha256": "cfaa58844cc14a5712432da82c475afa46c1aff569c1842d07163c9236876529"
     },
     {
       "name": "build338_ground_swamp_0",
-      "sha256": "49ecddf097ff9c0b272ed1e584c0e1eee111a649a1aadc0a2a4722f223511bf0"
+      "sha256": "987449a43d3defc0f9a6ad7d41c982d945eb9980a8746231e03d80830fd38585"
     },
     {
       "name": "build338_ground_swamp_1",
-      "sha256": "61f90d30b2459ad5ef348e847d597b55212ceb6d9b53188cbc2bd62fc542fc81"
+      "sha256": "7f268a091b1c313565570d32c816759ec20bac20c58fff568ce6a4b420c7c0bb"
     },
     {
       "name": "build338_ground_swamp_2",
-      "sha256": "4942df0303b6a1c081e72ba765b3f3d7e246d6e82697da4013fcacd5d01e8542"
+      "sha256": "f2a7e9eae2c79873f8cf94746a9cc8a2d1234a225b4dfb55163e3b53f6333b8e"
     },
     {
       "name": "build338_ground_swamp_3",
-      "sha256": "40bfeec3342de5ff385380a08ef0270d83d6c0ec4a49f1edd0198669c86bd69c"
+      "sha256": "2a678a9726a74685d7a9f95b42f9361118764f2bb1d520e61064e12750d5dbf6"
     },
     {
       "name": "build338_ground_caves_0",
-      "sha256": "b3acf1784b2bfb23c5976ed1d674762e6777ad5350fc8c05d10d115af72c0fc1"
+      "sha256": "85d14e10304c3eac599c57b5389201e0ff51a229ae65c9a5f1809dae0c1d4e97"
     },
     {
       "name": "build338_ground_caves_1",
-      "sha256": "a90ccee06e8896ceb3b43b03d79a935479ee2f0b9426f80a9345275620b4827c"
+      "sha256": "859075cda026ae2d2ac4160fad05b103331831b71f647855f5ec43547e98ea7f"
     },
     {
       "name": "build338_ground_caves_2",
-      "sha256": "7569c242062ab92f12706ed2e400023b39a718c8fe0d4a33904ec255b8e81dbc"
+      "sha256": "f5a151568f2eceb063db8d6f04c11b31099c221407192b9aa446b427a4e5c283"
     },
     {
       "name": "build338_ground_caves_3",
-      "sha256": "7598ca241124ecef434244549bd5edaacdfb3e8e17d2847930b7cf4831b9985e"
+      "sha256": "1eff9430184b1c048ed280c761bf10c980194f49b89a41a8d0e640333d9ba5b2"
     },
     {
       "name": "build338_ground_sanctuary_0",
-      "sha256": "5bdb882bac32944b3748dbfc5c3ed0ae06d91aef2610fa5f396e4259cd77168e"
+      "sha256": "3b6a7375c99ea700d8f3a363ed4d80eae2a60dfb58141a3987fc014ca51ba0ad"
     },
     {
       "name": "build338_ground_sanctuary_1",
-      "sha256": "3bd19f8e5f50408f187144713196bc827b912055f6b90553ce8f1befba804457"
+      "sha256": "db684e50cdebba7acb2b54bca790c9c1334b566addddebd30935a5cee6c74feb"
     },
     {
       "name": "build338_ground_sanctuary_2",
-      "sha256": "28c234e77239fabc709ebab2bf009823471ed2fb1148f19984c91aeb298c73cf"
+      "sha256": "89df296d988d9c95b7109f2f0f8a3a184f000d0c9e606dfb6a1e2ab9e595c40f"
     },
     {
       "name": "build338_ground_sanctuary_3",
-      "sha256": "1cf0a431b009b438a3995d3b76f3f0347e2dc84940e87c27208758428c4497f9"
+      "sha256": "0d6cb23f8c769fad8d27b7540cd8fa735f876c09454fdb9fd9883c5c097a1371"
     }
-  ]
+  ],
+  "secondary_sources_sha256": {
+    "OutpostZero/Assets.xcassets/world1_ruined_outpost_floor_1.imageset/world1_ruined_outpost_floor_1.png": "dde834d8aafc69a8f01993762d092ba99c8877968b5eb6deaa4d3c5515d079d2",
+    "OutpostZero/Assets.xcassets/world1_swamp_basin_floor_1.imageset/world1_swamp_basin_floor_1.png": "f6fa472b1a9606a5a40cd8920c5428d611a003f66ca153e92e5bb883d04b85d7",
+    "OutpostZero/Assets.xcassets/world1_toxic_caves_floor_1.imageset/world1_toxic_caves_floor_1.png": "8a408e95b868042cd73f712d23925614742d0e3905cefef21c4f7fa7548dd4e8",
+    "OutpostZero/Assets.xcassets/world1_boss_arena_floor_1.imageset/world1_boss_arena_floor_1.png": "9df22a5ed59773ae5610d69aaf54bf90de1a6c83dfc46c0f996160106d9542d0"
+  }
 }

@@ -24,7 +24,7 @@ struct WorldOneUnifiedTests {
             let plan = WorldOneEnvironmentPlan.make(room: room, layout: layout, origin: origin, aspect: aspect)
             precondition(plan.bounds == layout.bounds.offsetBy(dx: origin.x, dy: origin.y))
             precondition(plan.groundBounds.contains(plan.bounds.insetBy(dx: -20, dy: -132)))
-            precondition(plan.props.count < 160, "Bound environment node creation per room")
+            precondition(plan.props.count < 220, "Bound dense forest sprite creation per room")
             for prop in plan.props where prop.frame.intersects(plan.bounds) {
                 precondition(plan.blocked.contains { $0.contains(prop.frame) },
                     "Scenery cannot occupy a navigable lane: \(prop.asset), room \(room)")
