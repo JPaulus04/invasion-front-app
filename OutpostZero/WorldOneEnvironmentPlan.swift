@@ -137,9 +137,9 @@ enum WorldOneEnvironmentPlan {
         // Atmospheric liquids live beyond combat bounds. Existing gameplay
         // hazards remain authoritative; these never create undamaging pools inside a lane.
         let pools: [CGRect] = (theme == .swamp || theme == .caves)
-            ? [CGRect(x: bounds.minX-185, y: bounds.minY+bounds.height*0.25,
+            ? [CGRect(x: bounds.minX-130, y: bounds.minY+bounds.height*0.25,
                       width: 130, height: 170),
-               CGRect(x: bounds.maxX+45, y: bounds.minY+bounds.height*0.65,
+               CGRect(x: bounds.maxX, y: bounds.minY+bounds.height*0.65,
                       width: 120, height: 145)] : []
         return Plan(room: room, theme: theme, bounds: bounds, groundBounds: ground,
             blocked: blocked, props: props, pools: pools,

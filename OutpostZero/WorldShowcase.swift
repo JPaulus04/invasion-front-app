@@ -308,4 +308,3 @@ enum WorldShowcase {
         return root
     }
 }
-

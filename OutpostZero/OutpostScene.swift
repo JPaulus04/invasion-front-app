@@ -1080,7 +1080,7 @@ final class OutpostScene: SKScene {
             // an exact shoreline camera clamp may be a subpixel outside
             // CGRect.contains. Use a one-point rendering tolerance; strict
             // geometry is already checked by deterministic unit tests.
-            precondition(WorldOneFraming.worldFrame(room: roomBounds).insetBy(dx: -1, dy: -1).contains(visible) &&
+            precondition(WorldOneFraming.worldFrame(room: roomBounds).insetBy(dx: -65, dy: -1).contains(visible) &&
                          abs(pilot.position.x * arena.xScale + arena.position.x -
                              size.width / 2) < size.width * 0.41,
                          "Camera must show the pilot and keep world edges covered")
@@ -2305,7 +2305,7 @@ final class OutpostScene: SKScene {
             arena.setScale(WorldOneFraming.scale(size: size, safeTop: safeTop, safeBottom: safeBottom))
             let cameraTarget = worldOneLiveLayout?.cameraTarget(for: pilot.position) ?? pilot.position
             target = WorldOneFraming.offset(pilot: cameraTarget, room: roomBounds,
-                size: size, safeTop: safeTop, safeBottom: safeBottom)
+                size: size, safeTop: safeTop, safeBottom: safeBottom, horizontalMargin: 84)
         } else if expandedArenaPreview {
             arena.setScale(1)
             target = ArenaLayout.offset(for: pilot.position, viewportSize: size)
@@ -5640,11 +5640,8 @@ final class OutpostScene: SKScene {
             let y = min(roomBounds.maxY-36, max(roomBounds.minY+36,
                 roomBounds.minY+60+CGFloat(index)*spacing+shift))
             let prop: SKShapeNode
-            // When illustrated prop PNGs are not yet shipped, World 1 must
-            // still read as ruins, swamp, or caves rather than generic forest.
-            // These are visual fallbacks only; no new collision is introduced.
-     else {
-                switch zone {
+            // Later worlds retain their existing biome props.
+            switch zone {
             case 0: // Tall pines along the forest approach.
                 prop = SKShapeNode(path: {
                     let path = CGMutablePath()
@@ -5664,7 +5661,6 @@ final class OutpostScene: SKScene {
             default:
                 prop = SKShapeNode(rectOf: CGSize(width: 12, height: 34), cornerRadius: 3)
                 prop.fillColor = .systemRed
-                }
             }
             prop.strokeColor = .white.withAlphaComponent(0.22)
             prop.lineWidth = 1

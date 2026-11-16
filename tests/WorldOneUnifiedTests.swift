@@ -56,7 +56,7 @@ struct WorldOneUnifiedTests {
             for size in [CGSize(width: 320,height: 568), CGSize(width: 393,height: 852), CGSize(width: 768,height: 1024)] {
                 let exit = layout.exit ?? CGPoint(x: layout.bounds.midX,y: layout.bounds.maxY-14)
                 let offset = WorldOneFraming.offset(pilot: layout.cameraTarget(for: exit),
-                    room: layout.bounds,size: size,safeTop: 62,safeBottom: 34)
+                    room: layout.bounds,size: size,safeTop: 62,safeBottom: 34,horizontalMargin: 84)
                 let scale = WorldOneFraming.scale(size: size,safeTop: 62,safeBottom: 34)
                 let viewport = WorldOneFraming.viewport(size: size,safeTop: 62,safeBottom: 34)
                 precondition((exit.y+128)*scale+offset.y <= viewport.maxY+0.01)
@@ -65,7 +65,11 @@ struct WorldOneUnifiedTests {
                     let pilot = CGPoint(x: layout.bounds.midX,
                         y: layout.entry.y+(exit.y-layout.entry.y)*fraction)
                     let follow = WorldOneFraming.offset(pilot: layout.cameraTarget(for: pilot),
-                        room: layout.bounds,size: size,safeTop: 62,safeBottom: 34)
+                        room: layout.bounds,size: size,safeTop: 62,safeBottom: 34,horizontalMargin: 84)
+                    let visible = WorldOneFraming.visibleWorldRect(offset: follow,
+                        size: size, safeTop: 62, safeBottom: 34)
+                    precondition(layout.bounds.insetBy(dx: -300,dy: -300).contains(visible),
+                        "The landscape must cover camera exterior margins")
                     let presentation = WorldOnePortalFraming.make(pilot: pilot,gate: exit,
                         viewport: viewport,scale: scale,offset: follow)
                     precondition((pilot.y-44)*scale+presentation.offset.y >= viewport.minY-0.01,

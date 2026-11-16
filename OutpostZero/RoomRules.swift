@@ -131,9 +131,9 @@ enum WorldOneFraming {
         return min(0.90, min(view.width / frame.width, view.height / frame.height))
     }
     static func offset(pilot: CGPoint, room: CGRect, size: CGSize,
-                       safeTop: CGFloat, safeBottom: CGFloat) -> CGPoint {
+                       safeTop: CGFloat, safeBottom: CGFloat, horizontalMargin: CGFloat = 20) -> CGPoint {
         let view = viewport(size: size, safeTop: safeTop, safeBottom: safeBottom)
-        let frame = worldFrame(room: room)
+        let frame = worldFrame(room: room).insetBy(dx: -(horizontalMargin - 20), dy: 0)
         let zoom = scale(size: size, safeTop: safeTop, safeBottom: safeBottom)
         func axis(_ p: CGFloat, _ low: CGFloat, _ high: CGFloat,
                   _ vlow: CGFloat, _ vhigh: CGFloat) -> CGFloat {
