@@ -43,7 +43,8 @@ def main():
         run(['xcrun','simctl','bootstatus',device,'-b'],300)
         run(['xcrun','simctl','install',device,str(app)],150)
         if '--fixtures' in sys.argv:
-            fixtures=[('-captureEquipmentDefenseFailureScreenshot','phase4-reactor-lost'),
+            fixtures=[('-captureEquipmentDefenseClearScreenshot','phase4-reactor-secured'),
+                      ('-captureEquipmentDefenseFailureScreenshot','phase4-reactor-lost'),
                       ('-captureSurvivalTransitionScreenshot','survival-transition'),
                       ('-captureExpandedArenaCenterScreenshot','expanded-survival')]
             for flag,name in fixtures:

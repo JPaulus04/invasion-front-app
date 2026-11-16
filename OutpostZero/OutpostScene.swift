@@ -1333,6 +1333,10 @@ final class OutpostScene: SKScene {
             // QA-only frame after assertions so screenshots are deterministic.
             holdDefenseQAScreenshot = true
             updateHUD()
+            if defenseWon || defenseFailed {
+                precondition(survivalClock.isHidden && !warning.isHidden,
+                             "Resolved defense must show one unobscured exit instruction")
+            }
         }
         // Fixture exercises actual production entry and timer completion,
         // rather than a mock drawing of an extraction portal.
@@ -2199,7 +2203,7 @@ final class OutpostScene: SKScene {
             print("[FOCUSED REVIEW] ready code=\(code) flag=\(reviewFlags[index])")
             fflush(stdout)
         }
-        for flag in ["-captureEquipmentDefenseFailureScreenshot", "-captureSurvivalTransitionScreenshot",
+        for flag in ["-captureEquipmentDefenseClearScreenshot", "-captureEquipmentDefenseFailureScreenshot", "-captureSurvivalTransitionScreenshot",
                      "-captureExpandedArenaCenterScreenshot"] where ProcessInfo.processInfo.arguments.contains(flag) {
             print("[BUILD338 FIXTURE READY] flag=\(flag)")
             fflush(stdout)
@@ -2687,7 +2691,10 @@ final class OutpostScene: SKScene {
         let objectiveActive = (phase == .playing || phase == .gate) &&
             (activeEncounter == .survival || activeEncounter == .equipmentDefense ||
              (wave == worldWaveCount && roomCleared))
-        survivalClock.isHidden = !objectiveActive
+        // The gate banner already includes the defense result. Its plate
+        // overlaps this headline, so show the result once after resolution.
+        survivalClock.isHidden = !objectiveActive ||
+            (activeEncounter == .equipmentDefense && roomCleared && phase == .gate)
         // Mission status is the primary combat readout, not tertiary metadata.
         // Scale it before the existing fit-to-width guard below.
         survivalClock.fontSize = size.width < 390 ? 14 : 16
