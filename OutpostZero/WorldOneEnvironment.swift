@@ -31,6 +31,25 @@ enum WorldOneEnvironment {
             }
         }
         root.addChild(ground)
+        for patch in plan.reclamation {
+            guard let art = texture(patch.asset) else { preconditionFailure("Missing authored reclamation bed") }
+            let bed = SKSpriteNode(texture: art)
+            bed.name = "reclaimedPavingBed"
+            bed.size = CGSize(width: 256,height: 256)
+            bed.position = patch.position
+            bed.zRotation = patch.angle
+            bed.zPosition = -17
+            root.addChild(bed)
+        }
+        for plant in plan.groundPlants {
+            guard let art = texture(plant.asset) else { preconditionFailure("Missing low ground vegetation") }
+            let sprite = SKSpriteNode(texture: art)
+            sprite.name = "ankleHeightGroundVegetation"
+            sprite.size = plant.size
+            sprite.position = plant.position
+            sprite.zPosition = -12
+            root.addChild(sprite)
+        }
         // Pre-baked alpha feathering is real blending. SKCropNode uses an
         // alpha cutoff and produced hard soil lobes in the actual capture.
         for rect in plan.blocked {

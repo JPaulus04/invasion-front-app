@@ -43,9 +43,12 @@ enum WorldOneEnvironmentPlan {
         let props: [Prop]
         let pools: [CGRect]
         let groundOrigin: CGPoint
+        let reclamation: [GroundPatch]
+        let groundPlants: [GroundPlant]
         var materialNames: [String] { (0..<4).map { "build338_ground_\(theme.rawValue)_\($0)" } }
         var requiredAssets: [String] {
-            Array(Set(materialNames + props.map { $0.asset } +
+            Array(Set(materialNames + props.map { $0.asset } + reclamation.map { $0.asset } +
+                    groundPlants.map { $0.asset } +
                     ["outpost_zero_portal_approved_transparent", "world1_\(theme.family)_floor_1"] +
                     (pools.isEmpty ? [] : ["build338_forest_pool"]) +
                     (blocked.isEmpty ? [] : ["build338_understory_\(theme.rawValue)"]))).sorted()
@@ -55,6 +58,20 @@ enum WorldOneEnvironmentPlan {
             // repeat period larger than the traversable length of a room.
             ((column + 3*row + room) % 4 + 4) % 4
         }
+    }
+    /// Flat wear and ankle-height plants are presentation, never obstacles.
+    struct GroundPatch {
+        let asset: String
+        let position: CGPoint
+        let angle: CGFloat
+        var frame: CGRect { CGRect(x: position.x-128,y: position.y-128,width: 256,height: 256) }
+    }
+    struct GroundPlant {
+        let asset: String
+        let position: CGPoint
+        let size: CGSize
+        var frame: CGRect { CGRect(x: position.x-size.width/2,y: position.y-size.height/2,
+                                  width: size.width,height: size.height) }
     }
     static let cellSize: CGFloat = 512
 
@@ -143,6 +160,77 @@ enum WorldOneEnvironmentPlan {
             add(vegetation, x: bounds.midX+side*174,
                 y: bounds.maxY+WorldOneArtMetrics.groundAnchorY(for: vegetation)*72+2, height: 72)
         }
+        // Composed exterior buttresses, shore remnants and cave outcrops.
+        // Every complete sprite stays beyond the movement rectangle; existing
+        // portal masonry remains at its approved location above.
+        func exterior(_ asset: String, x: CGFloat, north: Bool, height: CGFloat) {
+            let anchor = WorldOneArtMetrics.groundAnchorY(for: asset)
+            let y = north ? bounds.maxY+height*anchor+3 : bounds.minY-height*(1-anchor)-3
+            add(asset,x: x,y: y,height: height)
+        }
+        for north in [false,true] {
+            for side: CGFloat in [-1,1] {
+                let x = bounds.midX+side*(north ? 222 : 170)
+                switch theme {
+                case .outpost:
+                    exterior("world1_ruined_outpost_wall",x: x,north: north,height: 105)
+                    exterior("world1_boss_arena_boulder",x: x+side*60,north: north,height: 88)
+                    exterior("world1_ruined_outpost_debris",x: x-side*42,north: north,height: 52)
+                case .swamp:
+                    // Leave the water shelf open: ruins/root mats flank its bank.
+                    let bank = bounds.midX+side*230
+                    exterior("world1_swamp_basin_wall",x: bank,north: north,height: 94)
+                    exterior("world1_swamp_basin_debris",x: bank-side*45,north: north,height: 54)
+                    exterior("world1_swamp_basin_vegetation",x: bank+side*48,north: north,height: 62)
+                case .caves:
+                    exterior("world1_toxic_caves_boulder",x: x,north: north,height: 152)
+                    exterior("world1_toxic_caves_debris",x: x+side*65,north: north,height: 92)
+                    exterior("world1_toxic_caves_vegetation",x: x-side*42,north: north,height: 62)
+                case .sanctuary:
+                    exterior("world1_boss_arena_wall",x: x,north: north,height: 125)
+                    exterior("world1_boss_arena_debris",x: x+side*60,north: north,height: 84)
+                    exterior("world1_boss_arena_boulder",x: x-side*48,north: north,height: 108)
+                }
+            }
+        }
+        // Reclaimed banks follow the old paving seams in connected runs.
+        // Fixed 256-point patches use 512-pixel authored textures, retaining
+        // the approved two-pixels/point density. No room-sized texture stretch.
+        var reclamation: [GroundPatch] = []
+        var groundPlants: [GroundPlant] = []
+        let rows: [CGFloat] = theme == .sanctuary ? [0.18,0.36] : [0.18,0.40,0.62,0.80]
+        let bankDistance: CGFloat = layout.kind == .defense ? 264 :
+            (layout.kind == .passage ? min(175,bounds.width*0.40) : 184)
+        let gateClear = CGRect(x: bounds.midX-96,y: bounds.maxY-160,width: 192,height: 310)
+        let objectiveClear = layout.objective.map {
+            CGRect(x: $0.x+origin.x-100,y: $0.y+origin.y-110,width: 200,height: 240)
+        }
+        for (index,fraction) in rows.enumerated() {
+            for side: CGFloat in [-1,1] {
+                let drift: CGFloat = [0,22,-14,12][index]
+                let position = CGPoint(x: bounds.midX+side*(bankDistance+drift),
+                    y: bounds.minY+bounds.height*fraction+(side < 0 ? -24 : 32))
+                let patch = GroundPatch(asset: "build338_reclaim_\(theme.rawValue)_\((index+(side > 0 ? 1 : 0))%2)",
+                    position: position,angle: side*(index.isMultiple(of: 2) ? 0.12 : -0.15))
+                // The reserve includes the rotated patch's entire bounding box.
+                let envelope = patch.frame.insetBy(dx: -20,dy: -20)
+                if envelope.intersects(gateClear) || (objectiveClear.map { envelope.intersects($0) } ?? false) { continue }
+                reclamation.append(patch)
+                for offset: CGFloat in [-34,30] {
+                    let plantName = "world1_\(theme.family)_vegetation"
+                    let height: CGFloat = theme == .swamp ? 15 : 12
+                    let plant = GroundPlant(asset: plantName,
+                        position: CGPoint(x: position.x+offset,y: position.y+side*28),
+                        size: CGSize(width: height*aspect(plantName),height: height))
+                    if bounds.insetBy(dx: 24,dy: 24).contains(plant.frame) &&
+                        !blocked.contains(where: { $0.intersects(plant.frame) }) &&
+                        !plant.frame.intersects(gateClear) &&
+                        !(objectiveClear.map { plant.frame.intersects($0) } ?? false) {
+                        groundPlants.append(plant)
+                    }
+                }
+            }
+        }
         // Atmospheric liquids live beyond combat bounds. Existing gameplay
         // hazards remain authoritative; these never create undamaging pools inside a lane.
         let pools: [CGRect] = (theme == .swamp || theme == .caves)
@@ -154,6 +242,7 @@ enum WorldOneEnvironmentPlan {
                CGRect(x: bounds.midX+10, y: bounds.maxY, width: 180, height: 120)] : []
         return Plan(room: room, theme: theme, bounds: bounds, groundBounds: ground,
             blocked: blocked, props: props, pools: pools,
-            groundOrigin: CGPoint(x: bounds.midX-256, y: bounds.minY-128))
+            groundOrigin: CGPoint(x: bounds.midX-256, y: bounds.minY-128),
+            reclamation: reclamation,groundPlants: groundPlants)
     }
 }

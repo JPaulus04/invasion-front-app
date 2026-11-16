@@ -12,6 +12,7 @@ names={item.get('Name') for item in info}
 expected={f'build338_ground_{family}_{i}' for family in ['outpost','swamp','caves','sanctuary'] for i in range(4)}
 expected.add('build338_forest_pool')
 expected.update(f'build338_understory_{theme}' for theme in ['outpost','swamp','caves','sanctuary'])
+expected.update(f'build338_reclaim_{theme}_{variant}' for theme in ['outpost','swamp','caves','sanctuary'] for variant in range(2))
 for motion,count in [('idle',8),('move',8),('attack',10),('hit',6),('defeat',8)]:
     expected.update(f'mossbot_{motion}_{i:02d}' for i in range(count))
 missing=expected-names

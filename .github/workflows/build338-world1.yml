@@ -61,7 +61,7 @@ jobs:
       - name: Verify actual app-bundle resources
         run: python3 scripts/verify_build338_bundle.py
       - name: Record live environment tour
-        if: github.event_name == 'workflow_dispatch' && inputs.visual
+        if: (github.event_name == 'workflow_dispatch' && inputs.visual) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[polish-review]'))
         run: |
           set -euo pipefail
           python3 scripts/run_build338_review.py

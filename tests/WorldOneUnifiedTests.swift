@@ -25,6 +25,24 @@ struct WorldOneUnifiedTests {
             precondition(plan.bounds == layout.bounds.offsetBy(dx: origin.x, dy: origin.y))
             precondition(plan.groundBounds.contains(plan.bounds.insetBy(dx: -20, dy: -132)))
             precondition(plan.props.count < 220, "Bound dense forest sprite creation per room")
+            precondition(plan.blocked == layout.boundaryObstacles.map { $0.offsetBy(dx: origin.x,dy: origin.y) },
+                "Polish cannot add movement obstructions")
+            precondition(!plan.reclamation.isEmpty && plan.reclamation.count <= 8 && plan.groundPlants.count <= 16)
+            let portalReserve = CGRect(x: plan.bounds.midX-96,y: plan.bounds.maxY-160,width: 192,height: 310)
+            let objectiveReserve = layout.objective.map {
+                CGRect(x: $0.x+origin.x-100,y: $0.y+origin.y-110,width: 200,height: 240)
+            }
+            for bed in plan.reclamation {
+                let envelope = bed.frame.insetBy(dx: -20,dy: -20)
+                precondition(plan.groundBounds.contains(envelope) && !envelope.intersects(portalReserve))
+                precondition(!(objectiveReserve.map { envelope.intersects($0) } ?? false))
+            }
+            for plant in plan.groundPlants {
+                precondition(plant.size.height <= 15 && plan.bounds.insetBy(dx: 24,dy: 24).contains(plant.frame))
+                precondition(!plan.blocked.contains { $0.intersects(plant.frame) })
+                precondition(!plant.frame.intersects(portalReserve) &&
+                    !(objectiveReserve.map { plant.frame.intersects($0) } ?? false))
+            }
             for prop in plan.props where prop.frame.intersects(plan.bounds) {
                 precondition(plan.blocked.contains { $0.contains(prop.frame) },
                     "Scenery cannot occupy a navigable lane: \(prop.asset), room \(room)")

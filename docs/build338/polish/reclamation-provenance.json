@@ -1,0 +1,50 @@
+{
+  "inputs_sha256": {
+    "OutpostZero/Assets.xcassets/world1_ruined_outpost_floor_2.imageset/world1_ruined_outpost_floor_2.png": "11a5d4fb642aa1864a180bcb6371e1cf1a19987c4714ac78509358b83a670d20",
+    "OutpostZero/Assets.xcassets/world1_boss_arena_floor_3.imageset/world1_boss_arena_floor_3.png": "9c1a5d1bfec1b3750aecdf8a0596d74ab200b52f33cd8fc03ef4c306ebb7677d",
+    "OutpostZero/Assets.xcassets/world1_swamp_basin_floor_2.imageset/world1_swamp_basin_floor_2.png": "75a2981452c393e7badb41445112032801e1db444e21c277aa0ec618e6910c62",
+    "OutpostZero/Assets.xcassets/world1_swamp_basin_floor_3.imageset/world1_swamp_basin_floor_3.png": "3b9a242c2ed8b2b45211f43456110d585491546e63f0d48e88dead099a0dc816",
+    "OutpostZero/Assets.xcassets/world1_toxic_caves_floor_2.imageset/world1_toxic_caves_floor_2.png": "06dbf3eee52b5dc52feefaf03dbf93d18df727388b403f196600f7d4e68d27fb",
+    "OutpostZero/Assets.xcassets/world1_toxic_caves_floor_3.imageset/world1_toxic_caves_floor_3.png": "ff8b36d80446681165fa6d6970abe01ac8efacca7951f7d50f2e7e22faf5e8d0",
+    "OutpostZero/Assets.xcassets/world1_ruined_outpost_floor_3.imageset/world1_ruined_outpost_floor_3.png": "12d0c67b54003d3649e5f577794174bed7d4239278182ce449c7e16aec320c43",
+    "OutpostZero/Assets.xcassets/world1_boss_arena_floor_2.imageset/world1_boss_arena_floor_2.png": "af952790bf7d39e60e4508ee966c563a94caad3a0222b729ddacbe82936e514f"
+  },
+  "outputs": [
+    {
+      "asset": "build338_reclaim_outpost_0",
+      "sha256": "77873f6eab9571c785d67c7566d34c5aef7e821c067f7b58c8f3135419371911"
+    },
+    {
+      "asset": "build338_reclaim_outpost_1",
+      "sha256": "78429cba518b885dba8f4aa9e1ab553ba9c3434dfe0cbba3d22d87f9ad5e9d61"
+    },
+    {
+      "asset": "build338_reclaim_swamp_0",
+      "sha256": "35749d3494a70cec3f2005d6e2b651f3734d167556becdf002e50ee5c5cf7617"
+    },
+    {
+      "asset": "build338_reclaim_swamp_1",
+      "sha256": "2406c4afc96fc3ddc399da6781efcf92dc161464e5c394da2fedd13571feef10"
+    },
+    {
+      "asset": "build338_reclaim_caves_0",
+      "sha256": "4b34e323f7cb62919e8534592e6e2ea4fec89f46a1a5f8899e96861331cc6b93"
+    },
+    {
+      "asset": "build338_reclaim_caves_1",
+      "sha256": "323117256d9f7b62fe238579bf57f9ea524999832f19e0395170f42bc825f1fe"
+    },
+    {
+      "asset": "build338_reclaim_sanctuary_0",
+      "sha256": "793711d874e5f702fe633594919ce029f74202a055c5fd0dcf0a5d30f2f9e4ac"
+    },
+    {
+      "asset": "build338_reclaim_sanctuary_1",
+      "sha256": "19349e6945e402d897d90e733084ffadd9f8652ab5c0aa6d281fff86bb1407b0"
+    }
+  ],
+  "pixels_per_world_point": 2,
+  "texture_pixels": 512,
+  "world_size": 256,
+  "note": "Authored soil/moss pixels with derived alpha; original paving and source art unchanged."
+}
