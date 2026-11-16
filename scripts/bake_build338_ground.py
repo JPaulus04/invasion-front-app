@@ -99,6 +99,26 @@ def main():
                 'info': {'author': 'xcode', 'version': 1}}, indent=2)+'\n')
             outputs.append({'name': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
             previews.paste(material.resize((256, 256)), (variant*256, row*256))
+        # Forest soil from the same authored family. Alpha is baked into the
+        # pixels so SpriteKit blends it; crop-node masks are binary stencils.
+        soil=Image.open(soil_path).convert('RGBA')
+        alpha=Image.new('L',soil.size)
+        values=[]
+        for y in range(soil.height):
+            ny=y/(soil.height-1)
+            for x in range(soil.width):
+                nx=x/(soil.width-1)
+                left=.035+.022*math.sin(ny*19)+.012*math.sin(ny*47)
+                right=.035+.022*math.cos(ny*23)
+                fade=max(0,min(1,(nx-left)/.16,(1-nx-right)/.16,ny/.12,(1-ny)/.12))
+                values.append(round(210*fade*fade*(3-2*fade)))
+        alpha.putdata(values);soil.putalpha(alpha)
+        name=f'build338_understory_{theme}'
+        folder=ROOT/'OutpostZero/Assets.xcassets'/f'{name}.imageset';folder.mkdir(exist_ok=True)
+        path=folder/f'{name}.png';soil.save(path,optimize=True)
+        (folder/'Contents.json').write_text(json.dumps({'images':[{'idiom':'universal','filename':path.name}],
+            'info':{'author':'xcode','version':1}},indent=2)+'\n')
+        outputs.append({'name':name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
     target = ROOT / 'docs/build338'
     target.mkdir(exist_ok=True)
     previews.save(target / 'derived-materials-source-preview.jpg', quality=92)

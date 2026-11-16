@@ -36,6 +36,13 @@ class MaterialTests(unittest.TestCase):
                 for box in [(0,0,24,1024),(1000,0,1024,1024),(0,0,1024,24),(0,1000,1024,1024)]:
                     self.assertEqual(image.crop(box).tobytes(),images[0].crop(box).tobytes())
             self.assertEqual(len({hashlib.sha256(im.tobytes()).hexdigest() for im in images}),4)
+            cover=Image.open(ROOT/f'OutpostZero/Assets.xcassets/build338_understory_{theme}.imageset/build338_understory_{theme}.png')
+            alpha=cover.getchannel('A')
+            self.assertEqual(alpha.getextrema(),(0,210))
+            self.assertGreater(len(set(alpha.getdata())),100,"Understory must blend, not use a binary crop edge")
+            for box in [(0,0,1,cover.height),(cover.width-1,0,cover.width,cover.height),
+                        (0,0,cover.width,1),(0,cover.height-1,cover.width,cover.height)]:
+                self.assertEqual(alpha.crop(box).getextrema(),(0,0))
 
     def test_portal_preserves_approved_pixels_and_has_no_rectangular_overlays(self):
         source=ROOT/'OutpostZero/ArtAssets/outpost_zero_portal_approved_transparent.png'

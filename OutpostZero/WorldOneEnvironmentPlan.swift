@@ -47,7 +47,8 @@ enum WorldOneEnvironmentPlan {
         var requiredAssets: [String] {
             Array(Set(materialNames + props.map { $0.asset } +
                     ["outpost_zero_portal_approved_transparent", "world1_\(theme.family)_floor_1"] +
-                    (pools.isEmpty ? [] : ["build338_forest_pool"]))).sorted()
+                    (pools.isEmpty ? [] : ["build338_forest_pool"]) +
+                    (blocked.isEmpty ? [] : ["build338_understory_\(theme.rawValue)"]))).sorted()
         }
         func variant(column: Int, row: Int) -> Int {
             // Four neighboring materials; no identical adjacent cells and a
@@ -115,15 +116,18 @@ enum WorldOneEnvironmentPlan {
             let rows = max(1, Int(patch.height/34))
             for row in 0..<rows {
                 let kinds = ["vegetation", "boulder", "wall", "vegetation", "debris"]
-                let kind = kinds[(row+index+room)%kinds.count]
+                let kind = kinds[Int(random()*CGFloat(kinds.count))]
                 let name = "world1_\(theme.family)_\(kind)"
-                let height = min(72, (patch.width-4)/max(0.5, aspect(name)))
-                let y = patch.minY + CGFloat(row+1)*patch.height/CGFloat(rows+1)
+                let height = min(72, (patch.width-4)/max(0.5, aspect(name)))*(0.65+random()*0.35)
+                let y = patch.minY + (CGFloat(row+1)+(random()-0.5)*0.5)*patch.height/CGFloat(rows+1)
                 add(name, x: patch.midX + (random()-0.5)*min(10, patch.width*0.2),
                     y: y, height: max(14, height), inside: patch)
-                if patch.width >= 70 {
-                    add("forest_broadleaf_polished", x: patch.midX, y: y,
-                        height: min(105, patch.width/aspect("forest_broadleaf_polished")-4), inside: patch)
+                if patch.width >= 70, random() > 0.3 {
+                    let tree = (row+index+room).isMultiple(of: 2) ? "forest_pine_polished" : "forest_broadleaf_polished"
+                    let height = min(110,(patch.width-4)/aspect(tree))*(0.58+random()*0.42)
+                    let freeWidth = max(0,patch.width-height*aspect(tree)-4)
+                    add(tree, x: patch.midX+(random()-0.5)*freeWidth, y: y,
+                        height: height, inside: patch)
                 }
             }
         }

@@ -3,6 +3,7 @@ on:
   push:
     branches: [outpost-zero, build-327, main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
     inputs:
       validation_scope:
@@ -17,7 +18,7 @@ on:
 # Build 328 consolidated integration gate: navigation, combat feedback, and boss visuals.
 # Avoid wasting macOS runners on obsolete revisions during rapid iteration.
 concurrency:
-  group: ios-build-${{ github.workflow }}-${{ github.ref }}-${{ (github.event_name == 'pull_request' || inputs.validation_scope == 'full' || contains(github.event.head_commit.message, '[full-review]')) && 'full' || 'focused' }}
+  group: ios-build-${{ github.workflow }}-${{ github.ref }}-${{ ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) || inputs.validation_scope == 'full' || contains(github.event.head_commit.message, '[full-review]')) && 'full' || 'focused' }}
   cancel-in-progress: true
 jobs:
   startup-recovery:
@@ -195,7 +196,7 @@ jobs:
   defense-visual-review:
     # Run expensive simulator captures only at full review checkpoints.
     if: >-
-      github.event_name == 'pull_request' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
       (github.event_name == 'push' && contains(github.event.head_commit.message, '[full-review]'))
     # Small parallel image pass for rapid visual correction of this mission.
@@ -291,7 +292,7 @@ jobs:
     # Build 328 release gate: full simulator capture must pass before TestFlight.
     # Fast tests, compilation and focused motion captures still run every time.
     if: >-
-      github.event_name == 'pull_request' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
       (github.event_name == 'push' && contains(github.event.head_commit.message, '[full-review]'))
     needs: build
@@ -756,17 +757,17 @@ jobs:
   phase4-gameplay:
     needs: build
     if: >-
-      github.event_name == 'pull_request' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || contains(github.event.head_commit.message, '[phase4-review]')))
     uses: ./.github/workflows/phase4-gameplay.yml
 
   phase4-presentation-review:
     name: Focused gameplay presentation
-    # Standard visual acceptance: every pushed build captures the same
-    # gameplay presentation scenes. Full reviews remain release checkpoints.
+    # Draft development compiles/tests without simulator startup. Ready PRs
+    # and explicit full milestones retain all presentation acceptance checks.
     if: >-
-      github.event_name == 'pull_request' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
       (github.event_name == 'push' && !contains(github.event.head_commit.message, '[home-review]'))
     needs: build

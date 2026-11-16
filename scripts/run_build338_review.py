@@ -43,6 +43,13 @@ def main():
         with (OUT/'video.log').open('w') as log:
             recorder=subprocess.Popen(['xcrun','simctl','io',device,'recordVideo','--codec=h264',str(OUT/'world1-tour.mp4')],
                 stdout=log,stderr=subprocess.STDOUT)
+            ready_deadline=time.monotonic()+60
+            while time.monotonic()<ready_deadline:
+                if recorder.poll() is not None: raise RuntimeError('Video recorder exited before launch')
+                if 'Recording started' in (OUT/'video.log').read_text(): break
+                time.sleep(.2)
+            else: raise TimeoutError('Simulator recorder never became ready; app was not launched')
+            print('Recorder ready before app launch',flush=True)
             run(['xcrun','simctl','launch','--stdout='+str(stdout),'--stderr='+str(stderr),device,
                  'com.paulus.laststandcommand','-captureBuild338WorldTour','-requireWorldOneAuthoredArt'],90)
             deadline=time.monotonic()+150

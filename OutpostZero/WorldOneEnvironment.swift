@@ -31,41 +31,18 @@ enum WorldOneEnvironment {
             }
         }
         root.addChild(ground)
-        // A textured, softly shaded forest floor identifies solid shoulders.
-        // The collision union is unchanged; transparent sprites describe its
-        // contents instead of drawing repeated rectangular masonry rails.
-        if !plan.blocked.isEmpty {
-            let grove = SKCropNode()
-            grove.name = "solidForestShoulders"
-            // Soft overlapping masks remove the rectangular soil panels seen
-            // in the first live capture. Actual collision remains rectangular;
-            // dense rooted foliage describes that footprint above the soil.
-            let mask = SKNode()
-            for rect in plan.blocked {
-                let count = max(1, Int(ceil(rect.height/65)))
-                for index in 0..<count {
-                    let lobe = SKSpriteNode(texture: ProductionPresentation.glow(.white))
-                    lobe.size = CGSize(width: rect.width*1.45, height: min(190,rect.height*1.6))
-                    lobe.position = CGPoint(x: rect.midX + CGFloat(index%3-1)*rect.width*0.08,
-                        y: rect.minY+(CGFloat(index)+0.5)*rect.height/CGFloat(count))
-                    mask.addChild(lobe)
-                }
+        // Pre-baked alpha feathering is real blending. SKCropNode uses an
+        // alpha cutoff and produced hard soil lobes in the actual capture.
+        for rect in plan.blocked {
+            guard let moss = texture("build338_understory_\(plan.theme.rawValue)") else {
+                preconditionFailure("Missing authored forest understory")
             }
-            grove.maskNode = mask
-            if let moss = texture("world1_\(plan.theme.family)_floor_1") {
-                for rect in plan.blocked {
-                    let art = SKSpriteNode(texture: moss)
-                    // These are low-frequency shaded understory, never the
-                    // playable paving. All walkable ground retains 2 pixels/point.
-                    art.size = CGSize(width: 256, height: 384)
-                    art.position = CGPoint(x: rect.midX, y: rect.midY)
-                    art.color = .black
-                    art.colorBlendFactor = 0.32
-                    grove.addChild(art)
-                }
-            }
-            grove.zPosition = -16
-            root.addChild(grove)
+            let cover = SKSpriteNode(texture: moss)
+            cover.name = "featheredForestUnderstory"
+            cover.size = rect.size
+            cover.position = CGPoint(x: rect.midX,y: rect.midY)
+            cover.zPosition = -16
+            root.addChild(cover)
         }
         for frame in plan.pools {
             if let art = texture("build338_forest_pool") {
