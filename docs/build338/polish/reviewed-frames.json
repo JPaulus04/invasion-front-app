@@ -1,0 +1,41 @@
+{
+  "before_environment_source": "fc6ddc01f02e6385a3b35078695f10b00dbdd416",
+  "before_matches_approved_baseline": "eee6d3a6afecc301563ebf492279fb9a244aa590",
+  "after_source": "4762951f062ead5affdb5a57b3a01576cce4651d",
+  "run": 43808310655,
+  "artifact": 14200185249,
+  "selection_by_visible_stage_badges": {
+    "outpost-combat": 14,
+    "swamp": 17,
+    "toxic-caves": 20,
+    "boss": 26,
+    "portal-approach": 32
+  },
+  "raw_sha256": {
+    "outpost-combat": {
+      "before": "1197f883c11511af0883ce2e8e3707ca109889793028362304fa0a8e9c0bacc9",
+      "after": "e6a6ccc283c9f346af27941d3b886ae226d89e8cb23c0feb8ccb5a4fb61bf8b9",
+      "after_file": "frame-014.png"
+    },
+    "swamp": {
+      "before": "2991ca4dd1b40f247305d1e39ade7d23ce974a6531eca1df5e4712dde7ec78eb",
+      "after": "6b4deb2fd5edb8441987fed00285b2739ed7fec1cb98cf74ad7613a37946e967",
+      "after_file": "frame-017.png"
+    },
+    "toxic-caves": {
+      "before": "ae0427ae41d5ac079b75e0c785ee397c67eaf3520cf1fdf172af1c819a67f733",
+      "after": "e01c6cce74df1620ddd3f11fc1b92aedf519a527c40b55444cfb45dbc12d9b27",
+      "after_file": "frame-020.png"
+    },
+    "boss": {
+      "before": "b301669ce57a75fbac425612d90269f07f6c7d833a3de5b07b75bc56f0267d59",
+      "after": "bd12a74e7915533ae0e69e848cbdfac7cc67075bb5aa61ee7ee6f895ef4c0880",
+      "after_file": "frame-026.png"
+    },
+    "portal-approach": {
+      "before": "1d285530749c29334ffeeec405bafa7f367a676000d8ae8c410bd84ec46ca7cb",
+      "after": "f594510d3400c47d3e13d3ce1b9effddd17c80ac44e4056c553762c213249c10",
+      "after_file": "frame-032.png"
+    }
+  }
+}

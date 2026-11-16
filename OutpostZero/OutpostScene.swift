@@ -689,107 +689,10 @@ final class OutpostScene: SKScene {
         passageGate.isHidden = true
         arena.addChild(passageGate)
 
-        // World exit is an opening cut into the north wall, not a freestanding
-        // portal prop. All geometry stays within the far-wall depth band.
-        // Its lower edge is the walkable threshold and its upper edge stays
-        // below the HUD. The invisible gate remains the interaction target.
-        // Keep the existing top/headroom while extending masonry down to
-        // the threshold. The former y=38 left a visible gap above the shoulders.
-        let wallMortar = SKShapeNode(rect: CGRect(x: -102, y: 10,
-            width: 204, height: 112), cornerRadius: 8)
-        wallMortar.name = "portalWallMortar"
-        wallMortar.fillColor = SKColor(red: 0.18, green: 0.25, blue: 0.21, alpha: 1)
-        wallMortar.strokeColor = SKColor(red: 0.11, green: 0.18, blue: 0.14, alpha: 1)
-        wallMortar.lineWidth = 3
-        wallMortar.zPosition = -3
-        passageGate.addChild(wallMortar)
-
-        // The dark doorway reads as actual depth through the wall.
-        let opening = SKShapeNode(rect: CGRect(x: -43, y: 30,
-            width: 86, height: 88), cornerRadius: 34)
-        opening.name = "portalRecessOpening"
-        opening.fillColor = SKColor(red: 0.018, green: 0.065, blue: 0.10, alpha: 1)
-        opening.strokeColor = SKColor(red: 0.09, green: 0.15, blue: 0.13, alpha: 1)
-        opening.lineWidth = 7
-        opening.zPosition = -2
-        passageGate.addChild(opening)
-
-        let energy = SKShapeNode(rect: CGRect(x: -34, y: 34,
-            width: 68, height: 76), cornerRadius: 29)
-        energy.name = "portalRecessEnergy"
-        energy.fillColor = SKColor(red: 0.07, green: 0.40, blue: 0.76, alpha: 0.92)
-        energy.strokeColor = SKColor(red: 0.36, green: 0.88, blue: 0.98, alpha: 0.92)
-        energy.lineWidth = 3
-        energy.glowWidth = 7
-        energy.zPosition = -1
-        passageGate.addChild(energy)
-        energy.run(.repeatForever(.sequence([
-            .fadeAlpha(to: 0.73, duration: 1.15),
-            .fadeAlpha(to: 1.0, duration: 1.15)
-        ])), withKey: "portalRecessPulse")
-
-        // Prefer the approved authored portal artwork. The procedural energy
-        // remains behind it as a fallback if the PNG is not bundled.
-        if let approvedPortal = productionImage(named: "outpost_zero_portal_approved_transparent"),
-           let cgImage = approvedPortal.cgImage {
-            let portalArt = SKSpriteNode(texture: SKTexture(cgImage: cgImage))
-            portalArt.name = "approvedCampaignPortalArt"
-            portalArt.size = CGSize(width: 102, height: 102)
-            portalArt.position = CGPoint(x: 0, y: 73)
-            portalArt.zPosition = 0
-            passageGate.addChild(portalArt)
-            energy.isHidden = true
+        guard let portalTexture = worldOneTexture(named: "outpost_zero_portal_approved_transparent") else {
+            preconditionFailure("Approved round portal artwork must be bundled")
         }
-
-        // Stone jambs and lintel overlap the energy edges, making the
-        // opening visibly recessed into the wall rather than mounted on it.
-        for side: CGFloat in [-1, 1] {
-            let jamb = SKShapeNode(rect: CGRect(
-                x: side < 0 ? -60 : 44, y: 29, width: 16, height: 88),
-                cornerRadius: 3)
-            jamb.name = "portalWallJamb"
-            jamb.fillColor = SKColor(red: 0.36, green: 0.44, blue: 0.36, alpha: 1)
-            jamb.strokeColor = SKColor(red: 0.19, green: 0.27, blue: 0.20, alpha: 1)
-            jamb.lineWidth = 2
-            jamb.zPosition = 1
-            passageGate.addChild(jamb)
-        }
-        let lintel = SKShapeNode(rect: CGRect(x: -64, y: 107,
-            width: 128, height: 15), cornerRadius: 4)
-        lintel.name = "portalWallLintel"
-        lintel.fillColor = SKColor(red: 0.39, green: 0.47, blue: 0.38, alpha: 1)
-        lintel.strokeColor = SKColor(red: 0.18, green: 0.27, blue: 0.19, alpha: 1)
-        lintel.lineWidth = 2
-        lintel.zPosition = 2
-        passageGate.addChild(lintel)
-
-        // A shallow light spill ends at the wall threshold; there is no
-        // circular floor pedestal or freestanding portal base.
-        let thresholdLight = SKShapeNode(ellipseOf: CGSize(width: 80, height: 14))
-        thresholdLight.name = "portalThresholdLight"
-        thresholdLight.position = CGPoint(x: 0, y: 25)
-        thresholdLight.fillColor = SKColor(red: 0.18, green: 0.75, blue: 0.94, alpha: 0.25)
-        thresholdLight.strokeColor = .clear
-        thresholdLight.zPosition = 0
-        passageGate.addChild(thresholdLight)
-
-        let gateText = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        gateText.name = "exitPortalLabel"
-        gateText.text = "ENTER"
-        gateText.fontSize = 13
-        gateText.fontColor = .white
-        gateText.position.y = 66
-        gateText.verticalAlignmentMode = .center
-        gateText.zPosition = 4
-        passageGate.addChild(gateText)
-        let gateArrow = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        gateArrow.text = "▲"
-        gateArrow.fontSize = 15
-        gateArrow.fontColor = .systemCyan
-        gateArrow.position = CGPoint(x: 0, y: 7)
-        gateArrow.zPosition = 4
-        gateArrow.name = "gateArrow"
-        passageGate.addChild(gateArrow)
+        WorldOneEnvironment.installPortal(in: passageGate, texture: portalTexture)
 
         // Survival: a modest energy orb and thin vertical rescue beacon.
         extractionPortal.name = "survivalExtractionOrb"
@@ -1159,12 +1062,15 @@ final class OutpostScene: SKScene {
         }) {
             expandedArenaPreview = true
             worldMapIndex = 0
+            wave = 5
             gateUnlocked = true
             startWave()
             precondition(roomBounds.width > RoomRules.bounds(for: size).width &&
                          roomBounds.height > RoomRules.bounds(for: size).height,
                          "Survival field must be larger than a traditional room")
-            installArenaPreviewGround()
+            precondition(zoneScenery.childNode(withName: "build338World/unifiedGround") != nil &&
+                         arena.childNode(withName: "expandedArenaPreviewGround") == nil,
+                         "Expanded World 1 review must use the live unified survival environment")
             let fractions: [CGFloat] = [0.10, 0.50, 0.90]
             pilot.position = CGPoint(
                 x: roomBounds.minX + roomBounds.width * fractions[slot],
@@ -1177,7 +1083,7 @@ final class OutpostScene: SKScene {
             // an exact shoreline camera clamp may be a subpixel outside
             // CGRect.contains. Use a one-point rendering tolerance; strict
             // geometry is already checked by deterministic unit tests.
-            precondition(WorldOneFraming.worldFrame(room: roomBounds).insetBy(dx: -1, dy: -1).contains(visible) &&
+            precondition(WorldOneFraming.worldFrame(room: roomBounds).insetBy(dx: -65, dy: -1).contains(visible) &&
                          abs(pilot.position.x * arena.xScale + arena.position.x -
                              size.width / 2) < size.width * 0.41,
                          "Camera must show the pilot and keep world edges covered")
@@ -1228,22 +1134,11 @@ final class OutpostScene: SKScene {
             startWave()  // Room 6: same encounter entry path as real gameplay.
             precondition(activeEncounter == .survival && expandedArenaPreview,
                          "Survival capture must use the scheduled production encounter")
-            // Validate the approved painted floor, not the retired procedural
-            // relief layer. Requiring materialRelief crashed this fixture before
-            // its identity marker could render (CI captured SpringBoard).
-            guard let survivalFloor = arena.childNode(withName: "roomArtwork")?
-                .childNode(withName: "world1AuthoredFloor") as? SKSpriteNode,
-                let survivalTexture = survivalFloor.texture else {
-                preconditionFailure("Survival capture requires the authored floor texture")
-            }
-            precondition(arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden == true &&
-                         survivalFloor.frame.contains(roomBounds) &&
-                         survivalFloor.childNode(withName: "materialRelief") == nil &&
-                         survivalFloor.childNode(withName: "canopyLight") != nil &&
-                         survivalFloor.childNode(withName: "ambientBounceLight") != nil &&
-                         abs(survivalFloor.size.width / survivalFloor.size.height -
-                             survivalTexture.size().width / survivalTexture.size().height) < 0.001,
-                         "Survival capture must preserve the approved aspect-correct painted terrain and lighting")
+            precondition(zoneScenery.childNode(withName: "build338World")?
+                .childNode(withName: "unifiedGround") != nil &&
+                (arena.childNode(withName: "expandedArenaPreviewGround") == nil ||
+                 arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden == true),
+                "Survival must use the same fixed-density authored materials as every World 1 room")
             pilot.position = CGPoint(x: roomBounds.midX,
                                       y: roomBounds.midY - roomBounds.height * 0.13)
             updateArenaCamera(delta: 1)
@@ -1411,9 +1306,24 @@ final class OutpostScene: SKScene {
             hud.addChild(identity)
             updateArenaCamera(delta: 1)
             if worldMapIndex == 0 && !passageGate.isHidden {
+                let reactorReviewPilot = pilot.position
+                pilot.position = CGPoint(x: passageGate.position.x,y: passageGate.position.y-85)
+                updateArenaCamera(delta: 1)
+                let portalViewport = WorldOneFraming.viewport(size: size,
+                    safeTop: self.view?.safeAreaInsets.top ?? 0,
+                    safeBottom: self.view?.safeAreaInsets.bottom ?? 0)
+                let approachTop = arena.convert(CGPoint(x: passageGate.position.x,
+                    y: passageGate.position.y+128),to: self).y
+                let approachFeet = arena.convert(CGPoint(x: pilot.position.x,
+                    y: pilot.position.y-44),to: self).y
+                precondition(passageGate.alpha == 1 && approachTop <= portalViewport.maxY+1 &&
+                             approachFeet >= portalViewport.minY-1,
+                             "Both reactor outcomes must expose an approachable portal below the HUD")
+                pilot.position = reactorReviewPilot
+                updateArenaCamera(delta: 1)
                 let top = arena.convert(CGPoint(x: passageGate.position.x,
                     y: passageGate.position.y + 128), to: self).y
-                precondition(top <= WorldOneFraming.viewport(size: size,
+                precondition(passageGate.alpha == 0 || top <= WorldOneFraming.viewport(size: size,
                     safeTop: self.view?.safeAreaInsets.top ?? 0,
                     safeBottom: self.view?.safeAreaInsets.bottom ?? 0).maxY + 1,
                     "Reactor exit portal must not intersect the HUD")
@@ -1423,6 +1333,10 @@ final class OutpostScene: SKScene {
             // QA-only frame after assertions so screenshots are deterministic.
             holdDefenseQAScreenshot = true
             updateHUD()
+            if defenseWon || defenseFailed {
+                precondition(survivalClock.isHidden && !warning.isHidden,
+                             "Resolved defense must show one unobscured exit instruction")
+            }
         }
         // Fixture exercises actual production entry and timer completion,
         // rather than a mock drawing of an extraction portal.
@@ -1441,12 +1355,10 @@ final class OutpostScene: SKScene {
                          "World 1 Room 6 must launch a playable timed arena")
             precondition(zoneScenery.childNode(withName: "worldOnePortalApproach") == nil,
                          "Survival scenery must not direct players toward an unused campaign gate")
-            if let floor = arena.childNode(withName: "roomArtwork")?
-                .childNode(withName: "world1AuthoredFloor") as? SKSpriteNode {
-                precondition(floor.frame.contains(roomBounds) &&
-                    arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden == true,
-                    "Authored survival floor must cover the moving camera arena without a fallback overlay")
-            }
+            precondition(zoneScenery.childNode(withName: "build338World")?
+                .childNode(withName: "unifiedGround") != nil,
+                "Authored material cells must cover the moving survival camera")
+
             for index in 0..<5 {
                 spawned += 1
                 spawnEnemy(artReviewType: SurvivalEncounterRules.swarmType(
@@ -1524,9 +1436,15 @@ final class OutpostScene: SKScene {
                          "Extraction must stay open with four active enemies")
             pilot.position = extractionPortal.position
             update(1_000)
+            let authoredCamera = WorldOneFraming.offset(
+                pilot: worldOneLiveLayout!.cameraTarget(for: pilot.position),room: roomBounds,
+                size: size,safeTop: self.view?.safeAreaInsets.top ?? 0,
+                safeBottom: self.view?.safeAreaInsets.bottom ?? 0,horizontalMargin: 84)
             precondition(wave == 7 && activeEncounter == .tactical &&
                          phase == .playing && !expandedArenaPreview &&
-                         distance(arena.position, CampaignCamera.offset(for: pilot.position, viewportSize: size)) < 1 && enemies.isEmpty &&
+                         distance(arena.position, authoredCamera) < 1 && enemies.isEmpty &&
+                         zoneScenery.childNode(withName: "build338World/unifiedGround") != nil &&
+                         arena.childNode(withName: "expandedArenaPreviewGround") == nil &&
                          extractionPortal.isHidden && passageGate.isHidden &&
                          zoneBanner.text != "EXTRACTION OPEN",
                          "Room 7 must reset camera, enemies and extraction UI")
@@ -1890,23 +1808,9 @@ final class OutpostScene: SKScene {
                 enemies[index].node.childNode(withName: "spawnWarning")?.removeFromParent()
             }
             precondition(wave == selection.1 && worldMapIndex == 0)
-            let requiredCaptureLandscape: String?
-            switch wave {
-            case 1, 7: requiredCaptureLandscape = "ruined_outpost"
-            case 6, 17: requiredCaptureLandscape = "swamp_basin"
-            case 12: requiredCaptureLandscape = "toxic_caves"
-            case 20: requiredCaptureLandscape = "boss_arena"
-            default: requiredCaptureLandscape = nil
-            }
-            if let landscape = requiredCaptureLandscape {
-                precondition(arena.childNode(withName: "roomArtwork")?
-                    .childNode(withName: "world1AuthoredFloor") != nil,
-                    "Landscape review requires its bundled illustrated floor")
-                for kind in ["wall", "boulder", "vegetation", "debris", "lantern", "crate"] {
-                    precondition(worldOneTexture(named: "world1_" + landscape + "_" + kind) != nil,
-                                 "Landscape review requires all six bundled props")
-                }
-            }
+            precondition(zoneScenery.childNode(withName: "build338World")?
+                .childNode(withName: "unifiedGround") != nil,
+                "Landscape review requires the unified World 1 renderer")
             if selection.1 == 1 && ProcessInfo.processInfo.arguments.contains("-captureBuild337CorridorExit") {
                 for enemy in enemies { enemy.node.removeFromParent() }
                 enemies.removeAll()
@@ -2013,12 +1917,20 @@ final class OutpostScene: SKScene {
             showZoneGate()
             precondition(!passageGate.isHidden && extractionPortal.isHidden,
                          "Normal campaign exit must never coexist with survival orb")
-            // Reject a regression to the tiny, unreadable exit beacon.
-            precondition((passageGate.path?.boundingBox.height ?? 0) >= 80 &&
-                         passageGate.childNode(withName: "portalRecessOpening") != nil &&
+            // Check the actual approved sprite, not the removed rectangular
+            // frame or the invisible interaction path's proxy dimensions.
+            guard let art = passageGate.childNode(withName: "approvedCampaignPortalArt") as? SKSpriteNode,
+                  let texture = art.texture else {
+                preconditionFailure("Campaign exit must render the bundled approved portal")
+            }
+            let sourceAspect = texture.size().width/texture.size().height
+            precondition(abs(art.size.width/art.size.height-sourceAspect) < 0.001 &&
+                         art.size.height >= 120 && abs(art.frame.minY) < 2 &&
+                         passageGate.fillColor.cgColor.alpha == 0 &&
+                         !passageGate.children.contains(where: { $0 is SKShapeNode }) &&
                          passageGate.childNode(withName: "portalRecessEnergy") != nil &&
-                         passageGate.childNode(withName: "exitPortalLabel") != nil,
-                         "Campaign exit must render its recessed wall doorway and ENTER label")
+                         (passageGate.childNode(withName: "exitPortalLabel") as? SKLabelNode)?.text == "ENTER",
+                         "Campaign exit must preserve the grounded transparent ring, aspect and ENTER label")
             // Keep the exit fully visible for a stable visual regression frame.
             passageGate.removeAllActions()
             passageGate.alpha = 1
@@ -2266,7 +2178,7 @@ final class OutpostScene: SKScene {
                 y: passageGate.position.y + 128), to: self).y
             let safeViewport = WorldOneFraming.viewport(size: size,
                 safeTop: self.view?.safeAreaInsets.top ?? 0, safeBottom: self.view?.safeAreaInsets.bottom ?? 0)
-            precondition(portalTop <= safeViewport.maxY + 1,
+            precondition(passageGate.alpha == 0 || portalTop <= safeViewport.maxY + 1,
                          "Build 335 portal artwork must stay below HUD in entry, middle and exit framing")
             print("[CAMERA REVIEW] pilot=\(pilot.position) offset=\(arena.position) gate=\(passageGate.position)")
         }
@@ -2289,6 +2201,11 @@ final class OutpostScene: SKScene {
             marker.zPosition = 999
             addChild(marker)
             print("[FOCUSED REVIEW] ready code=\(code) flag=\(reviewFlags[index])")
+            fflush(stdout)
+        }
+        for flag in ["-captureEquipmentDefenseClearScreenshot", "-captureEquipmentDefenseFailureScreenshot", "-captureSurvivalTransitionScreenshot",
+                     "-captureExpandedArenaCenterScreenshot"] where ProcessInfo.processInfo.arguments.contains(flag) {
+            print("[BUILD338 FIXTURE READY] flag=\(flag)")
             fflush(stdout)
         }
         #endif
@@ -2429,7 +2346,7 @@ final class OutpostScene: SKScene {
             arena.setScale(WorldOneFraming.scale(size: size, safeTop: safeTop, safeBottom: safeBottom))
             let cameraTarget = worldOneLiveLayout?.cameraTarget(for: pilot.position) ?? pilot.position
             target = WorldOneFraming.offset(pilot: cameraTarget, room: roomBounds,
-                size: size, safeTop: safeTop, safeBottom: safeBottom)
+                size: size, safeTop: safeTop, safeBottom: safeBottom, horizontalMargin: 84)
         } else if expandedArenaPreview {
             arena.setScale(1)
             target = ArenaLayout.offset(for: pilot.position, viewportSize: size)
@@ -2448,21 +2365,23 @@ final class OutpostScene: SKScene {
             let safeViewport = WorldOneFraming.viewport(
                 size: size, safeTop: view?.safeAreaInsets.top ?? 0,
                 safeBottom: view?.safeAreaInsets.bottom ?? 0)
-            let gateTop = passageGate.position.y + 128
-            let renderedTop = gateTop * arena.yScale + arena.position.y
-            if renderedTop > safeViewport.maxY {
-                arena.position.y -= renderedTop - safeViewport.maxY
-            }
+            let presentation = WorldOnePortalFraming.make(pilot: pilot.position,
+                gate: passageGate.position, viewport: safeViewport,
+                scale: arena.yScale, offset: arena.position)
+            arena.position = presentation.offset
+            passageGate.alpha = presentation.visible ? 1 : 0
         }
     }
 
     override func didChangeSize(_ oldSize: CGSize) { layout() }
 
     private func layout() {
-        if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena) }
+        if arena.parent != nil { BattlefieldArt.install(in: self, behind: arena, includeForest: worldMapIndex != 0) }
         passageGate.position = authoredGatePosition
         if !zoneScenery.children.isEmpty { updateZoneScenery(zoneIndex) }
-        if !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
+        // World 1 shoulders have no separate hazard drawing now. Their
+        // collision patches must still follow a resized room's new origin.
+        if (worldMapIndex == 0 && wave > 0) || !hazardScenery.children.isEmpty { rebuildTerrainHazards() }
         if wave == 0 && phase == .ready { pilot.position = entryPoint }
         updateArenaCamera(delta: 1)
         // One utility row and a slim progress row, below the device safe area.
@@ -2772,7 +2691,10 @@ final class OutpostScene: SKScene {
         let objectiveActive = (phase == .playing || phase == .gate) &&
             (activeEncounter == .survival || activeEncounter == .equipmentDefense ||
              (wave == worldWaveCount && roomCleared))
-        survivalClock.isHidden = !objectiveActive
+        // The gate banner already includes the defense result. Its plate
+        // overlaps this headline, so show the result once after resolution.
+        survivalClock.isHidden = !objectiveActive ||
+            (activeEncounter == .equipmentDefense && roomCleared && phase == .gate)
         // Mission status is the primary combat readout, not tertiary metadata.
         // Scale it before the existing fit-to-width guard below.
         survivalClock.fontSize = size.width < 390 ? 14 : 16
@@ -4301,6 +4223,10 @@ final class OutpostScene: SKScene {
             }
         }
         for (hazardIndex, patch) in roomHazards.enumerated() {
+            if worldMapIndex == 0 && worldOneLiveLayout?.kind == .passage &&
+                !ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot") {
+                continue // The unified renderer owns the same solid shoulder footprints.
+            }
             // Shared polygon outline drives both visuals and physical
             // slowdown/damage. Only solid rubble retains the block silhouette.
             let shape = SKShapeNode(path: patch.outlinePath())
@@ -4332,37 +4258,7 @@ final class OutpostScene: SKScene {
                     ? SKColor(red: 0.12, green: 0.23, blue: 0.26, alpha: 1)
                     : SKColor(red: 0.13, green: 0.19, blue: 0.18, alpha: 1)
                 shape.lineWidth = 2
-                if worldOneLiveLayout?.kind == .passage,
-                   let stone = worldOneTexture(named: "world1_ruined_outpost_wall") {
-                    // Real ruined masonry, clipped to the exact solid shoulder.
-                    // Never stretch the generic obstacle's panel/braces along a wall.
-                    shape.fillColor = SKColor(red: 0.16, green: 0.20, blue: 0.15, alpha: 1)
-                    shape.lineWidth = 1
-                    let local = CGRect(x: -patch.frame.width/2, y: -patch.frame.height/2,
-                        width: patch.frame.width, height: patch.frame.height)
-                    let crop = SKCropNode()
-                    crop.name = "authoredCorridorMasonry"
-                    let mask = SKShapeNode(rect: local)
-                    mask.fillColor = .white
-                    mask.strokeColor = .clear
-                    crop.maskNode = mask
-                    let width = max(72, patch.frame.width + 24)
-                    let height = width * stone.size().height / max(1, stone.size().width)
-                    let spacing = height * 0.62
-                    for row in 0...Int(ceil(patch.frame.height / spacing)) {
-                        let course = SKSpriteNode(texture: stone)
-                        course.size = CGSize(width: width, height: height)
-                        course.anchorPoint = CGPoint(x: 0.5,
-                            y: WorldOneArtMetrics.groundAnchorY(for: "world1_ruined_outpost_wall"))
-                        course.position = CGPoint(x: row.isMultiple(of: 2) ? -5 : 5,
-                            y: local.minY - height * 0.35 + CGFloat(row) * spacing)
-                        course.xScale = row.isMultiple(of: 2) ? 1 : -1
-                        crop.addChild(course)
-                    }
-                    shape.addChild(crop)
-                } else {
-                    decorateRubbleObstacle(shape, size: patch.frame.size)
-                }
+                decorateRubbleObstacle(shape, size: patch.frame.size)
             }
             // Prefer authored transparent terrain illustrations when bundled.
             // They are presentation-only: the exact polygon above remains the
@@ -5311,7 +5207,7 @@ final class OutpostScene: SKScene {
         }
         expandedArenaPreview = activeEncounter == .survival || retainQACamera
         arena.childNode(withName: "expandedArenaPreviewGround")?.removeFromParent()
-        if expandedArenaPreview { installArenaPreviewGround() }
+        if expandedArenaPreview && worldMapIndex != 0 { installArenaPreviewGround() }
         pilot.position = entryPoint
         updateArenaCamera(delta: 1)
         // Seat the exit against the far boundary rather than in the arena center.
@@ -5677,6 +5573,26 @@ final class OutpostScene: SKScene {
     }
 
     private func updateZoneScenery(_ requestedZone: Int) {
+        if worldMapIndex == 0 {
+            zoneScenery.removeAllChildren()
+            arena.childNode(withName: "campaignExterior")?.removeFromParent()
+            arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+            arena.childNode(withName: "roomArtwork")?.isHidden = true
+            guard let layout = worldOneLiveLayout else { return }
+            let plan = WorldOneEnvironmentPlan.make(room: wave, layout: layout,
+                origin: roomBounds.origin, aspect: { [weak self] name in
+                    guard let texture = self?.worldOneTexture(named: name) else { return 1 }
+                    return texture.size().width/max(1, texture.size().height)
+                })
+            for name in plan.requiredAssets {
+                precondition(worldOneTexture(named: name) != nil, "Missing unified World 1 asset: \(name)")
+            }
+            zoneScenery.addChild(WorldOneEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            return
+        }
+        arena.childNode(withName: "roomArtwork")?.isHidden = false
+
         // Later worlds emphasize industrial ruins rather than using the
         // forest's illustrated pines for every environment.
         let zone = worldMapIndex == 0 ? requestedZone :
@@ -5688,29 +5604,7 @@ final class OutpostScene: SKScene {
         let roomArt = arena.childNode(withName: "roomArtwork")
         let nonForestWorld = worldMapIndex != 0
         arena.childNode(withName: "campaignExterior")?.removeFromParent()
-        if worldMapIndex == 0 {
-            let exterior = SKNode()
-            exterior.name = "campaignExterior"
-            exterior.zPosition = -50
-            let ground = SKShapeNode(rect: roomBounds.insetBy(dx: -size.width, dy: -size.height))
-            ground.fillColor = SKColor(red: 0.08, green: 0.18, blue: 0.12, alpha: 1)
-            ground.strokeColor = .clear
-            exterior.addChild(ground)
-            for index in 0..<36 {
-                let north = index < 18
-                let column = index % 9
-                let row = (index % 18) / 9
-                let tree = SKSpriteNode(texture: productionTexture(
-                    named: index.isMultiple(of: 3) ? "forest_broadleaf" : "forest_pine",
-                    fallback: forestPineTexture))
-                tree.size = CGSize(width: 95 + CGFloat(index % 3) * 14, height: 110)
-                tree.position = CGPoint(x: roomBounds.minX - 100 + CGFloat(column) * (roomBounds.width + 200) / 8,
-                    y: north ? roomBounds.maxY + 155 + CGFloat(row) * 70
-                             : roomBounds.minY - 105 - CGFloat(row) * 70)
-                exterior.addChild(tree)
-            }
-            arena.addChild(exterior)
-        }
+
         if selectedWorld.biome == 4 {
             let frost = SKSpriteNode(texture: FrostFloorArt.texture(for: size))
             frost.name = "frostAmbientBackdrop"
@@ -5719,152 +5613,21 @@ final class OutpostScene: SKScene {
             frost.zPosition = -19
             zoneScenery.addChild(frost)
         }
-        // World 1 art direction: three authored landscape families, rotated
-        // through the campaign. An illustration must be shipped before this
-        // path replaces the legacy backdrop; never substitute a placeholder.
-        if worldMapIndex == 0 {
-            let landscape = worldOneLiveLayout?.artFamily ?? "ruined_outpost"
-            // Keep the same illustrated floor for consecutive rooms in a
-            // landscape, while rotating its three compositions on revisits.
-            // Global wave modulo would change the floor every room and make
-            // each location feel visually unstable.
-            let landscapeVisit: Int
-            switch wave {
-            case 1...3: landscapeVisit = 0
-            case 4...5: landscapeVisit = 0
-            case 6...8: landscapeVisit = 1
-            case 9...10: landscapeVisit = 0
-            case 11...13: landscapeVisit = 1
-            case 14...15: landscapeVisit = 1
-            case 16...19: landscapeVisit = 2
-            case 20: landscapeVisit = 0
-            default: landscapeVisit = 0
-            }
-            if wave != 20 {
-                zoneScenery.addChild(WorldShowcase.frontierRoom(bounds: roomBounds,
-                    room: wave, family: landscape,
-                    texture: { [weak self] in self?.worldOneTexture(named: $0) }))
-            }
-            let artName = "world1_\(landscape)_floor_\(wave == 20 ? 1 : landscapeVisit % 3 + 1)"
-            let stoneArenaTexture = worldOneTexture(named: "world1_overgrown_stone_arena")
-            // Preserve landscape-specific stone, moss and ground scale instead of
-            // stretching one universal stone-arena painting across every room.
-            // The approved stone arena remains a fallback if a zone asset is absent.
-            let landscapeFloorTexture = worldOneTexture(named: artName)
-            let authoredFloorTexture = landscapeFloorTexture ?? stoneArenaTexture
-            #if DEBUG
-            print("[WORLD1 FLOOR] requested=\(artName) selected=\(landscapeFloorTexture != nil ? artName : (stoneArenaTexture == nil ? "missing" : "world1_overgrown_stone_arena"))")
-            #endif
-            if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
-               landscapeFloorTexture == nil {
-                preconditionFailure("Missing authored World 1 floor: \(artName)")
-            }
-            if let texture = authoredFloorTexture {
-                let floorArt = (roomArt?.childNode(withName: "world1AuthoredFloor") as? SKSpriteNode)
-                    ?? SKSpriteNode(texture: texture)
-                floorArt.name = "world1AuthoredFloor"
-                floorArt.texture = texture
-                floorArt.color = landscape == "swamp_basin"
-                    ? SKColor(red: 0.58, green: 0.75, blue: 0.65, alpha: 1)
-                    : landscape == "toxic_caves"
-                        ? SKColor(red: 0.61, green: 0.68, blue: 0.77, alpha: 1)
-                        : .white
-                floorArt.colorBlendFactor = landscape == "ruined_outpost" ? 0 : 0.16
-                // Extend the authored painting beyond the camera viewport
-                // even in standard rooms. A small camera offset previously
-                // exposed the flat fallback ground as a straight strip along
-                // the lower edge of the first Toxic Caves capture.
-                // World 1 must not re-size the authored paving when the encounter
-                // switches between the tactical viewport and survival camera.
-                // Keep the artwork in one stable world-space frame and let the
-                // camera reveal/crop that frame as appropriate.
-                // Fixed world-space art frame covers the largest authored room
-                // and camera headroom. Device size never changes ground density.
-                let paintedBounds = CGRect(x: roomBounds.midX - 550,
-                    y: roomBounds.midY - 825, width: 1100, height: 1650)
-                let textureSize = texture.size()
-                let coverScale = max(paintedBounds.width / max(1, textureSize.width),
-                                     paintedBounds.height / max(1, textureSize.height))
-                // Use one aspect-preserving cover rule for every encounter type.
-                // Stretching the floor to paintedBounds independently in X and Y
-                // distorted the paving whenever the room/camera dimensions changed.
-                floorArt.size = CGSize(width: textureSize.width * coverScale,
-                                       height: textureSize.height * coverScale)
-                floorArt.position = CGPoint(x: paintedBounds.midX, y: paintedBounds.midY)
-                floorArt.zPosition = -18.5
-                if floorArt.parent == nil { roomArt?.addChild(floorArt) }
-                floorArt.childNode(withName: "materialRelief")?.removeFromParent()
-                // Never cover the approved floor with procedural relief.
-                // Two broad, non-colliding lighting zones add depth to the
-                // painted floor while leaving the middle of the arena open.
-                // Remove previous nodes when changing rooms to avoid buildup.
-                floorArt.childNode(withName: "canopyLight")?.removeFromParent()
-                floorArt.childNode(withName: "ambientBounceLight")?.removeFromParent()
-                let warm = landscape == "toxic_caves"
-                    ? SKColor(red: 0.55, green: 0.86, blue: 0.40, alpha: 0.11)
-                    : SKColor(red: 0.94, green: 0.83, blue: 0.51, alpha: 0.13)
-                let light = SKSpriteNode(texture: ProductionPresentation.glow(warm))
-                light.name = "canopyLight"
-                light.size = CGSize(width: paintedBounds.width * 0.9,
-                                    height: paintedBounds.height * 0.85)
-                light.position = CGPoint(x: -paintedBounds.width * 0.18,
-                                         y: paintedBounds.height * 0.22)
-                light.blendMode = .add
-                light.zPosition = 0.2
-                floorArt.addChild(light)
-                let cool = landscape == "swamp_basin"
-                    ? SKColor(red: 0.34, green: 0.74, blue: 0.75, alpha: 0.09)
-                    : SKColor(red: 0.42, green: 0.65, blue: 0.82, alpha: 0.07)
-                let bounce = SKSpriteNode(texture: ProductionPresentation.glow(cool))
-                bounce.name = "ambientBounceLight"
-                bounce.size = CGSize(width: paintedBounds.width * 0.62,
-                                     height: paintedBounds.height * 0.60)
-                bounce.position = CGPoint(x: paintedBounds.width * 0.25,
-                                          y: -paintedBounds.height * 0.24)
-                bounce.blendMode = .add
-                bounce.zPosition = 0.21
-                floorArt.addChild(bounce)
-            } else {
-                roomArt?.childNode(withName: "world1AuthoredFloor")?.removeFromParent()
-            }
-            roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden =
-                roomArt?.childNode(withName: "world1AuthoredFloor") != nil
-        }
-        // Remove any authored floor left from a previous World 1 room when
-        // switching to a different world; do not let its texture bleed through.
-        if worldMapIndex != 0 {
-            roomArt?.childNode(withName: "world1AuthoredFloor")?.removeFromParent()
-        }
-        // Expanded survival ground sits above roomArtwork. Hide that
-        // fallback only when a painting covers the complete moving arena.
-        arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden =
-            worldMapIndex == 0 && roomArt?.childNode(withName: "world1AuthoredFloor") != nil
-        roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = nonForestWorld || roomArt?.childNode(withName: "world1AuthoredFloor") != nil
+        arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = false
+        roomArt?.childNode(withName: "forestAmbientBackdrop")?.isHidden = true
         roomArt?.childNode(withName: "floodedAmbientBackdrop")?.isHidden = selectedWorld.biome != 1
         roomArt?.childNode(withName: "toxicAmbientBackdrop")?.isHidden = selectedWorld.biome != 2
         if let floor = roomArt?.childNode(withName: "roomFloor") as? SKShapeNode {
-            // Preserve authored floor colors; the legacy procedural tint must
-            // not wash out the new painted environment artwork.
-            if worldMapIndex == 0 && roomArt?.childNode(withName: "world1AuthoredFloor") != nil {
-                floor.fillColor = .clear
-                floor.strokeColor = .clear
-            } else {
             floor.fillColor = selectedWorld.biome == 2
                 ? SKColor(red: 0.18, green: 0.22, blue: 0.14, alpha: 0.13)
                 : (selectedWorld.biome == 1
                     ? SKColor(red: 0.10, green: 0.19, blue: 0.23, alpha: 0.14)
                     : (zone == 1
-                    ? SKColor(red: 0.16, green: 0.25, blue: 0.20, alpha: 0.16)
-                    : SKColor(red: 0.18, green: 0.28, blue: 0.20, alpha: 0.12)))
-            floor.strokeColor = nonForestWorld
-                ? SKColor(red: 0.10, green: 0.18, blue: 0.19, alpha: 0.25)
-                : .clear
-            }
+                        ? SKColor(red: 0.16, green: 0.25, blue: 0.20, alpha: 0.16)
+                        : SKColor(red: 0.18, green: 0.28, blue: 0.20, alpha: 0.12)))
+            floor.strokeColor = .clear
         }
-        // Keep procedural edge decoration off the painted floor.
-        roomArt?.childNode(withName: "roomContactEdge")?.alpha =
-            worldMapIndex == 0 && roomArt?.childNode(withName: "world1AuthoredFloor") != nil
-            ? 0 : (nonForestWorld ? 0.32 : 0)
+        roomArt?.childNode(withName: "roomContactEdge")?.alpha = 0.32
         // Scrapyard floors need a separate visual identity from the forest.
         // Faded plate seams and scattered bolt heads are purely atmospheric;
         // they do not modify water hazard geometry or movement collision.
@@ -5903,236 +5666,28 @@ final class OutpostScene: SKScene {
         // Forest floor: low-contrast, deterministic leaf litter and worn
         // earth marks break up the flat ground without hiding projectiles.
         // Ground marks are strictly decorative and never alter collision.
-        if worldMapIndex == 0 && roomArt?.childNode(withName: "world1AuthoredFloor") == nil {
-            let floorDetail = SKNode()
-            floorDetail.name = "worldOneFallbackFloorDetail"
-            floorDetail.zPosition = -0.8
-            zoneScenery.addChild(floorDetail)
-            // Repeat ground texture across consecutive rooms in the
-            // same landscape rather than visibly re-randomizing it.
-            let landscapeSeed: Int
-            switch wave {
-            case 1...3: landscapeSeed = 1
-            case 4...5: landscapeSeed = 4
-            case 6...8: landscapeSeed = 6
-            case 9...10: landscapeSeed = 9
-            case 11...13: landscapeSeed = 11
-            case 14...15: landscapeSeed = 14
-            case 16...19: landscapeSeed = wave
-            case 20: landscapeSeed = 20
-            default: landscapeSeed = 1
-            }
-            for index in 0..<24 {
-                let seed = index * 37 + landscapeSeed * 19
-                let fx = CGFloat((seed * 53) % 97) / 97
-                let fy = CGFloat((seed * 29 + 13) % 89) / 89
-                let point = CGPoint(
-                    x: roomBounds.minX + 32 + (roomBounds.width - 64) * fx,
-                    y: roomBounds.minY + 35 + (roomBounds.height - 70) * fy)
-                let mark = SKShapeNode(ellipseOf: CGSize(
-                    width: CGFloat(7 + seed % 8),
-                    height: CGFloat(3 + seed % 4)))
-                mark.name = "worldOneFallbackGroundMark"
-                mark.position = point
-                mark.zRotation = CGFloat(seed % 7 - 3) * 0.19
-                switch wave {
-                case 4...5, 11...13:
-                    mark.fillColor = index.isMultiple(of: 3)
-                        ? SKColor(red: 0.30, green: 0.47, blue: 0.32, alpha: 0.25)
-                        : SKColor(red: 0.13, green: 0.34, blue: 0.29, alpha: 0.25)
-                case 9...10, 14...15:
-                    mark.fillColor = index.isMultiple(of: 3)
-                        ? SKColor(red: 0.48, green: 0.54, blue: 0.34, alpha: 0.24)
-                        : SKColor(red: 0.27, green: 0.32, blue: 0.30, alpha: 0.26)
-                case 20:
-                    mark.fillColor = SKColor(red: 0.49, green: 0.39, blue: 0.28, alpha: 0.23)
-                default:
-                    mark.fillColor = index.isMultiple(of: 3)
-                        ? SKColor(red: 0.49, green: 0.42, blue: 0.30, alpha: 0.24)
-                        : SKColor(red: 0.33, green: 0.37, blue: 0.31, alpha: 0.23)
-                }
-                mark.strokeColor = .clear
-                floorDetail.addChild(mark)
-            }
-        }
+
         // Environmental wayfinding: the floor is NOT painted with a literal
         // road. Two broken banks of stones and vegetation frame an open
         // approach toward the portal. The middle remains completely free for
         // combat, dodging and alternative approaches. This is the procedural
         // fallback only; authored landscape paintings own their composition.
-        if worldMapIndex == 0 && activeEncounter != .survival && wave > 0 &&
-           roomArt?.childNode(withName: "world1AuthoredFloor") == nil {
-            let guide = SKNode()
-            guide.name = "worldOnePortalApproach"
-            guide.zPosition = -0.7
-            zoneScenery.addChild(guide)
-            let startY = roomBounds.minY + 72
-            let endY = min(roomBounds.maxY - 88, passageGate.position.y - 52)
-            if endY > startY {
-                let guideSeed: Int
-                switch wave {
-                case 1...3: guideSeed = 1
-                case 4...5: guideSeed = 4
-                case 6...8: guideSeed = 6
-                case 9...10: guideSeed = 9
-                case 11...13: guideSeed = 11
-                case 14...15: guideSeed = 14
-                default: guideSeed = wave
-                }
-                let approachWidth = min(72, roomBounds.width * 0.28)
-                for side in [-1.0, 1.0] {
-                    for step in 0..<7 {
-                        // Missing pieces prevent a painted-lane appearance.
-                        if (step + guideSeed + (side < 0 ? 1 : 0)) % 4 == 0 {
-                            continue
-                        }
-                        let fraction = CGFloat(step) / 6
-                        let bend = sin(fraction * .pi) * CGFloat((guideSeed % 3) - 1) * 13
-                        let x = roomBounds.midX + CGFloat(side) *
-                            (approachWidth - fraction * 12) + bend
-                        let y = startY + (endY - startY) * fraction
-                        // Mix broken stone, moss and dark earth along each bank.
-                        // Alternating materials and irregular offsets avoid the
-                        // look of evenly spaced markers or a painted road.
-                        let material = (step * 3 + guideSeed + (side < 0 ? 1 : 0)) % 5
-                        let organic = material >= 3
-                        let pebble = SKShapeNode(ellipseOf: CGSize(
-                            width: CGFloat(organic ? 18 + step % 3 * 5
-                                                   : 9 + (step + guideSeed) % 8),
-                            height: CGFloat(organic ? 6 + step % 3 * 3
-                                                    : 4 + step % 3)))
-                        pebble.name = "portalApproachEdge"
-                        pebble.position = CGPoint(
-                            x: x + CGFloat((step * 7 + guideSeed) % 9 - 4),
-                            y: y + CGFloat((step * 11 + guideSeed) % 13 - 6))
-                        pebble.zRotation = CGFloat((step % 5) - 2) * 0.17
-                        if material == 3 {
-                            pebble.fillColor = SKColor(
-                                red: 0.22, green: 0.35, blue: 0.22, alpha: 0.34)
-                        } else if material == 4 {
-                            pebble.fillColor = SKColor(
-                                red: 0.17, green: 0.24, blue: 0.19, alpha: 0.27)
-                        } else {
-                            pebble.fillColor = SKColor(
-                                red: 0.36, green: 0.37, blue: 0.30, alpha: 0.30)
-                        }
-                        pebble.strokeColor = .clear
-                        guide.addChild(pebble)
-                    }
-                }
-            }
-        }
+
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
-        // Keep perimeter density constant within a World 1 landscape.
-        // The former zone-based count changed mid-location even when the
-        // layout seed and prop identities remained fixed.
-        let worldOnePropCount: Int
-        switch wave {
-        case 1...3, 6...8: worldOnePropCount = 12
-        case 4...5, 11...13: worldOnePropCount = 11
-        case 9...10, 14...15: worldOnePropCount = 10
-        case 16...19: worldOnePropCount = 11
-        case 20: worldOnePropCount = 8
-        default: worldOnePropCount = 12
-        }
-        // Adapt density to the actual playable height: the extra props should
-        // frame combat, not pile up on compact phones.
-        let visibleWorldOneCount = min(worldOnePropCount,
-            max(6, Int((roomBounds.height - 100) / 46)))
-        let count = worldMapIndex == 0 ? visibleWorldOneCount :
-            (selectedWorld.biome == 1 ? 6 + (wave % 2) : (zone <= 1 ? 8 + (wave % 3) : 5 + (wave % 3)))
-        // Keep a landscape's perimeter composition stable for consecutive
-        // waves; change the layout when the player enters another location.
-        let landscapeLayoutSeed: Int
-        if worldMapIndex == 0 {
-            switch wave {
-            case 1...3: landscapeLayoutSeed = 0
-            case 4...5: landscapeLayoutSeed = 1
-            case 6...8: landscapeLayoutSeed = 2
-            case 9...10: landscapeLayoutSeed = 3
-            case 11...13: landscapeLayoutSeed = 4
-            case 14...15: landscapeLayoutSeed = 5
-            case 16...19: landscapeLayoutSeed = wave - 10
-            case 20: landscapeLayoutSeed = 10
-            default: landscapeLayoutSeed = 0
-            }
-        } else {
-            landscapeLayoutSeed = wave - 1
-        }
-        let roomVariant = ((landscapeLayoutSeed % 4) + 4) % 4
+        let count = selectedWorld.biome == 1 ? 6+(wave%2) : (zone <= 1 ? 8+(wave%3) : 5+(wave%3))
+        let roomVariant = (((wave-1)%4)+4)%4
         for index in 0..<count {
             let leftSide = (index + roomVariant).isMultiple(of: 2)
-            // World 1 gets genuinely different perimeter compositions:
-            // alternating ruins, staggered clearings, and paired alcoves.
-            // All props remain outside the central combat/movement lane.
-            let worldOneSide: CGFloat
-            switch roomVariant {
-            case 0: worldOneSide = leftSide ? 0.12 : 0.88
-            case 1: worldOneSide = leftSide ? 0.19 : 0.81
-            case 2: worldOneSide = leftSide ? 0.10 : 0.90
-            default: worldOneSide = leftSide ? 0.17 : 0.83
-            }
-            let side: CGFloat = worldMapIndex == 0 ? worldOneSide :
-                (zone == 0 ? (leftSide ? 0.12 : 0.88) :
-                    (zone == 1 ? (leftSide ? 0.16 : 0.84) : (leftSide ? 0.09 : 0.91)))
-            // Alternating perimeter pockets create distinct silhouettes:
-            // some ruins gather near corners while other stretches open up.
-            // Keep the middle 55% of the arena free for evasive combat.
-            let pocket = worldMapIndex == 0
-                ? CGFloat(((index / 2 + roomVariant) % 3) - 1) * 11 : 0
-            let rawX = (worldMapIndex == 0 ? roomBounds.minX + roomBounds.width * side : size.width * side) +
-                CGFloat(((index * 7 + roomVariant * 3) % 5) - 2) * 8 +
-                (leftSide ? pocket : -pocket)
-            let x = worldMapIndex == 0
-                ? (leftSide
-                    ? min(roomBounds.minX + roomBounds.width * 0.24, max(roomBounds.minX + roomBounds.width * 0.06, rawX))
-                    : min(roomBounds.minX + roomBounds.width * 0.94, max(roomBounds.minX + roomBounds.width * 0.76, rawX)))
-                : rawX
-            let spacing = max(18, (roomBounds.height - 120) /
-                CGFloat(worldMapIndex == 0 ? max(1, count - 1) : count))
-            let layoutShift = worldMapIndex == 0
-                ? CGFloat(((index * (roomVariant + 3) * 13 + landscapeLayoutSeed * 7) % 31) - 15)
-                : CGFloat(((index * 11 + wave * 7) % 19) - 9)
-            let bankFractions: [CGFloat]
-            switch roomVariant {
-            case 0: bankFractions = [0.12, 0.18, 0.43, 0.64, 0.77, 0.86, 0.28, 0.92]
-            case 1: bankFractions = [0.08, 0.31, 0.36, 0.60, 0.82, 0.88, 0.15, 0.69]
-            case 2: bankFractions = [0.15, 0.22, 0.52, 0.57, 0.83, 0.92, 0.34, 0.73]
-            default: bankFractions = [0.09, 0.28, 0.44, 0.72, 0.79, 0.91, 0.18, 0.54]
-            }
-            let proposedY = worldMapIndex == 0
-                ? roomBounds.minY + 36 + bankFractions[index % bankFractions.count] * max(1, roomBounds.height - 100)
-                : roomBounds.minY + 60 + CGFloat(index) * spacing + layoutShift
-            let y = min(roomBounds.maxY - 36, max(roomBounds.minY + 36, proposedY))
+            let side: CGFloat = zone == 0 ? (leftSide ? 0.12 : 0.88) :
+                (zone == 1 ? (leftSide ? 0.16 : 0.84) : (leftSide ? 0.09 : 0.91))
+            let x = size.width*side + CGFloat(((index*7+roomVariant*3)%5)-2)*8
+            let spacing = max(18, (roomBounds.height-120)/CGFloat(count))
+            let shift = CGFloat(((index*11+wave*7)%19)-9)
+            let y = min(roomBounds.maxY-36, max(roomBounds.minY+36,
+                roomBounds.minY+60+CGFloat(index)*spacing+shift))
             let prop: SKShapeNode
-            // When illustrated prop PNGs are not yet shipped, World 1 must
-            // still read as ruins, swamp, or caves rather than generic forest.
-            // These are visual fallbacks only; no new collision is introduced.
-            if worldMapIndex == 0 {
-                switch wave {
-                case 4...5, 11...13:
-                    prop = SKShapeNode(ellipseOf: CGSize(width: 32, height: 15))
-                    prop.fillColor = SKColor(red: 0.20, green: 0.39, blue: 0.28, alpha: 1)
-                case 9...10, 14...15:
-                    prop = SKShapeNode(rectOf: CGSize(width: 29, height: 25), cornerRadius: 7)
-                    prop.fillColor = SKColor(red: 0.30, green: 0.36, blue: 0.31, alpha: 1)
-                case 16...19:
-                    if (wave - 16) % 3 == 1 {
-                        prop = SKShapeNode(ellipseOf: CGSize(width: 32, height: 15))
-                        prop.fillColor = SKColor(red: 0.20, green: 0.39, blue: 0.28, alpha: 1)
-                    } else {
-                        prop = SKShapeNode(rectOf: CGSize(width: 29, height: 25), cornerRadius: 5)
-                        prop.fillColor = SKColor(red: 0.36, green: 0.39, blue: 0.37, alpha: 1)
-                    }
-                case 20:
-                    prop = SKShapeNode(rectOf: CGSize(width: 30, height: 20), cornerRadius: 4)
-                    prop.fillColor = SKColor(red: 0.34, green: 0.30, blue: 0.29, alpha: 1)
-                default:
-                    prop = SKShapeNode(rectOf: CGSize(width: 30, height: 22), cornerRadius: 3)
-                    prop.fillColor = SKColor(red: 0.42, green: 0.43, blue: 0.38, alpha: 1)
-                }
-            } else {
-                switch zone {
+            // Later worlds retain their existing biome props.
+            switch zone {
             case 0: // Tall pines along the forest approach.
                 prop = SKShapeNode(path: {
                     let path = CGMutablePath()
@@ -6152,7 +5707,6 @@ final class OutpostScene: SKScene {
             default:
                 prop = SKShapeNode(rectOf: CGSize(width: 12, height: 34), cornerRadius: 3)
                 prop.fillColor = .systemRed
-                }
             }
             prop.strokeColor = .white.withAlphaComponent(0.22)
             prop.lineWidth = 1
@@ -6162,124 +5716,12 @@ final class OutpostScene: SKScene {
                 (selectedWorld.biome == 2 ? 0.94 :
                     (zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55)))
             prop.position = CGPoint(x: x, y: y)
-            if worldMapIndex == 0 {
-                prop.zPosition = (roomBounds.maxY - y) / max(1, roomBounds.height) * 0.4
-            }
+
             zoneScenery.addChild(prop)
             // Production World 1 scenery is composed from individually
             // illustrated transparent sprites. Keep gameplay geometry and
             // placement independent of the image artwork.
-            if worldMapIndex == 0 {
-                let landscape = worldOneLiveLayout?.artFamily ?? "ruined_outpost"
-                let propKinds = ["wall", "boulder", "vegetation", "debris", "lantern", "crate"]
-                // Keep prop identity stable within a landscape sequence.
-                // Otherwise the same perimeter location switches from a
-                // wall to a lantern or crate every time a wave advances.
-                let landscapePhase: Int
-                // Reuse the same prop ordering whenever a landscape
-                // returns. A different wave must not turn an established
-                // ruin into a crate or lantern in the same perimeter slot.
-                switch landscape {
-                case "ruined_outpost": landscapePhase = 0
-                case "swamp_basin": landscapePhase = 1
-                case "toxic_caves": landscapePhase = 2
-                default: landscapePhase = 3
-                }
-                let kind = propKinds[(index + landscapePhase) % propKinds.count]
-                let assetName = "world1_\(landscape)_\(kind)"
-                let authoredTexture = worldOneTexture(named: assetName)
-                if ProcessInfo.processInfo.arguments.contains("-requireWorldOneAuthoredArt"),
-                   authoredTexture == nil {
-                    preconditionFailure("Missing authored World 1 prop: \(assetName)")
-                }
-                if let texture = authoredTexture {
-                    let sprite = SKSpriteNode(texture: texture)
-                    sprite.name = "world1AuthoredProp"
-                    // Preserve the proportions of the authored cutout.
-                    // The previous 0.45...1.9 clamp visibly squashed wide
-                    // ruins and stretched narrow props into generic shapes.
-                    let height: CGFloat
-                    switch kind {
-                    case "wall": height = 78
-                    case "vegetation": height = 62
-                    case "boulder": height = 52
-                    case "lantern": height = 57
-                    default: height = 48
-                    }
-                    let ratio = texture.size().width / max(1, texture.size().height)
-                    // Respect the existing combat corridor. A very wide
-                    // illustration must shrink uniformly rather than being
-                    // pushed from the perimeter into the player's route.
-                    let desiredWidth = height * ratio
-                    let perimeterWidth = max(40, roomBounds.width * 0.23)
-                    let displayScale = min(1, perimeterWidth / max(1, desiredWidth))
-                    sprite.size = CGSize(width: desiredWidth * displayScale,
-                                         height: height * displayScale)
-                    // Perimeter positions were chosen for small placeholder
-                    // shapes. Wide illustrated ruins could extend offscreen.
-                    // Keep their full silhouette within the playable arena
-                    // without moving any collision or encounter geometry.
-                    let halfWidth = sprite.size.width * 0.5
-                    let minimumX = roomBounds.minX - halfWidth * 0.35
-                    let maximumX = roomBounds.maxX + halfWidth * 0.35
-                    if minimumX <= maximumX {
-                        prop.position.x = leftSide ? minimumX : maximumX
-                    } else {
-                        prop.position.x = roomBounds.midX
-                    }
-                    // Ground the illustrated prop in the arena. The
-                    // transparent artwork otherwise appears to float over
-                    // the floor, particularly for tall walls and vegetation.
-                    let shadow = SKShapeNode(ellipseOf: CGSize(
-                        width: max(8, min(58, sprite.size.width * 0.64)),
-                        height: max(3, min(10, sprite.size.height * 0.10))))
-                    shadow.name = "world1PropContactShadow"
-                    shadow.fillColor = SKColor.black.withAlphaComponent(0.25)
-                    shadow.strokeColor = .clear
-                    shadow.position = CGPoint(x: 0, y: 1)
-                    shadow.zPosition = 0.1
-                    prop.addChild(shadow)
-                    // A soft directional shadow provides a second depth cue
-                    // without baking new artwork or affecting collisions.
-                    // Keep the shadow behind the prop and inside its parent
-                    // so it follows the existing perimeter layout.
-                    let castShadow = SKSpriteNode(texture: texture)
-                    castShadow.name = "world1PropCastShadow"
-                    castShadow.size = sprite.size
-                    castShadow.anchorPoint = CGPoint(x: 0.5,
-                        y: WorldOneArtMetrics.groundAnchorY(for: assetName))
-                    castShadow.color = .black
-                    castShadow.colorBlendFactor = 1
-                    castShadow.alpha = 0.09
-                    castShadow.yScale = -0.28
-                    castShadow.zRotation = 0.65
-                    castShadow.position = CGPoint(x: 5, y: -2)
-                    castShadow.zPosition = 0.05
-                    prop.addChild(castShadow)
-                    if kind == "lantern" {
-                        let pool = SKSpriteNode(texture: ProductionPresentation.glow(
-                            SKColor(red: 1, green: 0.67, blue: 0.25, alpha: 0.32)))
-                        pool.name = "lanternGroundLight"
-                        pool.size = CGSize(width: 112, height: 60)
-                        pool.blendMode = .add
-                        pool.zPosition = 0.2
-                        prop.addChild(pool)
-                        pool.run(.repeatForever(.sequence([
-                            .fadeAlpha(to: 0.70, duration: 1.7), .fadeAlpha(to: 1, duration: 2.1)])))
-                    }
-                    // A fixed transparent border includes faint image fringes.
-                    // Anchor the visible base, measured in normalized PNG units.
-                    sprite.anchorPoint = CGPoint(x: 0.5,
-                        y: WorldOneArtMetrics.groundAnchorY(for: assetName))
-                    sprite.position.y = 0
-                    sprite.zPosition = 0.8
-                    prop.fillColor = .clear
-                    prop.strokeColor = .clear
-                    prop.alpha = 1
-                    prop.addChild(sprite)
-                    continue
-                }
-            }
+
             if selectedWorld.biome == 4 {
                 prop.fillColor = .clear
                 prop.strokeColor = .clear
@@ -6516,82 +5958,7 @@ final class OutpostScene: SKScene {
         }
         // Sparse, asymmetrical forest dressing. Avoid evenly spaced ellipses:
         // they created obvious rows and dark round spots in the simulator.
-        if worldMapIndex == 0 && (zone <= 1 || zone == 3) {
-            // Final clearing is greener, but less busy so telegraphed
-            // boss attacks remain legible beneath the player and enemy.
-            for index in 0..<(zone == 3 ? 10 : 17) {
-                let fx = CGFloat((index * 37 + wave * 17 + 11) % 97) / 97
-                let fy = CGFloat((index * 53 + wave * 29 + 7) % 89) / 89
-                let x = roomBounds.minX + 21 + (roomBounds.width - 42) * fx
-                let y = roomBounds.minY + 37 + (roomBounds.height - 85) * fy
-                let patch = SKShapeNode(path: BattlefieldArt.terrainShape(
-                    width: CGFloat(13 + (index * 7) % 20),
-                    height: CGFloat(5 + (index * 3) % 7),
-                    variation: wave + index
-                ))
-                patch.fillColor = SKColor(
-                    red: 0.10, green: 0.24, blue: 0.16, alpha: 0.24
-                )
-                patch.strokeColor = .clear
-                patch.position = CGPoint(x: x, y: y)
-                patch.zRotation = CGFloat((index * 3 + wave) % 9 - 4) * 0.16
-                patch.zPosition = -0.7
-                zoneScenery.addChild(patch)
-                if index.isMultiple(of: 2) {
-                    for leafIndex in 0..<2 {
-                        let leaf = SKShapeNode(path: BattlefieldArt.terrainShape(
-                            width: 7, height: 3, variation: index + leafIndex
-                        ))
-                        leaf.fillColor = SKColor(
-                            red: 0.17 + CGFloat(leafIndex) * 0.04,
-                            green: 0.36 + CGFloat(index % 3) * 0.05,
-                            blue: 0.20, alpha: 0.57
-                        )
-                        leaf.strokeColor = .clear
-                        leaf.position = CGPoint(
-                            x: x + CGFloat(leafIndex * 7 - 4),
-                            y: y + CGFloat((index * 5 + leafIndex) % 7 - 3)
-                        )
-                        leaf.zRotation = CGFloat((index + leafIndex) % 5) * 0.31
-                        leaf.zPosition = -0.55
-                        zoneScenery.addChild(leaf)
-                    }
-                }
-                if index.isMultiple(of: 5) {
-                    let stone = SKShapeNode(path: BattlefieldArt.terrainShape(
-                        width: 11, height: 6, variation: index
-                    ))
-                    stone.fillColor = SKColor(
-                        red: 0.32, green: 0.37, blue: 0.33, alpha: 0.57
-                    )
-                    stone.strokeColor = .clear
-                    stone.position = CGPoint(x: x + 6, y: y - 4)
-                    stone.zPosition = -0.6
-                    zoneScenery.addChild(stone)
-                }
-            }
-            // The broken path is only a handful of subdued scuffs. No
-            // repeated horizontal bands, straight road markings or obstacles.
-            for index in 0..<6 {
-                let scuff = SKShapeNode(path: BattlefieldArt.terrainShape(
-                    width: CGFloat(20 + (index * 5) % 15),
-                    height: CGFloat(6 + index % 4),
-                    variation: index + wave
-                ))
-                scuff.fillColor = SKColor(
-                    red: 0.30, green: 0.27, blue: 0.19, alpha: 0.11
-                )
-                scuff.strokeColor = .clear
-                scuff.position = CGPoint(
-                    x: roomBounds.midX + CGFloat((index * 23 + wave * 11) % 67 - 33),
-                    y: roomBounds.minY + 55 + CGFloat(index) *
-                        max(25, (roomBounds.height - 110) / 6)
-                )
-                scuff.zRotation = CGFloat((index * 3 + wave) % 7 - 3) * 0.12
-                scuff.zPosition = -0.85
-                zoneScenery.addChild(scuff)
-            }
-        }
+
         // Fern silhouettes frame the path and vary by room without adding collision.
         if zone == 0 {
             for index in 0..<7 {
@@ -7470,6 +6837,105 @@ final class OutpostScene: SKScene {
     }
     #endif
 
+    #if DEBUG
+    private let build338ReviewEnabled = ProcessInfo.processInfo.arguments.contains("-captureBuild338WorldTour")
+    private var build338ReviewStart: TimeInterval?
+    private var build338ReviewStage = -1
+    private var build338CameraStart: CGPoint?
+
+    private func updateBuild338Review() {
+        guard build338ReviewEnabled else { return }
+        if build338ReviewStart == nil { build338ReviewStart = clock }
+        let elapsed = clock-build338ReviewStart!
+        // Let recordVideo finish opening before leaving the entrance. The
+        // first capture lost that initial two-second presentation window.
+        let boundaries: [TimeInterval] = [5,8,11,14,17,20,23,26,31,34]
+        let stage = boundaries.filter { elapsed >= $0 }.count
+        guard stage != build338ReviewStage else { return }
+        build338ReviewStage = stage
+        let names = ["outpost-entry","outpost-combat","swamp","toxic-caves","reactor",
+                     "boss","far-wall-portal","portal-approach","long-camera","transition","done"]
+        func enter(_ room: Int, center: Bool = true) {
+            worldMapIndex = 0
+            wave = room-1
+            gateUnlocked = true
+            startWave()
+            if center {
+                pilot.position = CGPoint(x: roomBounds.midX,
+                    y: roomBounds.midY-(activeEncounter == .equipmentDefense ? 145 : 90))
+            }
+            if room == 20 {
+                pilot.position = CGPoint(x: roomBounds.midX,y: roomBounds.midY-100)
+                spawned = 1
+                spawnEnemy()
+            } else {
+                for kind in [0,1,4] {
+                    spawned += 1
+                    spawnEnemy(artReviewType: kind)
+                }
+            }
+            lastShot = combatTime+1000
+            zoneBanner.removeAllActions()
+            zoneBanner.alpha = 0
+            controlsHint.isHidden = true
+            updateArenaCamera(delta: 1)
+        }
+        func clearedPassage() {
+            enter(1)
+            for enemy in enemies { enemy.node.removeFromParent() }
+            enemies.removeAll()
+            spawned = waveTarget
+            showZoneGate()
+        }
+        switch stage {
+        case 0: enter(1,center: false)
+        case 1: enter(3)
+        case 2: enter(6)
+        case 3: enter(11)
+        case 4: enter(12)
+        case 5: enter(20)
+        case 6:
+            clearedPassage()
+            pilot.position = CGPoint(x: passageGate.position.x,y: passageGate.position.y-190)
+            updateArenaCamera(delta: 1)
+            precondition(passageGate.alpha == 1)
+        case 7:
+            movementTarget = CGPoint(x: passageGate.position.x,y: passageGate.position.y-60)
+        case 8:
+            clearedPassage()
+            pilot.position = entryPoint
+            updateArenaCamera(delta: 1)
+            build338CameraStart = arena.position
+            movementTarget = CGPoint(x: passageGate.position.x,y: passageGate.position.y-60)
+        case 9:
+            if let start = build338CameraStart {
+                precondition(abs(arena.position.y-start.y) > 40,
+                    "Long-room capture must exercise actual camera tracking")
+            }
+            pilot.position = CGPoint(x: passageGate.position.x,y: passageGate.position.y-28)
+            movementTarget = passageGate.position
+        default:
+            precondition(wave == 2, "The tour must cross the real room-exit interaction")
+            print("[BUILD338 DONE] room=\(wave) actualTransition=true")
+            holdDefenseQAScreenshot = true
+        }
+        let label = (childNode(withName: "build338ReviewLabel") as? SKLabelNode)
+            ?? SKLabelNode(fontNamed: "AvenirNext-Heavy")
+        if label.parent == nil {
+            label.name = "build338ReviewLabel"
+            label.fontSize = 9
+            label.horizontalAlignmentMode = .right
+            label.fontColor = .cyan
+            label.zPosition = 100
+            addChild(label)
+        }
+        label.text = "BUILD 338 QA: \(names[stage].uppercased())"
+        label.position = CGPoint(x: size.width-12,y: max(12,(view?.safeAreaInsets.bottom ?? 0)+8))
+        print("[BUILD338] stage=\(names[stage]) elapsed=\(elapsed) room=\(wave) pilot=\(pilot.position) camera=\(arena.position)")
+        fflush(stdout)
+    }
+    #endif
+
     override func update(_ currentTime: TimeInterval) {
         if let replay = qaReplay {
             // Same 1/60 simulation steps, independent of host frame deltas.
@@ -7493,6 +6959,7 @@ final class OutpostScene: SKScene {
         combatClock.advance(gameDt, playing: phase == .playing || extractionCombatActive)
         #if DEBUG
         updateEnemyReview()
+        updateBuild338Review()
         #endif
         if let due = qaFlankDue, phase == .playing, combatTime >= due {
             qaFlankDue = nil

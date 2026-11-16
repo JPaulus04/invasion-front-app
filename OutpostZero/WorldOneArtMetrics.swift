@@ -9,6 +9,8 @@ enum WorldOneArtMetrics {
     }
 
     private static let anchors: [String: CGFloat] = [
+        "forest_pine_polished": 20.0 / 256.0,
+        "forest_broadleaf_polished": 16.0 / 256.0,
         "world1_boss_arena_boulder": 60.0 / 491.0,
         "world1_boss_arena_crate": 26.0 / 447.0,
         "world1_boss_arena_debris": 123.0 / 485.0,

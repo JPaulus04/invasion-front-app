@@ -1,0 +1,102 @@
+{
+  "source": "OutpostZero/ArtAssets/world1_overgrown_stone_arena.png",
+  "source_sha256": "1ee27e79f5e0603b76afbfc8adf4efd79c55733b3fe903aa525ed3a2be2d8b1f",
+  "source_crop": [
+    280,
+    200,
+    1256,
+    824
+  ],
+  "secondary_sources_sha256": {
+    "OutpostZero/Assets.xcassets/world1_ruined_outpost_floor_1.imageset/world1_ruined_outpost_floor_1.png": "dde834d8aafc69a8f01993762d092ba99c8877968b5eb6deaa4d3c5515d079d2",
+    "OutpostZero/Assets.xcassets/world1_swamp_basin_floor_1.imageset/world1_swamp_basin_floor_1.png": "f6fa472b1a9606a5a40cd8920c5428d611a003f66ca153e92e5bb883d04b85d7",
+    "OutpostZero/Assets.xcassets/world1_toxic_caves_floor_1.imageset/world1_toxic_caves_floor_1.png": "8a408e95b868042cd73f712d23925614742d0e3905cefef21c4f7fa7548dd4e8",
+    "OutpostZero/Assets.xcassets/world1_boss_arena_floor_1.imageset/world1_boss_arena_floor_1.png": "9df22a5ed59773ae5610d69aaf54bf90de1a6c83dfc46c0f996160106d9542d0"
+  },
+  "pixels_per_world_point": 2,
+  "cell_world_size": 512,
+  "shared_edge_pixels": 24,
+  "note": "Derived material preview only; not simulator or gameplay evidence.",
+  "outputs": [
+    {
+      "name": "build338_ground_outpost_0",
+      "sha256": "d824a67770a22f8b00011db9eecc2f09c955415273801c983d29453bdfcd99dc"
+    },
+    {
+      "name": "build338_ground_outpost_1",
+      "sha256": "ac72c5be6d2b84523158dc04856bdce31c70c7ae50551a8170f8bcb89b30f598"
+    },
+    {
+      "name": "build338_ground_outpost_2",
+      "sha256": "51609827f311e3a4dcd22638c21a4401574cc754074f18cf41e59cc0fa579047"
+    },
+    {
+      "name": "build338_ground_outpost_3",
+      "sha256": "cfaa58844cc14a5712432da82c475afa46c1aff569c1842d07163c9236876529"
+    },
+    {
+      "name": "build338_understory_outpost",
+      "sha256": "49110dec6d04ada56910ebc75473e114a407e4776e0ae02b40e261783dfad519"
+    },
+    {
+      "name": "build338_ground_swamp_0",
+      "sha256": "987449a43d3defc0f9a6ad7d41c982d945eb9980a8746231e03d80830fd38585"
+    },
+    {
+      "name": "build338_ground_swamp_1",
+      "sha256": "7f268a091b1c313565570d32c816759ec20bac20c58fff568ce6a4b420c7c0bb"
+    },
+    {
+      "name": "build338_ground_swamp_2",
+      "sha256": "f2a7e9eae2c79873f8cf94746a9cc8a2d1234a225b4dfb55163e3b53f6333b8e"
+    },
+    {
+      "name": "build338_ground_swamp_3",
+      "sha256": "2a678a9726a74685d7a9f95b42f9361118764f2bb1d520e61064e12750d5dbf6"
+    },
+    {
+      "name": "build338_understory_swamp",
+      "sha256": "fbf8ba2bff800370269d51c6268baf4a64c4b63f27b96003b4eaefd817046659"
+    },
+    {
+      "name": "build338_ground_caves_0",
+      "sha256": "85d14e10304c3eac599c57b5389201e0ff51a229ae65c9a5f1809dae0c1d4e97"
+    },
+    {
+      "name": "build338_ground_caves_1",
+      "sha256": "859075cda026ae2d2ac4160fad05b103331831b71f647855f5ec43547e98ea7f"
+    },
+    {
+      "name": "build338_ground_caves_2",
+      "sha256": "f5a151568f2eceb063db8d6f04c11b31099c221407192b9aa446b427a4e5c283"
+    },
+    {
+      "name": "build338_ground_caves_3",
+      "sha256": "1eff9430184b1c048ed280c761bf10c980194f49b89a41a8d0e640333d9ba5b2"
+    },
+    {
+      "name": "build338_understory_caves",
+      "sha256": "4bba8451a32be7bfea64696ac2757c1c18ed80f41a4e468da5c53d4326eb44a0"
+    },
+    {
+      "name": "build338_ground_sanctuary_0",
+      "sha256": "3b6a7375c99ea700d8f3a363ed4d80eae2a60dfb58141a3987fc014ca51ba0ad"
+    },
+    {
+      "name": "build338_ground_sanctuary_1",
+      "sha256": "db684e50cdebba7acb2b54bca790c9c1334b566addddebd30935a5cee6c74feb"
+    },
+    {
+      "name": "build338_ground_sanctuary_2",
+      "sha256": "89df296d988d9c95b7109f2f0f8a3a184f000d0c9e606dfb6a1e2ab9e595c40f"
+    },
+    {
+      "name": "build338_ground_sanctuary_3",
+      "sha256": "0d6cb23f8c769fad8d27b7540cd8fa735f876c09454fdb9fd9883c5c097a1371"
+    },
+    {
+      "name": "build338_understory_sanctuary",
+      "sha256": "6955d7f31bf490749faf6d20633dd449f0d588109dc344cca06304c95c061f5c"
+    }
+  ]
+}
