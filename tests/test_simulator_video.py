@@ -13,6 +13,50 @@ import simulator_startup as startup
 
 
 class VideoTests(unittest.TestCase):
+    def test_traversal_waits_for_real_endpoint_and_retains_final_view(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp); log=root/'app.log'; errors=root/'stderr.log'; report=root/'traversal.json'
+            log.write_text('[CAMERA REVIEW] pilot=(195.0, -131.5) offset=(0,0) gate=(195.0, 862.5)\n'
+                '[FOCUSED REVIEW] ready code=1 flag=-captureGateScreenshot\n'
+                '[CAMERA MOTION] pilotY=-131.5 cameraY=200\n'
+                '[CAMERA MOTION] pilotY=811.2 cameraY=-212\n'
+                '[CAMERA MOTION] pilotY=811.2 cameraY=-212\n')
+            process=Mock();process.poll.return_value=None
+            with patch.object(video.time,'monotonic',side_effect=[0,0]), \
+                 patch.object(video.time,'sleep') as sleep:
+                video.wait_for_traversal(log,errors,process,report)
+            self.assertTrue(json.loads(report.read_text())['completed'])
+            sleep.assert_called_once_with(2)
+
+    def test_pid_or_ready_marker_without_traversal_never_completes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);log=root/'app.log';log.write_text('[FOCUSED REVIEW] ready code=1 flag=camera\n')
+            with patch.object(video.time,'monotonic',side_effect=[0,121]):
+                with self.assertRaisesRegex(TimeoutError,'real traversal endpoint'):
+                    video.wait_for_traversal(log,root/'stderr',Mock(),root/'result')
+            self.assertFalse((root/'result').exists())
+
+    def test_fixture_assertion_is_not_retried_as_recorder_failure(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);errors=root/'stderr';errors.write_text('Precondition failed: bad camera')
+            with patch.object(video.time,'monotonic',side_effect=[0,0]):
+                with self.assertRaisesRegex(RuntimeError,'fixture assertion'):
+                    video.wait_for_traversal(root/'app.log',errors,Mock(),root/'result')
+
+    def test_changing_launch_screens_do_not_count_as_gameplay_coverage(self):
+        width,height=40,70; frames=[]
+        for index in range(20):
+            frame=bytearray((value+index)%256 for value in range(width*height*3))
+            marker=(round(height*.54)*width+round(width*.94))*3
+            frame[marker:marker+3]=bytes((240,0,0) if index>=16 else (20,200,30))
+            progress=(round(height*.54)*width+round(width*.90))*3
+            frame[progress:progress+3]=bytes((240,0,0) if index<=16 else ((0,240,0) if index<19 else (0,0,240)))
+            frames.append(frame)
+        samples=video.scene_coverage(b''.join(frames),width,height)
+        self.assertEqual(len(samples),4)
+        self.assertEqual(samples[0]['second'],8)
+        self.assertEqual([s['stage'] for s in samples],[1,2,2,4])
+
     def test_scene_waits_for_recording_handshake_and_recorder_is_finalized(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / 'camera.mov'

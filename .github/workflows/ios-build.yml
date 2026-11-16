@@ -409,7 +409,14 @@ jobs:
           # A successful bootstatus does not guarantee a healthy CoreSimulator
           # service. If simctl hangs, rebooting the same simulator repeatedly
           # cannot recover it. Restart the service and reselect a clean device.
+          RECOVERY_USED=0
+          mkdir -p diagnostics
           recover_simulator_service() {
+            if [ "$RECOVERY_USED" = 1 ]; then
+              echo "::error::One service recovery already used; retaining failure without cycling runners"
+              return 1
+            fi
+            RECOVERY_USED=1
             echo "::warning::Restarting unresponsive CoreSimulator service"
             pkill -f 'CoreSimulatorService' || true
             sleep 8
@@ -425,7 +432,7 @@ jobs:
           capture_scene() {
             FLAG="$1"
             OUTPUT="$2"
-            for ATTEMPT in 1 2 3; do
+            for ATTEMPT in 1 2; do
               # Failure to terminate is a service-health failure, not a game
               # failure. Recover before attempting another launch.
               if ! run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand; then
@@ -440,21 +447,17 @@ jobs:
               sleep 2
               # Cold-booted CoreSimulator can accept the app but not yet
               # serve pixels. Launch/screenshot timeout is retriable too.
-              if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+              STDOUT="$PWD/diagnostics/${FLAG#-}-attempt-$ATTEMPT.log"
+              STDERR="$PWD/diagnostics/${FLAG#-}-attempt-$ATTEMPT-stderr.log"
+              if ! run_bounded 45 xcrun simctl launch --stdout="$STDOUT" --stderr="$STDERR" "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
                 echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
-                # Restart the service instead of repeatedly rebooting a
-                # device whose simctl launch/terminate calls both time out.
-                recover_simulator_service || return 1
-                if [ "$ATTEMPT" != 3 ]; then
-                  # A cold CoreSimulatorService can become unresponsive even
-                  # after installation. Reboot the simulator before retrying
-                  # rather than issuing launch to the same wedged instance.
-                  run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
-                  run_bounded 45 xcrun simctl boot "$DEVICE" || true
-                  run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b || true
-                  run_bounded 65 xcrun simctl install "$DEVICE" "$APP" || true
+                if [ -f "$STDERR" ] && grep -Eq 'Precondition failed|Fatal error:' "$STDERR"; then
+                  cat "$STDERR"
+                  echo "::error::App assertion for $FLAG; recovery forbidden"
+                  return 1
                 fi
-                sleep 4
+                if [ "$ATTEMPT" = 2 ]; then break; fi
+                recover_simulator_service || return 1
                 continue
               fi
               sleep 8
@@ -462,22 +465,15 @@ jobs:
                  python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
                 return 0
               fi
-              echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT); retrying"
-              # A stalled screenshot service needs a fresh simulator boot.
-              # Repeating capture against the same wedged device is ineffective.
-              if [ "$ATTEMPT" != 3 ]; then
-                run_bounded 25 xcrun simctl shutdown "$DEVICE" || true
-                run_bounded 35 xcrun simctl boot "$DEVICE" || true
-                if ! run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b; then
-                  echo "::error::Simulator failed recovery boot for $FLAG"
-                  return 1
-                fi
-                if ! run_bounded 100 xcrun simctl install "$DEVICE" "$APP"; then
-                  echo "::error::Simulator failed recovery install for $FLAG"
-                  return 1
-                fi
+              if [ -f "$STDERR" ] && grep -Eq 'Precondition failed|Fatal error:' "$STDERR"; then
+                cat "$STDERR"
+                echo "::error::App assertion for $FLAG; infrastructure recovery forbidden"
+                return 1
               fi
-              sleep 4
+              cp "$OUTPUT" "diagnostics/${FLAG#-}-attempt-$ATTEMPT.png" 2>/dev/null || true
+              echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT)"
+              if [ "$ATTEMPT" = 2 ]; then break; fi
+              recover_simulator_service || return 1
             done
             echo "::error::Simulator never rendered a usable frame for $FLAG"
             # Leave a useful reason in CI when the app exits after launch.
@@ -543,17 +539,12 @@ jobs:
           # screenshots rather than mistaking a slow CoreSimulator for a crash.
           launch_live_scene() {
             FLAG="$1"
-            for ATTEMPT in 1 2 3; do
-              run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
-              mkdir -p diagnostics
-              if run_bounded 50 xcrun simctl launch --stdout="$PWD/diagnostics/${FLAG#-}.log" --stderr="$PWD/diagnostics/${FLAG#-}-stderr.log" "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
-                return 0
-              fi
-              echo "::warning::Live simulator launch for $FLAG timed out (attempt $ATTEMPT)"
-              sleep 5
-            done
-            echo "::error::Cannot launch live QA scene $FLAG after three attempts"
-            return 1
+            run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+            # Never relaunch a motion scene after an ambiguous client timeout.
+            if ! run_bounded 50 xcrun simctl launch --stdout="$PWD/diagnostics/${FLAG#-}.log" --stderr="$PWD/diagnostics/${FLAG#-}-stderr.log" "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+              echo "::error::Live QA launch unconfirmed for $FLAG; output retained, no replay"
+              return 1
+            fi
           }
           capture_live_frame() {
             OUTPUT="$1"
@@ -798,7 +789,7 @@ jobs:
           import json, subprocess, time, pathlib, shutil, signal, re, sys
           from contextlib import nullcontext
           sys.path.insert(0, "scripts")
-          from simulator_video import recording as record_video
+          from simulator_video import recording as record_video, wait_for_traversal
           def run(args, limit=40, check=True):
               return subprocess.run(args, timeout=limit, check=check, capture_output=True, text=True)
           # CoreSimulator can be slow to initialize on fresh hosted runners.
@@ -867,12 +858,17 @@ jobs:
                           if name == "camera-motion":
                               run(["xcrun","simctl","io",device,"screenshot",
                                    "screenshots/camera-surface-ready.png"],65)
-                          with record_video(device,video) if name == "camera-motion" else nullcontext():
+                          with (record_video(device,video) if name == "camera-motion" else nullcontext()) as recording_process:
                               result=run(["xcrun","simctl","launch","--terminate-running-process",
                                       "--stdout="+str(stdout),"--stderr="+str(stderr),
                                           device,"com.paulus.laststandcommand",*launch_flags],90)
                               print("Launch:",result.stdout.strip(),flush=True)
-                              time.sleep(12 if name == "camera-motion" else 9)
+                              if name == "camera-motion":
+                                  wait_for_traversal(stdout,stderr,recording_process,
+                                      video.with_suffix(".traversal.json"))
+                                  run(["xcrun","simctl","io",device,"screenshot",str(output)],65)
+                              else:
+                                  time.sleep(9)
                           if name == "camera-motion":
                               samples = re.findall(r"\[CAMERA MOTION\] pilotY=([-\d.]+) cameraY=([-\d.]+)", stdout.read_text())
                               if len(samples) < 3:
