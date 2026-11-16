@@ -1,0 +1,51 @@
+{
+  "branch": "feature/build338-unified-world1",
+  "baseline": "3987f2c11f3acac28f2dbbbb56098bd468d17d62",
+  "application_qa_revision": "eee6d3a6afecc301563ebf492279fb9a244aa590",
+  "visual_environment_revision": "fc6ddc01f02e6385a3b35078695f10b00dbdd416",
+  "python_test_count": 57,
+  "native_suites_passed": true,
+  "compiled_catalog_count": 81,
+  "bundled_portal_pixels": {
+    "dimensions": [
+      1156,
+      943
+    ],
+    "alpha_exact": true,
+    "maximum_premultiplied_channel_error": 0,
+    "xcode_cgbi_optimized": true
+  },
+  "code_payload_sha256": {
+    "OutpostZero.debug.dylib": "1c9e7e595a768025c0b8a705520dd9bd83590cabed2a90f40296a30844e87e39",
+    "__preview.dylib": "96619162c9284f903407444ef451a36d0a195e03411ac22de0f807f7fc149f51"
+  },
+  "runs": [
+    {
+      "id": 43788243531,
+      "outcome": "success",
+      "coverage": "ten requested actual simulator views; compilation, native and bundle checks",
+      "artifact": 14192041811
+    },
+    {
+      "id": 43792426094,
+      "outcome": "success",
+      "coverage": "both reactor outcomes, survival transition, expanded survival; compilation, native and bundle checks",
+      "artifact": 14192954241
+    },
+    {
+      "id": 43786847936,
+      "outcome": "cancelled/incomplete",
+      "coverage": "full campaign unavailable; initial and single recovery launch timed out before app started",
+      "diagnostic_artifact": 14190973578
+    }
+  ],
+  "testflight_recommendation": "hold",
+  "quality_score_assigned": false,
+  "remaining": [
+    "complete dynamic World 1 campaign",
+    "physical-device frame time and memory",
+    "compact-iPhone/iPad visual review"
+  ],
+  "merged_to_main": false,
+  "uploaded_to_testflight": false
+}

@@ -1,0 +1,17 @@
+{
+  "source_commit": "fc6ddc01f02e6385a3b35078695f10b00dbdd416",
+  "run": 43788243531,
+  "artifact": 14192041811,
+  "selection_by_visible_stage_badges": {
+    "outpost-entry": 10,
+    "outpost-combat": 14,
+    "swamp": 17,
+    "toxic-caves": 20,
+    "reactor": 23,
+    "boss": 26,
+    "far-wall-portal": 29,
+    "portal-approach": 32,
+    "long-camera": 36,
+    "transition": 41
+  }
+}
