@@ -1,3 +1,5 @@
+Latest finishing pass: [final visual polish, comparisons and validation](polish/REPORT.md).
+
 # Build 338 — unified World 1
 
 The approved overgrown stone-and-forest direction is restored through one deterministic renderer, fixed-scale derived paving, natural forest/ruin boundaries, four cohesive themes and the exact transparent round portal.
