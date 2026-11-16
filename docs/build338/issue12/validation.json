@@ -6,7 +6,7 @@
   "final_build": "success",
   "python_tests": 68,
   "native_pursuit_cases": 288,
-  "runtime_status": "pending_runner_assignment",
+  "runtime_status": "incomplete; final camera passed and reviewed; moving3354 passed; three jobs cancelled with no runner/steps; others ongoing",
   "snapshot_utc": "2026-11-16T17:15:25Z",
   "prior_run": 43906741184,
   "prior_335_pairs_identical": {
@@ -20,5 +20,13 @@
     "decoded_frames": 385,
     "manual_approval": false,
     "reason": "Only about 2.5s of game-scene footage, no complete traversal. New gate rejects this exact file."
-  }
+  },
+  "camera_manual_approval": true,
+  "camera_artifact": 14254165304,
+  "unstarted_cancelled_jobs": [
+    133467783656,
+    133467783821,
+    133467783857
+  ],
+  "planned_queue_recoveries_per_unstarted_job": 1
 }

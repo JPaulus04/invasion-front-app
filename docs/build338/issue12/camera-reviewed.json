@@ -1,0 +1,53 @@
+{
+  "source": "018501c69e77e6b1a03a69485d85ea8afb01acc4",
+  "merge_source": "b32b4606690a932d27565f1211e18cf9805799a1",
+  "run": 43913375739,
+  "job": 133467783505,
+  "artifact": 14254165304,
+  "video_sha256": "d30846cbdef1679a4496c5cef09d0f8f9b5790f41b4f87f136d61f51026d97ec",
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1206,
+        "height": 2622,
+        "duration": "20.413333",
+        "nb_read_frames": "1199"
+      }
+    ]
+  },
+  "native_endpoint": {
+    "completed": true,
+    "samples": 13,
+    "pilot_start": -131.5,
+    "pilot_end": 811.5,
+    "gate_y": 862.5
+  },
+  "tagged_samples": 31,
+  "tagged_start_second": 5.0,
+  "tagged_end_second": 20.0,
+  "counts_by_stage": {
+    "1": 12,
+    "2": 6,
+    "4": 13
+  },
+  "selected_frames": {
+    "entry": {
+      "second": 5.5,
+      "stage": 1,
+      "sha256": "7b4fc7c9f512de2decdf3f1e5334f61aeef9d20eabbdf59e25bb2c7f416ac440"
+    },
+    "middle": {
+      "second": 12.5,
+      "stage": 2,
+      "sha256": "91d9741a997cf958987ffb18ab8a5998c8722f3b992d3748c228de40310fcdbc"
+    },
+    "approach": {
+      "second": 19.5,
+      "stage": 4,
+      "sha256": "e2876847697ab6a75a916dc6e35b37a0255064371fd7ee5a1e4abe9d8ad1f3b4"
+    }
+  },
+  "review": "Actual triptych and one-second frame sequence reviewed; full entry/middle/approach covered; portal/HUD/player retained. No numeric overall quality score."
+}

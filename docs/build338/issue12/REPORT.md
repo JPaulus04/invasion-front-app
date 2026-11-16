@@ -1,6 +1,6 @@
 # Build 338 — issue #12 fixes and validation evidence
 
-**Release hold: final runtime validation remains incomplete.** Status snapshot: November 16, 2026, 12:15 EST. The final build passed, but its simulator jobs have no assigned runners yet. See [the live final run](https://github.com/JPaulus04/invasion-front-app/actions/runs/43913375739) for subsequent status.
+**Release hold: complete gameplay validation remains incomplete.** The final build and manually reviewed camera traversal passed. Three jobs were cancelled before receiving runners; remaining gameplay/defense checks continue. See [the live final run](https://github.com/JPaulus04/invasion-front-app/actions/runs/43913375739) for subsequent status.
 
 [PR #13](https://github.com/JPaulus04/invasion-front-app/pull/13) · branch `fix/build338-release-blockers` · release baseline `5453d2e3119576eb5ee18d2f07d6b3b75725f81f`.
 
@@ -37,7 +37,7 @@ The first corrected milestone’s focused presentation job was green, but actual
 
 The final revision rejects that exact real recording locally. Capture waits for recorder readiness, preserves recorder output, observes the actual traversal endpoint and retains the final view. A four-second QA-only entry hold allows an initial rendered view. The video must decode at least eight seconds of changing frames bearing the existing focused-scene identity, and native rendered entry/middle/approach markers must appear in order. Operating-system screen changes do not count. These markers and the hold are simulator-review controls, not gameplay changes.
 
-Fresh final video has **not yet been approved**. The final presentation job must run and its actual frames must be reviewed.
+The final focused presentation job **passed**, and its actual video was manually reviewed through the triptych and one-second frame sequence. [Original artifact 14254165304](https://github.com/JPaulus04/invasion-front-app/actions/runs/43913375739/artifacts/14254165304) contains 20.413333s / 1,199 decoded frames. There are 31 frames sampled at 2 Hz bearing the native traversal markers from 5.0s through 20.0s: entry, middle and approach in order. The pilot moves from y=−131.5 to y=811.5 while the fixed HUD, portal headroom and player remain readable. [Actual reviewed progression](camera-traversal-review.jpg) and [video hash/probe/endpoint/selection metadata](camera-reviewed.json) pin this evidence. Initial prelaunch/white-screen frames are not counted as traversal approval.
 
 ## Startup and broad review
 
@@ -51,7 +51,7 @@ Seven first-milestone World 1 landscape captures and the focused HUD, upgrades, 
 
 Final candidate: `018501c69e77e6b1a03a69485d85ea8afb01acc4`. PR merge candidate: `b32b4606690a932d27565f1211e18cf9805799a1`. Both have tree `ae9e06e39ef719e064d8788f53eadc551b35a786`, verified through GitHub’s commit API. The [final build](https://github.com/JPaulus04/invasion-front-app/actions/runs/43913375739/job/133461127720) checked out that merge candidate and passed 68 Python tests, native pursuit/camera/replay/gameplay suites, iOS compilation and bundled/source artwork checks.
 
-Final runtime status: **pending runner assignment** for six campaign trials, focused presentation, defense review and broad simulator review. No full same-SHA pass is claimed. The earlier seed-335 results do not replace those final gates. Documentation is published separately to keep the validated application candidate immutable.
+Final runtime status: focused presentation **passed and visually reviewed**; moving seed 335 batch 4 **passed** all 20 rooms. Broad simulator review and both stationary jobs were cancelled with empty runner names and zero steps while other jobs in the same workflow continued. No simulator/gameplay ran in those jobs. One targeted queue-recovery attempt is planned after the first attempt ends; successful gameplay will not be replayed. Remaining moving/defense jobs are still running or queued. No full same-SHA pass is claimed. The earlier seed-335 results do not replace those final gates. Documentation is published separately to keep the validated application candidate immutable.
 
 Implementation commits:
 
@@ -62,4 +62,4 @@ Implementation commits:
 
 No asset files changed. Approved paving/overgrowth, portal artwork, Mossbot, landscape renderer, environment plans and authored geometry match the release baseline byte-for-byte. Acceptance analyzers, the six-case matrix and TestFlight gate remain intact.
 
-**Recommendation: hold merge/release approval and TestFlight.** Final same-source runtime validation and manual camera review remain required. No merge or upload was performed; no numerical visual-quality certification is claimed.
+**Recommendation: hold merge/release approval and TestFlight.** Final complete same-source gameplay/broad-review validation remains required. Manual camera traversal review passed. No merge or upload was performed; no numerical visual-quality certification is claimed.
