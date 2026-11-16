@@ -5233,12 +5233,12 @@ final class OutpostScene: SKScene {
         // Keep the exit hidden during combat; the gate only appears after
         // the room is cleared, avoiding a distracting LOCKED banner.
         passageGate.isHidden = true
-        passageGate.fillColor = .darkGray
+        passageGate.fillColor = .clear
         (passageGate.children.first(where: { $0 is SKLabelNode }) as? SKLabelNode)?.text = "LOCKED"
         passageGate.childNode(withName: "gateArrow")?.isHidden = true
         passageGate.removeAllActions()
-        passageGate.childNode(withName: "portalEnergy")?.removeAllActions()
-        passageGate.childNode(withName: "portalEnergy")?.alpha = 1
+        passageGate.childNode(withName: "portalRecessEnergy")?.removeAllActions()
+        passageGate.childNode(withName: "portalRecessEnergy")?.alpha = 1
         passageGate.childNode(withName: "gateArrow")?.removeAllActions()
         passageGate.childNode(withName: "gateArrow")?.position = CGPoint(x: 0, y: -24)
         passageGate.alpha = 1
@@ -9694,7 +9694,7 @@ final class OutpostScene: SKScene {
         // upright campaign portal, never the timed-survival rescue orb.
         extractionPortal.isHidden = true
         passageGate.isHidden = false
-        passageGate.fillColor = SKColor(red: 0.07, green: 0.24, blue: 0.64, alpha: 0.94)
+        passageGate.fillColor = .clear
         (passageGate.children.first(where: { $0 is SKLabelNode }) as? SKLabelNode)?.text = "ENTER"
         passageGate.childNode(withName: "gateArrow")?.isHidden = false
         passageGate.alpha = 1
@@ -9703,7 +9703,7 @@ final class OutpostScene: SKScene {
         passageGate.childNode(withName: "gateArrow")?.position = CGPoint(x: 0, y: -24)
         passageGate.childNode(withName: "gateArrow")?.run(.repeatForever(.sequence([.moveBy(x: 0, y: 7, duration: 0.45), .moveBy(x: 0, y: -7, duration: 0.45)])))
         // Pulse only the portal energy, keeping its metal doorway solid.
-        let energy = passageGate.childNode(withName: "portalEnergy")
+        let energy = passageGate.childNode(withName: "portalRecessEnergy")
         energy?.removeAllActions()
         energy?.run(.repeatForever(.sequence([
             .fadeAlpha(to: 0.35, duration: 0.65),
