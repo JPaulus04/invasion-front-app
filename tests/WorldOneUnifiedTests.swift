@@ -33,6 +33,7 @@ struct WorldOneUnifiedTests {
                 CGRect(x: $0.x+origin.x-100,y: $0.y+origin.y-110,width: 200,height: 240)
             }
             for bed in plan.reclamation {
+                precondition(bed.opacity > 0.5 && bed.opacity <= 1)
                 let envelope = bed.frame.insetBy(dx: -20,dy: -20)
                 precondition(plan.groundBounds.contains(envelope) && !envelope.intersects(portalReserve))
                 precondition(!(objectiveReserve.map { envelope.intersects($0) } ?? false))

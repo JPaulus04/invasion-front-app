@@ -68,6 +68,7 @@ enum WorldOneEnvironmentPlan {
         let asset: String
         let position: CGPoint
         let angle: CGFloat
+        let opacity: CGFloat
         var frame: CGRect { CGRect(x: position.x-128,y: position.y-128,width: 256,height: 256) }
     }
     struct GroundPlant {
@@ -214,8 +215,13 @@ enum WorldOneEnvironmentPlan {
                 let drift: CGFloat = [0,22,-14,12][index]
                 let position = CGPoint(x: bounds.midX+side*(bankDistance+drift),
                     y: bounds.minY+bounds.height*fraction+(side < 0 ? -24 : 32))
-                let patch = GroundPatch(asset: "build338_reclaim_\(theme.rawValue)_\((index+(side > 0 ? 1 : 0))%2)",
-                    position: position,angle: side*(index.isMultiple(of: 2) ? 0.12 : -0.15))
+                let variant = (index+(side > 0 ? 1 : 0))%2
+                // Corruption remains fractured paving, not an apparent water
+                // hazard. Grass retains the approved stone relief underneath.
+                let opacity: CGFloat = theme == .caves ? 0.58 :
+                    (theme == .swamp ? 0.96 : (variant == 0 ? 0.78 : 0.94))
+                let patch = GroundPatch(asset: "build338_reclaim_\(theme.rawValue)_\(variant)",
+                    position: position,angle: side*(index.isMultiple(of: 2) ? 0.12 : -0.15),opacity: opacity)
                 // The reserve includes the rotated patch's entire bounding box.
                 let envelope = patch.frame.insetBy(dx: -20,dy: -20)
                 if envelope.intersects(gateClear) || (objectiveClear.map { envelope.intersects($0) } ?? false) { continue }

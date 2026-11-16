@@ -38,6 +38,7 @@ enum WorldOneEnvironment {
             bed.size = CGSize(width: 256,height: 256)
             bed.position = patch.position
             bed.zRotation = patch.angle
+            bed.alpha = patch.opacity
             bed.zPosition = -17
             root.addChild(bed)
         }
