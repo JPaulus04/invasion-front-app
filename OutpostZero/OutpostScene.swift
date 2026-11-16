@@ -1889,12 +1889,20 @@ final class OutpostScene: SKScene {
             showZoneGate()
             precondition(!passageGate.isHidden && extractionPortal.isHidden,
                          "Normal campaign exit must never coexist with survival orb")
-            // Reject a regression to the tiny, unreadable exit beacon.
-            precondition((passageGate.path?.boundingBox.height ?? 0) >= 80 &&
-                         passageGate.childNode(withName: "portalRecessOpening") != nil &&
+            // Check the actual approved sprite, not the removed rectangular
+            // frame or the invisible interaction path's proxy dimensions.
+            guard let art = passageGate.childNode(withName: "approvedCampaignPortalArt") as? SKSpriteNode,
+                  let texture = art.texture else {
+                preconditionFailure("Campaign exit must render the bundled approved portal")
+            }
+            let sourceAspect = texture.size().width/texture.size().height
+            precondition(abs(art.size.width/art.size.height-sourceAspect) < 0.001 &&
+                         art.size.height >= 120 && abs(art.frame.minY) < 2 &&
+                         passageGate.fillColor.cgColor.alpha == 0 &&
+                         !passageGate.children.contains(where: { $0 is SKShapeNode }) &&
                          passageGate.childNode(withName: "portalRecessEnergy") != nil &&
-                         passageGate.childNode(withName: "exitPortalLabel") != nil,
-                         "Campaign exit must render its recessed wall doorway and ENTER label")
+                         (passageGate.childNode(withName: "exitPortalLabel") as? SKLabelNode)?.text == "ENTER",
+                         "Campaign exit must preserve the grounded transparent ring, aspect and ENTER label")
             // Keep the exit fully visible for a stable visual regression frame.
             passageGate.removeAllActions()
             passageGate.alpha = 1

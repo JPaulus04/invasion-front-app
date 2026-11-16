@@ -843,7 +843,7 @@ jobs:
                   camera_review = name.startswith("camera-")
                   output=pathlib.Path(f"screenshots/{name}/phase4-exit-beacon.png" if camera_review else f"screenshots/phase4-{name}.png")
                   output.parent.mkdir(parents=True, exist_ok=True)
-                  for attempt in range(3):
+                  for attempt in range(2):
                       output.unlink(missing_ok=True)
                       try:
                           if device is None: device=new_device()
@@ -902,8 +902,12 @@ jobs:
                           print("Captured",output,flush=True)
                           break
                       except (subprocess.TimeoutExpired,subprocess.CalledProcessError,RuntimeError) as error:
-                          print(f"{name} attempt {attempt+1}/3 failed: {error}",flush=True)
-                          if attempt == 2:
+                          print(f"{name} attempt {attempt+1}/2 failed: {error}",flush=True)
+                          error_log=pathlib.Path(f"screenshots/phase4-{name}-stderr.log")
+                          diagnostic=error_log.read_text(errors="replace") if error_log.exists() else ""
+                          # A scene assertion is an app/test failure, not a
+                          # reason to cycle through more simulator devices.
+                          if attempt == 1 or "Precondition failed" in diagnostic or "Fatal error:" in diagnostic:
                               for stream in ("stdout","stderr"):
                                   log=pathlib.Path(f"screenshots/phase4-{name}-{stream}.log")
                                   if log.exists(): print(log.read_text(errors="replace")[-12000:],flush=True)
