@@ -69,6 +69,19 @@ def wait_for_app_registration(command, device, output):
     raise RecoverableStartupError('App registration not ready within 180s; no launch attempted')
 
 
+def wait_for_render_surface(command, device, output):
+    """One bounded prelaunch surface probe; bootstatus/appinfo are not rendering."""
+    target = output / 'startup-surface.png'
+    try:
+        reply = command('xcrun', 'simctl', 'io', device, 'screenshot', str(target), timeout=45)
+        (output / 'startup-surface.log').write_text(reply.stdout + '\n' + reply.stderr)
+        data = target.read_bytes()
+        if len(data) < 4096 or not data.startswith(b'\x89PNG\r\n\x1a\n'):
+            raise ValueError('Simulator returned no usable PNG render surface')
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        raise RecoverableStartupError(f'Render surface unavailable before launch: {error}') from error
+
+
 def snapshot(command, device, output, label, since):
     """Diagnostics must not mask the original failure; unknown state fails closed."""
     root = output / label
@@ -80,7 +93,9 @@ def snapshot(command, device, output, label, since):
         'processes': ('ps', '-axo', 'pid,ppid,state,etime,comm'),
         'launch-log': ('xcrun', 'simctl', 'spawn', device, 'log', 'show',
                        '--last', '3m', '--style', 'compact', '--predicate',
-                       'process == "OutpostZero" OR eventMessage CONTAINS "com.paulus.laststandcommand"'),
+                       'process == "OutpostZero" OR process == "SpringBoard" OR '
+                       'process == "runningboardd" OR process == "frontboardd" OR '
+                       'eventMessage CONTAINS "com.paulus.laststandcommand"'),
     }
     for name, args in probes.items():
         try:

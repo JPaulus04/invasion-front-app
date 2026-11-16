@@ -290,6 +290,27 @@ enum TerrainHazards {
                                       collisionRadius: radius) {
             return pilot
         }
+        // Authored passage shoulders form compound concave corners. Local
+        // corner selection can oscillate at a pocket mouth forever (Room 2,
+        // seed 335). Use their guaranteed central lane as a reachable route,
+        // including the final horizontal leg if the pilot is in a pocket.
+        // Check all legs against the actual collision shapes; other terrain
+        // keeps the general shoreline navigator below.
+        if !patches.isEmpty && patches.allSatisfy({
+            $0.kind == .rubble &&
+            ($0.frame.minX <= bounds.minX || $0.frame.maxX >= bounds.maxX)
+        }) {
+            let entry = CGPoint(x: bounds.midX, y: current.y)
+            let exit = CGPoint(x: bounds.midX, y: pilot.y)
+            let route = [current, entry, exit, pilot]
+            let clear = (0..<3).allSatisfy {
+                extractionApproachIsClear(from: route[$0], to: route[$0+1],
+                    patches: patches, collisionRadius: radius)
+            }
+            if clear {
+                return hypot(entry.x-current.x, entry.y-current.y) > 4 ? entry : exit
+            }
+        }
         let padding = radius + 9
         for patch in patches where patch.kind != .acid {
             let margin = patch.frame.insetBy(dx: -padding, dy: -padding)

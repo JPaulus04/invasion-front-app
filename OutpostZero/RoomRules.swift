@@ -165,10 +165,13 @@ enum WorldOnePortalFraming {
     }
     static func make(pilot: CGPoint, gate: CGPoint, viewport: CGRect,
                      scale: CGFloat, offset: CGPoint) -> Presentation {
-        let span = (gate.y+128-(pilot.y-44))*scale
-        guard span <= viewport.height else { return Presentation(offset: offset, visible: false) }
-        let top = (gate.y+128)*scale+offset.y
-        return Presentation(offset: CGPoint(x: offset.x,
-            y: offset.y-max(0,top-viewport.maxY)), visible: true)
+        let portalCeiling = viewport.maxY - (gate.y+128)*scale
+        let pilotFloor = viewport.minY - (pilot.y-44)*scale
+        // Approach the portal's headroom continuously while retaining the
+        // pilot and health bar. Waiting until both fit before applying the
+        // ceiling caused a ~337-point snap at the reveal threshold.
+        let y = max(pilotFloor, min(offset.y, portalCeiling))
+        return Presentation(offset: CGPoint(x: offset.x, y: y),
+                            visible: pilotFloor <= portalCeiling)
     }
 }

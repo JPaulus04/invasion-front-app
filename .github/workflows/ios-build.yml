@@ -50,6 +50,10 @@ jobs:
         run: |
           swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
           "$RUNNER_TEMP/room-tests"
+      - name: Regress compound corridor pursuit and continuous portal framing
+        run: |
+          swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift OutpostZero/WorldOneRoomGeometry.swift OutpostZero/CombatRules.swift tests/WorldOnePursuitTests.swift -o "$RUNNER_TEMP/pursuit-tests"
+          "$RUNNER_TEMP/pursuit-tests"
       - name: Test controlled replay RNG, configuration and tick clock
         run: |
           swiftc OutpostZero/QAReplay.swift tests/QAReplayTests.swift -o "$RUNNER_TEMP/replay-tests"
@@ -783,13 +787,18 @@ jobs:
           mkdir -p simulator-app
           ditto -x -k OutpostZero-simulator-app.zip simulator-app
           test -x simulator-app/OutpostZero.app/OutpostZero
+      - name: Install real video decoder
+        run: brew install ffmpeg
       - name: Capture focused HUD, objectives, upgrades and victory
         timeout-minutes: 24
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, subprocess, time, pathlib, shutil, signal, re
+          import json, subprocess, time, pathlib, shutil, signal, re, sys
+          from contextlib import nullcontext
+          sys.path.insert(0, "scripts")
+          from simulator_video import recording as record_video
           def run(args, limit=40, check=True):
               return subprocess.run(args, timeout=limit, check=check, capture_output=True, text=True)
           # CoreSimulator can be slow to initialize on fresh hosted runners.
@@ -851,29 +860,20 @@ jobs:
                           stdout=pathlib.Path(f"screenshots/phase4-{name}-stdout.log").resolve()
                           stderr=pathlib.Path(f"screenshots/phase4-{name}-stderr.log").resolve()
                           launch_flags = ["-captureGateScreenshot", flag] if camera_review else [flag]
-                          recording = None
                           video = pathlib.Path("screenshots/camera-traversal.mov")
+                          # Ensure the current rendered scene has a real surface
+                          # before opening the recorder, then wait for its ready
+                          # handshake before launching the traversal scene.
                           if name == "camera-motion":
-                              video.unlink(missing_ok=True)
-                              recording = subprocess.Popen(["xcrun","simctl","io",device,"recordVideo",str(video)],
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                          try:
+                              run(["xcrun","simctl","io",device,"screenshot",
+                                   "screenshots/camera-surface-ready.png"],65)
+                          with record_video(device,video) if name == "camera-motion" else nullcontext():
                               result=run(["xcrun","simctl","launch","--terminate-running-process",
                                       "--stdout="+str(stdout),"--stderr="+str(stderr),
                                           device,"com.paulus.laststandcommand",*launch_flags],90)
                               print("Launch:",result.stdout.strip(),flush=True)
-                              time.sleep(12 if recording else 9)
-                          finally:
-                              if recording is not None:
-                                  recording.send_signal(signal.SIGINT)
-                                  try: recording.wait(timeout=30)
-                                  except subprocess.TimeoutExpired:
-                                      recording.kill()
-                                      recording.wait()
-                                      raise RuntimeError("Camera video recorder failed to finalize")
+                              time.sleep(12 if name == "camera-motion" else 9)
                           if name == "camera-motion":
-                              if recording.returncode != 0 or not video.exists() or video.stat().st_size < 4096:
-                                  raise RuntimeError("Camera traversal video missing")
                               samples = re.findall(r"\[CAMERA MOTION\] pilotY=([-\d.]+) cameraY=([-\d.]+)", stdout.read_text())
                               if len(samples) < 3:
                                   raise RuntimeError("Missing camera motion samples")
@@ -908,7 +908,7 @@ jobs:
                           diagnostic=error_log.read_text(errors="replace") if error_log.exists() else ""
                           # A scene assertion is an app/test failure, not a
                           # reason to cycle through more simulator devices.
-                          if attempt == 1 or "Precondition failed" in diagnostic or "Fatal error:" in diagnostic:
+                          if name == "camera-motion" or attempt == 1 or "Precondition failed" in diagnostic or "Fatal error:" in diagnostic:
                               for stream in ("stdout","stderr"):
                                   log=pathlib.Path(f"screenshots/phase4-{name}-{stream}.log")
                                   if log.exists(): print(log.read_text(errors="replace")[-12000:],flush=True)
