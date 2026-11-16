@@ -154,3 +154,21 @@ enum WorldOneFraming {
                       width: view.width / zoom, height: view.height / zoom)
     }
 }
+
+/// Portal headroom must never be purchased by losing the pilot offscreen.
+/// Preserve the Build 337 north-wall clamp whenever both can fit at the
+/// unchanged zoom; a distant gate becomes visible during the player's approach.
+enum WorldOnePortalFraming {
+    struct Presentation {
+        let offset: CGPoint
+        let visible: Bool
+    }
+    static func make(pilot: CGPoint, gate: CGPoint, viewport: CGRect,
+                     scale: CGFloat, offset: CGPoint) -> Presentation {
+        let span = (gate.y+128-(pilot.y-44))*scale
+        guard span <= viewport.height else { return Presentation(offset: offset, visible: false) }
+        let top = (gate.y+128)*scale+offset.y
+        return Presentation(offset: CGPoint(x: offset.x,
+            y: offset.y-max(0,top-viewport.maxY)), visible: true)
+    }
+}

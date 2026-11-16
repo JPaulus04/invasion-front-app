@@ -1,0 +1,80 @@
+{
+  "source": "OutpostZero/ArtAssets/world1_overgrown_stone_arena.png",
+  "source_sha256": "1ee27e79f5e0603b76afbfc8adf4efd79c55733b3fe903aa525ed3a2be2d8b1f",
+  "source_crop": [
+    280,
+    200,
+    1256,
+    824
+  ],
+  "pixels_per_world_point": 2,
+  "cell_world_size": 512,
+  "shared_edge_pixels": 24,
+  "note": "Derived material preview only; not simulator or gameplay evidence.",
+  "outputs": [
+    {
+      "name": "build338_ground_outpost_0",
+      "sha256": "9decdf8ebf75309e2a05449362628cf76a55acd65d745852a10e8c544c21ca77"
+    },
+    {
+      "name": "build338_ground_outpost_1",
+      "sha256": "5aeee0f4b560b76aee6b794be6462e2cadfec829d83602bdb329182a01214e0a"
+    },
+    {
+      "name": "build338_ground_outpost_2",
+      "sha256": "daf1cac22aa49bcc29a9b8df7aeac3036257643df557ef0cf07d7f07dc09398e"
+    },
+    {
+      "name": "build338_ground_outpost_3",
+      "sha256": "c0435e0f5333a7d9e6adc8987b1b8866b71d75b29c0b32a8aaeb3864931c1843"
+    },
+    {
+      "name": "build338_ground_swamp_0",
+      "sha256": "49ecddf097ff9c0b272ed1e584c0e1eee111a649a1aadc0a2a4722f223511bf0"
+    },
+    {
+      "name": "build338_ground_swamp_1",
+      "sha256": "61f90d30b2459ad5ef348e847d597b55212ceb6d9b53188cbc2bd62fc542fc81"
+    },
+    {
+      "name": "build338_ground_swamp_2",
+      "sha256": "4942df0303b6a1c081e72ba765b3f3d7e246d6e82697da4013fcacd5d01e8542"
+    },
+    {
+      "name": "build338_ground_swamp_3",
+      "sha256": "40bfeec3342de5ff385380a08ef0270d83d6c0ec4a49f1edd0198669c86bd69c"
+    },
+    {
+      "name": "build338_ground_caves_0",
+      "sha256": "b3acf1784b2bfb23c5976ed1d674762e6777ad5350fc8c05d10d115af72c0fc1"
+    },
+    {
+      "name": "build338_ground_caves_1",
+      "sha256": "a90ccee06e8896ceb3b43b03d79a935479ee2f0b9426f80a9345275620b4827c"
+    },
+    {
+      "name": "build338_ground_caves_2",
+      "sha256": "7569c242062ab92f12706ed2e400023b39a718c8fe0d4a33904ec255b8e81dbc"
+    },
+    {
+      "name": "build338_ground_caves_3",
+      "sha256": "7598ca241124ecef434244549bd5edaacdfb3e8e17d2847930b7cf4831b9985e"
+    },
+    {
+      "name": "build338_ground_sanctuary_0",
+      "sha256": "5bdb882bac32944b3748dbfc5c3ed0ae06d91aef2610fa5f396e4259cd77168e"
+    },
+    {
+      "name": "build338_ground_sanctuary_1",
+      "sha256": "3bd19f8e5f50408f187144713196bc827b912055f6b90553ce8f1befba804457"
+    },
+    {
+      "name": "build338_ground_sanctuary_2",
+      "sha256": "28c234e77239fabc709ebab2bf009823471ed2fb1148f19984c91aeb298c73cf"
+    },
+    {
+      "name": "build338_ground_sanctuary_3",
+      "sha256": "1cf0a431b009b438a3995d3b76f3f0347e2dc84940e87c27208758428c4497f9"
+    }
+  ]
+}

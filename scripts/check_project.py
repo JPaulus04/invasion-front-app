@@ -70,13 +70,14 @@ if '-captureSurvivalTransitionScreenshot' not in scene or 'TerrainHazards.extrac
 if 'campaignExitPortal' not in scene or 'survivalExtractionOrb' not in scene or 'circleOfRadius: 21' not in scene:
     errors.append("Campaign exit must use its own visible portal separate from the survival extraction orb")
 # The campaign exit is now a recessed doorway in the far wall, rather
-# than the old freestanding portal sprite. Guard the new presentation and
-# the ENTER interaction label against accidental removal.
-if not all(token in scene for token in (
-    'portalRecessOpening', 'portalRecessEnergy', 'portalWallJamb',
-    'portalWallLintel', 'portalThresholdLight', 'exitPortalLabel'
-)):
-    errors.append("Campaign exit must retain its wall-integrated energy doorway and ENTER label")
+# Build 338: the exact transparent approved ring owns its silhouette.
+portal_renderer = Path("OutpostZero/WorldOneEnvironment.swift").read_text()
+if not all(token in scene+portal_renderer for token in (
+        'approvedCampaignPortalArt', 'portalRecessEnergy', 'exitPortalLabel',
+        'outpost_zero_portal_approved_transparent', 'WorldOneEnvironment.installPortal')):
+    errors.append("Campaign exit must retain the approved transparent round portal and its interaction label")
+if any(token in scene+portal_renderer for token in ('portalWallJamb', 'portalWallLintel', 'portalWallMortar')):
+    errors.append("Rectangular portal overlays must not obscure the approved ring")
 if 'for vineIndex in 0..<2' in scene or 'floor.strokeColor = .clear' not in scene:
     errors.append("Stray tree wisps or rectangular survival floor lines remain")
 if 'zoneBanner.text = ""' not in scene:
@@ -389,15 +390,11 @@ if '"BLOCKED"' in scene:
     errors.append("Placeholder BLOCKED UI must not cover rubble obstacles")
 if 'decorateRubbleObstacle(shape, size: patch.frame.size)' not in scene:
     errors.append("Rubble collision patches must use dimensional artwork")
-# Forest Edge, Overgrown Path and the World 1 Guardian Clearing all
-# carry forest litter. The explicit world guard still excludes flooded/toxic
-# maps even when their zone index also equals 3.
-if ('if worldMapIndex == 0 && zone <= 1' not in scene and
-        'if worldMapIndex == 0 && (zone <= 1 || zone == 3)' not in scene):
-    errors.append("Forest litter must not be painted into flooded rooms")
-forest_floor = scene.split("// Sparse, asymmetrical forest dressing.", 1)[-1].split("// Fern silhouettes", 1)[0]
-if "BattlefieldArt.terrainShape(" not in forest_floor:
-    errors.append("Forest floor must use irregular debris silhouettes")
+# Build 338 replaces scattered procedural litter with one World-1-only owner.
+if 'WorldOneEnvironment.make(plan,' not in scene:
+    errors.append("World 1 must install its unified authored renderer")
+if 'build338_ground_' not in Path("OutpostZero/WorldOneEnvironmentPlan.swift").read_text():
+    errors.append("World 1 must use fixed-density authored materials rather than procedural floor marks")
 if "let fraction = CGFloat(index + 1) / 13" in scene:
     errors.append("Equidistant horizontal ground marks must not return")
 if "upgradeConfirmed ? 35 : 140" in scene:

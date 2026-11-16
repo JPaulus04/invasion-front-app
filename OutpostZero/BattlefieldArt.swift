@@ -32,7 +32,7 @@ enum BattlefieldArt {
         return path
     }
 
-    static func install(in scene: SKScene, behind gameplay: SKNode) {
+    static func install(in scene: SKScene, behind gameplay: SKNode, includeForest: Bool = true) {
         gameplay.childNode(withName: "roomArtwork")?.removeFromParent()
         let artwork = SKNode()
         artwork.name = "roomArtwork"
@@ -43,6 +43,7 @@ enum BattlefieldArt {
         // room. The former green exterior made the arena look like a floating
         // board; this backdrop is purely visual and has no gameplay contact.
         // Only the forest world displays this layer (later worlds hide it).
+        if includeForest {
         let ambient = SKSpriteNode(texture: FrontierFloorArt.texture(for: scene.size))
         ambient.name = "forestAmbientBackdrop"
         ambient.position = CGPoint(x: scene.size.width * 0.5,
@@ -53,6 +54,7 @@ enum BattlefieldArt {
         artwork.addChild(ambient)
         // A separate matte maritime bed makes World 2 readable even outside
         // the gameplay boundary. It never participates in hit testing.
+        }
         let flooded = SKSpriteNode(texture: FrontierFloorArt.floodedTexture(
             for: scene.size))
         flooded.name = "floodedAmbientBackdrop"
