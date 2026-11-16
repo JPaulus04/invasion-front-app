@@ -47,11 +47,15 @@ enum WorldOneEnvironmentPlan {
         let groundPlants: [GroundPlant]
         var materialNames: [String] { (0..<4).map { "build338_ground_\(theme.rawValue)_\($0)" } }
         var requiredAssets: [String] {
-            Array(Set(materialNames + props.map { $0.asset } + reclamation.map { $0.asset } +
-                    groundPlants.map { $0.asset } +
-                    ["outpost_zero_portal_approved_transparent", "world1_\(theme.family)_floor_1"] +
-                    (pools.isEmpty ? [] : ["build338_forest_pool"]) +
-                    (blocked.isEmpty ? [] : ["build338_understory_\(theme.rawValue)"]))).sorted()
+            var names = materialNames
+            names.append(contentsOf: props.map { $0.asset })
+            names.append(contentsOf: reclamation.map { $0.asset })
+            names.append(contentsOf: groundPlants.map { $0.asset })
+            names.append("outpost_zero_portal_approved_transparent")
+            names.append("world1_\(theme.family)_floor_1")
+            if !pools.isEmpty { names.append("build338_forest_pool") }
+            if !blocked.isEmpty { names.append("build338_understory_\(theme.rawValue)") }
+            return Array(Set(names)).sorted()
         }
         func variant(column: Int, row: Int) -> Int {
             // Four neighboring materials; no identical adjacent cells and a
