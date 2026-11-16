@@ -1,0 +1,92 @@
+{
+  "moving-335-2": {
+    "manifest": {
+      "seed": 335,
+      "batch": 2,
+      "profile": "moving",
+      "hz": 60,
+      "protocol": 1,
+      "harness_source": "b32b4606690a932d27565f1211e18cf9805799a1",
+      "source": "b32b4606690a932d27565f1211e18cf9805799a1",
+      "app_sha256": "308eb99a248d8d94656f9484ad3a0274906583f49abc6de87d53cc599bc15795",
+      "architecture": "arm64",
+      "os_version": "15.8.2",
+      "xcode": "Xcode 16.4\nBuild version 16F6\n",
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-18-5",
+      "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro"
+    },
+    "startup": [
+      {
+        "attempt": 1,
+        "began_at": 1794849890.1027489,
+        "result": "campaign_completed",
+        "ended_at": 1794850566.297589
+      }
+    ],
+    "log_bytes": 2140821,
+    "log_sha256": "6ddb7f07999c0a91ecfc586db2772d1b44361c18582d2e4a75e3c989ac18e229",
+    "outcome": "[PHASE4 PLAYTEST] outcome=complete world=1 room=20 elapsed=698 damage=0 movement=48125 kills=846 upgrades=13 level=14"
+  },
+  "moving-335-4": {
+    "manifest": {
+      "seed": 335,
+      "batch": 4,
+      "profile": "moving",
+      "hz": 60,
+      "protocol": 1,
+      "harness_source": "b32b4606690a932d27565f1211e18cf9805799a1",
+      "source": "b32b4606690a932d27565f1211e18cf9805799a1",
+      "app_sha256": "308eb99a248d8d94656f9484ad3a0274906583f49abc6de87d53cc599bc15795",
+      "architecture": "arm64",
+      "os_version": "15.8.2",
+      "xcode": "Xcode 16.4\nBuild version 16F6\n",
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-18-5",
+      "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro"
+    },
+    "startup": [
+      {
+        "attempt": 1,
+        "began_at": 1794849873.4828942,
+        "result": "campaign_completed",
+        "ended_at": 1794850176.3924139
+      }
+    ],
+    "log_bytes": 2140821,
+    "log_sha256": "87abdb307fc9a0845f50b9863a4804484f3c2a7f8ac9807a62c2892573536c0a",
+    "outcome": "[PHASE4 PLAYTEST] outcome=complete world=1 room=20 elapsed=698 damage=0 movement=48125 kills=846 upgrades=13 level=14"
+  },
+  "moving-336-2": {
+    "manifest": {
+      "seed": 336,
+      "batch": 2,
+      "profile": "moving",
+      "hz": 60,
+      "protocol": 1,
+      "harness_source": "b32b4606690a932d27565f1211e18cf9805799a1",
+      "source": "b32b4606690a932d27565f1211e18cf9805799a1",
+      "app_sha256": "308eb99a248d8d94656f9484ad3a0274906583f49abc6de87d53cc599bc15795",
+      "architecture": "arm64",
+      "os_version": "15.8.2",
+      "xcode": "Xcode 16.4\nBuild version 16F6\n"
+    },
+    "startup": [
+      {
+        "attempt": 1,
+        "began_at": 1794849884.364171,
+        "result": "startup_failed",
+        "error": "boot failed before launch: Command '('xcrun', 'simctl', 'spawn', 'FF50709D-A97B-4B20-B3FC-F4C21E20F3C8', '/usr/bin/true')' timed out after 30 seconds",
+        "ended_at": 1794850298.531848
+      },
+      {
+        "attempt": 2,
+        "began_at": 1794850298.540232,
+        "result": "startup_failed",
+        "error": "boot failed before launch: Command '('xcrun', 'simctl', 'spawn', '37B57CC4-047A-4CE0-A893-6E60E9D16D7D', '/usr/bin/true')' timed out after 30 seconds",
+        "ended_at": 1794850563.9236212
+      }
+    ],
+    "log_bytes": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "outcome": null
+  }
+}

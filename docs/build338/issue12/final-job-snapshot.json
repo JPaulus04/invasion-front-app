@@ -1,0 +1,742 @@
+{
+  "snapshot_utc": "2026-11-16 17:47:49 UTC",
+  "run": 43913375739,
+  "candidate": "018501c69e77e6b1a03a69485d85ea8afb01acc4",
+  "run_state": {
+    "status": "in_progress",
+    "conclusion": null,
+    "attempt": 1
+  },
+  "jobs": [
+    {
+      "id": 133461127720,
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success",
+      "runner_name": "GitHub Actions 1000002542",
+      "started_at": "2026-11-16T16:59:08Z",
+      "completed_at": "2026-11-16T17:09:15Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-16T16:59:09Z",
+          "completed_at": "2026-11-16T16:59:11Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-16T16:59:11Z",
+          "completed_at": "2026-11-16T16:59:28Z"
+        },
+        {
+          "name": "Validate source tree",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-16T16:59:28Z",
+          "completed_at": "2026-11-16T16:59:29Z"
+        },
+        {
+          "name": "Test screenshot rejection and simulator failure handling",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-16T16:59:29Z",
+          "completed_at": "2026-11-16T16:59:41Z"
+        },
+        {
+          "name": "Validate production sprite assets",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-16T16:59:41Z",
+          "completed_at": "2026-11-16T17:01:16Z"
+        },
+        {
+          "name": "Test room rules",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-16T17:01:16Z",
+          "completed_at": "2026-11-16T17:01:46Z"
+        },
+        {
+          "name": "Regress compound corridor pursuit and continuous portal framing",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-16T17:01:46Z",
+          "completed_at": "2026-11-16T17:03:04Z"
+        },
+        {
+          "name": "Test controlled replay RNG, configuration and tick clock",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-16T17:03:04Z",
+          "completed_at": "2026-11-16T17:03:06Z"
+        },
+        {
+          "name": "Test reactive simulator combat driver",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-16T17:03:06Z",
+          "completed_at": "2026-11-16T17:03:09Z"
+        },
+        {
+          "name": "Test character motion and recoil",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-16T17:03:09Z",
+          "completed_at": "2026-11-16T17:03:12Z"
+        },
+        {
+          "name": "Test XP and combat rules",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-16T17:03:12Z",
+          "completed_at": "2026-11-16T17:03:23Z"
+        },
+        {
+          "name": "Test full twenty-room campaign pacing",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-16T17:03:23Z",
+          "completed_at": "2026-11-16T17:03:31Z"
+        },
+        {
+          "name": "Test world unlocks, individual core rewards and enemy mixes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-16T17:03:31Z",
+          "completed_at": "2026-11-16T17:03:35Z"
+        },
+        {
+          "name": "Generate original app icon",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-16T17:03:35Z",
+          "completed_at": "2026-11-16T17:03:39Z"
+        },
+        {
+          "name": "Install XcodeGen",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-16T17:03:39Z",
+          "completed_at": "2026-11-16T17:03:46Z"
+        },
+        {
+          "name": "Validate generated forest artwork",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-11-16T17:03:46Z",
+          "completed_at": "2026-11-16T17:05:05Z"
+        },
+        {
+          "name": "Generate Xcode project",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-11-16T17:05:05Z",
+          "completed_at": "2026-11-16T17:05:06Z"
+        },
+        {
+          "name": "Compile iOS simulator app",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-11-16T17:05:06Z",
+          "completed_at": "2026-11-16T17:07:52Z"
+        },
+        {
+          "name": "Verify production character PNGs are bundled",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-11-16T17:07:52Z",
+          "completed_at": "2026-11-16T17:07:53Z"
+        },
+        {
+          "name": "Verify World 1 authored art source and compiled asset catalog",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-11-16T17:07:53Z",
+          "completed_at": "2026-11-16T17:07:57Z"
+        },
+        {
+          "name": "Verify complete World 1 authored artwork",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-11-16T17:07:57Z",
+          "completed_at": "2026-11-16T17:09:02Z"
+        },
+        {
+          "name": "Package compiled simulator app",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-11-16T17:09:02Z",
+          "completed_at": "2026-11-16T17:09:05Z"
+        },
+        {
+          "name": "Upload compiled simulator app",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-11-16T17:09:05Z",
+          "completed_at": "2026-11-16T17:09:10Z"
+        },
+        {
+          "name": "Upload build diagnostics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-11-16T17:09:10Z",
+          "completed_at": "2026-11-16T17:09:11Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 48,
+          "started_at": "2026-11-16T17:09:11Z",
+          "completed_at": "2026-11-16T17:09:12Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 49,
+          "started_at": "2026-11-16T17:09:12Z",
+          "completed_at": "2026-11-16T17:09:13Z"
+        }
+      ]
+    },
+    {
+      "id": 133461129763,
+      "name": "startup-recovery",
+      "status": "completed",
+      "conclusion": "skipped",
+      "runner_name": null,
+      "started_at": "2026-11-16T16:58:56Z",
+      "completed_at": "2026-11-16T16:58:56Z",
+      "steps": []
+    },
+    {
+      "id": 133467783505,
+      "name": "Focused gameplay presentation",
+      "status": "completed",
+      "conclusion": "success",
+      "runner_name": "GitHub Actions 1000002555",
+      "started_at": "2026-11-16T17:19:18Z",
+      "completed_at": "2026-11-16T17:30:50Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-16T17:19:18Z",
+          "completed_at": "2026-11-16T17:19:20Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-16T17:19:20Z",
+          "completed_at": "2026-11-16T17:19:36Z"
+        },
+        {
+          "name": "Run actions/download-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-16T17:19:36Z",
+          "completed_at": "2026-11-16T17:19:40Z"
+        },
+        {
+          "name": "Restore compiled application",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-16T17:19:40Z",
+          "completed_at": "2026-11-16T17:19:40Z"
+        },
+        {
+          "name": "Install real video decoder",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-16T17:19:40Z",
+          "completed_at": "2026-11-16T17:20:05Z"
+        },
+        {
+          "name": "Capture focused HUD, objectives, upgrades and victory",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-16T17:20:05Z",
+          "completed_at": "2026-11-16T17:30:14Z"
+        },
+        {
+          "name": "Validate captured frames",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-16T17:30:14Z",
+          "completed_at": "2026-11-16T17:30:38Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-16T17:30:38Z",
+          "completed_at": "2026-11-16T17:30:43Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-11-16T17:30:43Z",
+          "completed_at": "2026-11-16T17:30:44Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-11-16T17:30:44Z",
+          "completed_at": "2026-11-16T17:30:48Z"
+        }
+      ]
+    },
+    {
+      "id": 133467783510,
+      "name": "defense-visual-review",
+      "status": "completed",
+      "conclusion": "success",
+      "runner_name": "GitHub Actions 1000002558",
+      "started_at": "2026-11-16T17:24:19Z",
+      "completed_at": "2026-11-16T17:38:20Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-16T17:24:19Z",
+          "completed_at": "2026-11-16T17:24:22Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-16T17:24:22Z",
+          "completed_at": "2026-11-16T17:24:34Z"
+        },
+        {
+          "name": "Download compiled simulator app",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-16T17:24:34Z",
+          "completed_at": "2026-11-16T17:24:38Z"
+        },
+        {
+          "name": "Install native PNG decoder",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-16T17:24:38Z",
+          "completed_at": "2026-11-16T17:24:42Z"
+        },
+        {
+          "name": "Restore executable app bundle",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-16T17:24:42Z",
+          "completed_at": "2026-11-16T17:24:42Z"
+        },
+        {
+          "name": "Capture equipment-defense states and live walk prototype",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-16T17:24:42Z",
+          "completed_at": "2026-11-16T17:37:46Z"
+        },
+        {
+          "name": "Upload defense simulator diagnostics",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-16T17:37:46Z",
+          "completed_at": "2026-11-16T17:37:48Z"
+        },
+        {
+          "name": "Upload World 1 landscape review screenshots",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-16T17:37:48Z",
+          "completed_at": "2026-11-16T17:37:54Z"
+        },
+        {
+          "name": "Upload live pilot walk preview",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-16T17:37:54Z",
+          "completed_at": "2026-11-16T17:38:10Z"
+        },
+        {
+          "name": "Validate independent equipment-defense frames",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-16T17:38:10Z",
+          "completed_at": "2026-11-16T17:38:12Z"
+        },
+        {
+          "name": "Upload focused equipment-defense screenshots",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-16T17:38:12Z",
+          "completed_at": "2026-11-16T17:38:14Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-11-16T17:38:14Z",
+          "completed_at": "2026-11-16T17:38:15Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-11-16T17:38:15Z",
+          "completed_at": "2026-11-16T17:38:18Z"
+        }
+      ]
+    },
+    {
+      "id": 133467783656,
+      "name": "simulator-review",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "runner_name": "",
+      "started_at": "2026-11-16T17:09:15Z",
+      "completed_at": "2026-11-16T17:24:16Z",
+      "steps": []
+    },
+    {
+      "id": 133467783788,
+      "name": "phase4-gameplay / Fresh World 1 \u2014 moving seed 335 batch 4",
+      "status": "completed",
+      "conclusion": "success",
+      "runner_name": "GitHub Actions 1000002560",
+      "started_at": "2026-11-16T17:24:18Z",
+      "completed_at": "2026-11-16T17:29:41Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-16T17:24:18Z",
+          "completed_at": "2026-11-16T17:24:19Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-16T17:24:20Z",
+          "completed_at": "2026-11-16T17:24:31Z"
+        },
+        {
+          "name": "Test simulator setup failure handling",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-16T17:24:31Z",
+          "completed_at": "2026-11-16T17:24:31Z"
+        },
+        {
+          "name": "Run actions/download-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-16T17:24:31Z",
+          "completed_at": "2026-11-16T17:24:32Z"
+        },
+        {
+          "name": "Unpack app from this exact workflow run",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-16T17:24:32Z",
+          "completed_at": "2026-11-16T17:24:33Z"
+        },
+        {
+          "name": "Run fresh campaign with real combat",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-16T17:24:33Z",
+          "completed_at": "2026-11-16T17:29:36Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-16T17:29:36Z",
+          "completed_at": "2026-11-16T17:29:38Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-16T17:29:38Z",
+          "completed_at": "2026-11-16T17:29:38Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-16T17:29:38Z",
+          "completed_at": "2026-11-16T17:29:40Z"
+        }
+      ]
+    },
+    {
+      "id": 133467783796,
+      "name": "phase4-gameplay / Fresh World 1 \u2014 moving seed 336 batch 2",
+      "status": "completed",
+      "conclusion": "failure",
+      "runner_name": "GitHub Actions 1000002561",
+      "started_at": "2026-11-16T17:24:20Z",
+      "completed_at": "2026-11-16T17:36:17Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-16T17:24:21Z",
+          "completed_at": "2026-11-16T17:24:23Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-16T17:24:23Z",
+          "completed_at": "2026-11-16T17:24:34Z"
+        },
+        {
+          "name": "Test simulator setup failure handling",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-16T17:24:34Z",
+          "completed_at": "2026-11-16T17:24:35Z"
+        },
+        {
+          "name": "Run actions/download-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-16T17:24:35Z",
+          "completed_at": "2026-11-16T17:24:42Z"
+        },
+        {
+          "name": "Unpack app from this exact workflow run",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-16T17:24:42Z",
+          "completed_at": "2026-11-16T17:24:43Z"
+        },
+        {
+          "name": "Run fresh campaign with real combat",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 6,
+          "started_at": "2026-11-16T17:24:43Z",
+          "completed_at": "2026-11-16T17:36:07Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-16T17:36:07Z",
+          "completed_at": "2026-11-16T17:36:10Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-16T17:36:10Z",
+          "completed_at": "2026-11-16T17:36:12Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-16T17:36:12Z",
+          "completed_at": "2026-11-16T17:36:14Z"
+        }
+      ]
+    },
+    {
+      "id": 133467783821,
+      "name": "phase4-gameplay / Fresh World 1 \u2014 stationary seed 335 batch 4",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "runner_name": "",
+      "started_at": "2026-11-16T17:09:15Z",
+      "completed_at": "2026-11-16T17:24:16Z",
+      "steps": []
+    },
+    {
+      "id": 133467783857,
+      "name": "phase4-gameplay / Fresh World 1 \u2014 stationary seed 335 batch 2",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "runner_name": "",
+      "started_at": "2026-11-16T17:09:15Z",
+      "completed_at": "2026-11-16T17:24:16Z",
+      "steps": []
+    },
+    {
+      "id": 133467783912,
+      "name": "phase4-gameplay / Fresh World 1 \u2014 moving seed 335 batch 2",
+      "status": "in_progress",
+      "conclusion": null,
+      "runner_name": "GitHub Actions 1000002559",
+      "started_at": "2026-11-16T17:24:19Z",
+      "completed_at": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-16T17:24:20Z",
+          "completed_at": "2026-11-16T17:24:22Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-16T17:24:23Z",
+          "completed_at": "2026-11-16T17:24:40Z"
+        },
+        {
+          "name": "Test simulator setup failure handling",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-16T17:24:41Z",
+          "completed_at": "2026-11-16T17:24:41Z"
+        },
+        {
+          "name": "Run actions/download-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-16T17:24:41Z",
+          "completed_at": "2026-11-16T17:24:47Z"
+        },
+        {
+          "name": "Unpack app from this exact workflow run",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-16T17:24:47Z",
+          "completed_at": "2026-11-16T17:24:49Z"
+        },
+        {
+          "name": "Run fresh campaign with real combat",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-16T17:24:49Z",
+          "completed_at": "2026-11-16T17:36:06Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-16T17:36:06Z",
+          "completed_at": "2026-11-16T17:36:10Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-16T17:36:10Z",
+          "completed_at": "2026-11-16T17:36:11Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "in_progress",
+          "conclusion": null,
+          "number": 15,
+          "started_at": "2026-11-16T17:36:11Z",
+          "completed_at": null
+        }
+      ]
+    },
+    {
+      "id": 133467783972,
+      "name": "phase4-gameplay / Fresh World 1 \u2014 moving seed 336 batch 4",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "runner_name": "",
+      "started_at": "2026-11-16T17:09:15Z",
+      "completed_at": "2026-11-16T17:44:41Z",
+      "steps": []
+    }
+  ],
+  "queue_recovery_request": {
+    "job_id": 133467783857,
+    "http_status": 403,
+    "message": "The workflow run containing this job is already running",
+    "started_new_attempt": false
+  }
+}

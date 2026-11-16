@@ -1,0 +1,15 @@
+{
+  "source": "018501c69e77e6b1a03a69485d85ea8afb01acc4",
+  "run": 43913375739,
+  "artifact": 14254236354,
+  "reviewed_all_seven": true,
+  "frames": {
+    "outpost-zero-world1-swamp.png": "c7f6819f07f0eeb916866f7fea684900e5a2e0bd7939ba6a7bb5347f261b4c48",
+    "outpost-zero-world1-outpost.png": "c8b3d5a829dd17f64ce8cb9121e8292e4c89650a705c8bb14e2b2479d9b86498",
+    "outpost-zero-world1-outpost-revisit.png": "6d7b848f180acc149fa69af3bae8729f1e5ba8285ae087606787bc216a9ac249",
+    "outpost-zero-world1-caves.png": "0e2af81486955f552595a4daa4fd911d1476f5b3b7bc732aca9f62f1c820cc96",
+    "outpost-zero-world1-boss.png": "6b7179ebb7e98169fed70341642c31e2d28ab28967240ec68c7532072204af8a",
+    "outpost-zero-world1-caves-revisit.png": "6b121748086909cbf7730f1997fa57c205335a4740def0ff18aeb2d62c3ebc18",
+    "outpost-zero-world1-swamp-revisit.png": "b0d69d7f8083b2df3ab9c7b5eed60ce6e48ee7b90fadfcfbe99e283dde2464f8"
+  }
+}

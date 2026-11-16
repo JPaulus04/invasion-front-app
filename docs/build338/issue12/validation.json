@@ -6,8 +6,8 @@
   "final_build": "success",
   "python_tests": 68,
   "native_pursuit_cases": 288,
-  "runtime_status": "incomplete; final camera passed and reviewed; moving3354 passed; three jobs cancelled with no runner/steps; others ongoing",
-  "snapshot_utc": "2026-11-16T17:15:25Z",
+  "runtime_status": "blocked_by_infrastructure; seed3362 boot failed after one recovery, four unassigned jobs cancelled, completed moving3352 runner teardown stuck",
+  "snapshot_utc": "2026-11-16T17:47:49Z",
   "prior_run": 43906741184,
   "prior_335_pairs_identical": {
     "stationary_events": 57,
@@ -26,7 +26,21 @@
   "unstarted_cancelled_jobs": [
     133467783656,
     133467783821,
-    133467783857
+    133467783857,
+    133467783972
   ],
-  "planned_queue_recoveries_per_unstarted_job": 1
+  "planned_queue_recoveries_per_unstarted_job": 1,
+  "final_moving_335_pair": {
+    "identical": true,
+    "events_each": 10159,
+    "all_environment_fields_match": true
+  },
+  "queue_recovery_request": {
+    "job_id": 133467783857,
+    "http_status": 403,
+    "message": "The workflow run containing this job is already running",
+    "started_new_attempt": false
+  },
+  "full_gate_passed": false,
+  "product_assets_modified": []
 }

@@ -1,6 +1,6 @@
 # Build 338 — issue #12 fixes and validation evidence
 
-**Release hold: complete gameplay validation remains incomplete.** The final build and manually reviewed camera traversal passed. Three jobs were cancelled before receiving runners; remaining gameplay/defense checks continue. See [the live final run](https://github.com/JPaulus04/invasion-front-app/actions/runs/43913375739) for subsequent status.
+**Release hold: full validation is blocked by simulator/runner infrastructure.** Status snapshot: November 16, 2026, 12:47 EST. The final build, reviewed camera traversal, defense review and both moving seed-335 gameplay outcomes passed. Seed 336 batch 2 exhausted its one boot-recovery attempt without launching the app. Four jobs were cancelled without runners; one completed moving trial is stuck in GitHub runner teardown. [Live final run](https://github.com/JPaulus04/invasion-front-app/actions/runs/43913375739).
 
 [PR #13](https://github.com/JPaulus04/invasion-front-app/pull/13) · branch `fix/build338-release-blockers` · release baseline `5453d2e3119576eb5ee18d2f07d6b3b75725f81f`.
 
@@ -51,7 +51,30 @@ Seven first-milestone World 1 landscape captures and the focused HUD, upgrades, 
 
 Final candidate: `018501c69e77e6b1a03a69485d85ea8afb01acc4`. PR merge candidate: `b32b4606690a932d27565f1211e18cf9805799a1`. Both have tree `ae9e06e39ef719e064d8788f53eadc551b35a786`, verified through GitHub’s commit API. The [final build](https://github.com/JPaulus04/invasion-front-app/actions/runs/43913375739/job/133461127720) checked out that merge candidate and passed 68 Python tests, native pursuit/camera/replay/gameplay suites, iOS compilation and bundled/source artwork checks.
 
-Final runtime status: focused presentation **passed and visually reviewed**; moving seed 335 batch 4 **passed** all 20 rooms. Broad simulator review and both stationary jobs were cancelled with empty runner names and zero steps while other jobs in the same workflow continued. No simulator/gameplay ran in those jobs. One targeted queue-recovery attempt is planned after the first attempt ends; successful gameplay will not be replayed. Remaining moving/defense jobs are still running or queued. No full same-SHA pass is claimed. The earlier seed-335 results do not replace those final gates. Documentation is published separately to keep the validated application candidate immutable.
+Final runtime outcomes and infrastructure failures:
+
+| Required check | Actual final-candidate result |
+| --- | --- |
+| Build / 68 Python tests / native suites / iOS / bundle checks | Passed |
+| Focused presentation and camera traversal | Passed; actual video and frame sequence reviewed |
+| Defense review and seven World 1 landscape captures | Passed; [all four identities](world1-reviewed.jpg) and revisits reviewed, [hashes](landscape-reviewed.json) |
+| Moving 335, batch 4 | Passed all 20 rooms, 698s combat time, zero damage |
+| Moving 335, batch 2 | Actual combat and artifact upload passed; GitHub `Complete job` remains in progress |
+| Moving 336, batch 2 | Infrastructure failure before app install/launch; both boot-readiness attempts timed out |
+| Stationary 335, batches 2 and 4 | Cancelled with no assigned runner and zero steps; no final-candidate outcome |
+| Moving 336, batch 4 | Cancelled with no assigned runner and zero steps; no outcome |
+| Broad simulator review | Cancelled with no assigned runner and zero steps; no scene executed |
+| Combined six-case acceptance | Not completed; no full pass claimed |
+
+The final moving-335 traces are byte-identical across batches 2/4: 10,159 validated events each. Source, app hash, architecture, OS, Xcode, runtime and device type match. [Actual campaign manifests, logs hashes, outcomes and startup histories](final-campaign-evidence.json) retain provenance. The earlier stationary results above do not replace final-candidate gates.
+
+Seed-336 batch 2 failed while boot readiness attempted the simulator's `/usr/bin/true` process, before installation/launch. Its single fresh-device recovery failed at the same probe, and the actual campaign log is empty. [Artifact 14252023749](https://github.com/JPaulus04/invasion-front-app/actions/runs/43913375739/artifacts/14252023749) retains both attempts and diagnostics. No third startup attempt or repeated gameplay was requested.
+
+Moving-335 batch 2 completed combat at 17:36:06 UTC and artifact upload at 17:36:10 UTC. It is stuck in the runner's `Complete job` step, not combat. The cancelled jobs have empty runner names and no steps while the same workflow continued elsewhere. Exact platform cancellation causes are not exposed; concurrency cancellation is not asserted.
+
+A targeted recovery request for the unassigned stationary batch-2 job was refused by GitHub with HTTP 403: `The workflow run containing this job is already running`. No new attempt was started. Retrying completed gameplay or repeatedly cycling simulator hosts would not resolve that controller state, so validation is handed off as blocked. [Exact job/step snapshot and recovery response](final-job-snapshot.json) preserve the evidence. The live run is left intact and may update after this snapshot.
+
+Documentation is published separately; the PR candidate remains immutable. The original six-case matrix, acceptance analyzers and TestFlight gate have not been relaxed.
 
 Implementation commits:
 
@@ -62,4 +85,4 @@ Implementation commits:
 
 No asset files changed. Approved paving/overgrowth, portal artwork, Mossbot, landscape renderer, environment plans and authored geometry match the release baseline byte-for-byte. Acceptance analyzers, the six-case matrix and TestFlight gate remain intact.
 
-**Recommendation: hold merge/release approval and TestFlight.** Final complete same-source gameplay/broad-review validation remains required. Manual camera traversal review passed. No merge or upload was performed; no numerical visual-quality certification is claimed.
+**Recommendation: hold merge/release approval and TestFlight.** Resolve runner teardown/provisioning and obtain the missing final same-source outcomes and broad-review evidence. Manual camera traversal review passed. The seed-336 boot failure needs new infrastructure evidence before another startup attempt. No merge or upload was performed; no numerical visual-quality certification is claimed.
