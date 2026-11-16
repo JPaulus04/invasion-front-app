@@ -90,7 +90,10 @@ enum WorldOneEnvironmentPlan {
                 let width = height*aspect(tree)
                 let anchor = WorldOneArtMetrics.groundAnchorY(for: tree)
                 // Set the forest back behind the north/south water shelves.
-                let wetShelf = (theme == .swamp || theme == .caves) && side >= 2 && t > 0.25 && t < 0.75
+                let along = bounds.minX+length*t
+                let shelfStart = side == 2 ? bounds.midX-190 : bounds.midX+10
+                let wetShelf = (theme == .swamp || theme == .caves) && side >= 2 &&
+                    along > shelfStart-20 && along < shelfStart+200
                 let distance = 8 + random()*30 + (wetShelf ? 100 : 0)
                 var x: CGFloat, y: CGFloat
                 switch side {
