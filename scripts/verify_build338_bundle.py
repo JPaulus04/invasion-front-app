@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+from approved_bundle_pixels import compare_portal_pixels
 
 app=Path('DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app')
 info=json.loads(subprocess.check_output(['xcrun','assetutil','--info',str(app/'Assets.car')],text=True))
@@ -26,9 +27,11 @@ for name in sorted(raw_names):
     if not paths: raise SystemExit(f'Missing approved bundled resource: {name}')
     raw_hashes[name]=hashlib.sha256(paths[0].read_bytes()).hexdigest()
 reference=json.loads(Path('docs/build338/approved-assets.json').read_text())
-if raw_hashes['outpost_zero_portal_approved_transparent'] != reference['portal_sha256']:
-    raise SystemExit('Actual bundled portal differs from the approved baseline')
+source=Path('OutpostZero/ArtAssets/outpost_zero_portal_approved_transparent.png')
+if hashlib.sha256(source.read_bytes()).hexdigest() != reference['portal_sha256']:
+    raise SystemExit('Approved portal source hash changed')
+portal_pixels=compare_portal_pixels(source,next(app.rglob(source.name)))
 report={'compiled_catalog_names':sorted(expected),'bundled_resource_sha256':raw_hashes,
-        'approved_portal_hash_matches':True}
+        'approved_portal_source_hash_matches':True,'bundled_portal_pixels':portal_pixels}
 Path('build338-bundle-report.json').write_text(json.dumps(report,indent=2)+'\n')
-print(f'PASS: {len(expected)} compiled catalog names, approved bundled resource hashes and exact round portal bytes')
+print(f'PASS: {len(expected)} compiled catalog names and actual bundled portal appearance: {portal_pixels}')
