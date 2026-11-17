@@ -211,7 +211,11 @@ jobs:
           APP_BUNDLE_PATH: ${{ runner.temp }}/OutpostZero.xcarchive/Products/Applications/OutpostZero.app
         run: |
           set -euo pipefail
-          python3 scripts/verify_build338_bundle.py
+          # Keep Pillow isolated from the macOS runner's system Python.
+          python3 -m venv "$RUNNER_TEMP/release-verify-venv"
+          "$RUNNER_TEMP/release-verify-venv/bin/python" -m pip install --disable-pip-version-check Pillow==11.3.0
+          "$RUNNER_TEMP/release-verify-venv/bin/python" -c 'from PIL import Image; print("Pillow release verifier ready")'
+          "$RUNNER_TEMP/release-verify-venv/bin/python" scripts/verify_build338_bundle.py
           codesign --verify --deep --strict "$APP_BUNDLE_PATH"
           codesign -d --entitlements :- "$APP_BUNDLE_PATH" > "$RUNNER_TEMP/release-entitlements.plist"
           python3 - <<'PY'
