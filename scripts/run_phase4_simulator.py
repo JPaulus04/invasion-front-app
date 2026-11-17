@@ -11,7 +11,7 @@ import subprocess
 import time
 from contextlib import contextmanager
 from simulator_startup import (RecoverableStartupError, content, launch_initial,
-                               snapshot, wait_for_app_registration)
+                               snapshot, wait_for_app_registration, wait_for_render_surface)
 
 BUNDLE = 'com.paulus.laststandcommand'
 
@@ -110,6 +110,7 @@ def fresh_simulator(profile, output, controlled=False):
                                   BUNDLE, 'app')
                     if controlled:
                         wait_for_app_registration(command, device, output)
+                        wait_for_render_surface(command, device, output)
             except (subprocess.TimeoutExpired, subprocess.CalledProcessError,
                     RecoverableStartupError) as error:
                 snapshot(command, device, output, f'{stage}-failure', began)

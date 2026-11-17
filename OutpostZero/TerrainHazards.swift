@@ -283,12 +283,44 @@ enum TerrainHazards {
                                  radius: CGFloat) -> CGPoint {
         let distance = hypot(pilot.x - current.x, pilot.y - current.y)
         guard distance > radius else { return pilot }
+        let compoundPassage = !patches.isEmpty && patches.allSatisfy {
+            $0.kind == .rubble &&
+            ($0.frame.minX <= bounds.minX || $0.frame.maxX >= bounds.maxX)
+        }
         // Keep direct pursuit when the entire corridor is unobstructed.
         // Side-steering on clear ground causes visible enemy zigzagging.
+        // Melee flanking adds lateral motion to that line. Reserve steering
+        // clearance at shoulder corners before resuming it; a barely-clear
+        // centerline otherwise points the flanking intent back into the wall.
+        // The last contact-length segment uses physical clearance only: the
+        // pilot may legitimately stand closer to a wall than the steering pad.
+        let approach = max(0, distance - radius - 24) / distance
+        let steeringEnd = CGPoint(x: current.x + (pilot.x-current.x)*approach,
+                                  y: current.y + (pilot.y-current.y)*approach)
         if extractionApproachIsClear(from: current, to: pilot,
                                       patches: patches,
-                                      collisionRadius: radius) {
+                                      collisionRadius: radius) &&
+           (!compoundPassage || extractionApproachIsClear(from: current, to: steeringEnd,
+                patches: patches, collisionRadius: radius + 9)) {
             return pilot
+        }
+        // Authored passage shoulders form compound concave corners. Local
+        // corner selection can oscillate at a pocket mouth forever (Room 2,
+        // seed 335). Use their guaranteed central lane as a reachable route,
+        // including the final horizontal leg if the pilot is in a pocket.
+        // Check all legs against the actual collision shapes; other terrain
+        // keeps the general shoreline navigator below.
+        if compoundPassage {
+            let entry = CGPoint(x: bounds.midX, y: current.y)
+            let exit = CGPoint(x: bounds.midX, y: pilot.y)
+            let route = [current, entry, exit, pilot]
+            let clear = (0..<3).allSatisfy {
+                extractionApproachIsClear(from: route[$0], to: route[$0+1],
+                    patches: patches, collisionRadius: radius)
+            }
+            if clear {
+                return hypot(entry.x-current.x, entry.y-current.y) > 4 ? entry : exit
+            }
         }
         let padding = radius + 9
         for patch in patches where patch.kind != .acid {

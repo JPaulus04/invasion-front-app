@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Check actual compiled CAR names and loose approved resources, not only source files."""
+import os
 import hashlib
 import json
 from pathlib import Path
 import subprocess
 from approved_bundle_pixels import compare_portal_pixels
 
-app=Path('DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app')
+app=Path(os.environ.get('APP_BUNDLE_PATH', 'DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app'))
 info=json.loads(subprocess.check_output(['xcrun','assetutil','--info',str(app/'Assets.car')],text=True))
 names={item.get('Name') for item in info}
 expected={f'build338_ground_{family}_{i}' for family in ['outpost','swamp','caves','sanctuary'] for i in range(4)}

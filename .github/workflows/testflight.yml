@@ -6,7 +6,11 @@ on:
       build_number:
         description: "Unique TestFlight build number"
         required: true
-        default: "333"
+        default: "338"
+      use_build338_reviewed_evidence:
+        description: "Build 338 only: owner accepted run 43994798717 startup gap"
+        type: boolean
+        default: false
 
 env:
   RELEASE_BUILD_NUMBER: ${{ inputs.build_number }}
@@ -20,7 +24,21 @@ jobs:
       actions: read
       contents: read
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify pinned Build 338 evidence and unchanged application source
+        if: inputs.use_build338_reviewed_evidence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/release338_evidence.py
+      - uses: actions/upload-artifact@v4
+        if: inputs.use_build338_reviewed_evidence
+        with:
+          name: release338-source
+          path: release338-source.json
       - name: Require same-SHA gameplay and presentation success before releasing
+        if: ${{ !inputs.use_build338_reviewed_evidence }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -108,6 +126,12 @@ jobs:
           for name in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_API_KEY_BASE64 IOS_DISTRIBUTION_P12_BASE64 KEYCHAIN_PASSWORD IOS_PROVISIONING_PROFILE_BASE64; do
             if [ -z "${!name}" ]; then echo "::error::Missing secret: $name"; exit 1; fi
           done
+      - name: Verify Apple access and unused build number before archiving
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY: ${{ secrets.ASC_API_KEY }}
+        run: node scripts/release338_preflight.js
       - name: Validate TestFlight build number
         env:
           BUILD_NUMBER: ${{ env.RELEASE_BUILD_NUMBER }}
@@ -181,6 +205,29 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/OutpostZero.xcarchive" -derivedDataPath "$RUNNER_TEMP/DerivedData" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CURRENT_PROJECT_VERSION="${{ env.RELEASE_BUILD_NUMBER }}" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" OTHER_CODE_SIGN_FLAGS="--keychain build.keychain" archive 2>&1 | tee archive.log
+      - name: Verify Release archive identity, signing and Build 338 artwork
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_BUNDLE_PATH: ${{ runner.temp }}/OutpostZero.xcarchive/Products/Applications/OutpostZero.app
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_build338_bundle.py
+          codesign --verify --deep --strict "$APP_BUNDLE_PATH"
+          codesign -d --entitlements :- "$APP_BUNDLE_PATH" > "$RUNNER_TEMP/release-entitlements.plist"
+          python3 - <<'PY'
+          import os, plistlib
+          from pathlib import Path
+          app=Path(os.environ['APP_BUNDLE_PATH'])
+          info=plistlib.loads((app/'Info.plist').read_bytes())
+          ent=plistlib.loads((Path(os.environ['RUNNER_TEMP'])/'release-entitlements.plist').read_bytes())
+          assert info['CFBundleIdentifier']=='com.paulus.laststandcommand'
+          assert str(info['CFBundleVersion'])==os.environ['RELEASE_BUILD_NUMBER']
+          assert ent.get('get-task-allow',False) is False
+          assert ent['com.apple.developer.team-identifier']==os.environ['APPLE_TEAM_ID']
+          assert ent['application-identifier'].endswith('.com.paulus.laststandcommand')
+          print('Release archive source:',os.environ['GITHUB_SHA'])
+          print('Release signing, bundle identity and production entitlements verified')
+          PY
       - name: Export App Store IPA
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -311,4 +358,5 @@ jobs:
             simulator-build.log
             archive.log
             export.log
+            build338-bundle-report.json
           if-no-files-found: ignore

@@ -10,7 +10,10 @@ jobs:
     timeout-minutes: 35
     strategy:
       fail-fast: false
-      max-parallel: 3
+      # Serialize fresh simulator campaigns to reduce concurrent CoreSimulator
+      # startup pressure and make infrastructure failures easier to isolate.
+      # All six predeclared cases remain mandatory; no acceptance bypass.
+      max-parallel: 1
       # Predeclared trials, not retries. Every trial and cadence pair must pass.
       matrix:
         include:

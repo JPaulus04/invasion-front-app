@@ -50,6 +50,10 @@ jobs:
         run: |
           swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift tests/RoomRulesTests.swift -o "$RUNNER_TEMP/room-tests"
           "$RUNNER_TEMP/room-tests"
+      - name: Regress compound corridor pursuit and continuous portal framing
+        run: |
+          swiftc OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift OutpostZero/WorldOneRoomGeometry.swift OutpostZero/CombatRules.swift tests/WorldOnePursuitTests.swift -o "$RUNNER_TEMP/pursuit-tests"
+          "$RUNNER_TEMP/pursuit-tests"
       - name: Test controlled replay RNG, configuration and tick clock
         run: |
           swiftc OutpostZero/QAReplay.swift tests/QAReplayTests.swift -o "$RUNNER_TEMP/replay-tests"
@@ -196,9 +200,10 @@ jobs:
   defense-visual-review:
     # Run expensive simulator captures only at full review checkpoints.
     if: >-
-      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      !(github.event_name == 'push' && contains(github.event.head_commit.message, '[release338-existing-evidence]')) &&
+      ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
-      (github.event_name == 'push' && contains(github.event.head_commit.message, '[full-review]'))
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[full-review]')))
     # Small parallel image pass for rapid visual correction of this mission.
     # Full campaign screenshots remain in the separate simulator-review job.
     needs: build
@@ -292,9 +297,10 @@ jobs:
     # Build 328 release gate: full simulator capture must pass before TestFlight.
     # Fast tests, compilation and focused motion captures still run every time.
     if: >-
-      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      !(github.event_name == 'push' && contains(github.event.head_commit.message, '[release338-existing-evidence]')) &&
+      ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
-      (github.event_name == 'push' && contains(github.event.head_commit.message, '[full-review]'))
+      (github.event_name == 'push' && contains(github.event.head_commit.message, '[full-review]')))
     needs: build
     # Newer hosted image avoids the slower first-boot migration seen on macOS 15.
     runs-on: macos-15
@@ -405,7 +411,14 @@ jobs:
           # A successful bootstatus does not guarantee a healthy CoreSimulator
           # service. If simctl hangs, rebooting the same simulator repeatedly
           # cannot recover it. Restart the service and reselect a clean device.
+          RECOVERY_USED=0
+          mkdir -p diagnostics
           recover_simulator_service() {
+            if [ "$RECOVERY_USED" = 1 ]; then
+              echo "::error::One service recovery already used; retaining failure without cycling runners"
+              return 1
+            fi
+            RECOVERY_USED=1
             echo "::warning::Restarting unresponsive CoreSimulator service"
             pkill -f 'CoreSimulatorService' || true
             sleep 8
@@ -421,7 +434,7 @@ jobs:
           capture_scene() {
             FLAG="$1"
             OUTPUT="$2"
-            for ATTEMPT in 1 2 3; do
+            for ATTEMPT in 1 2; do
               # Failure to terminate is a service-health failure, not a game
               # failure. Recover before attempting another launch.
               if ! run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand; then
@@ -436,21 +449,17 @@ jobs:
               sleep 2
               # Cold-booted CoreSimulator can accept the app but not yet
               # serve pixels. Launch/screenshot timeout is retriable too.
-              if ! run_bounded 45 xcrun simctl launch "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+              STDOUT="$PWD/diagnostics/${FLAG#-}-attempt-$ATTEMPT.log"
+              STDERR="$PWD/diagnostics/${FLAG#-}-attempt-$ATTEMPT-stderr.log"
+              if ! run_bounded 45 xcrun simctl launch --stdout="$STDOUT" --stderr="$STDERR" "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
                 echo "::warning::Simulator launch timed out for $FLAG (attempt $ATTEMPT)"
-                # Restart the service instead of repeatedly rebooting a
-                # device whose simctl launch/terminate calls both time out.
-                recover_simulator_service || return 1
-                if [ "$ATTEMPT" != 3 ]; then
-                  # A cold CoreSimulatorService can become unresponsive even
-                  # after installation. Reboot the simulator before retrying
-                  # rather than issuing launch to the same wedged instance.
-                  run_bounded 30 xcrun simctl shutdown "$DEVICE" || true
-                  run_bounded 45 xcrun simctl boot "$DEVICE" || true
-                  run_bounded 120 xcrun simctl bootstatus "$DEVICE" -b || true
-                  run_bounded 65 xcrun simctl install "$DEVICE" "$APP" || true
+                if [ -f "$STDERR" ] && grep -Eq 'Precondition failed|Fatal error:' "$STDERR"; then
+                  cat "$STDERR"
+                  echo "::error::App assertion for $FLAG; recovery forbidden"
+                  return 1
                 fi
-                sleep 4
+                if [ "$ATTEMPT" = 2 ]; then break; fi
+                recover_simulator_service || return 1
                 continue
               fi
               sleep 8
@@ -458,22 +467,15 @@ jobs:
                  python3 scripts/validate_simulator_screenshots.py "$OUTPUT"; then
                 return 0
               fi
-              echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT); retrying"
-              # A stalled screenshot service needs a fresh simulator boot.
-              # Repeating capture against the same wedged device is ineffective.
-              if [ "$ATTEMPT" != 3 ]; then
-                run_bounded 25 xcrun simctl shutdown "$DEVICE" || true
-                run_bounded 35 xcrun simctl boot "$DEVICE" || true
-                if ! run_bounded 180 xcrun simctl bootstatus "$DEVICE" -b; then
-                  echo "::error::Simulator failed recovery boot for $FLAG"
-                  return 1
-                fi
-                if ! run_bounded 100 xcrun simctl install "$DEVICE" "$APP"; then
-                  echo "::error::Simulator failed recovery install for $FLAG"
-                  return 1
-                fi
+              if [ -f "$STDERR" ] && grep -Eq 'Precondition failed|Fatal error:' "$STDERR"; then
+                cat "$STDERR"
+                echo "::error::App assertion for $FLAG; infrastructure recovery forbidden"
+                return 1
               fi
-              sleep 4
+              cp "$OUTPUT" "diagnostics/${FLAG#-}-attempt-$ATTEMPT.png" 2>/dev/null || true
+              echo "::warning::Simulator frame for $FLAG unavailable (attempt $ATTEMPT)"
+              if [ "$ATTEMPT" = 2 ]; then break; fi
+              recover_simulator_service || return 1
             done
             echo "::error::Simulator never rendered a usable frame for $FLAG"
             # Leave a useful reason in CI when the app exits after launch.
@@ -539,17 +541,12 @@ jobs:
           # screenshots rather than mistaking a slow CoreSimulator for a crash.
           launch_live_scene() {
             FLAG="$1"
-            for ATTEMPT in 1 2 3; do
-              run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
-              mkdir -p diagnostics
-              if run_bounded 50 xcrun simctl launch --stdout="$PWD/diagnostics/${FLAG#-}.log" --stderr="$PWD/diagnostics/${FLAG#-}-stderr.log" "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
-                return 0
-              fi
-              echo "::warning::Live simulator launch for $FLAG timed out (attempt $ATTEMPT)"
-              sleep 5
-            done
-            echo "::error::Cannot launch live QA scene $FLAG after three attempts"
-            return 1
+            run_bounded 15 xcrun simctl terminate "$DEVICE" com.paulus.laststandcommand || true
+            # Never relaunch a motion scene after an ambiguous client timeout.
+            if ! run_bounded 50 xcrun simctl launch --stdout="$PWD/diagnostics/${FLAG#-}.log" --stderr="$PWD/diagnostics/${FLAG#-}-stderr.log" "$DEVICE" com.paulus.laststandcommand "$FLAG"; then
+              echo "::error::Live QA launch unconfirmed for $FLAG; output retained, no replay"
+              return 1
+            fi
           }
           capture_live_frame() {
             OUTPUT="$1"
@@ -757,9 +754,10 @@ jobs:
   phase4-gameplay:
     needs: build
     if: >-
-      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      !(github.event_name == 'push' && contains(github.event.head_commit.message, '[release338-existing-evidence]')) &&
+      ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
-      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || contains(github.event.head_commit.message, '[phase4-review]')))
+      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || contains(github.event.head_commit.message, '[phase4-review]'))))
     uses: ./.github/workflows/phase4-gameplay.yml
 
   phase4-presentation-review:
@@ -767,9 +765,10 @@ jobs:
     # Draft development compiles/tests without simulator startup. Ready PRs
     # and explicit full milestones retain all presentation acceptance checks.
     if: >-
-      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      !(github.event_name == 'push' && contains(github.event.head_commit.message, '[release338-existing-evidence]')) &&
+      ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
-      (github.event_name == 'push' && !contains(github.event.head_commit.message, '[home-review]'))
+      (github.event_name == 'push' && !contains(github.event.head_commit.message, '[home-review]')))
     needs: build
     runs-on: macos-15
     timeout-minutes: 30
@@ -783,13 +782,18 @@ jobs:
           mkdir -p simulator-app
           ditto -x -k OutpostZero-simulator-app.zip simulator-app
           test -x simulator-app/OutpostZero.app/OutpostZero
+      - name: Install real video decoder
+        run: brew install ffmpeg
       - name: Capture focused HUD, objectives, upgrades and victory
         timeout-minutes: 24
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, subprocess, time, pathlib, shutil, signal, re
+          import json, subprocess, time, pathlib, shutil, signal, re, sys
+          from contextlib import nullcontext
+          sys.path.insert(0, "scripts")
+          from simulator_video import recording as record_video, wait_for_traversal
           def run(args, limit=40, check=True):
               return subprocess.run(args, timeout=limit, check=check, capture_output=True, text=True)
           # CoreSimulator can be slow to initialize on fresh hosted runners.
@@ -851,29 +855,25 @@ jobs:
                           stdout=pathlib.Path(f"screenshots/phase4-{name}-stdout.log").resolve()
                           stderr=pathlib.Path(f"screenshots/phase4-{name}-stderr.log").resolve()
                           launch_flags = ["-captureGateScreenshot", flag] if camera_review else [flag]
-                          recording = None
                           video = pathlib.Path("screenshots/camera-traversal.mov")
+                          # Ensure the current rendered scene has a real surface
+                          # before opening the recorder, then wait for its ready
+                          # handshake before launching the traversal scene.
                           if name == "camera-motion":
-                              video.unlink(missing_ok=True)
-                              recording = subprocess.Popen(["xcrun","simctl","io",device,"recordVideo",str(video)],
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                          try:
+                              run(["xcrun","simctl","io",device,"screenshot",
+                                   "screenshots/camera-surface-ready.png"],65)
+                          with (record_video(device,video) if name == "camera-motion" else nullcontext()) as recording_process:
                               result=run(["xcrun","simctl","launch","--terminate-running-process",
                                       "--stdout="+str(stdout),"--stderr="+str(stderr),
                                           device,"com.paulus.laststandcommand",*launch_flags],90)
                               print("Launch:",result.stdout.strip(),flush=True)
-                              time.sleep(12 if recording else 9)
-                          finally:
-                              if recording is not None:
-                                  recording.send_signal(signal.SIGINT)
-                                  try: recording.wait(timeout=30)
-                                  except subprocess.TimeoutExpired:
-                                      recording.kill()
-                                      recording.wait()
-                                      raise RuntimeError("Camera video recorder failed to finalize")
+                              if name == "camera-motion":
+                                  wait_for_traversal(stdout,stderr,recording_process,
+                                      video.with_suffix(".traversal.json"))
+                                  run(["xcrun","simctl","io",device,"screenshot",str(output)],65)
+                              else:
+                                  time.sleep(9)
                           if name == "camera-motion":
-                              if recording.returncode != 0 or not video.exists() or video.stat().st_size < 4096:
-                                  raise RuntimeError("Camera traversal video missing")
                               samples = re.findall(r"\[CAMERA MOTION\] pilotY=([-\d.]+) cameraY=([-\d.]+)", stdout.read_text())
                               if len(samples) < 3:
                                   raise RuntimeError("Missing camera motion samples")
@@ -908,7 +908,7 @@ jobs:
                           diagnostic=error_log.read_text(errors="replace") if error_log.exists() else ""
                           # A scene assertion is an app/test failure, not a
                           # reason to cycle through more simulator devices.
-                          if attempt == 1 or "Precondition failed" in diagnostic or "Fatal error:" in diagnostic:
+                          if name == "camera-motion" or attempt == 1 or "Precondition failed" in diagnostic or "Fatal error:" in diagnostic:
                               for stream in ("stdout","stderr"):
                                   log=pathlib.Path(f"screenshots/phase4-{name}-{stream}.log")
                                   if log.exists(): print(log.read_text(errors="replace")[-12000:],flush=True)

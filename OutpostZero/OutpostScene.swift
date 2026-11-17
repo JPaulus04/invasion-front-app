@@ -408,6 +408,7 @@ final class OutpostScene: SKScene {
     // Enabling live survival mode waits for encounter/recovery integration.
     private var expandedArenaPreview = false
     private var cameraReviewLastSecond = -1
+    private var cameraReviewMotionStartedAt: TimeInterval?
     // Live survival spawning is first exercised through the simulator QA
     // fixture. Normal campaign progression stays tactical until extraction
     // and save recovery are implemented and validated together.
@@ -2202,6 +2203,15 @@ final class OutpostScene: SKScene {
             addChild(marker)
             print("[FOCUSED REVIEW] ready code=\(code) flag=\(reviewFlags[index])")
             fflush(stdout)
+        }
+        if ProcessInfo.processInfo.arguments.contains("-cameraReviewMotion") {
+            let marker = SKShapeNode(rectOf: CGSize(width: 8,height: 8))
+            marker.name = "cameraTraversalProgress"
+            marker.fillColor = .red
+            marker.strokeColor = .clear
+            marker.position = CGPoint(x: size.width*0.90,y: size.height*0.46)
+            marker.zPosition = 999
+            addChild(marker)
         }
         for flag in ["-captureEquipmentDefenseClearScreenshot", "-captureEquipmentDefenseFailureScreenshot", "-captureSurvivalTransitionScreenshot",
                      "-captureExpandedArenaCenterScreenshot"] where ProcessInfo.processInfo.arguments.contains(flag) {
@@ -7038,7 +7048,17 @@ final class OutpostScene: SKScene {
         #if targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("-cameraReviewMotion"), phase == .gate {
             // Real movement and collision, stopping short of the transition trigger.
-            movementTarget = CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 65)
+            if cameraReviewMotionStartedAt == nil { cameraReviewMotionStartedAt = clock }
+            // Let the real scene render its entry before starting traversal.
+            // Recorder readiness alone does not mean app initialization ended.
+            movementTarget = clock - cameraReviewMotionStartedAt! >= 4
+                ? CGPoint(x: roomBounds.midX, y: roomBounds.maxY - 65) : nil
+            let fraction = (pilot.position.y-entryPoint.y) /
+                max(1,roomBounds.maxY-65-entryPoint.y)
+            // Native rendered entry/middle/approach identities let the video
+            // gate reject a launch screen followed by one stale game frame.
+            (childNode(withName: "cameraTraversalProgress") as? SKShapeNode)?.fillColor =
+                fraction < 0.33 ? .red : (fraction < 0.80 ? .green : .blue)
             let second = Int(clock)
             if cameraReviewLastSecond != second {
                 cameraReviewLastSecond = second
