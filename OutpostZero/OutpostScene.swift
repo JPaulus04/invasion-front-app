@@ -7451,6 +7451,25 @@ final class OutpostScene: SKScene {
         return texture
     }
 
+    // The terminal animations are optional presentation only. They never delay
+    // rewards, persistence, retry, or headquarters navigation.
+    private func presentVanguardTerminalAnimation(_ state: String) {
+        guard selectedCommander == 0 else { return }
+        let frames = (0..<8).compactMap { vanguardFrame(state: state, frame: $0) }
+        // Never play a partial cycle: a missing frame is an asset-integration
+        // problem, not a reason to replace approved artwork with a placeholder.
+        guard frames.count == 8 else { return }
+        let sprite = SKSpriteNode(texture: frames[0])
+        sprite.name = "vanguardTerminalAnimation"
+        sprite.size = CGSize(width: 112, height: 112)
+        sprite.position = CGPoint(x: 0, y: 165)
+        sprite.zPosition = 100
+        overlay.addChild(sprite)
+        let sequence = SKAction.animate(with: frames, timePerFrame: 0.095,
+                                        resize: false, restore: false)
+        sprite.run(sequence, withKey: "terminalAnimation")
+    }
+
     private func updatePilotPresentation(pose: PilotVisualPose) {
         guard let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode else { return }
         let direction = pilotTraveling
@@ -9308,6 +9327,7 @@ final class OutpostScene: SKScene {
         salvageBankedThisRun += permanent.bank(PersistentProgression.worldCompletionBonus)
         recovery.clear()
         showWorldCompleteSummary()
+        presentVanguardTerminalAnimation("victory")
     }
 
     private func showWorldCompleteSummary() {
@@ -9519,6 +9539,7 @@ final class OutpostScene: SKScene {
         lockMenuBriefly()
         clearOverlay()
         let best = WorldCatalog.recordBestRoom(worldMapIndex, room: wave)
+        presentVanguardTerminalAnimation("defeat")
         overlayText(reason, y: 97)
         overlayText(selectedWorld.title, y: 68, fontSize: 14)
         overlayText("ROOM \(wave)  •  WORLD BEST \(best)", y: 42, fontSize: 15)
