@@ -7429,6 +7429,25 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
+    // Build 339: optional authored Vanguard frames. Missing assets retain the
+    // existing approved illustration; no placeholder art ships to players.
+    private var vanguardFrameCache: [String: SKTexture] = [:]
+    private var missingVanguardFrames: Set<String> = []
+
+    private func vanguardFrame(state: String, frame: Int) -> SKTexture? {
+        let name = String(format: "vanguard_%@_%02d", state, frame)
+        if let cached = vanguardFrameCache[name] { return cached }
+        if missingVanguardFrames.contains(name) { return nil }
+        guard let image = productionImage(named: name) else {
+            missingVanguardFrames.insert(name)
+            return nil
+        }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .linear
+        vanguardFrameCache[name] = texture
+        return texture
+    }
+
     private func updatePilotPresentation(pose: PilotVisualPose) {
         guard let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode else { return }
         let direction = pilotTraveling
@@ -7442,11 +7461,25 @@ final class OutpostScene: SKScene {
             ? CharacterMotion.pilotWalkFrame(stridePhase: pilotStridePhase,
                                              moving: pilotTraveling) : nil
         let commanderIllustration = Self.commanderArtwork(selectedCommander)
-        if let illustrated = commanderIllustration {
+        // Animation frame selection is visual only: movement, aiming, firing,
+        // collision, and damage calculations remain in their existing systems.
+        // Run and attack can occur simultaneously; the attack frames briefly
+        // take precedence while locomotion and directional aim continue.
+        let shotAge = pilotAnimationTime - pilotLastVisualShot
+        let vanguardState = shotAge >= 0 && shotAge < 0.20 ? "attack" :
+            (pilotTraveling ? "run" : "idle")
+        let vanguardCount = vanguardState == "attack" ? 8 : 8
+        let vanguardPhase = vanguardState == "run" ? Double(pilotStridePhase) :
+            (vanguardState == "attack" ? max(0, shotAge) * 40 : pilotAnimationTime * 8)
+        let vanguardIndex = Int(max(0, vanguardPhase) * (vanguardState == "run" ? 8 : 1)) % vanguardCount
+        let authoredVanguard = selectedCommander == 0
+            ? vanguardFrame(state: vanguardState, frame: vanguardIndex) : nil
+        if let authoredVanguard {
+            art.texture = authoredVanguard
+        } else if let illustrated = commanderIllustration {
             art.texture = illustrated
         } else if selectedCommander == 0 {
-            // Vanguard uses a single illustrated 2.5D sprite in live combat.
-            // Movement, aiming and projectiles remain independent of its art.
+            // Preserve the existing approved illustration until real frames exist.
             art.texture = Self.stylizedVanguardTexture
         } else if let walkFrame {
             if direction == 6 {
