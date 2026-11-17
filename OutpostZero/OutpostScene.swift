@@ -7109,7 +7109,8 @@ final class OutpostScene: SKScene {
         // used only when stationary. Keep the collision node unrotated.
         if isMoving {
             pilotHeading = atan2(movementDY, movementDX)
-            pilotAimHeading = nil
+            // Do not erase the most recent firing heading while moving.
+            // Feet follow travel; weapon recoil follows pilotShotHeading.
         } else if let aimHeading = pilotAimHeading {
             pilotHeading = aimHeading
         }
@@ -7416,6 +7417,7 @@ final class OutpostScene: SKScene {
         progress.recordDamage(actual)
         pilotShieldUntil = combatTime + CampaignPacing.hitGracePeriod(room: wave)
         pilotHitCount += 1
+        vanguardLastHitAt = pilotAnimationTime
         // Combat feedback takes precedence over the one-time control hint.
         controlsHint.removeAllActions()
         controlsHint.isHidden = true
@@ -7433,6 +7435,7 @@ final class OutpostScene: SKScene {
     // existing approved illustration; no placeholder art ships to players.
     private var vanguardFrameCache: [String: SKTexture] = [:]
     private var missingVanguardFrames: Set<String> = []
+    private var vanguardLastHitAt: TimeInterval = -10
 
     private func vanguardFrame(state: String, frame: Int) -> SKTexture? {
         let name = String(format: "vanguard_%@_%02d", state, frame)
@@ -7466,13 +7469,18 @@ final class OutpostScene: SKScene {
         // Run and attack can occur simultaneously; the attack frames briefly
         // take precedence while locomotion and directional aim continue.
         let shotAge = pilotAnimationTime - pilotLastVisualShot
-        let vanguardState = shotAge >= 0 && shotAge < 0.20 ? "attack" :
-            (pilotTraveling ? "run" : "idle")
-        let vanguardCount = 8
-        // Stride phase is already measured in cycles (0...1); multiplying by
-        // eight selects the frame. Do not multiply twice or skip frames.
-        let vanguardPhase = vanguardState == "run" ? Double(pilotStridePhase) * 8 :
-            (vanguardState == "attack" ? max(0, shotAge) * 40 : pilotAnimationTime * 8)
+        let hitAge = pilotAnimationTime - vanguardLastHitAt
+        let vanguardState = hitAge >= 0 && hitAge < 0.24 ? "hit" :
+            (shotAge >= 0 && shotAge < 0.20 ? "attack" :
+             (pilotTraveling ? "run" : "idle"))
+        let vanguardCount = vanguardState == "hit" ? 4 : 8
+        // The existing stride phase is in radians, wrapping at 4*pi.
+        // Two full stride cycles yield sixteen animation frames.
+        let vanguardPhase = vanguardState == "run"
+            ? Double(pilotStridePhase) * (8 / (2 * Double.pi)) :
+            (vanguardState == "attack" ? max(0, shotAge) * 40 :
+             (vanguardState == "hit" ? max(0, hitAge) * (4 / 0.24) :
+              pilotAnimationTime * 8))
         let vanguardIndex = Int(max(0, vanguardPhase)) % vanguardCount
         let authoredVanguard = selectedCommander == 0
             ? vanguardFrame(state: vanguardState, frame: vanguardIndex) : nil
@@ -9581,6 +9589,7 @@ final class OutpostScene: SKScene {
         pilotTraveling = false
         pilotAnimationTime = 0
         pilotLastVisualShot = -10
+        vanguardLastHitAt = -10
         pilotRenderedHeading = -.pi / 2
         pilotStridePhase = 0
         pilotWalkBlend = 0
