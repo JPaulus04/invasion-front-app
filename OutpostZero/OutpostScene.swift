@@ -7468,10 +7468,12 @@ final class OutpostScene: SKScene {
         let shotAge = pilotAnimationTime - pilotLastVisualShot
         let vanguardState = shotAge >= 0 && shotAge < 0.20 ? "attack" :
             (pilotTraveling ? "run" : "idle")
-        let vanguardCount = vanguardState == "attack" ? 8 : 8
-        let vanguardPhase = vanguardState == "run" ? Double(pilotStridePhase) :
+        let vanguardCount = 8
+        // Stride phase is already measured in cycles (0...1); multiplying by
+        // eight selects the frame. Do not multiply twice or skip frames.
+        let vanguardPhase = vanguardState == "run" ? Double(pilotStridePhase) * 8 :
             (vanguardState == "attack" ? max(0, shotAge) * 40 : pilotAnimationTime * 8)
-        let vanguardIndex = Int(max(0, vanguardPhase) * (vanguardState == "run" ? 8 : 1)) % vanguardCount
+        let vanguardIndex = Int(max(0, vanguardPhase)) % vanguardCount
         let authoredVanguard = selectedCommander == 0
             ? vanguardFrame(state: vanguardState, frame: vanguardIndex) : nil
         if let authoredVanguard {
