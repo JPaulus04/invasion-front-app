@@ -1,150 +1,219 @@
 import SpriteKit
 import UIKit
+import ImageIO
 
-/// Approved World 1 grunt artwork. Loading is all-or-nothing, cached per motion;
-/// the original polished grunt remains a fallback if the bundle is incomplete.
+/// One presentation controller for Mossbot, World 1 roles and equipped commanders.
+/// Event ownership/priority remains the established Build 337 policy.
 enum WorldOneEnemyAnimation {
     typealias Motion = EnemyAnimationRules.Motion
     private static var cache: [String: [SKTexture]] = [:]
     private static var unavailable: Set<String> = []
+    private static var costs: [String: Int] = [:]
+    private static var recent: [String] = []
     private static let actionKey = "build337.enemy.motion"
     private static let motionKey = "build337Motion"
     private static var preloaded = false
+    private static var memoryObserver: NSObjectProtocol?
 
     static func preload() {
         guard !preloaded else { return }
         preloaded = true
+        memoryObserver = NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil, queue: .main) { _ in
+                for key in costs.keys { cache.removeValue(forKey: key) }
+                costs.removeAll(); recent.removeAll()
+            }
         guard mossbotAvailable else { return }
-        let frames = Motion.allCases.flatMap { textures(enemy: "mossbot", motion: $0) ?? [] }
-        SKTexture.preload(frames) {}
+        // Keep the existing forty Mossbot frames/mask/timing unchanged. New
+        // characters load lazily at display resolution, not all 400 at startup.
+        SKTexture.preload(Motion.allCases.flatMap { textures(enemy: "mossbot",motion: $0) ?? [] }) {}
     }
 
-    static func textures(enemy: String, motion: Motion) -> [SKTexture]? {
-        let key = "\(enemy).\(motion.rawValue)"
-        if let frames = cache[key] { return frames }
-        if unavailable.contains(key) { return nil }
-        var frames: [SKTexture] = []
-        for index in 0..<motion.expectedFrames {
-            let name = String(format: "%@_%@_%02d", enemy, motion.rawValue, index)
-            guard let image = UIImage(named: name), let pixels = image.cgImage,
-                  pixels.width == 512, pixels.height == 512 else {
-                unavailable.insert(key)
-                return nil
-            }
-            let texture: SKTexture
-            if enemy == "mossbot", motion == .move, let source = image.cgImage {
-                // Uploaded move exports contain a second character's fragments
-                // beyond x=416. Mask that strip without resizing/recentering the
-                // approved body or editing the originals. The clipped left arm
-                // is a source defect and still needs a corrected artist export.
-                let format = UIGraphicsImageRendererFormat()
-                format.scale = 1
-                let canvas = CGSize(width: source.width, height: source.height)
-                let cleaned = UIGraphicsImageRenderer(size: canvas, format: format).image { context in
-                    context.cgContext.clip(to: CGRect(x: 0, y: 0, width: 416, height: canvas.height))
-                    image.draw(in: CGRect(origin: .zero, size: canvas))
-                }
-                texture = SKTexture(image: cleaned)
-            } else {
-                texture = SKTexture(image: image)
-            }
-            texture.filteringMode = .linear
-            frames.append(texture)
-        }
+    private static func remember(_ frames: [SKTexture], key: String, bytes: Int) {
         cache[key] = frames
+        guard !key.hasPrefix("mossbot.") else { return }
+        costs[key] = bytes
+        recent.removeAll { $0 == key }; recent.append(key)
+        // Active SKActions retain their own textures; evict only cache ownership.
+        while costs.values.reduce(0,+) > 48*1024*1024, recent.count > 1 {
+            let old = recent.removeFirst()
+            cache.removeValue(forKey: old); costs.removeValue(forKey: old)
+        }
+    }
+
+    private static func validAlpha(_ image: CGImage) -> Bool {
+        guard [CGImageAlphaInfo.first,.last,.premultipliedFirst,.premultipliedLast].contains(image.alphaInfo) else { return false }
+        var pixels = [UInt8](repeating: 0,count: 32*32*4)
+        let valid = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress,width: 32,height: 32,
+                bitsPerComponent: 8,bytesPerRow: 128,space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.draw(image,in: CGRect(x: 0,y: 0,width: 32,height: 32))
+            return true
+        }
+        guard valid else { return false }
+        let alpha = stride(from: 3,to: pixels.count,by: 4).map { pixels[$0] }
+        return alpha.contains { $0 > 0 } && [0,31,992,1023].allSatisfy { alpha[$0] == 0 }
+    }
+
+    static func textures(enemy: String, motion: Motion, variant: Int = 0) -> [SKTexture]? {
+        guard let profile = CharacterAnimationCatalog.profile(enemy) else { return nil }
+        let sequence = profile.sequence(motion,variant: variant)
+        let key = enemy+"."+sequence
+        if let frames = cache[key] {
+            if costs[key] != nil { recent.removeAll { $0 == key }; recent.append(key) }
+            return frames
+        }
+        if unavailable.contains(key) { return nil }
+        // Quarantine source defects, never silently paint/crop approved uploads.
+        guard !profile.quarantine.contains(sequence) else { unavailable.insert(key); return nil }
+        var frames: [SKTexture] = []; var bytes = 0
+        for name in profile.frameNames(motion,variant: variant) {
+            let texture: SKTexture
+            if enemy == "mossbot" {
+                guard let image = UIImage(named: name), let source = image.cgImage,
+                      source.width == 512, source.height == 512 else { unavailable.insert(key); return nil }
+                if motion == .move {
+                    // Existing approved Mossbot integration: mask foreign fragments
+                    // beyond x=416 without resizing/recentering its original body.
+                    let format = UIGraphicsImageRendererFormat(); format.scale = 1
+                    let canvas = CGSize(width: source.width,height: source.height)
+                    let cleaned = UIGraphicsImageRenderer(size: canvas,format: format).image { context in
+                        context.cgContext.clip(to: CGRect(x: 0,y: 0,width: 416,height: canvas.height))
+                        image.draw(in: CGRect(origin: .zero,size: canvas))
+                    }
+                    texture = SKTexture(image: cleaned)
+                } else { texture = SKTexture(image: image) }
+                bytes += 512*512*4
+            } else {
+                guard let url = Bundle.main.url(forResource: name,withExtension: "png",subdirectory: profile.folder),
+                      let source = CGImageSourceCreateWithURL(url as CFURL,nil),
+                      let props = CGImageSourceCopyPropertiesAtIndex(source,0,nil) as? [CFString:Any],
+                      (props[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue == profile.pixels,
+                      (props[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue == profile.pixels else {
+                    unavailable.insert(key); return nil
+                }
+                let size = min(profile.pixels,Int(ceil(profile.canvasSide(motion)*Double(UIScreen.main.scale))))
+                let options: [CFString:Any] = [kCGImageSourceCreateThumbnailFromImageAlways:true,
+                    kCGImageSourceThumbnailMaxPixelSize:size,kCGImageSourceShouldCacheImmediately:true]
+                guard let image = CGImageSourceCreateThumbnailAtIndex(source,0,options as CFDictionary),
+                      validAlpha(image) else { unavailable.insert(key); return nil }
+                texture = SKTexture(cgImage: image); bytes += image.width*image.height*4
+            }
+            texture.filteringMode = .linear; frames.append(texture)
+        }
+        guard !frames.isEmpty else { unavailable.insert(key); return nil }
+        remember(frames,key: key,bytes: bytes)
         return frames
     }
 
-    static var mossbotAvailable: Bool {
-        Motion.allCases.allSatisfy { textures(enemy: "mossbot", motion: $0) != nil }
+    static var mossbotAvailable: Bool { Motion.allCases.allSatisfy { textures(enemy: "mossbot",motion: $0) != nil } }
+    static func character(on sprite: SKSpriteNode) -> String? { sprite.userData?["animatedEnemy"] as? String }
+    static func isAnimated(_ sprite: SKSpriteNode) -> Bool { character(on: sprite) != nil }
+    static func isMossbot(_ sprite: SKSpriteNode) -> Bool { character(on: sprite) == "mossbot" }
+    static func reset(on sprite: SKSpriteNode) {
+        sprite.removeAction(forKey: actionKey)
+        for key in ["animatedEnemy","desiredLocomotion",motionKey,"animationAttackOrdinal"] { sprite.userData?.removeObject(forKey: key) }
+        sprite.anchorPoint = CGPoint(x: 0.5,y: 0.5); sprite.xScale = 1; sprite.yScale = 1; sprite.zRotation = 0
     }
-
     @discardableResult
-    static func install(on sprite: SKSpriteNode, facingLeft: Bool) -> Bool {
-        guard mossbotAvailable else { return false }
+    static func install(on sprite: SKSpriteNode, facingLeft: Bool, character name: String = "mossbot") -> Bool {
+        guard let p = CharacterAnimationCatalog.profile(name),
+              (name != "mossbot" || mossbotAvailable),
+              textures(enemy: name,motion: .idle) != nil, textures(enemy: name,motion: .move) != nil else { return false }
+        reset(on: sprite)
         if sprite.userData == nil { sprite.userData = NSMutableDictionary() }
-        sprite.userData?["animatedEnemy"] = "mossbot"
+        sprite.userData?["animatedEnemy"] = name
         sprite.userData?["desiredLocomotion"] = Motion.idle.rawValue
-        // Square source canvas is preserved; its visible idle silhouette is
-        // ~77% of this height, comparable to the 70-point player illustration.
-        sprite.size = CGSize(width: 68, height: 68)
-        sprite.position.y = 14
-        sprite.colorBlendFactor = 0
-        sprite.xScale = facingLeft ? -1 : 1
-        play(.idle, enemy: "mossbot", on: sprite)
+        sprite.position = CGPoint(x: 0,y: p.footY)
+        sprite.colorBlendFactor = 0; sprite.xScale = facingLeft ? -1 : 1
+        play(.idle,enemy: name,on: sprite)
         return true
     }
-
-    static func isMossbot(_ sprite: SKSpriteNode) -> Bool {
-        sprite.userData?["animatedEnemy"] as? String == "mossbot"
+    private static func geometry(_ p: CharacterAnimationCatalog.Profile, motion: Motion, on sprite: SKSpriteNode) {
+        if p.name == "mossbot" { sprite.size = CGSize(width: 68,height: 68); sprite.anchorPoint = CGPoint(x: 0.5,y: 0.5); return }
+        let side = p.canvasSide(motion)
+        sprite.size = CGSize(width: side,height: side)
+        sprite.anchorPoint = CGPoint(x: 0.5,y: 1-p.registeredGround(motion)/Double(p.pixels))
     }
-
     static func updateLocomotion(on sprite: SKSpriteNode, moving: Bool, dx: CGFloat) {
-        guard isMossbot(sprite) else { return }
+        guard let name = character(on: sprite) else { return }
         let next: Motion = moving ? .move : .idle
         sprite.userData?["desiredLocomotion"] = next.rawValue
-        // Only a right-facing three-quarter export exists. Mirror horizontally;
-        // never rotate the chassis, health bar, collision body or attack cues.
         let active = (sprite.userData?[motionKey] as? String).flatMap(Motion.init(rawValue:))
         if abs(dx) > 0.1, EnemyAnimationRules.allowsTravelFacing(during: active) {
             sprite.xScale = dx < 0 ? -abs(sprite.xScale) : abs(sprite.xScale)
         }
-        play(next, enemy: "mossbot", on: sprite)
+        play(next,enemy: name,on: sprite)
     }
-
     @discardableResult
     static func play(_ motion: Motion, enemy: String, on sprite: SKSpriteNode,
                      completion: (() -> Void)? = nil) -> Bool {
         let current = (sprite.userData?[motionKey] as? String).flatMap(Motion.init(rawValue:))
-        guard EnemyAnimationRules.canTransition(from: current, to: motion),
-              let frames = textures(enemy: enemy, motion: motion) else { return false }
+        guard EnemyAnimationRules.canTransition(from: current,to: motion),
+              let p = CharacterAnimationCatalog.profile(enemy) else { return false }
+        let ordinal = sprite.userData?["animationAttackOrdinal"] as? Int ?? 0
+        let frames = textures(enemy: enemy,motion: motion,variant: ordinal)
+        // A bad optional/reaction export retains the same approved identity.
+        // Defeat fades an idle copy; hit flashes; attack holds idle with existing
+        // combat cues. These visual fallbacks never delay or produce damage.
+        guard let first = frames?.first ?? textures(enemy: enemy,motion: .idle)?.first else { return false }
         if sprite.userData == nil { sprite.userData = NSMutableDictionary() }
         sprite.userData?[motionKey] = motion.rawValue
+        if motion == .attack { sprite.userData?["animationAttackOrdinal"] = ordinal+1 }
+        sprite.removeAction(forKey: actionKey); sprite.texture = first
+        geometry(p,motion: frames == nil ? .idle : motion,on: sprite)
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-captureBuild337EnemySequence") {
-            print("[ENEMY ART] motion=\(motion.rawValue) frames=\(frames.count)")
+            print("[ENEMY ART] motion=\(motion.rawValue) frames=\(frames?.count ?? 0)")
             fflush(stdout)
         }
         #endif
-        sprite.removeAction(forKey: actionKey)
-        sprite.texture = frames[0]
-        let animate = SKAction.animate(with: frames,
-            timePerFrame: 1 / motion.framesPerSecond, resize: false, restore: false)
-        if motion.repeats {
-            sprite.run(.repeatForever(animate), withKey: actionKey)
+        let action: SKAction
+        if let frames {
+            action = .animate(with: frames,timePerFrame: 1/motion.framesPerSecond,resize: false,restore: false)
+        } else if motion == .defeat {
+            action = .fadeOut(withDuration: 0.35)
+        } else if motion == .hit {
+            action = .sequence([.colorize(with: .white,colorBlendFactor: 0.7,duration: 0.04),
+                                .colorize(withColorBlendFactor: 0,duration: 0.16)])
         } else {
-            sprite.run(.sequence([animate, .run { [weak sprite] in
+            action = .wait(forDuration: Double(p.frameNames(motion,variant: ordinal).count)/motion.framesPerSecond)
+        }
+        if motion.repeats { sprite.run(.repeatForever(action),withKey: actionKey) }
+        else {
+            sprite.run(.sequence([action,.run { [weak sprite] in
                 completion?()
-                guard let sprite else { return }
-                if motion == .defeat { return }
+                guard let sprite, motion != .defeat else { return }
                 sprite.userData?.removeObject(forKey: motionKey)
-                let desired = (sprite.userData?["desiredLocomotion"] as? String)
-                    .flatMap(Motion.init(rawValue:)) ?? .idle
-                play(desired, enemy: enemy, on: sprite)
-            }]), withKey: actionKey)
+                let desired = (sprite.userData?["desiredLocomotion"] as? String).flatMap(Motion.init(rawValue:)) ?? .idle
+                play(desired,enemy: enemy,on: sprite)
+            }]),withKey: actionKey)
         }
         return true
     }
-
     static func attack(on sprite: SKSpriteNode, towardX: CGFloat) {
-        guard isMossbot(sprite) else { return }
-        if abs(towardX) > 0.1 { sprite.xScale = towardX < 0 ? -abs(sprite.xScale) : abs(sprite.xScale) }
-        play(.attack, enemy: "mossbot", on: sprite)
+        guard let name = character(on: sprite) else { return }
+        let active = (sprite.userData?[motionKey] as? String).flatMap(Motion.init(rawValue:))
+        // Preserve legacy Mossbot facing; new one-shots cannot flip on rejected restarts.
+        if abs(towardX) > 0.1, name == "mossbot" || EnemyAnimationRules.canTransition(from: active,to: .attack) {
+            sprite.xScale = towardX < 0 ? -abs(sprite.xScale) : abs(sprite.xScale)
+        }
+        play(.attack,enemy: name,on: sprite)
     }
-
     @discardableResult
-    static func defeatCopy(of source: SKSpriteNode, at position: CGPoint,
-                           in parent: SKNode, depth: CGFloat) -> Bool {
-        guard isMossbot(source), textures(enemy: "mossbot", motion: .defeat) != nil else { return false }
-        let visual = SKSpriteNode(texture: source.texture, size: source.size)
+    static func defeatCopy(of source: SKSpriteNode, at position: CGPoint,in parent: SKNode,depth: CGFloat) -> Bool {
+        guard let name = character(on: source) else { return false }
+        if name == "mossbot", textures(enemy: name,motion: .defeat) == nil { return false }
+        let visual = SKSpriteNode(texture: source.texture,size: source.size)
         visual.name = "enemyDefeatVisual"
-        visual.position = CGPoint(x: position.x + source.position.x, y: position.y + source.position.y)
-        visual.zPosition = depth
-        visual.xScale = source.xScale
-        // The authored defeat contains its own collapse. Do not inherit a
-        // transient hit squash, glow, health bar or procedural recoil action.
+        visual.userData = NSMutableDictionary(dictionary: ["animatedEnemy":name])
+        visual.position = CGPoint(x: position.x+source.position.x,y: position.y+source.position.y)
+        visual.zPosition = depth; visual.xScale = source.xScale
         parent.addChild(visual)
-        play(.defeat, enemy: "mossbot", on: visual) { [weak visual] in visual?.removeFromParent() }
+        if !play(.defeat,enemy: name,on: visual,completion: { [weak visual] in visual?.removeFromParent() }) {
+            visual.removeFromParent(); return false
+        }
         return true
     }
 }

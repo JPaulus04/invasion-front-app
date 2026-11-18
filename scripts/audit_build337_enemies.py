@@ -64,7 +64,7 @@ def audit():
     native = {role: png_info(ROOT / f'OutpostZero/ArtAssets/{role}_polished.png') for role in roles}
     bosses = {role: png_info(ROOT / f'OutpostZero/ArtAssets/boss_{role}.png')
               for role in ['root_lord', 'toxic_matriarch', 'warforge', 'frost_wraith']}
-    browser = [png_info(p) for p in sorted((ROOT / 'assets/enemies').glob('*.png'))]
+    browser = [png_info(p) for p in sorted((ROOT / 'assets/enemies').glob('enemy_*.png'))]
     return {'mossbot_sequences': sequences, 'native_portraits': native, 'boss_portraits': bosses,
             'browser_enemy_portraits_not_native_entities': browser,
             'browser_atlases': [png_info(ROOT / name) for name in

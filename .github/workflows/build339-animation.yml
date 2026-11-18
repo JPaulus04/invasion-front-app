@@ -1,0 +1,53 @@
+name: Build 339 Animation Integration
+on:
+  push:
+    branches: [feature/build339-animation-integration]
+  workflow_dispatch:
+concurrency:
+  group: build339-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  animation:
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit actual uploaded animation frames
+        run: |
+          python3 -m pip install --break-system-packages 'Pillow>=11'
+          python3 scripts/check_project.py
+          python3 scripts/audit_build339_animations.py
+          python3 -m unittest discover -s tests -p 'test_*.py'
+      - name: Test native animation contracts and unchanged motion policy
+        run: |
+          swiftc OutpostZero/EnemyAnimationRules.swift tests/EnemyAnimationRulesTests.swift -o "$RUNNER_TEMP/mossbot"
+          "$RUNNER_TEMP/mossbot"
+          swiftc OutpostZero/EnemyAnimationRules.swift OutpostZero/CharacterAnimationCatalog.swift tests/CharacterAnimationCatalogTests.swift -o "$RUNNER_TEMP/animations"
+          "$RUNNER_TEMP/animations"
+          swiftc OutpostZero/CharacterMotion.swift tests/CharacterMotionTests.swift -o "$RUNNER_TEMP/motion"
+          "$RUNNER_TEMP/motion"
+      - name: Compile actual iOS application
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          python3 scripts/generate_icon.py
+          xcodegen generate
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build > build339-build.log 2>&1 || { tail -100 build339-build.log; exit 1; }
+      - name: Verify all 400 original PNGs in compiled bundle
+        run: python3 scripts/verify_build339_bundle.py DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app
+      - name: Capture focused character integration milestone
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[animation-review]')
+        timeout-minutes: 16
+        run: |
+          mkdir -p simulator-app
+          ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
+          python3 scripts/run_build339_review.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build339-animation-validation
+          path: |
+            build339-build.log
+            build339-bundle.json
+            build339-review/
+          retention-days: 14
