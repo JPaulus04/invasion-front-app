@@ -1,0 +1,595 @@
+{
+  "frame_count": 44,
+  "size": [
+    256,
+    256
+  ],
+  "modified_frames": [
+    "vanguard_attack_02.png",
+    "vanguard_attack_03.png",
+    "vanguard_attack_04.png",
+    "vanguard_attack_05.png",
+    "vanguard_attack_06.png"
+  ],
+  "method": "subtle affine recoil transforms on existing repaired attack artwork; no regenerated character poses",
+  "edge_contact_files": [],
+  "caveats": [
+    "Recoil transform cannot replace true hand-animated body poses",
+    "Original approved in-game Vanguard appearance not yet verified",
+    "Not tested in iOS gameplay"
+  ],
+  "frames": {
+    "vanguard_attack_00.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        53,
+        23,
+        202,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_attack_01.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        53,
+        23,
+        202,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_attack_02.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        50,
+        20,
+        200,
+        229
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_attack_03.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        48,
+        19,
+        202,
+        228
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_attack_04.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        49,
+        20,
+        209,
+        229
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_attack_05.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        51,
+        21,
+        201,
+        231
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_attack_06.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        52,
+        22,
+        202,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_attack_07.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        55,
+        23,
+        201,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_defeat_00.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        56,
+        21,
+        200,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_defeat_01.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        56,
+        30,
+        200,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_defeat_02.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        48,
+        50,
+        208,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_defeat_03.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        39,
+        74,
+        217,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_defeat_04.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        38,
+        97,
+        218,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_defeat_05.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        26,
+        124,
+        229,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_defeat_06.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        22,
+        128,
+        233,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_defeat_07.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        23,
+        151,
+        232,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_hit_00.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        51,
+        25,
+        204,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_hit_01.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        55,
+        30,
+        201,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_hit_02.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        42,
+        36,
+        213,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_hit_03.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        35,
+        39,
+        220,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_idle_00.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        57,
+        27,
+        199,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_idle_01.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        58,
+        28,
+        198,
+        231
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_idle_02.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        57,
+        25,
+        199,
+        230
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_idle_03.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        57,
+        28,
+        199,
+        231
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_idle_04.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        56,
+        29,
+        200,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_idle_05.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        58,
+        30,
+        198,
+        233
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_idle_06.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        57,
+        27,
+        199,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_idle_07.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        57,
+        27,
+        199,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_run_00.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        60,
+        21,
+        195,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_run_01.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        51,
+        38,
+        204,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_run_02.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        46,
+        29,
+        210,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_run_03.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        51,
+        34,
+        204,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_run_04.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        60,
+        29,
+        195,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_run_05.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        60,
+        29,
+        195,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_run_06.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        58,
+        29,
+        198,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_run_07.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        58,
+        25,
+        197,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_victory_00.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        55,
+        20,
+        201,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_victory_01.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        54,
+        21,
+        202,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_victory_02.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        55,
+        20,
+        201,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_victory_03.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        59,
+        21,
+        196,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_victory_04.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        58,
+        20,
+        197,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_victory_05.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        54,
+        21,
+        202,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_victory_06.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        56,
+        21,
+        200,
+        232
+      ],
+      "edge_alpha_max": 0
+    },
+    "vanguard_victory_07.png": {
+      "size": [
+        256,
+        256
+      ],
+      "bbox": [
+        60,
+        29,
+        195,
+        232
+      ],
+      "edge_alpha_max": 0
+    }
+  }
+}
