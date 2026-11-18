@@ -2228,6 +2228,21 @@ final class OutpostScene: SKScene {
     }
 
     #if DEBUG
+    private var build339FreezeRequested: Int?
+    override func didFinishUpdate() {
+        guard let index = build339FreezeRequested else { return }
+        build339FreezeRequested = nil
+        // Freeze after child actions have advanced, not from a parent action
+        // that can pause them before their current-frame evaluation.
+        arena.isPaused = true
+        for visual in arena.children where visual.name == "enemyDefeatVisual" {
+            if let sprite = visual as? SKSpriteNode {
+                print("[BUILD339 DEFEAT] character=\(WorldOneEnemyAnimation.character(on: sprite) ?? "unknown") alpha=\(sprite.alpha)")
+            }
+        }
+        print("[BUILD339 READY] index=\(index) commander=\(selectedCommander)")
+        fflush(stdout)
+    }
     private func captureBuild339Animation() {
         let args = ProcessInfo.processInfo.arguments
         func value(_ key: String) -> String? {
@@ -2241,7 +2256,7 @@ final class OutpostScene: SKScene {
         let motion = motions[index]
         // Validate real UIKit/ImageIO resource loading, all clean sequences,
         // both Barkguard variants and every declared source quarantine.
-        for p in CharacterAnimationCatalog.profiles {
+        for p in (index == 0 ? CharacterAnimationCatalog.profiles : []) {
             for state in EnemyAnimationRules.Motion.allCases {
                 for variant in 0..<(p.name == "barkguard" && state == .attack ? 2 : 1) {
                     let frames=WorldOneEnemyAnimation.textures(enemy:p.name,motion:state,variant:variant)
@@ -2252,6 +2267,7 @@ final class OutpostScene: SKScene {
             }
         }
         UserDefaults.standard.set(index<4 ? index : 0,forKey:"ozSelectedCommander")
+        layout() // Rebuild the real HUD for the equipped fixture identity.
         worldMapIndex=0; wave=2; gateUnlocked=true; startWave()
         phase = .levelUp; clearOverlay(); overlayBackdrop.isHidden=true; arena.isPaused=false
         pilot.position=entryPoint; updateArenaCamera(delta:1)
@@ -2266,6 +2282,8 @@ final class OutpostScene: SKScene {
         }
         for (slot,enemy) in enemies.enumerated() {
             enemy.node.removeAllActions();enemy.node.alpha=1;enemy.node.childNode(withName:"spawnWarning")?.removeFromParent()
+            enemy.healthBar.isHidden=false
+            enemy.node.childNode(withName:"enemyHealthTrack")?.isHidden=false
             let col=slot%2;let row=slot/2
             enemy.node.position=CGPoint(x:roomBounds.midX+(col==0 ? -100:100),y:roomBounds.minY+240+CGFloat(row)*150)
             if index>=4, let art=enemy.node.childNode(withName:"enemyArt") as? SKSpriteNode,
@@ -2284,9 +2302,7 @@ final class OutpostScene: SKScene {
             marker.position=CGPoint(x:size.width*x,y:size.height*0.46);marker.zPosition=1000;addChild(marker)
         }
         run(.sequence([.wait(forDuration:motion == .hit ? 0.14:0.24),.run { [weak self] in
-            self?.arena.isPaused=true
-            print("[BUILD339 READY] index=\(index) motion=\(motion.rawValue) commander=\(self?.selectedCommander ?? -1)")
-            fflush(stdout)
+            self?.build339FreezeRequested=index
         }]))
     }
     #endif
@@ -9814,6 +9830,7 @@ final class OutpostScene: SKScene {
             let viewed = min(max(UserDefaults.standard.integer(forKey: "ozViewedCommander"), 0), 3)
             if viewed == 0 || WorldCatalog.stars(viewed - 1) > 0 {
                 UserDefaults.standard.set(viewed, forKey: "ozSelectedCommander")
+                layout() // Keep the HUD portrait in sync with the animated commander.
                 showHeadquarters()
             }
         case (.headquarters, "discard_run"): discardSavedRun()
