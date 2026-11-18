@@ -1,0 +1,12 @@
+{
+  "status": "visual cleanup candidate, not gameplay-validated",
+  "source": "16 source poses expanded to 44 timing frames (repeats)",
+  "animations": {
+    "idle": 8,
+    "run": 8,
+    "attack": 12,
+    "hit": 8,
+    "defeat": 8
+  },
+  "notes": "Magenta/blue spill removed using color mask and largest component; visually inspect attack effects."
+}
