@@ -1,0 +1,20 @@
+{
+  "count": 44,
+  "size": [
+    256,
+    256
+  ],
+  "statuses": {
+    "idle": 8,
+    "run": 8,
+    "attack": 8,
+    "hit": 4,
+    "defeat": 8,
+    "victory": 8
+  },
+  "notes": [
+    "Victory frames extracted from new white-background 2x4 concept and transparency processed automatically; edge inspection required",
+    "Defeat 04-07 are small settling transforms of frame 03, not independently drawn poses",
+    "All frames are candidates, not validated in-game"
+  ]
+}
