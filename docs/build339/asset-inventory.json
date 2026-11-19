@@ -6234,7 +6234,7 @@
     },
     {
       "path": "assets/enemies/sporecaster_attack_00.png",
-      "sha256": "fe0fa323945b757c9fcd4b76b1a6ad8d38ff4177ed4443e5837b8013df66924a",
+      "sha256": "504dbd6377a1cef7afac928721c70ccb35e8ae67e566d95c89b4bb999649e817",
       "character": "sporecaster",
       "state": "attack",
       "index": 0,
@@ -6244,16 +6244,16 @@
         255
       ],
       "alpha_bounds": [
-        114,
-        130,
-        397,
-        432
+        82,
+        100,
+        430,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_01.png",
-      "sha256": "6837a1cd9a895a72eef2ac5de607c0ff4f9d461b0420c03554f5907473bc5554",
+      "sha256": "b94c6ec4519f10518d99679831bd092e304f14d84feb9c294c6a178efb6e3a8b",
       "character": "sporecaster",
       "state": "attack",
       "index": 1,
@@ -6263,16 +6263,16 @@
         255
       ],
       "alpha_bounds": [
-        104,
-        132,
-        407,
-        433
+        90,
+        100,
+        422,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_02.png",
-      "sha256": "4504db1a626261b3d4f1434aeaf495925048c0a5f8af493ecd480513caac37ce",
+      "sha256": "cf29b09041dc276396912d1099c6fd3415714863f1a153e7e0df58eb6bab4575",
       "character": "sporecaster",
       "state": "attack",
       "index": 2,
@@ -6282,16 +6282,16 @@
         255
       ],
       "alpha_bounds": [
-        125,
-        130,
-        386,
-        429
+        98,
+        100,
+        413,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_03.png",
-      "sha256": "58bf69fa9fa79ae7ee18220ee001767e0df79c9a5fa73034c80758d2e5e913f8",
+      "sha256": "0816725401b0a2ce525d530770554e964371451dbb367bbb44e3be2668ef22f2",
       "character": "sporecaster",
       "state": "attack",
       "index": 3,
@@ -6301,16 +6301,16 @@
         255
       ],
       "alpha_bounds": [
-        127,
-        130,
-        387,
-        431
+        97,
+        100,
+        414,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_04.png",
-      "sha256": "eb4339c4a0b4538984c816850d01cd9d7baa3ef294c04df405a82699326df984",
+      "sha256": "306db33bbf88755c0c1f7b4687ea288ca59b9fd7ac454448b205df45b9ab654a",
       "character": "sporecaster",
       "state": "attack",
       "index": 4,
@@ -6320,16 +6320,16 @@
         255
       ],
       "alpha_bounds": [
-        132,
-        130,
-        396,
-        431
+        91,
+        100,
+        420,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_05.png",
-      "sha256": "4aa5dad39acf45a4c16dd5b5ffae116abcbfbaca17f97c645e03439f812220f1",
+      "sha256": "8e941246efc5c97a051db5a3216caaeba3296ac1cd608eb7d992fa0d8b5516f4",
       "character": "sporecaster",
       "state": "attack",
       "index": 5,
@@ -6339,16 +6339,16 @@
         255
       ],
       "alpha_bounds": [
-        132,
-        130,
-        424,
-        431
+        94,
+        100,
+        418,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_06.png",
-      "sha256": "1d48a53f60a860eac026e3547f618cfe9b0d87fd39145242d7294c621f49f23f",
+      "sha256": "803cc28d5d81253142ca0aec2074f6f666337a9c9b762c2819f354ab8b7c0b57",
       "character": "sporecaster",
       "state": "attack",
       "index": 6,
@@ -6358,16 +6358,16 @@
         255
       ],
       "alpha_bounds": [
-        132,
-        130,
-        431,
-        431
+        83,
+        100,
+        429,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_07.png",
-      "sha256": "6e9325e4e08759c7abd70786bae48ccf42808bea6085f1e24f365451b85283a0",
+      "sha256": "fde61301702c5f429ccd5c75f5b14918208fa136f876eb865a07d5a1de03e1e3",
       "character": "sporecaster",
       "state": "attack",
       "index": 7,
@@ -6377,16 +6377,16 @@
         255
       ],
       "alpha_bounds": [
-        132,
-        130,
-        438,
-        431
+        107,
+        100,
+        405,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_08.png",
-      "sha256": "82bdf3dbfd660c52870f2ec8c6da2b22b131f0ec681afd9b4255ce3d845522ae",
+      "sha256": "775ba660ed3e19ee24df964edc1cc94d4f5a3d3b04cd730c50250b096c0bb334",
       "character": "sporecaster",
       "state": "attack",
       "index": 8,
@@ -6396,16 +6396,16 @@
         255
       ],
       "alpha_bounds": [
-        105,
-        130,
-        445,
-        430
+        104,
+        100,
+        407,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_09.png",
-      "sha256": "c3bf0fbdb5214250ff2eb4b33effd41d5ad54b5f71c06044c6662dfba6c06676",
+      "sha256": "cb4ceac2ba2c43f8e846c7d60cd068ce5e7671e41f33af80f368af3830fda655",
       "character": "sporecaster",
       "state": "attack",
       "index": 9,
@@ -6415,16 +6415,16 @@
         255
       ],
       "alpha_bounds": [
-        105,
-        130,
-        452,
-        430
+        90,
+        100,
+        421,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_10.png",
-      "sha256": "e542bb5938dd11aa05f330eefdc5cb3812b8acdc0523c00c9deeb9d522ebf406",
+      "sha256": "07fc75789a97e5b964dd3000853d4cc8161be97645106de1425dce167124869b",
       "character": "sporecaster",
       "state": "attack",
       "index": 10,
@@ -6434,16 +6434,16 @@
         255
       ],
       "alpha_bounds": [
-        105,
-        130,
-        407,
-        430
+        94,
+        100,
+        417,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_11.png",
-      "sha256": "636e4f311dbbd198f0f3f692e53cd192509c2fbe9f97331e9d1fd44ab9431d4a",
+      "sha256": "81420037c4b767c7db101813a7aea559b260437b2400b9e051690840a01df2f5",
       "character": "sporecaster",
       "state": "attack",
       "index": 11,
@@ -6453,16 +6453,16 @@
         255
       ],
       "alpha_bounds": [
-        93,
-        130,
-        419,
-        431
+        88,
+        100,
+        424,
+        440
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_00.png",
-      "sha256": "222f3133ddcbdc2e6e33b8cf0cefcb99cc8f9250e21c5d8b6ba1df67f306c77c",
+      "sha256": "dd5df7183159aba7f96d2a4566965a798230e473dc114c74d465faaf3ed47425",
       "character": "sporecaster",
       "state": "hit",
       "index": 0,
@@ -6472,38 +6472,19 @@
         255
       ],
       "alpha_bounds": [
-        103,
-        130,
-        409,
-        434
+        92,
+        87,
+        419,
+        455
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_01.png",
-      "sha256": "570e12be951f81ac44a51241e266d79a2f598a188e2219eab45c71c2001a9ef0",
+      "sha256": "bac2155abad7311c36dc73fa26dfb616cf1e4522ccd39ded37ce3379b5d4f826",
       "character": "sporecaster",
       "state": "hit",
       "index": 1,
-      "pixels": 512,
-      "alpha_range": [
-        0,
-        255
-      ],
-      "alpha_bounds": [
-        68,
-        130,
-        420,
-        435
-      ],
-      "quarantined": true
-    },
-    {
-      "path": "assets/enemies/sporecaster_hit_02.png",
-      "sha256": "fbd6a00377e76dd32445e0d0db3423ec309d105d4d54e680b4f1285087ea0218",
-      "character": "sporecaster",
-      "state": "hit",
-      "index": 2,
       "pixels": 512,
       "alpha_range": [
         0,
@@ -6511,15 +6492,34 @@
       ],
       "alpha_bounds": [
         58,
-        130,
-        410,
-        401
+        66,
+        443,
+        451
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_hit_02.png",
+      "sha256": "08c797a76a9acd7c81335d562cbc16d81caeafc73d5b080a545f4775648c44cc",
+      "character": "sporecaster",
+      "state": "hit",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        44,
+        476,
+        444
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_03.png",
-      "sha256": "afa36515951ce1c1f050f771fef20b9e9683742542a37e39fb6aaf75317c9616",
+      "sha256": "e07936dec8e6f50c67bb53b7106272655b71a923f976d1f9a73bcc84ece0b62e",
       "character": "sporecaster",
       "state": "hit",
       "index": 3,
@@ -6529,16 +6529,16 @@
         255
       ],
       "alpha_bounds": [
-        67,
-        130,
-        416,
-        413
+        62,
+        46,
+        477,
+        446
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_04.png",
-      "sha256": "fd25a800d2b0fc11658415d55a6df134fca41ea17d5b93c2dd4f5c5e516cae6c",
+      "sha256": "284be68f3cda61faa2d0535d9861d034480032a45081d225a0d71ddd447be2c0",
       "character": "sporecaster",
       "state": "hit",
       "index": 4,
@@ -6548,16 +6548,16 @@
         255
       ],
       "alpha_bounds": [
-        84,
-        130,
-        407,
-        432
+        68,
+        65,
+        453,
+        450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_05.png",
-      "sha256": "b64146e382ae9685643d8cb6da14225d54bbc61eedaf5d3649c37f15a7331094",
+      "sha256": "44c6916e13dcfe49af902e36676105d794819823983e701a356d9ac83ca93aff",
       "character": "sporecaster",
       "state": "hit",
       "index": 5,
@@ -6567,16 +6567,16 @@
         255
       ],
       "alpha_bounds": [
-        85,
-        130,
-        427,
-        434
+        89,
+        112,
+        422,
+        455
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_06.png",
-      "sha256": "d1dc86ad418b38ca02e42aba12e234c4096d86e1c089a7816e0e43eacd2b813b",
+      "sha256": "5916f9525787f84687109fe7a67c88f98e0b1d44680428d1b8680c2502ea15bd",
       "character": "sporecaster",
       "state": "hit",
       "index": 6,
@@ -6586,16 +6586,16 @@
         255
       ],
       "alpha_bounds": [
-        90,
-        130,
-        423,
-        436
+        91,
+        118,
+        420,
+        457
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_07.png",
-      "sha256": "42beda4025f66664e1ae6b82fc20220db2347a32a74876db6b71197312940dc0",
+      "sha256": "dd5df7183159aba7f96d2a4566965a798230e473dc114c74d465faaf3ed47425",
       "character": "sporecaster",
       "state": "hit",
       "index": 7,
@@ -6605,16 +6605,16 @@
         255
       ],
       "alpha_bounds": [
-        91,
-        201,
-        370,
-        450
+        92,
+        87,
+        419,
+        455
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_00.png",
-      "sha256": "066534fd78cf2a57f874dad16224bfd895583b86379fe870df4eb7a48334cc1b",
+      "sha256": "3c6a7eaaf2ece6d6375209b390e61cfe60bed0d1bb3ea569da7c40531d21fcfd",
       "character": "sporecaster",
       "state": "defeat",
       "index": 0,
@@ -6624,16 +6624,16 @@
         255
       ],
       "alpha_bounds": [
-        105,
-        175,
-        407,
+        95,
+        110,
+        416,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_01.png",
-      "sha256": "0c0a1233b89d8b5fef9d956802f5ff381ec855bf0b0a2b22a58fd8fb370f5095",
+      "sha256": "9f18a024fd1f1e62aca1fa74bd7655091cfda5a0d01ce762beef725d7a5a262c",
       "character": "sporecaster",
       "state": "defeat",
       "index": 1,
@@ -6643,8 +6643,8 @@
         255
       ],
       "alpha_bounds": [
-        108,
-        175,
+        93,
+        120,
         404,
         450
       ],
@@ -6652,7 +6652,7 @@
     },
     {
       "path": "assets/enemies/sporecaster_defeat_02.png",
-      "sha256": "cf25e15a64b87c8ed89e9094f10e625c97d573e06aa9f30fedf8b8211dff6312",
+      "sha256": "0e25a801ac090882fb5a4bc9be58a3e8efdc21417d069385b09775efb3399ce1",
       "character": "sporecaster",
       "state": "defeat",
       "index": 2,
@@ -6662,16 +6662,16 @@
         255
       ],
       "alpha_bounds": [
-        107,
-        175,
-        404,
+        73,
+        110,
+        439,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_03.png",
-      "sha256": "4ce4f60bcb1e908a622e5604238afccc8d1777506556608d531e263fce9edf4e",
+      "sha256": "487611978a538fedbc91a94ba4223b091bd02f0e9a2be77b2462c57897e5702d",
       "character": "sporecaster",
       "state": "defeat",
       "index": 3,
@@ -6681,16 +6681,16 @@
         255
       ],
       "alpha_bounds": [
-        115,
-        177,
-        397,
+        92,
+        130,
+        436,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_04.png",
-      "sha256": "0b94cba6a31b308c876eae7d908de921374bf79e0b722878aebf92543a801161",
+      "sha256": "655b6c847f1adf501b6c85a161db219e3a266ecb8da70664942aa9962ac7b68b",
       "character": "sporecaster",
       "state": "defeat",
       "index": 4,
@@ -6700,16 +6700,16 @@
         255
       ],
       "alpha_bounds": [
-        114,
-        177,
-        398,
+        61,
+        184,
+        451,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_05.png",
-      "sha256": "1d5cc8b72b1bcd69101e17b60927ccfc516fdaa08b08fe08e053f2086605121f",
+      "sha256": "40aa5bcfaa25d95265faabc5501e07d2fba86b2994a1b08b3d15ea389ca7a10c",
       "character": "sporecaster",
       "state": "defeat",
       "index": 5,
@@ -6719,16 +6719,16 @@
         255
       ],
       "alpha_bounds": [
-        113,
-        203,
-        399,
+        72,
+        200,
+        439,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_06.png",
-      "sha256": "4dccbcf12c04ce69edc5c2f6e09e2f2b0d221c4e93fddc3c704a113562d7d154",
+      "sha256": "3859013dc62ba2418e8d51ee7074700d9fdc7ecedbbe78d7a5e75545f28d55f0",
       "character": "sporecaster",
       "state": "defeat",
       "index": 6,
@@ -6738,16 +6738,16 @@
         255
       ],
       "alpha_bounds": [
-        101,
-        181,
-        410,
+        82,
+        110,
+        429,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_07.png",
-      "sha256": "3f1888b308551296e1f6eedae20e5a7bc06d289792828ab038a5fa1d3985f3c4",
+      "sha256": "33223f6309fb365a12f6431a5254e2fbc1e9663821e735a714d6e0b48d0310f4",
       "character": "sporecaster",
       "state": "defeat",
       "index": 7,
@@ -6757,9 +6757,9 @@
         255
       ],
       "alpha_bounds": [
-        87,
-        177,
-        425,
+        96,
+        137,
+        415,
         450
       ],
       "quarantined": true
@@ -7605,15 +7605,16 @@
   "quarantined": 28,
   "specter_review": "All 44 currently uploaded frames reviewed on light/dark backgrounds; no rectangular residue observed. Defeat alpha fade is intentional.",
   "known_defects": {
-    "sporecaster": "Replacement attack frames retain interior hand/effect clipping (notably 03) and rectangular FX residue; hit_00 through hit_03 retain cap clipping at y=130; defeat_03 through defeat_05 still truncate the left silhouette. Entire affected clips remain quarantined."
+    "sporecaster": "28 new owner-uploaded replacement frames have passed format/hash/padding checks; gameplay visual validation pending. Keep quarantine until actual simulator captures are inspected."
   },
   "replacement_review": {
     "source_commits": [
       "a872ce430dfae7ad87f9026a4a0d0c634ee35799",
-      "d72ea4efa5c8816ca61d1312a540f6949c930ba7"
+      "d72ea4efa5c8816ca61d1312a540f6949c930ba7",
+      "17e2781f15f83d6ff969639ee7345985ba293c21"
     ],
     "rotbomber": "All 16 corrected hit/defeat frames pass visual transparency/edge inspection; independent reaction registration preserves body scale and ground contact.",
-    "sporecaster": "All 28 updated frames inspected; retained whole-clip restrictions because clipping/FX defects persist. Idle/run remain active."
+    "sporecaster": "28 new uploaded frames matched independent ZIP via Git blob hashes and SHA256; 512x512 RGBA/padding verified; quarantine retained pending actual simulator animation review."
   },
   "bonus_victory_frames": 24,
   "notes": "Six legacy enemy_*.png portraits are not animation frames. Original PNG bytes are never changed."
