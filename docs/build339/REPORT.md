@@ -60,7 +60,7 @@ Visual source: `41ec2b04479bc972a9faeac02b7693fc4decab33`.
 | [Revised focused run](https://github.com/JPaulus04/invasion-front-app/actions/runs/44424062746) | Passed: 76 Python tests, three native animation/motion executables, iOS Debug compilation, 400 original PNG hashes in actual bundle, nine fresh actual screenshots |
 | [Revised standard PR checks](https://github.com/JPaulus04/invasion-front-app/actions/runs/44424073279) | Passed: room/collision, pursuit/navigation/portal framing, replay/driver, recoil, combat/XP, campaign pacing, world progression, compilation and existing authored-art bundle checks |
 
-All nine revised 1206 x 2622 captures were inspected. One disposable iPhone 16 Pro / iOS 18.5 was used per milestone. Both runs completed successfully; the first cold boot spent several minutes in simulator data migration. No infrastructure failure or runner retry campaign occurred.
+All nine revised 1206 x 2622 captures were inspected. One disposable iPhone 16 Pro / iOS 18.5 was used per milestone. Both runs completed successfully. The first cold boot spent several minutes in simulator data migration; its first read-only readiness probe timed out after 60 seconds, and the existing bounded 30-second poll succeeded on the same device. The revised run had no setup errors. No device restart or runner retry campaign was needed.
 
 * [Four commander views](screenshots/commanders-overview.jpg) and [character detail](screenshots/commanders-detail.jpg).
 * [Five enemy-state views](screenshots/enemies-overview.jpg) and [enemy details](screenshots/enemies-detail.jpg).
