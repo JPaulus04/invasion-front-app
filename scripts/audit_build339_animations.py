@@ -50,5 +50,18 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--record',action='store_true');args=parser.parse_args()
     result=audit();path=ROOT/'docs/build339/asset-inventory.json'
     if args.record:path.write_text(json.dumps(result,indent=2)+'\n')
-    elif result!=json.loads(path.read_text()):raise SystemExit('Uploaded frames changed; artist/source review and inventory refresh required')
+    else:
+        recorded=json.loads(path.read_text())
+        if result!=recorded:
+            for key in sorted(set(result)|set(recorded)):
+                if result.get(key)!=recorded.get(key):
+                    if key=='frames':
+                        old_frames={f['path']:f for f in recorded['frames']}
+                        for frame in result['frames']:
+                            previous=old_frames.get(frame['path'])
+                            if frame!=previous:
+                                differences={k:[previous.get(k) if previous else None,frame.get(k)] for k in frame if not previous or previous.get(k)!=frame.get(k)}
+                                print(f"Inventory difference {frame['path']}: {differences}")
+                    else:print(f"Inventory difference {key}: recorded={str(recorded.get(key))[:400]} actual={str(result.get(key))[:400]}")
+            raise SystemExit('Uploaded frames changed; artist/source review and inventory refresh required')
     print(f'PASS: {result["total"]} frames, 9 characters; {result["quarantined"]} quarantined, 24 bonus victory frames bundled; Specter 44 reviewed')
