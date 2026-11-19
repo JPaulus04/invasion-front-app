@@ -2267,6 +2267,7 @@ final class OutpostScene: SKScene {
             }
         }
         UserDefaults.standard.set(index<4 ? index : 0,forKey:"ozSelectedCommander")
+        health=maximumHealth // Diagnostic fixture starts fresh for this identity.
         layout() // Rebuild the real HUD for the equipped fixture identity.
         worldMapIndex=0; wave=2; gateUnlocked=true; startWave()
         phase = .levelUp; clearOverlay(); overlayBackdrop.isHidden=true; arena.isPaused=false

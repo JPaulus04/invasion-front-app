@@ -1,0 +1,124 @@
+{
+  "captures": [
+    {
+      "index": 0,
+      "scene": "vanguard-idle",
+      "file": "vanguard-idle.png",
+      "native_ready": true,
+      "png_sha256": "6b2856a33c330befb04e495285dcf68d4173e6ff068fe2cf16c44158e491de02",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 1,
+      "scene": "specter-move",
+      "file": "specter-move.png",
+      "native_ready": true,
+      "png_sha256": "98a25819787e5912dfc81cba97f958576e8be69c89b66579064327d00de3cc0d",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 2,
+      "scene": "bulwark-attack",
+      "file": "bulwark-attack.png",
+      "native_ready": true,
+      "png_sha256": "5285abc982049a8c21d2fdae576aa9d630c6f9c5fb8e79d4d8ab18e25e929959",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 3,
+      "scene": "volt-hit",
+      "file": "volt-hit.png",
+      "native_ready": true,
+      "png_sha256": "c449acca222b47552773cce40a78c878310e4f696d4bf83ab98ae7845162e664",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 4,
+      "scene": "enemies-idle",
+      "file": "enemies-idle.png",
+      "native_ready": true,
+      "png_sha256": "09506119134662dfa11d704876c32cda7a817eb6c9a60ed4037bb1d0f71a9137",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 5,
+      "scene": "enemies-move",
+      "file": "enemies-move.png",
+      "native_ready": true,
+      "png_sha256": "d90f0421fc86f1607cd18595117dc3e81a5d26ec5503ee46352b4f4eda3aeb68",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 6,
+      "scene": "enemies-attack",
+      "file": "enemies-attack.png",
+      "native_ready": true,
+      "png_sha256": "381ce2217af9c7d14e87546c2edc96c4cc679f29b5f8bb111c8f1f868e9af1f3",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 7,
+      "scene": "enemies-hit",
+      "file": "enemies-hit.png",
+      "native_ready": true,
+      "png_sha256": "a139a4741fbb43cec431c50683cc9e1e8d84538ad58b4fc621ff19d7410376a1",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 8,
+      "scene": "enemies-defeat",
+      "file": "enemies-defeat.png",
+      "native_ready": true,
+      "png_sha256": "6def68ce92f6c0d122e9e4143a23264919b520991b7c96c2ef6c8c13cdd94d76",
+      "pixels": [
+        1206,
+        2622
+      ]
+    }
+  ],
+  "visual_approval": false,
+  "note": "Actual paused SpriteKit fixtures, not campaign/balance outcomes. Visual review is recorded in REPORT.md. Original PNGs are in the Actions artifact; JPGs are labeled crops/contact sheets.",
+  "source_commit": "41ec2b04479bc972a9faeac02b7693fc4decab33",
+  "workflow_run": 44424062746,
+  "workflow_url": "https://github.com/JPaulus04/invasion-front-app/actions/runs/44424062746",
+  "device": {
+    "udid": "05811976-0685-4F1D-9C42-C40210444C93",
+    "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-18-5",
+    "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro",
+    "fresh_device": true
+  },
+  "bundle_count": 400,
+  "original_png_bytes_preserved": true,
+  "agent_reviewed": true,
+  "full_artwork_approval": false,
+  "artifact_id": 14484132300,
+  "quarantine_defeat_alpha": {
+    "sporecaster": 0.13075673580169678,
+    "rotbomber": 0.13075673580169678
+  },
+  "review_scope": "Nine actual paused rendering fixtures reviewed; 44 defective authored frames still require replacement. Capture-only HP reset follows this visual source."
+}

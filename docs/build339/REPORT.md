@@ -46,4 +46,32 @@ Local: inventory/PNG/transparency/hash audit passed; all 76 Python tests passed;
 
 Only commits marked `[animation-review]` (or a manual dispatch) start its focused simulator milestone. Ordinary development commits compile/test without starting a simulator. The milestone uses one disposable iPhone 16 Pro / iOS 18.5 and nine fixed SpriteKit animation views. These are actual application rendering fixtures, not proof of campaign completion; screenshots require human review. Captures cover four commanders and the enemy roster in all five required states. No broad campaign or simulator retry loop is introduced.
 
-Initial validation passed at `da9b8c9350e9f92a236e52dfb05c9a902a613f7e`: [focused animation run](https://github.com/JPaulus04/invasion-front-app/actions/runs/44421256272) and [standard PR checks](https://github.com/JPaulus04/invasion-front-app/actions/runs/44422091066). All nine actual iPhone 16 Pro / iOS 18.5 captures were inspected. Character scale, ground registration, clean Specter transparency and same-character fallbacks were visible. This review exposed the stale HUD portrait on commander selection; the follow-up refreshes it, shows enemy bars in the fixture, and freezes after child actions have evaluated. The native full-loader audit runs once per binary rather than repeating it for every view. Final follow-up evidence will be recorded after inspection. Integration is not fully visually approved while the two replacement-art requests remain open. No visual-quality score is claimed.
+Initial validation passed at `da9b8c9350e9f92a236e52dfb05c9a902a613f7e`: [focused animation run](https://github.com/JPaulus04/invasion-front-app/actions/runs/44421256272) and [standard PR checks](https://github.com/JPaulus04/invasion-front-app/actions/runs/44422091066). All nine actual iPhone 16 Pro / iOS 18.5 captures were inspected. Character scale, ground registration, clean Specter transparency and same-character fallbacks were visible. This review exposed the stale HUD portrait on commander selection; the follow-up refreshes it, shows enemy bars in the fixture, and freezes after child actions have evaluated. The native full-loader audit runs once per binary rather than repeating it for every view. The completed follow-up is recorded below. Integration is not fully visually approved while the two replacement-art requests remain open. No visual-quality score is claimed.
+
+
+## Reviewed final simulator evidence
+
+Visual source: `41ec2b04479bc972a9faeac02b7693fc4decab33`.
+
+| Validation | Actual result |
+| --- | --- |
+| [Initial focused run](https://github.com/JPaulus04/invasion-front-app/actions/runs/44421256272) | Passed; all nine screenshots inspected; exposed stale commander HUD portrait |
+| [Initial standard PR checks](https://github.com/JPaulus04/invasion-front-app/actions/runs/44422091066) | Passed |
+| [Revised focused run](https://github.com/JPaulus04/invasion-front-app/actions/runs/44424062746) | Passed: 76 Python tests, three native animation/motion executables, iOS Debug compilation, 400 original PNG hashes in actual bundle, nine fresh actual screenshots |
+| [Revised standard PR checks](https://github.com/JPaulus04/invasion-front-app/actions/runs/44424073279) | Passed: room/collision, pursuit/navigation/portal framing, replay/driver, recoil, combat/XP, campaign pacing, world progression, compilation and existing authored-art bundle checks |
+
+All nine revised 1206 x 2622 captures were inspected. One disposable iPhone 16 Pro / iOS 18.5 was used per milestone. Both runs completed successfully; the first cold boot spent several minutes in simulator data migration. No infrastructure failure or runner retry campaign occurred.
+
+* [Four commander views](screenshots/commanders-overview.jpg) and [character detail](screenshots/commanders-detail.jpg).
+* [Five enemy-state views](screenshots/enemies-overview.jpg) and [enemy details](screenshots/enemies-detail.jpg).
+* [Initial versus revised commander HUD](screenshots/hud-comparison.jpg).
+* [Capture identities, original PNG hashes and bundle provenance](simulator-evidence.json).
+* [Original screenshot/log/bundle artifact](https://github.com/JPaulus04/invasion-front-app/actions/runs/44424062746/artifacts/14484132300), subject to GitHub's 14-day retention. Committed JPGs are labeled crops/contact sheets of those original captures.
+
+Enemy rows run bottom to top: Mossbot/Barkguard, Thornrunner/Stoneback, Sporecaster/Rotbomber. Bars are deliberately visible in the fixture; normal gameplay visibility rules are unchanged. The revised captures show actual run, attack, hit and collapse poses, stable feet/body scale, clean Specter transparency, health bars clear of clean-frame silhouettes, and same-identity fallback artwork without the quarantined residue/fragments. The two quarantined defeat copies were sampled at alpha `0.13075673580169678` in native logs, confirming the clean fade fallback advances. Native full-loader assertions cover every clean required state and both Barkguard attacks.
+
+These paused SpriteKit fixtures establish resource/rendering integration, not campaign completion or a device performance benchmark. The captured Bulwark/Volt HP values retain the prior launch's initial health because the fixture selects its character after scene initialization. The final fixture setup resets its own HP to the existing `maximumHealth`; that capture-only initialization correction follows the visual source above and has not been recaptured. It does not change shipping health calculations, the controller, artwork or gameplay. No third simulator milestone is needed for that diagnostic assignment. Normal device QA should still assess animation feel, real combat interactions and peak memory.
+
+Modified production artwork: **none**. Integrated directories: `assets/commanders260/` and `assets/enemies/`. All 400 original payloads are unchanged; the JPGs in this document are review evidence only.
+
+Recommendation: ready for code review with explicit safe fallbacks. Full authored animation/art approval remains blocked by the 44 Rotbomber/Sporecaster replacement frames listed above. No visual-quality score, merge or TestFlight approval is claimed.
