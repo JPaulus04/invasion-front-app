@@ -1,0 +1,83 @@
+{
+  "captures": [
+    {
+      "index": 4,
+      "scene": "enemies-idle",
+      "file": "enemies-idle.png",
+      "native_ready": true,
+      "sha256": "443acc3653d3b406ff515dc59688b3e96aee89b32a4b79b92ddddd455333ac33",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 5,
+      "scene": "enemies-move",
+      "file": "enemies-move.png",
+      "native_ready": true,
+      "sha256": "a68ec24baf0dc35fa1dee243336c8763d5623e4e411daa1f3ef228fefcce92fb",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 6,
+      "scene": "enemies-attack",
+      "file": "enemies-attack.png",
+      "native_ready": true,
+      "sha256": "08f4c4cefc31e1e49836b4e4b89a62b36516acaa66ac39a38ed3d1499cd5f303",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 7,
+      "scene": "enemies-hit",
+      "file": "enemies-hit.png",
+      "native_ready": true,
+      "sha256": "a0365ddea081190bdf6365ca6bece7303f8a6dacad84479fe30ac5520c4e0636",
+      "pixels": [
+        1206,
+        2622
+      ]
+    },
+    {
+      "index": 8,
+      "scene": "enemies-defeat",
+      "file": "enemies-defeat.png",
+      "native_ready": true,
+      "sha256": "6cb462ccd89bd4e5c5cedf342cae6d510edc6299161dc0551f246d4b404bc478",
+      "pixels": [
+        1206,
+        2622
+      ]
+    }
+  ],
+  "visual_approval": false,
+  "replacement_review": true,
+  "note": "Actual frames must be reviewed; fixture captures are not a campaign outcome.",
+  "source_commit": "d4d81690fe530ac04777b375c4d106206689a260",
+  "workflow_run": 44447429367,
+  "artifact_id": 14494411512,
+  "agent_reviewed": true,
+  "full_artwork_approval": false,
+  "device": {
+    "udid": "D9FBC0B2-A0BD-4126-B997-BE56B8588861",
+    "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-18-5",
+    "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro",
+    "fresh_device": true
+  },
+  "bundle": {
+    "count": 400,
+    "original_png_bytes_preserved": true,
+    "quarantined_but_bundled": 28
+  },
+  "native_defeat_node_alpha": {
+    "rotbomber": 1.0,
+    "sporecaster": 0.2997701168060303
+  },
+  "review": "Rotbomber restored hit and early authored defeat pose verified, no rectangular backdrop, stable registration. Sporecaster uses quarantined-state fallbacks; independent package reference unavailable; full release hold remains."
+}

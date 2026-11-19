@@ -32,6 +32,17 @@ The old audit glob treats all 224 uploaded enemy animation frames plus six brows
 
 Local: all 77 Python tests, actual 400-frame inventory audit, project sanity checks and whitespace checks pass. Native catalog tests now require clean Rotbomber hit/defeat clips and reaction geometry while retaining exactly 28 quarantined Sporecaster frames.
 
-A focused milestone captures only Rotbomber and Sporecaster in five states (idle, movement, attack, hit, defeat) on one fresh simulator. Native resource assertions still inspect all clean required clips and both Barkguard attacks once. Sporecaster's quarantined states deliberately show clean fallbacks rather than damaged source frames. Compilation, all 400 bundled PNG hashes and actual screenshots are required evidence; results are pending this milestone.
+A focused milestone captures only Rotbomber and Sporecaster in five states (idle, movement, attack, hit, defeat) on one fresh simulator. Native resource assertions still inspect all clean required clips and both Barkguard attacks once. Sporecaster's quarantined states deliberately show clean fallbacks rather than damaged source frames. Compilation, all 400 bundled PNG hashes and actual screenshots are recorded below.
 
 Release remains on hold for the retained Sporecaster clipping/FX defects and the unavailable independent correction-package reference. No merge or TestFlight upload is authorized.
+
+
+## Actual focused results
+
+[Focused run 44447429367](https://github.com/JPaulus04/invasion-front-app/actions/runs/44447429367) **passed** on source `d4d81690fe530ac04777b375c4d106206689a260`: 77 Python tests, native animation catalog/Mossbot/CharacterMotion tests, iOS Debug compilation, all 400 current PNG bundle hashes, and all five actual simulator views. The full native-loader assertions verify every required clean sequence and both Barkguard attacks.
+
+[Full five-view overview](simulator-overview.jpg), [paired character details](simulator-detail.jpg), and [Rotbomber runtime/source pose details](rotbomber-runtime-detail.jpg) were inspected. The latter labels its upper row as actual simulator frames and lower row as source-art previews. Rotbomber's movement, attack, restored hit reaction and early authored defeat pose render cleanly; the former rectangular background is absent, body scale remains consistent, feet register correctly, and health bars remain clear. Sporecaster's idle/run animate; blocked attack/hit/defeat deliberately retain clean idle/flash/fade fallbacks. Its native defeat copy alpha was `0.2997701168060303`, while Rotbomber's authored defeat copy remained at node alpha `1.0` with a changing source pose.
+
+[Original screenshots, logs and bundle report](https://github.com/JPaulus04/invasion-front-app/actions/runs/44447429367/artifacts/14494411512) have normal 14-day GitHub retention. [Individual PNG hashes and source/device provenance](simulator-review.json) are committed with the labeled JPG comparisons. One disposable iPhone 16 Pro / iOS 18.5 was used; no simulator retry campaign was run. These rendering fixtures do not establish campaign/balance outcomes or physical-device performance.
+
+The separate [standard PR checks](https://github.com/JPaulus04/invasion-front-app/actions/runs/44447434750) run the unchanged collision/navigation, combat, pacing, progression, compilation and existing artwork-bundle validation. Their final outcome is recorded in PR #15 after completion.
