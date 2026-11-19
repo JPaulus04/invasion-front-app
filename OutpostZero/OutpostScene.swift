@@ -7109,7 +7109,8 @@ final class OutpostScene: SKScene {
         // used only when stationary. Keep the collision node unrotated.
         if isMoving {
             pilotHeading = atan2(movementDY, movementDX)
-            pilotAimHeading = nil
+            // Do not erase the most recent firing heading while moving.
+            // Feet follow travel; weapon recoil follows pilotShotHeading.
         } else if let aimHeading = pilotAimHeading {
             pilotHeading = aimHeading
         }
@@ -7416,6 +7417,7 @@ final class OutpostScene: SKScene {
         progress.recordDamage(actual)
         pilotShieldUntil = combatTime + CampaignPacing.hitGracePeriod(room: wave)
         pilotHitCount += 1
+        vanguardLastHitAt = pilotAnimationTime
         // Combat feedback takes precedence over the one-time control hint.
         controlsHint.removeAllActions()
         controlsHint.isHidden = true
@@ -7427,6 +7429,45 @@ final class OutpostScene: SKScene {
                              .fadeAlpha(to: 0.3, duration: 0.1), .fadeAlpha(to: 1, duration: 0.1)]), withKey: "hitFlash")
         CombatVisuals.playerDamage(in: arena, at: pilot.position, amount: actual)
         updateHUD()
+    }
+
+    // Build 339: optional authored Vanguard frames. Missing assets retain the
+    // existing approved illustration; no placeholder art ships to players.
+    private var vanguardFrameCache: [String: SKTexture] = [:]
+    private var missingVanguardFrames: Set<String> = []
+    private var vanguardLastHitAt: TimeInterval = -10
+
+    private func vanguardFrame(state: String, frame: Int) -> SKTexture? {
+        let name = String(format: "vanguard_%@_%02d", state, frame)
+        if let cached = vanguardFrameCache[name] { return cached }
+        if missingVanguardFrames.contains(name) { return nil }
+        guard let image = productionImage(named: name) else {
+            missingVanguardFrames.insert(name)
+            return nil
+        }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .linear
+        vanguardFrameCache[name] = texture
+        return texture
+    }
+
+    // The terminal animations are optional presentation only. They never delay
+    // rewards, persistence, retry, or headquarters navigation.
+    private func presentVanguardTerminalAnimation(_ state: String) {
+        guard selectedCommander == 0 else { return }
+        let frames = (0..<8).compactMap { vanguardFrame(state: state, frame: $0) }
+        // Never play a partial cycle: a missing frame is an asset-integration
+        // problem, not a reason to replace approved artwork with a placeholder.
+        guard frames.count == 8 else { return }
+        let sprite = SKSpriteNode(texture: frames[0])
+        sprite.name = "vanguardTerminalAnimation"
+        sprite.size = CGSize(width: 112, height: 112)
+        sprite.position = CGPoint(x: 0, y: 165)
+        sprite.zPosition = 100
+        overlay.addChild(sprite)
+        let sequence = SKAction.animate(with: frames, timePerFrame: 0.095,
+                                        resize: false, restore: false)
+        sprite.run(sequence, withKey: "terminalAnimation")
     }
 
     private func updatePilotPresentation(pose: PilotVisualPose) {
@@ -7442,11 +7483,32 @@ final class OutpostScene: SKScene {
             ? CharacterMotion.pilotWalkFrame(stridePhase: pilotStridePhase,
                                              moving: pilotTraveling) : nil
         let commanderIllustration = Self.commanderArtwork(selectedCommander)
-        if let illustrated = commanderIllustration {
+        // Animation frame selection is visual only: movement, aiming, firing,
+        // collision, and damage calculations remain in their existing systems.
+        // Run and attack can occur simultaneously; the attack frames briefly
+        // take precedence while locomotion and directional aim continue.
+        let shotAge = pilotAnimationTime - pilotLastVisualShot
+        let hitAge = pilotAnimationTime - vanguardLastHitAt
+        let vanguardState = hitAge >= 0 && hitAge < 0.24 ? "hit" :
+            (shotAge >= 0 && shotAge < 0.20 ? "attack" :
+             (pilotTraveling ? "run" : "idle"))
+        let vanguardCount = vanguardState == "hit" ? 4 : 8
+        // The existing stride phase is in radians, wrapping at 4*pi.
+        // Two full stride cycles yield sixteen animation frames.
+        let vanguardPhase = vanguardState == "run"
+            ? Double(pilotStridePhase) * (8 / (2 * Double.pi)) :
+            (vanguardState == "attack" ? max(0, shotAge) * 40 :
+             (vanguardState == "hit" ? max(0, hitAge) * (4 / 0.24) :
+              pilotAnimationTime * 8))
+        let vanguardIndex = Int(max(0, vanguardPhase)) % vanguardCount
+        let authoredVanguard = selectedCommander == 0
+            ? vanguardFrame(state: vanguardState, frame: vanguardIndex) : nil
+        if let authoredVanguard {
+            art.texture = authoredVanguard
+        } else if let illustrated = commanderIllustration {
             art.texture = illustrated
         } else if selectedCommander == 0 {
-            // Vanguard uses a single illustrated 2.5D sprite in live combat.
-            // Movement, aiming and projectiles remain independent of its art.
+            // Preserve the existing approved illustration until real frames exist.
             art.texture = Self.stylizedVanguardTexture
         } else if let walkFrame {
             if direction == 6 {
@@ -9265,6 +9327,7 @@ final class OutpostScene: SKScene {
         salvageBankedThisRun += permanent.bank(PersistentProgression.worldCompletionBonus)
         recovery.clear()
         showWorldCompleteSummary()
+        presentVanguardTerminalAnimation("victory")
     }
 
     private func showWorldCompleteSummary() {
@@ -9476,6 +9539,7 @@ final class OutpostScene: SKScene {
         lockMenuBriefly()
         clearOverlay()
         let best = WorldCatalog.recordBestRoom(worldMapIndex, room: wave)
+        presentVanguardTerminalAnimation("defeat")
         overlayText(reason, y: 97)
         overlayText(selectedWorld.title, y: 68, fontSize: 14)
         overlayText("ROOM \(wave)  •  WORLD BEST \(best)", y: 42, fontSize: 15)
@@ -9546,6 +9610,7 @@ final class OutpostScene: SKScene {
         pilotTraveling = false
         pilotAnimationTime = 0
         pilotLastVisualShot = -10
+        vanguardLastHitAt = -10
         pilotRenderedHeading = -.pi / 2
         pilotStridePhase = 0
         pilotWalkBlend = 0
