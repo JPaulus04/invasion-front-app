@@ -10,13 +10,13 @@ All 44 filenames match the originally requested replacement ranges. All are 512 
 | --- | --- | --- |
 | Rotbomber hit | 8 | Restore: gray rectangular backdrop removed; clean composited transparency and consistent body artwork |
 | Rotbomber defeat | 8 | Restore: gray rectangular backdrop removed; coherent collapse/smoke poses |
-| Sporecaster attack | 12 | Retain clip quarantine: hard cap clipping and rectangular FX remnants persist |
-| Sporecaster hit | 8 | Retain clip quarantine: cap is visibly truncated at the interior y=130 cut, especially frame 02 |
+| Sporecaster attack | 12 | Retain clip quarantine: interior hand/effect clipping, notably frame 03 and rectangular FX remnants persist |
+| Sporecaster hit | 8 | Retain clip quarantine: cap is visibly truncated at the interior y=130 cut in 00–03, especially frame 02 |
 | Sporecaster defeat | 8 | Retain clip quarantine: frames 03–05 still truncate the left silhouette at an interior vertical boundary |
 
 [All 16 Rotbomber replacements](rotbomber-uploaded.jpg), [all 28 Sporecaster replacements](sporecaster-uploaded.jpg), and [full-size defect examples on contrasting backgrounds](sporecaster-remaining-defects.jpg) were reviewed. These are source-art composites, not simulator captures. Transparent RGB values are assessed through alpha compositing, so invisible RGB noise is not mistaken for rendered background contamination.
 
-A transparent outer PNG border does not establish that the character inside that border is complete. The Sporecaster cuts occur inside the 512-pixel canvas, and the updated alpha mask cannot restore the lost subject pixels. Whole-clip quarantine avoids jumping between damaged poses; its clean idle/run and existing reaction fallbacks remain available. No partially approved Sporecaster sequence is enabled.
+A transparent outer PNG border does not establish that the character inside that border is complete. The Sporecaster cuts occur inside the 512-pixel canvas, and the updated alpha mask cannot restore the lost subject pixels. The 28-frame quarantine counts all frames in the three affected sequences; it does not assert that every individual frame has a visible defect. Whole-clip quarantine avoids jumping between damaged poses; its clean idle/run and existing reaction fallbacks remain available. No partially approved Sporecaster sequence is enabled.
 
 Rotbomber's repaired hit/defeat exports use a smaller body than its idle/run exports. The shared controller's profile now registers hit at 259 source-pixel body height/383 ground, and defeat at 258/383, preserving a 48-point initial visible body and the same world-space foot position. Existing attack registration remains 265/388. Body registration is fixed per sequence, not recomputed per frame. Mossbot, commanders, all combat values, movement, collision, camera and landscapes remain unchanged.
 

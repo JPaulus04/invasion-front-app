@@ -40,7 +40,7 @@ def audit():
     if len(records)!=400:raise ValueError('Expected exactly 400 animation frames')
     return {'frames':records,'total':400,'quarantined':sum(r['quarantined'] for r in records),
             'specter_review':'All 44 currently uploaded frames reviewed on light/dark backgrounds; no rectangular residue observed. Defeat alpha fade is intentional.',
-            'known_defects':{'sporecaster':'Replacement attack/hit frames retain hard horizontal clipping at y=130 and some rectangular FX residue; defeat_03 through defeat_05 still truncate the left silhouette. Entire affected clips remain quarantined.'},
+            'known_defects':{'sporecaster':'Replacement attack frames retain interior hand/effect clipping (notably 03) and rectangular FX residue; hit_00 through hit_03 retain cap clipping at y=130; defeat_03 through defeat_05 still truncate the left silhouette. Entire affected clips remain quarantined.'},
             'replacement_review':{'source_commits':['a872ce430dfae7ad87f9026a4a0d0c634ee35799','d72ea4efa5c8816ca61d1312a540f6949c930ba7'],
                 'rotbomber':'All 16 corrected hit/defeat frames pass visual transparency/edge inspection; independent reaction registration preserves body scale and ground contact.',
                 'sporecaster':'All 28 updated frames inspected; retained whole-clip restrictions because clipping/FX defects persist. Idle/run remain active.'},

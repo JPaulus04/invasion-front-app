@@ -7605,7 +7605,7 @@
   "quarantined": 28,
   "specter_review": "All 44 currently uploaded frames reviewed on light/dark backgrounds; no rectangular residue observed. Defeat alpha fade is intentional.",
   "known_defects": {
-    "sporecaster": "Replacement attack/hit frames retain hard horizontal clipping at y=130 and some rectangular FX residue; defeat_03 through defeat_05 still truncate the left silhouette. Entire affected clips remain quarantined."
+    "sporecaster": "Replacement attack frames retain interior hand/effect clipping (notably 03) and rectangular FX residue; hit_00 through hit_03 retain cap clipping at y=130; defeat_03 through defeat_05 still truncate the left silhouette. Entire affected clips remain quarantined."
   },
   "replacement_review": {
     "source_commits": [
