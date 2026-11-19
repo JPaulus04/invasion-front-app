@@ -1,5 +1,7 @@
 # Build 339 animation integration
 
+**Current replacement status:** 44 updated PNGs imported unchanged from the two subsequent main uploads. Rotbomber's 16 corrected hit/defeat frames pass and are restored with reaction-specific registration; Sporecaster's 28 updated attack/hit/defeat frames remain quarantined because clipping/FX defects persist. See [current replacement review](replacements/REPORT.md). The original integration/capture evidence below records the earlier 44-frame quarantine and is historical.
+
 Base: main `4c636d8c94b5b5d0adcb59a8cbac01616e800e07`.
 Branch: `feature/build339-animation-integration`. No merge or TestFlight upload authorized.
 

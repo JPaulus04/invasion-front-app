@@ -10,7 +10,12 @@ class Build339Tests(unittest.TestCase):
     def test_all_uploaded_frames_are_unchanged_and_reviewed(self):
         self.assertEqual(audit.audit(),json.loads((ROOT/'docs/build339/asset-inventory.json').read_text()))
     def test_defective_exports_have_explicit_whole_clip_fallbacks(self):
-        a=audit.audit();self.assertEqual(a['quarantined'],44)
+        a=audit.audit();self.assertEqual(a['quarantined'],28)
         self.assertFalse(any(f['quarantined'] for f in a['frames'] if f['character']=='specter'))
         self.assertEqual(sum(f['state']=='victory' for f in a['frames']),24)
         self.assertTrue(all(f['state'] not in ['idle','run'] for f in a['frames'] if f['quarantined']))
+
+    def test_only_visually_accepted_replacement_sequences_are_restored(self):
+        frames=audit.audit()['frames']
+        self.assertFalse(any(f['quarantined'] for f in frames if f['character']=='rotbomber'))
+        self.assertEqual(sum(f['quarantined'] for f in frames if f['character']=='sporecaster'),28)

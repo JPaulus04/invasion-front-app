@@ -2254,9 +2254,10 @@ final class OutpostScene: SKScene {
         }
         let motions: [EnemyAnimationRules.Motion] = [.idle,.move,.attack,.hit,.idle,.move,.attack,.hit,.defeat]
         let motion = motions[index]
+        let replacementReview = args.contains("-qa339Replacements")
         // Validate real UIKit/ImageIO resource loading, all clean sequences,
         // both Barkguard variants and every declared source quarantine.
-        for p in (index == 0 ? CharacterAnimationCatalog.profiles : []) {
+        for p in (index == 0 || (replacementReview && index == 4) ? CharacterAnimationCatalog.profiles : []) {
             for state in EnemyAnimationRules.Motion.allCases {
                 for variant in 0..<(p.name == "barkguard" && state == .attack ? 2 : 1) {
                     let frames=WorldOneEnemyAnimation.textures(enemy:p.name,motion:state,variant:variant)
@@ -2279,7 +2280,7 @@ final class OutpostScene: SKScene {
             if motion != .idle { WorldOneEnemyAnimation.play(motion,enemy:CharacterAnimationCatalog.commander(index)!,on:hero) }
             for type in [0,2] { spawned += 1; spawnEnemy(artReviewType:type) }
         } else {
-            for type in 0...5 { spawned += 1; spawnEnemy(artReviewType:type) }
+            for type in (replacementReview ? [4,5] : Array(0...5)) { spawned += 1; spawnEnemy(artReviewType:type) }
         }
         for (slot,enemy) in enemies.enumerated() {
             enemy.node.removeAllActions();enemy.node.alpha=1;enemy.node.childNode(withName:"spawnWarning")?.removeFromParent()
@@ -2287,6 +2288,12 @@ final class OutpostScene: SKScene {
             enemy.node.childNode(withName:"enemyHealthTrack")?.isHidden=false
             let col=slot%2;let row=slot/2
             enemy.node.position=CGPoint(x:roomBounds.midX+(col==0 ? -100:100),y:roomBounds.minY+240+CGFloat(row)*150)
+            if replacementReview {
+                let caption=SKLabelNode(fontNamed:"AvenirNext-Heavy")
+                caption.text=enemy.behavior == 4 ? "SPORECASTER" : "ROTBOMBER"
+                caption.fontSize=9;caption.fontColor = .cyan;caption.position.y = -38
+                enemy.node.addChild(caption)
+            }
             if index>=4, let art=enemy.node.childNode(withName:"enemyArt") as? SKSpriteNode,
                let name=WorldOneEnemyAnimation.character(on:art) {
                 if motion == .defeat {

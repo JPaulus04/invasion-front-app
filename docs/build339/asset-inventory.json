@@ -6234,7 +6234,7 @@
     },
     {
       "path": "assets/enemies/sporecaster_attack_00.png",
-      "sha256": "a0bf65448f518fc70794c578546350d8eb25e1acd47b6f97a3b3bbb48be3a4e7",
+      "sha256": "fe0fa323945b757c9fcd4b76b1a6ad8d38ff4177ed4443e5837b8013df66924a",
       "character": "sporecaster",
       "state": "attack",
       "index": 0,
@@ -6247,13 +6247,13 @@
         114,
         130,
         397,
-        450
+        432
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_01.png",
-      "sha256": "5df62b637e65ad3322bfe3b9250c77efe49ee20efd1efa447e4bbc660c70763f",
+      "sha256": "6837a1cd9a895a72eef2ac5de607c0ff4f9d461b0420c03554f5907473bc5554",
       "character": "sporecaster",
       "state": "attack",
       "index": 1,
@@ -6264,15 +6264,15 @@
       ],
       "alpha_bounds": [
         104,
-        130,
+        132,
         407,
-        450
+        433
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_02.png",
-      "sha256": "2ac7e74017e2568ea85292098d95373fba0cf548b2dedeb031b1706e05192adb",
+      "sha256": "4504db1a626261b3d4f1434aeaf495925048c0a5f8af493ecd480513caac37ce",
       "character": "sporecaster",
       "state": "attack",
       "index": 2,
@@ -6285,13 +6285,13 @@
         125,
         130,
         386,
-        450
+        429
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_03.png",
-      "sha256": "93694f4651978ab73dc30d87b44fcf2420c87f6644fafef0b41afbf1684212a2",
+      "sha256": "58bf69fa9fa79ae7ee18220ee001767e0df79c9a5fa73034c80758d2e5e913f8",
       "character": "sporecaster",
       "state": "attack",
       "index": 3,
@@ -6301,16 +6301,16 @@
         255
       ],
       "alpha_bounds": [
-        125,
+        127,
         130,
         387,
-        450
+        431
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_04.png",
-      "sha256": "b0f3d0f5bf7b1f04fbe5d7ef0856571c02da6d24874bccf9004de1ffb0d12193",
+      "sha256": "eb4339c4a0b4538984c816850d01cd9d7baa3ef294c04df405a82699326df984",
       "character": "sporecaster",
       "state": "attack",
       "index": 4,
@@ -6320,16 +6320,16 @@
         255
       ],
       "alpha_bounds": [
-        115,
+        132,
         130,
-        397,
-        450
+        396,
+        431
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_05.png",
-      "sha256": "0187fa8aa9979dcfdad834296cf412242fe4d4ad94a5d3174a0de5c8aa9dfe5b",
+      "sha256": "4aa5dad39acf45a4c16dd5b5ffae116abcbfbaca17f97c645e03439f812220f1",
       "character": "sporecaster",
       "state": "attack",
       "index": 5,
@@ -6339,16 +6339,16 @@
         255
       ],
       "alpha_bounds": [
-        106,
+        132,
         130,
-        405,
-        450
+        424,
+        431
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_06.png",
-      "sha256": "0428639261289b92d46350d2415865b2dab093ce5e7a1bd152e7f85e2761111d",
+      "sha256": "1d48a53f60a860eac026e3547f618cfe9b0d87fd39145242d7294c621f49f23f",
       "character": "sporecaster",
       "state": "attack",
       "index": 6,
@@ -6358,16 +6358,16 @@
         255
       ],
       "alpha_bounds": [
-        98,
+        132,
         130,
-        413,
-        450
+        431,
+        431
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_07.png",
-      "sha256": "ade70aed32b38850cf89eb65974d552861667784a407d1296e9458aa187f065e",
+      "sha256": "6e9325e4e08759c7abd70786bae48ccf42808bea6085f1e24f365451b85283a0",
       "character": "sporecaster",
       "state": "attack",
       "index": 7,
@@ -6377,16 +6377,16 @@
         255
       ],
       "alpha_bounds": [
-        101,
+        132,
         130,
-        410,
-        450
+        438,
+        431
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_08.png",
-      "sha256": "46da0dafe7a19743033b833934cefecd7ad237037e28e3f7eaaf95454d19e30a",
+      "sha256": "82bdf3dbfd660c52870f2ec8c6da2b22b131f0ec681afd9b4255ce3d845522ae",
       "character": "sporecaster",
       "state": "attack",
       "index": 8,
@@ -6398,14 +6398,14 @@
       "alpha_bounds": [
         105,
         130,
-        407,
-        450
+        445,
+        430
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_09.png",
-      "sha256": "9ebe4643db54ae598bf31f095bf4952c29f61bb19f1ace97b0d864db7774eb23",
+      "sha256": "c3bf0fbdb5214250ff2eb4b33effd41d5ad54b5f71c06044c6662dfba6c06676",
       "character": "sporecaster",
       "state": "attack",
       "index": 9,
@@ -6415,16 +6415,16 @@
         255
       ],
       "alpha_bounds": [
-        90,
+        105,
         130,
-        422,
-        450
+        452,
+        430
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_10.png",
-      "sha256": "f8732eb384e23e009ccc4add9aaf0a086dc7f284297911b4d59433838a097836",
+      "sha256": "e542bb5938dd11aa05f330eefdc5cb3812b8acdc0523c00c9deeb9d522ebf406",
       "character": "sporecaster",
       "state": "attack",
       "index": 10,
@@ -6437,13 +6437,13 @@
         105,
         130,
         407,
-        450
+        430
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_attack_11.png",
-      "sha256": "2185c4f8f176f7b132b675e99ca74ff55d69e9a69976634d146dc453c98af15f",
+      "sha256": "636e4f311dbbd198f0f3f692e53cd192509c2fbe9f97331e9d1fd44ab9431d4a",
       "character": "sporecaster",
       "state": "attack",
       "index": 11,
@@ -6456,13 +6456,13 @@
         93,
         130,
         419,
-        450
+        431
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_00.png",
-      "sha256": "0286f5ae636d2d27037a9e2c9e5f758719e1c32243634fceeb7e6eede740667c",
+      "sha256": "222f3133ddcbdc2e6e33b8cf0cefcb99cc8f9250e21c5d8b6ba1df67f306c77c",
       "character": "sporecaster",
       "state": "hit",
       "index": 0,
@@ -6475,13 +6475,13 @@
         103,
         130,
         409,
-        450
+        434
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_01.png",
-      "sha256": "6dff9113860a35353e98ab26a3765440617926e98c5ab47b9d5f7d5b49b9b62d",
+      "sha256": "570e12be951f81ac44a51241e266d79a2f598a188e2219eab45c71c2001a9ef0",
       "character": "sporecaster",
       "state": "hit",
       "index": 1,
@@ -6491,16 +6491,16 @@
         255
       ],
       "alpha_bounds": [
-        66,
+        68,
         130,
-        445,
-        450
+        420,
+        435
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_02.png",
-      "sha256": "51701d5ca8ade765ee91bca281af81a2063e9b3305067ccd09fde3859e73a449",
+      "sha256": "fbd6a00377e76dd32445e0d0db3423ec309d105d4d54e680b4f1285087ea0218",
       "character": "sporecaster",
       "state": "hit",
       "index": 2,
@@ -6512,14 +6512,14 @@
       "alpha_bounds": [
         58,
         130,
-        454,
-        450
+        410,
+        401
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_03.png",
-      "sha256": "d41e8f6f28846c30556a861f64f5c356392b338bbd019bd5981b4b4eff5b8485",
+      "sha256": "afa36515951ce1c1f050f771fef20b9e9683742542a37e39fb6aaf75317c9616",
       "character": "sporecaster",
       "state": "hit",
       "index": 3,
@@ -6531,14 +6531,14 @@
       "alpha_bounds": [
         67,
         130,
-        444,
-        450
+        416,
+        413
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_04.png",
-      "sha256": "38b0a7ce45b8fec8c925b5fcd29b98f3fe05daf14a57f795319d02c2fc826fe1",
+      "sha256": "fd25a800d2b0fc11658415d55a6df134fca41ea17d5b93c2dd4f5c5e516cae6c",
       "character": "sporecaster",
       "state": "hit",
       "index": 4,
@@ -6550,14 +6550,14 @@
       "alpha_bounds": [
         84,
         130,
-        428,
-        450
+        407,
+        432
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_05.png",
-      "sha256": "8566639c74fab153ee3ea2b9e10e766f7d4e9d619012e91733439b4f4bd06155",
+      "sha256": "b64146e382ae9685643d8cb6da14225d54bbc61eedaf5d3649c37f15a7331094",
       "character": "sporecaster",
       "state": "hit",
       "index": 5,
@@ -6570,13 +6570,13 @@
         85,
         130,
         427,
-        450
+        434
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_06.png",
-      "sha256": "ab29fdc8cba5c9fdbffe3373f5c4852182866911f0a4c6bab1e4bf32f12a4971",
+      "sha256": "d1dc86ad418b38ca02e42aba12e234c4096d86e1c089a7816e0e43eacd2b813b",
       "character": "sporecaster",
       "state": "hit",
       "index": 6,
@@ -6586,16 +6586,16 @@
         255
       ],
       "alpha_bounds": [
-        88,
+        90,
         130,
         423,
-        450
+        436
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_hit_07.png",
-      "sha256": "acb1fb474f162cc044d45be62d3f31af831fd75ad0061a413a7845b988b84e47",
+      "sha256": "42beda4025f66664e1ae6b82fc20220db2347a32a74876db6b71197312940dc0",
       "character": "sporecaster",
       "state": "hit",
       "index": 7,
@@ -6607,14 +6607,14 @@
       "alpha_bounds": [
         91,
         201,
-        421,
+        370,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_00.png",
-      "sha256": "3bd49b3b92a487ac23158cf5c422ab46676c662bd7188d05253299cdb80872be",
+      "sha256": "066534fd78cf2a57f874dad16224bfd895583b86379fe870df4eb7a48334cc1b",
       "character": "sporecaster",
       "state": "defeat",
       "index": 0,
@@ -6624,16 +6624,16 @@
         255
       ],
       "alpha_bounds": [
-        80,
-        130,
-        431,
+        105,
+        175,
+        407,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_01.png",
-      "sha256": "3743c9ae5a68a5c4166559757bf6a754297eca8d5a172a149d56b741dc3615d1",
+      "sha256": "0c0a1233b89d8b5fef9d956802f5ff381ec855bf0b0a2b22a58fd8fb370f5095",
       "character": "sporecaster",
       "state": "defeat",
       "index": 1,
@@ -6643,16 +6643,16 @@
         255
       ],
       "alpha_bounds": [
-        83,
-        130,
-        429,
+        108,
+        175,
+        404,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_02.png",
-      "sha256": "6f095b56734ef20c6453ee4e8aa07453f28d6d131d03fc789959e22c4f50a9f6",
+      "sha256": "cf25e15a64b87c8ed89e9094f10e625c97d573e06aa9f30fedf8b8211dff6312",
       "character": "sporecaster",
       "state": "defeat",
       "index": 2,
@@ -6662,16 +6662,16 @@
         255
       ],
       "alpha_bounds": [
-        16,
-        130,
-        496,
+        107,
+        175,
+        404,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_03.png",
-      "sha256": "8654347acb8bdd18284b942bd6728346a4ffc95d87a44bca55190de1e9010d1b",
+      "sha256": "4ce4f60bcb1e908a622e5604238afccc8d1777506556608d531e263fce9edf4e",
       "character": "sporecaster",
       "state": "defeat",
       "index": 3,
@@ -6681,16 +6681,16 @@
         255
       ],
       "alpha_bounds": [
-        16,
-        130,
-        496,
+        115,
+        177,
+        397,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_04.png",
-      "sha256": "f076a6e5343ec22b2ffb406a24365f36f31df3aa6d3e6e0f335b32562e6a2881",
+      "sha256": "0b94cba6a31b308c876eae7d908de921374bf79e0b722878aebf92543a801161",
       "character": "sporecaster",
       "state": "defeat",
       "index": 4,
@@ -6700,16 +6700,16 @@
         255
       ],
       "alpha_bounds": [
-        16,
-        130,
-        496,
+        114,
+        177,
+        398,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_05.png",
-      "sha256": "41a48c62b42e48218fa8d39ba606e270e9a92f36a8220129e110ee5b30fcfa03",
+      "sha256": "1d5cc8b72b1bcd69101e17b60927ccfc516fdaa08b08fe08e053f2086605121f",
       "character": "sporecaster",
       "state": "defeat",
       "index": 5,
@@ -6719,16 +6719,16 @@
         255
       ],
       "alpha_bounds": [
-        16,
-        130,
-        496,
+        113,
+        203,
+        399,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_06.png",
-      "sha256": "a4aefaebe019b211ce269ebab7d665f99d2f19d81ba982fc393b4ad377195519",
+      "sha256": "4dccbcf12c04ce69edc5c2f6e09e2f2b0d221c4e93fddc3c704a113562d7d154",
       "character": "sporecaster",
       "state": "defeat",
       "index": 6,
@@ -6738,16 +6738,16 @@
         255
       ],
       "alpha_bounds": [
-        16,
-        130,
-        496,
+        101,
+        181,
+        410,
         450
       ],
       "quarantined": true
     },
     {
       "path": "assets/enemies/sporecaster_defeat_07.png",
-      "sha256": "4864aab8b73c838026bd7b23b685fe4a0593f151abb994f96acf30ab25504677",
+      "sha256": "3f1888b308551296e1f6eedae20e5a7bc06d289792828ab038a5fa1d3985f3c4",
       "character": "sporecaster",
       "state": "defeat",
       "index": 7,
@@ -6757,9 +6757,9 @@
         255
       ],
       "alpha_bounds": [
-        58,
-        130,
-        453,
+        87,
+        177,
+        425,
         450
       ],
       "quarantined": true
@@ -7298,7 +7298,7 @@
     },
     {
       "path": "assets/enemies/rotbomber_hit_00.png",
-      "sha256": "248e99bd5974c5d17149790759369ec0e49c54a3298512227081b4273cafa904",
+      "sha256": "acff567e0cc860fb3c00527c2bd0e85980360f65d5e811df7579336f726b65d8",
       "character": "rotbomber",
       "state": "hit",
       "index": 0,
@@ -7308,16 +7308,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        413,
-        413
+        124,
+        124,
+        383,
+        383
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_hit_01.png",
-      "sha256": "12fc97c01eddff467929dbf62d4612766ab6675f9115872310a836b3e041fed3",
+      "sha256": "dc7955d3a0f6f86e4bb02973ddfa82688718f13ead87f4cc67515a168d00ba16",
       "character": "rotbomber",
       "state": "hit",
       "index": 1,
@@ -7327,16 +7327,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        412,
-        413
+        112,
+        120,
+        392,
+        383
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_hit_02.png",
-      "sha256": "d9bb99ac3a616018d2bdb114ba33a4a5a36def2eaaa5ebfc14b9c6ce4213884a",
+      "sha256": "3af66e9c9efee7577a15e7ecfd6228afaab1be6b99ed9a6c0d3b20be502e7705",
       "character": "rotbomber",
       "state": "hit",
       "index": 2,
@@ -7346,16 +7346,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        412,
-        413
+        112,
+        109,
+        400,
+        380
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_hit_03.png",
-      "sha256": "4dfb02f4724915c0f94bf5ab25cb879e31b69c87b56c585bbef445168f674e81",
+      "sha256": "7dc0845cee0a3bd2525d97b9c6565c8d55d1626ac410ba29a3c47b7f6087ef81",
       "character": "rotbomber",
       "state": "hit",
       "index": 3,
@@ -7365,16 +7365,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        413,
-        413
+        136,
+        131,
+        405,
+        381
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_hit_04.png",
-      "sha256": "850bfe8ea0f15d5f6bfd389b519ea0b2579599330b9b3c0b47903491d54b069c",
+      "sha256": "7957f4fa8523892a8a7610b755a3584af2cb3a9c018b4e69ea302dcf8bc9d9c4",
       "character": "rotbomber",
       "state": "hit",
       "index": 4,
@@ -7384,16 +7384,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        413,
-        412
+        131,
+        129,
+        392,
+        377
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_hit_05.png",
-      "sha256": "0c0507824ae37a29ff08959c7acfa0d046814fe1980f94832512fe97d765245c",
+      "sha256": "2f97531973589a315f214a68d9afee84301dcb28ce1adcc63fa48129c09a7072",
       "character": "rotbomber",
       "state": "hit",
       "index": 5,
@@ -7403,16 +7403,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        412,
-        412
+        129,
+        131,
+        385,
+        376
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_hit_06.png",
-      "sha256": "f19a2bf6ebf1d45a7c624abba7a5732a3adb3a4435717219a257869306ebf8ac",
+      "sha256": "4a0d168d52e77a4c54cead5febf24d929648765560ccf5ab58beb3859337b62f",
       "character": "rotbomber",
       "state": "hit",
       "index": 6,
@@ -7422,16 +7422,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        412,
-        412
+        128,
+        126,
+        384,
+        380
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_hit_07.png",
-      "sha256": "9d76fc48764e3ca24a96b81039221901ab4174da565c709f2e5e76f0266c8eb4",
+      "sha256": "9d504e3a61eb30de802dfc8bd53cea193bc0ace63dc256cd26685770f50da1af",
       "character": "rotbomber",
       "state": "hit",
       "index": 7,
@@ -7441,16 +7441,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        413,
-        412
+        126,
+        121,
+        387,
+        383
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_defeat_00.png",
-      "sha256": "47b31176ee67b78d602e34f6da92173f942b144f98e0e13f3ff583bafaf24787",
+      "sha256": "e16ae3b36a767e113d4c73ce61f9e876846e63d00d79fc770710088bc90f6b0e",
       "character": "rotbomber",
       "state": "defeat",
       "index": 0,
@@ -7460,16 +7460,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        413,
-        412
+        124,
+        125,
+        386,
+        383
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_defeat_01.png",
-      "sha256": "fae53a2a596b08c443252409705f4c5d68357d899caf1aa70118f8888332768a",
+      "sha256": "649c25689eb84b377fe96bf9853dbea49fcb906741d3d96def7ae5f5980e6c2d",
       "character": "rotbomber",
       "state": "defeat",
       "index": 1,
@@ -7479,16 +7479,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        412,
-        412
+        129,
+        136,
+        388,
+        388
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_defeat_02.png",
-      "sha256": "88de6f562320c600966852859cbde9873e973638fc9a0a897be7811debc3d022",
+      "sha256": "e21819075be24558c5e0f8ef74176ebde812f445c6f155f4637f9d684a220ca1",
       "character": "rotbomber",
       "state": "defeat",
       "index": 2,
@@ -7498,16 +7498,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        412,
-        412
+        126,
+        155,
+        393,
+        390
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_defeat_03.png",
-      "sha256": "fd66053c335bd7d458fa9001c141136089dbabde9bfe2c5a200ed14d0b495d51",
+      "sha256": "defc6b50cb1736e7be807ec6dc8cd8ef244fcb0afb5d8750183f443d63debe1d",
       "character": "rotbomber",
       "state": "defeat",
       "index": 3,
@@ -7517,16 +7517,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        413,
-        412
+        115,
+        177,
+        398,
+        384
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_defeat_04.png",
-      "sha256": "ad5ddecb07d8a9494a22c8c661e72a5120c9ea1631862cf2c39cd81800045a52",
+      "sha256": "5a8e0125495351232f86ea2ee5ceb2b45b1ea76e0877e47ab1fe1553133ff3d2",
       "character": "rotbomber",
       "state": "defeat",
       "index": 4,
@@ -7536,16 +7536,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        413,
-        413
+        113,
+        154,
+        400,
+        391
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_defeat_05.png",
-      "sha256": "eb21fd1be52cd69e6c7a937fd35a2015cdb59fcb82d98374b48c99285d84c4f5",
+      "sha256": "79e52faaeeee71b197cc7563e58868a56a3279bf5f180483c993058f3f6375f5",
       "character": "rotbomber",
       "state": "defeat",
       "index": 5,
@@ -7555,16 +7555,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        412,
-        413
+        109,
+        173,
+        401,
+        391
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_defeat_06.png",
-      "sha256": "cb5bec27c4b4a116e2e622ac411547314d9d3c4aff06a3c27e6013e60d594dcd",
+      "sha256": "52604c74fb04c1dc037329af304dc2e494ea65b6a64aaef509bb1cf877276b6b",
       "character": "rotbomber",
       "state": "defeat",
       "index": 6,
@@ -7574,16 +7574,16 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        412,
-        413
+        111,
+        165,
+        400,
+        391
       ],
-      "quarantined": true
+      "quarantined": false
     },
     {
       "path": "assets/enemies/rotbomber_defeat_07.png",
-      "sha256": "9f2d19db944247df118ae24b845f42713b95b96faa0c69ca889d7247e1294be2",
+      "sha256": "f9fbbbf84843e734ac8dda5aaa7e9a53cba95ad8747bc44c06ec034d82f77803",
       "character": "rotbomber",
       "state": "defeat",
       "index": 7,
@@ -7593,20 +7593,27 @@
         255
       ],
       "alpha_bounds": [
-        99,
-        99,
-        413,
-        413
+        111,
+        157,
+        400,
+        391
       ],
-      "quarantined": true
+      "quarantined": false
     }
   ],
   "total": 400,
-  "quarantined": 44,
+  "quarantined": 28,
   "specter_review": "All 44 currently uploaded frames reviewed on light/dark backgrounds; no rectangular residue observed. Defeat alpha fade is intentional.",
   "known_defects": {
-    "rotbomber": "Hit/defeat contain translucent rectangular backgrounds. Attack exports require explicit independent registration (smaller authored body).",
-    "sporecaster": "Attack/hit/defeat contain detached neighboring fragments, white edge marks and/or clipped rectangular FX."
+    "sporecaster": "Replacement attack/hit frames retain hard horizontal clipping at y=130 and some rectangular FX residue; defeat_03 through defeat_05 still truncate the left silhouette. Entire affected clips remain quarantined."
+  },
+  "replacement_review": {
+    "source_commits": [
+      "a872ce430dfae7ad87f9026a4a0d0c634ee35799",
+      "d72ea4efa5c8816ca61d1312a540f6949c930ba7"
+    ],
+    "rotbomber": "All 16 corrected hit/defeat frames pass visual transparency/edge inspection; independent reaction registration preserves body scale and ground contact.",
+    "sporecaster": "All 28 updated frames inspected; retained whole-clip restrictions because clipping/FX defects persist. Idle/run remain active."
   },
   "bonus_victory_frames": 24,
   "notes": "Six legacy enemy_*.png portraits are not animation frames. Original PNG bytes are never changed."

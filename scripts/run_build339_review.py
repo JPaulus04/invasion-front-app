@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Nine focused actual SpriteKit captures; one disposable simulator, no campaigns."""
+import argparse
 import json
 from pathlib import Path
 import subprocess
@@ -30,14 +31,17 @@ def validate(path,index):
 
 
 def main():
+    parser=argparse.ArgumentParser();parser.add_argument('--replacements',action='store_true');args=parser.parse_args()
     sim.command=command
     results=[]
     with sim.fresh_simulator('build339',OUT,controlled=True) as device:
         for index,name in enumerate(['vanguard-idle','specter-move','bulwark-attack','volt-hit',
                                      'enemies-idle','enemies-move','enemies-attack','enemies-hit','enemies-defeat']):
+            if args.replacements and index<4:continue
+            launch_flags=['-qa339Replacements'] if args.replacements else []
             log=(OUT/f'{name}.log').resolve();err=(OUT/f'{name}-stderr.log').resolve()
             command('xcrun','simctl','launch','--terminate-running-process','--stdout='+str(log),
-                '--stderr='+str(err),device,sim.BUNDLE,'-captureBuild339Animation','-qa339Index',str(index),timeout=90)
+                '--stderr='+str(err),device,sim.BUNDLE,'-captureBuild339Animation','-qa339Index',str(index),*launch_flags,timeout=90)
             deadline=time.monotonic()+90
             while time.monotonic()<deadline:
                 errors=err.read_text(errors='replace') if err.exists() else ''
@@ -56,7 +60,7 @@ def main():
                     time.sleep(1)
             results.append({'index':index,'scene':name,'file':image.name,'native_ready':True})
             print('Captured',name,flush=True)
-    (OUT/'captures.json').write_text(json.dumps({'captures':results,'visual_approval':False,
+    (OUT/'captures.json').write_text(json.dumps({'captures':results,'visual_approval':False,'replacement_review':args.replacements,
         'note':'Actual frames must be reviewed; fixture captures are not a campaign outcome.'},indent=2)+'\n')
 
 if __name__=='__main__':main()

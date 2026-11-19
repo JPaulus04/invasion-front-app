@@ -36,9 +36,12 @@ import Foundation
         // registered attack export; no per-frame bounds resizing/body pumping.
         precondition(abs(rot.canvasSide(.idle)*420/512-48)<0.001)
         precondition(abs(rot.canvasSide(.attack)*265/512-48)<0.001)
-        precondition(rot.registeredGround(.attack)==388 && rot.quarantine==["hit","defeat"])
+        precondition(rot.registeredGround(.attack)==388 && rot.quarantine.isEmpty)
+        precondition(abs(rot.canvasSide(.hit)*259/512-48)<0.001)
+        precondition(abs(rot.canvasSide(.defeat)*258/512-48)<0.001)
+        precondition(rot.registeredGround(.hit)==383 && rot.registeredGround(.defeat)==383)
         let quarantined=uploaded.reduce(0) { sum,p in sum+p.quarantine.reduce(0) { $0+(p.sequences[$1] ?? 0) } }
-        precondition(quarantined==44)
-        print("400 unique resources, 9 exact profiles, role/commander maps, 44 quarantined frames, Mossbot compatibility and stable registration passed")
+        precondition(quarantined==28)
+        print("400 unique resources, 9 exact profiles, role/commander maps, 28 quarantined frames, Mossbot compatibility and stable registration passed")
     }
 }

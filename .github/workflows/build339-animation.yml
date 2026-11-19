@@ -36,12 +36,18 @@ jobs:
       - name: Verify all 400 original PNGs in compiled bundle
         run: python3 scripts/verify_build339_bundle.py DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app
       - name: Capture focused character integration milestone
-        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[animation-review]')
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[animation-review]') || contains(github.event.head_commit.message, '[replacement-review]')
         timeout-minutes: 16
+        env:
+          REPLACEMENT_REVIEW: ${{ contains(github.event.head_commit.message, '[replacement-review]') }}
         run: |
           mkdir -p simulator-app
           ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
-          python3 scripts/run_build339_review.py
+          if [[ "$REPLACEMENT_REVIEW" == 'true' ]]; then
+            python3 scripts/run_build339_review.py --replacements
+          else
+            python3 scripts/run_build339_review.py
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

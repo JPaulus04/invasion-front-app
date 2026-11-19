@@ -30,10 +30,23 @@ enum CharacterAnimationCatalog {
             frameNames(sequence: sequence(motion,variant: variant))
         }
         func registeredGround(_ motion: Motion) -> Double {
-            name == "rotbomber" && motion == .attack ? 388 : ground
+            guard name == "rotbomber" else { return ground }
+            switch motion {
+            case .attack: return 388
+            case .hit, .defeat: return 383
+            default: return ground
+            }
         }
         func canvasSide(_ motion: Motion) -> Double {
-            let reference = name == "rotbomber" && motion == .attack ? 265 : idleHeight
+            let reference: Double
+            if name == "rotbomber" {
+                switch motion {
+                case .attack: reference = 265
+                case .hit: reference = 259
+                case .defeat: reference = 258
+                default: reference = idleHeight
+                }
+            } else { reference = idleHeight }
             return Double(pixels)*bodyHeight/reference
         }
         var requiredFiles: [String] {
@@ -60,7 +73,7 @@ enum CharacterAnimationCatalog {
         .init(name:"sporecaster",folder:"enemies",pixels:512,ground:450,idleHeight:320,bodyHeight:46,footY:-11,
               sequences:["idle":8,"run":8,"attack":12,"hit":8,"defeat":8],quarantine:["attack","hit","defeat"]),
         .init(name:"rotbomber",folder:"enemies",pixels:512,ground:460,idleHeight:420,bodyHeight:48,footY:-11,
-              sequences:["idle":8,"run":8,"attack_lob":12,"hit":8,"defeat":8],quarantine:["hit","defeat"])
+              sequences:["idle":8,"run":8,"attack_lob":12,"hit":8,"defeat":8],quarantine:[])
     ]
     static func healthBarY(_ name: String) -> Double? {
         let positions: [String:Double] = ["mossbot": 47, "barkguard": 67, "thornrunner": 55, "stoneback": 79, "sporecaster": 45, "rotbomber": 51]

@@ -17,7 +17,7 @@ SPEC={
  'stoneback':('enemies',512,{'idle':8,'run':8,'attack':12,'hit':8,'defeat':8}),
  'sporecaster':('enemies',512,{'idle':8,'run':8,'attack':12,'hit':8,'defeat':8}),
  'rotbomber':('enemies',512,{'idle':8,'run':8,'attack_lob':12,'hit':8,'defeat':8})}
-QUARANTINE={'sporecaster':['attack','hit','defeat'],'rotbomber':['hit','defeat']}
+QUARANTINE={'sporecaster':['attack','hit','defeat']}
 
 def audit():
     records=[]
@@ -40,8 +40,10 @@ def audit():
     if len(records)!=400:raise ValueError('Expected exactly 400 animation frames')
     return {'frames':records,'total':400,'quarantined':sum(r['quarantined'] for r in records),
             'specter_review':'All 44 currently uploaded frames reviewed on light/dark backgrounds; no rectangular residue observed. Defeat alpha fade is intentional.',
-            'known_defects':{'rotbomber':'Hit/defeat contain translucent rectangular backgrounds. Attack exports require explicit independent registration (smaller authored body).',
-                            'sporecaster':'Attack/hit/defeat contain detached neighboring fragments, white edge marks and/or clipped rectangular FX.'},
+            'known_defects':{'sporecaster':'Replacement attack/hit frames retain hard horizontal clipping at y=130 and some rectangular FX residue; defeat_03 through defeat_05 still truncate the left silhouette. Entire affected clips remain quarantined.'},
+            'replacement_review':{'source_commits':['a872ce430dfae7ad87f9026a4a0d0c634ee35799','d72ea4efa5c8816ca61d1312a540f6949c930ba7'],
+                'rotbomber':'All 16 corrected hit/defeat frames pass visual transparency/edge inspection; independent reaction registration preserves body scale and ground contact.',
+                'sporecaster':'All 28 updated frames inspected; retained whole-clip restrictions because clipping/FX defects persist. Idle/run remain active.'},
             'bonus_victory_frames':24,'notes':'Six legacy enemy_*.png portraits are not animation frames. Original PNG bytes are never changed.'}
 
 if __name__=='__main__':
