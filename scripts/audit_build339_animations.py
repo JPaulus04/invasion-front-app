@@ -40,10 +40,10 @@ def audit():
     if len(records)!=400:raise ValueError('Expected exactly 400 animation frames')
     return {'frames':records,'total':400,'quarantined':sum(r['quarantined'] for r in records),
             'specter_review':'All 44 currently uploaded frames reviewed on light/dark backgrounds; no rectangular residue observed. Defeat alpha fade is intentional.',
-            'known_defects':{'sporecaster':'Replacement attack frames retain interior hand/effect clipping (notably 03) and rectangular FX residue; hit_00 through hit_03 retain cap clipping at y=130; defeat_03 through defeat_05 still truncate the left silhouette. Entire affected clips remain quarantined.'},
-            'replacement_review':{'source_commits':['a872ce430dfae7ad87f9026a4a0d0c634ee35799','d72ea4efa5c8816ca61d1312a540f6949c930ba7'],
+            'known_defects':{'sporecaster':'28 new owner-uploaded replacement frames have passed format/hash/padding checks; gameplay visual validation pending. Keep quarantine until actual simulator captures are inspected.'},
+            'replacement_review':{'source_commits':['a872ce430dfae7ad87f9026a4a0d0c634ee35799','d72ea4efa5c8816ca61d1312a540f6949c930ba7','17e2781f15f83d6ff969639ee7345985ba293c21'],
                 'rotbomber':'All 16 corrected hit/defeat frames pass visual transparency/edge inspection; independent reaction registration preserves body scale and ground contact.',
-                'sporecaster':'All 28 updated frames inspected; retained whole-clip restrictions because clipping/FX defects persist. Idle/run remain active.'},
+                'sporecaster':'28 new uploaded frames matched independent ZIP via Git blob hashes and SHA256; 512x512 RGBA/padding verified; quarantine retained pending actual simulator animation review.'},
             'bonus_victory_frames':24,'notes':'Six legacy enemy_*.png portraits are not animation frames. Original PNG bytes are never changed.'}
 
 if __name__=='__main__':
