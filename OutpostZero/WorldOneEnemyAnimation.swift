@@ -66,7 +66,17 @@ enum WorldOneEnemyAnimation {
         }
         if unavailable.contains(key) { return nil }
         // Quarantine source defects, never silently paint/crop approved uploads.
-        guard !profile.quarantine.contains(sequence) else { unavailable.insert(key); return nil }
+        // QA-only override: permit the newly uploaded Sporecaster reaction frames
+        // in the focused simulator capture, without exposing them in normal play.
+        #if DEBUG
+        let sporecasterReview = enemy == "sporecaster" &&
+            ProcessInfo.processInfo.arguments.contains("-qa339SporecasterReview")
+        #else
+        let sporecasterReview = false
+        #endif
+        guard !profile.quarantine.contains(sequence) || sporecasterReview else {
+            unavailable.insert(key); return nil
+        }
         var frames: [SKTexture] = []; var bytes = 0
         for name in profile.frameNames(motion,variant: variant) {
             let texture: SKTexture
