@@ -1,0 +1,7621 @@
+{
+  "frames": [
+    {
+      "path": "assets/commanders260/vanguard_idle_00.png",
+      "sha256": "db6c2e44b3d3623be7d9099150ee46fb5f57196ef07d40309b06e0cbc11eba2f",
+      "character": "vanguard",
+      "state": "idle",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        57,
+        27,
+        199,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_idle_01.png",
+      "sha256": "2335dcfbe821578dd7c271da527e4480610c30f333f956bd55a6090d0e0027a2",
+      "character": "vanguard",
+      "state": "idle",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        29,
+        198,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_idle_02.png",
+      "sha256": "9b624a508a81d510c8c99b9056446e7214574905c273ce4f9240d30ebd8094ad",
+      "character": "vanguard",
+      "state": "idle",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        57,
+        27,
+        199,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_idle_03.png",
+      "sha256": "27d7f357d7b2c3c0e064250e7d2527019d2e506ca2a1363c575095bb33bde8ac",
+      "character": "vanguard",
+      "state": "idle",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        57,
+        29,
+        199,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_idle_04.png",
+      "sha256": "964dbcebbef65155e6d392a3f01cb1adf0fd1a145353751c2da6546dd7bb64fd",
+      "character": "vanguard",
+      "state": "idle",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        29,
+        200,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_idle_05.png",
+      "sha256": "385b76522cd66020e510a51ade875c6c5f09947ba91330c38a6300b7bd080be0",
+      "character": "vanguard",
+      "state": "idle",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        29,
+        198,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_idle_06.png",
+      "sha256": "86a141c99d6a53f759072c83c36e0e909b7e141f80fcf3745e84c0a31d0219a7",
+      "character": "vanguard",
+      "state": "idle",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        57,
+        27,
+        199,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_idle_07.png",
+      "sha256": "8a477babb55f85bb6355cd9ef9879c067ce0aa90d9e83fdc097500c76a56bf74",
+      "character": "vanguard",
+      "state": "idle",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        57,
+        27,
+        199,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_run_00.png",
+      "sha256": "88cfc5e802d5ff94b8415f7515bec2488a781de2bb3e050f9fbaa8923ce665f2",
+      "character": "vanguard",
+      "state": "run",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        60,
+        21,
+        195,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_run_01.png",
+      "sha256": "611e88fcf496d0c585852de01758b8ae7b774749083bc182e348f175bef1c2d8",
+      "character": "vanguard",
+      "state": "run",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        51,
+        38,
+        204,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_run_02.png",
+      "sha256": "ceb0e522abeb74a15fda6373cdff7a72026f48ce27f865ab921ec92550a597d1",
+      "character": "vanguard",
+      "state": "run",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        46,
+        29,
+        210,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_run_03.png",
+      "sha256": "430aad25592de947ce7c148d2f913fbc069476e585616de647071cf3620c3efb",
+      "character": "vanguard",
+      "state": "run",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        51,
+        34,
+        204,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_run_04.png",
+      "sha256": "2bb3fdcf320eb0a031dc798ec8bb5868be326c9aec3b6ac7014b8c14770114fc",
+      "character": "vanguard",
+      "state": "run",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        60,
+        29,
+        195,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_run_05.png",
+      "sha256": "cf602257a175040f1fe60e524615e56ef6b2a50cc5e5061522d4894be6daa4f4",
+      "character": "vanguard",
+      "state": "run",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        60,
+        29,
+        195,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_run_06.png",
+      "sha256": "a7a869afadcdd2c756458536992f2f5e4a2cb60d63e163a5a2693928033a5288",
+      "character": "vanguard",
+      "state": "run",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        29,
+        198,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_run_07.png",
+      "sha256": "3d779caf2e8c579e155a45df3b607ea439a5540611ec551df3b701a36367ccdc",
+      "character": "vanguard",
+      "state": "run",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        25,
+        197,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_attack_00.png",
+      "sha256": "8a17bbb008e451e36fe101d7ede79777d4636aedd52103d26803cc3556667828",
+      "character": "vanguard",
+      "state": "attack",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        53,
+        23,
+        202,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_attack_01.png",
+      "sha256": "fca4952eb170820f82f8f593a275d8488cd68314cb857d9e316aaa064b42833e",
+      "character": "vanguard",
+      "state": "attack",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        53,
+        23,
+        202,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_attack_02.png",
+      "sha256": "14bbe05563a3bca1d482a2d87650558e67b380f5d5230dc463f8a7dc2459380b",
+      "character": "vanguard",
+      "state": "attack",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        37,
+        23,
+        219,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_attack_03.png",
+      "sha256": "fe90fd5ed3ae1bc55a3f62ab070ece63838d10c81d1ea7969d9d35f7ea006c6d",
+      "character": "vanguard",
+      "state": "attack",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        20,
+        36,
+        236,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_attack_04.png",
+      "sha256": "2dffaac98c7c81063ffcfe5f83d255c933fb8593da2916af83a8d0c8710b2889",
+      "character": "vanguard",
+      "state": "attack",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        36,
+        25,
+        220,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_attack_05.png",
+      "sha256": "eca7a4005155a3617f833d1a7f3ac91acf9194826055a8404502841bd78fd449",
+      "character": "vanguard",
+      "state": "attack",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        35,
+        25,
+        220,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_attack_06.png",
+      "sha256": "bdb1c710bf12aebaeb5ff6d73efb0dd6ac789aa2da1b8f9d9b2a48ce17ef567a",
+      "character": "vanguard",
+      "state": "attack",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        33,
+        21,
+        222,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_attack_07.png",
+      "sha256": "90ac853bad99d1765e21c7f94b2154fca994efc5c8bf5beb3449493bc51308d6",
+      "character": "vanguard",
+      "state": "attack",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        55,
+        23,
+        201,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_hit_00.png",
+      "sha256": "b8f7bbb4299bdc98b8bae3821c9f6b0ae09494d684f29d81db5478f929fcb9f5",
+      "character": "vanguard",
+      "state": "hit",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        51,
+        25,
+        204,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_hit_01.png",
+      "sha256": "08ff4381318e2dd8874ee1e4eb4a16e41cbfc1ba6e3056bb76ff7677f0512b2b",
+      "character": "vanguard",
+      "state": "hit",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        55,
+        30,
+        201,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_hit_02.png",
+      "sha256": "c2e675bc8b421e10c321a2cd13b0b75ed01e445ba195ccf8125b0a2057348b10",
+      "character": "vanguard",
+      "state": "hit",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        42,
+        36,
+        213,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_hit_03.png",
+      "sha256": "8055115b92069fc4aa0da7d397ca5398491c884da530d3f6362930d7e7e86321",
+      "character": "vanguard",
+      "state": "hit",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        35,
+        39,
+        220,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_defeat_00.png",
+      "sha256": "5db2c799e4ff59139f3ceb387290bc638d3a759482e9eaedfa84245abd38e520",
+      "character": "vanguard",
+      "state": "defeat",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        21,
+        200,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_defeat_01.png",
+      "sha256": "f71fa3298773ca969337cf922d25d6cbb9708bb77799dd43ad91f3a626ccfb4a",
+      "character": "vanguard",
+      "state": "defeat",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        30,
+        200,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_defeat_02.png",
+      "sha256": "f6ffb06ee8362fe02149bf1b84076e846851e99342b53f01b645d1967f180edc",
+      "character": "vanguard",
+      "state": "defeat",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        48,
+        50,
+        208,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_defeat_03.png",
+      "sha256": "62578f1db07d05abec63aa2b7bfdb36b5f5f3139a15cda3dccb4d5e6d970486f",
+      "character": "vanguard",
+      "state": "defeat",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        39,
+        74,
+        217,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_defeat_04.png",
+      "sha256": "09740627625bc36ee42cead77da3f918bc6f4fc64d83483aecbcbca72d928900",
+      "character": "vanguard",
+      "state": "defeat",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        38,
+        97,
+        218,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_defeat_05.png",
+      "sha256": "15039327dad40e2ded41f1f722377d1b121d06f89d5bf1164735a6ea9aec0e27",
+      "character": "vanguard",
+      "state": "defeat",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        26,
+        124,
+        229,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_defeat_06.png",
+      "sha256": "cd2cac7f795649c88b77ad579885c5ae0aa910e7f05c5f80fb8c2d0fa80be77c",
+      "character": "vanguard",
+      "state": "defeat",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        22,
+        128,
+        233,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_defeat_07.png",
+      "sha256": "d6212cd369cef56b7748e2096ebd748ba9c87e543b0a847b01b372bdeb6210d9",
+      "character": "vanguard",
+      "state": "defeat",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        23,
+        151,
+        232,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_victory_00.png",
+      "sha256": "9fdafdd4dd2d7c8ce245d21e4d09af50720049cdab78ea16b04313807ec0dc78",
+      "character": "vanguard",
+      "state": "victory",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        55,
+        20,
+        201,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_victory_01.png",
+      "sha256": "845833e472ae414e27423a1afdf4d3b89a9484ce519ccb439471976ef56d54c7",
+      "character": "vanguard",
+      "state": "victory",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        54,
+        21,
+        202,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_victory_02.png",
+      "sha256": "abc7141d37636e3cfeb3d18a48ed0d0e258e019c84d59bb451a108f8b5d2e63e",
+      "character": "vanguard",
+      "state": "victory",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        55,
+        20,
+        201,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_victory_03.png",
+      "sha256": "4c25e1ac9116cf92757b2e63f5e8e4fb11c88e62165729ae4204851c9e63ed15",
+      "character": "vanguard",
+      "state": "victory",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        59,
+        21,
+        196,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_victory_04.png",
+      "sha256": "09a24b8965926d0cf3afa0bf811443c1569ab579ec783c6a29e2e60fa16d9557",
+      "character": "vanguard",
+      "state": "victory",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        20,
+        197,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_victory_05.png",
+      "sha256": "28c1c10cadc801df76c9fd861ae68e616e9fd393938f78e99b4580b3523816d1",
+      "character": "vanguard",
+      "state": "victory",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        54,
+        21,
+        202,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_victory_06.png",
+      "sha256": "1980bc0376850a1a80ffa0aeda4293e5c1adaff0ef1d1e4350f97ad33246c1fc",
+      "character": "vanguard",
+      "state": "victory",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        21,
+        200,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/vanguard_victory_07.png",
+      "sha256": "c32ba0703e8b13cae7d35e54856eb98b06b15147f62446181c8f00b02144055d",
+      "character": "vanguard",
+      "state": "victory",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        60,
+        29,
+        195,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_idle_00.png",
+      "sha256": "243dc9f1c2ef61e19b86e6a6c565b5bf7ce6f7a5c8428155b395a285c98a7138",
+      "character": "specter",
+      "state": "idle",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        96,
+        85,
+        416,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_idle_01.png",
+      "sha256": "242e82727dfeaed4c436c079e48b90b55cdadd66460d812cc5c6d9ab9e6372d9",
+      "character": "specter",
+      "state": "idle",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        101,
+        85,
+        410,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_idle_02.png",
+      "sha256": "cab00f8fea1e81ae781471d82714fb9c6f60f98c9eafdb7d6d8947c2b25a3cf6",
+      "character": "specter",
+      "state": "idle",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        93,
+        85,
+        419,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_idle_03.png",
+      "sha256": "786374db8fe6b5b8206915b62aa386d777d65d9ac2a3538072834935158475b7",
+      "character": "specter",
+      "state": "idle",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        96,
+        85,
+        415,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_idle_04.png",
+      "sha256": "cab00f8fea1e81ae781471d82714fb9c6f60f98c9eafdb7d6d8947c2b25a3cf6",
+      "character": "specter",
+      "state": "idle",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        93,
+        85,
+        419,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_idle_05.png",
+      "sha256": "242e82727dfeaed4c436c079e48b90b55cdadd66460d812cc5c6d9ab9e6372d9",
+      "character": "specter",
+      "state": "idle",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        101,
+        85,
+        410,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_idle_06.png",
+      "sha256": "243dc9f1c2ef61e19b86e6a6c565b5bf7ce6f7a5c8428155b395a285c98a7138",
+      "character": "specter",
+      "state": "idle",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        96,
+        85,
+        416,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_idle_07.png",
+      "sha256": "786374db8fe6b5b8206915b62aa386d777d65d9ac2a3538072834935158475b7",
+      "character": "specter",
+      "state": "idle",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        96,
+        85,
+        415,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_run_00.png",
+      "sha256": "68706b95ef69ec6c12d6909a721325c61587214284539793451f6a9d72c691f6",
+      "character": "specter",
+      "state": "run",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        87,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_run_01.png",
+      "sha256": "c29391b9d489653350dc131856d2e6bd5cbf4f5fd45b40e50698fdbd730964af",
+      "character": "specter",
+      "state": "run",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        96,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_run_02.png",
+      "sha256": "168f31746355b6763f02e50ed3b930640c915f6ebf8c96f2c7e26b4518070eca",
+      "character": "specter",
+      "state": "run",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        85,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_run_03.png",
+      "sha256": "c5c84da24f1e648a7aa81c06ee58b71a3f9d3c136c63760ad098c586306eb34b",
+      "character": "specter",
+      "state": "run",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        85,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_run_04.png",
+      "sha256": "168f31746355b6763f02e50ed3b930640c915f6ebf8c96f2c7e26b4518070eca",
+      "character": "specter",
+      "state": "run",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        85,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_run_05.png",
+      "sha256": "c29391b9d489653350dc131856d2e6bd5cbf4f5fd45b40e50698fdbd730964af",
+      "character": "specter",
+      "state": "run",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        96,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_run_06.png",
+      "sha256": "68706b95ef69ec6c12d6909a721325c61587214284539793451f6a9d72c691f6",
+      "character": "specter",
+      "state": "run",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        87,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_run_07.png",
+      "sha256": "c5c84da24f1e648a7aa81c06ee58b71a3f9d3c136c63760ad098c586306eb34b",
+      "character": "specter",
+      "state": "run",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        85,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_00.png",
+      "sha256": "6296801862e203a09e81334700829debe6fc046ed85907fa1c9c67b5c0319485",
+      "character": "specter",
+      "state": "attack",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        91,
+        85,
+        420,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_01.png",
+      "sha256": "a8029d3eaf41917972f8a93071ca6f690e8117f7bee3e324dd9339d025ed3943",
+      "character": "specter",
+      "state": "attack",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        94,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_02.png",
+      "sha256": "ff72152aba73f21614b91c3aea482c36a99486a5e154e3119ce075bcfc2d3773",
+      "character": "specter",
+      "state": "attack",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        152,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_03.png",
+      "sha256": "13e200456cb750aee6c239aa9e5a730374ff9810b051cafb011fb25a0c872765",
+      "character": "specter",
+      "state": "attack",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        91,
+        85,
+        420,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_04.png",
+      "sha256": "ff72152aba73f21614b91c3aea482c36a99486a5e154e3119ce075bcfc2d3773",
+      "character": "specter",
+      "state": "attack",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        152,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_05.png",
+      "sha256": "a8029d3eaf41917972f8a93071ca6f690e8117f7bee3e324dd9339d025ed3943",
+      "character": "specter",
+      "state": "attack",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        94,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_06.png",
+      "sha256": "6296801862e203a09e81334700829debe6fc046ed85907fa1c9c67b5c0319485",
+      "character": "specter",
+      "state": "attack",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        91,
+        85,
+        420,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_07.png",
+      "sha256": "a8029d3eaf41917972f8a93071ca6f690e8117f7bee3e324dd9339d025ed3943",
+      "character": "specter",
+      "state": "attack",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        94,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_08.png",
+      "sha256": "ff72152aba73f21614b91c3aea482c36a99486a5e154e3119ce075bcfc2d3773",
+      "character": "specter",
+      "state": "attack",
+      "index": 8,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        152,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_09.png",
+      "sha256": "13e200456cb750aee6c239aa9e5a730374ff9810b051cafb011fb25a0c872765",
+      "character": "specter",
+      "state": "attack",
+      "index": 9,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        91,
+        85,
+        420,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_10.png",
+      "sha256": "ff72152aba73f21614b91c3aea482c36a99486a5e154e3119ce075bcfc2d3773",
+      "character": "specter",
+      "state": "attack",
+      "index": 10,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        152,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_attack_11.png",
+      "sha256": "6296801862e203a09e81334700829debe6fc046ed85907fa1c9c67b5c0319485",
+      "character": "specter",
+      "state": "attack",
+      "index": 11,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        91,
+        85,
+        420,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_hit_00.png",
+      "sha256": "7a290ae3e97be1ab15742b03eb2644a673904d2f5a523ef1828b0dc27c325282",
+      "character": "specter",
+      "state": "hit",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        93,
+        85,
+        419,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_hit_01.png",
+      "sha256": "e3625beef53485f436ed27edce3ca98e96c25322f623c93b19be9da9c7f947ee",
+      "character": "specter",
+      "state": "hit",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        82,
+        85,
+        429,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_hit_02.png",
+      "sha256": "ad232a310218f088e5b0607ac41a699c255f9171713a1c1e818648ce0769735c",
+      "character": "specter",
+      "state": "hit",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        111,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_hit_03.png",
+      "sha256": "01010f29475ef99da48e194d0fb268eae5c943b090c4a5e6894491999af7390b",
+      "character": "specter",
+      "state": "hit",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        91,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_hit_04.png",
+      "sha256": "ad232a310218f088e5b0607ac41a699c255f9171713a1c1e818648ce0769735c",
+      "character": "specter",
+      "state": "hit",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        111,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_hit_05.png",
+      "sha256": "e3625beef53485f436ed27edce3ca98e96c25322f623c93b19be9da9c7f947ee",
+      "character": "specter",
+      "state": "hit",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        82,
+        85,
+        429,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_hit_06.png",
+      "sha256": "7a290ae3e97be1ab15742b03eb2644a673904d2f5a523ef1828b0dc27c325282",
+      "character": "specter",
+      "state": "hit",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        93,
+        85,
+        419,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_hit_07.png",
+      "sha256": "01010f29475ef99da48e194d0fb268eae5c943b090c4a5e6894491999af7390b",
+      "character": "specter",
+      "state": "hit",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        91,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_defeat_00.png",
+      "sha256": "7a290ae3e97be1ab15742b03eb2644a673904d2f5a523ef1828b0dc27c325282",
+      "character": "specter",
+      "state": "defeat",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        93,
+        85,
+        419,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_defeat_01.png",
+      "sha256": "e3625beef53485f436ed27edce3ca98e96c25322f623c93b19be9da9c7f947ee",
+      "character": "specter",
+      "state": "defeat",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        82,
+        85,
+        429,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_defeat_02.png",
+      "sha256": "ad232a310218f088e5b0607ac41a699c255f9171713a1c1e818648ce0769735c",
+      "character": "specter",
+      "state": "defeat",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        111,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_defeat_03.png",
+      "sha256": "3feb974ae9fbf8927f669ab3f4b79a15a1cb1aaf5f8dae9ef0f9ed5cc26a4dc2",
+      "character": "specter",
+      "state": "defeat",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        224
+      ],
+      "alpha_bounds": [
+        73,
+        91,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_defeat_04.png",
+      "sha256": "48495378d37be20b1804fe8ae553d8c4abd0ebbf5f18708dbd5e006f1299283e",
+      "character": "specter",
+      "state": "defeat",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        194
+      ],
+      "alpha_bounds": [
+        73,
+        91,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_defeat_05.png",
+      "sha256": "931cc3d0f0583c20f53ddd8a8e6e829741780c65db7965c4e638d62e26717d8d",
+      "character": "specter",
+      "state": "defeat",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        163
+      ],
+      "alpha_bounds": [
+        73,
+        111,
+        438,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_defeat_06.png",
+      "sha256": "3d1f1ec59e6505e4e81ea27d8990fabbd7de221b38d45880347f71070cdeaebd",
+      "character": "specter",
+      "state": "defeat",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        133
+      ],
+      "alpha_bounds": [
+        82,
+        85,
+        429,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/specter_defeat_07.png",
+      "sha256": "e9041c20c279c361059e0f2fb910bdcc7189e697b8b0af252fa17f4c2309fe42",
+      "character": "specter",
+      "state": "defeat",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        102
+      ],
+      "alpha_bounds": [
+        93,
+        85,
+        419,
+        465
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_idle_00.png",
+      "sha256": "89991682f1f06bce0348b9c63db6915ee13ba260b464ea757729a0f8ab76dd81",
+      "character": "bulwark",
+      "state": "idle",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        20,
+        24,
+        236,
+        236
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_idle_01.png",
+      "sha256": "6717840db6f23b33487b6ebf21fc6f8de48a078bb14f692fcbd17df610a86ca7",
+      "character": "bulwark",
+      "state": "idle",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        20,
+        17,
+        236,
+        236
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_idle_02.png",
+      "sha256": "3016d50ccfe2c90ec47421940f57d3ee51f1c04213946c04b782ca487d48bf1d",
+      "character": "bulwark",
+      "state": "idle",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        18,
+        237,
+        237
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_idle_03.png",
+      "sha256": "ce542827944ef3411c94d68a61c4fa6bf40c36cf36a40f5efb401d76f0488596",
+      "character": "bulwark",
+      "state": "idle",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        20,
+        27,
+        236,
+        236
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_idle_04.png",
+      "sha256": "b1a8012cb9eb7b5edb6dc83a3711b519c7799c75187b53c7f18c7dc131a7140c",
+      "character": "bulwark",
+      "state": "idle",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        14,
+        232,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_idle_05.png",
+      "sha256": "cb13b8e8de0633c5a712bc9f87cf31c006bfe7ff83301c4c726e98f0de3231db",
+      "character": "bulwark",
+      "state": "idle",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        25,
+        14,
+        230,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_idle_06.png",
+      "sha256": "a631388aa2a517edbb82e39c701b8df34c0522ce3eef0a7755e25726ddab77d8",
+      "character": "bulwark",
+      "state": "idle",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        14,
+        238,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_idle_07.png",
+      "sha256": "318b1470cb0d0167af3c89d0210a85a25cad17434aa6ed0194946418c888edc0",
+      "character": "bulwark",
+      "state": "idle",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        23,
+        14,
+        232,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_run_00.png",
+      "sha256": "26e73de8c3d593dd6db3894ecfe07535428861d1b9cd4a70ffa79d0292cae04f",
+      "character": "bulwark",
+      "state": "run",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        21,
+        17,
+        235,
+        235
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_run_01.png",
+      "sha256": "73f261283699e38bcdb614758c045f42375b63ddb9e5abbcde520fddbe1f332d",
+      "character": "bulwark",
+      "state": "run",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        32,
+        237,
+        237
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_run_02.png",
+      "sha256": "fcc7115caaa9ef29463766cf00792b3296d9f771e094a2d62d1926ef59d8fbff",
+      "character": "bulwark",
+      "state": "run",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        40,
+        238,
+        238
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_run_03.png",
+      "sha256": "efebda793ee801db3cd9ccb15d7f974bf766c82cdf6b06f6d502e04962e501dd",
+      "character": "bulwark",
+      "state": "run",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        32,
+        16,
+        224,
+        235
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_run_04.png",
+      "sha256": "17ab8f811ba4210c2bd0971983ff800b640663b555f51734295088c71711a7e0",
+      "character": "bulwark",
+      "state": "run",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        23,
+        14,
+        233,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_run_05.png",
+      "sha256": "5ca610ba925976cf1a1152a93eac57a0e5e76488a1a80a94a011913dc409a758",
+      "character": "bulwark",
+      "state": "run",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        14,
+        237,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_run_06.png",
+      "sha256": "99cfb8b30531deb39bf158c5ce614850b7a0a9a827f973f84c7d32f5af4c9422",
+      "character": "bulwark",
+      "state": "run",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        14,
+        236,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_run_07.png",
+      "sha256": "17e6260b642d19d0f8f61ae3bd0f30412852c978bee71a4b4592657bd72361ef",
+      "character": "bulwark",
+      "state": "run",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        14,
+        225,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_attack_00.png",
+      "sha256": "dd7ba7a69431873ed7f637e20ef5bb66a85c40ae32ba117a584ea1a85f231279",
+      "character": "bulwark",
+      "state": "attack",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        27,
+        237,
+        237
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_attack_01.png",
+      "sha256": "dd030dae8e9806ce460f58e40b6fdca464871de5b402fbf6fe2b16eab6c8904d",
+      "character": "bulwark",
+      "state": "attack",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        34,
+        238,
+        238
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_attack_02.png",
+      "sha256": "98ee36ab8c6e33d8eaab52374ec8adf6ff462888babde0f388465a1e53156f31",
+      "character": "bulwark",
+      "state": "attack",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        34,
+        255,
+        238
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_attack_03.png",
+      "sha256": "6d2b6b0272dc2a128aa50f4a40d4000cf8d595a95b032043e484a1bb7a505538",
+      "character": "bulwark",
+      "state": "attack",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        38,
+        238,
+        238
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_attack_04.png",
+      "sha256": "ccfed43c88b19b00d2f30242cdf3977f5b73c66edc497b7e68ceb2b1766fb97e",
+      "character": "bulwark",
+      "state": "attack",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        14,
+        236,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_attack_05.png",
+      "sha256": "ac52ef0cb33de14ff123958a93dd180b1c5645589148fde0379748c4bcf8b1c0",
+      "character": "bulwark",
+      "state": "attack",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        17,
+        14,
+        238,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_attack_06.png",
+      "sha256": "13fa74d93d29f76c12417e253da99faeb00591b373f70bfdb8f1c4408dce1aac",
+      "character": "bulwark",
+      "state": "attack",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        15,
+        58,
+        241,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_attack_07.png",
+      "sha256": "2a4c9287012bcf2e40345c68499fd160d0f2c1ca6efe1952250d4a5217babb0c",
+      "character": "bulwark",
+      "state": "attack",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        15,
+        36,
+        241,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_hit_00.png",
+      "sha256": "21e59cb76656e06bf03065c027512314ef00bbaf91c3c76270809aab94e196d6",
+      "character": "bulwark",
+      "state": "hit",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        24,
+        237,
+        237
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_hit_01.png",
+      "sha256": "a21d02d78f9777274d39b03962f6acf686387478a5cbcf04b8a60d9de0c3850f",
+      "character": "bulwark",
+      "state": "hit",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        39,
+        238,
+        238
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_hit_02.png",
+      "sha256": "e83a20facb0198b5d7f4adcf29c165addafe5fe5c192022578ba945cbd2f290d",
+      "character": "bulwark",
+      "state": "hit",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        44,
+        237,
+        237
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_hit_03.png",
+      "sha256": "678b63ba2c3a4d535fc8265e3de99e2e2654cadcfac0573cb63141f596879282",
+      "character": "bulwark",
+      "state": "hit",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        21,
+        20,
+        235,
+        235
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_defeat_00.png",
+      "sha256": "0525da1d43db40520a3c9c25775ef6b8e56e1ef78d907aac1d8b728398cc7200",
+      "character": "bulwark",
+      "state": "defeat",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        23,
+        14,
+        233,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_defeat_01.png",
+      "sha256": "08c28ef3951e8d03d14e741cd923925d4fc731f6cb7e0abaa4ca667610a5fe94",
+      "character": "bulwark",
+      "state": "defeat",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        22,
+        14,
+        233,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_defeat_02.png",
+      "sha256": "2c6eb8801e24ef2324d642aac1c3db84bc8c7ef2954e935674f9f437357f9b22",
+      "character": "bulwark",
+      "state": "defeat",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        15,
+        93,
+        241,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_defeat_03.png",
+      "sha256": "16b8b34bfde65c33cf51255e085f3f9085a376efd99f06d571c38fb2cdd2c23e",
+      "character": "bulwark",
+      "state": "defeat",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        15,
+        119,
+        241,
+        240
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_defeat_04.png",
+      "sha256": "fac3d02600f6a5c46278c90fb6f287b30d87203b42cbc50692a29f9e61f14337",
+      "character": "bulwark",
+      "state": "defeat",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        13,
+        121,
+        240,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_defeat_05.png",
+      "sha256": "d9ed6a78c6cea175093a2e661e4f86d2703d43c2e343fbe33bd02a9c71843ee2",
+      "character": "bulwark",
+      "state": "defeat",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        15,
+        124,
+        239,
+        245
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_defeat_06.png",
+      "sha256": "07ce04d73c7abe10501e0399eb97efe37f38a104a549bc62c7c482e9b5278ac3",
+      "character": "bulwark",
+      "state": "defeat",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        16,
+        126,
+        238,
+        246
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_defeat_07.png",
+      "sha256": "1fc9f42fc46438a00b2d96159c8bab10d7f46757e6655ded829570a1775ce670",
+      "character": "bulwark",
+      "state": "defeat",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        129,
+        237,
+        247
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_victory_00.png",
+      "sha256": "6258ad00c74eaf94b850d57096e0edc4175fe772a6d3cf07f97d1bba102af0f1",
+      "character": "bulwark",
+      "state": "victory",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        25,
+        238,
+        245
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_victory_01.png",
+      "sha256": "8e4fffcbb5485298e27a958da354d960c989f44ae0a0c0a27989e1aff433e56e",
+      "character": "bulwark",
+      "state": "victory",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        26,
+        238,
+        245
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_victory_02.png",
+      "sha256": "c6929adde7ab3f1f4ecb59ff4ac4e2d7a473c27fded2dfa2a3f2c68009ed81ce",
+      "character": "bulwark",
+      "state": "victory",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        25,
+        238,
+        245
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_victory_03.png",
+      "sha256": "6f12102f74357ede3a08392b8a4d2bc9b3aba8467077e20253ba42b3a4f789ef",
+      "character": "bulwark",
+      "state": "victory",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        26,
+        238,
+        245
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_victory_04.png",
+      "sha256": "c2ba895a7282e1f2232fb33dd129f88a94c6835ad7f8d9cfba5f641023d08a00",
+      "character": "bulwark",
+      "state": "victory",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        25,
+        238,
+        245
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_victory_05.png",
+      "sha256": "313684bbcab7f753d653bf8293d9043ad51cb2e63798054d94197d086f09c998",
+      "character": "bulwark",
+      "state": "victory",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        25,
+        238,
+        245
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_victory_06.png",
+      "sha256": "954c9f0f04f56707632fd56e77fd402eeec47f433aa2e30e236e58da64ab105f",
+      "character": "bulwark",
+      "state": "victory",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        25,
+        238,
+        245
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/bulwark_victory_07.png",
+      "sha256": "056d6235f820b0f3f0e93522b53f7f23c252898459f447e1ec47238bd4d0df6f",
+      "character": "bulwark",
+      "state": "victory",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        25,
+        238,
+        245
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_idle_00.png",
+      "sha256": "fe82df8863bd60eaa5dfec3ea8ec36dc74f10a1570c2be8d0c46e2210d70e1ec",
+      "character": "volt",
+      "state": "idle",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        39,
+        16,
+        216,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_idle_01.png",
+      "sha256": "0bf9066db2693d25ec3c21f175fec218603ca87931f101b555da896ce7e78009",
+      "character": "volt",
+      "state": "idle",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        41,
+        16,
+        215,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_idle_02.png",
+      "sha256": "c1ab39eb739c101cb033c8441ae1773feca77ee60677de4ac3ac99dde51100b5",
+      "character": "volt",
+      "state": "idle",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        38,
+        16,
+        218,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_idle_03.png",
+      "sha256": "98e5349efd998e020dfe2f10614514896f108f80406b1180345c6e97a9499897",
+      "character": "volt",
+      "state": "idle",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        40,
+        16,
+        216,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_idle_04.png",
+      "sha256": "4438d5cfc72a379ff555c8c18f5d21dbe867e8671f6de65b7581101c573daffb",
+      "character": "volt",
+      "state": "idle",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        38,
+        16,
+        215,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_idle_05.png",
+      "sha256": "ee0179e31671bbb2f7198a2b6453747d3d71977d6aa532c8273e0d95572feec9",
+      "character": "volt",
+      "state": "idle",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        41,
+        15,
+        215,
+        241
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_idle_06.png",
+      "sha256": "a00f121a013c1e0fd871b1096b2dc88fc632631e6616928163e5637d2b65feb9",
+      "character": "volt",
+      "state": "idle",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        39,
+        16,
+        219,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_idle_07.png",
+      "sha256": "25a96086bd4cbeeda7c84440709259b2962fbdca0e1e3506ae1f78cf903f99ad",
+      "character": "volt",
+      "state": "idle",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        40,
+        17,
+        216,
+        243
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_run_00.png",
+      "sha256": "9f6a30b08fe6ddf510347a5dbaa08f6d865cc6ec4c0608c6f7b825926e243c08",
+      "character": "volt",
+      "state": "run",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        16,
+        236,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_run_01.png",
+      "sha256": "d1bb4d437e3690875dd82ed4bf485e4dbda756ca98114fb4a11a24f953ea12d3",
+      "character": "volt",
+      "state": "run",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        31,
+        237,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_run_02.png",
+      "sha256": "1f33ce4d9c6edcbecfa366b4dc851fb5301b5d8342355eacc2f0908489eb7427",
+      "character": "volt",
+      "state": "run",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        28,
+        16,
+        228,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_run_03.png",
+      "sha256": "30a206016643f07f227279ebad20a680268915051f18326f63bb76eaa090f780",
+      "character": "volt",
+      "state": "run",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        26,
+        16,
+        229,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_run_04.png",
+      "sha256": "2f488c570461b8a5e54664a277d033cf9b012647a022f8eae44bf82e13cad8e0",
+      "character": "volt",
+      "state": "run",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        16,
+        235,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_run_05.png",
+      "sha256": "66c16616847db11b0cffde8b5f5c5e7a717de0ce3a5861720a22c47dda9ca992",
+      "character": "volt",
+      "state": "run",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        19,
+        30,
+        237,
+        241
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_run_06.png",
+      "sha256": "2353f8a47ffcf9623b0f82f93ca8970c21f76885c0427e66d5cfa257951d9db5",
+      "character": "volt",
+      "state": "run",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        29,
+        16,
+        229,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_run_07.png",
+      "sha256": "cea49fbe8afb6a9cb566a155aec25ee63465fab12bc288bd5f9dd87eeef8280b",
+      "character": "volt",
+      "state": "run",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        26,
+        17,
+        229,
+        243
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_attack_00.png",
+      "sha256": "2ef6dac3be290d02ecbd6b108833e2712514217528a891ea5fb3a15be28fd6ad",
+      "character": "volt",
+      "state": "attack",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        32,
+        16,
+        223,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_attack_01.png",
+      "sha256": "a2696d5e64378b48856ddcbdd3c0ca7a781e8214f9647e600a8d856c79ce0d77",
+      "character": "volt",
+      "state": "attack",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        20,
+        16,
+        236,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_attack_02.png",
+      "sha256": "2d81f48bf562fe6455ad2c258034b328891d62115bf97216359349a06928ed39",
+      "character": "volt",
+      "state": "attack",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        32,
+        16,
+        256,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_attack_03.png",
+      "sha256": "44d40fbb7c39d896f772d7321999b9e0b590fc9e90f08409b553323406605f60",
+      "character": "volt",
+      "state": "attack",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        32,
+        16,
+        234,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_attack_04.png",
+      "sha256": "461d47ccef464dcb5b8215169b3f94965f23b6f99a0ffb736603d550a9f3aaab",
+      "character": "volt",
+      "state": "attack",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        16,
+        222,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_attack_05.png",
+      "sha256": "fead90c9ff169a660e8d4adff15c74b8631b5e26be1c0c38015a9052cd4e1549",
+      "character": "volt",
+      "state": "attack",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        20,
+        15,
+        236,
+        241
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_attack_06.png",
+      "sha256": "3bfe246b945fa523178fd4bc84e5565c6c6485326dbcba07ed0475721890d182",
+      "character": "volt",
+      "state": "attack",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        33,
+        16,
+        256,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_attack_07.png",
+      "sha256": "1b2baa6ae677b6c18202e2412e1e05638fd71bd480f48058a35bf017864a88db",
+      "character": "volt",
+      "state": "attack",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        32,
+        17,
+        234,
+        243
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_hit_00.png",
+      "sha256": "3d8396dd19ec236125541face796f3c2ccf5bc1ffa6d6fe0d2c67fafa6399a6f",
+      "character": "volt",
+      "state": "hit",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        30,
+        16,
+        225,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_hit_01.png",
+      "sha256": "df7f3a0302a4fefc9a4309eb95bd3d70daf2d44f84a44947a60dd18667bd333f",
+      "character": "volt",
+      "state": "hit",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        34,
+        16,
+        221,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_hit_02.png",
+      "sha256": "6215cc76216976887b9666671396ce9f87013188699ccbf6cf706b64963ef0ca",
+      "character": "volt",
+      "state": "hit",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        26,
+        16,
+        230,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_hit_03.png",
+      "sha256": "fd39d5b39ecae01df0c85f5f9dc6f1811f4b3a7f378a1028b4769ab2796bb9df",
+      "character": "volt",
+      "state": "hit",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        29,
+        16,
+        226,
+        242
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_defeat_00.png",
+      "sha256": "daf3e52a56ea597501704ba591b4b4ac10220706e90998c809b9a25fca37f06d",
+      "character": "volt",
+      "state": "defeat",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        37,
+        8,
+        219,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_defeat_01.png",
+      "sha256": "5474744e01c211ff4184d3c13c9c252edf4360f170161851c76ab4d9c4d3e48f",
+      "character": "volt",
+      "state": "defeat",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        49,
+        8,
+        207,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_defeat_02.png",
+      "sha256": "86b8b3092e1a1ecd91263498d35630d3878929319477f51e757664e58f6e8de2",
+      "character": "volt",
+      "state": "defeat",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        43,
+        8,
+        212,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_defeat_03.png",
+      "sha256": "0c9e57c9447f4255213428d6714b990c5905a8cb487fed779539afe1c5c1a03b",
+      "character": "volt",
+      "state": "defeat",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        20,
+        16,
+        236,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_defeat_04.png",
+      "sha256": "3554d03d85d97c620287967b4871e3f017395ee45629f4bb87a40cd7ebdf7944",
+      "character": "volt",
+      "state": "defeat",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        18,
+        18,
+        238,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_defeat_05.png",
+      "sha256": "745f0fc16413c08072487282cd466689c8c813293f3886c5b6f8b70e6b4e30d3",
+      "character": "volt",
+      "state": "defeat",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        13,
+        58,
+        243,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_defeat_06.png",
+      "sha256": "83943e489268d68311eecafcefada294359b97008ab79d4df1e9e18965b7cd80",
+      "character": "volt",
+      "state": "defeat",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        13,
+        93,
+        243,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_defeat_07.png",
+      "sha256": "cb91fb78bf19b056b4becfb4cfc2884b95dfed0993d8571a3aca7c606b4283ec",
+      "character": "volt",
+      "state": "defeat",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        13,
+        126,
+        243,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_victory_00.png",
+      "sha256": "9be78d56ddf3728561ccc89424f150a77ceec5d674125317e35db8c14225fd44",
+      "character": "volt",
+      "state": "victory",
+      "index": 0,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        38,
+        8,
+        218,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_victory_01.png",
+      "sha256": "cb405cb2def50b6bf38617f98b4259774a339f33bd2c3a8f0984f6ecfde062b2",
+      "character": "volt",
+      "state": "victory",
+      "index": 1,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        42,
+        8,
+        214,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_victory_02.png",
+      "sha256": "4e308c48c1b23c1ab094c4d32fbeba84a94c69404a85e2c18aba216b336c6e36",
+      "character": "volt",
+      "state": "victory",
+      "index": 2,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        46,
+        8,
+        210,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_victory_03.png",
+      "sha256": "19b3778ee15bc8c285b963fc38425b1af6d8eba899948fc611defb53629cef3c",
+      "character": "volt",
+      "state": "victory",
+      "index": 3,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        47,
+        8,
+        209,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_victory_04.png",
+      "sha256": "12734a154267989ff8b96f8ab640d0a31f0a604ab2150c1e4d695fcf35950e22",
+      "character": "volt",
+      "state": "victory",
+      "index": 4,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        50,
+        8,
+        205,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_victory_05.png",
+      "sha256": "0bdaf2345103e49b142f82885576c9329f83e6a5fe763cb74551be30e2f91965",
+      "character": "volt",
+      "state": "victory",
+      "index": 5,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        40,
+        8,
+        215,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_victory_06.png",
+      "sha256": "a27f261c7b5cc2b402ab9fcc14fcd3b7d40a98414a3122f37a7312a43824d666",
+      "character": "volt",
+      "state": "victory",
+      "index": 6,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        42,
+        8,
+        213,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/commanders260/volt_victory_07.png",
+      "sha256": "35e5c7828861672db914333d561a3061cc589e780665ce478619cfad1173bf87",
+      "character": "volt",
+      "state": "victory",
+      "index": 7,
+      "pixels": 256,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        39,
+        8,
+        216,
+        232
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_idle_00.png",
+      "sha256": "3c6090d9202e30f48d6d91a9d52c1c0c5068b252819dbbf70a107f770c5afc7b",
+      "character": "barkguard",
+      "state": "idle",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        127,
+        123,
+        396,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_idle_01.png",
+      "sha256": "5626422fb919f85a067bf39e95db09571b71cdb128a6c8d14f8e7be441c41b14",
+      "character": "barkguard",
+      "state": "idle",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        126,
+        121,
+        402,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_idle_02.png",
+      "sha256": "1205819f228bb6c84487f8ef6bc63f01c39ecc98b0b2177695510a64d191a5b0",
+      "character": "barkguard",
+      "state": "idle",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        119,
+        114,
+        399,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_idle_03.png",
+      "sha256": "f5cbe00aac6c42739437d9db9b3265192398a85c9518d58e3b31886fea5a9cd7",
+      "character": "barkguard",
+      "state": "idle",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        105,
+        399,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_idle_04.png",
+      "sha256": "9aebc58c1c5ff97bb3c558d1e21f23b3a42a6c55557fae6b2d0aecdc7a6fae0a",
+      "character": "barkguard",
+      "state": "idle",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        120,
+        105,
+        400,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_idle_05.png",
+      "sha256": "a794809bc8c5dbd549e8241157419b13198b8b087e1dfba81aa1ebd9d0fc3e2e",
+      "character": "barkguard",
+      "state": "idle",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        123,
+        111,
+        400,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_idle_06.png",
+      "sha256": "217423086857524bf6c62ef940c42bbb036e780d2772b9bb1c7b846efc5ca87e",
+      "character": "barkguard",
+      "state": "idle",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        126,
+        119,
+        403,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_idle_07.png",
+      "sha256": "83a56ade8900d6d9d41c3746edb6cefef863b0ada53dcd540808bc131f57093c",
+      "character": "barkguard",
+      "state": "idle",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        128,
+        124,
+        399,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_run_00.png",
+      "sha256": "76ff1a64467a9e97ccf7526e86277b6bf47715c210be49948dbfbfa3a0ea9788",
+      "character": "barkguard",
+      "state": "run",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        120,
+        121,
+        399,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_run_01.png",
+      "sha256": "e1802cefacf983c1222ef1c1c8ee5d427d46b166815b739e9d15d76542051a0a",
+      "character": "barkguard",
+      "state": "run",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        122,
+        128,
+        399,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_run_02.png",
+      "sha256": "83e34725926641e60b9eaa5621e1f8f836af6d95ded42a0558ba1730d679bdb8",
+      "character": "barkguard",
+      "state": "run",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        124,
+        125,
+        397,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_run_03.png",
+      "sha256": "43d56efb8a6238f86358254faed3a865430fb2243da1e32990fe85a07ed0f115",
+      "character": "barkguard",
+      "state": "run",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        120,
+        408,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_run_04.png",
+      "sha256": "c03ca6a27ed3fb6260f1a6d8c08421f19528788686a7ff9d2eb64305a8b1358e",
+      "character": "barkguard",
+      "state": "run",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        117,
+        111,
+        396,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_run_05.png",
+      "sha256": "077e3dbfac14ce4b5a4167823b38703a928a80e27fb4dccbb2d0409dc5ba27f8",
+      "character": "barkguard",
+      "state": "run",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        120,
+        106,
+        394,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_run_06.png",
+      "sha256": "e7978d1834c8599b2833661eb4eb6780dff2a29839bf175f3f1b7d39c31bda7d",
+      "character": "barkguard",
+      "state": "run",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        118,
+        113,
+        390,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_run_07.png",
+      "sha256": "8567785403308e3dfc0367ff921e2518686452bd527d1f96a01b9640ea4a45ef",
+      "character": "barkguard",
+      "state": "run",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        132,
+        113,
+        400,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_combo_00.png",
+      "sha256": "c79285892f0e61fafc107b11ef6bee6f92a3da9bd1938f79ffbfd45c9e4d74b7",
+      "character": "barkguard",
+      "state": "attack_combo",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        118,
+        111,
+        402,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_combo_01.png",
+      "sha256": "abd4ba1c7ffb950cba7d956d0884af7fb2f22c01fe5e42149069d7493cc01122",
+      "character": "barkguard",
+      "state": "attack_combo",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        134,
+        109,
+        400,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_combo_02.png",
+      "sha256": "bfd8907ae97ccfcd4f80279f0cfd3dd13377d5da9ab292b70418d131d10c5d4b",
+      "character": "barkguard",
+      "state": "attack_combo",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        119,
+        97,
+        410,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_combo_03.png",
+      "sha256": "adc8f91e7b8cbb639108f4f59108ce77a1599c4425a52750d6d0a6c80a73d2e7",
+      "character": "barkguard",
+      "state": "attack_combo",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        109,
+        385,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_combo_04.png",
+      "sha256": "e6c0d9946d5b537349f8f79d87d76ccddba92ace4fa6f8bee89e0fe0e59ff697",
+      "character": "barkguard",
+      "state": "attack_combo",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        118,
+        107,
+        406,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_combo_05.png",
+      "sha256": "2a83450c95f593d686774d41c0f30bdf6640ee637fcb110653efdd7f00e79d7e",
+      "character": "barkguard",
+      "state": "attack_combo",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        137,
+        114,
+        399,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_combo_06.png",
+      "sha256": "2309e9d52dc1479426bf46dd99b9d83604cc66b00f4c14722ec931e634b19afd",
+      "character": "barkguard",
+      "state": "attack_combo",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        118,
+        120,
+        411,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_combo_07.png",
+      "sha256": "b0b18c549beb3b0a717b8155e31186ed430250c108c122fb73ebf77b1ece890a",
+      "character": "barkguard",
+      "state": "attack_combo",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        118,
+        77,
+        403,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_combo_08.png",
+      "sha256": "3447d64e7edffaf00f53656c963bbff109215f9a9bb24b0c6999e2d8e9ea6e2a",
+      "character": "barkguard",
+      "state": "attack_combo",
+      "index": 8,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        110,
+        235,
+        402,
+        500
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_combo_09.png",
+      "sha256": "160d4ebfdf0b56a4f0085d1557ef49c50ac5073648bfce130b3e609bc2e31f53",
+      "character": "barkguard",
+      "state": "attack_combo",
+      "index": 9,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        118,
+        238,
+        394,
+        500
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_slam_00.png",
+      "sha256": "257cb76fec93bab308b77009adeceda575deef77d026860a076059500cefd451",
+      "character": "barkguard",
+      "state": "attack_slam",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        129,
+        120,
+        408,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_slam_01.png",
+      "sha256": "ae83adeddd3923dfe7a5761980c6b62c6f2c36ba92ddd313c91e6f844467142b",
+      "character": "barkguard",
+      "state": "attack_slam",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        135,
+        146,
+        391,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_slam_02.png",
+      "sha256": "e1a187312aa835252d629fc7250a58d6d7e254cbb5ea5a3dedd43a03e230e775",
+      "character": "barkguard",
+      "state": "attack_slam",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        108,
+        120,
+        413,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_slam_03.png",
+      "sha256": "fa58c1e3532613dbedbeb077e08b74e81ec9934b824d920c36a636111cd7c1f6",
+      "character": "barkguard",
+      "state": "attack_slam",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        107,
+        111,
+        403,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_slam_04.png",
+      "sha256": "6b8db826b0bac97eb6b05a558a32ef0094f673a6977e239b8ca102eaf7be5c5f",
+      "character": "barkguard",
+      "state": "attack_slam",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        112,
+        109,
+        414,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_slam_05.png",
+      "sha256": "bf6920ddb191b5022a9c6ecf79a4f65c75e38037102630684347190e5d905b23",
+      "character": "barkguard",
+      "state": "attack_slam",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        97,
+        135,
+        405,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_slam_06.png",
+      "sha256": "a8e209c8f04470dd9e68367e5633c5856d707c1e2f351c8a34f835a749f8c647",
+      "character": "barkguard",
+      "state": "attack_slam",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        128,
+        128,
+        413,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_slam_07.png",
+      "sha256": "5467c0426b017dc4f77ad7d8c6eb63d5531215076b50b4103996916ca8242437",
+      "character": "barkguard",
+      "state": "attack_slam",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        111,
+        398,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_slam_08.png",
+      "sha256": "4b9063e8b9294c2ba9ae925e5b8953bbccd6b3b2bf250bf2cdfa49eed51fd8f4",
+      "character": "barkguard",
+      "state": "attack_slam",
+      "index": 8,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        118,
+        215,
+        393,
+        500
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_attack_slam_09.png",
+      "sha256": "6c8b0f705c070c2d3a422d9315832b15f7535923843270fc86f18277dfb8a3c5",
+      "character": "barkguard",
+      "state": "attack_slam",
+      "index": 9,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        114,
+        244,
+        397,
+        500
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_hit_00.png",
+      "sha256": "8fadc54637411d30125341e1c8f7f97ee5ad7a2ef851709ab2f1cb5695ed71fe",
+      "character": "barkguard",
+      "state": "hit",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        112,
+        120,
+        399,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_hit_01.png",
+      "sha256": "14204161284aae01e2512d2f0235d2dc4b44a5185708d1ef58ff780614f8a41e",
+      "character": "barkguard",
+      "state": "hit",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        113,
+        127,
+        398,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_hit_02.png",
+      "sha256": "827a75bfc53802f1b4d0ef85cce4aa806556f02c553fee8c9989f8f7c5eb1509",
+      "character": "barkguard",
+      "state": "hit",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        109,
+        138,
+        402,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_hit_03.png",
+      "sha256": "2d4d4a469794c890c9d094b92d47547a1017a09465d1e384095423e5b3f2dfab",
+      "character": "barkguard",
+      "state": "hit",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        115,
+        117,
+        396,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_hit_04.png",
+      "sha256": "b249065738364eec908352667026438660cf02ff8568bfa7123340b1ad8b7866",
+      "character": "barkguard",
+      "state": "hit",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        139,
+        112,
+        372,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_hit_05.png",
+      "sha256": "f5629e37dfe81cc1d7baa2cb42a8b94f3b5a1a76946cd63e3115c88f15a7aecd",
+      "character": "barkguard",
+      "state": "hit",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        136,
+        130,
+        376,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_defeat_00.png",
+      "sha256": "88204cd0422dca9dff1932031e2f935813ee4bbf526ea325665f087dd281dfea",
+      "character": "barkguard",
+      "state": "defeat",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        126,
+        141,
+        386,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_defeat_01.png",
+      "sha256": "7fb3d7aada6f5e60e5070395c658601c761228970fc6901a4e75c77ba116047a",
+      "character": "barkguard",
+      "state": "defeat",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        113,
+        161,
+        398,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_defeat_02.png",
+      "sha256": "8d9220adae1a43ab452a6729f9d7b5626b86e04f86b5a85abba74ffea51cb2d1",
+      "character": "barkguard",
+      "state": "defeat",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        170,
+        391,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_defeat_03.png",
+      "sha256": "886cdd2c53278f568bb04b904ca5c04401cd85cf61e60c478747fdaf2be0267d",
+      "character": "barkguard",
+      "state": "defeat",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        109,
+        199,
+        403,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_defeat_04.png",
+      "sha256": "1e1d7fa7e65c38ca03b7725106846466cc4fab9af136d37b3b52e7f9368b5313",
+      "character": "barkguard",
+      "state": "defeat",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        110,
+        219,
+        401,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/barkguard_defeat_05.png",
+      "sha256": "c454fe4170b50098289ad4ca702b05ec2189604f6ab8b7b2d9c615867ac58cd7",
+      "character": "barkguard",
+      "state": "defeat",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        109,
+        226,
+        403,
+        374
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_idle_00.png",
+      "sha256": "1fe8ccac8b46b8d7bfb8b9ea1731e8da55b920618aa13064c95a9d1d25501ecb",
+      "character": "thornrunner",
+      "state": "idle",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        224,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_idle_01.png",
+      "sha256": "c1d04e9b7e65947049bf0e56527f2e18bc3f2c9020dbb58b49f6a0e1dcc9bee4",
+      "character": "thornrunner",
+      "state": "idle",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        212,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_idle_02.png",
+      "sha256": "9d721f4bcd1745e7765a617193589c09543bd6c82d04e094cf306cb73a34b821",
+      "character": "thornrunner",
+      "state": "idle",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        211,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_idle_03.png",
+      "sha256": "27dfc5bdad05caa731a208f0da1a14c17a04d33c5855986f2aa62d987e539350",
+      "character": "thornrunner",
+      "state": "idle",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        201,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_idle_04.png",
+      "sha256": "9d05d77a7919b9f2b78e55bb1a8656ded0c6ca18d3f08a4c55a9893a64610f8c",
+      "character": "thornrunner",
+      "state": "idle",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        199,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_idle_05.png",
+      "sha256": "d0cd53acb491b3ac7dc4f11eaf01eafe418ab7a6aa10b02e6c4536095f33a6f0",
+      "character": "thornrunner",
+      "state": "idle",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        212,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_idle_06.png",
+      "sha256": "f8f5bee82499105d526130ac3959f53bf981dda10d34f2423c702dcac85eda63",
+      "character": "thornrunner",
+      "state": "idle",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        223,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_idle_07.png",
+      "sha256": "41942b577b7a1a428bf352225409a33cfe9c117b736f621fb53c972e67b5a081",
+      "character": "thornrunner",
+      "state": "idle",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        239,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_run_00.png",
+      "sha256": "e6550a32410705435f6ac76bab7079303fb1c7e5f248ef090fdcbbd00401f06c",
+      "character": "thornrunner",
+      "state": "run",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        233,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_run_01.png",
+      "sha256": "482140ee7feb5fae848f05e657882c0b605f2a4ab2e9c8eac8c3db21b5f47ff6",
+      "character": "thornrunner",
+      "state": "run",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        252,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_run_02.png",
+      "sha256": "ab10aa6d569e18b5e2d82d6759865ece0982c6af55fe39a1bba281d70179ead2",
+      "character": "thornrunner",
+      "state": "run",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        285,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_run_03.png",
+      "sha256": "f3498b3484ce23906e6711211b69f91d7a7508c9e852b119de0585a3ac26b9e0",
+      "character": "thornrunner",
+      "state": "run",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        243,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_run_04.png",
+      "sha256": "43a9be8d5b1f88ecebdc2b23bea8214fd6d425d2885237882b6d3971a9dbcd91",
+      "character": "thornrunner",
+      "state": "run",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        254,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_run_05.png",
+      "sha256": "25a8179674fc767524d22f70ed59e8182360e6797dd8ef47007e3c2d0cc04bfd",
+      "character": "thornrunner",
+      "state": "run",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        266,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_run_06.png",
+      "sha256": "cec0b4e2b4203ba611faccc0a67567f75642c5d4c1a4982661eb52039a862082",
+      "character": "thornrunner",
+      "state": "run",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        263,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_run_07.png",
+      "sha256": "9a93ce0b257b8acca82eee999cdf7d2ad11d6f253894fb45316fed1f73cfd569",
+      "character": "thornrunner",
+      "state": "run",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        257,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_00.png",
+      "sha256": "525b701ecc9cf80f905951e65ad9bddc2044f21ffd8608516ee83a93fbb28535",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        213,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_01.png",
+      "sha256": "4213edf79278e2f3500e80b22789b0e0c4c70d2143d0e05ce74a866269179a41",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        242,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_02.png",
+      "sha256": "4fd906a068cf613b8d0da8a69d62ab69dbc6f5d0ffe77ee47cb2846bb40f320c",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        281,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_03.png",
+      "sha256": "05a5bd06457fb1fe3c790517c61bfdcc18bac05102b00b01847d3686e1a1cccd",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        296,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_04.png",
+      "sha256": "f32c623883b990c55001a3f35d4b31df3d9e164ae0e10f041ff1c1d5a60d9682",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        261,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_05.png",
+      "sha256": "253748ce4350d5c3b28b321df14a53585e334e3f3e50875868dac04b4e0c7355",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        257,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_06.png",
+      "sha256": "d77d684f79f57843c68e196766dff99a6e5658cd3f7ad9401d0b218610fabece",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        236,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_07.png",
+      "sha256": "584b598148003c505da5f6767511ccaf7531b93ced4af7d89a72d7dc9379cbb5",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        256,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_08.png",
+      "sha256": "24c18ba0f2fb57743a041b74e6305e6924eb3113b4095855b29c74b8caf2488c",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 8,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        272,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_09.png",
+      "sha256": "1463d36a4a25e21c7e834f8bd7a5488b06535a2bdf7be8a217b1ffb80e468991",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 9,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        257,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_10.png",
+      "sha256": "6c4e797bc5917c0c33bc22518f9796a054dea0260a4f36a5c62a5cf2ed9bfa2e",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 10,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        219,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_attack_slash_11.png",
+      "sha256": "4dedac385c348400a784a357425d937b74faeb6322da553befdd22649330fd81",
+      "character": "thornrunner",
+      "state": "attack_slash",
+      "index": 11,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        116,
+        213,
+        396,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_hit_00.png",
+      "sha256": "3a027ce38d6673af9a693af32a8a6486843260b7ef5e2f7c88595f3a66e4bae5",
+      "character": "thornrunner",
+      "state": "hit",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        183,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_hit_01.png",
+      "sha256": "d89ed0329e9ae973a6f725c126773e433b5d9a5175c0d0d87db9d4cf7f1a82f1",
+      "character": "thornrunner",
+      "state": "hit",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        188,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_hit_02.png",
+      "sha256": "71ef19ffc9cfcbf1834f71557e1e48b5142086d2e4a8b048c7a63801c0806f52",
+      "character": "thornrunner",
+      "state": "hit",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        122,
+        201,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_hit_03.png",
+      "sha256": "142b0e9761010874e4043a125606cfa9a6d78424c7943ee92c80ac00be349504",
+      "character": "thornrunner",
+      "state": "hit",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        219,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_hit_04.png",
+      "sha256": "4b46705bcdaa08400b6b06561cdf4c9784fe0cf98b44e95c68bfa25b3adafa1e",
+      "character": "thornrunner",
+      "state": "hit",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        258,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_hit_05.png",
+      "sha256": "bef02673b238447d0c376ab2fea1ec4d8706290a086deebfd0e53b2bf6739c94",
+      "character": "thornrunner",
+      "state": "hit",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        207,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_hit_06.png",
+      "sha256": "231ba78bf28385b4a20d47f9b6b341f0a4b9c2c20c92300f44e636ae31cad3f1",
+      "character": "thornrunner",
+      "state": "hit",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        188,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_hit_07.png",
+      "sha256": "39f4e9710ea5b40b11717434e0e2705a03cd825b17763dbd5af8bde1a724f04d",
+      "character": "thornrunner",
+      "state": "hit",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        190,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_defeat_00.png",
+      "sha256": "124f715f3f4ee6a7ba8f0604a2f161965191e1ff49e4e75adb2cb5160cbdaf0a",
+      "character": "thornrunner",
+      "state": "defeat",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        170,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_defeat_01.png",
+      "sha256": "7312ce3ea7ae805fa6b232d5df113beee2053efc66ab2e934019bcf3ad3d1e0b",
+      "character": "thornrunner",
+      "state": "defeat",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        175,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_defeat_02.png",
+      "sha256": "05738e77b6a5f09591df11a3eb3449e560dc668e0ec49492cb61a6fc5b73af79",
+      "character": "thornrunner",
+      "state": "defeat",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        184,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_defeat_03.png",
+      "sha256": "71a019cf27a3235440db1a9bff430945c67499f51c977311936f669f72469edb",
+      "character": "thornrunner",
+      "state": "defeat",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        261,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_defeat_04.png",
+      "sha256": "3b299a3ea38d65bf90c9e597542ac2422dde1984dc2f9570ba162b2f0c914876",
+      "character": "thornrunner",
+      "state": "defeat",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        274,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_defeat_05.png",
+      "sha256": "87e979980547c24af6295b60b0dba96c11ffbabdba2894ef6ef16da532572e35",
+      "character": "thornrunner",
+      "state": "defeat",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        277,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_defeat_06.png",
+      "sha256": "ca45504dfede25d2b14c33745195e0da19f666dee0b7eabda73ef130208b71fb",
+      "character": "thornrunner",
+      "state": "defeat",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        275,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/thornrunner_defeat_07.png",
+      "sha256": "012b31ed6215739b4f952745e1304ac9451cc55da8cf961efa3d13088a9be548",
+      "character": "thornrunner",
+      "state": "defeat",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        121,
+        289,
+        391,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_idle_00.png",
+      "sha256": "435dd9d45e2052f6394d932680e902cd92c012c2efdd790c5da9ba87091371bb",
+      "character": "stoneback",
+      "state": "idle",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        154,
+        453,
+        480
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_idle_01.png",
+      "sha256": "72a7c98074ee2b9c718239347190ae38a8551f692e792c5a4e9ab13c56d325ef",
+      "character": "stoneback",
+      "state": "idle",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        153,
+        453,
+        480
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_idle_02.png",
+      "sha256": "074712fc43808070967b1140b2983e67bd0db597deed6233e75a515be71d4894",
+      "character": "stoneback",
+      "state": "idle",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        59,
+        140,
+        453,
+        480
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_idle_03.png",
+      "sha256": "5c477538fa45e75721b475932a0f7553d8d80523d48196143d3027cc763b1404",
+      "character": "stoneback",
+      "state": "idle",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        154,
+        453,
+        480
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_idle_04.png",
+      "sha256": "8afc228bcfceaaff309b1ad3abe31ced17691a96ece60f9a7c51ac0a282fd90c",
+      "character": "stoneback",
+      "state": "idle",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        155,
+        453,
+        480
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_idle_05.png",
+      "sha256": "c150242b6cf0671fdd396c476f3570dbb3c649a0f50fa994e4dbe282abe06ec7",
+      "character": "stoneback",
+      "state": "idle",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        155,
+        453,
+        480
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_idle_06.png",
+      "sha256": "860c4c085d35e7257605e64b415b40705fc8988ad8d51f99659c068ffaff1b79",
+      "character": "stoneback",
+      "state": "idle",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        155,
+        453,
+        480
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_idle_07.png",
+      "sha256": "532bc45a72aa74f51cf51a835ce27829050841941a4bc16785b64309a11fdab1",
+      "character": "stoneback",
+      "state": "idle",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        59,
+        155,
+        453,
+        480
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_run_00.png",
+      "sha256": "7a8301a5bd56429cb8f56d48dbe0908a684a1fda8a2776e27d7b6cbb37e4f282",
+      "character": "stoneback",
+      "state": "run",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        65,
+        148,
+        447,
+        470
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_run_01.png",
+      "sha256": "78b7f534813c35350b4f77b24c9c0bf47c8a71874d8fecae06f5bc0871054d7a",
+      "character": "stoneback",
+      "state": "run",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        65,
+        160,
+        447,
+        470
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_run_02.png",
+      "sha256": "fe3b4947f81d65502ed5a9a1b9f13f49c1db15fae7fd7651a9e48b112cdffc19",
+      "character": "stoneback",
+      "state": "run",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        65,
+        158,
+        447,
+        470
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_run_03.png",
+      "sha256": "5ae99206405a6ec1a11a75ce68c48223dfe8631e44df76008d6a3da0ea59d5b7",
+      "character": "stoneback",
+      "state": "run",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        62,
+        149,
+        449,
+        470
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_run_04.png",
+      "sha256": "163816fba7c0bd71611c9fa69cdac80b34ba57d600cfe1b605ad80c64727786d",
+      "character": "stoneback",
+      "state": "run",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        64,
+        148,
+        448,
+        470
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_run_05.png",
+      "sha256": "3b535c501eb4551e26d6d0e0d6a6d87db9c1857b35e90b0856acd8a4dc5906fc",
+      "character": "stoneback",
+      "state": "run",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        69,
+        158,
+        442,
+        470
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_run_06.png",
+      "sha256": "c34760f5ad0d05a834e123a4ea3c407f53a9e571ef0705dd72fe3ea3e37eaa72",
+      "character": "stoneback",
+      "state": "run",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        70,
+        153,
+        441,
+        470
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_run_07.png",
+      "sha256": "6f2a55344b5066b191fb0693931230f0e34fc6cd9c8cc53af23e45a71ada9dc9",
+      "character": "stoneback",
+      "state": "run",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        61,
+        150,
+        450,
+        470
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_00.png",
+      "sha256": "dabf096f0be8e3b65238477a26ef241b4ffc5a50ffdcae4b00768f47959b1e65",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        116,
+        487,
+        489
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_01.png",
+      "sha256": "6c9d560ff8d2b16af93b211710e0d1d8f6b22d83e95b58b139cd35d6ab9957e5",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        115,
+        487,
+        489
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_02.png",
+      "sha256": "1c56dbf1748cd3c8f195ec8b930eef1cb946f4d7753521bc194dfe3cf77f262c",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        105,
+        487,
+        489
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_03.png",
+      "sha256": "83a252a550757c4a67255493ad31a69dca18573d1d4c964293feb48d0e312762",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        104,
+        487,
+        489
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_04.png",
+      "sha256": "2868c01842b648011fe1aa39032b7d9d7503ea6a97e2e41494d28ce26af78fec",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        90,
+        487,
+        489
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_05.png",
+      "sha256": "6802e177adc2c684202b1e6ef900eb4f60bf4e15f172305806ec46b66cf87090",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        71,
+        487,
+        489
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_06.png",
+      "sha256": "b3dac94428d50fbcecdf0d7c47fcbcf259a70e61bbc2619cf44f2a2dae83aa23",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        102,
+        487,
+        489
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_07.png",
+      "sha256": "382764d2266cec2237c7b3929af8e181ea6c9afcbaa25ba518bdfdb187445812",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        112,
+        487,
+        489
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_08.png",
+      "sha256": "6771bcfee2a591915d6437fb6ce20490a07480d7433e0060530534affbe9acc4",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 8,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        23,
+        92,
+        488,
+        490
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_09.png",
+      "sha256": "a4e16b7b774a8d1e683c2f283aec786938ab4803d73b92e4e0a9b3c36d475d67",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 9,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        23,
+        147,
+        488,
+        489
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_10.png",
+      "sha256": "5334ea34c4a5e8bacb5e3d25ce5d66069d229994429db96427a1ec92de964369",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 10,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        153,
+        487,
+        489
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_attack_11.png",
+      "sha256": "bd57442b2be29adf5d3c67a8e40e72d318623c94f94cb791a73ca45a305ffa50",
+      "character": "stoneback",
+      "state": "attack",
+      "index": 11,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        24,
+        71,
+        488,
+        490
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_hit_00.png",
+      "sha256": "b2a58b2a84c18849770f230e2ed0a2e8d048af001c1522c76b5dc565af1391b0",
+      "character": "stoneback",
+      "state": "hit",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        155,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_hit_01.png",
+      "sha256": "17a93907ab224828ad4dc1f39cb7dcbd338bdfafffda4dd215e74a8cb70cf89f",
+      "character": "stoneback",
+      "state": "hit",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        156,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_hit_02.png",
+      "sha256": "28c28f877ea5222ee56017992e2e5614791a18087457ffe951923205c521a8ba",
+      "character": "stoneback",
+      "state": "hit",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        148,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_hit_03.png",
+      "sha256": "2fd061d1357754e5e0faf85fb83a1d99208c9a5d5005a305387355782e8c6f71",
+      "character": "stoneback",
+      "state": "hit",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        142,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_hit_04.png",
+      "sha256": "1090d8b045e1576b5e1d73fc600b9aaba3203b502f732cd7f04c0631c1945d6d",
+      "character": "stoneback",
+      "state": "hit",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        166,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_hit_05.png",
+      "sha256": "286c6b0d15d0c0546646b12e9354aaabe109b65106dceb73969039b9d96c0e3b",
+      "character": "stoneback",
+      "state": "hit",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        170,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_hit_06.png",
+      "sha256": "3898bd6dcbcb085dd244b2d471904ea4d1d502c194f24804105b8933fb39cdcf",
+      "character": "stoneback",
+      "state": "hit",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        171,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_hit_07.png",
+      "sha256": "259212e4ebb6099cc37b713ec9c8cc654f879904d4759762e30ac0e1e3172217",
+      "character": "stoneback",
+      "state": "hit",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        161,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_defeat_00.png",
+      "sha256": "495d31cb05032c78c240939b81dce3a2a859d1f0bfbe967f66dd1ebbe8a0bf12",
+      "character": "stoneback",
+      "state": "defeat",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        161,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_defeat_01.png",
+      "sha256": "3fac6ed02b689448b4d63fa59ad0a930c36e98fc4b6054316f7c212f5383d174",
+      "character": "stoneback",
+      "state": "defeat",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        184,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_defeat_02.png",
+      "sha256": "ba6a4c4077785640c3942873fbee7e888c9ff57d5e6510baff911d7155562b7b",
+      "character": "stoneback",
+      "state": "defeat",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        199,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_defeat_03.png",
+      "sha256": "2ba1a7557c6957be20f09f091bfb96fb8ef0801ca6548f87b4277ebd310221ab",
+      "character": "stoneback",
+      "state": "defeat",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        224,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_defeat_04.png",
+      "sha256": "ecbbd667e6571c715681767a3bb3454eb8309a70b823144eba6412a64e1fb061",
+      "character": "stoneback",
+      "state": "defeat",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        226,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_defeat_05.png",
+      "sha256": "28f84d9dd2dd1689278f8ec5108da6894a8896405434a716d426ea884be0e937",
+      "character": "stoneback",
+      "state": "defeat",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        248,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_defeat_06.png",
+      "sha256": "292c707f7aca4df158dc49fe8666e32818086bcca5044cb27c23a0e2cde9f7c9",
+      "character": "stoneback",
+      "state": "defeat",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        276,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/stoneback_defeat_07.png",
+      "sha256": "3b5a11259577a409f97d4f04eea56ade37b9948cfcc2b7ec59a73e3ac3d245cc",
+      "character": "stoneback",
+      "state": "defeat",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        304,
+        456,
+        474
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_idle_00.png",
+      "sha256": "b2b047f0e15839c67793c283fdfba2c93bad846d48264b2266d2e0b90794f36c",
+      "character": "sporecaster",
+      "state": "idle",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        91,
+        130,
+        420,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_idle_01.png",
+      "sha256": "076ed08f8e5dbd03a023294051562af19a40f4bd54e859942e2b01d25370e375",
+      "character": "sporecaster",
+      "state": "idle",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        92,
+        130,
+        419,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_idle_02.png",
+      "sha256": "8edb31d26c036bf4fa2a5c48c49d3c134feb0b67d7d03cc2c6f18df234c565bc",
+      "character": "sporecaster",
+      "state": "idle",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        92,
+        130,
+        419,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_idle_03.png",
+      "sha256": "7affc94e54c1e16c6f7d46efc2750e5ce6bad855da11556d0c77d07150b78768",
+      "character": "sporecaster",
+      "state": "idle",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        93,
+        130,
+        418,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_idle_04.png",
+      "sha256": "8f4ff6ab639e68cb26ac6a0e8aceab9c83c86d06b56fc9733ffb68012699d102",
+      "character": "sporecaster",
+      "state": "idle",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        89,
+        130,
+        423,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_idle_05.png",
+      "sha256": "1f58c157b3410ce05e020409d5c724a826d58057b751639dd2dfb59c02fb4696",
+      "character": "sporecaster",
+      "state": "idle",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        95,
+        130,
+        417,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_idle_06.png",
+      "sha256": "ab672723fc85d380a10ec1a01b21444154094a2e48e9ac73d5c62ae34a21d8a9",
+      "character": "sporecaster",
+      "state": "idle",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        91,
+        130,
+        420,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_idle_07.png",
+      "sha256": "a5658b974e1d7517092a7603d37d79d2980119f5b16312399961fd0df78c28cb",
+      "character": "sporecaster",
+      "state": "idle",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        96,
+        120,
+        416,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_run_00.png",
+      "sha256": "5fd256cd5d9f70af0c27e1590ba5be6734fc2d5dbd7dc08b776df4899c6a7e3a",
+      "character": "sporecaster",
+      "state": "run",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        102,
+        130,
+        410,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_run_01.png",
+      "sha256": "742c3da4f6480a27f1475e75a286da1017f1d15fc012b5d9617ea49307cd35c1",
+      "character": "sporecaster",
+      "state": "run",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        113,
+        130,
+        399,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_run_02.png",
+      "sha256": "aaca3e394c2cb046071419c1dea99b33df1a2768f4ab05eeb791a69690aca0fd",
+      "character": "sporecaster",
+      "state": "run",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        103,
+        130,
+        408,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_run_03.png",
+      "sha256": "b0fefae0c4a7040d18fca27c1062658aa2fa26114527a040045822351a36922f",
+      "character": "sporecaster",
+      "state": "run",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        109,
+        130,
+        403,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_run_04.png",
+      "sha256": "59e239aff8604126bf023ea66e74afe5e76e999a2d281f242ed61a97e47f39dc",
+      "character": "sporecaster",
+      "state": "run",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        102,
+        130,
+        410,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_run_05.png",
+      "sha256": "3e1ac0cc6e34eba94be4b3cc89de310c46082c3af669c08090096e26c4169a4e",
+      "character": "sporecaster",
+      "state": "run",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        109,
+        130,
+        403,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_run_06.png",
+      "sha256": "3cfb4e7fee89a8a63b26f57f9ac7d2be752e4d4a00847124984d739e1b15da8a",
+      "character": "sporecaster",
+      "state": "run",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        104,
+        130,
+        407,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_run_07.png",
+      "sha256": "dd80829e405dd90ae08b4c247079ef53f68d4abe83291bd97e4f1c0b16f6458e",
+      "character": "sporecaster",
+      "state": "run",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        111,
+        120,
+        401,
+        450
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_00.png",
+      "sha256": "504dbd6377a1cef7afac928721c70ccb35e8ae67e566d95c89b4bb999649e817",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        82,
+        100,
+        430,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_01.png",
+      "sha256": "b94c6ec4519f10518d99679831bd092e304f14d84feb9c294c6a178efb6e3a8b",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        90,
+        100,
+        422,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_02.png",
+      "sha256": "cf29b09041dc276396912d1099c6fd3415714863f1a153e7e0df58eb6bab4575",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        98,
+        100,
+        413,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_03.png",
+      "sha256": "0816725401b0a2ce525d530770554e964371451dbb367bbb44e3be2668ef22f2",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        97,
+        100,
+        414,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_04.png",
+      "sha256": "306db33bbf88755c0c1f7b4687ea288ca59b9fd7ac454448b205df45b9ab654a",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        91,
+        100,
+        420,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_05.png",
+      "sha256": "8e941246efc5c97a051db5a3216caaeba3296ac1cd608eb7d992fa0d8b5516f4",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        94,
+        100,
+        418,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_06.png",
+      "sha256": "803cc28d5d81253142ca0aec2074f6f666337a9c9b762c2819f354ab8b7c0b57",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        83,
+        100,
+        429,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_07.png",
+      "sha256": "fde61301702c5f429ccd5c75f5b14918208fa136f876eb865a07d5a1de03e1e3",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        107,
+        100,
+        405,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_08.png",
+      "sha256": "775ba660ed3e19ee24df964edc1cc94d4f5a3d3b04cd730c50250b096c0bb334",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 8,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        104,
+        100,
+        407,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_09.png",
+      "sha256": "cb4ceac2ba2c43f8e846c7d60cd068ce5e7671e41f33af80f368af3830fda655",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 9,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        90,
+        100,
+        421,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_10.png",
+      "sha256": "07fc75789a97e5b964dd3000853d4cc8161be97645106de1425dce167124869b",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 10,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        94,
+        100,
+        417,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_attack_11.png",
+      "sha256": "81420037c4b767c7db101813a7aea559b260437b2400b9e051690840a01df2f5",
+      "character": "sporecaster",
+      "state": "attack",
+      "index": 11,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        88,
+        100,
+        424,
+        440
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_hit_00.png",
+      "sha256": "dd5df7183159aba7f96d2a4566965a798230e473dc114c74d465faaf3ed47425",
+      "character": "sporecaster",
+      "state": "hit",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        92,
+        87,
+        419,
+        455
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_hit_01.png",
+      "sha256": "bac2155abad7311c36dc73fa26dfb616cf1e4522ccd39ded37ce3379b5d4f826",
+      "character": "sporecaster",
+      "state": "hit",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        58,
+        66,
+        443,
+        451
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_hit_02.png",
+      "sha256": "08c797a76a9acd7c81335d562cbc16d81caeafc73d5b080a545f4775648c44cc",
+      "character": "sporecaster",
+      "state": "hit",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        56,
+        44,
+        476,
+        444
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_hit_03.png",
+      "sha256": "e07936dec8e6f50c67bb53b7106272655b71a923f976d1f9a73bcc84ece0b62e",
+      "character": "sporecaster",
+      "state": "hit",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        62,
+        46,
+        477,
+        446
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_hit_04.png",
+      "sha256": "284be68f3cda61faa2d0535d9861d034480032a45081d225a0d71ddd447be2c0",
+      "character": "sporecaster",
+      "state": "hit",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        68,
+        65,
+        453,
+        450
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_hit_05.png",
+      "sha256": "44c6916e13dcfe49af902e36676105d794819823983e701a356d9ac83ca93aff",
+      "character": "sporecaster",
+      "state": "hit",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        89,
+        112,
+        422,
+        455
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_hit_06.png",
+      "sha256": "5916f9525787f84687109fe7a67c88f98e0b1d44680428d1b8680c2502ea15bd",
+      "character": "sporecaster",
+      "state": "hit",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        91,
+        118,
+        420,
+        457
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_hit_07.png",
+      "sha256": "dd5df7183159aba7f96d2a4566965a798230e473dc114c74d465faaf3ed47425",
+      "character": "sporecaster",
+      "state": "hit",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        92,
+        87,
+        419,
+        455
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_defeat_00.png",
+      "sha256": "3c6a7eaaf2ece6d6375209b390e61cfe60bed0d1bb3ea569da7c40531d21fcfd",
+      "character": "sporecaster",
+      "state": "defeat",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        95,
+        110,
+        416,
+        450
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_defeat_01.png",
+      "sha256": "9f18a024fd1f1e62aca1fa74bd7655091cfda5a0d01ce762beef725d7a5a262c",
+      "character": "sporecaster",
+      "state": "defeat",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        93,
+        120,
+        404,
+        450
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_defeat_02.png",
+      "sha256": "0e25a801ac090882fb5a4bc9be58a3e8efdc21417d069385b09775efb3399ce1",
+      "character": "sporecaster",
+      "state": "defeat",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        73,
+        110,
+        439,
+        450
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_defeat_03.png",
+      "sha256": "487611978a538fedbc91a94ba4223b091bd02f0e9a2be77b2462c57897e5702d",
+      "character": "sporecaster",
+      "state": "defeat",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        92,
+        130,
+        436,
+        450
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_defeat_04.png",
+      "sha256": "655b6c847f1adf501b6c85a161db219e3a266ecb8da70664942aa9962ac7b68b",
+      "character": "sporecaster",
+      "state": "defeat",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        61,
+        184,
+        451,
+        450
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_defeat_05.png",
+      "sha256": "40aa5bcfaa25d95265faabc5501e07d2fba86b2994a1b08b3d15ea389ca7a10c",
+      "character": "sporecaster",
+      "state": "defeat",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        72,
+        200,
+        439,
+        450
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_defeat_06.png",
+      "sha256": "3859013dc62ba2418e8d51ee7074700d9fdc7ecedbbe78d7a5e75545f28d55f0",
+      "character": "sporecaster",
+      "state": "defeat",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        82,
+        110,
+        429,
+        450
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/sporecaster_defeat_07.png",
+      "sha256": "33223f6309fb365a12f6431a5254e2fbc1e9663821e735a714d6e0b48d0310f4",
+      "character": "sporecaster",
+      "state": "defeat",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        153
+      ],
+      "alpha_bounds": [
+        96,
+        137,
+        415,
+        450
+      ],
+      "quarantined": true
+    },
+    {
+      "path": "assets/enemies/rotbomber_idle_00.png",
+      "sha256": "b1bc079835b5a6e149c387b25be5f5348d283453ce6fcd2200e63c5bf2181e2c",
+      "character": "rotbomber",
+      "state": "idle",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        36,
+        40,
+        475,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_idle_01.png",
+      "sha256": "b381f770ec22aa2af54dd931f401d334274ce36acb0ef6a82a6b4e649dce788b",
+      "character": "rotbomber",
+      "state": "idle",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        36,
+        40,
+        475,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_idle_02.png",
+      "sha256": "3d3a10ba46ff2c001edb89a422c2a8181889750d8671d47abdde1df1639076ea",
+      "character": "rotbomber",
+      "state": "idle",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        47,
+        481,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_idle_03.png",
+      "sha256": "bff403e043f09b4d171d2e8ff44d9307a0864b7d65f4743ace9818e90e464e38",
+      "character": "rotbomber",
+      "state": "idle",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        46,
+        481,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_idle_04.png",
+      "sha256": "16e9be2bb523314584fa5b7e5291b767bd38bb2b2cb822bdeb93c2a554c7b408",
+      "character": "rotbomber",
+      "state": "idle",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        35,
+        40,
+        476,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_idle_05.png",
+      "sha256": "223623ddeb4cf98b88d7049b391e32b680491c43ca3f86dd05d6dba03b7ed186",
+      "character": "rotbomber",
+      "state": "idle",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        35,
+        40,
+        477,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_idle_06.png",
+      "sha256": "feca273bc155b91441becd7ffb4e487037cc96fd941957a4cd33dc125a7d73df",
+      "character": "rotbomber",
+      "state": "idle",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        32,
+        40,
+        480,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_idle_07.png",
+      "sha256": "a659fdf3c2f117a269a9f535d5cffca64a97c81f11e908d578d9256abafe5ddc",
+      "character": "rotbomber",
+      "state": "idle",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        36,
+        40,
+        475,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_run_00.png",
+      "sha256": "04a2a949d051b43aaa8f4ccea8a56a342b6b36f9dd8cabf656b0a17fbaccd61a",
+      "character": "rotbomber",
+      "state": "run",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        44,
+        481,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_run_01.png",
+      "sha256": "69e3a9604dae43ab87d3986127cb1efe307a5043009915a40108c9c8e27b0fab",
+      "character": "rotbomber",
+      "state": "run",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        55,
+        481,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_run_02.png",
+      "sha256": "0fcbee3453361f9ff7faa17d26f4b334052b3f5dee486c608cf8b4e321484c53",
+      "character": "rotbomber",
+      "state": "run",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        78,
+        481,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_run_03.png",
+      "sha256": "a47f7b90411bb32bca89e1010b7e7fe7abd4ba6f5e5c2924666c3309d5983c81",
+      "character": "rotbomber",
+      "state": "run",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        86,
+        481,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_run_04.png",
+      "sha256": "d58a76b69f6c0f15c758e2aba8ed26bbba033e90f026868cb7458068cf04bc94",
+      "character": "rotbomber",
+      "state": "run",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        80,
+        481,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_run_05.png",
+      "sha256": "29b869aabe0a980354433c080c3f5b061ed3493f1fd12b4b2c8962361a98d0a3",
+      "character": "rotbomber",
+      "state": "run",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        50,
+        481,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_run_06.png",
+      "sha256": "018feb42372c746f0e04b7f3dfc0337ace6c53d7eee4c82d16a0ca01632dab72",
+      "character": "rotbomber",
+      "state": "run",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        31,
+        43,
+        481,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_run_07.png",
+      "sha256": "55155a132a0d3c294177cc8b12c0752bbc9975f2e7bba2c0169769c04ac595a7",
+      "character": "rotbomber",
+      "state": "run",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        32,
+        40,
+        480,
+        460
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_00.png",
+      "sha256": "91adc11b6acbac0432483c2920ab6b4170c3a2ed67bbb5d79e92d7ae48bb102f",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        123,
+        123,
+        389,
+        388
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_01.png",
+      "sha256": "2314945a38625979aff316ae457dc6f63eff153279c2854de1f105d953b28830",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        119,
+        125,
+        392,
+        387
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_02.png",
+      "sha256": "24345ffc268f04f6870fae48977d59f6f02fe79333fa588f1b21d19efe060adc",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        109,
+        123,
+        402,
+        389
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_03.png",
+      "sha256": "3e40f335a40163823719253d734e97ef3e1b48145faffdfd71f03893e49f6958",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        104,
+        102,
+        408,
+        409
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_04.png",
+      "sha256": "7f2ecf7fe10d1debea1fc3bd25ee7a8d4085bda708e966b96602eaac23fc79bc",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        100,
+        100,
+        412,
+        411
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_05.png",
+      "sha256": "94656a3ce69d97258922c0ce474f1b0d21ed76e09f34a28bf4cd467dddfb63f8",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        87,
+        95,
+        424,
+        416
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_06.png",
+      "sha256": "219d812f752f3378d976e55834a71384862c9a426dd212c0107f912abf052d74",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        88,
+        93,
+        424,
+        419
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_07.png",
+      "sha256": "3c447f7147e64baf31116dbfa45cd606d15c465847c4b2f6491a16fd37252db8",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        84,
+        92,
+        427,
+        420
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_08.png",
+      "sha256": "445ab010780333e3b6060a1118ddd3eaaf58f208678d5be8d2812b63f00df3a0",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 8,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        120,
+        118,
+        391,
+        394
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_09.png",
+      "sha256": "8ebef5794ed45d8763fda397f5959795874934632be74fb6a83fb08cfea3da13",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 9,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        123,
+        123,
+        389,
+        389
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_10.png",
+      "sha256": "7bbe8b85544d5ba3a36bcd615ca5dfa567df4a44e8238c5dc32e03aab667fa59",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 10,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        117,
+        125,
+        394,
+        386
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_attack_lob_11.png",
+      "sha256": "8fc9696f7cb69009e3eedcd39ed66ec2149e2350bd73932cdf5a15f424e1b9af",
+      "character": "rotbomber",
+      "state": "attack_lob",
+      "index": 11,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        118,
+        124,
+        393,
+        387
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_hit_00.png",
+      "sha256": "acff567e0cc860fb3c00527c2bd0e85980360f65d5e811df7579336f726b65d8",
+      "character": "rotbomber",
+      "state": "hit",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        124,
+        124,
+        383,
+        383
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_hit_01.png",
+      "sha256": "dc7955d3a0f6f86e4bb02973ddfa82688718f13ead87f4cc67515a168d00ba16",
+      "character": "rotbomber",
+      "state": "hit",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        112,
+        120,
+        392,
+        383
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_hit_02.png",
+      "sha256": "3af66e9c9efee7577a15e7ecfd6228afaab1be6b99ed9a6c0d3b20be502e7705",
+      "character": "rotbomber",
+      "state": "hit",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        112,
+        109,
+        400,
+        380
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_hit_03.png",
+      "sha256": "7dc0845cee0a3bd2525d97b9c6565c8d55d1626ac410ba29a3c47b7f6087ef81",
+      "character": "rotbomber",
+      "state": "hit",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        136,
+        131,
+        405,
+        381
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_hit_04.png",
+      "sha256": "7957f4fa8523892a8a7610b755a3584af2cb3a9c018b4e69ea302dcf8bc9d9c4",
+      "character": "rotbomber",
+      "state": "hit",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        131,
+        129,
+        392,
+        377
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_hit_05.png",
+      "sha256": "2f97531973589a315f214a68d9afee84301dcb28ce1adcc63fa48129c09a7072",
+      "character": "rotbomber",
+      "state": "hit",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        129,
+        131,
+        385,
+        376
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_hit_06.png",
+      "sha256": "4a0d168d52e77a4c54cead5febf24d929648765560ccf5ab58beb3859337b62f",
+      "character": "rotbomber",
+      "state": "hit",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        128,
+        126,
+        384,
+        380
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_hit_07.png",
+      "sha256": "9d504e3a61eb30de802dfc8bd53cea193bc0ace63dc256cd26685770f50da1af",
+      "character": "rotbomber",
+      "state": "hit",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        126,
+        121,
+        387,
+        383
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_defeat_00.png",
+      "sha256": "e16ae3b36a767e113d4c73ce61f9e876846e63d00d79fc770710088bc90f6b0e",
+      "character": "rotbomber",
+      "state": "defeat",
+      "index": 0,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        124,
+        125,
+        386,
+        383
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_defeat_01.png",
+      "sha256": "649c25689eb84b377fe96bf9853dbea49fcb906741d3d96def7ae5f5980e6c2d",
+      "character": "rotbomber",
+      "state": "defeat",
+      "index": 1,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        129,
+        136,
+        388,
+        388
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_defeat_02.png",
+      "sha256": "e21819075be24558c5e0f8ef74176ebde812f445c6f155f4637f9d684a220ca1",
+      "character": "rotbomber",
+      "state": "defeat",
+      "index": 2,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        126,
+        155,
+        393,
+        390
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_defeat_03.png",
+      "sha256": "defc6b50cb1736e7be807ec6dc8cd8ef244fcb0afb5d8750183f443d63debe1d",
+      "character": "rotbomber",
+      "state": "defeat",
+      "index": 3,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        115,
+        177,
+        398,
+        384
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_defeat_04.png",
+      "sha256": "5a8e0125495351232f86ea2ee5ceb2b45b1ea76e0877e47ab1fe1553133ff3d2",
+      "character": "rotbomber",
+      "state": "defeat",
+      "index": 4,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        113,
+        154,
+        400,
+        391
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_defeat_05.png",
+      "sha256": "79e52faaeeee71b197cc7563e58868a56a3279bf5f180483c993058f3f6375f5",
+      "character": "rotbomber",
+      "state": "defeat",
+      "index": 5,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        109,
+        173,
+        401,
+        391
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_defeat_06.png",
+      "sha256": "52604c74fb04c1dc037329af304dc2e494ea65b6a64aaef509bb1cf877276b6b",
+      "character": "rotbomber",
+      "state": "defeat",
+      "index": 6,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        111,
+        165,
+        400,
+        391
+      ],
+      "quarantined": false
+    },
+    {
+      "path": "assets/enemies/rotbomber_defeat_07.png",
+      "sha256": "f9fbbbf84843e734ac8dda5aaa7e9a53cba95ad8747bc44c06ec034d82f77803",
+      "character": "rotbomber",
+      "state": "defeat",
+      "index": 7,
+      "pixels": 512,
+      "alpha_range": [
+        0,
+        255
+      ],
+      "alpha_bounds": [
+        111,
+        157,
+        400,
+        391
+      ],
+      "quarantined": false
+    }
+  ],
+  "total": 400,
+  "quarantined": 28,
+  "specter_review": "All 44 currently uploaded frames reviewed on light/dark backgrounds; no rectangular residue observed. Defeat alpha fade is intentional.",
+  "known_defects": {
+    "sporecaster": "28 new owner-uploaded replacement frames have passed format/hash/padding checks; gameplay visual validation pending. Keep quarantine until actual simulator captures are inspected."
+  },
+  "replacement_review": {
+    "source_commits": [
+      "a872ce430dfae7ad87f9026a4a0d0c634ee35799",
+      "d72ea4efa5c8816ca61d1312a540f6949c930ba7",
+      "17e2781f15f83d6ff969639ee7345985ba293c21"
+    ],
+    "rotbomber": "All 16 corrected hit/defeat frames pass visual transparency/edge inspection; independent reaction registration preserves body scale and ground contact.",
+    "sporecaster": "28 new uploaded frames matched independent ZIP via Git blob hashes and SHA256; 512x512 RGBA/padding verified; quarantine retained pending actual simulator animation review."
+  },
+  "bonus_victory_frames": 24,
+  "notes": "Six legacy enemy_*.png portraits are not animation frames. Original PNG bytes are never changed."
+}

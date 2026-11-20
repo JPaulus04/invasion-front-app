@@ -596,6 +596,9 @@ final class OutpostScene: SKScene {
         pilotArmor.zPosition = 0.5
         pilotArmor.name = "pilotArt"
         pilot.addChild(pilotArmor)
+        if let name = CharacterAnimationCatalog.commander(selectedCommander) {
+            _ = WorldOneEnemyAnimation.install(on: pilotArmor,facingLeft: false,character: name)
+        }
         // Illustrated idle and stride motion is driven by updatePilotPresentation,
         // avoiding competing SKActions that get overwritten every frame.
         // Ground contact and a soft offset shadow give the pilot depth at phone scale.
@@ -2219,7 +2222,101 @@ final class OutpostScene: SKScene {
             fflush(stdout)
         }
         #endif
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-captureBuild339Animation") { captureBuild339Animation() }
+        #endif
     }
+
+    #if DEBUG
+    private var build339FreezeRequested: Int?
+    override func didFinishUpdate() {
+        guard let index = build339FreezeRequested else { return }
+        build339FreezeRequested = nil
+        // Freeze after child actions have advanced, not from a parent action
+        // that can pause them before their current-frame evaluation.
+        arena.isPaused = true
+        for visual in arena.children where visual.name == "enemyDefeatVisual" {
+            if let sprite = visual as? SKSpriteNode {
+                print("[BUILD339 DEFEAT] character=\(WorldOneEnemyAnimation.character(on: sprite) ?? "unknown") alpha=\(sprite.alpha)")
+            }
+        }
+        print("[BUILD339 READY] index=\(index) commander=\(selectedCommander)")
+        fflush(stdout)
+    }
+    private func captureBuild339Animation() {
+        let args = ProcessInfo.processInfo.arguments
+        func value(_ key: String) -> String? {
+            guard let index=args.firstIndex(of: key), index+1<args.count else { return nil }
+            return args[index+1]
+        }
+        guard let raw=value("-qa339Index"), let index=Int(raw), (0...8).contains(index) else {
+            preconditionFailure("Invalid Build339 capture index")
+        }
+        let motions: [EnemyAnimationRules.Motion] = [.idle,.move,.attack,.hit,.idle,.move,.attack,.hit,.defeat]
+        let motion = motions[index]
+        let replacementReview = args.contains("-qa339Replacements")
+        // Validate real UIKit/ImageIO resource loading, all clean sequences,
+        // both Barkguard variants and every declared source quarantine.
+        for p in (index == 0 || (replacementReview && index == 4) ? CharacterAnimationCatalog.profiles : []) {
+            for state in EnemyAnimationRules.Motion.allCases {
+                for variant in 0..<(p.name == "barkguard" && state == .attack ? 2 : 1) {
+                    let frames=WorldOneEnemyAnimation.textures(enemy:p.name,motion:state,variant:variant)
+                    if p.quarantine.contains(p.sequence(state,variant:variant)) &&
+                        !(args.contains("-qa339SporecasterReview") && p.name == "sporecaster") {
+                        precondition(frames == nil)
+                    }
+                    else { precondition(frames?.count == p.frameNames(state,variant:variant).count,
+                        "Actual bundle animation unavailable: \(p.name).\(state)") }
+                }
+            }
+        }
+        UserDefaults.standard.set(index<4 ? index : 0,forKey:"ozSelectedCommander")
+        health=maximumHealth // Diagnostic fixture starts fresh for this identity.
+        layout() // Rebuild the real HUD for the equipped fixture identity.
+        worldMapIndex=0; wave=2; gateUnlocked=true; startWave()
+        phase = .levelUp; clearOverlay(); overlayBackdrop.isHidden=true; arena.isPaused=false
+        pilot.position=entryPoint; updateArenaCamera(delta:1)
+        let hero=pilot.childNode(withName:"pilotArt") as! SKSpriteNode
+        _ = WorldOneEnemyAnimation.install(on:hero,facingLeft:false,
+            character:CharacterAnimationCatalog.commander(selectedCommander)!)
+        if index<4 {
+            if motion != .idle { WorldOneEnemyAnimation.play(motion,enemy:CharacterAnimationCatalog.commander(index)!,on:hero) }
+            for type in [0,2] { spawned += 1; spawnEnemy(artReviewType:type) }
+        } else {
+            for type in (replacementReview ? [4,5] : Array(0...5)) { spawned += 1; spawnEnemy(artReviewType:type) }
+        }
+        for (slot,enemy) in enemies.enumerated() {
+            enemy.node.removeAllActions();enemy.node.alpha=1;enemy.node.childNode(withName:"spawnWarning")?.removeFromParent()
+            enemy.healthBar.isHidden=false
+            enemy.node.childNode(withName:"enemyHealthTrack")?.isHidden=false
+            let col=slot%2;let row=slot/2
+            enemy.node.position=CGPoint(x:roomBounds.midX+(col==0 ? -100:100),y:roomBounds.minY+240+CGFloat(row)*150)
+            if replacementReview {
+                let caption=SKLabelNode(fontNamed:"AvenirNext-Heavy")
+                caption.text=enemy.behavior == 4 ? "SPORECASTER" : "ROTBOMBER"
+                caption.fontSize=9;caption.fontColor = .cyan;caption.position.y = -38
+                enemy.node.addChild(caption)
+            }
+            if index>=4, let art=enemy.node.childNode(withName:"enemyArt") as? SKSpriteNode,
+               let name=WorldOneEnemyAnimation.character(on:art) {
+                if motion == .defeat {
+                    _ = WorldOneEnemyAnimation.defeatCopy(of:art,at:enemy.node.position,in:arena,depth:6)
+                    enemy.node.isHidden=true
+                } else if motion != .idle { WorldOneEnemyAnimation.play(motion,enemy:name,on:art) }
+            }
+        }
+        let label=SKLabelNode(fontNamed:"AvenirNext-Heavy");label.text="BUILD 339: \(index) \(motion.rawValue)"
+        label.fontSize=10;label.fontColor = .cyan;label.position=CGPoint(x:size.width/2,y:45);label.zPosition=999;addChild(label)
+        for (x,bits) in [(CGFloat(0.94),index+1),(CGFloat(0.90),(index+1)>>3)] {
+            let marker=SKShapeNode(rectOf:CGSize(width:8,height:8));marker.strokeColor = .clear
+            marker.fillColor=SKColor(red:bits&1 != 0 ? 1:0,green:bits&2 != 0 ? 1:0,blue:bits&4 != 0 ? 1:0,alpha:1)
+            marker.position=CGPoint(x:size.width*x,y:size.height*0.46);marker.zPosition=1000;addChild(marker)
+        }
+        run(.sequence([.wait(forDuration:motion == .hit ? 0.14:0.24),.run { [weak self] in
+            self?.build339FreezeRequested=index
+        }]))
+    }
+    #endif
 
     /// The floor travels with the camera: a static screen backdrop would
     /// otherwise appear disconnected from moving terrain and enemies.
@@ -6425,18 +6522,20 @@ final class OutpostScene: SKScene {
             if hasProductionArt, let image = productionImage(named: assetName) {
                 armor.size.width = armor.size.height * image.size.width / max(1, image.size.height)
             }
-            if worldMapIndex == 0 && type == 0 {
-                _ = WorldOneEnemyAnimation.install(on: armor, facingLeft: pilot.position.x < roomBounds.midX)
+            if let character = CharacterAnimationCatalog.enemy(world: worldMapIndex,type: type) {
+                _ = WorldOneEnemyAnimation.install(on: armor,
+                    facingLeft: pilot.position.x < roomBounds.midX,character: character)
             }
-            if type == 4 && hasProductionArt {
+            if type == 4 && hasProductionArt && !WorldOneEnemyAnimation.isAnimated(armor) {
                 // The long railgun and antennae leave a narrow body inside
                 // the square canvas. Enlarge only its visible illustration.
                 armor.size.width *= 1.12
                 armor.size.height *= 1.12
                 armor.position.y = radius * 0.14
             }
+            if WorldOneEnemyAnimation.isAnimated(armor) { node.fillColor = .clear; node.strokeColor = .clear }
             armor.color = (type == 1 || type == 2) ? .systemRed : (type == 3 ? .gray : (type == 4 ? .systemBlue : .orange))
-            armor.colorBlendFactor = hasProductionArt ? 0 : 0.72
+            armor.colorBlendFactor = hasProductionArt || WorldOneEnemyAnimation.isAnimated(armor) ? 0 : 0.72
             armor.zPosition = 0.8
             armor.name = "enemyArt"
             // Production sprites carry their own silhouette; do not draw
@@ -6659,7 +6758,7 @@ final class OutpostScene: SKScene {
             }
         }
         if let art = node.childNode(withName: "enemyArt") as? SKSpriteNode,
-           WorldOneEnemyAnimation.isMossbot(art) {
+           WorldOneEnemyAnimation.isAnimated(art) {
             art.xScale = pilot.position.x < node.position.x ? -1 : 1
         }
         node.alpha = 0.28
@@ -6699,8 +6798,11 @@ final class OutpostScene: SKScene {
         // Keep the track and fill together above the larger illustrated sprite.
         let animatedGrunt = (node.childNode(withName: "enemyArt") as? SKSpriteNode)
             .map { WorldOneEnemyAnimation.isMossbot($0) } ?? false
-        let healthBarOffset: CGFloat = isBoss ? 118 : (animatedGrunt ? 47 :
-            (usesIllustratedEnemy ? radius * (type == 3 ? 1.66 : 1.60) + 5 : radius + 8))
+        let animationCharacter = (node.childNode(withName: "enemyArt") as? SKSpriteNode)
+            .flatMap { WorldOneEnemyAnimation.character(on: $0) }
+        let authoredHealthOffset = animationCharacter.flatMap { CharacterAnimationCatalog.healthBarY($0) }
+        let healthBarOffset: CGFloat = isBoss ? 118 : (authoredHealthOffset.map { CGFloat($0) } ?? (animatedGrunt ? 47 :
+            (usesIllustratedEnemy ? radius * (type == 3 ? 1.66 : 1.60) + 5 : radius + 8)))
         let barWidth: CGFloat = isBoss ? 148 : min(48, radius * 2.0)
         let barHeight: CGFloat = isBoss ? 8 : 4
         let healthTrack = SKShapeNode(rectOf: CGSize(
@@ -7330,7 +7432,7 @@ final class OutpostScene: SKScene {
                 let directionLean = advancing
                     ? max(-0.055, min(0.055, travelDX / travelLength * 0.055))
                     : 0
-                if !WorldOneEnemyAnimation.isMossbot(enemyArt) {
+                if !WorldOneEnemyAnimation.isAnimated(enemyArt) {
                     enemyArt.position.y = enemyPose.verticalOffset
                     enemyArt.zRotation = enemyPose.lean + directionLean
                     enemyArt.yScale = enemyPose.heightScale
@@ -7416,6 +7518,10 @@ final class OutpostScene: SKScene {
         progress.recordDamage(actual)
         pilotShieldUntil = combatTime + CampaignPacing.hitGracePeriod(room: wave)
         pilotHitCount += 1
+        if let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode,
+           let character = WorldOneEnemyAnimation.character(on: art) {
+            WorldOneEnemyAnimation.play(.hit,enemy: character,on: art)
+        }
         // Combat feedback takes precedence over the one-time control hint.
         controlsHint.removeAllActions()
         controlsHint.isHidden = true
@@ -7431,6 +7537,23 @@ final class OutpostScene: SKScene {
 
     private func updatePilotPresentation(pose: PilotVisualPose) {
         guard let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode else { return }
+        if let name = CharacterAnimationCatalog.commander(selectedCommander) {
+            if WorldOneEnemyAnimation.character(on: art) != name {
+                if !WorldOneEnemyAnimation.install(on: art,facingLeft: pilotFacing < 0,character: name) {
+                    WorldOneEnemyAnimation.reset(on: art)
+                    if let texture = Self.commanderArtwork(selectedCommander) {
+                        art.size = CGSize(width: min(58,70*texture.size().width/max(1,texture.size().height)),height: 70)
+                    }
+                }
+            }
+            if WorldOneEnemyAnimation.character(on: art) == name {
+                WorldOneEnemyAnimation.updateLocomotion(on: art,moving: pilotTraveling,
+                    dx: pilotTraveling ? cos(pilotRenderedHeading) : 0)
+                art.isHidden = false; pilotLegRigPreview?.isHidden = true
+                updatePilotFacingCue()
+                return
+            }
+        }
         let direction = pilotTraveling
             ? CharacterMotion.pilotWalkingDirection(heading: pilotRenderedHeading,
                                                      previous: pilotVisualDirection)
@@ -7500,19 +7623,7 @@ final class OutpostScene: SKScene {
         art.yScale = (authoredWalk ? 1 : pose.heightScale) * illustratedScale
         art.zRotation = authoredWalk ? 0 : pose.lean
         art.colorBlendFactor = 0
-        if pilot.childNode(withName: "pilotFacingCue") == nil {
-            let path = CGMutablePath()
-            path.move(to: CGPoint(x: 22, y: -5)); path.addLine(to: CGPoint(x: 29, y: 0))
-            path.addLine(to: CGPoint(x: 22, y: 5))
-            let cue = SKShapeNode(path: path)
-            cue.name = "pilotFacingCue"
-            cue.strokeColor = .white.withAlphaComponent(0.65)
-            cue.lineWidth = 1.8
-            cue.zPosition = -0.1
-            pilot.addChild(cue)
-        }
-        pilot.childNode(withName: "pilotFacingCue")?.zRotation = pilotRenderedHeading
-        pilot.childNode(withName: "pilotFacingCue")?.alpha = pilotTraveling ? 0.8 : 0.3
+        updatePilotFacingCue()
         if commanderIllustration == nil && selectedCommander != 0 && previewPilotLegRigSW && direction == 10 && (pilotTraveling || pilotWalkBlend > 0.01) {
             if pilotLegRigPreview == nil || pilotLegRigPreview?.parent == nil {
                 let rig = PilotLegRigPreview(texture: pilotDirectionalTextures[10], size: art.size)
@@ -7530,6 +7641,22 @@ final class OutpostScene: SKScene {
         }
     }
 
+    private func updatePilotFacingCue() {
+        if pilot.childNode(withName: "pilotFacingCue") == nil {
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: 22, y: -5)); path.addLine(to: CGPoint(x: 29, y: 0))
+            path.addLine(to: CGPoint(x: 22, y: 5))
+            let cue = SKShapeNode(path: path)
+            cue.name = "pilotFacingCue"
+            cue.strokeColor = .white.withAlphaComponent(0.65)
+            cue.lineWidth = 1.8
+            cue.zPosition = -0.1
+            pilot.addChild(cue)
+        }
+        pilot.childNode(withName: "pilotFacingCue")?.zRotation = pilotRenderedHeading
+        pilot.childNode(withName: "pilotFacingCue")?.alpha = pilotTraveling ? 0.8 : 0.3
+    }
+
     private func updateRangedAttack(at index: Int) {
         let enemy = enemies[index]
         if let target = enemy.shotTarget {
@@ -7537,6 +7664,9 @@ final class OutpostScene: SKScene {
             enemy.node.childNode(withName: "aimLine")?.removeFromParent()
             enemy.node.childNode(withName: "aimReticle")?.removeFromParent()
             enemy.node.childNode(withName: "attackCharge")?.removeFromParent()
+            if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                WorldOneEnemyAnimation.attack(on: art,towardX: target.x-enemy.node.position.x)
+            }
             if enemy.node === bossNode && (selectedWorld.bossStyle == 1 || selectedWorld.bossStyle == 3) {
                 for direction in CombatRules.wardenVolleyTargets(
                     origin: enemy.node.position, target: target) {
@@ -7580,6 +7710,9 @@ final class OutpostScene: SKScene {
                     enemy.behavior == 5 && waveElapsed >= 20 &&
                     Int((waveElapsed + Double(enemy.node.position.y) * 0.011) /
                         max(1, CombatRules.lobberCooldown(room: wave))).isMultiple(of: 3)
+                if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    WorldOneEnemyAnimation.attack(on: art,towardX: pilot.position.x-enemy.node.position.x)
+                }
                 launchLob(from: enemy.node.position,
                           target: mortarTargetsReactor ? defenseDevice.position : pilot.position)
                 enemies[index].nextAttack = combatTime +
@@ -8148,6 +8281,9 @@ final class OutpostScene: SKScene {
             pilotFacing = target.x < pilot.position.x ? -1 : 1
         }
         pilotGun.zRotation = shotAngle - .pi / 2
+        if let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode {
+            WorldOneEnemyAnimation.attack(on: art,towardX: target.x-pilot.position.x)
+        }
         CombatVisuals.rifleTracer(in: arena, origin: pilot.position,
                                  target: target, incendiary: incendiaryLevel > 0,
                                  explosive: explosiveLevel > 0)
@@ -9468,6 +9604,16 @@ final class OutpostScene: SKScene {
         #endif
         recovery.clear()
         phase = .gameOver
+        if let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode,
+           WorldOneEnemyAnimation.isAnimated(art) {
+            let holder = SKNode()
+            holder.name = "commanderDefeatPresentation"
+            holder.position = arena.convert(pilot.position,to: self)
+            holder.setScale(arena.xScale); holder.zPosition = 9
+            addChild(holder)
+            if WorldOneEnemyAnimation.defeatCopy(of: art,at: .zero,in: holder,depth: 0) { art.isHidden = true }
+            holder.run(.sequence([.wait(forDuration: 2),.removeFromParent()]))
+        }
         arena.isPaused = true
         clearHostileAttacks()
         ArcadeMusic.shared.play(.headquarters)
@@ -9553,8 +9699,14 @@ final class OutpostScene: SKScene {
         pilotHeading = -.pi / 2
         pilotAimHeading = nil
         pilotVisualDirection = CharacterMotion.pilotSouthDirection
+        childNode(withName: "commanderDefeatPresentation")?.removeFromParent()
         if let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode {
+            WorldOneEnemyAnimation.reset(on: art)
+            art.isHidden = false
             art.texture = Self.commanderArtwork(selectedCommander) ?? (selectedCommander == 0 ? Self.stylizedVanguardTexture : pilotDirectionalTextures[CharacterMotion.pilotSouthDirection])
+            if let name = CharacterAnimationCatalog.commander(selectedCommander) {
+                _ = WorldOneEnemyAnimation.install(on: art,facingLeft: false,character: name)
+            }
         }
         nextFootstepAt = 0
         pilot.removeAction(forKey: "hitFlash")
@@ -9689,6 +9841,7 @@ final class OutpostScene: SKScene {
             let viewed = min(max(UserDefaults.standard.integer(forKey: "ozViewedCommander"), 0), 3)
             if viewed == 0 || WorldCatalog.stars(viewed - 1) > 0 {
                 UserDefaults.standard.set(viewed, forKey: "ozSelectedCommander")
+                layout() // Keep the HUD portrait in sync with the animated commander.
                 showHeadquarters()
             }
         case (.headquarters, "discard_run"): discardSavedRun()

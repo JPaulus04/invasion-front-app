@@ -5,8 +5,8 @@ import SpriteKit
 enum EnemyCombatFeedback {
     static func hit(_ enemy: SKShapeNode, from origin: CGPoint) {
         if let art = enemy.childNode(withName: "enemyArt") as? SKSpriteNode,
-           WorldOneEnemyAnimation.isMossbot(art) {
-            WorldOneEnemyAnimation.play(.hit, enemy: "mossbot", on: art)
+           let character = WorldOneEnemyAnimation.character(on: art) {
+            WorldOneEnemyAnimation.play(.hit, enemy: character, on: art)
             return
         }
         enemy.removeAction(forKey: "enemyHitFeedback")
@@ -147,7 +147,7 @@ enum EnemyCombatFeedback {
              (role == 5 ? .systemOrange :
               (role == 2 ? .systemPurple : .systemRed)))
         if let sprite = (enemy.childNode(withName: "enemyArt") ?? enemy.childNode(withName: "bossArt")) as? SKSpriteNode,
-           !WorldOneEnemyAnimation.isMossbot(sprite), let texture = sprite.texture {
+           !WorldOneEnemyAnimation.isAnimated(sprite), let texture = sprite.texture {
             let echo = SKSpriteNode(texture: texture)
             echo.name = "enemyDefeatEcho"
             echo.size = sprite.size
