@@ -1612,12 +1612,24 @@ final class OutpostScene: SKScene {
                 precondition(productionImage(named: "pilot_" + name) != nil,
                              "Missing directional pilot texture")
             }
+            guard let art = pilot.childNode(withName: "pilotArt") as? SKSpriteNode,
+                  let commander = CharacterAnimationCatalog.commander(selectedCommander) else {
+                preconditionFailure("Pilot direction capture requires an animated commander")
+            }
+            pilotTraveling = false
             for direction in CharacterMotion.pilotDirections.indices {
                 pilotHeading = CGFloat(direction) * .pi / 8
                 pilotRenderedHeading = pilotHeading
                 updatePilotPresentation(pose: CharacterMotion.pilot(
                     time: 0, moving: false, facing: 1, timeSinceShot: 2))
-                precondition(pilotVisualDirection == direction)
+                precondition(WorldOneEnemyAnimation.character(on: art) == commander && !art.isHidden,
+                             "Selected commander animation must be visible")
+                guard let cue = pilot.childNode(withName: "pilotFacingCue") else {
+                    preconditionFailure("Missing commander aiming cue")
+                }
+                let error = cue.zRotation - pilotHeading
+                precondition(abs(atan2(sin(error), cos(error))) < 0.001,
+                             "Commander aiming cue points away from requested heading")
                 let sample = pilot.copy() as! SKShapeNode
                 sample.position = CGPoint(
                     x: roomBounds.minX + roomBounds.width * CGFloat(direction % 4 + 1) / 5,
@@ -1635,8 +1647,11 @@ final class OutpostScene: SKScene {
                 pilotRenderedHeading = CGFloat(sector) * .pi / 8
                 updatePilotPresentation(pose: CharacterMotion.pilot(
                     time: 1, moving: true, facing: 1, timeSinceShot: 2))
-                precondition(pilotVisualDirection.isMultiple(of: 2),
-                             "Every production movement heading requires an authored walk cycle")
+                let horizontal = cos(pilotRenderedHeading)
+                if abs(horizontal) > 0.1 {
+                    precondition(art.xScale * horizontal > 0,
+                                 "Commander sprite faces away from movement")
+                }
             }
             pilotTraveling = false
             pilot.isHidden = true
