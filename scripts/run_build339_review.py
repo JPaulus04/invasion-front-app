@@ -38,7 +38,7 @@ def main():
         for index,name in enumerate(['vanguard-idle','specter-move','bulwark-attack','volt-hit',
                                      'enemies-idle','enemies-move','enemies-attack','enemies-hit','enemies-defeat']):
             if args.replacements and index<4:continue
-            launch_flags=['-qa339Replacements'] if args.replacements else []
+            launch_flags=['-qa339Replacements','-qa339SporecasterReview'] if args.replacements else []
             log=(OUT/f'{name}.log').resolve();err=(OUT/f'{name}-stderr.log').resolve()
             command('xcrun','simctl','launch','--terminate-running-process','--stdout='+str(log),
                 '--stderr='+str(err),device,sim.BUNDLE,'-captureBuild339Animation','-qa339Index',str(index),*launch_flags,timeout=90)
