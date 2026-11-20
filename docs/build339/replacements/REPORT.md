@@ -50,3 +50,5 @@ The separate [standard PR checks](https://github.com/JPaulus04/invasion-front-ap
 ## Focused replacement revalidation
 
 A focused simulator revalidation was requested for the 28 Sporecaster replacement frames on application source `6718bb388b7523713103fe4785806c06d2c5952b`. This note triggers the existing `[replacement-review]` CI path; visual acceptance remains pending until the resulting attack, hit, and defeat captures are inspected. Normal gameplay and Release quarantine must remain unchanged. No TestFlight release is authorized by this note.
+
+Focused replacement review retriggered after registering the Build 339 workflow on the default branch. Await simulator screenshot evidence before approval.
