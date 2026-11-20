@@ -298,9 +298,12 @@ jobs:
     # Fast tests, compilation and focused motion captures still run every time.
     if: >-
       !(github.event_name == 'push' && contains(github.event.head_commit.message, '[release338-existing-evidence]')) &&
-      ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      ((github.event_name == 'pull_request' && github.event.pull_request.draft && contains(github.event.pull_request.title, '[pilot-review]')) ||
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (github.event_name == 'workflow_dispatch' && inputs.validation_scope == 'full') ||
       (github.event_name == 'push' && contains(github.event.head_commit.message, '[full-review]')))
+    env:
+      PILOT_REVIEW_ONLY: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft && contains(github.event.pull_request.title, '[pilot-review]') }}
     needs: build
     # Newer hosted image avoids the slower first-boot migration seen on macOS 15.
     runs-on: macos-15
@@ -485,6 +488,10 @@ jobs:
               2>/dev/null | tail -35 || true
             return 1
           }
+          if [ "$PILOT_REVIEW_ONLY" = "true" ]; then
+            capture_scene -capturePilotDirectionsScreenshot screenshots/outpost-zero-pilot-directions.png
+            exit 0
+          fi
           # Prioritize the two new playable worlds, so simulator trouble
           # cannot hide their first actual render behind older art captures.
           # Prioritize the current World 1 acceptance scenes before legacy worlds.
@@ -593,6 +600,7 @@ jobs:
           path: diagnostics/
           if-no-files-found: ignore
       - name: Validate simulator screenshot was captured
+        if: env.PILOT_REVIEW_ONLY != 'true'
         run: |
           set -e
           python3 scripts/validate_simulator_screenshots.py \
@@ -731,7 +739,7 @@ jobs:
           print("PASS: three live ranged enemy screenshots")
           PY
       - name: Build consolidated Build 331 visual review board
-        if: always()
+        if: always() && env.PILOT_REVIEW_ONLY != 'true'
         run: |
           python3 scripts/create_visual_review_board.py
       - name: Upload visual review manifest
