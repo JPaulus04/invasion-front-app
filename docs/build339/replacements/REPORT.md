@@ -46,3 +46,7 @@ Release remains on hold for the retained Sporecaster clipping/FX defects and the
 [Original screenshots, logs and bundle report](https://github.com/JPaulus04/invasion-front-app/actions/runs/44447429367/artifacts/14494411512) have normal 14-day GitHub retention. [Individual PNG hashes and source/device provenance](simulator-review.json) are committed with the labeled JPG comparisons. One disposable iPhone 16 Pro / iOS 18.5 was used; no simulator retry campaign was run. These rendering fixtures do not establish campaign/balance outcomes or physical-device performance.
 
 The separate [standard PR checks](https://github.com/JPaulus04/invasion-front-app/actions/runs/44447434750) run the unchanged collision/navigation, combat, pacing, progression, compilation and existing artwork-bundle validation. Their final outcome is recorded in PR #15 after completion.
+
+## Focused replacement revalidation
+
+A focused simulator revalidation was requested for the 28 Sporecaster replacement frames on application source `6718bb388b7523713103fe4785806c06d2c5952b`. This note triggers the existing `[replacement-review]` CI path; visual acceptance remains pending until the resulting attack, hit, and defeat captures are inspected. Normal gameplay and Release quarantine must remain unchanged. No TestFlight release is authorized by this note.
