@@ -2261,7 +2261,10 @@ final class OutpostScene: SKScene {
             for state in EnemyAnimationRules.Motion.allCases {
                 for variant in 0..<(p.name == "barkguard" && state == .attack ? 2 : 1) {
                     let frames=WorldOneEnemyAnimation.textures(enemy:p.name,motion:state,variant:variant)
-                    if p.quarantine.contains(p.sequence(state,variant:variant)) { precondition(frames == nil) }
+                    if p.quarantine.contains(p.sequence(state,variant:variant)) &&
+                        !(args.contains("-qa339SporecasterReview") && p.name == "sporecaster") {
+                        precondition(frames == nil)
+                    }
                     else { precondition(frames?.count == p.frameNames(state,variant:variant).count,
                         "Actual bundle animation unavailable: \(p.name).\(state)") }
                 }
