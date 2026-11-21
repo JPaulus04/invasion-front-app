@@ -142,13 +142,44 @@ def gameplay(device, request, log, world):
             "distance": distance, **stream}
 
 
+@contextmanager
+def review_device():
+    # Modern iOS simulators do not reliably expose the standalone
+    # /usr/bin/true process used by the older campaign harness.
+    devices = json.loads(sim.command("xcrun", "simctl", "list",
+                                     "devices", "available", "-j", timeout=100).stdout)
+    phones = [(runtime, phone) for runtime, group in devices["devices"].items()
+              for phone in group if phone["name"].startswith("iPhone")
+              and phone.get("deviceTypeIdentifier")]
+    if not phones:
+        raise RuntimeError("No available iPhone simulator")
+    runtime, phone = phones[0]
+    device_type = phone["deviceTypeIdentifier"]
+    device = sim.command("xcrun", "simctl", "create", "OutpostZero-Build340",
+                         device_type, runtime, timeout=60).stdout.strip()
+    (OUTPUT / "device.json").write_text(json.dumps(
+        {"device_type": device_type, "runtime": runtime, "udid": device}, indent=2) + "\n")
+    try:
+        sim.command("xcrun", "simctl", "boot", device, timeout=90)
+        sim.command("xcrun", "simctl", "bootstatus", device, "-b", timeout=300)
+        sim.command("xcrun", "simctl", "install", device,
+                    "simulator-app/OutpostZero.app", timeout=150)
+        wait_for_app_registration(sim.command, device, OUTPUT)
+        wait_for_render_surface(sim.command, device, OUTPUT)
+        yield device
+    finally:
+        for action in ("shutdown", "delete"):
+            try:
+                sim.command("xcrun", "simctl", action, device, timeout=45, check=False)
+            except subprocess.TimeoutExpired:
+                pass
+
+
 def main():
     OUTPUT.mkdir(exist_ok=True)
     results = {"stills": [], "footage": []}
     manifest = OUTPUT / "manifest.json"
-    with sim.fresh_simulator("build340", OUTPUT) as device:
-        wait_for_app_registration(sim.command, device, OUTPUT)
-        wait_for_render_surface(sim.command, device, OUTPUT)
+    with review_device() as device:
         container = sim.command("xcrun", "simctl", "get_app_container", device, sim.BUNDLE,
                                 "data", timeout=50).stdout.strip()
         documents = Path(container) / "Documents"

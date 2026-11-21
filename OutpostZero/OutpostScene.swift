@@ -4913,7 +4913,7 @@ final class OutpostScene: SKScene {
         arena.addChild(encounterLane)
         if plan.biome == .frost {
             let path = CGMutablePath()
-            for dy: CGFloat in [-49, 0, 49] {
+            for dy: CGFloat in [-16, 0, 16] {
                 path.move(to: CGPoint(x: -7, y: dy - 3))
                 path.addLine(to: CGPoint(x: 0, y: dy + 3))
                 path.addLine(to: CGPoint(x: 7, y: dy - 3))
@@ -4952,11 +4952,17 @@ final class OutpostScene: SKScene {
             let positions: [CGFloat] = [0.23, 0.50, 0.77]
             let index = cycle % positions.count
             x = positions[plan.mirrored ? positions.count - 1 - index : index]
-            iceSafeMarker.isHidden = !warning && !active
-            // Marks a dry lane inside the ice event's approach, away from
-            // both the current plate and the side-bank collision patches.
-            iceSafeMarker.position = plan.point(x < 0.40 ? 0.51 : (x > 0.60 ? 0.49 : 0.32),
-                                                 0.44, in: bounds)
+            // Use the same movement footprint as the pilot when placing
+            // the safe-position chevrons next to the currently marked plate.
+            let routes: [CGFloat] = index == 1 ? [0.32, 0.68] : [0.50]
+            let safe = routes.map { plan.point($0, 0.46, in: bounds) }.first { point in
+                [CGFloat(-16), 0, 16].allSatisfy { offset in
+                    !TerrainHazards.blocksMovement(
+                        CGPoint(x: point.x, y: point.y + offset), patches: roomHazards, radius: 12)
+                }
+            }
+            iceSafeMarker.isHidden = (!warning && !active) || safe == nil
+            if let safe { iceSafeMarker.position = safe }
         }
         encounterLane.position = plan.point(x, 0.50, in: bounds)
         encounterLane.alpha = active ? 0.94 : (warning ? 0.73 : 0.18)
