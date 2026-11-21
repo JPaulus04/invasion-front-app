@@ -7364,6 +7364,15 @@ final class OutpostScene: SKScene {
                 mark.zPosition = 100
                 hud.addChild(mark)
             }
+            // The simulator can put a transient system banner over the HUD.
+            // A marker in that band makes validation wait for an unobscured frame.
+            let hudMark = SKShapeNode(rectOf: CGSize(width: 5, height: 5))
+            hudMark.name = "build340CaptureMark"
+            hudMark.position = CGPoint(x: size.width * 0.91, y: size.height * 0.88)
+            hudMark.fillColor = .magenta
+            hudMark.strokeColor = .clear
+            hudMark.zPosition = 100
+            hud.addChild(hudMark)
         }
         updateHUD()
         recordBuild340Tour("[BUILD340 READY] world=\(world) wave=\(room) mode=\(still ? "still" : "live")")

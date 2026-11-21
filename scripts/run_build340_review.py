@@ -62,11 +62,11 @@ def validate_frame(path, index):
         return
     with Image.open(path) as image:
         rgb = image.convert("RGB")
-        for fraction, bits in ((0.94, index), (0.90, index >> 3)):
-            pixel = rgb.getpixel((round(rgb.width * fraction), round(rgb.height * 0.54)))
-            if any((value < 170 if bits & (1 << channel) else value > 90)
+        for x, y, bits in ((0.94, 0.54, index), (0.90, 0.54, index >> 3), (0.91, 0.12, 5)):
+            pixel = rgb.getpixel((round(rgb.width * x), round(rgb.height * y)))
+            if any((value < 200 if bits & (1 << channel) else value > 60)
                    for channel, value in enumerate(pixel)):
-                raise ValueError(f"Stale or incorrect world/wave marker in {path.name}: {pixel}")
+                raise ValueError(f"Stale or obstructed world/wave frame in {path.name}: {pixel}")
 
 
 def capture(device, name, index):
@@ -120,26 +120,30 @@ def recorder(device, video):
         raise RuntimeError(f"Simulator recorder exited with code {process.returncode}")
 
 
-def gameplay(device, request, log, world):
+def gameplay(device, request, log):
     wave = 20
-    label = f"world-{world}-hazard-cycle"
-    video = OUTPUT / f"{label}.mov"
+    video = OUTPUT / "worlds-2-4-hazard-cycles.mov"
+    sections = []
     with recorder(device, video):
-        offset = request_room(request, log, world, wave, "live")
-        wait_for(log, lambda text: "[BUILD340 MOTION COMPLETE]" in text, 75, offset)
-    text = contents(log)[offset:]
-    stages = [int(item) for item in re.findall(r"\[BUILD340 MOTION\] stage=(\d+)", text)]
-    distance = int(re.search(r"\[BUILD340 MOTION COMPLETE\] distance=(\d+)", text)[1])
-    if stages[:3] != [0, 1, 2] or distance < 70:
-        raise RuntimeError(f"{label} lacks its full hazard cycle and actual movement")
+        started = time.monotonic()
+        for world in (2, 3, 4):
+            begins = time.monotonic() - started
+            offset = request_room(request, log, world, wave, "live")
+            wait_for(log, lambda text: "[BUILD340 MOTION COMPLETE]" in text, 75, offset)
+            text = contents(log)[offset:]
+            stages = [int(item) for item in re.findall(r"\[BUILD340 MOTION\] stage=(\d+)", text)]
+            distance = int(re.search(r"\[BUILD340 MOTION COMPLETE\] distance=(\d+)", text)[1])
+            if stages[:3] != [0, 1, 2] or distance < 70:
+                raise RuntimeError(f"World {world} lacks its full hazard cycle and actual movement")
+            sections.append({"world": world, "wave": wave, "stages": stages,
+                             "distance": distance, "approximate_start": round(begins, 2)})
     metadata = sim.command("ffprobe", "-v", "error", "-select_streams", "v:0", "-count_frames",
                            "-show_entries", "stream=duration,nb_read_frames", "-of", "json",
-                           str(video), timeout=45).stdout
+                           str(video), timeout=60).stdout
     stream = json.loads(metadata)["streams"][0]
-    if float(stream["duration"]) < 8 or int(stream["nb_read_frames"]) < 60:
-        raise RuntimeError(f"{label} lacks sufficient decoded footage")
-    return {"world": world, "wave": wave, "file": video.name, "stages": stages,
-            "distance": distance, **stream}
+    if float(stream["duration"]) < 28 or int(stream["nb_read_frames"]) < 180:
+        raise RuntimeError("The combined hazard recording lacks sufficient decoded footage")
+    return {"file": video.name, "sections": sections, **stream}
 
 
 @contextmanager
@@ -177,7 +181,7 @@ def review_device():
 
 def main():
     OUTPUT.mkdir(exist_ok=True)
-    results = {"stills": [], "footage": []}
+    results = {"stills": []}
     manifest = OUTPUT / "manifest.json"
     with review_device() as device:
         container = sim.command("xcrun", "simctl", "get_app_container", device, sim.BUNDLE,
@@ -207,9 +211,8 @@ def capture_rooms(device, request, log, results, manifest):
     request_room(request, log, 1, 1, "still")
     results["benchmark"] = capture(device, "world-1-wave-01", 25)
     manifest.write_text(json.dumps(results, indent=2) + "\n")
-    for world in (2, 3, 4):
-        results["footage"].append(gameplay(device, request, log, world))
-        manifest.write_text(json.dumps(results, indent=2) + "\n")
+    results["footage"] = gameplay(device, request, log)
+    manifest.write_text(json.dumps(results, indent=2) + "\n")
 
 
 if __name__ == "__main__":

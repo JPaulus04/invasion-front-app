@@ -97,30 +97,127 @@ enum CampaignEnvironmentArt {
 
         func draw(canvas: CGRect) {
             fill(canvas, colors.outside)
-            let apron = room.insetBy(dx: -17, dy: -28)
-            cg.addPath(CGPath(roundedRect: apron.offsetBy(dx: 3, dy: -8),
-                              cornerWidth: 16, cornerHeight: 16, transform: nil))
-            cg.setFillColor(color(0x0a1218, 0.68))
-            cg.fillPath()
-            let edge = CGPath(roundedRect: apron, cornerWidth: 14, cornerHeight: 14, transform: nil)
-            cg.addPath(edge)
-            cg.setFillColor(color(colors.shade))
-            cg.fillPath()
+            if plan.biome == .iron {
+                industrialApron(canvas)
+            } else {
+                wildApron(canvas)
+            }
             cg.saveGState()
-            cg.addPath(CGPath(roundedRect: room, cornerWidth: 9, cornerHeight: 9, transform: nil))
-            cg.clip()
-            fill(room, colors.floor)
+            if plan.biome == .iron {
+                cg.addPath(CGPath(roundedRect: room, cornerWidth: 9, cornerHeight: 9, transform: nil))
+                cg.clip()
+                fill(room, colors.floor)
+            }
             ground()
             routes()
             lighting()
             arena()
             cg.restoreGState()
-            for side in [CGFloat(-1), 1] {
-                let x = room.midX + side * (room.width / 2 + 4)
-                path([CGPoint(x: x, y: room.minY - 8), CGPoint(x: x, y: room.maxY + 11)],
-                     colors.high, 0.44, stroke: 2)
+            if plan.biome == .iron {
+                for side in [CGFloat(-1), 1] {
+                    let x = room.midX + side * (room.width / 2 + 4)
+                    path([CGPoint(x: x, y: room.minY - 8), CGPoint(x: x, y: room.maxY + 11)],
+                         colors.high, 0.44, stroke: 2)
+                }
             }
             boundaries()
+        }
+
+        func industrialApron(_ canvas: CGRect) {
+            let apron = room.insetBy(dx: -17, dy: -28)
+            fill(canvas, 0x212c37)
+            let rows = Int(canvas.height / 43) + 1
+            for i in 0..<rows {
+                let y = canvas.minY + CGFloat(i) * 43
+                fill(CGRect(x: canvas.minX, y: y, width: canvas.width, height: 1.5),
+                     0x0d1b22, 0.56)
+                for offset in [CGFloat(-65), 64] {
+                    let x = room.midX + offset + (i.isMultiple(of: 2) ? 0 : 22)
+                    fill(CGRect(x: x, y: y, width: 1.2, height: 43), 0x617382, 0.31)
+                }
+            }
+            cg.addPath(CGPath(roundedRect: apron.offsetBy(dx: 3, dy: -8),
+                              cornerWidth: 16, cornerHeight: 16, transform: nil))
+            cg.setFillColor(color(0x0a1218, 0.68))
+            cg.fillPath()
+            cg.addPath(CGPath(roundedRect: apron, cornerWidth: 14, cornerHeight: 14, transform: nil))
+            cg.setFillColor(color(colors.shade))
+            cg.fillPath()
+            for y in [room.minY - 13, room.maxY + 14] {
+                block(x: room.midX, y: y, w: room.width * 0.77, h: 14, rise: 5, top: 0x526473)
+                for i in -7...7 {
+                    let x = room.midX + CGFloat(i) * room.width * 0.045
+                    path([CGPoint(x: x, y: y-2), CGPoint(x: x+7, y: y+7)],
+                         0xc89d65, 0.62, stroke: 2)
+                }
+            }
+            let top = room.maxY + 62
+            let supports: [CGFloat] = plan.wave < 10 ? [0.19, 0.81] : [0.13, 0.50, 0.87]
+            for fraction in supports {
+                machine(plan.point(fraction, 1, in: room).x, top, top: 0x4d6173, size: 1.26)
+            }
+        }
+
+        func wildApron(_ canvas: CGRect) {
+            let snow = plan.biome == .frost
+            fill(canvas, snow ? 0x536f82 : 0x414b35)
+            let terrain: [UInt32] = snow
+                ? [0x69899e, 0x91abb8, 0x48647b, 0xb2c7ce]
+                : [0x667151, 0x747359, 0x303f2b, 0x59704b]
+            for i in 0..<230 {
+                let u = plan.detail(i, channel: 0)
+                let v = plan.detail(i, channel: 1)
+                let x = canvas.minX + u * canvas.width
+                let y = canvas.minY + v * canvas.height
+                let scale = 17 + plan.detail(i, channel: 3) * 62
+                let edge = abs(x-room.midX) > room.width * 0.31 || y < room.minY || y > room.maxY
+                let p = CGPoint(x: x, y: y)
+                let w = scale * (edge ? 1.3 : 0.75)
+                let h = scale * (snow ? 0.38 : 0.49)
+                let alpha: CGFloat = edge ? 0.42 : 0.24
+                path([p + CGPoint(x: -w*0.49, y: -h*0.14), p + CGPoint(x: -w*0.30, y: h*0.35),
+                      p + CGPoint(x: w*0.16, y: h*0.45), p + CGPoint(x: w*0.48, y: h*0.15),
+                      p + CGPoint(x: w*0.34, y: -h*0.28), p + CGPoint(x: -w*0.18, y: -h*0.45)],
+                     terrain[i % terrain.count], alpha)
+                if edge && i.isMultiple(of: 5) {
+                    path([p + CGPoint(x: -w*0.25, y: h*0.28), p + CGPoint(x: w*0.04, y: h*0.39),
+                          p + CGPoint(x: w*0.27, y: h*0.30)], terrain[3], 0.49, stroke: 1.3)
+                }
+            }
+            for side: CGFloat in [-1, 1] {
+                var upperBank: [CGPoint] = []
+                var lowerBank: [CGPoint] = []
+                for i in 0...14 {
+                    let y = canvas.minY + CGFloat(i) * canvas.height / 14
+                    let inset = plan.detail(i + (side < 0 ? 12 : 31), channel: 4) * 19
+                    let x = room.midX + side * (room.width / 2 - inset)
+                    upperBank.append(CGPoint(x: x, y: y))
+                    lowerBank.append(CGPoint(x: x + side * 16, y: y - 4))
+                }
+                let extent = room.midX + side * (canvas.width / 2 + 12)
+                path(upperBank + [CGPoint(x: extent, y: canvas.maxY),
+                                  CGPoint(x: extent, y: canvas.minY)],
+                     snow ? 0x9abac8 : 0x263c28, snow ? 0.35 : 0.60)
+                path(lowerBank, snow ? 0xc8dce3 : 0x8b9361, 0.36, stroke: 5)
+                path(upperBank, snow ? 0xc3dbe4 : 0x667958, 0.48, stroke: 2.2)
+            }
+            let far = room.maxY + 44
+            let near = room.minY - 38
+            for i in 0..<8 {
+                let x = canvas.minX + (CGFloat(i) + 0.25) * canvas.width / 8
+                let rise = plan.detail(i, channel: 1)
+                if snow {
+                    ice(x, far + 22 * rise, size: 0.76 + rise * 0.58)
+                    if i.isMultiple(of: 2) {
+                        ice(x+10, near + 17 * rise, size: 0.70 + rise * 0.33)
+                    }
+                } else if plan.development < 0.46 || i.isMultiple(of: 2) {
+                    growth(x, far + 25 * rise, size: 0.85 + rise * 0.50)
+                    growth(x+10, near + 11 * rise, size: 0.52 + rise * 0.33)
+                } else {
+                    pipe(x, far + 13 * rise, size: 0.74 + rise * 0.45)
+                }
+            }
         }
 
         func lighting() {
@@ -147,6 +244,8 @@ enum CampaignEnvironmentArt {
                 while y < room.maxY {
                     path([CGPoint(x: room.minX, y: y), CGPoint(x: room.maxX, y: y)],
                          colors.outside, 0.76, stroke: 1.4)
+                    fill(CGRect(x: room.minX, y: y + 1, width: room.width, height: 1),
+                         0x8090a2, 0.34)
                     let offset: CGFloat = row.isMultiple(of: 2) ? 0 : 21
                     for column in 0...Int(room.width / 42) {
                         let x = room.minX + CGFloat(column) * 42 + offset
@@ -230,7 +329,11 @@ enum CampaignEnvironmentArt {
                     if magnitude < (0.74 - plan.development * 0.50) {
                         growth(x, p.y, size: 0.63 + magnitude)
                     } else {
-                        machine(x, p.y, top: 0x4f6250, size: 0.78 + magnitude * 0.30)
+                        if i.isMultiple(of: 3) {
+                            pipe(x, p.y, size: 0.72 + magnitude * 0.36)
+                        } else {
+                            machine(x, p.y, top: 0x4f6250, size: 0.78 + magnitude * 0.30)
+                        }
                     }
                 case .iron:
                     machine(x, p.y, top: 0x536573, size: 0.68 + magnitude * 0.48)
@@ -270,6 +373,20 @@ enum CampaignEnvironmentArt {
                 path([base, apex, right], 0x4791b2, 0.95)
                 path([left, apex, apex+CGPoint(x: 3*size, y: -12*size)], 0xd0ebee, 0.85, stroke: 1.15)
             }
+        }
+
+        func pipe(_ x: CGFloat, _ y: CGFloat, size: CGFloat) {
+            ellipse(x+7, y-5, 40*size, 18*size, 0x11291e, 0.72)
+            let points = [CGPoint(x: x-14*size, y: y-5*size),
+                          CGPoint(x: x+8*size, y: y),
+                          CGPoint(x: x+8*size, y: y+20*size),
+                          CGPoint(x: x+16*size, y: y+26*size)]
+            path(points, 0x182c28, 1, stroke: 13*size)
+            path(points, 0x6d7452, 1, stroke: 9*size)
+            path(points.map { $0 + CGPoint(x: -2*size, y: 2*size) },
+                 0xaaab76, 0.78, stroke: 2.1*size)
+            ellipse(x+17*size, y+26*size, 10*size, 8*size, 0x32482d)
+            ellipse(x+18*size, y+26*size, 5*size, 4*size, 0x9fc158, 0.86)
         }
 
         func machine(_ x: CGFloat, _ y: CGFloat, top: UInt32, size: CGFloat) {
