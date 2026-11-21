@@ -47,7 +47,7 @@ struct RunSnapshot: Codable {
 
     var isValid: Bool {
         version == Self.schema && (0..<WorldCatalog.playableCount).contains(worldIndex) &&
-        (1...20).contains(room) &&
+        (1...30).contains(room) &&
         health > 0 && health <= 1_500 && coins >= 0 && coins <= 1_000_000 &&
         (1...100).contains(damage) && (1...5).contains(fireRate) &&
         (0...3).contains(chainLevel) && (0...3).contains(explosiveLevel) &&
@@ -78,7 +78,7 @@ struct RunSnapshot: Codable {
         AbilityLoadout(selected: abilities).selected.count == abilities.count &&
         abilities.count <= AbilityLoadout.maximumSlots &&
         Set(abilities).count == abilities.count &&
-        (progress.masteryCreditedRooms ?? []).allSatisfy { (1...20).contains($0) }
+        (progress.masteryCreditedRooms ?? []).allSatisfy { (1...30).contains($0) }
     }
 }
 

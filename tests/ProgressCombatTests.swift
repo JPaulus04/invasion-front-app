@@ -419,7 +419,7 @@ struct ProgressCombatTests {
         precondition(EncounterDirector.style(room: 4) == .flank)
         precondition(EncounterDirector.style(room: 6) == .crossfire)
         precondition(EncounterDirector.style(room: 12) == .siege)
-        precondition(EncounterDirector.style(room: 20) == .boss)
+        precondition(EncounterDirector.style(room: 30) == .boss)
         precondition(EncounterDirector.spawnLane(room: 4, slot: 0) == .left)
         precondition(EncounterDirector.spawnLane(room: 4, slot: 2) == .right)
         precondition(EncounterDirector.spawnLane(room: 6, slot: 0) == .left)

@@ -27,7 +27,7 @@ struct WorldCatalogTests {
         precondition(WorldCatalog.recordBestRoom(2, room: 18, storage: store) == 18)
         precondition(WorldCatalog.recordBestRoom(2, room: 20, storage: store) == 20)
         precondition(WorldCatalog.bestRoom(2, storage: store) == 20)
-        precondition(WorldCatalog.recordBestRoom(19, room: 21, storage: store) == 0)
+        precondition(WorldCatalog.recordBestRoom(19, room: 31, storage: store) == 0)
         precondition(!WorldCatalog.unlocked(1, storage: store))
         precondition(!WorldCatalog.unlocked(2, storage: store))
         precondition(!WorldCatalog.unlocked(3, storage: store))

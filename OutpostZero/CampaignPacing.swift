@@ -3,11 +3,14 @@ import Foundation
 /// Values shared by live combat and deterministic full-campaign QA. Keeping
 /// these rules together prevents tests from drifting away from actual runs.
 enum CampaignPacing {
-    static let roomsPerWorld = 20
+    static let roomsPerWorld = 30
+
+    static func isMiniBoss(room: Int) -> Bool { room == 10 || room == 20 }
 
     static func targetEnemies(room: Int) -> Int {
         guard (1...roomsPerWorld).contains(room) else { return 0 }
-        if room == roomsPerWorld { return 1 }
+        if room == roomsPerWorld || isMiniBoss(room: room) { return 1 }
+        if room == roomsPerWorld - 1 { return 4 }
         // First five rooms teach dodging and upgrades without overwhelming
         // the player. Pressure then ramps continuously into the final rooms.
         if room <= 5 { return 4 + room }
@@ -28,6 +31,7 @@ enum CampaignPacing {
 
     static func enemyHealth(world: Int, room: Int, type: Int) -> Int {
         if room == roomsPerWorld { return WorldCatalog.info(world).bossHealth }
+        if isMiniBoss(room: room) { return WorldCatalog.info(world).bossHealth * room / 36 }
         let scaling = max(0, room - 1)
         let baseline = type == 3 ? 12 + scaling * 3 :
             (type == 1 ? 5 + scaling * 2 : 2 + scaling)
@@ -303,7 +307,7 @@ enum FlankSwarmRules {
     static let speedMultiplier: CGFloat = 1.28
 
     static func shouldWarn(world: Int, room: Int, nextSlot: Int) -> Bool {
-        world == 0 && room >= 5 && room < 20 &&
+        world == 0 && room >= 5 && room < 30 &&
         SurvivalEncounterRules.kind(world: world, room: room) == .tactical &&
         (nextSlot == 4 || (room >= 13 && nextSlot == 13))
     }

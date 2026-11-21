@@ -28,7 +28,7 @@ def parse(path):
     if len(records) != 1:
         raise ValueError(f"{path}: expected exactly one completed gameplay outcome; found {len(records)}")
     record = records[0]
-    if record["world"] != 1 or not 1 <= record["room"] <= 20:
+    if record["world"] != 1 or not 1 <= record["room"] <= 30:
         raise ValueError(f"{path}: not a valid World 1 run")
     if record["elapsed"] <= 0:
         raise ValueError(f"{path}: invalid elapsed time")
@@ -48,12 +48,12 @@ def assess(stationary_path, moving_path):
         "stationary_profile": stationary["movement"] < 1,
         "stationary_fails_world_1": stationary["outcome"] == "defeat" and stationary["damage"] > 0,
         "moving_profile": moving["movement"] >= 100,
-        "moving_completes_world_1": moving["outcome"] == "complete" and moving["room"] == 20,
+        "moving_completes_world_1": moving["outcome"] == "complete" and moving["room"] == 30,
         "moving_selects_upgrades": moving["upgrades"] > 0,
-        "all_rooms_entered_in_order": entered == list(range(1, 21)),
-        "all_rooms_cleared_in_order": cleared == list(range(1, 21)),
-        "final_boss_spawned": "[PHASE4 BOSS] spawned room=20" in moving_text,
-        "final_boss_defeated": "[PHASE4 BOSS] defeated room=20" in moving_text,
+        "all_rooms_entered_in_order": entered == list(range(1, 31)),
+        "all_rooms_cleared_in_order": cleared == list(range(1, 31)),
+        "final_boss_spawned": "[PHASE4 BOSS] spawned room=30" in moving_text,
+        "final_boss_defeated": "[PHASE4 BOSS] defeated room=30" in moving_text,
         "upgrades_match_outcome": choices == moving["upgrades"],
         "reactor_survived": bool(defense) and all(int(row[3]) > 0 for row in defense),
     }

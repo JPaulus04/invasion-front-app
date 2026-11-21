@@ -7,7 +7,7 @@ struct WorldOneEnvironmentTests {
         let passage = WorldOneRoomGeometry.make(room: 1, playerWidth: 28, encounter: .tactical)
         let swamp = WorldOneRoomGeometry.make(room: 6, playerWidth: 28, encounter: .survival)
         let defense = WorldOneRoomGeometry.make(room: 12, playerWidth: 28, encounter: .equipmentDefense)
-        let boss = WorldOneRoomGeometry.make(room: 20, playerWidth: 28, encounter: .tactical)
+        let boss = WorldOneRoomGeometry.make(room: 30, playerWidth: 28, encounter: .tactical)
         precondition(Set([passage, swamp, defense, boss].map { $0.artFamily }).count == 4)
         precondition(SurvivalEncounterRules.kind(world: 0, room: 6) == .survival)
         precondition(SurvivalEncounterRules.kind(world: 0, room: 12) == .equipmentDefense)

@@ -1467,7 +1467,7 @@ final class OutpostScene: SKScene {
             "-captureFrontierGuardianResolvedScreenshot")
         if guardianBase || guardianExposed || guardianResolved {
             worldMapIndex = 0
-            wave = 19
+            wave = worldWaveCount - 1
             gateUnlocked = true
             startWave()
             spawned = waveTarget
@@ -1477,7 +1477,7 @@ final class OutpostScene: SKScene {
             // the first active frame and falsely made all the art look ghostly.
             bossNode?.alpha = 1
             bossNode?.childNode(withName: "spawnWarning")?.removeFromParent()
-            precondition(wave == 20 && enemies.count == 1 && bossNode != nil &&
+            precondition(wave == worldWaveCount && enemies.count == 1 && bossNode != nil &&
                          bossNode?.alpha == 1 &&
                          enemies[0].health == selectedWorld.bossHealth &&
                          bossNode?.childNode(withName: "bossArt") != nil &&
@@ -1672,7 +1672,7 @@ final class OutpostScene: SKScene {
                                 "-captureWarforgeScreenshot", "-captureFrostWraithScreenshot"]
         if let index = bossCaptureFlags.firstIndex(where: { ProcessInfo.processInfo.arguments.contains($0) }) {
             worldMapIndex = index
-            wave = 19
+            wave = worldWaveCount - 1
             gateUnlocked = true
             startWave()
             spawned = waveTarget
@@ -1681,7 +1681,7 @@ final class OutpostScene: SKScene {
             bossNode?.childNode(withName: "spawnWarning")?.removeFromParent()
             bossNode?.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY + 75)
             pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY - 100)
-            precondition(enemies.count == 1 && wave == 20 &&
+            precondition(enemies.count == 1 && wave == worldWaveCount &&
                          enemies[0].health == selectedWorld.bossHealth &&
                          bossNode?.childNode(withName: "bossArt") != nil &&
                          zoneBanner.text == "BOSS: \(selectedWorld.boss)",
@@ -1967,7 +1967,7 @@ final class OutpostScene: SKScene {
             precondition(distance(firstOrbPosition, orbitalNodes[0].position) > 10,
                          "Energy Orbit must keep moving at the peaceful portal")
             for orb in orbitalNodes {
-                precondition(abs(distance(orb.position, pilot.position) - 82) < 0.1,
+                precondition(abs(distance(orb.position, pilot.position) - orbitRadius) < 0.1,
                              "Energy Orbit must follow the pilot at its wider radius")
             }
             clock = savedClock
@@ -1976,6 +1976,18 @@ final class OutpostScene: SKScene {
         }
         // CI-only motion review: run real combat and movement instead of
         // freezing an art-review frame. This never executes in normal play.
+        #if DEBUG && targetEnvironment(simulator)
+        if let flag = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-preview340-") }) {
+            let parts = flag.split(separator: "-")
+            if parts.count == 3, let world = Int(parts[1]), (2...4).contains(world),
+               let room = Int(parts[2]), [1, 10].contains(room) {
+                worldMapIndex = world - 1
+                wave = room - 1
+                gateUnlocked = true
+                startWave()
+            }
+        }
+        #endif
         if ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") {
             startWave()
         }
@@ -3115,7 +3127,7 @@ final class OutpostScene: SKScene {
         overlayText(unlocked ? world.title.uppercased() : "UNKNOWN WORLD",
                     y: 187 * scale, fontSize: 22 * scale)
         overlayText(unlocked
-            ? "WORLD \(worldMapIndex + 1)   ·   \(String(repeating: "★", count: WorldCatalog.stars(worldMapIndex)))\(String(repeating: "☆", count: 3 - WorldCatalog.stars(worldMapIndex)))   ·   BEST \(WorldCatalog.bestRoom(worldMapIndex))/20"
+            ? "WORLD \(worldMapIndex + 1)   ·   \(String(repeating: "★", count: WorldCatalog.stars(worldMapIndex)))\(String(repeating: "☆", count: 3 - WorldCatalog.stars(worldMapIndex)))   ·   BEST \(WorldCatalog.bestRoom(worldMapIndex))/\(worldWaveCount)"
             : (playable ? "LOCKED  ·  EARN 1 STAR IN PREVIOUS WORLD" : "UNKNOWN  ·  EXPLORE LATER"),
             y: 162 * scale, fontSize: 11 * scale)
 
@@ -4029,7 +4041,7 @@ final class OutpostScene: SKScene {
         installHubShell(active: "nav_abilities")
         overlayText("MISSION LOADOUT", y: 162, fontSize: 23)
         overlayText("PRIMARY: AUTO RIFLE  •  ALWAYS EQUIPPED", y: 126, fontSize: 11)
-        overlayText("WORLD \(worldMapIndex + 1)  •  LOCKED FOR 20 ROOMS", y: 99, fontSize: 12)
+        overlayText("WORLD \(worldMapIndex + 1)  •  LOCKED FOR \(worldWaveCount) ROOMS", y: 99, fontSize: 12)
         overlayText("\(draftLoadout.selected.count)/3 TACTICAL ABILITIES SELECTED",
                     y: 76, fontSize: 12)
         let options: [(String, String)] = [
@@ -4805,7 +4817,51 @@ final class OutpostScene: SKScene {
         obstacle.addChild(crack)
     }
 
+    private let encounterLane = SKShapeNode()
+    private var nextLaneHit: TimeInterval = 0
+
+    private func configureEncounterLane() {
+        encounterLane.removeFromParent()
+        nextLaneHit = 0
+        guard (1...3).contains(worldMapIndex),
+              wave == 1 || CampaignPacing.isMiniBoss(room: wave) else { return }
+        let laneSize = CGSize(width: roomBounds.width * 0.26, height: roomBounds.height * 0.66)
+        let rect = CGRect(x: -laneSize.width / 2, y: -laneSize.height / 2,
+                          width: laneSize.width, height: laneSize.height)
+        encounterLane.path = CGPath(roundedRect: rect, cornerWidth: 8, cornerHeight: 8, transform: nil)
+        encounterLane.strokeColor = [SKColor.systemGreen, .systemOrange, .systemCyan][worldMapIndex - 1]
+        encounterLane.fillColor = encounterLane.strokeColor
+        encounterLane.zPosition = pilot.zPosition - 1
+        encounterLane.alpha = 0.12
+        arena.addChild(encounterLane)
+    }
+
+    private func updateEncounterLane() {
+        guard encounterLane.parent != nil, phase == .playing, !roomCleared else {
+            encounterLane.isHidden = true
+            return
+        }
+        encounterLane.isHidden = false
+        let period = wave == 1 ? 6.0 : 4.5
+        let phaseTime = waveElapsed.truncatingRemainder(dividingBy: period)
+        let side: CGFloat = Int(waveElapsed / period).isMultiple(of: 2) ? -1 : 1
+        var offset = side * roomBounds.width * 0.20
+        if worldMapIndex == 2 {
+            offset *= CGFloat(1 - 2 * min(1, max(0, phaseTime - 2) / 2))
+        } else if worldMapIndex == 1 && wave == 1 {
+            offset = roomBounds.width * 0.16
+        }
+        encounterLane.position = CGPoint(x: roomBounds.midX + offset, y: roomBounds.midY)
+        let active = phaseTime >= 2 && phaseTime < 4
+        encounterLane.alpha = active ? 0.52 : (phaseTime < 2 ? 0.20 : 0.06)
+        if active, encounterLane.frame.contains(pilot.position), combatTime >= nextLaneHit {
+            nextLaneHit = combatTime + 1
+            damagePilot(5)
+        }
+    }
+
     private func updateTerrainHazards() {
+        updateEncounterLane()
         guard !acidVisualNodes.isEmpty else { return }
         let acidOn = TerrainHazards.acidActive(at: waveElapsed)
         if displayedAcidActive != acidOn {
@@ -5412,6 +5468,7 @@ final class OutpostScene: SKScene {
                 .wait(forDuration: 2.0), .fadeOut(withDuration: 0.5)
             ]))
         }
+        configureEncounterLane()
         survivalSpawnPhaseFinished = false
         // Shorten the empty opening without increasing enemy count or attack damage.
         spawnClock = 0.9
@@ -6501,10 +6558,12 @@ final class OutpostScene: SKScene {
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
         let roll = EncounterDirector.enemyRoll(
             world: worldMapIndex, room: wave, slot: spawned)
-        let type = artReviewType ?? WorldCatalog.enemyType(
-            world: worldMapIndex, room: wave, roll: roll)
+        let miniBoss = artReviewType == nil && CampaignPacing.isMiniBoss(room: wave)
+        let type = artReviewType ?? (miniBoss ? (worldMapIndex == 1 ? 5 : 4) : WorldCatalog.enemyType(
+            world: worldMapIndex, room: wave, roll: roll))
         let radius: CGFloat = isBoss ? 37 : (type == 1 ? 23 : (type == 2 ? 17 : (type == 3 ? 26 : 14)))
         let node = SKShapeNode(circleOfRadius: radius)
+        if miniBoss { node.setScale(1.4) }
         node.fillColor = type == 1 ? .systemRed : (type == 2 ? .systemPurple : (type == 3 ? .systemGray : .systemOrange))
         if type == 4 { node.fillColor = .systemBlue }
         if type == 5 { node.fillColor = .systemOrange }
@@ -6849,7 +6908,7 @@ final class OutpostScene: SKScene {
             nameplate.zPosition = 2
             node.addChild(nameplate)
         }
-        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi), using: &spawnRandom), nextAttack: combatTime + 1.7))
+        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: miniBoss ? CampaignPacing.healingCost(room: wave) : CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi), using: &spawnRandom), nextAttack: combatTime + 1.7))
         qaRecordState("spawn type=\(type)")
     }
 
@@ -6991,7 +7050,7 @@ final class OutpostScene: SKScene {
                 pilot.position = CGPoint(x: roomBounds.midX,
                     y: roomBounds.midY-(activeEncounter == .equipmentDefense ? 145 : 90))
             }
-            if room == 20 {
+            if room == 30 {
                 pilot.position = CGPoint(x: roomBounds.midX,y: roomBounds.midY-100)
                 spawned = 1
                 spawnEnemy()
@@ -7020,7 +7079,7 @@ final class OutpostScene: SKScene {
         case 2: enter(6)
         case 3: enter(11)
         case 4: enter(12)
-        case 5: enter(20)
+        case 5: enter(worldWaveCount)
         case 6:
             clearedPassage()
             pilot.position = CGPoint(x: passageGate.position.x,y: passageGate.position.y-190)
@@ -8108,7 +8167,7 @@ final class OutpostScene: SKScene {
         for blade in orbitalNodes { blade.isHidden = true }
         // Defensive cleanup also covers scene restoration/reentry.
         energyWheelNode?.removeFromParent()
-        let wheel = SKShapeNode(circleOfRadius: 82)
+        let wheel = SKShapeNode(circleOfRadius: orbitRadius)
         wheel.name = "energyWheel"
         wheel.fillColor = .clear
         wheel.strokeColor = SKColor(red: 0.20, green: 0.88, blue: 1, alpha: 0.85)
@@ -8120,7 +8179,7 @@ final class OutpostScene: SKScene {
             let startAngle = CGFloat(index) * (.pi / 2)
             let endAngle = startAngle + (.pi / 5)
             let arcPath = CGMutablePath()
-            arcPath.addArc(center: .zero, radius: 82,
+            arcPath.addArc(center: .zero, radius: orbitRadius,
                            startAngle: startAngle, endAngle: endAngle,
                            clockwise: false)
             let accent = SKShapeNode(path: arcPath)
@@ -8148,7 +8207,7 @@ final class OutpostScene: SKScene {
                   CombatRules.energyWheelHits(pilot: pilot.position,
                                               enemy: enemy.node.position,
                                               enemyRadius: enemy.radius,
-                                              wheelRadius: 82, bandWidth: 14) else { continue }
+                                              wheelRadius: orbitRadius, bandWidth: 14) else { continue }
             let key = ObjectIdentifier(enemy.node)
             guard combatTime - (lastEnergyWheelHit[key] ?? -100) >= 0.50 else { continue }
             lastEnergyWheelHit[key] = combatTime
@@ -8187,6 +8246,8 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
+    private let orbitRadius: CGFloat = 94
+
     private func updateOrbitingDefenses() {
         guard orbitLevel > 0,
               (phase == .playing || extractionCombatActive || roomCleared) else { return }
@@ -8201,8 +8262,8 @@ final class OutpostScene: SKScene {
             let angle = CGFloat(phase == .gate && !extractionCombatActive ? clock : combatTime) * 2.65 +
                 CGFloat(index) * (2 * .pi / CGFloat(orbitalNodes.count))
             blade.position = CGPoint(
-                x: pilot.position.x + cos(angle) * 82,
-                y: pilot.position.y + sin(angle) * 82
+                x: pilot.position.x + cos(angle) * orbitRadius,
+                y: pilot.position.y + sin(angle) * orbitRadius
             )
             blade.zRotation = angle + .pi / 2
             for enemyIndex in enemies.indices {

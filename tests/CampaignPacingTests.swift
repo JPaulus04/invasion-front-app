@@ -1,6 +1,6 @@
 import Foundation
 
-/// Deterministic 20-room resource/XP integration checks for all playable
+/// Deterministic 30-room resource/XP integration checks for all playable
 /// worlds. This is NOT a simulated human or a claim about dodge skill.
 @main
 struct CampaignPacingTests {
@@ -121,7 +121,7 @@ struct CampaignPacingTests {
             playerDefeated: true, worldCompleted: true)
         precondition(!contradictory.hasValidOutcome)
         // Support threats survive longer than grunts while keeping boss HP exact.
-        for room in 1..<20 {
+        for room in 1..<30 where !CampaignPacing.isMiniBoss(room: room) {
             let grunt = CampaignPacing.enemyHealth(world: 0, room: room, type: 0)
             for role in [4, 5] {
                 let support = CampaignPacing.enemyHealth(world: 0, room: room, type: role)
@@ -129,7 +129,7 @@ struct CampaignPacingTests {
             }
             precondition(CombatRules.shooterTelegraph(room: room) >= 0.48)
         }
-        precondition(CampaignPacing.enemyHealth(world: 0, room: 20, type: 4) == WorldCatalog.info(0).bossHealth)
+        precondition(CampaignPacing.enemyHealth(world: 0, room: 30, type: 4) == WorldCatalog.info(0).bossHealth)
         let expectedSurvival = [3, 3, 3, 3]
         let expectedDefense = [1, 0, 1, 0]
         for world in 0..<WorldCatalog.playableCount {
@@ -139,7 +139,7 @@ struct CampaignPacingTests {
             var priorArena = 0
             for room in 1...CampaignPacing.roomsPerWorld {
                 let kind = SurvivalEncounterRules.kind(world: world, room: room)
-                if room == 20 {
+                if room == 30 {
                     precondition(kind == .boss)
                     continue
                 }
@@ -383,7 +383,7 @@ struct CampaignPacingTests {
         precondition(CampaignPacing.targetEnemies(room: 0) == 0)
         precondition(CampaignPacing.targetEnemies(room: 1) == 5)
         precondition(CampaignPacing.targetEnemies(room: 5) == 9)
-        precondition(CampaignPacing.targetEnemies(room: 10) == 19)
+        precondition(CampaignPacing.targetEnemies(room: 10) == 1)
         precondition(CampaignPacing.targetEnemies(room: 19) == 37)
         precondition(CampaignPacing.incomingDamage(amount: 12, room: 3) == 11)
         precondition(CampaignPacing.incomingDamage(amount: 12, room: 8) == 12)
@@ -436,7 +436,7 @@ struct CampaignPacingTests {
                 }
                 precondition(run.level >= previousLevel)
                 previousLevel = run.level
-                if room == 5 || room == 10 || room == 15 {
+                if room.isMultiple(of: 5) && room < 30 {
                     // A player who takes damage has sufficient optional
                     // in-run coins for milestone healing without old gear.
                     let price = CampaignPacing.healingCost(room: room)
@@ -449,10 +449,10 @@ struct CampaignPacingTests {
             }
             salvage += PersistentProgression.worldCompletionBonus
             precondition(run.level >= 11 && chosenUpgrades == run.level - 1)
-            precondition(healingPurchases == 3)
+            precondition(healingPurchases == 5)
             precondition(coins > 0 && salvage > 0)
-            print("World \(world + 1): all 20 rooms; level \(run.level); \(chosenUpgrades) upgrade choices; \(healingPurchases) optional heals affordable; \(coins) spare coins; \(salvage) earned Salvage")
+            print("World \(world + 1): all 30 rooms; level \(run.level); \(chosenUpgrades) upgrade choices; \(healingPurchases) optional heals affordable; \(coins) spare coins; \(salvage) earned Salvage")
         }
-        print("Idealized 20-room XP/reward pacing passed; survival still requires device playtesting.")
+        print("Idealized 30-room XP/reward pacing passed; survival still requires device playtesting.")
     }
 }

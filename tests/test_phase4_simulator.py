@@ -112,7 +112,7 @@ class CaptureTests(unittest.TestCase):
             log = root / 'moving.log'
             log.write_text('[QA CONFIG] protocol=1 seed=335 hz=60 batch=2 profile=moving\n'
                            '[PHASE4 QA] profile=moving started world=1\n'
-                           '[PHASE4 PLAYTEST] outcome=complete world=1 room=20\n')
+                           '[PHASE4 PLAYTEST] outcome=complete world=1 room=30\n')
             def command(*args, **kwargs):
                 if 'screenshot' in args:
                     raise subprocess.TimeoutExpired(args, 45)

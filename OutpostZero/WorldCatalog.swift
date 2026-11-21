@@ -70,14 +70,14 @@ enum WorldCatalog {
         guard worlds.indices.contains(index) else { return 0 }
         let value = storage.integer(forKey: bestRoomKey(index))
         let legacy = index == 0 ? storage.integer(forKey: "bestWave") : 0
-        return min(20, max(0, max(value, legacy)))
+        return min(30, max(0, max(value, legacy)))
     }
 
     /// Record defeat/attempt progress, retaining the highest room reached.
     @discardableResult
     static func recordBestRoom(_ index: Int, room: Int,
                                storage: UserDefaults = .standard) -> Int {
-        guard worlds.indices.contains(index), (1...20).contains(room) else {
+        guard worlds.indices.contains(index), (1...30).contains(room) else {
             return bestRoom(index, storage: storage)
         }
         let best = max(bestRoom(index, storage: storage), room)
@@ -131,7 +131,7 @@ enum WorldCatalog {
     }
 
     static func enemyType(world: Int, room: Int, roll: Int) -> Int {
-        if room == 20 { return 1 }
+        if room == 30 { return 1 }
         if world == 0 { return CombatRules.enemyType(room: room, roll: roll) }
         if world == 1 {
             if room >= 9 && roll < 17 { return 5 }
