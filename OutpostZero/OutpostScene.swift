@@ -1881,7 +1881,7 @@ final class OutpostScene: SKScene {
             gateUnlocked = true
             startWave()
             precondition(roomHazards.count == 3 &&
-                         hazardScenery.children.count == 3,
+                         hazardScenery.children.filter { $0.name?.hasPrefix("terrain_") == true }.count == 3,
                          "Biome screenshot must contain both pockets and rubble")
             // Keep the playable HUD visible without a level-up overlay.
             // Hide only temporary room-introduction labels so the screenshot
@@ -1898,7 +1898,7 @@ final class OutpostScene: SKScene {
             gateUnlocked = true
             startWave()
             precondition(roomHazards.count == 3 &&
-                         hazardScenery.children.count == 3 &&
+                         hazardScenery.children.filter { $0.name?.hasPrefix("terrain_") == true }.count == 3 &&
                          TerrainHazards.blocksMovement(
                              CGPoint(x: roomHazards[0].frame.midX,
                                      y: roomHazards[0].frame.midY),
@@ -1974,20 +1974,8 @@ final class OutpostScene: SKScene {
             pilot.position.x -= 12
             updateOrbitingDefenses()
         }
-        // CI-only motion review: run real combat and movement instead of
-        // freezing an art-review frame. This never executes in normal play.
         #if DEBUG && targetEnvironment(simulator)
-        if let flag = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-preview340-") }) {
-            let parts = flag.split(separator: "-").map(String.init)
-            if parts.count == 3, parts[0] == "preview340",
-               let world = Int(parts[1]), (2...4).contains(world),
-               let room = Int(parts[2]), [1, 10].contains(room) {
-                worldMapIndex = world - 1
-                wave = room - 1
-                gateUnlocked = true
-                startWave()
-            }
-        }
+        startBuild340Preview()
         #endif
         if ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") {
             startWave()
@@ -3308,7 +3296,9 @@ final class OutpostScene: SKScene {
     }
 
     private var isCaptureMode: Bool {
-        previewPilotWalk || ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-capture") }
+        previewPilotWalk || ProcessInfo.processInfo.arguments.contains {
+            $0.hasPrefix("-capture") || $0.hasPrefix("-preview340-")
+        }
     }
 
     private func saveRunRecovery() {
@@ -4344,13 +4334,35 @@ final class OutpostScene: SKScene {
         return true
     }
 
+    private var campaignEnvironment: CampaignEnvironmentPlan? {
+        CampaignEnvironmentPlan(world: worldMapIndex, wave: wave)
+    }
+
+    private var usesLegacyTerrainPreview: Bool {
+        ProcessInfo.processInfo.arguments.contains {
+            ["-captureToxicTerrainScreenshot", "-captureIronTerrainScreenshot",
+             "-captureFrostTerrainScreenshot", "-captureTerrainHazardsScreenshot"].contains($0)
+        }
+    }
+
     private func rebuildTerrainHazards() {
         hazardScenery.removeAllChildren()
         acidVisualNodes.removeAll()
         displayedAcidActive = nil
-        roomHazards = TerrainHazards.patches(
-            world: worldMapIndex, room: wave, bounds: roomBounds,
-            preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
+        let plan = usesLegacyTerrainPreview ? nil : campaignEnvironment
+        if let plan {
+            let bounds = roomBounds
+            roomHazards = plan.features.enumerated().map { index, feature in
+                let kind: TerrainHazards.Kind = feature.surface == .cover ? .rubble :
+                    (plan.biome == .toxic ? .acid : .water)
+                return TerrainHazards.Patch(kind: kind, frame: feature.frame(in: bounds),
+                    outline: TerrainHazards.profile(for: kind, alternate: (index + wave).isMultiple(of: 2)))
+            }
+        } else {
+            roomHazards = TerrainHazards.patches(
+                world: worldMapIndex, room: wave, bounds: roomBounds,
+                preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
+        }
         if let layout = worldOneLiveLayout {
             roomHazards += layout.boundaryObstacles.map {
                 TerrainHazards.Patch(kind: .rubble,
@@ -4373,7 +4385,11 @@ final class OutpostScene: SKScene {
             case .water:
                 shape.fillColor = SKColor(red: 0.035, green: 0.17, blue: 0.25, alpha: 0.96)
                 shape.strokeColor = SKColor(red: 0.36, green: 0.66, blue: 0.72, alpha: 0.43)
-                decorateLiquidHazard(shape, kind: .water, size: patch.frame.size)
+                if plan?.biome == .frost {
+                    decorateIceShelf(shape, size: patch.frame.size)
+                } else {
+                    decorateLiquidHazard(shape, kind: .water, size: patch.frame.size)
+                }
             case .acid:
                 shape.fillColor = SKColor(red: 0.10, green: 0.25, blue: 0.07, alpha: 0.96)
                 shape.strokeColor = SKColor(red: 0.64, green: 0.72, blue: 0.29, alpha: 0.45)
@@ -4398,7 +4414,7 @@ final class OutpostScene: SKScene {
             // Prefer authored transparent terrain illustrations when bundled.
             // They are presentation-only: the exact polygon above remains the
             // authoritative collision and damage boundary.
-            if patch.kind != .rubble {
+            if plan == nil && patch.kind != .rubble {
                 let material = patch.kind == .acid ? "acid" : "water"
                 let biome = worldMapIndex == 1 ? "toxic"
                     : (worldMapIndex == 2 ? "industrial" : "frost")
@@ -4751,6 +4767,30 @@ final class OutpostScene: SKScene {
 
     /// Three material facets sit inside the existing rectangular rubble
     /// footprint. This is artwork only; TerrainHazards still owns collision.
+    private func decorateIceShelf(_ shelf: SKShapeNode, size: CGSize) {
+        shelf.fillColor = SKColor(red: 0.15, green: 0.34, blue: 0.47, alpha: 1)
+        shelf.strokeColor = SKColor(red: 0.57, green: 0.76, blue: 0.84, alpha: 0.85)
+        let facet = CGMutablePath()
+        facet.move(to: CGPoint(x: -size.width * 0.28, y: -size.height * 0.10))
+        facet.addLine(to: CGPoint(x: -size.width * 0.11, y: size.height * 0.24))
+        facet.addLine(to: CGPoint(x: size.width * 0.29, y: size.height * 0.16))
+        facet.addLine(to: CGPoint(x: size.width * 0.11, y: -size.height * 0.13))
+        facet.closeSubpath()
+        let crystal = SKShapeNode(path: facet)
+        crystal.fillColor = SKColor(red: 0.38, green: 0.64, blue: 0.75, alpha: 0.62)
+        crystal.strokeColor = .clear
+        shelf.addChild(crystal)
+        let crack = CGMutablePath()
+        crack.move(to: CGPoint(x: -size.width * 0.14, y: -size.height * 0.29))
+        crack.addLine(to: CGPoint(x: size.width * 0.04, y: -size.height * 0.05))
+        crack.addLine(to: CGPoint(x: -size.width * 0.025, y: size.height * 0.08))
+        crack.addLine(to: CGPoint(x: size.width * 0.12, y: size.height * 0.27))
+        let edge = SKShapeNode(path: crack)
+        edge.strokeColor = SKColor(red: 0.86, green: 0.96, blue: 1, alpha: 0.64)
+        edge.lineWidth = 1.6
+        shelf.addChild(edge)
+    }
+
     private func decorateRubbleObstacle(_ obstacle: SKShapeNode, size: CGSize) {
         let w = size.width
         let h = size.height
@@ -4818,57 +4858,79 @@ final class OutpostScene: SKScene {
         obstacle.addChild(crack)
     }
 
-    // Build 340: encounter-specific movement decisions, rather than a recolored
-    // copy of the same hazard. The marker is always visible before damage.
     private let encounterLane = SKShapeNode()
-    private let encounterSecondaryLane = SKShapeNode()
+    private let iceSafeMarker = SKShapeNode()
     private var nextLaneHit: TimeInterval = 0
+    private var warforgeCoreUntil: TimeInterval = 0
 
     private func configureEncounterLane() {
-        for marker in [encounterLane, encounterSecondaryLane] {
-            marker.removeFromParent()
-            marker.isHidden = false
-            marker.zPosition = pilot.zPosition - 1
-            marker.lineWidth = 3
-        }
+        encounterLane.removeFromParent()
+        encounterLane.removeAllChildren()
+        iceSafeMarker.removeFromParent()
         nextLaneHit = 0
-        guard (1...3).contains(worldMapIndex),
-              wave == 1 || CampaignPacing.isMiniBoss(room: wave) else { return }
+        guard let plan = campaignEnvironment, plan.hasEncounterHazard else { return }
         let width = roomBounds.width
         let height = roomBounds.height
-        let primarySize: CGSize
-        switch worldMapIndex {
-        case 1:
-            // Toxic Crossing: narrow hazardous shortcut versus a wide dry detour.
-            primarySize = CGSize(width: width * 0.30, height: height * 0.72)
-        case 2:
-            // Iron Wastes: broad sweeps force alternating cover-to-cover movement.
-            primarySize = CGSize(width: width * 0.42, height: height * 0.68)
-        default:
-            // Frost Expanse: individual ice plates fracture in a readable order.
-            primarySize = CGSize(width: width * 0.30, height: height * 0.54)
+        let size: CGSize
+        let tint: SKColor
+        switch plan.biome {
+        case .toxic:
+            size = CGSize(width: width * 0.23, height: height * 0.65)
+            tint = SKColor(red: 0.78, green: 0.94, blue: 0.30, alpha: 1)
+        case .iron:
+            size = CGSize(width: width * 0.31, height: height * 0.57)
+            tint = SKColor(red: 1, green: 0.67, blue: 0.28, alpha: 1)
+        case .frost:
+            size = CGSize(width: width * 0.24, height: height * 0.57)
+            tint = SKColor(red: 0.53, green: 0.87, blue: 1, alpha: 1)
         }
-        let rect = CGRect(x: -primarySize.width / 2, y: -primarySize.height / 2,
-                          width: primarySize.width, height: primarySize.height)
-        encounterLane.path = CGPath(roundedRect: rect, cornerWidth: 8,
-                                    cornerHeight: 8, transform: nil)
-        encounterLane.strokeColor = [SKColor.systemGreen, .systemOrange, .systemCyan][worldMapIndex - 1]
-        encounterLane.fillColor = encounterLane.strokeColor
-        encounterLane.alpha = 0.16
+        let rect = CGRect(x: -size.width / 2, y: -size.height / 2, width: size.width, height: size.height)
+        encounterLane.path = CGPath(roundedRect: rect, cornerWidth: 7,
+                                    cornerHeight: 7, transform: nil)
+        encounterLane.zPosition = 0
+        encounterLane.strokeColor = tint
+        encounterLane.fillColor = tint.withAlphaComponent(0.17)
+        encounterLane.isHidden = false
+
+        let pattern = CGMutablePath()
+        for row in 0..<7 {
+            let y = rect.minY + (CGFloat(row) + 1) * rect.height / 8
+            pattern.move(to: CGPoint(x: rect.minX + 8, y: y))
+            if plan.biome == .frost {
+                pattern.addLines(between: [
+                    CGPoint(x: rect.minX + 8, y: y), CGPoint(x: -7, y: y + 7),
+                    CGPoint(x: 2, y: y - 3), CGPoint(x: rect.maxX - 8, y: y + 4)
+                ])
+            } else {
+                pattern.addLine(to: CGPoint(x: 0, y: y + 5))
+                pattern.addLine(to: CGPoint(x: rect.maxX - 8, y: y))
+            }
+        }
+        let markings = SKShapeNode(path: pattern)
+        markings.strokeColor = tint.withAlphaComponent(0.52)
+        markings.lineWidth = 1.4
+        encounterLane.addChild(markings)
         arena.addChild(encounterLane)
-        if worldMapIndex == 3 {
-            encounterSecondaryLane.path = encounterLane.path
-            encounterSecondaryLane.strokeColor = .systemCyan
-            encounterSecondaryLane.fillColor = .systemCyan
-            encounterSecondaryLane.alpha = 0.10
-            arena.addChild(encounterSecondaryLane)
+        if plan.biome == .frost {
+            let path = CGMutablePath()
+            for dy: CGFloat in [-49, 0, 49] {
+                path.move(to: CGPoint(x: -7, y: dy - 3))
+                path.addLine(to: CGPoint(x: 0, y: dy + 3))
+                path.addLine(to: CGPoint(x: 7, y: dy - 3))
+            }
+            iceSafeMarker.path = path
+            iceSafeMarker.strokeColor = SKColor(red: 0.58, green: 0.98, blue: 0.75, alpha: 0.85)
+            iceSafeMarker.lineWidth = 2
+            iceSafeMarker.zPosition = 0
+            arena.addChild(iceSafeMarker)
         }
     }
 
     private func updateEncounterLane() {
-        guard encounterLane.parent != nil, phase == .playing, !roomCleared else {
+        guard encounterLane.parent != nil, phase == .playing, !roomCleared,
+              let plan = campaignEnvironment else {
             encounterLane.isHidden = true
-            encounterSecondaryLane.isHidden = true
+            iceSafeMarker.isHidden = true
             return
         }
         encounterLane.isHidden = false
@@ -4877,41 +4939,32 @@ final class OutpostScene: SKScene {
         let cycle = Int(waveElapsed / period)
         let warning = phaseTime < 2.5
         let active = phaseTime >= 2.5 && phaseTime < 4.5
-        let baseX = roomBounds.midX
-        let baseY = roomBounds.midY
-        switch worldMapIndex {
-        case 1:
-            // Acid shortcut stays in place: the safe outer route never floods.
-            // At the mini-boss, alternating banks are warned before flooding,
-            // and the opposite bank remains an escape.
-            let side: CGFloat = wave == 1 ? 0.0 : (cycle.isMultiple(of: 2) ? -1 : 1)
-            encounterLane.position = CGPoint(x: baseX + side * roomBounds.width * 0.21,
-                                             y: baseY)
-        case 2:
-            // Machinery sweep crosses the center only after its warning.
-            // The reversal provides a distinct recovery/counterattack window.
-            let side: CGFloat = cycle.isMultiple(of: 2) ? -1 : 1
-            let progress = CGFloat(min(1, max(0, (phaseTime - 2.5) / 2)))
-            encounterLane.position = CGPoint(
-                x: baseX + side * roomBounds.width * (0.27 - progress * 0.54),
-                y: baseY)
-        default:
-            // Ice plates fracture sequentially, never simultaneously.
-            // A second visible plate communicates the next destination.
-            let positions: [CGFloat] = [-0.29, 0, 0.29]
+        let side: CGFloat = cycle.isMultiple(of: 2) ? -1 : 1
+        let bounds = roomBounds
+        let x: CGFloat
+        switch plan.biome {
+        case .toxic:
+            x = wave == 1 || plan.layout == .crossing ? 0.5 : 0.5 + side * 0.20
+        case .iron:
+            let sweep = CGFloat(min(1, max(0, (phaseTime - 2.5) / 2)))
+            x = 0.5 + side * (0.24 - sweep * 0.48)
+        case .frost:
+            let positions: [CGFloat] = [0.23, 0.50, 0.77]
             let index = cycle % positions.count
-            encounterLane.position = CGPoint(
-                x: baseX + roomBounds.width * positions[index], y: baseY)
-            encounterSecondaryLane.isHidden = false
-            encounterSecondaryLane.position = CGPoint(
-                x: baseX + roomBounds.width * positions[(index + 1) % positions.count],
-                y: baseY)
-            encounterSecondaryLane.alpha = 0.10
+            x = positions[plan.mirrored ? positions.count - 1 - index : index]
+            iceSafeMarker.isHidden = !warning && !active
+            // Marks a dry lane inside the ice event's approach, away from
+            // both the current plate and the side-bank collision patches.
+            iceSafeMarker.position = plan.point(x < 0.40 ? 0.51 : (x > 0.60 ? 0.49 : 0.32),
+                                                 0.44, in: bounds)
         }
-        encounterLane.alpha = active ? 0.54 : (warning ? 0.23 : 0.07)
-        encounterLane.lineWidth = warning ? 4 : 2
-        if active, encounterLane.frame.contains(pilot.position),
-           combatTime >= nextLaneHit {
+        encounterLane.position = plan.point(x, 0.50, in: bounds)
+        encounterLane.alpha = active ? 0.94 : (warning ? 0.73 : 0.18)
+        encounterLane.lineWidth = warning ? 2.8 : 1.4
+        encounterLane.fillColor = encounterLane.strokeColor.withAlphaComponent(active ? 0.37 : 0.11)
+        let local = CGPoint(x: pilot.position.x - encounterLane.position.x,
+                            y: pilot.position.y - encounterLane.position.y)
+        if active, encounterLane.path?.contains(local) == true, combatTime >= nextLaneHit {
             nextLaneHit = combatTime + 1
             damagePilot(5)
         }
@@ -5392,6 +5445,7 @@ final class OutpostScene: SKScene {
         guardianArmorBroken = false
         guardianSupportDeployed = false
         scrapyardWardenEnraged = false
+        warforgeCoreUntil = 0
         guardianTransitionUntil = 0
         pendingFlankSwarm = nil
         qaFlankDue = nil
@@ -5525,11 +5579,12 @@ final class OutpostScene: SKScene {
                 .wait(forDuration: 2.0), .fadeOut(withDuration: 0.5)
             ]))
         }
+        waveElapsed = 0
         configureEncounterLane()
+        updateEncounterLane()
         survivalSpawnPhaseFinished = false
         // Shorten the empty opening without increasing enemy count or attack damage.
         spawnClock = 0.9
-        waveElapsed = 0
         streak = 0
         updateHUD()
         saveRunRecovery()
@@ -5825,6 +5880,14 @@ final class OutpostScene: SKScene {
             }
             zoneScenery.addChild(WorldOneEnvironment.make(plan,
                 texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            return
+        }
+        if let plan = campaignEnvironment, !usesLegacyTerrainPreview {
+            zoneScenery.removeAllChildren()
+            arena.childNode(withName: "campaignExterior")?.removeFromParent()
+            arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+            arena.childNode(withName: "roomArtwork")?.isHidden = true
+            zoneScenery.addChild(CampaignEnvironmentArt.make(plan, bounds: roomBounds, viewport: size))
             return
         }
         arena.childNode(withName: "roomArtwork")?.isHidden = false
@@ -7179,6 +7242,99 @@ final class OutpostScene: SKScene {
     }
     #endif
 
+    #if DEBUG && targetEnvironment(simulator)
+    private var build340MotionPreview = false
+    private var build340LastPhase: Int?
+    private var build340Finished = false
+
+    private func startBuild340Preview() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.first(where: {
+            $0.hasPrefix("-preview340-") || $0.hasPrefix("-capture340-")
+        }) else { return }
+        let parts = flag.split(separator: "-")
+        guard parts.count == 3, let world = Int(parts[1]), (2...4).contains(world),
+              let room = Int(parts[2]), (1...30).contains(room) else { return }
+        worldMapIndex = world - 1
+        wave = room - 1
+        gateUnlocked = true
+        startWave()
+        precondition(zoneScenery.childNode(withName: "campaignEnvironment") != nil)
+        let still = parts[0] == "capture340" && !arguments.contains("-build340Motion")
+        if still {
+            let bounds = roomBounds
+            pilot.position = CGPoint(x: bounds.midX, y: bounds.minY + 53)
+            updateArenaCamera(delta: 1)
+            if room != 29 {
+                for _ in 0..<min(3, waveTarget) {
+                    spawned += 1
+                    spawnEnemy()
+                }
+            } else {
+                spawned = waveTarget
+                showZoneGate()
+            }
+            for enemy in enemies {
+                enemy.node.alpha = 1
+                enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
+            }
+            // Keep the production warning visible in stills. Footage exercises
+            // the same warning, damage and recovery on the running clock.
+            zoneBanner.removeAllActions()
+            zoneBanner.alpha = 0
+            controlsHint.removeAllActions()
+            controlsHint.isHidden = true
+            arena.isPaused = true
+            holdDefenseQAScreenshot = true
+        }
+        build340MotionPreview = arguments.contains("-build340Motion")
+        if parts[0] == "capture340" {
+            let rooms = [1, 5, 10, 15, 20, 25, 29, 30]
+            let index = (world - 2) * 8 + (rooms.firstIndex(of: room) ?? 0) + 1
+            let encoding: [(CGFloat, Int)] = [(0.94, index), (0.90, index >> 3)]
+            for (x, bits) in encoding {
+                let mark = SKShapeNode(rectOf: CGSize(width: 7, height: 7))
+                mark.fillColor = SKColor(red: bits & 1 == 0 ? 0 : 1,
+                                         green: bits & 2 == 0 ? 0 : 1,
+                                         blue: bits & 4 == 0 ? 0 : 1, alpha: 1)
+                mark.strokeColor = .clear
+                mark.position = CGPoint(x: size.width * x, y: size.height * 0.46)
+                mark.zPosition = 100
+                hud.addChild(mark)
+            }
+        }
+        updateHUD()
+        print("[BUILD340 READY] world=\(world) wave=\(room)")
+        fflush(stdout)
+    }
+
+    private func steerBuild340Preview() {
+        guard build340MotionPreview, phase == .playing else { return }
+        let elapsed = CGFloat(waveElapsed)
+        let x = 0.50 + 0.30 * sin(elapsed * 0.83)
+        let y = 0.19 + 0.13 * (1 + sin(elapsed * 0.62))
+        movementTarget = CGPoint(x: roomBounds.minX + roomBounds.width * x,
+                                 y: roomBounds.minY + roomBounds.height * y)
+    }
+
+    private func sampleBuild340Preview() {
+        guard build340MotionPreview, !build340Finished else { return }
+        let period: TimeInterval = wave == 1 ? 7 : 6
+        let t = waveElapsed.truncatingRemainder(dividingBy: period)
+        let stage = t < 2.5 ? 0 : t < 4.5 ? 1 : 2
+        if stage != build340LastPhase {
+            build340LastPhase = stage
+            print("[BUILD340 MOTION] stage=\(stage) distance=\(Int(playtestMovementDistance)) hp=\(health)")
+            fflush(stdout)
+        }
+        if waveElapsed >= period + 4.7 {
+            build340Finished = true
+            print("[BUILD340 MOTION COMPLETE] distance=\(Int(playtestMovementDistance))")
+            fflush(stdout)
+        }
+    }
+    #endif
+
     override func update(_ currentTime: TimeInterval) {
         if let replay = qaReplay {
             // Same 1/60 simulation steps, independent of host frame deltas.
@@ -7317,6 +7473,9 @@ final class OutpostScene: SKScene {
             }
             movementTarget = lap < 2 ? previewWalkTarget : nil
         }
+        #if DEBUG && targetEnvironment(simulator)
+        steerBuild340Preview()
+        #endif
         let pilotBeforeMovement = pilot.position
         if let movementTarget {
             let dx = movementTarget.x - pilot.position.x
@@ -7442,6 +7601,9 @@ final class OutpostScene: SKScene {
         spawnClock += gameDt
         waveElapsed += gameDt
         updateTerrainHazards()
+        #if DEBUG && targetEnvironment(simulator)
+        sampleBuild340Preview()
+        #endif
         if health <= 0 { endGame(); return }
         if phase != .playing && !extractionCombatActive { return }
         applyBurns()
@@ -7818,6 +7980,19 @@ final class OutpostScene: SKScene {
             let baseCooldown = CombatRules.shooterCooldown(room: wave)
             enemies[index].nextAttack = combatTime +
                 (damagedWarden ? max(1.4, baseCooldown * 0.78) : baseCooldown)
+            if worldMapIndex == 2 && enemy.node === bossNode {
+                warforgeCoreUntil = combatTime + 0.85
+                enemy.node.childNode(withName: "warforgeOpenCore")?.removeFromParent()
+                let core = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+                core.name = "warforgeOpenCore"
+                core.text = "CORE EXPOSED"
+                core.fontSize = 13
+                core.fontColor = .systemYellow
+                core.position.y = 82
+                core.zPosition = 16
+                enemy.node.addChild(core)
+                core.run(.sequence([.wait(forDuration: 0.85), .removeFromParent()]))
+            }
         } else if combatTime >= enemy.nextAttack {
             // In reactor defense, ordinary shooters periodically threaten the
             // objective itself. The opening ten seconds teach positioning;
@@ -8108,6 +8283,15 @@ final class OutpostScene: SKScene {
             let hitReactor = !hit && activeEncounter == .equipmentDefense && !roomCleared &&
                 defenseIntegrity > 0 && CombatRules.projectileHits(
                     from: start, to: end, pilot: defenseDevice.position, radius: 30)
+            if worldMapIndex == 2,
+               let cover = TerrainHazards.coverImpact(from: start, to: end, patches: roomHazards),
+               !(hit && CombatRules.projectileHits(from: start, to: cover, pilot: pilot.position, radius: 20)),
+               !(hitReactor && CombatRules.projectileHits(from: start, to: cover, pilot: defenseDevice.position, radius: 30)) {
+                impact(at: cover, color: .systemOrange, destroyed: false)
+                shot.node.removeFromParent()
+                projectiles.remove(at: index)
+                continue
+            }
             if hit { damagePilot(7) }
             if hitReactor { damageDefenseDevice() }
             if hit || hitReactor {
@@ -8425,7 +8609,10 @@ final class OutpostScene: SKScene {
                                          rank: explosiveLevel,
                                          burning: incendiaryLevel > 0)
         }
-        let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus + commanderDamageBonus
+        let baseBulletDamage = damage + permanentDamageBonus + gearWeaponBonus + commanderDamageBonus
+        let exposedCore = worldMapIndex == 2 && enemies[index].node === bossNode &&
+            combatTime < warforgeCoreUntil
+        let totalBulletDamage = baseBulletDamage + (exposedCore ? max(1, baseBulletDamage / 4) : 0)
         // Elemental hits must read differently from ordinary kinetic shots.
         let hitColor: SKColor = explosiveLevel > 0 ? .systemOrange :
             (incendiaryLevel > 0 ? .systemRed :
@@ -9778,6 +9965,7 @@ final class OutpostScene: SKScene {
         guardianArmorBroken = false
         guardianSupportDeployed = false
         scrapyardWardenEnraged = false
+        warforgeCoreUntil = 0
         guardianTransitionUntil = 0
         defenseDevice.removeFromParent()
         defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
@@ -9807,6 +9995,8 @@ final class OutpostScene: SKScene {
         updateZoneScenery(0)
         roomHazards.removeAll()
         hazardScenery.removeAllChildren()
+        encounterLane.removeFromParent()
+        iceSafeMarker.removeFromParent()
         acidVisualNodes.removeAll()
         displayedAcidActive = nil
         enemyAcidDamageAt.removeAll()

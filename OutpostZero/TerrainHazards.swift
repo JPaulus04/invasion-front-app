@@ -123,7 +123,7 @@ enum TerrainHazards {
             outline: profile(for: kind, alternate: alternate))
     }
 
-    private static func profile(for kind: Kind, alternate: Bool) -> [CGPoint] {
+    static func profile(for kind: Kind, alternate: Bool) -> [CGPoint] {
         func vertices(_ points: [(CGFloat, CGFloat)]) -> [CGPoint] {
             points.map { CGPoint(x: $0.0, y: $0.1) }
         }
@@ -414,6 +414,32 @@ enum TerrainHazards {
                             at time: TimeInterval) -> Bool {
         acidActive(at: time) &&
             patches.contains { $0.kind == .acid && $0.contains(point) }
+    }
+
+    /// Earliest solid-cover intersection along a projectile's swept segment.
+    static func coverImpact(from start: CGPoint, to end: CGPoint, patches: [Patch]) -> CGPoint? {
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        var earliest: CGFloat?
+        for patch in patches where patch.kind == .rubble {
+            var near: CGFloat = 0
+            var far: CGFloat = 1
+            for (origin, delta, low, high) in [
+                (start.x, dx, patch.frame.minX, patch.frame.maxX),
+                (start.y, dy, patch.frame.minY, patch.frame.maxY)
+            ] {
+                if abs(delta) < 0.0001 {
+                    if origin < low || origin > high { near = .infinity }
+                    continue
+                }
+                let first = (low - origin) / delta
+                let second = (high - origin) / delta
+                near = max(near, min(first, second))
+                far = min(far, max(first, second))
+            }
+            if near <= far { earliest = min(near, earliest ?? 1) }
+        }
+        return earliest.map { CGPoint(x: start.x + $0 * dx, y: start.y + $0 * dy) }
     }
 
     static func hitsObstacle(_ point: CGPoint, patches: [Patch],
