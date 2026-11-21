@@ -7249,14 +7249,29 @@ final class OutpostScene: SKScene {
     private var build340Tour = false
     private var build340TourPolledAt: TimeInterval = 0
 
-    private var build340TourRequest: URL? {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?
-            .appendingPathComponent("build340-review-request")
+    private var build340TourDirectory: URL? {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+    }
+
+    private func recordBuild340Tour(_ line: String) {
+        print(line)
+        fflush(stdout)
+        guard build340Tour, let directory = build340TourDirectory else { return }
+        let url = directory.appendingPathComponent("build340-review-events")
+        let data = Data((line + "\n").utf8)
+        if let file = try? FileHandle(forWritingTo: url) {
+            defer { try? file.close() }
+            _ = try? file.seekToEnd()
+            try? file.write(contentsOf: data)
+        } else {
+            try? data.write(to: url, options: .atomic)
+        }
     }
 
     private func pollBuild340Tour(at time: TimeInterval) {
         guard build340Tour, time - build340TourPolledAt >= 0.20,
-              let url = build340TourRequest else { return }
+              let directory = build340TourDirectory else { return }
+        let url = directory.appendingPathComponent("build340-review-request")
         build340TourPolledAt = time
         guard let request = try? String(contentsOf: url, encoding: .utf8) else { return }
         try? FileManager.default.removeItem(at: url)
@@ -7345,8 +7360,7 @@ final class OutpostScene: SKScene {
             }
         }
         updateHUD()
-        print("[BUILD340 READY] world=\(world) wave=\(room) mode=\(still ? "still" : "live")")
-        fflush(stdout)
+        recordBuild340Tour("[BUILD340 READY] world=\(world) wave=\(room) mode=\(still ? "still" : "live")")
     }
 
     private func steerBuild340Preview() {
@@ -7365,13 +7379,11 @@ final class OutpostScene: SKScene {
         let stage = t < 2.5 ? 0 : t < 4.5 ? 1 : 2
         if stage != build340LastPhase {
             build340LastPhase = stage
-            print("[BUILD340 MOTION] stage=\(stage) distance=\(Int(playtestMovementDistance)) hp=\(health)")
-            fflush(stdout)
+            recordBuild340Tour("[BUILD340 MOTION] stage=\(stage) distance=\(Int(playtestMovementDistance)) hp=\(health)")
         }
         if waveElapsed >= period + 4.7 {
             build340Finished = true
-            print("[BUILD340 MOTION COMPLETE] distance=\(Int(playtestMovementDistance))")
-            fflush(stdout)
+            recordBuild340Tour("[BUILD340 MOTION COMPLETE] distance=\(Int(playtestMovementDistance))")
         }
     }
     #endif

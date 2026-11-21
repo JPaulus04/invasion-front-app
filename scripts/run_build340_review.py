@@ -22,39 +22,37 @@ def contents(path):
     return path.read_text(errors="replace") if path.exists() else ""
 
 
-def wait_for(log, errors, predicate, seconds, offset=0):
+def wait_for(log, predicate, seconds, offset=0):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
-        stderr = contents(errors)
-        if "Precondition failed" in stderr or "Fatal error:" in stderr:
-            raise RuntimeError(stderr[-4000:])
         if predicate(contents(log)[offset:]):
             return
         time.sleep(0.25)
-    raise TimeoutError(f"{log.name} readiness missing after {seconds}s\n{contents(log)[-3000:]}\n{contents(errors)[-3000:]}")
+    raise TimeoutError(f"{log.name} readiness missing after {seconds}s\n{contents(log)[-3000:]}")
 
 
-def launch(device):
-    log = OUTPUT / "tour.log"
-    errors = OUTPUT / "tour-stderr.log"
-    command = ("xcrun", "simctl", "launch", f"--stdout={log}", f"--stderr={errors}",
-               device, sim.BUNDLE, "-capture340-2-1", "-build340Tour")
-    try:
-        sim.command(*command, timeout=100)
-    except subprocess.TimeoutExpired:
-        # simctl can time out while this same app process is launching.
-        pass
-    wait_for(log, errors, lambda text: "[BUILD340 READY] world=2 wave=1 mode=still" in text, 70)
-    return log, errors
+def launch(device, log):
+    args = ["xcrun", "simctl", "launch", device, sim.BUNDLE, "-capture340-2-1", "-build340Tour"]
+    with (OUTPUT / "launch-client.log").open("w") as client:
+        process = subprocess.Popen(args, stdout=client, stderr=subprocess.STDOUT)
+        try:
+            wait_for(log, lambda text: "[BUILD340 READY] world=2 wave=1 mode=still" in text, 150)
+        except TimeoutError:
+            print(contents(Path(client.name)), flush=True)
+            raise
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                process.wait(timeout=10)
 
 
-def request_room(request, log, errors, world, wave, mode):
+def request_room(request, log, world, wave, mode):
     offset = len(contents(log))
     staging = request.with_suffix(".tmp")
     staging.write_text(f"{world} {wave} {mode}")
     staging.replace(request)
     ready = f"[BUILD340 READY] world={world} wave={wave} mode={mode}"
-    wait_for(log, errors, lambda text: ready in text, 60, offset)
+    wait_for(log, lambda text: ready in text, 60, offset)
     return offset
 
 
@@ -122,13 +120,13 @@ def recorder(device, video):
         raise RuntimeError(f"Simulator recorder exited with code {process.returncode}")
 
 
-def gameplay(device, request, log, errors, world):
+def gameplay(device, request, log, world):
     wave = 20
     label = f"world-{world}-hazard-cycle"
     video = OUTPUT / f"{label}.mov"
     with recorder(device, video):
-        offset = request_room(request, log, errors, world, wave, "live")
-        wait_for(log, errors, lambda text: "[BUILD340 MOTION COMPLETE]" in text, 75, offset)
+        offset = request_room(request, log, world, wave, "live")
+        wait_for(log, lambda text: "[BUILD340 MOTION COMPLETE]" in text, 75, offset)
     text = contents(log)[offset:]
     stages = [int(item) for item in re.findall(r"\[BUILD340 MOTION\] stage=(\d+)", text)]
     distance = int(re.search(r"\[BUILD340 MOTION COMPLETE\] distance=(\d+)", text)[1])
@@ -156,22 +154,31 @@ def main():
         documents = Path(container) / "Documents"
         documents.mkdir(exist_ok=True)
         request = documents / "build340-review-request"
-        log, errors = launch(device)
-        for world in (2, 3, 4):
-            for offset, wave in enumerate(WAVES, 1):
-                if (world, wave) != (2, 1):
-                    request_room(request, log, errors, world, wave, "still")
-                index = (world - 2) * len(WAVES) + offset
-                name = capture(device, f"world-{world}-wave-{wave:02}", index)
-                results["stills"].append({"world": world, "wave": wave, "file": name})
-                manifest.write_text(json.dumps(results, indent=2) + "\n")
-                print(f"Captured {name}", flush=True)
-        request_room(request, log, errors, 1, 1, "still")
-        results["benchmark"] = capture(device, "world-1-wave-01", 25)
-        manifest.write_text(json.dumps(results, indent=2) + "\n")
-        for world in (2, 3, 4):
-            results["footage"].append(gameplay(device, request, log, errors, world))
+        log = documents / "build340-review-events"
+        try:
+            launch(device, log)
+            capture_rooms(device, request, log, results, manifest)
+        finally:
+            if log.exists():
+                (OUTPUT / "tour.log").write_text(contents(log))
+
+
+def capture_rooms(device, request, log, results, manifest):
+    for world in (2, 3, 4):
+        for offset, wave in enumerate(WAVES, 1):
+            if (world, wave) != (2, 1):
+                request_room(request, log, world, wave, "still")
+            index = (world - 2) * len(WAVES) + offset
+            name = capture(device, f"world-{world}-wave-{wave:02}", index)
+            results["stills"].append({"world": world, "wave": wave, "file": name})
             manifest.write_text(json.dumps(results, indent=2) + "\n")
+            print(f"Captured {name}", flush=True)
+    request_room(request, log, 1, 1, "still")
+    results["benchmark"] = capture(device, "world-1-wave-01", 25)
+    manifest.write_text(json.dumps(results, indent=2) + "\n")
+    for world in (2, 3, 4):
+        results["footage"].append(gameplay(device, request, log, world))
+        manifest.write_text(json.dumps(results, indent=2) + "\n")
 
 
 if __name__ == "__main__":
