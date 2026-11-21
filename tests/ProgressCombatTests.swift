@@ -99,7 +99,9 @@ struct ProgressCombatTests {
         var earnedRun = RunProgress()
         precondition(earnedRun.claimMastery(room: 1))
         precondition(!earnedRun.claimMastery(room: 1))
+        precondition(earnedRun.claimMastery(room: 25))
         precondition(!earnedRun.claimMastery(room: 25))
+        precondition(!earnedRun.claimMastery(room: 31))
         let suiteMastery = "outpost.zero.mastery.test"
         let masteryStore = UserDefaults(suiteName: suiteMastery)!
         masteryStore.removePersistentDomain(forName: suiteMastery)
@@ -419,7 +421,7 @@ struct ProgressCombatTests {
         precondition(EncounterDirector.style(room: 4) == .flank)
         precondition(EncounterDirector.style(room: 6) == .crossfire)
         precondition(EncounterDirector.style(room: 12) == .siege)
-        precondition(EncounterDirector.style(room: 20) == .boss)
+        precondition(EncounterDirector.style(room: 30) == .boss)
         precondition(EncounterDirector.spawnLane(room: 4, slot: 0) == .left)
         precondition(EncounterDirector.spawnLane(room: 4, slot: 2) == .right)
         precondition(EncounterDirector.spawnLane(room: 6, slot: 0) == .left)

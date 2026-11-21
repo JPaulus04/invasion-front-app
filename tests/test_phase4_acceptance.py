@@ -16,13 +16,13 @@ class AcceptanceTests(unittest.TestCase):
                       '[PHASE4 PLAYTEST] outcome=defeat world=1 room=4 elapsed=60 '
                       'damage=100 movement=0 kills=25 upgrades=2 level=3\n')
         moving = '[PHASE4 QA] profile=moving started world=1\n'
-        for room in range(1, 21):
+        for room in range(1, 31):
             encounter = 'equipmentDefense' if room == 6 else 'tactical'
             moving += f'[PHASE4 ROOM] entered={room} encounter={encounter} hp=50 level=10\n'
             moving += f'[PHASE4 ROOM] cleared={room} encounter={encounter} hp=50 level=10 integrity=50\n'
-        moving += ('[PHASE4 BOSS] spawned room=20\n[PHASE4 BOSS] defeated room=20\n'
+        moving += ('[PHASE4 BOSS] spawned room=30\n[PHASE4 BOSS] defeated room=30\n'
                    '[PHASE4 QA] choice=damage accepted=true room=1\n'
-                   '[PHASE4 PLAYTEST] outcome=complete world=1 room=20 elapsed=800 '
+                   '[PHASE4 PLAYTEST] outcome=complete world=1 room=30 elapsed=800 '
                    'damage=50 movement=50000 kills=500 upgrades=1 level=2\n')
         return stationary, moving
 
@@ -39,7 +39,7 @@ class AcceptanceTests(unittest.TestCase):
     def test_terminal_claim_cannot_replace_room_or_boss_evidence(self):
         stationary, moving = self.fixture()
         for removed in ('[PHASE4 ROOM] entered=13', '[PHASE4 ROOM] cleared=13',
-                        '[PHASE4 BOSS] defeated room=20', '[PHASE4 QA] choice=damage'):
+                        '[PHASE4 BOSS] defeated room=30', '[PHASE4 QA] choice=damage'):
             with self.subTest(removed=removed):
                 altered = '\n'.join(line for line in moving.splitlines() if not line.startswith(removed))
                 self.assertFalse(self.assess(stationary, altered)['passed'])

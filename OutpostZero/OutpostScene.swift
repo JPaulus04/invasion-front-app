@@ -1467,7 +1467,7 @@ final class OutpostScene: SKScene {
             "-captureFrontierGuardianResolvedScreenshot")
         if guardianBase || guardianExposed || guardianResolved {
             worldMapIndex = 0
-            wave = 19
+            wave = worldWaveCount - 1
             gateUnlocked = true
             startWave()
             spawned = waveTarget
@@ -1477,7 +1477,7 @@ final class OutpostScene: SKScene {
             // the first active frame and falsely made all the art look ghostly.
             bossNode?.alpha = 1
             bossNode?.childNode(withName: "spawnWarning")?.removeFromParent()
-            precondition(wave == 20 && enemies.count == 1 && bossNode != nil &&
+            precondition(wave == worldWaveCount && enemies.count == 1 && bossNode != nil &&
                          bossNode?.alpha == 1 &&
                          enemies[0].health == selectedWorld.bossHealth &&
                          bossNode?.childNode(withName: "bossArt") != nil &&
@@ -1672,7 +1672,7 @@ final class OutpostScene: SKScene {
                                 "-captureWarforgeScreenshot", "-captureFrostWraithScreenshot"]
         if let index = bossCaptureFlags.firstIndex(where: { ProcessInfo.processInfo.arguments.contains($0) }) {
             worldMapIndex = index
-            wave = 19
+            wave = worldWaveCount - 1
             gateUnlocked = true
             startWave()
             spawned = waveTarget
@@ -1681,7 +1681,7 @@ final class OutpostScene: SKScene {
             bossNode?.childNode(withName: "spawnWarning")?.removeFromParent()
             bossNode?.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY + 75)
             pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY - 100)
-            precondition(enemies.count == 1 && wave == 20 &&
+            precondition(enemies.count == 1 && wave == worldWaveCount &&
                          enemies[0].health == selectedWorld.bossHealth &&
                          bossNode?.childNode(withName: "bossArt") != nil &&
                          zoneBanner.text == "BOSS: \(selectedWorld.boss)",
@@ -1881,7 +1881,7 @@ final class OutpostScene: SKScene {
             gateUnlocked = true
             startWave()
             precondition(roomHazards.count == 3 &&
-                         hazardScenery.children.count == 3,
+                         hazardScenery.children.filter { $0.name?.hasPrefix("terrain_") == true }.count == 3,
                          "Biome screenshot must contain both pockets and rubble")
             // Keep the playable HUD visible without a level-up overlay.
             // Hide only temporary room-introduction labels so the screenshot
@@ -1898,7 +1898,7 @@ final class OutpostScene: SKScene {
             gateUnlocked = true
             startWave()
             precondition(roomHazards.count == 3 &&
-                         hazardScenery.children.count == 3 &&
+                         hazardScenery.children.filter { $0.name?.hasPrefix("terrain_") == true }.count == 3 &&
                          TerrainHazards.blocksMovement(
                              CGPoint(x: roomHazards[0].frame.midX,
                                      y: roomHazards[0].frame.midY),
@@ -1967,15 +1967,16 @@ final class OutpostScene: SKScene {
             precondition(distance(firstOrbPosition, orbitalNodes[0].position) > 10,
                          "Energy Orbit must keep moving at the peaceful portal")
             for orb in orbitalNodes {
-                precondition(abs(distance(orb.position, pilot.position) - 82) < 0.1,
+                precondition(abs(distance(orb.position, pilot.position) - orbitRadius) < 0.1,
                              "Energy Orbit must follow the pilot at its wider radius")
             }
             clock = savedClock
             pilot.position.x -= 12
             updateOrbitingDefenses()
         }
-        // CI-only motion review: run real combat and movement instead of
-        // freezing an art-review frame. This never executes in normal play.
+        #if DEBUG && targetEnvironment(simulator)
+        startBuild340Preview()
+        #endif
         if ProcessInfo.processInfo.arguments.contains("-captureGameplayFrames") {
             startWave()
         }
@@ -3115,7 +3116,7 @@ final class OutpostScene: SKScene {
         overlayText(unlocked ? world.title.uppercased() : "UNKNOWN WORLD",
                     y: 187 * scale, fontSize: 22 * scale)
         overlayText(unlocked
-            ? "WORLD \(worldMapIndex + 1)   ·   \(String(repeating: "★", count: WorldCatalog.stars(worldMapIndex)))\(String(repeating: "☆", count: 3 - WorldCatalog.stars(worldMapIndex)))   ·   BEST \(WorldCatalog.bestRoom(worldMapIndex))/20"
+            ? "WORLD \(worldMapIndex + 1)   ·   \(String(repeating: "★", count: WorldCatalog.stars(worldMapIndex)))\(String(repeating: "☆", count: 3 - WorldCatalog.stars(worldMapIndex)))   ·   BEST \(WorldCatalog.bestRoom(worldMapIndex))/\(worldWaveCount)"
             : (playable ? "LOCKED  ·  EARN 1 STAR IN PREVIOUS WORLD" : "UNKNOWN  ·  EXPLORE LATER"),
             y: 162 * scale, fontSize: 11 * scale)
 
@@ -3295,7 +3296,9 @@ final class OutpostScene: SKScene {
     }
 
     private var isCaptureMode: Bool {
-        previewPilotWalk || ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-capture") }
+        previewPilotWalk || ProcessInfo.processInfo.arguments.contains {
+            $0.hasPrefix("-capture") || $0.hasPrefix("-preview340-")
+        }
     }
 
     private func saveRunRecovery() {
@@ -4029,7 +4032,7 @@ final class OutpostScene: SKScene {
         installHubShell(active: "nav_abilities")
         overlayText("MISSION LOADOUT", y: 162, fontSize: 23)
         overlayText("PRIMARY: AUTO RIFLE  •  ALWAYS EQUIPPED", y: 126, fontSize: 11)
-        overlayText("WORLD \(worldMapIndex + 1)  •  LOCKED FOR 20 ROOMS", y: 99, fontSize: 12)
+        overlayText("WORLD \(worldMapIndex + 1)  •  LOCKED FOR \(worldWaveCount) ROOMS", y: 99, fontSize: 12)
         overlayText("\(draftLoadout.selected.count)/3 TACTICAL ABILITIES SELECTED",
                     y: 76, fontSize: 12)
         let options: [(String, String)] = [
@@ -4331,13 +4334,35 @@ final class OutpostScene: SKScene {
         return true
     }
 
+    private var campaignEnvironment: CampaignEnvironmentPlan? {
+        CampaignEnvironmentPlan(world: worldMapIndex, wave: wave)
+    }
+
+    private var usesLegacyTerrainPreview: Bool {
+        ProcessInfo.processInfo.arguments.contains {
+            ["-captureToxicTerrainScreenshot", "-captureIronTerrainScreenshot",
+             "-captureFrostTerrainScreenshot", "-captureTerrainHazardsScreenshot"].contains($0)
+        }
+    }
+
     private func rebuildTerrainHazards() {
         hazardScenery.removeAllChildren()
         acidVisualNodes.removeAll()
         displayedAcidActive = nil
-        roomHazards = TerrainHazards.patches(
-            world: worldMapIndex, room: wave, bounds: roomBounds,
-            preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
+        let plan = usesLegacyTerrainPreview ? nil : campaignEnvironment
+        if let plan {
+            let bounds = roomBounds
+            roomHazards = plan.features.enumerated().map { index, feature in
+                let kind: TerrainHazards.Kind = feature.surface == .cover ? .rubble :
+                    (plan.biome == .toxic ? .acid : .water)
+                return TerrainHazards.Patch(kind: kind, frame: feature.frame(in: bounds),
+                    outline: TerrainHazards.profile(for: kind, alternate: (index + wave).isMultiple(of: 2)))
+            }
+        } else {
+            roomHazards = TerrainHazards.patches(
+                world: worldMapIndex, room: wave, bounds: roomBounds,
+                preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
+        }
         if let layout = worldOneLiveLayout {
             roomHazards += layout.boundaryObstacles.map {
                 TerrainHazards.Patch(kind: .rubble,
@@ -4360,7 +4385,11 @@ final class OutpostScene: SKScene {
             case .water:
                 shape.fillColor = SKColor(red: 0.035, green: 0.17, blue: 0.25, alpha: 0.96)
                 shape.strokeColor = SKColor(red: 0.36, green: 0.66, blue: 0.72, alpha: 0.43)
-                decorateLiquidHazard(shape, kind: .water, size: patch.frame.size)
+                if plan?.biome == .frost {
+                    decorateIceShelf(shape, size: patch.frame.size)
+                } else {
+                    decorateLiquidHazard(shape, kind: .water, size: patch.frame.size)
+                }
             case .acid:
                 shape.fillColor = SKColor(red: 0.10, green: 0.25, blue: 0.07, alpha: 0.96)
                 shape.strokeColor = SKColor(red: 0.64, green: 0.72, blue: 0.29, alpha: 0.45)
@@ -4385,7 +4414,7 @@ final class OutpostScene: SKScene {
             // Prefer authored transparent terrain illustrations when bundled.
             // They are presentation-only: the exact polygon above remains the
             // authoritative collision and damage boundary.
-            if patch.kind != .rubble {
+            if plan == nil && patch.kind != .rubble {
                 let material = patch.kind == .acid ? "acid" : "water"
                 let biome = worldMapIndex == 1 ? "toxic"
                     : (worldMapIndex == 2 ? "industrial" : "frost")
@@ -4738,6 +4767,30 @@ final class OutpostScene: SKScene {
 
     /// Three material facets sit inside the existing rectangular rubble
     /// footprint. This is artwork only; TerrainHazards still owns collision.
+    private func decorateIceShelf(_ shelf: SKShapeNode, size: CGSize) {
+        shelf.fillColor = SKColor(red: 0.15, green: 0.34, blue: 0.47, alpha: 1)
+        shelf.strokeColor = SKColor(red: 0.57, green: 0.76, blue: 0.84, alpha: 0.85)
+        let facet = CGMutablePath()
+        facet.move(to: CGPoint(x: -size.width * 0.28, y: -size.height * 0.10))
+        facet.addLine(to: CGPoint(x: -size.width * 0.11, y: size.height * 0.24))
+        facet.addLine(to: CGPoint(x: size.width * 0.29, y: size.height * 0.16))
+        facet.addLine(to: CGPoint(x: size.width * 0.11, y: -size.height * 0.13))
+        facet.closeSubpath()
+        let crystal = SKShapeNode(path: facet)
+        crystal.fillColor = SKColor(red: 0.38, green: 0.64, blue: 0.75, alpha: 0.62)
+        crystal.strokeColor = .clear
+        shelf.addChild(crystal)
+        let crack = CGMutablePath()
+        crack.move(to: CGPoint(x: -size.width * 0.14, y: -size.height * 0.29))
+        crack.addLine(to: CGPoint(x: size.width * 0.04, y: -size.height * 0.05))
+        crack.addLine(to: CGPoint(x: -size.width * 0.025, y: size.height * 0.08))
+        crack.addLine(to: CGPoint(x: size.width * 0.12, y: size.height * 0.27))
+        let edge = SKShapeNode(path: crack)
+        edge.strokeColor = SKColor(red: 0.86, green: 0.96, blue: 1, alpha: 0.64)
+        edge.lineWidth = 1.6
+        shelf.addChild(edge)
+    }
+
     private func decorateRubbleObstacle(_ obstacle: SKShapeNode, size: CGSize) {
         let w = size.width
         let h = size.height
@@ -4805,7 +4858,126 @@ final class OutpostScene: SKScene {
         obstacle.addChild(crack)
     }
 
+    private let encounterLane = SKShapeNode()
+    private let iceSafeMarker = SKShapeNode()
+    private var nextLaneHit: TimeInterval = 0
+    private var warforgeCoreUntil: TimeInterval = 0
+
+    private func configureEncounterLane() {
+        encounterLane.removeFromParent()
+        encounterLane.removeAllChildren()
+        iceSafeMarker.removeFromParent()
+        nextLaneHit = 0
+        guard let plan = campaignEnvironment, plan.hasEncounterHazard else { return }
+        let width = roomBounds.width
+        let height = roomBounds.height
+        let size: CGSize
+        let tint: SKColor
+        switch plan.biome {
+        case .toxic:
+            size = CGSize(width: width * 0.23, height: height * 0.65)
+            tint = SKColor(red: 0.78, green: 0.94, blue: 0.30, alpha: 1)
+        case .iron:
+            size = CGSize(width: width * 0.31, height: height * 0.57)
+            tint = SKColor(red: 1, green: 0.67, blue: 0.28, alpha: 1)
+        case .frost:
+            size = CGSize(width: width * 0.24, height: height * 0.57)
+            tint = SKColor(red: 0.53, green: 0.87, blue: 1, alpha: 1)
+        }
+        let rect = CGRect(x: -size.width / 2, y: -size.height / 2, width: size.width, height: size.height)
+        encounterLane.path = CGPath(roundedRect: rect, cornerWidth: 7,
+                                    cornerHeight: 7, transform: nil)
+        encounterLane.zPosition = 0
+        encounterLane.strokeColor = tint
+        encounterLane.fillColor = tint.withAlphaComponent(0.17)
+        encounterLane.isHidden = false
+
+        let pattern = CGMutablePath()
+        for row in 0..<7 {
+            let y = rect.minY + (CGFloat(row) + 1) * rect.height / 8
+            pattern.move(to: CGPoint(x: rect.minX + 8, y: y))
+            if plan.biome == .frost {
+                pattern.addLines(between: [
+                    CGPoint(x: rect.minX + 8, y: y), CGPoint(x: -7, y: y + 7),
+                    CGPoint(x: 2, y: y - 3), CGPoint(x: rect.maxX - 8, y: y + 4)
+                ])
+            } else {
+                pattern.addLine(to: CGPoint(x: 0, y: y + 5))
+                pattern.addLine(to: CGPoint(x: rect.maxX - 8, y: y))
+            }
+        }
+        let markings = SKShapeNode(path: pattern)
+        markings.strokeColor = tint.withAlphaComponent(0.52)
+        markings.lineWidth = 1.4
+        encounterLane.addChild(markings)
+        arena.addChild(encounterLane)
+        if plan.biome == .frost {
+            let path = CGMutablePath()
+            for dy: CGFloat in [-16, 0, 16] {
+                path.move(to: CGPoint(x: -7, y: dy - 3))
+                path.addLine(to: CGPoint(x: 0, y: dy + 3))
+                path.addLine(to: CGPoint(x: 7, y: dy - 3))
+            }
+            iceSafeMarker.path = path
+            iceSafeMarker.strokeColor = SKColor(red: 0.58, green: 0.98, blue: 0.75, alpha: 0.85)
+            iceSafeMarker.lineWidth = 2
+            iceSafeMarker.zPosition = 0
+            arena.addChild(iceSafeMarker)
+        }
+    }
+
+    private func updateEncounterLane() {
+        guard encounterLane.parent != nil, phase == .playing, !roomCleared,
+              let plan = campaignEnvironment else {
+            encounterLane.isHidden = true
+            iceSafeMarker.isHidden = true
+            return
+        }
+        encounterLane.isHidden = false
+        let period: TimeInterval = wave == 1 ? 7 : 6
+        let phaseTime = waveElapsed.truncatingRemainder(dividingBy: period)
+        let cycle = Int(waveElapsed / period)
+        let warning = phaseTime < 2.5
+        let active = phaseTime >= 2.5 && phaseTime < 4.5
+        let side: CGFloat = cycle.isMultiple(of: 2) ? -1 : 1
+        let bounds = roomBounds
+        let x: CGFloat
+        switch plan.biome {
+        case .toxic:
+            x = wave == 1 || plan.layout == .crossing ? 0.5 : 0.5 + side * 0.20
+        case .iron:
+            let sweep = CGFloat(min(1, max(0, (phaseTime - 2.5) / 2)))
+            x = 0.5 + side * (0.24 - sweep * 0.48)
+        case .frost:
+            let positions: [CGFloat] = [0.23, 0.50, 0.77]
+            let index = cycle % positions.count
+            x = positions[plan.mirrored ? positions.count - 1 - index : index]
+            // Use the same movement footprint as the pilot when placing
+            // the safe-position chevrons next to the currently marked plate.
+            let routes: [CGFloat] = index == 1 ? [0.32, 0.68] : [0.50]
+            let safe = routes.map { plan.point($0, 0.46, in: bounds) }.first { point in
+                [CGFloat(-16), 0, 16].allSatisfy { offset in
+                    !TerrainHazards.blocksMovement(
+                        CGPoint(x: point.x, y: point.y + offset), patches: roomHazards, radius: 12)
+                }
+            }
+            iceSafeMarker.isHidden = (!warning && !active) || safe == nil
+            if let safe { iceSafeMarker.position = safe }
+        }
+        encounterLane.position = plan.point(x, 0.50, in: bounds)
+        encounterLane.alpha = active ? 0.94 : (warning ? 0.73 : 0.18)
+        encounterLane.lineWidth = warning ? 2.8 : 1.4
+        encounterLane.fillColor = encounterLane.strokeColor.withAlphaComponent(active ? 0.37 : 0.11)
+        let local = CGPoint(x: pilot.position.x - encounterLane.position.x,
+                            y: pilot.position.y - encounterLane.position.y)
+        if active, encounterLane.path?.contains(local) == true, combatTime >= nextLaneHit {
+            nextLaneHit = combatTime + 1
+            damagePilot(5)
+        }
+    }
+
     private func updateTerrainHazards() {
+        updateEncounterLane()
         guard !acidVisualNodes.isEmpty else { return }
         let acidOn = TerrainHazards.acidActive(at: waveElapsed)
         if displayedAcidActive != acidOn {
@@ -5279,6 +5451,7 @@ final class OutpostScene: SKScene {
         guardianArmorBroken = false
         guardianSupportDeployed = false
         scrapyardWardenEnraged = false
+        warforgeCoreUntil = 0
         guardianTransitionUntil = 0
         pendingFlankSwarm = nil
         qaFlankDue = nil
@@ -5412,10 +5585,12 @@ final class OutpostScene: SKScene {
                 .wait(forDuration: 2.0), .fadeOut(withDuration: 0.5)
             ]))
         }
+        waveElapsed = 0
+        configureEncounterLane()
+        updateEncounterLane()
         survivalSpawnPhaseFinished = false
         // Shorten the empty opening without increasing enemy count or attack damage.
         spawnClock = 0.9
-        waveElapsed = 0
         streak = 0
         updateHUD()
         saveRunRecovery()
@@ -5711,6 +5886,14 @@ final class OutpostScene: SKScene {
             }
             zoneScenery.addChild(WorldOneEnvironment.make(plan,
                 texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            return
+        }
+        if let plan = campaignEnvironment, !usesLegacyTerrainPreview {
+            zoneScenery.removeAllChildren()
+            arena.childNode(withName: "campaignExterior")?.removeFromParent()
+            arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+            arena.childNode(withName: "roomArtwork")?.isHidden = true
+            zoneScenery.addChild(CampaignEnvironmentArt.make(plan, bounds: roomBounds, viewport: size))
             return
         }
         arena.childNode(withName: "roomArtwork")?.isHidden = false
@@ -6501,10 +6684,12 @@ final class OutpostScene: SKScene {
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
         let roll = EncounterDirector.enemyRoll(
             world: worldMapIndex, room: wave, slot: spawned)
-        let type = artReviewType ?? WorldCatalog.enemyType(
-            world: worldMapIndex, room: wave, roll: roll)
+        let miniBoss = artReviewType == nil && CampaignPacing.isMiniBoss(room: wave)
+        let type = artReviewType ?? (miniBoss ? (worldMapIndex == 1 ? 5 : 4) : WorldCatalog.enemyType(
+            world: worldMapIndex, room: wave, roll: roll))
         let radius: CGFloat = isBoss ? 37 : (type == 1 ? 23 : (type == 2 ? 17 : (type == 3 ? 26 : 14)))
         let node = SKShapeNode(circleOfRadius: radius)
+        if miniBoss { node.setScale(1.4) }
         node.fillColor = type == 1 ? .systemRed : (type == 2 ? .systemPurple : (type == 3 ? .systemGray : .systemOrange))
         if type == 4 { node.fillColor = .systemBlue }
         if type == 5 { node.fillColor = .systemOrange }
@@ -6849,7 +7034,7 @@ final class OutpostScene: SKScene {
             nameplate.zPosition = 2
             node.addChild(nameplate)
         }
-        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi), using: &spawnRandom), nextAttack: combatTime + 1.7))
+        enemies.append(Enemy(node: node, health: enemyHP, maxHealth: enemyHP, healthBar: healthBar, speed: speed, reward: miniBoss ? CampaignPacing.healingCost(room: wave) : CampaignPacing.killCoins(type: type, isBoss: isBoss), behavior: type, radius: radius, activeAt: combatTime + 0.9, weavePhase: CGFloat.random(in: 0...(2 * .pi), using: &spawnRandom), nextAttack: combatTime + 1.7))
         qaRecordState("spawn type=\(type)")
     }
 
@@ -6991,7 +7176,7 @@ final class OutpostScene: SKScene {
                 pilot.position = CGPoint(x: roomBounds.midX,
                     y: roomBounds.midY-(activeEncounter == .equipmentDefense ? 145 : 90))
             }
-            if room == 20 {
+            if room == 30 {
                 pilot.position = CGPoint(x: roomBounds.midX,y: roomBounds.midY-100)
                 spawned = 1
                 spawnEnemy()
@@ -7020,7 +7205,7 @@ final class OutpostScene: SKScene {
         case 2: enter(6)
         case 3: enter(11)
         case 4: enter(12)
-        case 5: enter(20)
+        case 5: enter(worldWaveCount)
         case 6:
             clearedPassage()
             pilot.position = CGPoint(x: passageGate.position.x,y: passageGate.position.y-190)
@@ -7063,7 +7248,165 @@ final class OutpostScene: SKScene {
     }
     #endif
 
+    #if DEBUG && targetEnvironment(simulator)
+    private var build340MotionPreview = false
+    private var build340LastPhase: Int?
+    private var build340Finished = false
+    private var build340Tour = false
+    private var build340TourPolledAt: TimeInterval = 0
+
+    private var build340TourDirectory: URL? {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+    }
+
+    private func recordBuild340Tour(_ line: String) {
+        print(line)
+        fflush(stdout)
+        guard build340Tour, let directory = build340TourDirectory else { return }
+        let url = directory.appendingPathComponent("build340-review-events")
+        let data = Data((line + "\n").utf8)
+        if let file = try? FileHandle(forWritingTo: url) {
+            defer { try? file.close() }
+            _ = try? file.seekToEnd()
+            try? file.write(contentsOf: data)
+        } else {
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+
+    private func pollBuild340Tour(at time: TimeInterval) {
+        guard build340Tour, time - build340TourPolledAt >= 0.20,
+              let directory = build340TourDirectory else { return }
+        let url = directory.appendingPathComponent("build340-review-request")
+        build340TourPolledAt = time
+        guard let request = try? String(contentsOf: url, encoding: .utf8) else { return }
+        try? FileManager.default.removeItem(at: url)
+        let parts = request.split(separator: " ")
+        guard parts.count == 3, let world = Int(parts[0]), (1...4).contains(world),
+              let room = Int(parts[1]), (1...30).contains(room) else { return }
+        lastUpdate = time
+        presentBuild340Room(world: world, room: room, still: parts[2] == "still",
+                            showIdentity: true)
+    }
+
+    private func startBuild340Preview() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.first(where: {
+            $0.hasPrefix("-preview340-") || $0.hasPrefix("-capture340-")
+        }) else { return }
+        let parts = flag.split(separator: "-")
+        guard parts.count == 3, let world = Int(parts[1]), (2...4).contains(world),
+              let room = Int(parts[2]), (1...30).contains(room) else { return }
+        build340Tour = arguments.contains("-build340Tour")
+        let capture = parts[0] == "capture340"
+        let motion = arguments.contains("-build340Motion")
+        presentBuild340Room(world: world, room: room, still: capture && !motion,
+                            showIdentity: capture, motion: motion)
+    }
+
+    private func presentBuild340Room(world: Int, room: Int, still: Bool,
+                                     showIdentity: Bool, motion: Bool = false) {
+        holdDefenseQAScreenshot = false
+        build340MotionPreview = motion || (build340Tour && !still)
+        build340LastPhase = nil
+        build340Finished = false
+        playtestMovementDistance = 0
+        playtestLastPilotPosition = nil
+        health = maximumHealth
+        hud.children.filter { $0.name == "build340CaptureMark" }.forEach { $0.removeFromParent() }
+        worldMapIndex = world - 1
+        wave = room - 1
+        gateUnlocked = true
+        startWave()
+        let artName = world == 1 ? "build338World" : "campaignEnvironment"
+        precondition(zoneScenery.childNode(withName: artName) != nil)
+        if still {
+            let bounds = roomBounds
+            pilot.position = CGPoint(x: bounds.midX, y: bounds.minY + 53)
+            if let layout = worldOneLiveLayout, layout.kind == .passage {
+                pilot.position.y = bounds.minY + 12 * 28
+            }
+            updateArenaCamera(delta: 1)
+            if room != 29 {
+                for _ in 0..<min(3, waveTarget) {
+                    spawned += 1
+                    spawnEnemy()
+                }
+            } else {
+                spawned = waveTarget
+                showZoneGate()
+            }
+            for enemy in enemies {
+                enemy.node.alpha = 1
+                enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
+            }
+            // Keep the production warning visible in stills. Footage exercises
+            // the same warning, damage and recovery on the running clock.
+            zoneBanner.removeAllActions()
+            zoneBanner.alpha = 0
+            controlsHint.removeAllActions()
+            controlsHint.isHidden = true
+            arena.isPaused = true
+            holdDefenseQAScreenshot = true
+        }
+        if showIdentity {
+            let rooms = [1, 5, 10, 15, 20, 25, 29, 30]
+            let index = world == 1 ? 25 : (world - 2) * 8 + (rooms.firstIndex(of: room) ?? 0) + 1
+            let encoding: [(CGFloat, Int)] = [(0.94, index), (0.90, index >> 3)]
+            for (x, bits) in encoding {
+                let mark = SKShapeNode(rectOf: CGSize(width: 7, height: 7))
+                mark.name = "build340CaptureMark"
+                mark.fillColor = SKColor(red: bits & 1 == 0 ? 0 : 1,
+                                         green: bits & 2 == 0 ? 0 : 1,
+                                         blue: bits & 4 == 0 ? 0 : 1, alpha: 1)
+                mark.strokeColor = .clear
+                mark.position = CGPoint(x: size.width * x, y: size.height * 0.46)
+                mark.zPosition = 100
+                hud.addChild(mark)
+            }
+            // The simulator can put a transient system banner over the HUD.
+            // A marker in that band makes validation wait for an unobscured frame.
+            let hudMark = SKShapeNode(rectOf: CGSize(width: 5, height: 5))
+            hudMark.name = "build340CaptureMark"
+            hudMark.position = CGPoint(x: size.width * 0.91, y: size.height * 0.88)
+            hudMark.fillColor = .magenta
+            hudMark.strokeColor = .clear
+            hudMark.zPosition = 100
+            hud.addChild(hudMark)
+        }
+        updateHUD()
+        recordBuild340Tour("[BUILD340 READY] world=\(world) wave=\(room) mode=\(still ? "still" : "live")")
+    }
+
+    private func steerBuild340Preview() {
+        guard build340MotionPreview, phase == .playing else { return }
+        let elapsed = CGFloat(waveElapsed)
+        let x = 0.50 + 0.30 * sin(elapsed * 0.83)
+        let y = 0.19 + 0.13 * (1 + sin(elapsed * 0.62))
+        movementTarget = CGPoint(x: roomBounds.minX + roomBounds.width * x,
+                                 y: roomBounds.minY + roomBounds.height * y)
+    }
+
+    private func sampleBuild340Preview() {
+        guard build340MotionPreview, !build340Finished else { return }
+        let period: TimeInterval = wave == 1 ? 7 : 6
+        let t = waveElapsed.truncatingRemainder(dividingBy: period)
+        let stage = t < 2.5 ? 0 : t < 4.5 ? 1 : 2
+        if stage != build340LastPhase {
+            build340LastPhase = stage
+            recordBuild340Tour("[BUILD340 MOTION] stage=\(stage) distance=\(Int(playtestMovementDistance)) hp=\(health)")
+        }
+        if waveElapsed >= period + 4.7 {
+            build340Finished = true
+            recordBuild340Tour("[BUILD340 MOTION COMPLETE] distance=\(Int(playtestMovementDistance))")
+        }
+    }
+    #endif
+
     override func update(_ currentTime: TimeInterval) {
+        #if DEBUG && targetEnvironment(simulator)
+        pollBuild340Tour(at: currentTime)
+        #endif
         if let replay = qaReplay {
             // Same 1/60 simulation steps, independent of host frame deltas.
             // Different batches exercise render-cadence independence in CI.
@@ -7201,6 +7544,9 @@ final class OutpostScene: SKScene {
             }
             movementTarget = lap < 2 ? previewWalkTarget : nil
         }
+        #if DEBUG && targetEnvironment(simulator)
+        steerBuild340Preview()
+        #endif
         let pilotBeforeMovement = pilot.position
         if let movementTarget {
             let dx = movementTarget.x - pilot.position.x
@@ -7326,6 +7672,9 @@ final class OutpostScene: SKScene {
         spawnClock += gameDt
         waveElapsed += gameDt
         updateTerrainHazards()
+        #if DEBUG && targetEnvironment(simulator)
+        sampleBuild340Preview()
+        #endif
         if health <= 0 { endGame(); return }
         if phase != .playing && !extractionCombatActive { return }
         applyBurns()
@@ -7702,6 +8051,19 @@ final class OutpostScene: SKScene {
             let baseCooldown = CombatRules.shooterCooldown(room: wave)
             enemies[index].nextAttack = combatTime +
                 (damagedWarden ? max(1.4, baseCooldown * 0.78) : baseCooldown)
+            if worldMapIndex == 2 && enemy.node === bossNode {
+                warforgeCoreUntil = combatTime + 0.85
+                enemy.node.childNode(withName: "warforgeOpenCore")?.removeFromParent()
+                let core = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+                core.name = "warforgeOpenCore"
+                core.text = "CORE EXPOSED"
+                core.fontSize = 13
+                core.fontColor = .systemYellow
+                core.position.y = 82
+                core.zPosition = 16
+                enemy.node.addChild(core)
+                core.run(.sequence([.wait(forDuration: 0.85), .removeFromParent()]))
+            }
         } else if combatTime >= enemy.nextAttack {
             // In reactor defense, ordinary shooters periodically threaten the
             // objective itself. The opening ten seconds teach positioning;
@@ -7992,6 +8354,15 @@ final class OutpostScene: SKScene {
             let hitReactor = !hit && activeEncounter == .equipmentDefense && !roomCleared &&
                 defenseIntegrity > 0 && CombatRules.projectileHits(
                     from: start, to: end, pilot: defenseDevice.position, radius: 30)
+            if worldMapIndex == 2,
+               let cover = TerrainHazards.coverImpact(from: start, to: end, patches: roomHazards),
+               !(hit && CombatRules.projectileHits(from: start, to: cover, pilot: pilot.position, radius: 20)),
+               !(hitReactor && CombatRules.projectileHits(from: start, to: cover, pilot: defenseDevice.position, radius: 30)) {
+                impact(at: cover, color: .systemOrange, destroyed: false)
+                shot.node.removeFromParent()
+                projectiles.remove(at: index)
+                continue
+            }
             if hit { damagePilot(7) }
             if hitReactor { damageDefenseDevice() }
             if hit || hitReactor {
@@ -8108,7 +8479,7 @@ final class OutpostScene: SKScene {
         for blade in orbitalNodes { blade.isHidden = true }
         // Defensive cleanup also covers scene restoration/reentry.
         energyWheelNode?.removeFromParent()
-        let wheel = SKShapeNode(circleOfRadius: 82)
+        let wheel = SKShapeNode(circleOfRadius: orbitRadius)
         wheel.name = "energyWheel"
         wheel.fillColor = .clear
         wheel.strokeColor = SKColor(red: 0.20, green: 0.88, blue: 1, alpha: 0.85)
@@ -8120,7 +8491,7 @@ final class OutpostScene: SKScene {
             let startAngle = CGFloat(index) * (.pi / 2)
             let endAngle = startAngle + (.pi / 5)
             let arcPath = CGMutablePath()
-            arcPath.addArc(center: .zero, radius: 82,
+            arcPath.addArc(center: .zero, radius: orbitRadius,
                            startAngle: startAngle, endAngle: endAngle,
                            clockwise: false)
             let accent = SKShapeNode(path: arcPath)
@@ -8148,7 +8519,7 @@ final class OutpostScene: SKScene {
                   CombatRules.energyWheelHits(pilot: pilot.position,
                                               enemy: enemy.node.position,
                                               enemyRadius: enemy.radius,
-                                              wheelRadius: 82, bandWidth: 14) else { continue }
+                                              wheelRadius: orbitRadius, bandWidth: 14) else { continue }
             let key = ObjectIdentifier(enemy.node)
             guard combatTime - (lastEnergyWheelHit[key] ?? -100) >= 0.50 else { continue }
             lastEnergyWheelHit[key] = combatTime
@@ -8187,6 +8558,8 @@ final class OutpostScene: SKScene {
         updateHUD()
     }
 
+    private let orbitRadius: CGFloat = 94
+
     private func updateOrbitingDefenses() {
         guard orbitLevel > 0,
               (phase == .playing || extractionCombatActive || roomCleared) else { return }
@@ -8201,8 +8574,8 @@ final class OutpostScene: SKScene {
             let angle = CGFloat(phase == .gate && !extractionCombatActive ? clock : combatTime) * 2.65 +
                 CGFloat(index) * (2 * .pi / CGFloat(orbitalNodes.count))
             blade.position = CGPoint(
-                x: pilot.position.x + cos(angle) * 82,
-                y: pilot.position.y + sin(angle) * 82
+                x: pilot.position.x + cos(angle) * orbitRadius,
+                y: pilot.position.y + sin(angle) * orbitRadius
             )
             blade.zRotation = angle + .pi / 2
             for enemyIndex in enemies.indices {
@@ -8307,7 +8680,10 @@ final class OutpostScene: SKScene {
                                          rank: explosiveLevel,
                                          burning: incendiaryLevel > 0)
         }
-        let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus + commanderDamageBonus
+        let baseBulletDamage = damage + permanentDamageBonus + gearWeaponBonus + commanderDamageBonus
+        let exposedCore = worldMapIndex == 2 && enemies[index].node === bossNode &&
+            combatTime < warforgeCoreUntil
+        let totalBulletDamage = baseBulletDamage + (exposedCore ? max(1, baseBulletDamage / 4) : 0)
         // Elemental hits must read differently from ordinary kinetic shots.
         let hitColor: SKColor = explosiveLevel > 0 ? .systemOrange :
             (incendiaryLevel > 0 ? .systemRed :
@@ -9660,6 +10036,7 @@ final class OutpostScene: SKScene {
         guardianArmorBroken = false
         guardianSupportDeployed = false
         scrapyardWardenEnraged = false
+        warforgeCoreUntil = 0
         guardianTransitionUntil = 0
         defenseDevice.removeFromParent()
         defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
@@ -9689,6 +10066,8 @@ final class OutpostScene: SKScene {
         updateZoneScenery(0)
         roomHazards.removeAll()
         hazardScenery.removeAllChildren()
+        encounterLane.removeFromParent()
+        iceSafeMarker.removeFromParent()
         acidVisualNodes.removeAll()
         displayedAcidActive = nil
         enemyAcidDamageAt.removeAll()

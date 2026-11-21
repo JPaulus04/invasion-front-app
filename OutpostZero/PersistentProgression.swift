@@ -69,7 +69,7 @@ final class PersistentProgression {
         isBoss ? 18 : (isHeavy ? 2 : 1)
     }
     static func roomReward(room: Int) -> Int {
-        3 + max(1, min(20, room))
+        3 + max(1, min(30, room))
     }
     static let worldCompletionBonus = 45
 }

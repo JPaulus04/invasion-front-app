@@ -56,7 +56,7 @@ enum WorldOneRoomGeometry {
     }
 
     static func kind(room: Int, encounter: Encounter) -> Kind {
-        if room == 20 { return .rootLord }
+        if room == 30 { return .rootLord }
         switch encounter {
         case .tactical: return .passage
         case .survival: return .survival
@@ -70,7 +70,7 @@ enum WorldOneRoomGeometry {
     /// a fixed world-space unit (typically the live player's collision width).
     static func make(room: Int, playerWidth: CGFloat,
                      encounter: Encounter) -> Layout {
-        precondition((1...20).contains(room))
+        precondition((1...30).contains(room))
         precondition(playerWidth > 0 && playerWidth.isFinite)
         let kind = kind(room: room, encounter: encounter)
         let u = playerWidth

@@ -13,7 +13,7 @@ def trace_lines(terminal, extra=''):
     digest = 0xcbf29ce484222325
     rows = []
     for tick in range(11):
-        payload = f'tick={tick} ' + (f'terminal={terminal} room=20' if tick == 10 else f'state hp=100 {extra}')
+        payload = f'tick={tick} ' + (f'terminal={terminal} room=30' if tick == 10 else f'state hp=100 {extra}')
         for byte in (payload + '\n').encode():
             digest = ((digest ^ byte) * 0x100000001b3) & ((1 << 64) - 1)
         rows.append(f'[QA REPLAY] {payload} digest={digest:x}')
@@ -33,15 +33,15 @@ def fixture(root):
             text = f'[QA CONFIG] protocol=1 seed={seed} hz=60 batch={batch} profile={profile}\n'
             text += f'[PHASE4 QA] profile={profile} started world=1\n'
             if profile == 'moving':
-                for room in range(1, 21):
+                for room in range(1, 31):
                     kind = 'equipmentDefense' if room == 12 else 'tactical'
                     text += f'[PHASE4 ROOM] entered={room} encounter={kind} hp=100 level=2\n'
                     text += f'[PHASE4 ROOM] cleared={room} encounter={kind} hp=100 level=2 integrity=150\n'
-                text += '[PHASE4 BOSS] spawned room=20\n[PHASE4 BOSS] defeated room=20\n'
+                text += '[PHASE4 BOSS] spawned room=30\n[PHASE4 BOSS] defeated room=30\n'
                 text += '[PHASE4 QA] choice=damage accepted=true room=1\n'
             outcome = 'complete' if profile == 'moving' else 'defeat'
             text += trace_lines(outcome)
-            text += f'[PHASE4 PLAYTEST] outcome={outcome} world=1 room=20 elapsed=800 damage=100 movement={500 if profile == "moving" else 0} kills=500 upgrades={1 if profile == "moving" else 0} level=2\n'
+            text += f'[PHASE4 PLAYTEST] outcome={outcome} world=1 room=30 elapsed=800 damage=100 movement={500 if profile == "moving" else 0} kills=500 upgrades={1 if profile == "moving" else 0} level=2\n'
             (case / f'{profile}.log').write_text(text)
 
 

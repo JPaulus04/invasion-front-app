@@ -1,0 +1,47 @@
+name: Build 340 Environment Review
+on:
+  push:
+    branches: [feature/build340-parallel-worlds]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build340-environment-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  environment:
+    runs-on: macos-26
+    timeout-minutes: 36
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate all campaign layouts and solid cover
+        run: |
+          python3 scripts/check_project.py
+          swiftc OutpostZero/CampaignEnvironmentPlan.swift OutpostZero/TerrainHazards.swift tests/CampaignEnvironmentTests.swift -o "$RUNNER_TEMP/build340-tests"
+          "$RUNNER_TEMP/build340-tests"
+      - name: Compile the iOS simulator application
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          python3 -m pip install --break-system-packages 'Pillow>=11'
+          python3 scripts/generate_icon.py
+          xcodegen generate
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build > build340-build.log 2>&1 || { tail -120 build340-build.log; exit 1; }
+          mkdir -p simulator-app
+          ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
+      - name: Capture iPhone screenshots and gameplay
+        timeout-minutes: 28
+        run: |
+          command -v ffprobe >/dev/null || brew install ffmpeg
+          python3 scripts/run_build340_review.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build340-environment-evidence
+          path: |
+            build340-build.log
+            build340-review/
+          retention-days: 21

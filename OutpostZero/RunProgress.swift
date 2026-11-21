@@ -10,7 +10,7 @@ struct RunProgress: Codable {
     private(set) var masteryCreditedRooms: [Int]? = nil
 
     mutating func claimMastery(room: Int) -> Bool {
-        guard (1...20).contains(room),
+        guard (1...30).contains(room),
               !(masteryCreditedRooms ?? []).contains(room) else { return false }
         masteryCreditedRooms = (masteryCreditedRooms ?? []) + [room]
         return true
