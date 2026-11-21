@@ -1978,8 +1978,9 @@ final class OutpostScene: SKScene {
         // freezing an art-review frame. This never executes in normal play.
         #if DEBUG && targetEnvironment(simulator)
         if let flag = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-preview340-") }) {
-            let parts = flag.split(separator: "-")
-            if parts.count == 3, let world = Int(parts[1]), (2...4).contains(world),
+            let parts = flag.split(separator: "-").map(String.init)
+            if parts.count == 3, parts[0] == "preview340",
+               let world = Int(parts[1]), (2...4).contains(world),
                let room = Int(parts[2]), [1, 10].contains(room) {
                 worldMapIndex = world - 1
                 wave = room - 1
