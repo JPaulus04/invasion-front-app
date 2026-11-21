@@ -99,7 +99,9 @@ struct ProgressCombatTests {
         var earnedRun = RunProgress()
         precondition(earnedRun.claimMastery(room: 1))
         precondition(!earnedRun.claimMastery(room: 1))
+        precondition(earnedRun.claimMastery(room: 25))
         precondition(!earnedRun.claimMastery(room: 25))
+        precondition(!earnedRun.claimMastery(room: 31))
         let suiteMastery = "outpost.zero.mastery.test"
         let masteryStore = UserDefaults(suiteName: suiteMastery)!
         masteryStore.removePersistentDomain(forName: suiteMastery)
