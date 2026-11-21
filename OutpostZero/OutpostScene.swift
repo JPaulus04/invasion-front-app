@@ -4818,44 +4818,100 @@ final class OutpostScene: SKScene {
         obstacle.addChild(crack)
     }
 
+    // Build 340: encounter-specific movement decisions, rather than a recolored
+    // copy of the same hazard. The marker is always visible before damage.
     private let encounterLane = SKShapeNode()
+    private let encounterSecondaryLane = SKShapeNode()
     private var nextLaneHit: TimeInterval = 0
 
     private func configureEncounterLane() {
-        encounterLane.removeFromParent()
+        for marker in [encounterLane, encounterSecondaryLane] {
+            marker.removeFromParent()
+            marker.isHidden = false
+            marker.zPosition = pilot.zPosition - 1
+            marker.lineWidth = 3
+        }
         nextLaneHit = 0
         guard (1...3).contains(worldMapIndex),
               wave == 1 || CampaignPacing.isMiniBoss(room: wave) else { return }
-        let laneSize = CGSize(width: roomBounds.width * 0.26, height: roomBounds.height * 0.66)
-        let rect = CGRect(x: -laneSize.width / 2, y: -laneSize.height / 2,
-                          width: laneSize.width, height: laneSize.height)
-        encounterLane.path = CGPath(roundedRect: rect, cornerWidth: 8, cornerHeight: 8, transform: nil)
+        let width = roomBounds.width
+        let height = roomBounds.height
+        let primarySize: CGSize
+        switch worldMapIndex {
+        case 1:
+            // Toxic Crossing: narrow hazardous shortcut versus a wide dry detour.
+            primarySize = CGSize(width: width * 0.30, height: height * 0.72)
+        case 2:
+            // Iron Wastes: broad sweeps force alternating cover-to-cover movement.
+            primarySize = CGSize(width: width * 0.42, height: height * 0.68)
+        default:
+            // Frost Expanse: individual ice plates fracture in a readable order.
+            primarySize = CGSize(width: width * 0.30, height: height * 0.54)
+        }
+        let rect = CGRect(x: -primarySize.width / 2, y: -primarySize.height / 2,
+                          width: primarySize.width, height: primarySize.height)
+        encounterLane.path = CGPath(roundedRect: rect, cornerWidth: 8,
+                                    cornerHeight: 8, transform: nil)
         encounterLane.strokeColor = [SKColor.systemGreen, .systemOrange, .systemCyan][worldMapIndex - 1]
         encounterLane.fillColor = encounterLane.strokeColor
-        encounterLane.zPosition = pilot.zPosition - 1
-        encounterLane.alpha = 0.12
+        encounterLane.alpha = 0.16
         arena.addChild(encounterLane)
+        if worldMapIndex == 3 {
+            encounterSecondaryLane.path = encounterLane.path
+            encounterSecondaryLane.strokeColor = .systemCyan
+            encounterSecondaryLane.fillColor = .systemCyan
+            encounterSecondaryLane.alpha = 0.10
+            arena.addChild(encounterSecondaryLane)
+        }
     }
 
     private func updateEncounterLane() {
         guard encounterLane.parent != nil, phase == .playing, !roomCleared else {
             encounterLane.isHidden = true
+            encounterSecondaryLane.isHidden = true
             return
         }
         encounterLane.isHidden = false
-        let period = wave == 1 ? 6.0 : 4.5
+        let period: TimeInterval = wave == 1 ? 7 : 6
         let phaseTime = waveElapsed.truncatingRemainder(dividingBy: period)
-        let side: CGFloat = Int(waveElapsed / period).isMultiple(of: 2) ? -1 : 1
-        var offset = side * roomBounds.width * 0.20
-        if worldMapIndex == 2 {
-            offset *= CGFloat(1 - 2 * min(1, max(0, phaseTime - 2) / 2))
-        } else if worldMapIndex == 1 && wave == 1 {
-            offset = roomBounds.width * 0.16
+        let cycle = Int(waveElapsed / period)
+        let warning = phaseTime < 2.5
+        let active = phaseTime >= 2.5 && phaseTime < 4.5
+        let baseX = roomBounds.midX
+        let baseY = roomBounds.midY
+        switch worldMapIndex {
+        case 1:
+            // Acid shortcut stays in place: the safe outer route never floods.
+            // At the mini-boss, alternating banks are warned before flooding,
+            // and the opposite bank remains an escape.
+            let side: CGFloat = wave == 1 ? 0.0 : (cycle.isMultiple(of: 2) ? -1 : 1)
+            encounterLane.position = CGPoint(x: baseX + side * roomBounds.width * 0.21,
+                                             y: baseY)
+        case 2:
+            // Machinery sweep crosses the center only after its warning.
+            // The reversal provides a distinct recovery/counterattack window.
+            let side: CGFloat = cycle.isMultiple(of: 2) ? -1 : 1
+            let progress = CGFloat(min(1, max(0, (phaseTime - 2.5) / 2)))
+            encounterLane.position = CGPoint(
+                x: baseX + side * roomBounds.width * (0.27 - progress * 0.54),
+                y: baseY)
+        default:
+            // Ice plates fracture sequentially, never simultaneously.
+            // A second visible plate communicates the next destination.
+            let positions: [CGFloat] = [-0.29, 0, 0.29]
+            let index = cycle % positions.count
+            encounterLane.position = CGPoint(
+                x: baseX + roomBounds.width * positions[index], y: baseY)
+            encounterSecondaryLane.isHidden = false
+            encounterSecondaryLane.position = CGPoint(
+                x: baseX + roomBounds.width * positions[(index + 1) % positions.count],
+                y: baseY)
+            encounterSecondaryLane.alpha = 0.10
         }
-        encounterLane.position = CGPoint(x: roomBounds.midX + offset, y: roomBounds.midY)
-        let active = phaseTime >= 2 && phaseTime < 4
-        encounterLane.alpha = active ? 0.52 : (phaseTime < 2 ? 0.20 : 0.06)
-        if active, encounterLane.frame.contains(pilot.position), combatTime >= nextLaneHit {
+        encounterLane.alpha = active ? 0.54 : (warning ? 0.23 : 0.07)
+        encounterLane.lineWidth = warning ? 4 : 2
+        if active, encounterLane.frame.contains(pilot.position),
+           combatTime >= nextLaneHit {
             nextLaneHit = combatTime + 1
             damagePilot(5)
         }
