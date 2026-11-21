@@ -11,6 +11,7 @@ import time
 from PIL import Image
 
 import run_phase4_simulator as sim
+from simulator_startup import wait_for_app_registration, wait_for_render_surface
 from validate_simulator_screenshots import verify
 
 WAVES = (1, 5, 10, 15, 20, 25, 29, 30)
@@ -21,31 +22,40 @@ def contents(path):
     return path.read_text(errors="replace") if path.exists() else ""
 
 
-def wait_for(log, errors, predicate, seconds):
+def wait_for(log, errors, predicate, seconds, offset=0):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         stderr = contents(errors)
         if "Precondition failed" in stderr or "Fatal error:" in stderr:
             raise RuntimeError(stderr[-4000:])
-        if predicate(contents(log)):
+        if predicate(contents(log)[offset:]):
             return
         time.sleep(0.25)
     raise TimeoutError(f"{log.name} readiness missing after {seconds}s\n{contents(log)[-3000:]}\n{contents(errors)[-3000:]}")
 
 
-def launch(device, label, flags, ready):
-    log = OUTPUT / f"{label}.log"
-    errors = OUTPUT / f"{label}-stderr.log"
-    command = ("xcrun", "simctl", "launch", "--terminate-running-process",
-               f"--stdout={log}", f"--stderr={errors}", device, sim.BUNDLE, *flags)
+def launch(device):
+    log = OUTPUT / "tour.log"
+    errors = OUTPUT / "tour-stderr.log"
+    command = ("xcrun", "simctl", "launch", f"--stdout={log}", f"--stderr={errors}",
+               device, sim.BUNDLE, "-capture340-2-1", "-build340Tour")
     try:
-        sim.command(*command, timeout=75)
+        sim.command(*command, timeout=100)
     except subprocess.TimeoutExpired:
-        # The simctl client can time out while the same app is launching.
+        # simctl can time out while this same app process is launching.
         pass
-    if ready:
-        wait_for(log, errors, lambda text: ready in text, 50)
+    wait_for(log, errors, lambda text: "[BUILD340 READY] world=2 wave=1 mode=still" in text, 70)
     return log, errors
+
+
+def request_room(request, log, errors, world, wave, mode):
+    offset = len(contents(log))
+    staging = request.with_suffix(".tmp")
+    staging.write_text(f"{world} {wave} {mode}")
+    staging.replace(request)
+    ready = f"[BUILD340 READY] world={world} wave={wave} mode={mode}"
+    wait_for(log, errors, lambda text: ready in text, 60, offset)
+    return offset
 
 
 def validate_frame(path, index):
@@ -61,16 +71,26 @@ def validate_frame(path, index):
                 raise ValueError(f"Stale or incorrect world/wave marker in {path.name}: {pixel}")
 
 
-def capture(device, name, flags, ready, index=None):
-    launch(device, name, flags, ready)
+def capture(device, name, index):
     path = OUTPUT / f"{name}.png"
-    deadline = time.monotonic() + 35
+    deadline = time.monotonic() + 110
     while True:
-        sim.command("xcrun", "simctl", "io", device, "screenshot", str(path), timeout=35)
         try:
+            sim.command("xcrun", "simctl", "io", device, "screenshot", str(path), timeout=55)
             validate_frame(path, index)
             return path.name
-        except ValueError:
+        except subprocess.TimeoutExpired:
+            # Read again on the same held scene. Launch and scene requests
+            # remain outside this loop.
+            if path.exists():
+                try:
+                    validate_frame(path, index)
+                    return path.name
+                except (ValueError, OSError):
+                    pass
+            if time.monotonic() >= deadline:
+                raise
+        except (ValueError, OSError):
             if time.monotonic() >= deadline:
                 raise
             time.sleep(0.8)
@@ -102,15 +122,14 @@ def recorder(device, video):
         raise RuntimeError(f"Simulator recorder exited with code {process.returncode}")
 
 
-def gameplay(device, world):
+def gameplay(device, request, log, errors, world):
     wave = 20
     label = f"world-{world}-hazard-cycle"
     video = OUTPUT / f"{label}.mov"
     with recorder(device, video):
-        log, errors = launch(device, label, [f"-capture340-{world}-{wave}", "-build340Motion"],
-                             f"[BUILD340 READY] world={world} wave={wave}")
-        wait_for(log, errors, lambda text: "[BUILD340 MOTION COMPLETE]" in text, 50)
-    text = contents(log)
+        offset = request_room(request, log, errors, world, wave, "live")
+        wait_for(log, errors, lambda text: "[BUILD340 MOTION COMPLETE]" in text, 75, offset)
+    text = contents(log)[offset:]
     stages = [int(item) for item in re.findall(r"\[BUILD340 MOTION\] stage=(\d+)", text)]
     distance = int(re.search(r"\[BUILD340 MOTION COMPLETE\] distance=(\d+)", text)[1])
     if stages[:3] != [0, 1, 2] or distance < 70:
@@ -128,19 +147,31 @@ def gameplay(device, world):
 def main():
     OUTPUT.mkdir(exist_ok=True)
     results = {"stills": [], "footage": []}
-    with sim.fresh_simulator("build340", OUTPUT, controlled=True) as device:
-        capture(device, "outpost-zero-world1-outpost", ["-captureWorldOneOutpostScreenshot"], None)
+    manifest = OUTPUT / "manifest.json"
+    with sim.fresh_simulator("build340", OUTPUT) as device:
+        wait_for_app_registration(sim.command, device, OUTPUT)
+        wait_for_render_surface(sim.command, device, OUTPUT)
+        container = sim.command("xcrun", "simctl", "get_app_container", device, sim.BUNDLE,
+                                "data", timeout=50).stdout.strip()
+        documents = Path(container) / "Documents"
+        documents.mkdir(exist_ok=True)
+        request = documents / "build340-review-request"
+        log, errors = launch(device)
         for world in (2, 3, 4):
             for offset, wave in enumerate(WAVES, 1):
+                if (world, wave) != (2, 1):
+                    request_room(request, log, errors, world, wave, "still")
                 index = (world - 2) * len(WAVES) + offset
-                name = capture(device, f"world-{world}-wave-{wave:02}",
-                               [f"-capture340-{world}-{wave}"],
-                               f"[BUILD340 READY] world={world} wave={wave}", index)
+                name = capture(device, f"world-{world}-wave-{wave:02}", index)
                 results["stills"].append({"world": world, "wave": wave, "file": name})
+                manifest.write_text(json.dumps(results, indent=2) + "\n")
                 print(f"Captured {name}", flush=True)
+        request_room(request, log, errors, 1, 1, "still")
+        results["benchmark"] = capture(device, "world-1-wave-01", 25)
+        manifest.write_text(json.dumps(results, indent=2) + "\n")
         for world in (2, 3, 4):
-            results["footage"].append(gameplay(device, world))
-    (OUTPUT / "manifest.json").write_text(json.dumps(results, indent=2) + "\n")
+            results["footage"].append(gameplay(device, request, log, errors, world))
+            manifest.write_text(json.dumps(results, indent=2) + "\n")
 
 
 if __name__ == "__main__":

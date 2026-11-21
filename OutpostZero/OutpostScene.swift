@@ -7246,6 +7246,27 @@ final class OutpostScene: SKScene {
     private var build340MotionPreview = false
     private var build340LastPhase: Int?
     private var build340Finished = false
+    private var build340Tour = false
+    private var build340TourPolledAt: TimeInterval = 0
+
+    private var build340TourRequest: URL? {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("build340-review-request")
+    }
+
+    private func pollBuild340Tour(at time: TimeInterval) {
+        guard build340Tour, time - build340TourPolledAt >= 0.20,
+              let url = build340TourRequest else { return }
+        build340TourPolledAt = time
+        guard let request = try? String(contentsOf: url, encoding: .utf8) else { return }
+        try? FileManager.default.removeItem(at: url)
+        let parts = request.split(separator: " ")
+        guard parts.count == 3, let world = Int(parts[0]), (1...4).contains(world),
+              let room = Int(parts[1]), (1...30).contains(room) else { return }
+        lastUpdate = time
+        presentBuild340Room(world: world, room: room, still: parts[2] == "still",
+                            showIdentity: true)
+    }
 
     private func startBuild340Preview() {
         let arguments = ProcessInfo.processInfo.arguments
@@ -7255,15 +7276,35 @@ final class OutpostScene: SKScene {
         let parts = flag.split(separator: "-")
         guard parts.count == 3, let world = Int(parts[1]), (2...4).contains(world),
               let room = Int(parts[2]), (1...30).contains(room) else { return }
+        build340Tour = arguments.contains("-build340Tour")
+        let capture = parts[0] == "capture340"
+        let motion = arguments.contains("-build340Motion")
+        presentBuild340Room(world: world, room: room, still: capture && !motion,
+                            showIdentity: capture, motion: motion)
+    }
+
+    private func presentBuild340Room(world: Int, room: Int, still: Bool,
+                                     showIdentity: Bool, motion: Bool = false) {
+        holdDefenseQAScreenshot = false
+        build340MotionPreview = motion || (build340Tour && !still)
+        build340LastPhase = nil
+        build340Finished = false
+        playtestMovementDistance = 0
+        playtestLastPilotPosition = nil
+        health = maximumHealth
+        hud.children.filter { $0.name == "build340CaptureMark" }.forEach { $0.removeFromParent() }
         worldMapIndex = world - 1
         wave = room - 1
         gateUnlocked = true
         startWave()
-        precondition(zoneScenery.childNode(withName: "campaignEnvironment") != nil)
-        let still = parts[0] == "capture340" && !arguments.contains("-build340Motion")
+        let artName = world == 1 ? "build338World" : "campaignEnvironment"
+        precondition(zoneScenery.childNode(withName: artName) != nil)
         if still {
             let bounds = roomBounds
             pilot.position = CGPoint(x: bounds.midX, y: bounds.minY + 53)
+            if let layout = worldOneLiveLayout, layout.kind == .passage {
+                pilot.position.y = bounds.minY + 12 * 28
+            }
             updateArenaCamera(delta: 1)
             if room != 29 {
                 for _ in 0..<min(3, waveTarget) {
@@ -7287,13 +7328,13 @@ final class OutpostScene: SKScene {
             arena.isPaused = true
             holdDefenseQAScreenshot = true
         }
-        build340MotionPreview = arguments.contains("-build340Motion")
-        if parts[0] == "capture340" {
+        if showIdentity {
             let rooms = [1, 5, 10, 15, 20, 25, 29, 30]
-            let index = (world - 2) * 8 + (rooms.firstIndex(of: room) ?? 0) + 1
+            let index = world == 1 ? 25 : (world - 2) * 8 + (rooms.firstIndex(of: room) ?? 0) + 1
             let encoding: [(CGFloat, Int)] = [(0.94, index), (0.90, index >> 3)]
             for (x, bits) in encoding {
                 let mark = SKShapeNode(rectOf: CGSize(width: 7, height: 7))
+                mark.name = "build340CaptureMark"
                 mark.fillColor = SKColor(red: bits & 1 == 0 ? 0 : 1,
                                          green: bits & 2 == 0 ? 0 : 1,
                                          blue: bits & 4 == 0 ? 0 : 1, alpha: 1)
@@ -7304,7 +7345,7 @@ final class OutpostScene: SKScene {
             }
         }
         updateHUD()
-        print("[BUILD340 READY] world=\(world) wave=\(room)")
+        print("[BUILD340 READY] world=\(world) wave=\(room) mode=\(still ? "still" : "live")")
         fflush(stdout)
     }
 
@@ -7336,6 +7377,9 @@ final class OutpostScene: SKScene {
     #endif
 
     override func update(_ currentTime: TimeInterval) {
+        #if DEBUG && targetEnvironment(simulator)
+        pollBuild340Tour(at: currentTime)
+        #endif
         if let replay = qaReplay {
             // Same 1/60 simulation steps, independent of host frame deltas.
             // Different batches exercise render-cadence independence in CI.

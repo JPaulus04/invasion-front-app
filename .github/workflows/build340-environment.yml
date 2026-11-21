@@ -13,8 +13,8 @@ concurrency:
 
 jobs:
   environment:
-    runs-on: macos-15-intel
-    timeout-minutes: 34
+    runs-on: macos-15
+    timeout-minutes: 36
     steps:
       - uses: actions/checkout@v4
       - name: Validate all campaign layouts and solid cover
@@ -33,7 +33,7 @@ jobs:
           mkdir -p simulator-app
           ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
       - name: Capture iPhone screenshots and gameplay
-        timeout-minutes: 23
+        timeout-minutes: 28
         run: |
           command -v ffprobe >/dev/null || brew install ffmpeg
           python3 scripts/run_build340_review.py
