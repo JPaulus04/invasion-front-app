@@ -1,0 +1,131 @@
+{
+  "character": "Toxic Brute",
+  "source": "Toxic Mech Brute with Glowing Reservoirs.png",
+  "pixels": 512,
+  "art_pivot_px": [
+    256,
+    420
+  ],
+  "idle_height_px": 356,
+  "states": {
+    "idle": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "frames/toxicbrute_idle_00.png",
+        "frames/toxicbrute_idle_01.png",
+        "frames/toxicbrute_idle_02.png",
+        "frames/toxicbrute_idle_03.png",
+        "frames/toxicbrute_idle_04.png",
+        "frames/toxicbrute_idle_05.png",
+        "frames/toxicbrute_idle_06.png",
+        "frames/toxicbrute_idle_07.png"
+      ]
+    },
+    "run": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "frames/toxicbrute_run_00.png",
+        "frames/toxicbrute_run_01.png",
+        "frames/toxicbrute_run_02.png",
+        "frames/toxicbrute_run_03.png",
+        "frames/toxicbrute_run_04.png",
+        "frames/toxicbrute_run_05.png",
+        "frames/toxicbrute_run_06.png",
+        "frames/toxicbrute_run_07.png"
+      ]
+    },
+    "attack": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/toxicbrute_attack_00.png",
+        "frames/toxicbrute_attack_01.png",
+        "frames/toxicbrute_attack_02.png",
+        "frames/toxicbrute_attack_03.png",
+        "frames/toxicbrute_attack_04.png",
+        "frames/toxicbrute_attack_05.png",
+        "frames/toxicbrute_attack_06.png",
+        "frames/toxicbrute_attack_07.png",
+        "frames/toxicbrute_attack_08.png",
+        "frames/toxicbrute_attack_09.png"
+      ]
+    },
+    "hit": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/toxicbrute_hit_00.png",
+        "frames/toxicbrute_hit_01.png",
+        "frames/toxicbrute_hit_02.png",
+        "frames/toxicbrute_hit_03.png"
+      ]
+    },
+    "defeat": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/toxicbrute_defeat_00.png",
+        "frames/toxicbrute_defeat_01.png",
+        "frames/toxicbrute_defeat_02.png",
+        "frames/toxicbrute_defeat_03.png",
+        "frames/toxicbrute_defeat_04.png",
+        "frames/toxicbrute_defeat_05.png",
+        "frames/toxicbrute_defeat_06.png",
+        "frames/toxicbrute_defeat_07.png"
+      ]
+    },
+    "slam": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/toxicbrute_slam_00.png",
+        "frames/toxicbrute_slam_01.png",
+        "frames/toxicbrute_slam_02.png",
+        "frames/toxicbrute_slam_03.png",
+        "frames/toxicbrute_slam_04.png",
+        "frames/toxicbrute_slam_05.png",
+        "frames/toxicbrute_slam_06.png",
+        "frames/toxicbrute_slam_07.png"
+      ]
+    },
+    "shockwave": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "effects/toxicbrute_shockwave_00.png",
+        "effects/toxicbrute_shockwave_01.png",
+        "effects/toxicbrute_shockwave_02.png",
+        "effects/toxicbrute_shockwave_03.png",
+        "effects/toxicbrute_shockwave_04.png",
+        "effects/toxicbrute_shockwave_05.png"
+      ]
+    },
+    "hazard": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "effects/toxicbrute_hazard_00.png",
+        "effects/toxicbrute_hazard_01.png",
+        "effects/toxicbrute_hazard_02.png",
+        "effects/toxicbrute_hazard_03.png",
+        "effects/toxicbrute_hazard_04.png",
+        "effects/toxicbrute_hazard_05.png"
+      ]
+    }
+  },
+  "effects": [
+    "shockwave",
+    "hazard"
+  ],
+  "controller_note": "run maps to movement; boss and burrow sequences require explicit gameplay events",
+  "gameplay_validation": "pending",
+  "suggested_visual_events_zero_based": [
+    {
+      "sequence": "slam",
+      "frame": 4,
+      "effect": "shockwave"
+    }
+  ]
+}
