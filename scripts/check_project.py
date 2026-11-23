@@ -179,7 +179,7 @@ if 'ProcessInfo.processInfo.arguments.contains("-captureLoadoutScreenshot")' not
     errors.append("Simulator must verify in-game draws without pre-run selection")
 if "private func enterSelectedWorld() -> Bool" not in scene or "_ = enterSelectedWorld()" not in scene:
     errors.append("World entry must use the guarded no-loadout route")
-if "bankSalvage(completionSalvage)" not in scene or "PersistentProgression.roomReward(room: wave)" not in scene:
+if "bankSalvage(completionSalvage)" not in scene or "PersistentProgression.roomReward(room: wave, finalRoom: worldWaveCount)" not in scene:
     errors.append("Cleared rooms must bank Salvage, respecting optional defense outcome")
 if 'endGame("DEFENSE OBJECTIVE LOST")' in scene:
     errors.append("Optional reactor loss must not end the campaign run")
@@ -267,8 +267,8 @@ if "WorldCatalog.recordBestRoom(worldMapIndex, room: worldWaveCount)" not in sce
     errors.append("Completed worlds must record Room 20 as their best result")
 if 'key: "recover_run"' not in scene or 'WORLD \\(saved.worldIndex + 1) · FLOOR \\(saved.room)' not in scene:
     errors.append("Saved runs from later worlds must be directly resumable on the default world map")
-if "CampaignPacing.targetEnemies(room: wave)" not in scene or "CampaignPacing.enemyHealth(world: worldMapIndex" not in scene:
-    errors.append("20-room QA tests must use the same enemy pacing as actual gameplay")
+if "CampaignPacing.targetEnemies(room: wave, world: worldMapIndex)" not in scene or "CampaignPacing.enemyHealth(world: worldMapIndex" not in scene:
+    errors.append("Campaign QA tests must use the same enemy pacing as actual gameplay")
 if "CampaignPacing.clearCoins(room: wave)" not in scene or "CampaignPacing.clearXP(room: wave)" not in scene:
     errors.append("Full-run XP and coin tests must match the game")
 if "guard health > 0, progress.pendingChoices > 0" not in scene:

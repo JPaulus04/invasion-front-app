@@ -56,9 +56,31 @@ enum WorldOneEnemyAnimation {
         return alpha.contains { $0 > 0 } && [0,31,992,1023].allSatisfy { alpha[$0] == 0 }
     }
 
-    static func textures(enemy: String, motion: Motion, variant: Int = 0) -> [SKTexture]? {
-        guard let profile = CharacterAnimationCatalog.profile(enemy) else { return nil }
-        let sequence = profile.sequence(motion,variant: variant)
+    private static func profile(_ name: String) -> CharacterAnimationCatalog.Profile? {
+        if let existing = CharacterAnimationCatalog.profile(name) { return existing }
+        guard let manifest = WorldTwoCampaign.manifests[name] else { return nil }
+        let height: Double
+        switch name {
+        case "corrosionravager", "blighthydra": height = 101
+        case "toxictyrant": height = 126
+        case "toxicbrute": height = 70
+        default: height = 52
+        }
+        return .init(name: name, folder: WorldTwoCampaign.folder, pixels: manifest.pixels,
+                     ground: manifest.art_pivot_px[1], idleHeight: manifest.idle_height_px,
+                     bodyHeight: height, footY: -16,
+                     sequences: manifest.states.mapValues { $0.frames.count }, quarantine: [])
+    }
+
+    static func worldTwoFrames(enemy: String, sequence: String) -> [SKTexture]? {
+        guard WorldTwoCampaign.manifests[enemy]?.states[sequence] != nil else { return nil }
+        return textures(enemy: enemy, motion: .idle, sequence: sequence)
+    }
+
+    static func textures(enemy: String, motion: Motion, variant: Int = 0, sequence override: String? = nil) -> [SKTexture]? {
+        guard let profile = profile(enemy) else { return nil }
+        let sequence = override ?? profile.sequence(motion,variant: variant)
+        let manifest = WorldTwoCampaign.manifests[enemy]
         let key = enemy+"."+sequence
         if let frames = cache[key] {
             if costs[key] != nil { recent.removeAll { $0 == key }; recent.append(key) }
@@ -78,7 +100,8 @@ enum WorldOneEnemyAnimation {
             unavailable.insert(key); return nil
         }
         var frames: [SKTexture] = []; var bytes = 0
-        for name in profile.frameNames(motion,variant: variant) {
+        let names = manifest?.states[sequence]?.frames.map(WorldTwoCampaign.frameName) ?? profile.frameNames(sequence: sequence)
+        for name in names {
             let texture: SKTexture
             if enemy == "mossbot" {
                 guard let image = UIImage(named: name), let source = image.cgImage,
@@ -107,7 +130,7 @@ enum WorldOneEnemyAnimation {
                 let options: [CFString:Any] = [kCGImageSourceCreateThumbnailFromImageAlways:true,
                     kCGImageSourceThumbnailMaxPixelSize:size,kCGImageSourceShouldCacheImmediately:true]
                 guard let image = CGImageSourceCreateThumbnailAtIndex(source,0,options as CFDictionary),
-                      validAlpha(image) else { unavailable.insert(key); return nil }
+                      (manifest != nil || validAlpha(image)) else { unavailable.insert(key); return nil }
                 texture = SKTexture(cgImage: image); bytes += image.width*image.height*4
             }
             texture.filteringMode = .linear; frames.append(texture)
@@ -128,7 +151,7 @@ enum WorldOneEnemyAnimation {
     }
     @discardableResult
     static func install(on sprite: SKSpriteNode, facingLeft: Bool, character name: String = "mossbot") -> Bool {
-        guard let p = CharacterAnimationCatalog.profile(name),
+        guard let p = profile(name),
               (name != "mossbot" || mossbotAvailable),
               textures(enemy: name,motion: .idle) != nil, textures(enemy: name,motion: .move) != nil else { return false }
         reset(on: sprite)
@@ -158,12 +181,14 @@ enum WorldOneEnemyAnimation {
     }
     @discardableResult
     static func play(_ motion: Motion, enemy: String, on sprite: SKSpriteNode,
-                     completion: (() -> Void)? = nil) -> Bool {
+                     sequence: String? = nil, completion: (() -> Void)? = nil) -> Bool {
         let current = (sprite.userData?[motionKey] as? String).flatMap(Motion.init(rawValue:))
-        guard EnemyAnimationRules.canTransition(from: current,to: motion),
-              let p = CharacterAnimationCatalog.profile(enemy) else { return false }
+        let authored = WorldTwoCampaign.manifests[enemy]?.states[sequence ?? (motion == .move ? "run" : motion.rawValue)]
+        guard (sequence != nil && current != .defeat ||
+               EnemyAnimationRules.canTransition(from: current,to: motion)),
+              let p = profile(enemy) else { return false }
         let ordinal = sprite.userData?["animationAttackOrdinal"] as? Int ?? 0
-        let frames = textures(enemy: enemy,motion: motion,variant: ordinal)
+        let frames = textures(enemy: enemy,motion: motion,variant: ordinal,sequence: sequence)
         // A bad optional/reaction export retains the same approved identity.
         // Defeat fades an idle copy; hit flashes; attack holds idle with existing
         // combat cues. These visual fallbacks never delay or produce damage.
@@ -173,6 +198,9 @@ enum WorldOneEnemyAnimation {
         if motion == .attack { sprite.userData?["animationAttackOrdinal"] = ordinal+1 }
         sprite.removeAction(forKey: actionKey); sprite.texture = first
         geometry(p,motion: frames == nil ? .idle : motion,on: sprite)
+        if let manifest = WorldTwoCampaign.manifests[enemy] {
+            sprite.anchorPoint.x = manifest.art_pivot_px[0] / Double(manifest.pixels)
+        }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-captureBuild337EnemySequence") {
             print("[ENEMY ART] motion=\(motion.rawValue) frames=\(frames?.count ?? 0)")
@@ -181,7 +209,7 @@ enum WorldOneEnemyAnimation {
         #endif
         let action: SKAction
         if let frames {
-            action = .animate(with: frames,timePerFrame: 1/motion.framesPerSecond,resize: false,restore: false)
+            action = .animate(with: frames,timePerFrame: 1/(authored?.fps ?? motion.framesPerSecond),resize: false,restore: false)
         } else if motion == .defeat {
             action = .fadeOut(withDuration: 0.35)
         } else if motion == .hit {
@@ -190,7 +218,7 @@ enum WorldOneEnemyAnimation {
         } else {
             action = .wait(forDuration: Double(p.frameNames(motion,variant: ordinal).count)/motion.framesPerSecond)
         }
-        if motion.repeats { sprite.run(.repeatForever(action),withKey: actionKey) }
+        if authored?.loop ?? motion.repeats { sprite.run(.repeatForever(action),withKey: actionKey) }
         else {
             sprite.run(.sequence([action,.run { [weak sprite] in
                 completion?()

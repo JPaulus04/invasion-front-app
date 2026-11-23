@@ -5,9 +5,9 @@ import Foundation
 enum CampaignPacing {
     static let roomsPerWorld = 20
 
-    static func targetEnemies(room: Int) -> Int {
-        guard (1...roomsPerWorld).contains(room) else { return 0 }
-        if room == roomsPerWorld { return 1 }
+    static func targetEnemies(room: Int, world: Int = 0) -> Int {
+        guard (1...WorldCatalog.roomCount(world)).contains(room) else { return 0 }
+        if SurvivalEncounterRules.kind(world: world, room: room) == .boss { return 1 }
         // First five rooms teach dodging and upgrades without overwhelming
         // the player. Pressure then ramps continuously into the final rooms.
         if room <= 5 { return 4 + room }
@@ -27,7 +27,11 @@ enum CampaignPacing {
     }
 
     static func enemyHealth(world: Int, room: Int, type: Int) -> Int {
-        if room == roomsPerWorld { return WorldCatalog.info(world).bossHealth }
+        if world == 1 {
+            if room == 10 { return 115 }
+            if room == 20 { return 175 }
+        }
+        if room == WorldCatalog.roomCount(world) { return WorldCatalog.info(world).bossHealth }
         let scaling = max(0, room - 1)
         let baseline = type == 3 ? 12 + scaling * 3 :
             (type == 1 ? 5 + scaling * 2 : 2 + scaling)
@@ -216,9 +220,9 @@ enum SurvivalEncounterRules {
     ]
 
     static func kind(world: Int, room: Int) -> Kind {
-        guard (1..<CampaignPacing.roomsPerWorld).contains(room) else {
-            return room == CampaignPacing.roomsPerWorld ? .boss : .tactical
-        }
+        let finalRoom = WorldCatalog.roomCount(world)
+        if room == finalRoom || (world == 1 && (room == 10 || room == 20)) { return .boss }
+        guard (1..<finalRoom).contains(room) else { return .tactical }
         guard (0..<survivalRooms.count).contains(world) else { return .tactical }
         if defenseRooms[world].contains(room) { return .equipmentDefense }
         return survivalRooms[world].contains(room) ? .survival : .tactical

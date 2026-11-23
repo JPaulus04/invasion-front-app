@@ -137,9 +137,9 @@ struct CampaignPacingTests {
             var survival = 0
             var defenses = 0
             var priorArena = 0
-            for room in 1...CampaignPacing.roomsPerWorld {
+            for room in 1...WorldCatalog.roomCount(world) {
                 let kind = SurvivalEncounterRules.kind(world: world, room: room)
-                if room == 20 {
+                if room == WorldCatalog.roomCount(world) || (world == 1 && [10, 20].contains(room)) {
                     precondition(kind == .boss)
                     continue
                 }
@@ -405,10 +405,11 @@ struct CampaignPacingTests {
             var chosenUpgrades = 0
             var healingPurchases = 0
             var previousLevel = run.level
-            for room in 1...CampaignPacing.roomsPerWorld {
-                let target = CampaignPacing.targetEnemies(room: room)
+            for room in 1...WorldCatalog.roomCount(world) {
+                let target = CampaignPacing.targetEnemies(room: room, world: world)
                 precondition(target > 0 && target <= 40)
-                precondition(room != 20 || target == 1)
+                let boss = SurvivalEncounterRules.kind(world: world, room: room) == .boss
+                precondition(!boss || target == 1)
                 // Stable, varied rolls for a reproducible ideal completion.
                 // Every enemy is assumed defeated; no player hit rate,
                 // movement, kill time or actual encounter survival is modeled.
@@ -417,11 +418,10 @@ struct CampaignPacingTests {
                         world: world, room: room,
                         roll: EncounterDirector.enemyRoll(
                             world: world, room: room, slot: index))
-                    let boss = room == CampaignPacing.roomsPerWorld
                     let hp = CampaignPacing.enemyHealth(
                         world: world, room: room, type: type)
                     precondition(hp > 0)
-                    if boss { precondition(hp == WorldCatalog.info(world).bossHealth) }
+                    if room == WorldCatalog.roomCount(world) { precondition(hp == WorldCatalog.info(world).bossHealth) }
                     run.earnXP(CampaignPacing.killXP(type: type, isBoss: boss))
                     coins += CampaignPacing.killCoins(type: type, isBoss: boss)
                     salvage += PersistentProgression.enemyReward(
@@ -429,7 +429,7 @@ struct CampaignPacingTests {
                 }
                 run.earnXP(CampaignPacing.clearXP(room: room))
                 coins += CampaignPacing.clearCoins(room: room)
-                salvage += PersistentProgression.roomReward(room: room)
+                salvage += PersistentProgression.roomReward(room: room, finalRoom: WorldCatalog.roomCount(world))
                 while run.pendingChoices > 0 {
                     precondition(run.chooseUpgrade())
                     chosenUpgrades += 1
@@ -451,8 +451,8 @@ struct CampaignPacingTests {
             precondition(run.level >= 11 && chosenUpgrades == run.level - 1)
             precondition(healingPurchases == 3)
             precondition(coins > 0 && salvage > 0)
-            print("World \(world + 1): all 20 rooms; level \(run.level); \(chosenUpgrades) upgrade choices; \(healingPurchases) optional heals affordable; \(coins) spare coins; \(salvage) earned Salvage")
+            print("World \(world + 1): all \(WorldCatalog.roomCount(world)) rooms; level \(run.level); \(chosenUpgrades) upgrade choices; \(healingPurchases) optional heals affordable; \(coins) spare coins; \(salvage) earned Salvage")
         }
-        print("Idealized 20-room XP/reward pacing passed; survival still requires device playtesting.")
+        print("Idealized campaign XP/reward pacing passed; survival still requires device playtesting.")
     }
 }

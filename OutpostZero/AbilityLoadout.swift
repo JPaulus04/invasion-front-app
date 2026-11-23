@@ -174,8 +174,8 @@ final class PlayerMastery {
     }
     var capacity: Int { level >= 20 ? 3 : 2 }
     @discardableResult
-    func awardClearedRoom(_ room: Int) -> Int {
-        guard (1...20).contains(room) else { return 0 }
+    func awardClearedRoom(_ room: Int, finalRoom: Int = 20) -> Int {
+        guard (1...finalRoom).contains(room) else { return 0 }
         let amount = 25 + room * 2
         storage.set(min(1_000_000, totalXP + amount),
                     forKey: "outpostPlayerMasteryXP")
