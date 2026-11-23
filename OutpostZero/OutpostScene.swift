@@ -2283,9 +2283,37 @@ final class OutpostScene: SKScene {
         #endif
     }
 
+    var onFirstFrame: (() -> Void)?
     #if DEBUG
     private var build339FreezeRequested: Int?
+    private var checkedBrandHome = false
+    #endif
+
     override func didFinishUpdate() {
+        if let onFirstFrame {
+            self.onFirstFrame = nil
+            onFirstFrame()
+        }
+        #if DEBUG
+        if !checkedBrandHome && ProcessInfo.processInfo.arguments.contains("-captureBrandHome") {
+            checkedBrandHome = true
+            validateHubNavigation()
+            guard let logo = overlay.childNode(withName: "homeBrandLogo"),
+                  let view, let island = overlay.childNode(withName: "worldDiorama") else {
+                preconditionFailure("Expected the branded world selection screen")
+            }
+            let topLeft = overlay.convert(CGPoint(x: logo.frame.minX, y: logo.frame.maxY), to: self)
+            let settingsHit = CGRect(x: settingsShortcut.position.x - 24, y: settingsShortcut.position.y - 24,
+                                     width: 48, height: 48)
+            let origin = overlay.convert(logo.frame.origin, to: self)
+            let logoFrame = CGRect(origin: origin, size: logo.frame.size)
+            precondition(size.height - topLeft.y >= view.safeAreaInsets.top &&
+                         topLeft.x >= view.safeAreaInsets.left && !logoFrame.intersects(settingsHit) &&
+                         !logo.frame.intersects(island.calculateAccumulatedFrame()) &&
+                         overlayButtons.values.allSatisfy { !$0.intersects(logo.frame) })
+            print("[BRAND HOME] \(size) safe=\(view.safeAreaInsets) logo=\(logoFrame)")
+            fflush(stdout)
+        }
         guard let index = build339FreezeRequested else { return }
         build339FreezeRequested = nil
         // Freeze after child actions have advanced, not from a parent action
@@ -2298,7 +2326,10 @@ final class OutpostScene: SKScene {
         }
         print("[BUILD339 READY] index=\(index) commander=\(selectedCommander)")
         fflush(stdout)
+        #endif
     }
+
+    #if DEBUG
     private func captureBuild339Animation() {
         let args = ProcessInfo.processInfo.arguments
         func value(_ key: String) -> String? {
@@ -2687,6 +2718,9 @@ final class OutpostScene: SKScene {
         subtitle.fontSize = 15
         info.position = CGPoint(x: size.width / 2, y: size.height - 141)
         overlay.position = CGPoint(x: size.width / 2, y: size.height * 0.52)
+        if let logo = overlay.childNode(withName: "homeBrandLogo") as? SKSpriteNode {
+            layoutHomeLogo(logo)
+        }
         overlayBackdrop.path = CGPath(roundedRect: CGRect(x: -min(size.width - 28, 390) / 2, y: -245, width: min(size.width - 28, 390), height: 430), cornerWidth: 18, cornerHeight: 18, transform: nil)
         damageFlash.path = CGPath(rect: CGRect(origin: .zero, size: size), transform: nil)
         warning.position = CGPoint(x: size.width / 2, y: max(170, size.height * 0.23))
@@ -2775,9 +2809,10 @@ final class OutpostScene: SKScene {
         // Player controls sit below the compact header.
         speedButton.position = CGPoint(x: size.width - 56, y: size.height - 195)
         if phase == .ready || phase == .worldSelect {
+            let safeTop = view?.safeAreaInsets.top ?? 0
             let homeScale = min(1, size.height / 780)
-            settingsShortcut.position = CGPoint(
-                x: size.width - 39, y: overlay.position.y + 255 * homeScale)
+            settingsShortcut.position = CGPoint(x: size.width - 39,
+                y: min(size.height - safeTop - 30, overlay.position.y + 255 * homeScale))
         } else if phase == .loadout {
             settingsShortcut.position = CGPoint(
                 x: size.width - 52, y: overlay.position.y + 155)
@@ -3053,9 +3088,11 @@ final class OutpostScene: SKScene {
         // Full-width anchored navigation. The primary Run button remains
         // separate and floating above the world rail.
         let viewportWidth = size.width / pageScale
-        let viewportBottom = -size.height / (2 * pageScale)
-        let safeBottom: CGFloat = 24
-        let barHeight: CGFloat = 92
+        let home = active == "nav_home"
+        let viewportBottom = home ? -overlay.position.y : -size.height / (2 * pageScale)
+        let safeBottom = home ? max(24, view?.safeAreaInsets.bottom ?? 0) : 24
+        let compactHome = home && size.height < 740
+        let barHeight: CGFloat = compactHome ? 72 : 92
         let barTop = viewportBottom + safeBottom + barHeight
         let tabWidth = viewportWidth / CGFloat(tabs.count)
         let dock = SKShapeNode(rect: CGRect(x: -viewportWidth / 2,
@@ -3076,11 +3113,11 @@ final class OutpostScene: SKScene {
         for (index, tab) in tabs.enumerated() {
             let x = -viewportWidth / 2 + (CGFloat(index) + 0.5) * tabWidth
             let selected = tab.2 == active
-            let iconY = barTop - 36
+            let iconY = barTop - (compactHome ? 26 : 36)
             let rect = CGRect(x: x - tabWidth / 2,
                               y: viewportBottom + safeBottom,
                               width: tabWidth, height: barHeight)
-            let indicator = SKShapeNode(circleOfRadius: 23)
+            let indicator = SKShapeNode(circleOfRadius: compactHome ? 19 : 23)
             indicator.name = "homeNav_\(tab.2)"
             indicator.position = CGPoint(x: x, y: iconY)
             indicator.fillColor = selected
@@ -3104,7 +3141,7 @@ final class OutpostScene: SKScene {
                 ? SKColor(red: 0.99, green: 0.85, blue: 0.52, alpha: 1)
                 : .white.withAlphaComponent(0.72)
             label.fontSize = 10
-            label.position = CGPoint(x: x, y: iconY - 35)
+            label.position = CGPoint(x: x, y: iconY - (compactHome ? 30 : 35))
             label.zPosition = 11
             overlay.addChild(label)
             if selected {
@@ -3118,6 +3155,18 @@ final class OutpostScene: SKScene {
             }
             overlayButtons[tab.2] = rect
         }
+    }
+
+    private func layoutHomeLogo(_ logo: SKSpriteNode) {
+        guard let texture = logo.texture else { return }
+        let scale = min(1, size.height / 780)
+        let bottom = 247 * scale
+        let top = size.height - overlay.position.y - (view?.safeAreaInsets.top ?? 0) - 12
+        let aspect = texture.size().width / texture.size().height
+        // The settings hit target sits beside the logo in the header.
+        let width = min(268, size.width - 134, max(1, top - bottom) * aspect)
+        logo.size = CGSize(width: width, height: width / aspect)
+        logo.position = CGPoint(x: 0, y: (bottom + top) / 2)
     }
 
     /// Distinct home screen: concise resources, one highlighted world and a
@@ -3143,16 +3192,24 @@ final class OutpostScene: SKScene {
 
         // Build 331: hero-led home composition. The island owns the center
         // of the screen; all progress and currency information is secondary.
-        overlayText("OUTPOST ZERO", y: 271 * scale, fontSize: 25 * scale)
+        if let image = UIImage(named: "OutpostLogo") {
+            let logo = SKSpriteNode(texture: SKTexture(image: image))
+            logo.name = "homeBrandLogo"
+            logo.zPosition = 2
+            layoutHomeLogo(logo)
+            overlay.addChild(logo)
+        } else {
+            overlayText("OUTPOST ZERO", y: 271 * scale, fontSize: 25 * scale)
+        }
         let resourceWidth = min(size.width - 72, 300)
         let resourceTrack = SKShapeNode(rectOf:
             CGSize(width:resourceWidth,height:1))
-        resourceTrack.position = CGPoint(x:0,y:225*scale)
+        resourceTrack.position = CGPoint(x:0,y:215*scale)
         resourceTrack.fillColor = SKColor(white:1,alpha:0.26)
         resourceTrack.strokeColor = .clear
         overlay.addChild(resourceTrack)
         overlayText("\(permanent.salvage) SALVAGE    ·    \(availableCores) CORES",
-                    y: 238 * scale, fontSize: 11 * scale)
+                    y: 228 * scale, fontSize: 11 * scale)
         overlayText(unlocked ? world.title.uppercased() : "UNKNOWN WORLD",
                     y: 187 * scale, fontSize: 22 * scale)
         overlayText(unlocked
@@ -3280,7 +3337,8 @@ final class OutpostScene: SKScene {
         // without bringing back oversized left/right navigation buttons.
         let rail = SKShapeNode(rectOf: CGSize(width: 174 * scale, height: 24 * scale),
                                cornerRadius: 12 * scale)
-        rail.position = CGPoint(x: 0, y: -259 * scale)
+        let dockTop = overlay.childNode(withName: "hubNavigationDock")?.frame.maxY ?? -.infinity
+        rail.position = CGPoint(x: 0, y: max(-259 * scale, dockTop + 16))
         rail.fillColor = SKColor(red: 0.04, green: 0.11, blue: 0.18, alpha: 0.88)
         rail.strokeColor = .white.withAlphaComponent(0.2)
         rail.lineWidth = 1

@@ -49,7 +49,7 @@ def command(*args, timeout=60, check=True):
 
 
 @contextmanager
-def fresh_simulator(profile, output, controlled=False):
+def fresh_simulator(profile, output, controlled=False, device_type="iPhone-16-Pro"):
     # Match the proven presentation setup: cold CoreSimulator discovery can
     # exceed 60 seconds before the app has even been installed. Retry setup
     # only; never restart a campaign or manufacture a missing outcome.
@@ -70,7 +70,7 @@ def fresh_simulator(profile, output, controlled=False):
     if controlled:
         candidates = [(runtime, device) for runtime, device in candidates
                       if runtime.endswith('.iOS-18-5') and
-                      device['deviceTypeIdentifier'].endswith('.iPhone-16-Pro')]
+                      device['deviceTypeIdentifier'].endswith('.' + device_type)]
     if not candidates:
         raise RuntimeError('No available iPhone device type/runtime for a fresh simulator')
     runtime, template = candidates[0]
