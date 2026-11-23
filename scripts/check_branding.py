@@ -53,7 +53,12 @@ def capture():
         with Image.open(icon) as image:
             assert image.width == image.height and image.width in (120, 180)
             image.save(output / icon.name)
-    assert (output / "AppIcon60x60@3x.png").is_file()
+    assert list(output.glob("AppIcon60x60@*x.png")), "Missing standalone compiled app icon rendition"
+    # actool can store the @3x rendition in Assets.car. Provide a size-matched
+    # preview for visual review when it does not emit a standalone PNG.
+    if not (output / "AppIcon60x60@3x.png").is_file():
+        with Image.open(ICON) as source:
+            source.resize((180, 180), Image.Resampling.LANCZOS).save(output / "icon-60pt-3x-preview.png")
 
     for name, model in (("iphone-16-pro", "iPhone-16-Pro"), ("iphone-se", "iPhone-SE-3rd-generation")):
         with fresh_simulator(name, output, controlled=True, device_type=model) as device:
