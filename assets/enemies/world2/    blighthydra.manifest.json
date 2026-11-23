@@ -1,0 +1,220 @@
+{
+  "character": "Blight Hydra",
+  "source": "New original master",
+  "pixels": 512,
+  "art_pivot_px": [
+    256,
+    420
+  ],
+  "idle_height_px": 368,
+  "states": {
+    "idle": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "frames/blighthydra_idle_00.png",
+        "frames/blighthydra_idle_01.png",
+        "frames/blighthydra_idle_02.png",
+        "frames/blighthydra_idle_03.png",
+        "frames/blighthydra_idle_04.png",
+        "frames/blighthydra_idle_05.png",
+        "frames/blighthydra_idle_06.png",
+        "frames/blighthydra_idle_07.png"
+      ]
+    },
+    "run": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "frames/blighthydra_run_00.png",
+        "frames/blighthydra_run_01.png",
+        "frames/blighthydra_run_02.png",
+        "frames/blighthydra_run_03.png",
+        "frames/blighthydra_run_04.png",
+        "frames/blighthydra_run_05.png",
+        "frames/blighthydra_run_06.png",
+        "frames/blighthydra_run_07.png"
+      ]
+    },
+    "attack": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/blighthydra_attack_00.png",
+        "frames/blighthydra_attack_01.png",
+        "frames/blighthydra_attack_02.png",
+        "frames/blighthydra_attack_03.png",
+        "frames/blighthydra_attack_04.png",
+        "frames/blighthydra_attack_05.png",
+        "frames/blighthydra_attack_06.png",
+        "frames/blighthydra_attack_07.png",
+        "frames/blighthydra_attack_08.png",
+        "frames/blighthydra_attack_09.png"
+      ]
+    },
+    "hit": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/blighthydra_hit_00.png",
+        "frames/blighthydra_hit_01.png",
+        "frames/blighthydra_hit_02.png",
+        "frames/blighthydra_hit_03.png"
+      ]
+    },
+    "defeat": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/blighthydra_defeat_00.png",
+        "frames/blighthydra_defeat_01.png",
+        "frames/blighthydra_defeat_02.png",
+        "frames/blighthydra_defeat_03.png",
+        "frames/blighthydra_defeat_04.png",
+        "frames/blighthydra_defeat_05.png",
+        "frames/blighthydra_defeat_06.png",
+        "frames/blighthydra_defeat_07.png"
+      ]
+    },
+    "head_left": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/blighthydra_head_left_00.png",
+        "frames/blighthydra_head_left_01.png",
+        "frames/blighthydra_head_left_02.png",
+        "frames/blighthydra_head_left_03.png",
+        "frames/blighthydra_head_left_04.png",
+        "frames/blighthydra_head_left_05.png",
+        "frames/blighthydra_head_left_06.png",
+        "frames/blighthydra_head_left_07.png"
+      ]
+    },
+    "head_center": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/blighthydra_head_center_00.png",
+        "frames/blighthydra_head_center_01.png",
+        "frames/blighthydra_head_center_02.png",
+        "frames/blighthydra_head_center_03.png",
+        "frames/blighthydra_head_center_04.png",
+        "frames/blighthydra_head_center_05.png",
+        "frames/blighthydra_head_center_06.png",
+        "frames/blighthydra_head_center_07.png"
+      ]
+    },
+    "head_right": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/blighthydra_head_right_00.png",
+        "frames/blighthydra_head_right_01.png",
+        "frames/blighthydra_head_right_02.png",
+        "frames/blighthydra_head_right_03.png",
+        "frames/blighthydra_head_right_04.png",
+        "frames/blighthydra_head_right_05.png",
+        "frames/blighthydra_head_right_06.png",
+        "frames/blighthydra_head_right_07.png"
+      ]
+    },
+    "root_strike": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/blighthydra_root_strike_00.png",
+        "frames/blighthydra_root_strike_01.png",
+        "frames/blighthydra_root_strike_02.png",
+        "frames/blighthydra_root_strike_03.png",
+        "frames/blighthydra_root_strike_04.png",
+        "frames/blighthydra_root_strike_05.png",
+        "frames/blighthydra_root_strike_06.png",
+        "frames/blighthydra_root_strike_07.png"
+      ]
+    },
+    "venom": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "effects/blighthydra_venom_00.png",
+        "effects/blighthydra_venom_01.png",
+        "effects/blighthydra_venom_02.png",
+        "effects/blighthydra_venom_03.png",
+        "effects/blighthydra_venom_04.png",
+        "effects/blighthydra_venom_05.png"
+      ]
+    },
+    "zone": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "effects/blighthydra_zone_00.png",
+        "effects/blighthydra_zone_01.png",
+        "effects/blighthydra_zone_02.png",
+        "effects/blighthydra_zone_03.png",
+        "effects/blighthydra_zone_04.png",
+        "effects/blighthydra_zone_05.png"
+      ]
+    },
+    "root": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "effects/blighthydra_root_00.png",
+        "effects/blighthydra_root_01.png",
+        "effects/blighthydra_root_02.png",
+        "effects/blighthydra_root_03.png",
+        "effects/blighthydra_root_04.png",
+        "effects/blighthydra_root_05.png"
+      ]
+    }
+  },
+  "effects": [
+    "venom",
+    "zone",
+    "root"
+  ],
+  "controller_note": "run maps to movement; boss and burrow sequences require explicit gameplay events",
+  "gameplay_validation": "pending",
+  "head_release_positions_normalized_top_left": [
+    [
+      0.23,
+      0.38
+    ],
+    [
+      0.5,
+      0.24
+    ],
+    [
+      0.78,
+      0.38
+    ]
+  ],
+  "suggested_visual_events_zero_based": [
+    {
+      "sequence": "head_left",
+      "frame": 4,
+      "effect": "venom"
+    },
+    {
+      "sequence": "head_center",
+      "frame": 4,
+      "effect": "venom"
+    },
+    {
+      "sequence": "head_right",
+      "frame": 4,
+      "effect": "venom"
+    },
+    {
+      "sequence": "root_strike",
+      "frame": 4,
+      "effect": "root"
+    },
+    {
+      "sequence": "root_strike",
+      "frame": 6,
+      "effect": "zone"
+    }
+  ]
+}
