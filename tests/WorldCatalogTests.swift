@@ -80,10 +80,13 @@ struct WorldCatalogTests {
         precondition(WorldCatalog.enemyType(world: 1, room: 6, roll: 10) == 4)
         precondition(WorldCatalog.enemyType(world: 1, room: 9, roll: 10) == 5)
         precondition(WorldCatalog.enemyType(world: 2, room: 8, roll: 10) == 5)
-        precondition(WorldCatalog.info(1).boss == "TOXIC MATRIARCH")
+        precondition(WorldCatalog.info(1).boss == "TOXIC TYRANT")
         precondition(WorldCatalog.info(2).boss == "WARFORGE")
         precondition(WorldCatalog.info(1).bossStyle == 2)
         precondition(WorldCatalog.info(2).bossStyle == 1)
+        precondition(WorldCatalog.recordBestRoom(1, room: 30, storage: store) == 30)
+        precondition(WorldCatalog.recordBestRoom(0, room: 30, storage: store) == 0)
+        store.removePersistentDomain(forName: suite)
         print("Twenty-world roadmap, four playable unlocks, legacy progress and per-world core rewards passed")
     }
 }

@@ -17,7 +17,7 @@ enum WorldCatalog {
     static let worlds: [WorldInfo] = [
         WorldInfo(title: "FRONTIER FOREST", region: "FRONTIER", boss: "ROOT LORD",
                   brief: "Learn the movement and combat basics", biome: 0, bossStyle: 0, bossHealth: 180, enemyHealthBonus: 0),
-        WorldInfo(title: "TOXIC CROSSING", region: "FRONTIER", boss: "TOXIC MATRIARCH",
+        WorldInfo(title: "TOXIC CROSSING", region: "FRONTIER", boss: "TOXIC TYRANT",
                   brief: "Poisoned ruins: dodge acid volleys and mutant swarms", biome: 2, bossStyle: 2, bossHealth: 235, enemyHealthBonus: 1),
         WorldInfo(title: "IRON WASTES", region: "FRONTIER", boss: "WARFORGE",
                   brief: "Industrial stronghold: read volleys and dodge machines", biome: 1, bossStyle: 1, bossHealth: 275, enemyHealthBonus: 2),
@@ -57,6 +57,7 @@ enum WorldCatalog {
                   brief: "Future world", biome: 6, bossStyle: 0, bossHealth: 720, enemyHealthBonus: 20)
     ]
 
+    static func roomCount(_ world: Int) -> Int { world == 1 ? 30 : 20 }
     static let playableCount = 4
     static func info(_ index: Int) -> WorldInfo { worlds[max(0, min(worlds.count - 1, index))] }
 
@@ -70,14 +71,14 @@ enum WorldCatalog {
         guard worlds.indices.contains(index) else { return 0 }
         let value = storage.integer(forKey: bestRoomKey(index))
         let legacy = index == 0 ? storage.integer(forKey: "bestWave") : 0
-        return min(20, max(0, max(value, legacy)))
+        return min(roomCount(index), max(0, max(value, legacy)))
     }
 
     /// Record defeat/attempt progress, retaining the highest room reached.
     @discardableResult
     static func recordBestRoom(_ index: Int, room: Int,
                                storage: UserDefaults = .standard) -> Int {
-        guard worlds.indices.contains(index), (1...20).contains(room) else {
+        guard worlds.indices.contains(index), (1...roomCount(index)).contains(room) else {
             return bestRoom(index, storage: storage)
         }
         let best = max(bestRoom(index, storage: storage), room)
@@ -131,7 +132,7 @@ enum WorldCatalog {
     }
 
     static func enemyType(world: Int, room: Int, roll: Int) -> Int {
-        if room == 20 { return 1 }
+        if room == roomCount(world) { return 1 }
         if world == 0 { return CombatRules.enemyType(room: room, roll: roll) }
         if world == 1 {
             if room >= 9 && roll < 17 { return 5 }

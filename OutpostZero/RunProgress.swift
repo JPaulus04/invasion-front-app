@@ -9,8 +9,8 @@ struct RunProgress: Codable {
     // Optional so older Build 319 snapshots decode without changing schema.
     private(set) var masteryCreditedRooms: [Int]? = nil
 
-    mutating func claimMastery(room: Int) -> Bool {
-        guard (1...20).contains(room),
+    mutating func claimMastery(room: Int, finalRoom: Int = 20) -> Bool {
+        guard (1...finalRoom).contains(room),
               !(masteryCreditedRooms ?? []).contains(room) else { return false }
         masteryCreditedRooms = (masteryCreditedRooms ?? []) + [room]
         return true

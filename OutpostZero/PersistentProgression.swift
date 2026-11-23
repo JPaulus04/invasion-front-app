@@ -68,8 +68,8 @@ final class PersistentProgression {
     static func enemyReward(isHeavy: Bool, isBoss: Bool) -> Int {
         isBoss ? 18 : (isHeavy ? 2 : 1)
     }
-    static func roomReward(room: Int) -> Int {
-        3 + max(1, min(20, room))
+    static func roomReward(room: Int, finalRoom: Int = 20) -> Int {
+        3 + max(1, min(finalRoom, room))
     }
     static let worldCompletionBonus = 45
 }

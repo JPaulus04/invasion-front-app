@@ -1,0 +1,41 @@
+name: World 2 iOS validation
+on:
+  pull_request:
+    paths:
+      - 'OutpostZero/**'
+      - 'assets/enemies/world2/**'
+      - '.github/workflows/world2-validation.yml'
+  workflow_dispatch:
+jobs:
+  world2:
+    runs-on: macos-15
+    timeout-minutes: 24
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test campaign progression
+        run: |
+          swiftc OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/CampaignPacing.swift OutpostZero/PersistentProgression.swift tests/CampaignPacingTests.swift -o "$RUNNER_TEMP/world2-campaign"
+          "$RUNNER_TEMP/world2-campaign"
+      - name: Build iOS Simulator app
+        run: |
+          set -eo pipefail
+          brew install xcodegen
+          python3 -m pip install --break-system-packages 'Pillow>=11'
+          python3 scripts/generate_icon.py
+          xcodegen generate
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build | tee world2-build.log
+      - name: Run focused simulator encounters
+        run: |
+          set -o pipefail
+          mkdir -p simulator-app world2-review
+          ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
+          python3 scripts/check_world2_simulator.py 2>&1 | tee world2-review/simulator.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: world2-validation
+          path: |
+            world2-build.log
+            world2-review/
