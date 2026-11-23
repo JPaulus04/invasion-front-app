@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 import plistlib
+import subprocess
 import time
 
 from PIL import Image
@@ -36,8 +37,9 @@ def wait_for_ready(path, marker):
     raise TimeoutError(f"{marker} did not appear in {path}")
 
 
-def capture():
+def capture(model):
     from run_phase4_simulator import BUNDLE, command, fresh_simulator
+    from simulator_startup import RecoverableStartupError
 
     app = Path("simulator-app/OutpostZero.app")
     info = plistlib.loads((app / "Info.plist").read_bytes())
@@ -60,33 +62,49 @@ def capture():
         with Image.open(ICON) as source:
             source.resize((180, 180), Image.Resampling.LANCZOS).save(output / "icon-60pt-3x-preview.png")
 
-    for name, model in (("iphone-16-pro", "iPhone-16-Pro"), ("iphone-se", "iPhone-SE-3rd-generation")):
-        with fresh_simulator(name, output, controlled=True, device_type=model) as device:
-            for screen, flag, marker in (
-                ("loading", "-captureBrandLaunch", "[BRAND LAUNCH]"),
-                ("home", "-captureBrandHome", "[BRAND HOME]"),
-            ):
-                log = output / f"{name}-{screen}.log"
-                command("xcrun", "simctl", "launch", "--terminate-running-process",
-                        f"--stdout={log}", f"--stderr={output / (log.stem + '-stderr.log')}",
-                        device, BUNDLE, flag, timeout=90)
-                wait_for_ready(log, marker)
-                time.sleep(0.8)
-                destination = output / f"{name}-{screen}.png"
-                command("xcrun", "simctl", "io", device, "screenshot", str(destination), timeout=55)
-                with Image.open(destination) as image:
-                    assert image.height > image.width >= 750
-                    colors = image.convert("RGB").resize((120, 200)).getcolors(120 * 200)
-                    assert colors is not None and len(colors) > 200, f"Blank capture: {destination}"
-            if model == "iPhone-16-Pro":
+    for attempt in (1, 2):
+        captures = output / f"attempt-{attempt}"
+        captures.mkdir(exist_ok=True)
+        try:
+            with fresh_simulator(model, captures, controlled=True, device_type=model) as device:
+                for screen, flag, marker in (
+                    ("loading", "-captureBrandLaunch", "[BRAND LAUNCH]"),
+                    ("home", "-captureBrandHome", "[BRAND HOME]"),
+                ):
+                    log = captures / f"{screen}.log"
+                    errors = captures / f"{screen}-stderr.log"
+                    try:
+                        command("xcrun", "simctl", "launch", "--terminate-running-process",
+                                f"--stdout={log}", f"--stderr={errors}",
+                                device, BUNDLE, flag, timeout=120)
+                    except subprocess.TimeoutExpired as error:
+                        if screen == "loading" and not any(
+                            path.exists() and path.stat().st_size for path in (log, errors)
+                        ):
+                            raise RecoverableStartupError("Simulator launch timed out before app output") from error
+                        raise
+                    wait_for_ready(log, marker)
+                    time.sleep(0.8)
+                    destination = output / f"{screen}.png"
+                    command("xcrun", "simctl", "io", device, "screenshot", str(destination), timeout=55)
+                    with Image.open(destination) as image:
+                        assert image.height > image.width >= 750
+                        colors = image.convert("RGB").resize((120, 200)).getcolors(120 * 200)
+                        assert colors is not None and len(colors) > 200, f"Blank capture: {destination}"
                 command("xcrun", "simctl", "terminate", device, BUNDLE, timeout=30)
-                command("xcrun", "simctl", "io", device, "screenshot", str(output / "springboard.png"), timeout=55)
+                command("xcrun", "simctl", "io", device, "screenshot",
+                        str(output / "springboard.png"), timeout=55)
+            break
+        except RecoverableStartupError:
+            if attempt == 2:
+                raise
+            print("Retrying simulator startup with a fresh device", flush=True)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--capture", action="store_true")
+    parser.add_argument("--capture", choices=("iPhone-16-Pro", "iPhone-SE-3rd-generation"))
     args = parser.parse_args()
     check_assets()
     if args.capture:
-        capture()
+        capture(args.capture)
