@@ -2298,8 +2298,8 @@ final class OutpostScene: SKScene {
         if !checkedBrandHome && ProcessInfo.processInfo.arguments.contains("-captureBrandHome") {
             checkedBrandHome = true
             validateHubNavigation()
-            guard let logo = overlay.childNode(withName: "homeBrandLogo"),
-                  let view, let island = overlay.childNode(withName: "worldDiorama") else {
+            guard let logo = overlay.childNode(withName: "homeBrandLogo") as? SKSpriteNode,
+                  let texture = logo.texture, let view, let island = overlay.childNode(withName: "worldDiorama") else {
                 preconditionFailure("Expected the branded world selection screen")
             }
             let topLeft = overlay.convert(CGPoint(x: logo.frame.minX, y: logo.frame.maxY), to: self)
@@ -2307,11 +2307,15 @@ final class OutpostScene: SKScene {
                                      width: 48, height: 48)
             let origin = overlay.convert(logo.frame.origin, to: self)
             let logoFrame = CGRect(origin: origin, size: logo.frame.size)
-            precondition(size.height - topLeft.y >= view.safeAreaInsets.top &&
-                         topLeft.x >= view.safeAreaInsets.left && !logoFrame.intersects(settingsHit) &&
+            let viewport = homeViewportScale
+            let displayedAspect = logoFrame.width * viewport.width / (logoFrame.height * viewport.height)
+            let assetAspect = texture.size().width / texture.size().height
+            precondition(abs(displayedAspect - assetAspect) < 0.01 &&
+                         (size.height - topLeft.y) * viewport.height >= view.safeAreaInsets.top &&
+                         topLeft.x * viewport.width >= view.safeAreaInsets.left && !logoFrame.intersects(settingsHit) &&
                          !logo.frame.intersects(island.calculateAccumulatedFrame()) &&
                          overlayButtons.values.allSatisfy { !$0.intersects(logo.frame) })
-            print("[BRAND HOME] \(size) safe=\(view.safeAreaInsets) logo=\(logoFrame)")
+            print("[BRAND HOME] scene=\(size) viewport=\(view.bounds.size) safe=\(view.safeAreaInsets) logo=\(logoFrame) aspect=\(displayedAspect)")
             fflush(stdout)
         }
         guard let index = build339FreezeRequested else { return }
@@ -3091,7 +3095,7 @@ final class OutpostScene: SKScene {
         let home = active == "nav_home"
         let viewportBottom = home ? -overlay.position.y : -size.height / (2 * pageScale)
         let safeBottom = home ? max(24, view?.safeAreaInsets.bottom ?? 0) : 24
-        let compactHome = home && size.height < 740
+        let compactHome = home && (view?.bounds.height ?? size.height) < 740
         let barHeight: CGFloat = compactHome ? 72 : 92
         let barTop = viewportBottom + safeBottom + barHeight
         let tabWidth = viewportWidth / CGFloat(tabs.count)
@@ -3157,12 +3161,22 @@ final class OutpostScene: SKScene {
         }
     }
 
+    private var homeViewportScale: CGSize {
+        guard let bounds = view?.bounds, bounds.width > 0, bounds.height > 0 else {
+            return CGSize(width: 1, height: 1)
+        }
+        return CGSize(width: bounds.width / size.width, height: bounds.height / size.height)
+    }
+
     private func layoutHomeLogo(_ logo: SKSpriteNode) {
         guard let texture = logo.texture else { return }
         let scale = min(1, size.height / 780)
+        let viewport = homeViewportScale
         let bottom = 247 * scale
-        let top = size.height - overlay.position.y - (view?.safeAreaInsets.top ?? 0) - 12
-        let aspect = texture.size().width / texture.size().height
+        let top = size.height - overlay.position.y - ((view?.safeAreaInsets.top ?? 0) + 12) / viewport.height
+        // Fit the asset in screen points even when SpriteView maps the scene
+        // onto a shorter portrait viewport with different x and y scales.
+        let aspect = texture.size().width / texture.size().height * viewport.height / viewport.width
         // The settings hit target sits beside the logo in the header.
         let width = min(268, size.width - 134, max(1, top - bottom) * aspect)
         logo.size = CGSize(width: width, height: width / aspect)
