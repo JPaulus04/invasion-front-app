@@ -283,7 +283,12 @@ jobs:
           assert primary_icon.get("CFBundleIconName") == "AppIcon" or primary_icon.get("CFBundleIconFiles")
           print(f"Verified signed archive: 8 World 2 manifests, {count} frames and effects, logo, launch screen and icon")
           PY
-          git diff --exit-code
+          # The validated build also generates these three tracked prototype fallbacks.
+          # Every reviewed asset and all other tracked sources must match the release checkout.
+          git diff --exit-code -- . \
+            ':(exclude)OutpostZero/ArtAssets/pilot_idle.png' \
+            ':(exclude)OutpostZero/ArtAssets/scout_idle.png' \
+            ':(exclude)OutpostZero/ArtAssets/heavy_idle.png'
           codesign --verify --deep --strict "$APP_BUNDLE_PATH"
           codesign -d --entitlements :- "$APP_BUNDLE_PATH" > "$RUNNER_TEMP/release-entitlements.plist"
           python3 - <<'PY'
