@@ -1,0 +1,52 @@
+name: Branding iOS visual review
+on:
+  pull_request:
+    paths:
+      - 'OutpostZero/Assets.xcassets/OutpostLogo.imageset/**'
+      - 'OutpostZero/Assets.xcassets/AppIcon.appiconset/**'
+      - 'OutpostZero/LaunchScreen.storyboard'
+      - 'OutpostZero/GameView.swift'
+      - 'scripts/check_branding.py'
+      - '.github/workflows/branding-validation.yml'
+  workflow_dispatch:
+concurrency:
+  group: branding-review-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: macos-15
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [iPhone-16-Pro, iPhone-SE-3rd-generation]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit branding assets
+        run: |
+          python3 -m pip install --break-system-packages 'Pillow>=11'
+          python3 scripts/check_project.py
+          python3 scripts/generate_icon.py
+          python3 scripts/check_branding.py
+      - name: Build iOS Simulator app
+        run: |
+          set -o pipefail
+          brew install xcodegen
+          xcodegen generate
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build | tee branding-build.log
+          mkdir simulator-app
+          ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
+      - name: Capture iPhone portrait layouts
+        run: |
+          set -o pipefail
+          mkdir -p branding-review
+          python3 scripts/check_branding.py --capture "${{ matrix.model }}" 2>&1 | tee branding-review/simulator.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: outpost-zero-branding-${{ matrix.model }}
+          path: |
+            branding-build.log
+            branding-review/
