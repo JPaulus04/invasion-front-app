@@ -11,6 +11,10 @@ on:
         description: "Optional iOS Compile Check run whose full results must match the release commit"
         required: false
         type: string
+      approve_build340_simulator_exception:
+        description: "Build 340 only: authorize the reviewed CoreSimulator boot failure for internal TestFlight"
+        type: boolean
+        default: false
       use_build338_reviewed_evidence:
         description: "Build 338 only: owner accepted run 43994798717 startup gap"
         type: boolean
@@ -19,13 +23,14 @@ on:
 env:
   RELEASE_BUILD_NUMBER: ${{ inputs.build_number }}
   VALIDATION_RUN_ID: ${{ inputs.validation_run_id }}
+  BUILD340_SIMULATOR_EXCEPTION: ${{ inputs.approve_build340_simulator_exception }}
   RELEASE_SHA: ${{ github.ref == 'refs/heads/main' && github.sha || '5ba22b2d4b533eb96c9c128da677bcad52b57d6e' }}
 
 jobs:
   release-gate:
     if: >-
       github.event_name == 'workflow_dispatch' &&
-      (github.ref == 'refs/heads/main' ||
+      ((github.ref == 'refs/heads/main' && !inputs.approve_build340_simulator_exception) ||
       (github.ref == 'refs/heads/release/build-340' && inputs.build_number == '340' &&
       inputs.validation_run_id == '45321496799' && !inputs.use_build338_reviewed_evidence))
     runs-on: ubuntu-latest
@@ -93,15 +98,44 @@ jobs:
               if runs:
                   run = max(runs, key=lambda r: r["id"])
                   if run["status"] == "completed":
-                      if run["conclusion"] != "success":
-                          sys.exit("Release blocked: iOS/gameplay validation failed: "
-                                   + run["html_url"])
-                      jobs = get("actions/runs/" + str(run["id"]) + "/jobs?per_page=100")
-                      status = {j["name"]: j["conclusion"] for j in jobs["jobs"]}
-                      failed = {name: status.get(name) for name in required
+                      jobs = get("actions/runs/" + str(run["id"]) + "/jobs?per_page=100")["jobs"]
+                      status = {j["name"]: j["conclusion"] for j in jobs}
+                      exception_requested = os.environ["BUILD340_SIMULATOR_EXCEPTION"] == "true"
+                      exception_applies = (
+                          exception_requested
+                          and os.environ["GITHUB_REF"] == "refs/heads/release/build-340"
+                          and os.environ["RELEASE_BUILD_NUMBER"] == "340"
+                          and sha == "5ba22b2d4b533eb96c9c128da677bcad52b57d6e"
+                          and str(run["id"]) == run_id == "45321496799"
+                          and run["event"] == "workflow_dispatch"
+                          and run["run_attempt"] == 2
+                          and run["conclusion"] == "failure"
+                          and {j["id"] for j in jobs if j["conclusion"] not in {"success", "skipped"}}
+                              == {138436166937}
+                          and any(j["id"] == 138436166937 and j["name"] == "simulator-review"
+                                  and j["conclusion"] == "failure" for j in jobs)
+                      )
+                      if exception_requested and not exception_applies:
+                          sys.exit("Release blocked: Build 340 simulator exception did not match reviewed evidence")
+                      if run["conclusion"] != "success" and not exception_applies:
+                          sys.exit("Release blocked: iOS/gameplay validation failed: " + run["html_url"])
+                      required_successes = required - ({"simulator-review"} if exception_applies else set())
+                      failed = {name: status.get(name) for name in required_successes
                                 if status.get(name) != "success"}
                       if failed:
                           sys.exit("Release blocked: required jobs missing/failed: " + repr(failed))
+                      if exception_applies:
+                          note = (
+                              "Build 340 only: owner-authorized internal TestFlight exception for "
+                              "simulator-review job 138436166937. CoreSimulator bootstatus and "
+                              "shutdown timed out before game launch. The 20-scene simulator review "
+                              "board had no usable scenes. Finish that visual review on physical "
+                              "devices, including home/launch, world landscapes, combat and boss "
+                              "effects, before broader distribution. All other required checks passed."
+                          )
+                          print(note)
+                          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+                              print(note, run["html_url"], file=summary)
                       print("Validated release commit for TestFlight:", sha, run["html_url"])
                       break
                   print("Validating:", run["html_url"], flush=True)
@@ -310,6 +344,10 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
+          INTERNAL_TESTFLIGHT_OPTION=''
+          if [ "$BUILD340_SIMULATOR_EXCEPTION" = true ]; then
+            INTERNAL_TESTFLIGHT_OPTION='<key>testFlightInternalTestingOnly</key><true/>'
+          fi
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -319,8 +357,13 @@ jobs:
           <key>signingStyle</key><string>manual</string>
           <key>provisioningProfiles</key><dict><key>com.paulus.laststandcommand</key><string>$PROFILE_UUID</string></dict>
           <key>destination</key><string>export</string>
+          $INTERNAL_TESTFLIGHT_OPTION
           </dict></plist>
           EOF
+          if [ "$BUILD340_SIMULATOR_EXCEPTION" = true ]; then
+            test "$(plutil -extract testFlightInternalTestingOnly raw -o - "$RUNNER_TEMP/ExportOptions.plist")" = true
+            echo "Exporting Build 340 for internal TestFlight testing only"
+          fi
           xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/OutpostZero.xcarchive" -exportPath "$RUNNER_TEMP/export" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" 2>&1 | tee export.log
       - name: Verify exported IPA identity
         env:
@@ -411,7 +454,15 @@ jobs:
                 const state = build.attributes.processingState;
                 report('Apple received Build ' + build.attributes.version + ': ' + state +
                   ' (uploaded ' + build.attributes.uploadedDate + ')');
-                if (state === 'VALID') return;
+                if (state === 'VALID') {
+                  if (process.env.BUILD340_SIMULATOR_EXCEPTION === 'true' &&
+                      build.attributes.buildAudienceType &&
+                      build.attributes.buildAudienceType !== 'INTERNAL_ONLY') {
+                    throw new Error('Apple reported an unexpected build audience: ' + build.attributes.buildAudienceType);
+                  }
+                  if (build.attributes.buildAudienceType) report('Apple build audience: ' + build.attributes.buildAudienceType);
+                  return;
+                }
                 if (state === 'FAILED' || state === 'INVALID') throw new Error('Apple processing ' + state);
                 if (attempt === 19) throw new Error('Apple processing still pending for Build ' + build.attributes.version);
               } else if (attempt === 19) {
