@@ -7,6 +7,10 @@ on:
         description: "Unique TestFlight build number"
         required: true
         default: "338"
+      validation_run_id:
+        description: "Optional iOS Compile Check run whose full results must match the release commit"
+        required: false
+        type: string
       use_build338_reviewed_evidence:
         description: "Build 338 only: owner accepted run 43994798717 startup gap"
         type: boolean
@@ -14,10 +18,16 @@ on:
 
 env:
   RELEASE_BUILD_NUMBER: ${{ inputs.build_number }}
+  VALIDATION_RUN_ID: ${{ inputs.validation_run_id }}
+  RELEASE_SHA: ${{ github.ref == 'refs/heads/main' && github.sha || '5ba22b2d4b533eb96c9c128da677bcad52b57d6e' }}
 
 jobs:
   release-gate:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      (github.ref == 'refs/heads/main' ||
+      (github.ref == 'refs/heads/release/build-340' && inputs.build_number == '340' &&
+      inputs.validation_run_id == '45321496799' && !inputs.use_build338_reviewed_evidence))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -26,6 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.RELEASE_SHA }}
           fetch-depth: 0
       - name: Verify pinned Build 338 evidence and unchanged application source
         if: inputs.use_build338_reviewed_evidence
@@ -42,11 +53,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          RELEASE_SHA: ${{ github.sha }}
         run: |
           python3 - <<'PY'
-          import json, os, sys, time, urllib.request
+          import json, os, re, subprocess, sys, time, urllib.request
           repo, sha = os.environ["REPOSITORY"], os.environ["RELEASE_SHA"]
+          run_id = os.environ["VALIDATION_RUN_ID"]
+          if run_id and not re.fullmatch(r"[1-9][0-9]*", run_id):
+              sys.exit("Release blocked: invalid validation run ID")
+          if subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip() != sha:
+              sys.exit("Release blocked: checked-out source does not match release commit")
           def get(path):
               request = urllib.request.Request(
                   "https://api.github.com/repos/" + repo + "/" + path,
@@ -56,6 +71,7 @@ jobs:
               with urllib.request.urlopen(request, timeout=35) as response:
                   return json.load(response)
           required = {"build", "Focused gameplay presentation",
+                      "simulator-review", "defense-visual-review",
                       "phase4-gameplay / Assess World 1 gameplay outcomes"}
           required.update(
               f"phase4-gameplay / Fresh World 1 — {profile} seed {seed} batch {batch}"
@@ -64,10 +80,16 @@ jobs:
           for attempt in range(135):
               if get("branches/main")["commit"]["sha"] != sha:
                   sys.exit("Release blocked: branch moved after release candidate")
-              runs = [r for r in get("actions/runs?head_sha=" + sha +
-                                     "&per_page=100").get("workflow_runs", [])
-                      if r["name"] == "iOS Compile Check"
-                      and r["event"] == "push" and r["head_sha"] == sha]
+              candidates = ([get("actions/runs/" + run_id)] if run_id else
+                            get("actions/workflows/ios-build.yml/runs?head_sha=" + sha +
+                                "&branch=main&per_page=100")["workflow_runs"])
+              runs = [r for r in candidates
+                      if r["path"].split("@", 1)[0] == ".github/workflows/ios-build.yml"
+                      and r["head_repository"]["full_name"] == repo
+                      and r["head_sha"] == sha and r["head_branch"] == "main"
+                      and r["event"] in {"push", "workflow_dispatch"}]
+              if run_id and not runs:
+                  sys.exit("Release blocked: pinned validation run does not match trusted main SHA and workflow")
               if runs:
                   run = max(runs, key=lambda r: r["id"])
                   if run["status"] == "completed":
@@ -98,6 +120,16 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+      - name: Verify archive checkout matches validated main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$RELEASE_SHA"
+          git diff --exit-code
+          printf 'Archive source: %s\n' "$RELEASE_SHA"
       - name: Select supported Xcode
         run: |
           set -e
@@ -205,7 +237,7 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/OutpostZero.xcarchive" -derivedDataPath "$RUNNER_TEMP/DerivedData" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CURRENT_PROJECT_VERSION="${{ env.RELEASE_BUILD_NUMBER }}" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" OTHER_CODE_SIGN_FLAGS="--keychain build.keychain" archive 2>&1 | tee archive.log
-      - name: Verify Release archive identity, signing and Build 338 artwork
+      - name: Verify signed Release archive and consolidated artwork
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APP_BUNDLE_PATH: ${{ runner.temp }}/OutpostZero.xcarchive/Products/Applications/OutpostZero.app
@@ -216,6 +248,42 @@ jobs:
           "$RUNNER_TEMP/release-verify-venv/bin/python" -m pip install --disable-pip-version-check Pillow==11.3.0
           "$RUNNER_TEMP/release-verify-venv/bin/python" -c 'from PIL import Image; print("Pillow release verifier ready")'
           "$RUNNER_TEMP/release-verify-venv/bin/python" scripts/verify_build338_bundle.py
+          "$RUNNER_TEMP/release-verify-venv/bin/python" scripts/verify_build339_bundle.py "$APP_BUNDLE_PATH"
+          "$RUNNER_TEMP/release-verify-venv/bin/python" scripts/check_branding.py
+          "$RUNNER_TEMP/release-verify-venv/bin/python" - <<'PY'
+          import json, os, plistlib, subprocess
+          from pathlib import Path
+          from PIL import Image
+
+          app = Path(os.environ["APP_BUNDLE_PATH"])
+          src = Path("assets/enemies/world2")
+          packaged = app / "enemies/world2"
+          manifests = sorted(src.glob("*.manifest.json"))
+          assert len(manifests) == 8
+          count = 0
+          for manifest in manifests:
+              assert (packaged / manifest.name).read_bytes() == manifest.read_bytes(), manifest.name
+              data = json.loads(manifest.read_text())
+              for state in data["states"].values():
+                  for entry in state["frames"]:
+                      name = Path(entry).name
+                      frame = packaged / name
+                      assert frame.read_bytes() == (src / name).read_bytes(), name
+                      with Image.open(frame) as image:
+                          image.load()
+                          assert image.format == "PNG" and image.size == (data["pixels"],) * 2, name
+                      count += 1
+          assert count == 532
+          catalog = json.loads(subprocess.check_output(["xcrun", "assetutil", "--info", str(app / "Assets.car")]))
+          assert any(item.get("Name") == "OutpostLogo" for item in catalog), "Missing compiled logo"
+          info = plistlib.loads((app / "Info.plist").read_bytes())
+          assert info["UILaunchStoryboardName"] == "LaunchScreen"
+          assert list(app.rglob("LaunchScreen.storyboardc")), "Missing compiled launch storyboard"
+          primary_icon = info["CFBundleIcons"]["CFBundlePrimaryIcon"]
+          assert primary_icon.get("CFBundleIconName") == "AppIcon" or primary_icon.get("CFBundleIconFiles")
+          print(f"Verified signed archive: 8 World 2 manifests, {count} frames and effects, logo, launch screen and icon")
+          PY
+          git diff --exit-code
           codesign --verify --deep --strict "$APP_BUNDLE_PATH"
           codesign -d --entitlements :- "$APP_BUNDLE_PATH" > "$RUNNER_TEMP/release-entitlements.plist"
           python3 - <<'PY'
@@ -229,7 +297,7 @@ jobs:
           assert ent.get('get-task-allow',False) is False
           assert ent['com.apple.developer.team-identifier']==os.environ['APPLE_TEAM_ID']
           assert ent['application-identifier'].endswith('.com.paulus.laststandcommand')
-          print('Release archive source:',os.environ['GITHUB_SHA'])
+          print('Release archive source:',os.environ['RELEASE_SHA'])
           print('Release signing, bundle identity and production entitlements verified')
           PY
       - name: Export App Store IPA
@@ -340,7 +408,7 @@ jobs:
                   ' (uploaded ' + build.attributes.uploadedDate + ')');
                 if (state === 'VALID') return;
                 if (state === 'FAILED' || state === 'INVALID') throw new Error('Apple processing ' + state);
-                if (attempt === 19) return;
+                if (attempt === 19) throw new Error('Apple processing still pending for Build ' + build.attributes.version);
               } else if (attempt === 19) {
                 throw new Error('Upload command completed, but Apple receipt is not yet confirmed');
               }
@@ -363,4 +431,5 @@ jobs:
             archive.log
             export.log
             build338-bundle-report.json
+            build339-bundle.json
           if-no-files-found: ignore
