@@ -58,7 +58,7 @@ if not all(fragment in scene for fragment in (
         "private func installDefenseDevice()",
         "private func damageDefenseDevice()",
         "private func markDefenseDeviceResolved()",
-        "EquipmentDefenseRules.completionSalvage(room: wave, integrity: defenseIntegrity)",
+        "EquipmentDefenseRules.completionSalvage(room: wave, integrity: defenseIntegrity,",
         "defenseObjectiveIntegrity:",
         "-captureEquipmentDefenseScreenshot",
         "-captureEquipmentDefenseClearScreenshot")):

@@ -97,16 +97,18 @@ struct ProgressCombatTests {
         CombatEvolutionGeometryTests.verifyRangedRepositioning()
         CombatEvolutionGeometryTests.verifyEnergyWheelGeometry()
         var earnedRun = RunProgress()
-        precondition(earnedRun.claimMastery(room: 1))
-        precondition(!earnedRun.claimMastery(room: 1))
-        precondition(!earnedRun.claimMastery(room: 25))
+        precondition(earnedRun.claimMastery(room: 1, finalRoom: WorldCatalog.roomCount(0)))
+        precondition(!earnedRun.claimMastery(room: 1, finalRoom: WorldCatalog.roomCount(0)))
+        precondition(earnedRun.claimMastery(room: 30, finalRoom: WorldCatalog.roomCount(0)))
+        precondition(!earnedRun.claimMastery(room: 30, finalRoom: WorldCatalog.roomCount(0)))
+        precondition(!earnedRun.claimMastery(room: 31, finalRoom: WorldCatalog.roomCount(0)))
         let suiteMastery = "outpost.zero.mastery.test"
         let masteryStore = UserDefaults(suiteName: suiteMastery)!
         masteryStore.removePersistentDomain(forName: suiteMastery)
         let mastery = PlayerMastery(storage: masteryStore)
         precondition(mastery.level == 1 && mastery.capacity == 2)
         for _ in 0..<8 {
-            for room in 1...20 { _ = mastery.awardClearedRoom(room) }
+            for room in 1...20 { _ = mastery.awardClearedRoom(room, finalRoom: WorldCatalog.roomCount(0)) }
         }
         precondition(mastery.level >= 20 && mastery.capacity == 3)
         // Salvage survives failed attempts, and purchase benefits are
@@ -138,8 +140,8 @@ struct ProgressCombatTests {
         let restarted = PersistentProgression(storage: store)
         precondition(restarted.rank("weapon") == 1 && restarted.rank("chain") == 1)
         precondition(restarted.salvage == permanent.salvage)
-        precondition(PersistentProgression.roomReward(room: 12) >
-                     PersistentProgression.roomReward(room: 3))
+        precondition(PersistentProgression.roomReward(room: 12, finalRoom: WorldCatalog.roomCount(0)) >
+                     PersistentProgression.roomReward(room: 3, finalRoom: WorldCatalog.roomCount(0)))
         precondition(PersistentProgression.enemyReward(isHeavy: false, isBoss: true) >
                      PersistentProgression.enemyReward(isHeavy: false, isBoss: false))
         // The reduced completion bonus must match the live economy.

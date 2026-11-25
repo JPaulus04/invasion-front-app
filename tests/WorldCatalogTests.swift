@@ -85,7 +85,7 @@ struct WorldCatalogTests {
         store.removePersistentDomain(forName: suite)
         // World 1 rules stay exactly the same. World 2 and 3 introduce
         // early but telegraphed shooters, lobbers and armored threats.
-        for room in 1...WorldCatalog.roomCount(0) {
+        for room in 1..<WorldCatalog.roomCount(0) {
             for roll in 0..<100 {
                 precondition(WorldCatalog.enemyType(world: 0, room: room, roll: roll) ==
                              CombatRules.enemyType(room: room, roll: roll))

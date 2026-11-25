@@ -203,8 +203,8 @@ enum EquipmentDefenseRules {
 
     /// The existing defense-room Salvage is its optional objective bonus.
     /// Failure preserves earned kill rewards and permits campaign progress.
-    static func completionSalvage(room: Int, integrity: Int) -> Int {
-        integrity > 0 ? PersistentProgression.roomReward(room: room) : 0
+    static func completionSalvage(room: Int, integrity: Int, finalRoom: Int) -> Int {
+        integrity > 0 ? PersistentProgression.roomReward(room: room, finalRoom: finalRoom) : 0
     }
 
     static func maySpawn(elapsed: TimeInterval, duration: TimeInterval,

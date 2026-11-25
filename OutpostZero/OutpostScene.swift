@@ -9039,7 +9039,8 @@ final class OutpostScene: SKScene {
         }
         clearHostileAttacks()
         let completionSalvage = activeEncounter == .equipmentDefense
-            ? EquipmentDefenseRules.completionSalvage(room: wave, integrity: defenseIntegrity)
+            ? EquipmentDefenseRules.completionSalvage(room: wave, integrity: defenseIntegrity,
+                                                       finalRoom: worldWaveCount)
             : PersistentProgression.roomReward(room: wave, finalRoom: worldWaveCount)
         bankSalvage(completionSalvage)
         if activeEncounter == .equipmentDefense {
