@@ -6,16 +6,21 @@ struct FrontierMiniBoss {
     let health: Int
     let speed: CGFloat
     let attackSequence: String
+    let impactFrame: Int
     let attackRange: CGFloat
     let impactRadius: CGFloat
     let windup: TimeInterval
     let recovery: TimeInterval
     let targetsPilot: Bool
 
+    var attackFrameDuration: TimeInterval { windup / Double(impactFrame) }
+
     static let encounters: [Int: FrontierMiniBoss] = [
-        10: .init(name: "BARKGUARD", role: 1, health: 105, speed: 65, attackSequence: "attack_slam", attackRange: 68,
+        10: .init(name: "BARKGUARD", role: 1, health: 105, speed: 65, attackSequence: "attack_slam",
+                  impactFrame: 9, attackRange: 68,
                   impactRadius: 74, windup: 0.60, recovery: 1.45, targetsPilot: false),
-        20: .init(name: "STONEBACK", role: 3, health: 155, speed: 44, attackSequence: "attack", attackRange: 180,
+        20: .init(name: "STONEBACK", role: 3, health: 155, speed: 44, attackSequence: "attack",
+                  impactFrame: 6, attackRange: 180,
                   impactRadius: 52, windup: 0.72, recovery: 1.65, targetsPilot: true)
     ]
 }

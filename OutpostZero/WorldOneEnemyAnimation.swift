@@ -181,7 +181,8 @@ enum WorldOneEnemyAnimation {
     }
     @discardableResult
     static func play(_ motion: Motion, enemy: String, on sprite: SKSpriteNode,
-                     sequence: String? = nil, completion: (() -> Void)? = nil) -> Bool {
+                     sequence: String? = nil, frameDuration: TimeInterval? = nil,
+                     completion: (() -> Void)? = nil) -> Bool {
         let current = (sprite.userData?[motionKey] as? String).flatMap(Motion.init(rawValue:))
         let authored = WorldTwoCampaign.manifests[enemy]?.states[sequence ?? (motion == .move ? "run" : motion.rawValue)]
         guard (sequence != nil && current != .defeat ||
@@ -209,7 +210,8 @@ enum WorldOneEnemyAnimation {
         #endif
         let action: SKAction
         if let frames {
-            action = .animate(with: frames,timePerFrame: 1/(authored?.fps ?? motion.framesPerSecond),resize: false,restore: false)
+            let timePerFrame = frameDuration ?? 1/(authored?.fps ?? motion.framesPerSecond)
+            action = .animate(with: frames, timePerFrame: timePerFrame, resize: false, restore: false)
         } else if motion == .defeat {
             action = .fadeOut(withDuration: 0.35)
         } else if motion == .hit {

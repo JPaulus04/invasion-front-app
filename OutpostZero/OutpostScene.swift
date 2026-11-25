@@ -8142,7 +8142,8 @@ final class OutpostScene: SKScene {
             let facing = pilot.position.x - origin.x
             WorldOneEnemyAnimation.updateLocomotion(on: art, moving: false, dx: facing)
             WorldOneEnemyAnimation.play(.attack, enemy: configuration.name.lowercased(), on: art,
-                                        sequence: configuration.attackSequence)
+                                        sequence: configuration.attackSequence,
+                                        frameDuration: configuration.attackFrameDuration)
         }
         launchLob(from: origin, target: target, radius: configuration.impactRadius,
                   flightTime: configuration.windup, showsProjectile: false)
