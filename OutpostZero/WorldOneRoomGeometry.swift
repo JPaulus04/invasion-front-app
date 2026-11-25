@@ -115,11 +115,11 @@ enum WorldOneRoomGeometry {
                 decorationExclusion: b.insetBy(dx: 3*u, dy: 3*u))
         case .rootLord:
             let b = CGRect(x: 0, y: 0, width: 37*u, height: 32*u)
+            let bossPosition = CGPoint(x: b.midX, y: b.maxY - 13*u)
             return Layout(kind: kind, unit: u, bounds: b,
                 entry: CGPoint(x: b.midX, y: 3*u), exit: nil,
                 combatPockets: [b.insetBy(dx: 5*u, dy: 5*u)],
-                objective: CGPoint(x: b.midX, y: b.maxY-11*u),
-                approachPoints: [CGPoint(x: b.midX, y: b.maxY-11*u)],
+                objective: bossPosition, approachPoints: [bossPosition],
                 decorationExclusion: b.insetBy(dx: 5*u, dy: 5*u))
         }
     }

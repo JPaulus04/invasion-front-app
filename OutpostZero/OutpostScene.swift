@@ -7871,6 +7871,9 @@ final class OutpostScene: SKScene {
         }
         worldMapIndex = number - 1
         precondition(room <= worldWaveCount)
+        let result = fields.last == "result"
+        let guardianExposed = fields.last == "exposed"
+        precondition(fields.count == 2 || result || guardianExposed)
         for prior in 0..<worldMapIndex { _ = WorldCatalog.recordVictory(prior, stars: 1) }
         precondition(WorldCatalog.unlocked(worldMapIndex))
 
@@ -7891,7 +7894,8 @@ final class OutpostScene: SKScene {
                 enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
             }
             let isBoss = SurvivalEncounterRules.kind(world: worldMapIndex, room: wave) == .boss
-            precondition((bossNode != nil) == isBoss)
+            let isFrontierFinal = worldMapIndex == 0 && room == worldWaveCount
+            precondition((bossNode != nil) == isBoss && (!guardianExposed || isFrontierFinal))
             if isBoss, !enemies.isEmpty {
                 precondition(enemies.count == 1 && waveTarget == 1)
                 combatClock.advance(2.2, playing: true)
@@ -7907,7 +7911,7 @@ final class OutpostScene: SKScene {
                     let healthBeforeAttack = health
                     updateHostileAttacks(delta: 0)
                     precondition(health == healthBeforeAttack)
-                    if fields.count == 3 {
+                    if result {
                         let target = lobs[0].target
                         pilot.position.x = target.x + miniBoss.impactRadius + 20
                         combatClock.advance(miniBoss.windup + 0.01, playing: true)
@@ -7922,10 +7926,18 @@ final class OutpostScene: SKScene {
                         updateHostileAttacks(delta: 0)
                         precondition(health < healthBeforeAttack && lobs.isEmpty)
                     }
+                } else if isFrontierFinal && (guardianExposed || result) {
+                    let threshold = FrontierGuardianRules.armorBreakHealth(maxHealth: enemies[0].maxHealth)
+                    enemies[0].health = threshold
+                    updateFrontierGuardianPhase()
+                    precondition(guardianArmorBroken && lobs.count == 2)
+                    if result {
+                        combatClock.advance(FrontierGuardianRules.transitionSeconds + 0.01, playing: true)
+                    }
                 } else if !updateWorldTwoAttack(at: 0) {
                     updateRangedAttack(at: 0)
                 }
-                precondition(enemies[0].shotTarget != nil || !lobs.isEmpty,
+                precondition(result || enemies[0].shotTarget != nil || !lobs.isEmpty,
                              "Boss fixture must display an avoidable attack warning")
             }
             updateHUD()
@@ -7933,10 +7945,12 @@ final class OutpostScene: SKScene {
             precondition(label?.text == "ROOM \(room)/\(worldWaveCount)")
             precondition(pilotHealthTrack.parent === pilot && !pilotHealthTrack.isHidden &&
                          pilotHealthTrack.position.y < 0)
-            if fields.count == 3 {
-                precondition(fields[2] == "result" && isBoss)
+            if result {
+                precondition(isBoss)
                 for index in enemies.indices { enemies[index].health = 0 }
                 removeDefeatedEnemies()
+                precondition(bossNode == nil && RoomRules.isCleared(
+                    spawned: spawned, target: waveTarget, living: enemies.count))
                 completeWave()
                 while progress.pendingChoices > 0 { chooseLevelUpgrade(levelChoices[0]) }
                 precondition(phase == (room == worldWaveCount ? .worldComplete : .gate))

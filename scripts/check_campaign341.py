@@ -34,7 +34,7 @@ def main():
     output.mkdir(exist_ok=True)
     fixtures = [
         "1-1", "1-10", "1-10-result", "1-18", "1-20", "1-20-result",
-        "1-30", "1-30-result",
+        "1-30", "1-30-exposed", "1-30-result",
     ]
     with fresh_simulator("build341", output, controlled=True) as device:
         capture(device, output, "legacy-iron-recovery", "-captureRecoveryScreenshot",
