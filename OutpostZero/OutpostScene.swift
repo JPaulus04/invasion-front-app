@@ -7846,11 +7846,14 @@ final class OutpostScene: SKScene {
         _ = WorldCatalog.recordVictory(0, stars: 3)
         let cores = availableCores
         recoverSavedRun()
-        precondition(wave == 20 && roomCleared && gateUnlocked && coins == 1406 &&
+        precondition(wave == 20 && roomCleared && !passageGate.isHidden &&
+                     phase == .interrupted && coins == 1406 &&
                      salvageBankedThisRun == 290 && WorldCatalog.unlocked(1))
         precondition(roomSalvageRecoveredCredit == 48 && roomCoinsRecoveredCredit == 250 &&
                      roomXPRecoveredCredit == 60 && availableCores == cores)
-        startWave()
+        resumeInterruptedRun()
+        pilot.position = passageGate.position
+        updateSimulation(1)
         precondition(wave == 21 && phase == .playing && availableCores == cores)
         holdDefenseQAScreenshot = true
         arena.isPaused = true
