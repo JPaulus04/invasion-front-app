@@ -1689,6 +1689,9 @@ final class OutpostScene: SKScene {
         // Real SpriteKit boss integration: stage the final room and
         // confirm each world's attack behavior, health and telegraphs.
         #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-captureBuild341LegacyFrontier") {
+            captureBuild341LegacyFrontier()
+        }
         if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341=") }) {
             captureBuild341(String(capture.dropFirst("-captureBuild341=".count)))
         }
@@ -7829,6 +7832,33 @@ final class OutpostScene: SKScene {
     }
 
     #if DEBUG
+    private func captureBuild341LegacyFrontier() {
+        let snapshot = RunSnapshot(
+            version: 4, worldIndex: 0, room: 20, location: .clearedGate,
+            health: 61, coins: 1406, damage: 4, fireRate: 3,
+            chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 0,
+            orbitLevel: 2, runArmor: 20, checkpointUsed: true,
+            checkpointPresented: true, progress: RunProgress(),
+            abilities: ["chain", "orbit", "incendiary"],
+            earnedSalvage: 290, roomSalvageCredit: 48,
+            roomCoinCredit: 250, roomXPCredit: 60)
+        UserDefaults.standard.set(try! JSONEncoder().encode(snapshot), forKey: "outpostZeroRunSnapshotV1")
+        _ = WorldCatalog.recordVictory(0, stars: 3)
+        let cores = availableCores
+        recoverSavedRun()
+        precondition(wave == 20 && roomCleared && gateUnlocked && coins == 1406 &&
+                     salvageBankedThisRun == 290 && WorldCatalog.unlocked(1))
+        precondition(roomSalvageRecoveredCredit == 48 && roomCoinsRecoveredCredit == 250 &&
+                     roomXPRecoveredCredit == 60 && availableCores == cores)
+        startWave()
+        precondition(wave == 21 && phase == .playing && availableCores == cores)
+        holdDefenseQAScreenshot = true
+        arena.isPaused = true
+        recovery.clear()
+        print("[BUILD341 MIGRATED] Frontier Forest continued from Room 20 to Room 21")
+        fflush(stdout)
+    }
+
     private func captureBuild341(_ selection: String) {
         let fields = selection.split(separator: "-")
         guard fields.count == 2 || fields.count == 3,
@@ -7864,7 +7894,7 @@ final class OutpostScene: SKScene {
                 combatClock.advance(2.2, playing: true)
                 if let miniBoss = frontierMiniBoss {
                     let origin = enemies[0].node.position
-                    pilot.position = CGPoint(x: origin.x, y: origin.y - 80)
+                    pilot.position = CGPoint(x: origin.x, y: origin.y - min(80, miniBoss.attackRange - 4))
                     updateArenaCamera(delta: 1)
                     updateFrontierMiniBoss(at: 0, configuration: miniBoss)
                     let art = enemies[0].node.childNode(withName: "enemyArt") as? SKSpriteNode

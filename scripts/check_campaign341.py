@@ -39,6 +39,8 @@ def main():
     with fresh_simulator("build341", output, controlled=True) as device:
         capture(device, output, "legacy-iron-recovery", "-captureRecoveryScreenshot",
                 "[BUILD341 MIGRATED]")
+        capture(device, output, "legacy-frontier-recovery", "-captureBuild341LegacyFrontier",
+                "[BUILD341 MIGRATED] Frontier Forest continued from Room 20 to Room 21")
         for fixture in fixtures:
             capture(device, output, fixture, f"-captureBuild341={fixture}",
                     f"[BUILD341 READY] fixture={fixture} ")

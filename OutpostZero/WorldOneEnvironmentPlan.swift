@@ -16,9 +16,9 @@ enum WorldOneEnvironmentPlan {
         }
         static func forRoom(_ room: Int) -> Theme {
             switch room {
-            case 1...5, 16: return .outpost
-            case 6...10, 17: return .swamp
-            case 11...15, 18: return .caves
+            case 1...5, 16, 21, 24, 27: return .outpost
+            case 6...10, 17, 22, 25, 28: return .swamp
+            case 11...15, 18, 23, 26, 29: return .caves
             default: return .sanctuary
             }
         }
