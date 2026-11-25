@@ -3,11 +3,10 @@ import Foundation
 /// Values shared by live combat and deterministic full-campaign QA. Keeping
 /// these rules together prevents tests from drifting away from actual runs.
 enum CampaignPacing {
-    static let roomsPerWorld = 20
-
     static func targetEnemies(room: Int, world: Int = 0) -> Int {
-        guard (1...WorldCatalog.roomCount(world)).contains(room) else { return 0 }
+        guard room > 0, room <= WorldCatalog.roomCount(world) else { return 0 }
         if SurvivalEncounterRules.kind(world: world, room: room) == .boss { return 1 }
+        if world == WorldCatalog.ironIndex && room == WorldCatalog.roomCount(world) - 1 { return 12 }
         // First five rooms teach dodging and upgrades without overwhelming
         // the player. Pressure then ramps continuously into the final rooms.
         if room <= 5 { return 4 + room }
@@ -15,14 +14,14 @@ enum CampaignPacing {
         return min(38, 19 + (room - 10) * 2)
     }
 
-    static func spawnInterval(room: Int) -> TimeInterval {
+    static func spawnInterval(room: Int, world: Int = 0) -> TimeInterval {
         let established = max(0.42, 1.20 - Double(max(1, room)) * 0.032)
         // Preserve an approachable opening and tighten the gaps between
         // reinforcements near the end of a world. Boss cadence is irrelevant:
         // the final room spawns its boss as a single encounter.
         if room <= 5 { return established + 0.18 }
         if room <= 10 { return established + 0.08 }
-        if room >= 16 && room < roomsPerWorld { return max(0.40, established - 0.06) }
+        if room >= 16 && !WorldCatalog.isFinalRoom(world: world, room: room) { return max(0.40, established - 0.06) }
         return established
     }
 
@@ -31,7 +30,7 @@ enum CampaignPacing {
             if room == 10 { return 115 }
             if room == 20 { return 175 }
         }
-        if room == WorldCatalog.roomCount(world) { return WorldCatalog.info(world).bossHealth }
+        if WorldCatalog.isFinalRoom(world: world, room: room) { return WorldCatalog.info(world).bossHealth }
         let scaling = max(0, room - 1)
         let baseline = type == 3 ? 12 + scaling * 3 :
             (type == 1 ? 5 + scaling * 2 : 2 + scaling)
@@ -210,7 +209,7 @@ enum SurvivalEncounterRules {
 
     // These placements vary by world. An equipment-defense mission does not
     // replace a boss and must never be confused with a survival XP-farm loop.
-    // Three spaced endurance interruptions per 20-room campaign world.
+    // Three spaced endurance interruptions per campaign world, keyed by faction ID.
     // Dedicated optional endurance missions use a separate progression path.
     private static let survivalRooms: [[Int]] = [
         [6, 9, 17], [5, 11, 17], [6, 12, 18], [5, 11, 17]
@@ -221,11 +220,13 @@ enum SurvivalEncounterRules {
 
     static func kind(world: Int, room: Int) -> Kind {
         let finalRoom = WorldCatalog.roomCount(world)
-        if room == finalRoom || (world == 1 && (room == 10 || room == 20)) { return .boss }
-        guard (1..<finalRoom).contains(room) else { return .tactical }
-        guard (0..<survivalRooms.count).contains(world) else { return .tactical }
-        if defenseRooms[world].contains(room) { return .equipmentDefense }
-        return survivalRooms[world].contains(room) ? .survival : .tactical
+        if WorldCatalog.isFinalRoom(world: world, room: room) ||
+            (world == 1 && (room == 10 || room == 20)) { return .boss }
+        guard room > 0, room < finalRoom else { return .tactical }
+        let faction = WorldCatalog.info(world).id
+        guard survivalRooms.indices.contains(faction) else { return .tactical }
+        if defenseRooms[faction].contains(room) { return .equipmentDefense }
+        return survivalRooms[faction].contains(room) ? .survival : .tactical
     }
 
     /// Longer battles are deliberate, not room-clear waves. They are

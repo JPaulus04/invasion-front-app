@@ -197,6 +197,22 @@ struct ProgressCombatTests {
         evolvedSave.energyWheelEvolved = true
         precondition(evolvedSave.isValid && recover.save(evolvedSave))
         precondition(recover.load()?.energyWheelEvolved == true)
+        // Exercise actual Build 340 bytes with both legacy faction IDs.
+        for (legacyIndex, currentIndex) in [(2, WorldCatalog.ironIndex), (3, WorldCatalog.frostIndex)] {
+            var legacy = evolvedSave
+            legacy.version = 4
+            legacy.worldIndex = legacyIndex
+            let data = try! JSONEncoder().encode(legacy)
+            recoveryStorage.set(data, forKey: "outpostZeroRunSnapshotV1")
+            let migrated = recover.load()!
+            precondition(migrated.version == RunSnapshot.schema &&
+                         migrated.worldID == legacyIndex && migrated.worldIndex == currentIndex)
+            precondition(migrated.room == legacy.room && migrated.coins == legacy.coins &&
+                         migrated.abilities == legacy.abilities &&
+                         migrated.progress.xp == legacy.progress.xp &&
+                         migrated.energyWheelEvolved == true)
+            precondition(recover.load()?.worldIndex == currentIndex)
+        }
         // Restore the baseline save before testing timed-room recovery.
         precondition(recover.save(saved))
 
@@ -419,7 +435,7 @@ struct ProgressCombatTests {
         precondition(EncounterDirector.style(room: 4) == .flank)
         precondition(EncounterDirector.style(room: 6) == .crossfire)
         precondition(EncounterDirector.style(room: 12) == .siege)
-        precondition(EncounterDirector.style(room: 20) == .boss)
+        precondition(EncounterDirector.style(room: 20, isBoss: true) == .boss)
         precondition(EncounterDirector.spawnLane(room: 4, slot: 0) == .left)
         precondition(EncounterDirector.spawnLane(room: 4, slot: 2) == .right)
         precondition(EncounterDirector.spawnLane(room: 6, slot: 0) == .left)

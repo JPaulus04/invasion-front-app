@@ -4,10 +4,11 @@ import Foundation
 /// positions are deliberately reconstructed from the current room's beginning.
 struct RunSnapshot: Codable {
     enum Location: String, Codable { case battle, clearedGate }
-    static let schema = 4
+    static let schema = 5
+    private static let legacySchema = 4
 
-    let version: Int
-    let worldIndex: Int
+    var version: Int
+    var worldIndex: Int
     let room: Int
     let location: Location
     let health: Int
@@ -44,6 +45,32 @@ struct RunSnapshot: Codable {
     var mobilityRank: Int? = nil
     /// Optional to preserve existing schema-4 snapshots.
     var energyWheelEvolved: Bool? = nil
+    // Version 4 only wrote the old display index, which was also the faction ID.
+    var worldID: Int? = nil
+
+    func normalized() -> RunSnapshot? {
+        let id: Int
+        switch version {
+        case Self.legacySchema:
+            id = worldIndex
+        case Self.schema:
+            if let worldID {
+                id = worldID
+            } else {
+                guard (0..<WorldCatalog.playableCount).contains(worldIndex) else { return nil }
+                id = WorldCatalog.info(worldIndex).id
+            }
+        default:
+            return nil
+        }
+        guard let index = WorldCatalog.index(forID: id),
+              (0..<WorldCatalog.playableCount).contains(index) else { return nil }
+        var snapshot = self
+        snapshot.version = Self.schema
+        snapshot.worldIndex = index
+        snapshot.worldID = id
+        return snapshot.isValid ? snapshot : nil
+    }
 
     var isValid: Bool {
         version == Self.schema && (0..<WorldCatalog.playableCount).contains(worldIndex) &&
@@ -106,17 +133,22 @@ final class RunRecoveryStore {
 
     func load() -> RunSnapshot? {
         guard let data = storage.data(forKey: key) else { return nil }
-        guard let value = try? JSONDecoder().decode(RunSnapshot.self, from: data),
-              value.isValid else {
+        guard let stored = try? JSONDecoder().decode(RunSnapshot.self, from: data),
+              let value = stored.normalized() else {
             clear()
             return nil
+        }
+        if stored.version != value.version || stored.worldID != value.worldID ||
+            stored.worldIndex != value.worldIndex {
+            _ = save(value)
         }
         return value
     }
 
     @discardableResult
     func save(_ snapshot: RunSnapshot) -> Bool {
-        guard snapshot.isValid, let data = try? JSONEncoder().encode(snapshot) else { return false }
+        guard let value = snapshot.normalized(),
+              let data = try? JSONEncoder().encode(value) else { return false }
         storage.set(data, forKey: key)
         return true
     }

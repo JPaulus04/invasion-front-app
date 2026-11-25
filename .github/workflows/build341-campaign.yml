@@ -1,0 +1,54 @@
+name: Build 341 campaign corrections
+on:
+  pull_request:
+    paths:
+      - 'OutpostZero/WorldCatalog.swift'
+      - 'OutpostZero/RunRecovery.swift'
+      - 'scripts/check_campaign341.py'
+      - '.github/workflows/build341-campaign.yml'
+  workflow_dispatch:
+concurrency:
+  group: build341-campaign-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  campaign:
+    runs-on: macos-15
+    timeout-minutes: 36
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify campaign and recovery contracts
+        run: |
+          common=(OutpostZero/RunProgress.swift OutpostZero/CombatRules.swift OutpostZero/WorldCatalog.swift OutpostZero/CampaignPacing.swift OutpostZero/PersistentProgression.swift)
+          swiftc "${common[@]}" tests/CampaignPacingTests.swift -o "$RUNNER_TEMP/pacing"
+          "$RUNNER_TEMP/pacing"
+          swiftc "${common[@]}" tests/WorldCatalogTests.swift -o "$RUNNER_TEMP/worlds"
+          "$RUNNER_TEMP/worlds"
+          swiftc "${common[@]}" OutpostZero/AbilityLoadout.swift OutpostZero/RunRecovery.swift tests/CombatEvolutionGeometryTests.swift tests/ProgressCombatTests.swift -o "$RUNNER_TEMP/recovery"
+          "$RUNNER_TEMP/recovery"
+      - name: Build iOS Simulator app
+        run: |
+          set -o pipefail
+          python3 -m pip install --break-system-packages 'Pillow>=11'
+          brew install xcodegen
+          python3 scripts/generate_icon.py
+          python3 scripts/generate_forest_art.py
+          python3 scripts/generate_pilot_art.py
+          python3 scripts/generate_enemy_art.py
+          xcodegen generate
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build | tee build341.log
+          mkdir simulator-app
+          ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
+      - name: Capture campaign and recovery fixtures
+        run: |
+          set -o pipefail
+          mkdir -p build341-review
+          python3 scripts/check_campaign341.py 2>&1 | tee build341-review/simulator.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build341-campaign-captures
+          path: |
+            build341.log
+            build341-review/

@@ -858,7 +858,7 @@ final class OutpostScene: SKScene {
             // Avoid leaving a QA fixture in the simulator defaults.
             recovery.clear()
             let laterWorld = RunSnapshot(
-                version: RunSnapshot.schema, worldIndex: 2,
+                version: 4, worldIndex: 2,
                 room: 12, location: .battle,
                 health: 24, coins: 406, damage: 4, fireRate: 2,
                 chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
@@ -867,15 +867,21 @@ final class OutpostScene: SKScene {
                 progress: RunProgress(), abilities: ["chain", "orbit", "incendiary"],
                 earnedSalvage: 140, roomSalvageCredit: 18,
                 roomCoinCredit: 32, roomXPCredit: 40)
-            precondition(recovery.save(laterWorld))
+            // A schema-4 fixture represents a persisted Build 340 run in Iron Wastes.
+            guard let legacyData = try? JSONEncoder().encode(laterWorld) else {
+                preconditionFailure("Could not encode the Build 340 recovery fixture")
+            }
+            UserDefaults.standard.set(legacyData, forKey: "outpostZeroRunSnapshotV1")
             worldMapIndex = 0
             showReady()
             precondition(overlayButtons["recover_run"] != nil,
                          "Any selected world must offer the existing saved run")
             recoverSavedRun()
-            precondition(worldMapIndex == 2 && wave == 12 &&
+            precondition(worldMapIndex == WorldCatalog.ironIndex && wave == 12 &&
                          phase == .interrupted && health == 24,
                          "Resume must reopen the actual world, not the selected map card")
+            print("[BUILD341 MIGRATED] Iron Wastes Room 12 restored in World 4")
+            fflush(stdout)
             recovery.clear()
             // Run the *real* recovery path through all three survival
             // interruption states, not just the serializable snapshot type.
@@ -904,7 +910,7 @@ final class OutpostScene: SKScene {
                 survivorSave.timedEncounterSpawned = 7
                 survivorSave.timedEncounterLiving = 3
                 precondition(recovery.save(survivorSave))
-                worldMapIndex = 2 // Resume must select the saved world.
+                worldMapIndex = WorldCatalog.ironIndex // Resume must select the saved world.
                 showReady()
                 recoverSavedRun()
                 precondition(worldMapIndex == 0 && wave == 6 &&
@@ -1678,6 +1684,9 @@ final class OutpostScene: SKScene {
         // Real SpriteKit boss integration: stage the final room and
         // confirm each world's attack behavior, health and telegraphs.
         #if DEBUG
+        if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341=") }) {
+            captureBuild341(String(capture.dropFirst("-captureBuild341=".count)))
+        }
         if let review = worldTwoReview {
             worldMapIndex = WorldTwoCampaign.world
             wave = review - 1
@@ -1709,9 +1718,12 @@ final class OutpostScene: SKScene {
             fflush(stdout)
         }
         #endif
-        let bossCaptureFlags = ["-captureRootLordScreenshot", "-captureToxicMatriarchScreenshot",
-                                "-captureWarforgeScreenshot", "-captureFrostWraithScreenshot"]
-        if let index = bossCaptureFlags.firstIndex(where: { ProcessInfo.processInfo.arguments.contains($0) }) {
+        let bossCaptureFlags = [
+            ("-captureRootLordScreenshot", 0), ("-captureToxicMatriarchScreenshot", 1),
+            ("-captureWarforgeScreenshot", WorldCatalog.ironIndex),
+            ("-captureFrostWraithScreenshot", WorldCatalog.frostIndex)
+        ]
+        if let (_, index) = bossCaptureFlags.first(where: { ProcessInfo.processInfo.arguments.contains($0.0) }) {
             worldMapIndex = index
             wave = worldWaveCount - 1
             gateUnlocked = true
@@ -1771,13 +1783,13 @@ final class OutpostScene: SKScene {
                          WorldCatalog.completed(1),
                          "Defeating World 2 must unlock a next-world button")
             advanceToNextWorld()
-            precondition(worldMapIndex == 2 && wave == 1 &&
-                         phase == .playing && lockedLoadout.selected.isEmpty &&
+            precondition(worldMapIndex == WorldCatalog.frostIndex && wave == 1 &&
+                         phase == .playing && selectedWorld.biome == 4 && lockedLoadout.selected.isEmpty &&
                          roomHazards.contains(where: { $0.kind == .water }) &&
                          !roomHazards.contains(where: { $0.kind == .acid }),
                          "Next world must enter Room 1 with fresh empty abilities")
             precondition(roomHazards.contains(where: { $0.kind == .water }),
-                         "Iron Wastes must start with blocked water channels")
+                         "Frost Expanse must start with blocked ice channels")
             arena.isPaused = true
             phase = .levelUp
             updateHUD()
@@ -1788,15 +1800,15 @@ final class OutpostScene: SKScene {
         // tutorial bypass in regular gameplay.
         if ProcessInfo.processInfo.arguments.contains("-captureFourthWorldTransitionScreenshot") {
             for index in 0..<2 { _ = WorldCatalog.recordVictory(index, stars: 1) }
-            worldMapIndex = 2
+            worldMapIndex = WorldCatalog.frostIndex
             showReady()
             precondition(enterSelectedWorld())
             completeWorld()
             precondition(WorldCatalog.unlocked(3) && overlayButtons["next_world"] != nil)
             advanceToNextWorld()
-            precondition(worldMapIndex == 3 && wave == 1 && phase == .playing &&
-                         lockedLoadout.selected.isEmpty && selectedWorld.biome == 4,
-                         "World 3 victory must enter the playable Frost Expanse")
+            precondition(worldMapIndex == WorldCatalog.ironIndex && wave == 1 && phase == .playing &&
+                         lockedLoadout.selected.isEmpty && selectedWorld.biome == 1,
+                         "World 3 victory must enter the playable Iron Wastes")
             arena.isPaused = true
             phase = .levelUp
             updateHUD()
@@ -1917,7 +1929,7 @@ final class OutpostScene: SKScene {
            ProcessInfo.processInfo.arguments.contains("-captureFrostTerrainScreenshot") {
             let arguments = ProcessInfo.processInfo.arguments
             worldMapIndex = arguments.contains("-captureToxicTerrainScreenshot") ? 1
-                : (arguments.contains("-captureIronTerrainScreenshot") ? 2 : 3)
+                : (arguments.contains("-captureIronTerrainScreenshot") ? WorldCatalog.ironIndex : WorldCatalog.frostIndex)
             wave = 0
             gateUnlocked = true
             startWave()
@@ -2447,7 +2459,7 @@ final class OutpostScene: SKScene {
         // Three open survival compositions, selected deterministically per
         // world and wave. Landmarks remain decorative and close to the edge:
         // none can obstruct movement or create invisible collision.
-        let survivalLayout = (max(0, wave - 1) + worldMapIndex) % 3
+        let survivalLayout = (max(0, wave - 1) + selectedWorld.id) % 3
         let landmarkPositions: [(CGFloat, CGFloat)]
         switch survivalLayout {
         case 0: // Ruined perimeter: asymmetric corners.
@@ -3283,7 +3295,7 @@ final class OutpostScene: SKScene {
         // Give the physical island the majority of the hero region instead
         // of rendering it as a small illustration between UI labels.
         let stageWidth = min(size.width - 18, 390)
-        let diorama = WorldShowcase.island(world: worldMapIndex, locked: !unlocked,
+        let diorama = WorldShowcase.island(world: world.id, locked: !unlocked,
             width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
         diorama.name = "worldDiorama"
         // Prefer authored island art where the biome matches the destination.
@@ -3295,7 +3307,7 @@ final class OutpostScene: SKScene {
             8: "world_ice_island",
             12: "world_void_island"
         ]
-        if let assetName = islandAssets[worldMapIndex],
+        if let assetName = islandAssets[world.id],
            let image = UIImage(named: assetName) {
             let islandTexture = SKTexture(image: image)
             islandTexture.filteringMode = .linear
@@ -4142,7 +4154,9 @@ final class OutpostScene: SKScene {
         installHubShell(active: "nav_abilities")
         overlayText("MISSION LOADOUT", y: 162, fontSize: 23)
         overlayText("PRIMARY: AUTO RIFLE  •  ALWAYS EQUIPPED", y: 126, fontSize: 11)
-        overlayText("WORLD \(worldMapIndex + 1)  •  LOCKED FOR \(worldWaveCount) ROOMS", y: 99, fontSize: 12)
+        overlayText(worldWaveCount > 0
+                    ? "WORLD \(worldMapIndex + 1)  •  LOCKED FOR \(worldWaveCount) ROOMS"
+                    : "WORLD \(worldMapIndex + 1)  •  RESERVED", y: 99, fontSize: 12)
         overlayText("\(draftLoadout.selected.count)/3 TACTICAL ABILITIES SELECTED",
                     y: 76, fontSize: 12)
         let options: [(String, String)] = [
@@ -4449,7 +4463,7 @@ final class OutpostScene: SKScene {
         acidVisualNodes.removeAll()
         displayedAcidActive = nil
         roomHazards = TerrainHazards.patches(
-            world: worldMapIndex, room: wave, bounds: roomBounds,
+            world: selectedWorld.id, room: wave, bounds: roomBounds,
             preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
         if let layout = worldOneLiveLayout {
             roomHazards += layout.boundaryObstacles.map {
@@ -4501,7 +4515,7 @@ final class OutpostScene: SKScene {
             if patch.kind != .rubble {
                 let material = patch.kind == .acid ? "acid" : "water"
                 let biome = worldMapIndex == 1 ? "toxic"
-                    : (worldMapIndex == 2 ? "industrial" : "frost")
+                    : (worldMapIndex == WorldCatalog.ironIndex ? "industrial" : "frost")
                 let assetName = "terrain_\(biome)_\(material)_\(hazardIndex)"
                 if let illustration = productionImage(named: assetName) {
                     let texture = SKTexture(image: illustration)
@@ -6610,12 +6624,13 @@ final class OutpostScene: SKScene {
     }
 
     private func spawnEnemy(artReviewType: Int? = nil) {
-        let isBoss = (wave == worldWaveCount || worldTwoBossName != nil) && artReviewType == nil
+        let isBoss = artReviewType == nil &&
+            SurvivalEncounterRules.kind(world: worldMapIndex, room: wave) == .boss
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
         let roll = EncounterDirector.enemyRoll(
-            world: worldMapIndex, room: wave, slot: spawned)
-        let type = artReviewType ?? WorldCatalog.enemyType(
-            world: worldMapIndex, room: wave, roll: roll)
+            world: selectedWorld.id, room: wave, slot: spawned, isBoss: isBoss)
+        let type = artReviewType ?? (isBoss ? 1 : WorldCatalog.enemyType(
+            world: worldMapIndex, room: wave, roll: roll))
         let worldTwoCharacter = worldMapIndex == WorldTwoCampaign.world
             ? (isBoss ? WorldTwoCampaign.bosses[wave] : WorldTwoCampaign.regulars[type]) : nil
         let worldTwoArt = worldTwoCharacter.flatMap { character -> SKSpriteNode? in
@@ -6788,7 +6803,7 @@ final class OutpostScene: SKScene {
         if !usesIllustratedEnemy && !usesWorldTwoArt && !isBoss {
             node.addChild(core)
         }
-        if isBoss && !usesWorldTwoArt { BossArtwork.install(on: node, world: worldMapIndex) }
+        if isBoss && !usesWorldTwoArt { BossArtwork.install(on: node, world: selectedWorld.id) }
         if type >= 4 && !usesIllustratedEnemy && !usesWorldTwoArt && !isBoss {
             let weapon = SKShapeNode(rectOf: CGSize(width: type == 5 ? 22 : 8, height: 26), cornerRadius: 3)
             weapon.fillColor = type == 5 ? .systemYellow : .systemCyan
@@ -6842,7 +6857,7 @@ final class OutpostScene: SKScene {
             // Orchestrated arrival lanes distinguish flanks, crossfire, and
             // mortar groups. Every candidate still respects terrain and
             // the pilot's minimum spawn separation.
-            let lane = EncounterDirector.spawnLane(room: wave, slot: spawned)
+            let lane = EncounterDirector.spawnLane(room: wave, slot: spawned, isBoss: isBoss)
             let x: CGFloat
             switch lane {
             case .left: x = CGFloat.random(in: 0.08...0.36, using: &spawnRandom)
@@ -7499,7 +7514,7 @@ final class OutpostScene: SKScene {
                 return
             }
         } else {
-            let interval = CampaignPacing.spawnInterval(room: wave)
+            let interval = CampaignPacing.spawnInterval(room: wave, world: worldMapIndex)
             if pendingFlankSwarm == nil &&
                spawned < waveTarget && spawnClock >= interval {
                 spawnClock -= interval
@@ -7802,6 +7817,63 @@ final class OutpostScene: SKScene {
     }
 
     #if DEBUG
+    private func captureBuild341(_ selection: String) {
+        let fields = selection.split(separator: "-")
+        guard fields.count == 2 || fields.count == 3,
+              let number = Int(fields[0]), (1...WorldCatalog.playableCount).contains(number),
+              let room = Int(fields[1]), room >= 0 else {
+            preconditionFailure("Invalid campaign review fixture")
+        }
+        worldMapIndex = number - 1
+        precondition(room <= worldWaveCount)
+        for prior in 0..<worldMapIndex { _ = WorldCatalog.recordVictory(prior, stars: 1) }
+        precondition(WorldCatalog.unlocked(worldMapIndex))
+
+        if room == 0 {
+            showReady()
+            validateHubNavigation()
+            precondition(overlay.childNode(withName: "worldDiorama") != nil &&
+                         overlayButtons["start"] != nil)
+        } else {
+            wave = room - 1
+            gateUnlocked = true
+            startWave()
+            precondition(wave == room && phase == .playing)
+            spawned = 1
+            spawnEnemy()
+            for enemy in enemies {
+                enemy.node.alpha = 1
+                enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
+            }
+            let isBoss = SurvivalEncounterRules.kind(world: worldMapIndex, room: wave) == .boss
+            precondition((bossNode != nil) == isBoss)
+            if isBoss, !enemies.isEmpty {
+                precondition(enemies.count == 1 && waveTarget == 1)
+                combatClock.advance(2.2, playing: true)
+                if !updateWorldTwoAttack(at: 0) { updateRangedAttack(at: 0) }
+                precondition(enemies[0].shotTarget != nil || !lobs.isEmpty,
+                             "Boss fixture must display an avoidable attack warning")
+            }
+            updateHUD()
+            let label = hud.childNode(withName: "combatChrome")?.childNode(withName: "hudRoomLabel") as? SKLabelNode
+            precondition(label?.text == "ROOM \(room)/\(worldWaveCount)")
+            precondition(pilotHealthTrack.parent === pilot && !pilotHealthTrack.isHidden &&
+                         pilotHealthTrack.position.y < 0)
+            if fields.count == 3 {
+                precondition(fields[2] == "result" && isBoss)
+                for index in enemies.indices { enemies[index].health = 0 }
+                removeDefeatedEnemies()
+                completeWave()
+                while progress.pendingChoices > 0 { chooseLevelUpgrade(levelChoices[0]) }
+                precondition(phase == (room == worldWaveCount ? .worldComplete : .gate))
+            }
+            holdDefenseQAScreenshot = true
+            arena.isPaused = true
+        }
+        print("[BUILD341 READY] fixture=\(selection) world=\(selectedWorld.title) biome=\(selectedWorld.biome) rooms=\(worldWaveCount) phase=\(phase)")
+        fflush(stdout)
+    }
+
     private let worldTwoReview = ProcessInfo.processInfo.arguments
         .first { $0.hasPrefix("-captureWorldTwoRoom=") }
         .flatMap { Int($0.split(separator: "=").last ?? "") }
@@ -7996,7 +8068,7 @@ final class OutpostScene: SKScene {
             // three-lane volley once its armor is badly damaged. This
             // changes attack cadence, not projectile speed or warning time.
             let damagedWarden = enemy.node === bossNode &&
-                worldMapIndex == 2 && selectedWorld.bossStyle == 1 &&
+                worldMapIndex == WorldCatalog.ironIndex && selectedWorld.bossStyle == 1 &&
                 scrapyardWardenEnraged
             let baseCooldown = CombatRules.shooterCooldown(room: wave)
             enemies[index].nextAttack = combatTime +
@@ -8049,7 +8121,7 @@ final class OutpostScene: SKScene {
                 // The scrapyard boss has a distinct orange warning language.
                 // Keep all three volley lanes visible for the full wind-up.
                 let wardenOverdrive = enemy.node === bossNode &&
-                    worldMapIndex == 2 && scrapyardWardenEnraged
+                    worldMapIndex == WorldCatalog.ironIndex && scrapyardWardenEnraged
                 aim.strokeColor = wardenOverdrive
                     ? .systemOrange.withAlphaComponent(0.95)
                     : (reactorShot ? .systemCyan.withAlphaComponent(0.95)
@@ -8174,7 +8246,7 @@ final class OutpostScene: SKScene {
         // and a short directional tail. Collision radius and speed stay intact.
         let node = SKShapeNode(circleOfRadius: 6)
         let hostileColor = wave == worldWaveCount
-            ? BossArtwork.colors[min(3, worldMapIndex)] : .systemPink
+            ? BossArtwork.colors[min(3, selectedWorld.id)] : .systemPink
         hostileMuzzleBurst(at:origin,toward:target,color:hostileColor)
         node.fillColor = hostileColor
         node.strokeColor = .white
@@ -8740,7 +8812,7 @@ final class OutpostScene: SKScene {
     }
 
     private func updateScrapyardWardenPhase() {
-        guard worldMapIndex == 2, wave == worldWaveCount,
+        guard worldMapIndex == WorldCatalog.ironIndex, wave == worldWaveCount,
               !scrapyardWardenEnraged, !roomCleared,
               let bossNode,
               let enemy = enemies.first(where: { $0.node === bossNode }),
@@ -9588,7 +9660,7 @@ final class OutpostScene: SKScene {
                 near: pilot.position, in: roomBounds, patches: roomHazards)
         }
         extractionPortal.strokeColor = worldMapIndex == 1 ? .systemTeal :
-            (worldMapIndex == 2 ? .systemGreen : .systemCyan)
+            (worldMapIndex == WorldCatalog.ironIndex ? .systemGreen : .systemCyan)
         extractionPortal.childNode(withName: "extractionCore")?.removeAllActions()
         extractionPortal.childNode(withName: "extractionCore")?.run(
             .repeatForever(.sequence([

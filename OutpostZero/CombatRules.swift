@@ -211,8 +211,8 @@ enum EncounterDirector {
 
     enum Lane { case left, right, center }
 
-    static func style(room: Int) -> Style {
-        if room >= 20 { return .boss }
+    static func style(room: Int, isBoss: Bool = false) -> Style {
+        if isBoss { return .boss }
         // Introduce positioning mechanics in the first three rooms:
         // basic pursuit, alternating flanks, then telegraphed crossfire.
         // Early enemy counts and shooter limits remain unchanged.
@@ -249,7 +249,8 @@ enum EncounterDirector {
 
     /// Give each encounter an intentional unit mixture without overriding
     /// world-specific enemy unlocks or spawning excessive ranged attackers.
-    static func enemyRoll(world: Int, room: Int, slot: Int) -> Int {
+    static func enemyRoll(world: Int, room: Int, slot: Int, isBoss: Bool = false) -> Int {
+        if isBoss { return 50 }
         let seed = (max(0, slot) * 37 + max(0, room) * 17 +
                     max(0, world) * 11) % 100
         // Rooms 1-5 should be readable even in Worlds 2/3. Keep the roll
@@ -317,8 +318,8 @@ enum EncounterDirector {
         }
     }
 
-    static func spawnLane(room: Int, slot: Int) -> Lane {
-        switch style(room: room) {
+    static func spawnLane(room: Int, slot: Int, isBoss: Bool = false) -> Lane {
+        switch style(room: room, isBoss: isBoss) {
         case .patrol, .boss: return .center
         case .flank:
             // Pairs coming from alternate sides are easier to understand

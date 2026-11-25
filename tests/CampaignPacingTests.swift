@@ -131,7 +131,7 @@ struct CampaignPacingTests {
         }
         precondition(CampaignPacing.enemyHealth(world: 0, room: 20, type: 4) == WorldCatalog.info(0).bossHealth)
         let expectedSurvival = [3, 3, 3, 3]
-        let expectedDefense = [1, 0, 1, 0]
+        let expectedDefense = [1, 0, 0, 1]
         for world in 0..<WorldCatalog.playableCount {
             var timed = 0
             var survival = 0
@@ -366,7 +366,7 @@ struct CampaignPacingTests {
             elapsed: deadline, duration: deadline, integrity: 1))
         precondition(!EquipmentDefenseRules.succeeds(
             elapsed: deadline - 0.01, duration: deadline, integrity: 150))
-        precondition(SurvivalEncounterRules.kind(world: 2, room: 15) == .equipmentDefense)
+        precondition(SurvivalEncounterRules.kind(world: WorldCatalog.ironIndex, room: 15) == .equipmentDefense)
         for room in 1...20 {
             for slot in 0..<100 {
                 let unit = SurvivalEncounterRules.swarmType(
@@ -391,6 +391,14 @@ struct CampaignPacingTests {
         precondition(CampaignPacing.hitGracePeriod(room: 2) >
                      CampaignPacing.hitGracePeriod(room: 17))
         precondition(CampaignPacing.targetEnemies(room: 20) == 1)
+        for world in [WorldCatalog.frostIndex, WorldCatalog.ironIndex] {
+            precondition(SurvivalEncounterRules.kind(world: world, room: 20) == .tactical)
+            precondition(SurvivalEncounterRules.kind(world: world, room: 30) == .boss)
+            precondition(CampaignPacing.targetEnemies(room: 30, world: world) == 1)
+        }
+        precondition(CampaignPacing.targetEnemies(room: 29, world: WorldCatalog.ironIndex) <
+                     CampaignPacing.targetEnemies(room: 28, world: WorldCatalog.ironIndex))
+        precondition(CampaignPacing.targetEnemies(room: 1, world: 4) == 0)
         precondition(CampaignPacing.spawnInterval(room: 19) <=
                      CampaignPacing.spawnInterval(room: 6))
         precondition(CampaignPacing.killXP(type: 0, isBoss: false) == 9)
