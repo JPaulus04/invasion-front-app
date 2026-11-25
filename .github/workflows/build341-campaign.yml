@@ -27,6 +27,11 @@ jobs:
           "$RUNNER_TEMP/worlds"
           swiftc "${common[@]}" OutpostZero/AbilityLoadout.swift OutpostZero/RunRecovery.swift tests/CombatEvolutionGeometryTests.swift tests/ProgressCombatTests.swift -o "$RUNNER_TEMP/recovery"
           "$RUNNER_TEMP/recovery"
+          environment=(OutpostZero/WorldOneRoomGeometry.swift OutpostZero/WorldOneArtMetrics.swift OutpostZero/WorldOneEnvironmentPlan.swift OutpostZero/RoomRules.swift OutpostZero/TerrainHazards.swift)
+          swiftc "${common[@]}" "${environment[@]}" tests/WorldOneEnvironmentTests.swift -o "$RUNNER_TEMP/environments"
+          "$RUNNER_TEMP/environments"
+          swiftc "${common[@]}" "${environment[@]}" tests/WorldOneUnifiedTests.swift -o "$RUNNER_TEMP/unified"
+          "$RUNNER_TEMP/unified"
       - name: Build iOS Simulator app
         run: |
           set -o pipefail

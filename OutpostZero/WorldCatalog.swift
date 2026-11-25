@@ -18,7 +18,7 @@ struct WorldInfo {
 
 enum WorldCatalog {
     static let worlds: [WorldInfo] = [
-        WorldInfo(id: 0, roomCount: 20, title: "FRONTIER FOREST", region: "FRONTIER", boss: "ROOT LORD",
+        WorldInfo(id: 0, roomCount: 30, title: "FRONTIER FOREST", region: "FRONTIER", boss: "ROOT LORD",
                   brief: "Learn the movement and combat basics", biome: 0, bossStyle: 0, bossHealth: 180, enemyHealthBonus: 0),
         WorldInfo(id: 1, roomCount: 30, title: "TOXIC CROSSING", region: "FRONTIER", boss: "TOXIC TYRANT",
                   brief: "Poisoned ruins: dodge acid volleys and mutant swarms", biome: 2, bossStyle: 2, bossHealth: 235, enemyHealthBonus: 1),

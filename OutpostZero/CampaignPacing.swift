@@ -1,5 +1,25 @@
 import Foundation
 
+struct FrontierMiniBoss {
+    let name: String
+    let role: Int
+    let health: Int
+    let speed: CGFloat
+    let attackSequence: String
+    let attackRange: CGFloat
+    let impactRadius: CGFloat
+    let windup: TimeInterval
+    let recovery: TimeInterval
+    let targetsPilot: Bool
+
+    static let encounters: [Int: FrontierMiniBoss] = [
+        10: .init(name: "BARKGUARD", role: 1, health: 105, speed: 65, attackSequence: "attack_slam", attackRange: 96,
+                  impactRadius: 74, windup: 0.60, recovery: 1.45, targetsPilot: false),
+        20: .init(name: "STONEBACK", role: 3, health: 155, speed: 44, attackSequence: "attack", attackRange: 180,
+                  impactRadius: 52, windup: 0.72, recovery: 1.65, targetsPilot: true)
+    ]
+}
+
 /// Values shared by live combat and deterministic full-campaign QA. Keeping
 /// these rules together prevents tests from drifting away from actual runs.
 enum CampaignPacing {
@@ -26,6 +46,7 @@ enum CampaignPacing {
     }
 
     static func enemyHealth(world: Int, room: Int, type: Int) -> Int {
+        if world == 0, let miniBoss = FrontierMiniBoss.encounters[room] { return miniBoss.health }
         if world == 1 {
             if room == 10 { return 115 }
             if room == 20 { return 175 }
@@ -78,7 +99,7 @@ enum CampaignPacing {
 }
 
 
-/// Explicit, deliberately varied encounter layouts for playable 20-room worlds.
+/// Explicit, deliberately varied encounter layouts for playable worlds.
 /// Rules are authored separately from SpriteKit to make pacing inspectable
 /// before they are wired into movement, hostile spawning and save recovery.
 /// A separate mission type: keep a vulnerable field device intact under fire.
@@ -221,6 +242,7 @@ enum SurvivalEncounterRules {
     static func kind(world: Int, room: Int) -> Kind {
         let finalRoom = WorldCatalog.roomCount(world)
         if WorldCatalog.isFinalRoom(world: world, room: room) ||
+            (world == 0 && FrontierMiniBoss.encounters[room] != nil) ||
             (world == 1 && (room == 10 || room == 20)) { return .boss }
         guard room > 0, room < finalRoom else { return .tactical }
         let faction = WorldCatalog.info(world).id
@@ -308,7 +330,7 @@ enum FlankSwarmRules {
     static let speedMultiplier: CGFloat = 1.28
 
     static func shouldWarn(world: Int, room: Int, nextSlot: Int) -> Bool {
-        world == 0 && room >= 5 && room < 20 &&
+        world == 0 && room >= 5 &&
         SurvivalEncounterRules.kind(world: world, room: room) == .tactical &&
         (nextSlot == 4 || (room >= 13 && nextSlot == 13))
     }

@@ -10,7 +10,7 @@ struct WorldCatalogTests {
         precondition(WorldCatalog.worlds[1].title == "TOXIC CROSSING")
         precondition(WorldCatalog.worlds[2].title == "FROST EXPANSE")
         precondition(WorldCatalog.worlds[3].title == "IRON WASTES")
-        precondition((0...4).map(WorldCatalog.roomCount) == [20, 30, 30, 30, 0])
+        precondition((0...4).map(WorldCatalog.roomCount) == [30, 30, 30, 30, 0])
         precondition(WorldCatalog.info(2).biome == 4 && WorldCatalog.info(3).biome == 1)
         precondition(WorldCatalog.worlds[19].region == "VOID FRONTIER")
         precondition(WorldCatalog.worlds.map(\.region).filter { $0 == "FRONTIER" }.count == 4)
@@ -85,7 +85,7 @@ struct WorldCatalogTests {
         store.removePersistentDomain(forName: suite)
         // World 1 rules stay exactly the same. World 2 and 3 introduce
         // early but telegraphed shooters, lobbers and armored threats.
-        for room in 1...20 {
+        for room in 1...WorldCatalog.roomCount(0) {
             for roll in 0..<100 {
                 precondition(WorldCatalog.enemyType(world: 0, room: room, roll: roll) ==
                              CombatRules.enemyType(room: room, roll: roll))
@@ -99,7 +99,12 @@ struct WorldCatalogTests {
         precondition(WorldCatalog.info(1).bossStyle == 2)
         precondition(WorldCatalog.info(2).bossStyle == 3 && WorldCatalog.info(3).bossStyle == 1)
         precondition(WorldCatalog.recordBestRoom(1, room: 30, storage: store) == 30)
-        precondition(WorldCatalog.recordBestRoom(0, room: 30, storage: store) == 0)
+        precondition(WorldCatalog.recordBestRoom(0, room: 20, storage: store) == 20)
+        precondition(WorldCatalog.recordVictory(0, stars: 3, storage: store) == 3)
+        precondition(WorldCatalog.unlocked(1, storage: store))
+        precondition(WorldCatalog.recordBestRoom(0, room: 30, storage: store) == 30)
+        precondition(WorldCatalog.recordVictory(0, stars: 3, storage: store) == 0)
+        precondition(WorldCatalog.recordBestRoom(0, room: 31, storage: store) == 30)
         store.removePersistentDomain(forName: suite)
         print("Twenty-world roadmap, four playable unlocks, legacy progress and per-world core rewards passed")
     }

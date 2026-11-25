@@ -292,7 +292,7 @@ struct ProgressCombatTests {
         precondition(RunRecoveryStore.incrementalReward(
             earnedOnReplay: 80, previouslyCredited: 84, reward: 8) == 4)
         let completedRoom = RunSnapshot(
-            version: RunSnapshot.schema, worldIndex: 0, room: 20, location: .clearedGate,
+            version: 4, worldIndex: 0, room: 20, location: .clearedGate,
             health: 15, coins: 2500, damage: 9, fireRate: 5,
             chainLevel: 3, explosiveLevel: 3, incendiaryLevel: 3,
             orbitLevel: 3, runArmor: 80, checkpointUsed: true, checkpointPresented: true,
@@ -300,9 +300,13 @@ struct ProgressCombatTests {
             abilities: ["chain", "incendiary", "orbit"],
             earnedSalvage: 1100, roomSalvageCredit: 88,
             roomCoinCredit: 42, roomXPCredit: 62)
-        precondition(completedRoom.isValid && recover.save(completedRoom))
-        precondition(recover.load()?.location == .clearedGate)
-        precondition(recover.load()?.checkpointPresented == true)
+        recoveryStorage.set(try! JSONEncoder().encode(completedRoom), forKey: "outpostZeroRunSnapshotV1")
+        let legacyFrontier = recover.load()
+        precondition(legacyFrontier?.location == .clearedGate && legacyFrontier?.room == 20)
+        precondition(legacyFrontier?.checkpointPresented == true && legacyFrontier?.roomSalvageCredit == 88)
+        precondition(legacyFrontier?.roomCoinCredit == 42 && legacyFrontier?.roomXPCredit == 62)
+        precondition(!WorldCatalog.isFinalRoom(world: 0, room: 20))
+        precondition(WorldCatalog.isFinalRoom(world: 0, room: 30))
         // A cleared milestone is recovered with its healing offer already
         // recorded; returning to its open gate must not show it again.
         let offeredCheckpoint = RunSnapshot(

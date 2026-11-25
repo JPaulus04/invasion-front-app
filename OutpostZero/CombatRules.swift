@@ -53,7 +53,6 @@ enum CombatRules {
     /// enemy population the instant shooters appear. The threat increases
     /// through late rooms, with mixed melee enemies still present.
     static func enemyType(room: Int, roll: Int) -> Int {
-        if room == 20 { return 1 }
         if room >= 11 && roll < min(26, 12 + (room - 11) * 2) { return 5 }
         // Teach dodging from the opening room: a single clearly telegraphed
         // shooter enters each early encounter rather than a passive melee-only wave.
@@ -282,7 +281,7 @@ enum EncounterDirector {
         }
         // World 1 flank rooms also need a priority ranged target; support
         // alternates with melee arrivals rather than replacing the whole wave.
-        if world == 0 && room >= 6 && room < 20 && style(room: room) == .flank {
+        if world == 0 && room >= 6 && style(room: room) == .flank {
             if slot % 5 == 0 { return room >= 11 ? 30 : 10 }
         }
         // Controlled ranged slots avoid accidentally making 50% of late
