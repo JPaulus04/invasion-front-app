@@ -1,0 +1,76 @@
+{
+  "body_pivot_px": [
+    256,
+    433
+  ],
+  "effect_pivots_px": {
+    "frost_breath": [
+      45,
+      256
+    ],
+    "burrow_emergence": [
+      256,
+      376
+    ],
+    "tail_sweep": [
+      256,
+      360
+    ],
+    "ice_shards": [
+      336,
+      256
+    ]
+  },
+  "events": {
+    "attack": [
+      {
+        "effect": "frost_breath",
+        "body_frame": 5,
+        "x_offset_px": 172,
+        "y_offset_px": -263,
+        "scale": 0.87,
+        "layer": "front"
+      },
+      {
+        "effect": "ice_shards",
+        "body_frame": 6,
+        "x_offset_px": 213,
+        "y_offset_px": -250,
+        "scale": 0.67,
+        "layer": "front"
+      }
+    ],
+    "tail_sweep": [
+      {
+        "effect": "tail_sweep",
+        "body_frame": 3,
+        "x_offset_px": 211,
+        "y_offset_px": -9,
+        "scale": 0.83,
+        "layer": "front"
+      }
+    ],
+    "burrow": [
+      {
+        "effect": "burrow_emergence",
+        "body_frame": 1,
+        "x_offset_px": 0,
+        "y_offset_px": 3,
+        "scale": 0.9,
+        "layer": "front"
+      }
+    ],
+    "emerge": [
+      {
+        "effect": "burrow_emergence",
+        "body_frame": 0,
+        "x_offset_px": 0,
+        "y_offset_px": 3,
+        "scale": 1.08,
+        "layer": "front"
+      }
+    ]
+  },
+  "cue_note": "Frame indices are zero-based. Art coordinates are right-facing source pixels.",
+  "behavior": "Play burrow then hide the actor during subterranean motion. Show it again on emerge. Play frost breath and tail sweep independently."
+}

@@ -1,0 +1,338 @@
+{
+  "frames/cryogunner_idle_00.png": [
+    77,
+    125,
+    435,
+    420
+  ],
+  "frames/cryogunner_idle_01.png": [
+    77,
+    125,
+    435,
+    420
+  ],
+  "frames/cryogunner_idle_02.png": [
+    77,
+    125,
+    435,
+    420
+  ],
+  "frames/cryogunner_idle_03.png": [
+    77,
+    125,
+    435,
+    420
+  ],
+  "frames/cryogunner_idle_04.png": [
+    77,
+    125,
+    435,
+    420
+  ],
+  "frames/cryogunner_idle_05.png": [
+    77,
+    125,
+    435,
+    420
+  ],
+  "frames/cryogunner_idle_06.png": [
+    77,
+    125,
+    435,
+    420
+  ],
+  "frames/cryogunner_idle_07.png": [
+    77,
+    125,
+    435,
+    420
+  ],
+  "frames/cryogunner_run_00.png": [
+    77,
+    125,
+    435,
+    420
+  ],
+  "frames/cryogunner_run_01.png": [
+    79,
+    132,
+    433,
+    422
+  ],
+  "frames/cryogunner_run_02.png": [
+    79,
+    135,
+    433,
+    420
+  ],
+  "frames/cryogunner_run_03.png": [
+    86,
+    125,
+    427,
+    420
+  ],
+  "frames/cryogunner_run_04.png": [
+    78,
+    119,
+    434,
+    420
+  ],
+  "frames/cryogunner_run_05.png": [
+    80,
+    128,
+    432,
+    422
+  ],
+  "frames/cryogunner_run_06.png": [
+    77,
+    128,
+    435,
+    420
+  ],
+  "frames/cryogunner_run_07.png": [
+    77,
+    122,
+    435,
+    420
+  ],
+  "frames/cryogunner_attack_00.png": [
+    80,
+    122,
+    432,
+    420
+  ],
+  "frames/cryogunner_attack_01.png": [
+    75,
+    148,
+    437,
+    420
+  ],
+  "frames/cryogunner_attack_02.png": [
+    76,
+    148,
+    438,
+    420
+  ],
+  "frames/cryogunner_attack_03.png": [
+    74,
+    170,
+    439,
+    420
+  ],
+  "frames/cryogunner_attack_04.png": [
+    84,
+    116,
+    429,
+    420
+  ],
+  "frames/cryogunner_attack_05.png": [
+    82,
+    116,
+    427,
+    420
+  ],
+  "frames/cryogunner_attack_06.png": [
+    75,
+    171,
+    437,
+    420
+  ],
+  "frames/cryogunner_attack_07.png": [
+    76,
+    171,
+    438,
+    420
+  ],
+  "frames/cryogunner_attack_08.png": [
+    83,
+    111,
+    429,
+    420
+  ],
+  "frames/cryogunner_attack_09.png": [
+    81,
+    111,
+    427,
+    420
+  ],
+  "frames/cryogunner_attack_10.png": [
+    78,
+    143,
+    434,
+    420
+  ],
+  "frames/cryogunner_attack_11.png": [
+    79,
+    124,
+    433,
+    420
+  ],
+  "frames/cryogunner_hit_00.png": [
+    76,
+    98,
+    437,
+    420
+  ],
+  "frames/cryogunner_hit_01.png": [
+    77,
+    143,
+    435,
+    420
+  ],
+  "frames/cryogunner_hit_02.png": [
+    81,
+    140,
+    431,
+    420
+  ],
+  "frames/cryogunner_hit_03.png": [
+    80,
+    119,
+    432,
+    420
+  ],
+  "frames/cryogunner_defeat_00.png": [
+    80,
+    116,
+    433,
+    420
+  ],
+  "frames/cryogunner_defeat_01.png": [
+    80,
+    117,
+    433,
+    421
+  ],
+  "frames/cryogunner_defeat_02.png": [
+    88,
+    144,
+    424,
+    420
+  ],
+  "frames/cryogunner_defeat_03.png": [
+    88,
+    145,
+    424,
+    421
+  ],
+  "frames/cryogunner_defeat_04.png": [
+    82,
+    167,
+    431,
+    420
+  ],
+  "frames/cryogunner_defeat_05.png": [
+    82,
+    168,
+    431,
+    421
+  ],
+  "frames/cryogunner_defeat_06.png": [
+    72,
+    181,
+    441,
+    420
+  ],
+  "frames/cryogunner_defeat_07.png": [
+    71,
+    181,
+    440,
+    420
+  ],
+  "frames/cryogunner_victory_00.png": [
+    79,
+    147,
+    434,
+    420
+  ],
+  "frames/cryogunner_victory_01.png": [
+    79,
+    110,
+    434,
+    420
+  ],
+  "frames/cryogunner_victory_02.png": [
+    81,
+    104,
+    431,
+    420
+  ],
+  "frames/cryogunner_victory_03.png": [
+    79,
+    148,
+    434,
+    420
+  ],
+  "effects/cryogunner_muzzle_flash_00.png": [
+    85,
+    207,
+    185,
+    299
+  ],
+  "effects/cryogunner_muzzle_flash_01.png": [
+    79,
+    175,
+    257,
+    328
+  ],
+  "effects/cryogunner_muzzle_flash_02.png": [
+    72,
+    142,
+    334,
+    362
+  ],
+  "effects/cryogunner_muzzle_flash_03.png": [
+    84,
+    186,
+    257,
+    321
+  ],
+  "effects/cryogunner_frost_projectile_00.png": [
+    220,
+    237,
+    354,
+    274
+  ],
+  "effects/cryogunner_frost_projectile_01.png": [
+    166,
+    227,
+    354,
+    285
+  ],
+  "effects/cryogunner_frost_projectile_02.png": [
+    148,
+    223,
+    352,
+    296
+  ],
+  "effects/cryogunner_frost_projectile_03.png": [
+    188,
+    232,
+    353,
+    278
+  ],
+  "effects/cryogunner_projectile_impact_00.png": [
+    206,
+    316,
+    318,
+    392
+  ],
+  "effects/cryogunner_projectile_impact_01.png": [
+    151,
+    273,
+    347,
+    399
+  ],
+  "effects/cryogunner_projectile_impact_02.png": [
+    102,
+    215,
+    390,
+    403
+  ],
+  "effects/cryogunner_projectile_impact_03.png": [
+    176,
+    277,
+    347,
+    392
+  ]
+}

@@ -1,0 +1,4 @@
+# Draft integration cues — NOT APPROVED
+Lobber: frames 0–3 hold bomb; spawn one world-space projectile at frame 4 at hand (approximately x=125,y=115 in master coordinates; y down). Frames 4–7 show empty hand. Rearm at next attack only; do not spawn from visual effects. Projectile sprite center is its anchor.
+Warforge: armored shutters cover core; overload shutters retract partially; exposed phase removes shutters and uses core pulse loop. Reference core center (295,332) on 512 canvas. Track the core through actual frame transforms before attaching layers; do not assume these static references are full animations. Proposed thresholds and damage windows require game tuning.
+Repeated frames in baseline often represent matching neutral entry/exit or symmetric hit and idle poses; do not manufacture redundant changes for count alone.

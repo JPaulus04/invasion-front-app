@@ -1,0 +1,410 @@
+{
+  "frames/permafrostcrusher_idle_00.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_idle_01.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_idle_02.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_idle_03.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_idle_04.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_idle_05.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_idle_06.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_idle_07.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_run_00.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_run_01.png": [
+    61,
+    220,
+    450,
+    433
+  ],
+  "frames/permafrostcrusher_run_02.png": [
+    60,
+    221,
+    449,
+    434
+  ],
+  "frames/permafrostcrusher_run_03.png": [
+    62,
+    217,
+    449,
+    433
+  ],
+  "frames/permafrostcrusher_run_04.png": [
+    63,
+    217,
+    450,
+    433
+  ],
+  "frames/permafrostcrusher_run_05.png": [
+    57,
+    216,
+    455,
+    433
+  ],
+  "frames/permafrostcrusher_run_06.png": [
+    59,
+    216,
+    457,
+    433
+  ],
+  "frames/permafrostcrusher_run_07.png": [
+    59,
+    217,
+    450,
+    433
+  ],
+  "frames/permafrostcrusher_attack_00.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_attack_01.png": [
+    57,
+    236,
+    455,
+    433
+  ],
+  "frames/permafrostcrusher_attack_02.png": [
+    59,
+    229,
+    452,
+    433
+  ],
+  "frames/permafrostcrusher_attack_03.png": [
+    60,
+    228,
+    453,
+    432
+  ],
+  "frames/permafrostcrusher_attack_04.png": [
+    59,
+    208,
+    453,
+    433
+  ],
+  "frames/permafrostcrusher_attack_05.png": [
+    61,
+    208,
+    455,
+    433
+  ],
+  "frames/permafrostcrusher_attack_06.png": [
+    49,
+    224,
+    463,
+    433
+  ],
+  "frames/permafrostcrusher_attack_07.png": [
+    49,
+    225,
+    463,
+    434
+  ],
+  "frames/permafrostcrusher_attack_08.png": [
+    61,
+    214,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_attack_09.png": [
+    58,
+    236,
+    456,
+    433
+  ],
+  "frames/permafrostcrusher_attack_10.png": [
+    57,
+    210,
+    454,
+    433
+  ],
+  "frames/permafrostcrusher_attack_11.png": [
+    60,
+    218,
+    451,
+    434
+  ],
+  "frames/permafrostcrusher_hit_00.png": [
+    57,
+    210,
+    454,
+    433
+  ],
+  "frames/permafrostcrusher_hit_01.png": [
+    59,
+    208,
+    453,
+    433
+  ],
+  "frames/permafrostcrusher_hit_02.png": [
+    62,
+    196,
+    449,
+    433
+  ],
+  "frames/permafrostcrusher_hit_03.png": [
+    61,
+    214,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_defeat_00.png": [
+    71,
+    204,
+    441,
+    433
+  ],
+  "frames/permafrostcrusher_defeat_01.png": [
+    70,
+    205,
+    440,
+    434
+  ],
+  "frames/permafrostcrusher_defeat_02.png": [
+    72,
+    204,
+    440,
+    433
+  ],
+  "frames/permafrostcrusher_defeat_03.png": [
+    71,
+    204,
+    439,
+    433
+  ],
+  "frames/permafrostcrusher_defeat_04.png": [
+    70,
+    218,
+    441,
+    433
+  ],
+  "frames/permafrostcrusher_defeat_05.png": [
+    69,
+    219,
+    440,
+    434
+  ],
+  "frames/permafrostcrusher_defeat_06.png": [
+    58,
+    242,
+    454,
+    433
+  ],
+  "frames/permafrostcrusher_defeat_07.png": [
+    57,
+    242,
+    453,
+    433
+  ],
+  "frames/permafrostcrusher_victory_00.png": [
+    60,
+    205,
+    451,
+    433
+  ],
+  "frames/permafrostcrusher_victory_01.png": [
+    64,
+    211,
+    447,
+    433
+  ],
+  "frames/permafrostcrusher_victory_02.png": [
+    67,
+    182,
+    444,
+    433
+  ],
+  "frames/permafrostcrusher_victory_03.png": [
+    62,
+    207,
+    449,
+    433
+  ],
+  "frames/permafrostcrusher_charge_00.png": [
+    57,
+    236,
+    455,
+    433
+  ],
+  "frames/permafrostcrusher_charge_01.png": [
+    59,
+    229,
+    452,
+    433
+  ],
+  "frames/permafrostcrusher_charge_02.png": [
+    55,
+    229,
+    448,
+    433
+  ],
+  "frames/permafrostcrusher_charge_03.png": [
+    30,
+    234,
+    481,
+    433
+  ],
+  "frames/permafrostcrusher_charge_04.png": [
+    33,
+    232,
+    484,
+    431
+  ],
+  "frames/permafrostcrusher_charge_05.png": [
+    57,
+    216,
+    455,
+    433
+  ],
+  "frames/permafrostcrusher_charge_06.png": [
+    54,
+    236,
+    452,
+    433
+  ],
+  "frames/permafrostcrusher_charge_07.png": [
+    60,
+    217,
+    451,
+    433
+  ],
+  "effects/permafrostcrusher_charge_trail_00.png": [
+    170,
+    292,
+    342,
+    359
+  ],
+  "effects/permafrostcrusher_charge_trail_01.png": [
+    145,
+    260,
+    367,
+    359
+  ],
+  "effects/permafrostcrusher_charge_trail_02.png": [
+    116,
+    217,
+    397,
+    360
+  ],
+  "effects/permafrostcrusher_charge_trail_03.png": [
+    91,
+    177,
+    422,
+    360
+  ],
+  "effects/permafrostcrusher_charge_trail_04.png": [
+    106,
+    186,
+    407,
+    357
+  ],
+  "effects/permafrostcrusher_charge_trail_05.png": [
+    121,
+    205,
+    391,
+    357
+  ],
+  "effects/permafrostcrusher_charge_trail_06.png": [
+    136,
+    227,
+    376,
+    360
+  ],
+  "effects/permafrostcrusher_charge_trail_07.png": [
+    159,
+    255,
+    356,
+    359
+  ],
+  "effects/permafrostcrusher_seismic_stomp_00.png": [
+    197,
+    285,
+    315,
+    376
+  ],
+  "effects/permafrostcrusher_seismic_stomp_01.png": [
+    143,
+    198,
+    370,
+    376
+  ],
+  "effects/permafrostcrusher_seismic_stomp_02.png": [
+    102,
+    121,
+    411,
+    376
+  ],
+  "effects/permafrostcrusher_seismic_stomp_03.png": [
+    104,
+    165,
+    409,
+    376
+  ],
+  "effects/permafrostcrusher_frost_shockwave_00.png": [
+    193,
+    217,
+    319,
+    296
+  ],
+  "effects/permafrostcrusher_frost_shockwave_01.png": [
+    141,
+    190,
+    372,
+    322
+  ],
+  "effects/permafrostcrusher_frost_shockwave_02.png": [
+    80,
+    168,
+    433,
+    344
+  ],
+  "effects/permafrostcrusher_frost_shockwave_03.png": [
+    84,
+    165,
+    429,
+    348
+  ]
+}

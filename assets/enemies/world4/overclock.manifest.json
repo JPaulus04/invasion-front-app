@@ -1,0 +1,133 @@
+{
+  "character": "overclock",
+  "role": "reusable elite",
+  "source": "masters/overclock_master.png",
+  "pixels": 512,
+  "art_pivot_px": [
+    256,
+    465.0
+  ],
+  "idle_height_px": 345.0,
+  "states": {
+    "attack": {
+      "fps": 8.421053,
+      "loop": false,
+      "frames": [
+        "frames/overclock_attack_00.png",
+        "frames/overclock_attack_01.png",
+        "frames/overclock_attack_02.png",
+        "frames/overclock_attack_03.png",
+        "frames/overclock_attack_04.png",
+        "frames/overclock_attack_05.png",
+        "frames/overclock_attack_06.png",
+        "frames/overclock_attack_07.png"
+      ],
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ]
+    },
+    "attack_fx": {
+      "fps": 8.421053,
+      "loop": false,
+      "frames": [
+        "effects/overclock_attack_fx_00.png",
+        "effects/overclock_attack_fx_01.png",
+        "effects/overclock_attack_fx_02.png",
+        "effects/overclock_attack_fx_03.png",
+        "effects/overclock_attack_fx_04.png",
+        "effects/overclock_attack_fx_05.png",
+        "effects/overclock_attack_fx_06.png",
+        "effects/overclock_attack_fx_07.png"
+      ],
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ]
+    },
+    "defeat": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/overclock_defeat_00.png",
+        "frames/overclock_defeat_01.png",
+        "frames/overclock_defeat_02.png",
+        "frames/overclock_defeat_03.png",
+        "frames/overclock_defeat_04.png",
+        "frames/overclock_defeat_05.png",
+        "frames/overclock_defeat_06.png",
+        "frames/overclock_defeat_07.png",
+        "frames/overclock_defeat_08.png",
+        "frames/overclock_defeat_09.png"
+      ]
+    },
+    "hit": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/overclock_hit_00.png",
+        "frames/overclock_hit_01.png",
+        "frames/overclock_hit_02.png",
+        "frames/overclock_hit_03.png",
+        "frames/overclock_hit_04.png",
+        "frames/overclock_hit_05.png"
+      ]
+    },
+    "idle": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "frames/overclock_idle_00.png",
+        "frames/overclock_idle_01.png",
+        "frames/overclock_idle_02.png",
+        "frames/overclock_idle_03.png",
+        "frames/overclock_idle_04.png",
+        "frames/overclock_idle_05.png",
+        "frames/overclock_idle_06.png",
+        "frames/overclock_idle_07.png"
+      ]
+    },
+    "run": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "frames/overclock_run_00.png",
+        "frames/overclock_run_01.png",
+        "frames/overclock_run_02.png",
+        "frames/overclock_run_03.png",
+        "frames/overclock_run_04.png",
+        "frames/overclock_run_05.png",
+        "frames/overclock_run_06.png",
+        "frames/overclock_run_07.png"
+      ]
+    },
+    "victory": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/overclock_victory_00.png",
+        "frames/overclock_victory_01.png",
+        "frames/overclock_victory_02.png",
+        "frames/overclock_victory_03.png"
+      ]
+    }
+  },
+  "effects": [
+    "attack_fx"
+  ],
+  "gameplay_validation": "pending",
+  "status": "CANDIDATE_NOT_APPROVED",
+  "timing_note": "fps is constant-rate fallback only; use explicit per-frame duration for attack and FX synchronization. Art pivot is measured from idle alpha bounds, not a collider."
+}

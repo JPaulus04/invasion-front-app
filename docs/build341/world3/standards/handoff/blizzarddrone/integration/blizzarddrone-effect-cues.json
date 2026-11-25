@@ -1,0 +1,49 @@
+{
+  "body_pivot_px": [
+    256,
+    425
+  ],
+  "effect_pivots_px": {
+    "propulsion": [
+      256,
+      182
+    ],
+    "frost_projectile": [
+      336,
+      256
+    ],
+    "freezing_area": [
+      256,
+      256
+    ]
+  },
+  "propulsion": {
+    "offsets_px": [
+      [
+        -112,
+        -133
+      ],
+      [
+        102,
+        -131
+      ]
+    ],
+    "loop": true,
+    "layer": "behind",
+    "stop_on": "defeat"
+  },
+  "attack_fire": {
+    "body_frames": [
+      4,
+      8
+    ],
+    "offset_px": [
+      82,
+      -196
+    ]
+  },
+  "freezing_area": {
+    "position": "gameplay hazard target on ground",
+    "active_visual_body_frame": 8
+  }
+}

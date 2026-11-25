@@ -1,0 +1,118 @@
+{
+  "body_pivot_px": [
+    256,
+    433
+  ],
+  "effect_pivots_px": {
+    "phase_pulse": [
+      256,
+      256
+    ],
+    "final_defeat": [
+      256,
+      256
+    ],
+    "muzzle_flash": [
+      96,
+      256
+    ],
+    "cryo_projectile": [
+      336,
+      256
+    ],
+    "melee_impact": [
+      256,
+      376
+    ],
+    "freezing_hazard": [
+      256,
+      256
+    ]
+  },
+  "events": {
+    "attack": [
+      {
+        "effect": "muzzle_flash",
+        "body_frame": 3,
+        "x_offset_px": 155,
+        "y_offset_px": -327,
+        "scale": 0.59,
+        "layer": "front"
+      },
+      {
+        "effect": "muzzle_flash",
+        "body_frame": 6,
+        "x_offset_px": 157,
+        "y_offset_px": -306,
+        "scale": 0.63,
+        "layer": "front"
+      },
+      {
+        "effect": "cryo_projectile",
+        "body_frame": 3,
+        "x_offset_px": 165,
+        "y_offset_px": -327,
+        "scale": 0.7,
+        "layer": "front"
+      },
+      {
+        "effect": "cryo_projectile",
+        "body_frame": 6,
+        "x_offset_px": 167,
+        "y_offset_px": -306,
+        "scale": 0.72,
+        "layer": "front"
+      }
+    ],
+    "heavy_slam": [
+      {
+        "effect": "melee_impact",
+        "body_frame": 3,
+        "x_offset_px": 132,
+        "y_offset_px": -2,
+        "scale": 1.25,
+        "layer": "front"
+      }
+    ],
+    "phase_transition": [
+      {
+        "effect": "phase_pulse",
+        "body_frame": 2,
+        "x_offset_px": 7,
+        "y_offset_px": -209,
+        "scale": 0.9,
+        "layer": "front"
+      }
+    ],
+    "freeze_cast": [
+      {
+        "effect": "freezing_hazard",
+        "body_frame": 3,
+        "x_offset_px": 173,
+        "y_offset_px": 6,
+        "scale": 1.31,
+        "layer": "back"
+      },
+      {
+        "effect": "phase_pulse",
+        "body_frame": 3,
+        "x_offset_px": 8,
+        "y_offset_px": -202,
+        "scale": 0.63,
+        "layer": "front"
+      }
+    ],
+    "defeat": [
+      {
+        "effect": "final_defeat",
+        "body_frame": 4,
+        "x_offset_px": 7,
+        "y_offset_px": -116,
+        "scale": 0.97,
+        "layer": "front"
+      }
+    ]
+  },
+  "cue_note": "Frame indices are zero-based. Art coordinates are right-facing source pixels.",
+  "behavior": "Phase 1 ranged barrage, phase 2 adds heavy slam, phase 3 adds ground freeze cast. Use the transition cue at phase boundaries."
+}

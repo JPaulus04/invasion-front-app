@@ -1,0 +1,767 @@
+{
+  "status": "PROPOSED_NOT_ENGINE_VALIDATED",
+  "index_base": 0,
+  "sequences": [
+    {
+      "character": "bulkhead",
+      "sequence": "attack",
+      "effect": "ground_slam",
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ],
+      "warning_frames": [
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/bulkhead_attack_00.png",
+        "frames/bulkhead_attack_01.png",
+        "frames/bulkhead_attack_02.png",
+        "frames/bulkhead_attack_03.png",
+        "frames/bulkhead_attack_04.png",
+        "frames/bulkhead_attack_05.png",
+        "frames/bulkhead_attack_06.png",
+        "frames/bulkhead_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/bulkhead_attack_fx_00.png",
+        "effects/bulkhead_attack_fx_01.png",
+        "effects/bulkhead_attack_fx_02.png",
+        "effects/bulkhead_attack_fx_03.png",
+        "effects/bulkhead_attack_fx_04.png",
+        "effects/bulkhead_attack_fx_05.png",
+        "effects/bulkhead_attack_fx_06.png",
+        "effects/bulkhead_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 490,
+      "total_time_ms": 950
+    },
+    {
+      "character": "gantry_warden",
+      "sequence": "attack",
+      "effect": "left_clamp",
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        100,
+        130,
+        150,
+        200
+      ],
+      "warning_frames": [
+        1,
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/gantry_warden_attack_00.png",
+        "frames/gantry_warden_attack_01.png",
+        "frames/gantry_warden_attack_02.png",
+        "frames/gantry_warden_attack_03.png",
+        "frames/gantry_warden_attack_04.png",
+        "frames/gantry_warden_attack_05.png",
+        "frames/gantry_warden_attack_06.png",
+        "frames/gantry_warden_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/gantry_warden_attack_fx_00.png",
+        "effects/gantry_warden_attack_fx_01.png",
+        "effects/gantry_warden_attack_fx_02.png",
+        "effects/gantry_warden_attack_fx_03.png",
+        "effects/gantry_warden_attack_fx_04.png",
+        "effects/gantry_warden_attack_fx_05.png",
+        "effects/gantry_warden_attack_fx_06.png",
+        "effects/gantry_warden_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "preview_effect_anchor_px": [
+        105,
+        439
+      ],
+      "active_time_ms": 630,
+      "total_time_ms": 1210
+    },
+    {
+      "character": "gantry_warden",
+      "sequence": "attack_2",
+      "effect": "right_clamp",
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        100,
+        130,
+        150,
+        200
+      ],
+      "warning_frames": [
+        1,
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/gantry_warden_attack_2_00.png",
+        "frames/gantry_warden_attack_2_01.png",
+        "frames/gantry_warden_attack_2_02.png",
+        "frames/gantry_warden_attack_2_03.png",
+        "frames/gantry_warden_attack_2_04.png",
+        "frames/gantry_warden_attack_2_05.png",
+        "frames/gantry_warden_attack_2_06.png",
+        "frames/gantry_warden_attack_2_07.png"
+      ],
+      "effect_frames": [
+        "effects/gantry_warden_attack_2_fx_00.png",
+        "effects/gantry_warden_attack_2_fx_01.png",
+        "effects/gantry_warden_attack_2_fx_02.png",
+        "effects/gantry_warden_attack_2_fx_03.png",
+        "effects/gantry_warden_attack_2_fx_04.png",
+        "effects/gantry_warden_attack_2_fx_05.png",
+        "effects/gantry_warden_attack_2_fx_06.png",
+        "effects/gantry_warden_attack_2_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "preview_effect_anchor_px": [
+        407,
+        439
+      ],
+      "active_time_ms": 630,
+      "total_time_ms": 1210
+    },
+    {
+      "character": "grunt",
+      "sequence": "attack",
+      "effect": "charge",
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ],
+      "warning_frames": [
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/grunt_attack_00.png",
+        "frames/grunt_attack_01.png",
+        "frames/grunt_attack_02.png",
+        "frames/grunt_attack_03.png",
+        "frames/grunt_attack_04.png",
+        "frames/grunt_attack_05.png",
+        "frames/grunt_attack_06.png",
+        "frames/grunt_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/grunt_attack_fx_00.png",
+        "effects/grunt_attack_fx_01.png",
+        "effects/grunt_attack_fx_02.png",
+        "effects/grunt_attack_fx_03.png",
+        "effects/grunt_attack_fx_04.png",
+        "effects/grunt_attack_fx_05.png",
+        "effects/grunt_attack_fx_06.png",
+        "effects/grunt_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 490,
+      "total_time_ms": 950
+    },
+    {
+      "character": "lobber",
+      "sequence": "attack",
+      "effect": "projectile_release",
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ],
+      "warning_frames": [
+        1,
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/lobber_attack_00.png",
+        "frames/lobber_attack_01.png",
+        "frames/lobber_attack_02.png",
+        "frames/lobber_attack_03.png",
+        "frames/lobber_attack_04.png",
+        "frames/lobber_attack_05.png",
+        "frames/lobber_attack_06.png",
+        "frames/lobber_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/lobber_attack_fx_00.png",
+        "effects/lobber_attack_fx_01.png",
+        "effects/lobber_attack_fx_02.png",
+        "effects/lobber_attack_fx_03.png",
+        "effects/lobber_attack_fx_04.png",
+        "effects/lobber_attack_fx_05.png",
+        "effects/lobber_attack_fx_06.png",
+        "effects/lobber_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "projectile_asset": "lobber/projectiles/bomb.png",
+      "release_once": true,
+      "release_anchor_px_approx": [
+        125,
+        115
+      ],
+      "warning_note": "held bomb frames 0-3, empty hand frames 4-7; reticle is a preview cue, not projectile",
+      "active_time_ms": 490,
+      "total_time_ms": 950
+    },
+    {
+      "character": "overclock",
+      "sequence": "attack",
+      "effect": "elite_slash",
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ],
+      "warning_frames": [
+        1,
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/overclock_attack_00.png",
+        "frames/overclock_attack_01.png",
+        "frames/overclock_attack_02.png",
+        "frames/overclock_attack_03.png",
+        "frames/overclock_attack_04.png",
+        "frames/overclock_attack_05.png",
+        "frames/overclock_attack_06.png",
+        "frames/overclock_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/overclock_attack_fx_00.png",
+        "effects/overclock_attack_fx_01.png",
+        "effects/overclock_attack_fx_02.png",
+        "effects/overclock_attack_fx_03.png",
+        "effects/overclock_attack_fx_04.png",
+        "effects/overclock_attack_fx_05.png",
+        "effects/overclock_attack_fx_06.png",
+        "effects/overclock_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 490,
+      "total_time_ms": 950
+    },
+    {
+      "character": "press_giant",
+      "sequence": "attack",
+      "effect": "slam",
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        90,
+        120,
+        140,
+        200
+      ],
+      "warning_frames": [
+        1,
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/press_giant_attack_00.png",
+        "frames/press_giant_attack_01.png",
+        "frames/press_giant_attack_02.png",
+        "frames/press_giant_attack_03.png",
+        "frames/press_giant_attack_04.png",
+        "frames/press_giant_attack_05.png",
+        "frames/press_giant_attack_06.png",
+        "frames/press_giant_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/press_giant_attack_fx_00.png",
+        "effects/press_giant_attack_fx_01.png",
+        "effects/press_giant_attack_fx_02.png",
+        "effects/press_giant_attack_fx_03.png",
+        "effects/press_giant_attack_fx_04.png",
+        "effects/press_giant_attack_fx_05.png",
+        "effects/press_giant_attack_fx_06.png",
+        "effects/press_giant_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 630,
+      "total_time_ms": 1180
+    },
+    {
+      "character": "press_giant",
+      "sequence": "attack_2",
+      "effect": "press",
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        90,
+        120,
+        140,
+        200
+      ],
+      "warning_frames": [
+        1,
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/press_giant_attack_2_00.png",
+        "frames/press_giant_attack_2_01.png",
+        "frames/press_giant_attack_2_02.png",
+        "frames/press_giant_attack_2_03.png",
+        "frames/press_giant_attack_2_04.png",
+        "frames/press_giant_attack_2_05.png",
+        "frames/press_giant_attack_2_06.png",
+        "frames/press_giant_attack_2_07.png"
+      ],
+      "effect_frames": [
+        "effects/press_giant_attack_2_fx_00.png",
+        "effects/press_giant_attack_2_fx_01.png",
+        "effects/press_giant_attack_2_fx_02.png",
+        "effects/press_giant_attack_2_fx_03.png",
+        "effects/press_giant_attack_2_fx_04.png",
+        "effects/press_giant_attack_2_fx_05.png",
+        "effects/press_giant_attack_2_fx_06.png",
+        "effects/press_giant_attack_2_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 630,
+      "total_time_ms": 1180
+    },
+    {
+      "character": "raider",
+      "sequence": "attack",
+      "effect": "melee_sweep",
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ],
+      "warning_frames": [
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/raider_attack_00.png",
+        "frames/raider_attack_01.png",
+        "frames/raider_attack_02.png",
+        "frames/raider_attack_03.png",
+        "frames/raider_attack_04.png",
+        "frames/raider_attack_05.png",
+        "frames/raider_attack_06.png",
+        "frames/raider_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/raider_attack_fx_00.png",
+        "effects/raider_attack_fx_01.png",
+        "effects/raider_attack_fx_02.png",
+        "effects/raider_attack_fx_03.png",
+        "effects/raider_attack_fx_04.png",
+        "effects/raider_attack_fx_05.png",
+        "effects/raider_attack_fx_06.png",
+        "effects/raider_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 490,
+      "total_time_ms": 950
+    },
+    {
+      "character": "rail_skater",
+      "sequence": "attack",
+      "effect": "dash",
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ],
+      "warning_frames": [
+        1,
+        2
+      ],
+      "active_frame": 3,
+      "recovery_frames": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/rail_skater_attack_00.png",
+        "frames/rail_skater_attack_01.png",
+        "frames/rail_skater_attack_02.png",
+        "frames/rail_skater_attack_03.png",
+        "frames/rail_skater_attack_04.png",
+        "frames/rail_skater_attack_05.png",
+        "frames/rail_skater_attack_06.png",
+        "frames/rail_skater_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/rail_skater_attack_fx_00.png",
+        "effects/rail_skater_attack_fx_01.png",
+        "effects/rail_skater_attack_fx_02.png",
+        "effects/rail_skater_attack_fx_03.png",
+        "effects/rail_skater_attack_fx_04.png",
+        "effects/rail_skater_attack_fx_05.png",
+        "effects/rail_skater_attack_fx_06.png",
+        "effects/rail_skater_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 330,
+      "total_time_ms": 950
+    },
+    {
+      "character": "scrapper",
+      "sequence": "attack",
+      "effect": "saw_sweep",
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ],
+      "warning_frames": [
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/scrapper_attack_00.png",
+        "frames/scrapper_attack_01.png",
+        "frames/scrapper_attack_02.png",
+        "frames/scrapper_attack_03.png",
+        "frames/scrapper_attack_04.png",
+        "frames/scrapper_attack_05.png",
+        "frames/scrapper_attack_06.png",
+        "frames/scrapper_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/scrapper_attack_fx_00.png",
+        "effects/scrapper_attack_fx_01.png",
+        "effects/scrapper_attack_fx_02.png",
+        "effects/scrapper_attack_fx_03.png",
+        "effects/scrapper_attack_fx_04.png",
+        "effects/scrapper_attack_fx_05.png",
+        "effects/scrapper_attack_fx_06.png",
+        "effects/scrapper_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 490,
+      "total_time_ms": 950
+    },
+    {
+      "character": "sentry",
+      "sequence": "attack",
+      "effect": "burst_start",
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ],
+      "warning_frames": [
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/sentry_attack_00.png",
+        "frames/sentry_attack_01.png",
+        "frames/sentry_attack_02.png",
+        "frames/sentry_attack_03.png",
+        "frames/sentry_attack_04.png",
+        "frames/sentry_attack_05.png",
+        "frames/sentry_attack_06.png",
+        "frames/sentry_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/sentry_attack_fx_00.png",
+        "effects/sentry_attack_fx_01.png",
+        "effects/sentry_attack_fx_02.png",
+        "effects/sentry_attack_fx_03.png",
+        "effects/sentry_attack_fx_04.png",
+        "effects/sentry_attack_fx_05.png",
+        "effects/sentry_attack_fx_06.png",
+        "effects/sentry_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "note": "active frame starts burst; actual subsequent projectile cadence gameplay-owned",
+      "active_time_ms": 490,
+      "total_time_ms": 950
+    },
+    {
+      "character": "warforge",
+      "sequence": "attack",
+      "effect": "claw",
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        90,
+        120,
+        140,
+        200
+      ],
+      "warning_frames": [
+        1,
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/warforge_attack_00.png",
+        "frames/warforge_attack_01.png",
+        "frames/warforge_attack_02.png",
+        "frames/warforge_attack_03.png",
+        "frames/warforge_attack_04.png",
+        "frames/warforge_attack_05.png",
+        "frames/warforge_attack_06.png",
+        "frames/warforge_attack_07.png"
+      ],
+      "effect_frames": [
+        "effects/warforge_attack_fx_00.png",
+        "effects/warforge_attack_fx_01.png",
+        "effects/warforge_attack_fx_02.png",
+        "effects/warforge_attack_fx_03.png",
+        "effects/warforge_attack_fx_04.png",
+        "effects/warforge_attack_fx_05.png",
+        "effects/warforge_attack_fx_06.png",
+        "effects/warforge_attack_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 630,
+      "total_time_ms": 1180
+    },
+    {
+      "character": "warforge",
+      "sequence": "attack_2",
+      "effect": "heat",
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        90,
+        120,
+        140,
+        200
+      ],
+      "warning_frames": [
+        1,
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/warforge_attack_2_00.png",
+        "frames/warforge_attack_2_01.png",
+        "frames/warforge_attack_2_02.png",
+        "frames/warforge_attack_2_03.png",
+        "frames/warforge_attack_2_04.png",
+        "frames/warforge_attack_2_05.png",
+        "frames/warforge_attack_2_06.png",
+        "frames/warforge_attack_2_07.png"
+      ],
+      "effect_frames": [
+        "effects/warforge_attack_2_fx_00.png",
+        "effects/warforge_attack_2_fx_01.png",
+        "effects/warforge_attack_2_fx_02.png",
+        "effects/warforge_attack_2_fx_03.png",
+        "effects/warforge_attack_2_fx_04.png",
+        "effects/warforge_attack_2_fx_05.png",
+        "effects/warforge_attack_2_fx_06.png",
+        "effects/warforge_attack_2_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 630,
+      "total_time_ms": 1180
+    },
+    {
+      "character": "warforge",
+      "sequence": "attack_3",
+      "effect": "core",
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        90,
+        120,
+        140,
+        200
+      ],
+      "warning_frames": [
+        1,
+        2,
+        3
+      ],
+      "active_frame": 4,
+      "recovery_frames": [
+        5,
+        6,
+        7
+      ],
+      "sprite_frames": [
+        "frames/warforge_attack_3_00.png",
+        "frames/warforge_attack_3_01.png",
+        "frames/warforge_attack_3_02.png",
+        "frames/warforge_attack_3_03.png",
+        "frames/warforge_attack_3_04.png",
+        "frames/warforge_attack_3_05.png",
+        "frames/warforge_attack_3_06.png",
+        "frames/warforge_attack_3_07.png"
+      ],
+      "effect_frames": [
+        "effects/warforge_attack_3_fx_00.png",
+        "effects/warforge_attack_3_fx_01.png",
+        "effects/warforge_attack_3_fx_02.png",
+        "effects/warforge_attack_3_fx_03.png",
+        "effects/warforge_attack_3_fx_04.png",
+        "effects/warforge_attack_3_fx_05.png",
+        "effects/warforge_attack_3_fx_06.png",
+        "effects/warforge_attack_3_fx_07.png"
+      ],
+      "damage_geometry": "gameplay-owned; visual layers not hitboxes",
+      "anchor_space": "512x512 local art; convert to engine world-space",
+      "active_time_ms": 630,
+      "total_time_ms": 1180
+    }
+  ]
+}

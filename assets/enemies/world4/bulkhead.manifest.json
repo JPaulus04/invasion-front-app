@@ -1,0 +1,133 @@
+{
+  "character": "bulkhead",
+  "role": "heavy defensive brawler",
+  "source": "masters/bulkhead_master.png",
+  "pixels": 512,
+  "art_pivot_px": [
+    256,
+    465.0
+  ],
+  "idle_height_px": 302.0,
+  "states": {
+    "attack": {
+      "fps": 8.421053,
+      "loop": false,
+      "frames": [
+        "frames/bulkhead_attack_00.png",
+        "frames/bulkhead_attack_01.png",
+        "frames/bulkhead_attack_02.png",
+        "frames/bulkhead_attack_03.png",
+        "frames/bulkhead_attack_04.png",
+        "frames/bulkhead_attack_05.png",
+        "frames/bulkhead_attack_06.png",
+        "frames/bulkhead_attack_07.png"
+      ],
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ]
+    },
+    "attack_fx": {
+      "fps": 8.421053,
+      "loop": false,
+      "frames": [
+        "effects/bulkhead_attack_fx_00.png",
+        "effects/bulkhead_attack_fx_01.png",
+        "effects/bulkhead_attack_fx_02.png",
+        "effects/bulkhead_attack_fx_03.png",
+        "effects/bulkhead_attack_fx_04.png",
+        "effects/bulkhead_attack_fx_05.png",
+        "effects/bulkhead_attack_fx_06.png",
+        "effects/bulkhead_attack_fx_07.png"
+      ],
+      "frame_durations_ms": [
+        90,
+        100,
+        140,
+        160,
+        90,
+        100,
+        120,
+        150
+      ]
+    },
+    "defeat": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/bulkhead_defeat_00.png",
+        "frames/bulkhead_defeat_01.png",
+        "frames/bulkhead_defeat_02.png",
+        "frames/bulkhead_defeat_03.png",
+        "frames/bulkhead_defeat_04.png",
+        "frames/bulkhead_defeat_05.png",
+        "frames/bulkhead_defeat_06.png",
+        "frames/bulkhead_defeat_07.png",
+        "frames/bulkhead_defeat_08.png",
+        "frames/bulkhead_defeat_09.png"
+      ]
+    },
+    "hit": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/bulkhead_hit_00.png",
+        "frames/bulkhead_hit_01.png",
+        "frames/bulkhead_hit_02.png",
+        "frames/bulkhead_hit_03.png",
+        "frames/bulkhead_hit_04.png",
+        "frames/bulkhead_hit_05.png"
+      ]
+    },
+    "idle": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "frames/bulkhead_idle_00.png",
+        "frames/bulkhead_idle_01.png",
+        "frames/bulkhead_idle_02.png",
+        "frames/bulkhead_idle_03.png",
+        "frames/bulkhead_idle_04.png",
+        "frames/bulkhead_idle_05.png",
+        "frames/bulkhead_idle_06.png",
+        "frames/bulkhead_idle_07.png"
+      ]
+    },
+    "run": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "frames/bulkhead_run_00.png",
+        "frames/bulkhead_run_01.png",
+        "frames/bulkhead_run_02.png",
+        "frames/bulkhead_run_03.png",
+        "frames/bulkhead_run_04.png",
+        "frames/bulkhead_run_05.png",
+        "frames/bulkhead_run_06.png",
+        "frames/bulkhead_run_07.png"
+      ]
+    },
+    "victory": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/bulkhead_victory_00.png",
+        "frames/bulkhead_victory_01.png",
+        "frames/bulkhead_victory_02.png",
+        "frames/bulkhead_victory_03.png"
+      ]
+    }
+  },
+  "effects": [
+    "attack_fx"
+  ],
+  "gameplay_validation": "pending",
+  "status": "CANDIDATE_NOT_APPROVED",
+  "timing_note": "fps is constant-rate fallback only; use explicit per-frame duration for attack and FX synchronization. Art pivot is measured from idle alpha bounds, not a collider."
+}

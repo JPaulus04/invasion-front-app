@@ -1,0 +1,338 @@
+{
+  "frames/shardstinger_idle_00.png": [
+    73,
+    166,
+    439,
+    420
+  ],
+  "frames/shardstinger_idle_01.png": [
+    73,
+    166,
+    439,
+    420
+  ],
+  "frames/shardstinger_idle_02.png": [
+    73,
+    166,
+    439,
+    420
+  ],
+  "frames/shardstinger_idle_03.png": [
+    73,
+    166,
+    439,
+    420
+  ],
+  "frames/shardstinger_idle_04.png": [
+    73,
+    166,
+    439,
+    420
+  ],
+  "frames/shardstinger_idle_05.png": [
+    73,
+    166,
+    439,
+    420
+  ],
+  "frames/shardstinger_idle_06.png": [
+    73,
+    166,
+    439,
+    420
+  ],
+  "frames/shardstinger_idle_07.png": [
+    73,
+    166,
+    439,
+    420
+  ],
+  "frames/shardstinger_run_00.png": [
+    73,
+    166,
+    439,
+    420
+  ],
+  "frames/shardstinger_run_01.png": [
+    74,
+    182,
+    439,
+    420
+  ],
+  "frames/shardstinger_run_02.png": [
+    73,
+    194,
+    440,
+    420
+  ],
+  "frames/shardstinger_run_03.png": [
+    72,
+    208,
+    441,
+    420
+  ],
+  "frames/shardstinger_run_04.png": [
+    74,
+    213,
+    439,
+    420
+  ],
+  "frames/shardstinger_run_05.png": [
+    71,
+    182,
+    442,
+    420
+  ],
+  "frames/shardstinger_run_06.png": [
+    73,
+    168,
+    439,
+    420
+  ],
+  "frames/shardstinger_run_07.png": [
+    73,
+    166,
+    440,
+    420
+  ],
+  "frames/shardstinger_attack_00.png": [
+    70,
+    157,
+    442,
+    420
+  ],
+  "frames/shardstinger_attack_01.png": [
+    72,
+    227,
+    441,
+    420
+  ],
+  "frames/shardstinger_attack_02.png": [
+    73,
+    227,
+    442,
+    420
+  ],
+  "frames/shardstinger_attack_03.png": [
+    71,
+    185,
+    442,
+    420
+  ],
+  "frames/shardstinger_attack_04.png": [
+    71,
+    110,
+    441,
+    420
+  ],
+  "frames/shardstinger_attack_05.png": [
+    71,
+    109,
+    441,
+    419
+  ],
+  "frames/shardstinger_attack_06.png": [
+    70,
+    166,
+    443,
+    420
+  ],
+  "frames/shardstinger_attack_07.png": [
+    71,
+    219,
+    441,
+    420
+  ],
+  "frames/shardstinger_attack_08.png": [
+    71,
+    220,
+    441,
+    421
+  ],
+  "frames/shardstinger_attack_09.png": [
+    71,
+    177,
+    441,
+    420
+  ],
+  "frames/shardstinger_attack_10.png": [
+    71,
+    176,
+    441,
+    419
+  ],
+  "frames/shardstinger_attack_11.png": [
+    72,
+    162,
+    441,
+    420
+  ],
+  "frames/shardstinger_hit_00.png": [
+    78,
+    110,
+    434,
+    420
+  ],
+  "frames/shardstinger_hit_01.png": [
+    94,
+    163,
+    417,
+    420
+  ],
+  "frames/shardstinger_hit_02.png": [
+    64,
+    173,
+    447,
+    420
+  ],
+  "frames/shardstinger_hit_03.png": [
+    70,
+    134,
+    441,
+    420
+  ],
+  "frames/shardstinger_defeat_00.png": [
+    71,
+    146,
+    440,
+    420
+  ],
+  "frames/shardstinger_defeat_01.png": [
+    71,
+    147,
+    440,
+    421
+  ],
+  "frames/shardstinger_defeat_02.png": [
+    59,
+    202,
+    452,
+    420
+  ],
+  "frames/shardstinger_defeat_03.png": [
+    60,
+    203,
+    453,
+    421
+  ],
+  "frames/shardstinger_defeat_04.png": [
+    59,
+    244,
+    452,
+    420
+  ],
+  "frames/shardstinger_defeat_05.png": [
+    59,
+    245,
+    452,
+    421
+  ],
+  "frames/shardstinger_defeat_06.png": [
+    58,
+    266,
+    454,
+    420
+  ],
+  "frames/shardstinger_defeat_07.png": [
+    59,
+    267,
+    455,
+    421
+  ],
+  "frames/shardstinger_victory_00.png": [
+    71,
+    134,
+    440,
+    420
+  ],
+  "frames/shardstinger_victory_01.png": [
+    58,
+    124,
+    454,
+    420
+  ],
+  "frames/shardstinger_victory_02.png": [
+    74,
+    85,
+    438,
+    420
+  ],
+  "frames/shardstinger_victory_03.png": [
+    69,
+    133,
+    443,
+    420
+  ],
+  "effects/shardstinger_stinger_strike_00.png": [
+    196,
+    188,
+    316,
+    378
+  ],
+  "effects/shardstinger_stinger_strike_01.png": [
+    189,
+    220,
+    323,
+    378
+  ],
+  "effects/shardstinger_stinger_strike_02.png": [
+    185,
+    316,
+    328,
+    378
+  ],
+  "effects/shardstinger_stinger_strike_03.png": [
+    206,
+    324,
+    307,
+    378
+  ],
+  "effects/shardstinger_emerging_crystals_00.png": [
+    160,
+    328,
+    353,
+    378
+  ],
+  "effects/shardstinger_emerging_crystals_01.png": [
+    136,
+    295,
+    376,
+    378
+  ],
+  "effects/shardstinger_emerging_crystals_02.png": [
+    130,
+    209,
+    382,
+    378
+  ],
+  "effects/shardstinger_emerging_crystals_03.png": [
+    134,
+    185,
+    379,
+    378
+  ],
+  "effects/shardstinger_ice_hazard_00.png": [
+    129,
+    188,
+    384,
+    324
+  ],
+  "effects/shardstinger_ice_hazard_01.png": [
+    123,
+    179,
+    389,
+    334
+  ],
+  "effects/shardstinger_ice_hazard_02.png": [
+    115,
+    165,
+    397,
+    347
+  ],
+  "effects/shardstinger_ice_hazard_03.png": [
+    129,
+    177,
+    384,
+    335
+  ]
+}

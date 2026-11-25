@@ -1,0 +1,92 @@
+{
+  "original_sha256": "431188a4887b8e6e2727b889cb40c9ddf7eb4b21e832213ca86999717fe503a0",
+  "parts": [
+    {
+      "name": "W4_v19_01_bulkhead.zip",
+      "bytes": 9588175,
+      "members": 62,
+      "sha256": "58e9f64994f5a9ade12c12e2eed51ae6e0efd130499179994a98a84494f3f2d1"
+    },
+    {
+      "name": "W4_v19_02_grunt.zip",
+      "bytes": 7126775,
+      "members": 54,
+      "sha256": "521c26f28d636a824bc85cd5bc643f7176846715d791e3934db9b30823e8668e"
+    },
+    {
+      "name": "W4_v19_03_rail_skater.zip",
+      "bytes": 6482109,
+      "members": 54,
+      "sha256": "2e9a9da639333721e875ae4443b06a5bc324072f3ba7bd9af501e74512549e5b"
+    },
+    {
+      "name": "W4_v19_04_raider.zip",
+      "bytes": 7231752,
+      "members": 54,
+      "sha256": "b195cc1811bc1d83d8f30e7082cfc35e72e47578ee86d5246f72dcccde7ce270"
+    },
+    {
+      "name": "W4_v19_05_lobber.zip",
+      "bytes": 8090060,
+      "members": 55,
+      "sha256": "7aa20fa77a482587b086a16ecea2ea1bb66e2ee221024cadf1c25e5cb167ccc6"
+    },
+    {
+      "name": "W4_v19_06_sentry.zip",
+      "bytes": 8600038,
+      "members": 54,
+      "sha256": "def8aa6d1b876984290ce661fdb5dd80b69cc39173aed216bddbfb037dd8045b"
+    },
+    {
+      "name": "W4_v19_07_scrapper.zip",
+      "bytes": 7039592,
+      "members": 54,
+      "sha256": "e680691101a2cc5f5b42d0d46f9aae037508d3f0dcb880b3340ecb70c2050391"
+    },
+    {
+      "name": "W4_v19_08_overclock.zip",
+      "bytes": 8554872,
+      "members": 54,
+      "sha256": "0b9f93d7cca588cc418cf7c2877dc592798302a7b9d4c8446dc400a49465bf64"
+    },
+    {
+      "name": "W4_v19_09_press_giant_A.zip",
+      "bytes": 6972004,
+      "members": 43,
+      "sha256": "f4b3d2614e501f6ab9abf6e17974b6abfd586a92396bab2febc2e6ce49ef7057"
+    },
+    {
+      "name": "W4_v19_10_press_giant_B.zip",
+      "bytes": 6795373,
+      "members": 27,
+      "sha256": "da6af9a272d54fe0792890fc6ecc96382dc9b2ec0005fdb002d4c35244fe33aa"
+    },
+    {
+      "name": "W4_v19_11_gantry_warden_A.zip",
+      "bytes": 5812011,
+      "members": 43,
+      "sha256": "d43e69a376a22b71521c3f2231721b83777e75525a51edf8c8a4c460e2f23baf"
+    },
+    {
+      "name": "W4_v19_12_gantry_warden_B.zip",
+      "bytes": 5674103,
+      "members": 27,
+      "sha256": "27b0fc0240b06d6578bf873bd152eacf727d50beef7ae281bc9e05020654a24f"
+    },
+    {
+      "name": "W4_v19_13_warforge_A.zip",
+      "bytes": 6137070,
+      "members": 55,
+      "sha256": "9c5a55e5030b361ede2e3331970179232ede05b4304849160214d951cb35daa6"
+    },
+    {
+      "name": "W4_v19_14_warforge_B.zip",
+      "bytes": 6016024,
+      "members": 44,
+      "sha256": "6df9123b56bfeaf22220f0da0a6e0739d784826f9639378e68a89f01ba77e5a1"
+    }
+  ],
+  "total_original_members": 680,
+  "asset_pngs": 661,
+  "status": "Controlled testing candidate; final in-game approval pending. Extract all archives into the same destination."
+}

@@ -1,0 +1,464 @@
+{
+  "frames/frostfang_idle_00.png": [
+    75,
+    151,
+    434,
+    416
+  ],
+  "frames/frostfang_idle_01.png": [
+    74,
+    152,
+    439,
+    416
+  ],
+  "frames/frostfang_idle_02.png": [
+    75,
+    150,
+    436,
+    416
+  ],
+  "frames/frostfang_idle_03.png": [
+    77,
+    148,
+    434,
+    416
+  ],
+  "frames/frostfang_idle_04.png": [
+    74,
+    151,
+    437,
+    416
+  ],
+  "frames/frostfang_idle_05.png": [
+    73,
+    144,
+    438,
+    416
+  ],
+  "frames/frostfang_idle_06.png": [
+    74,
+    144,
+    435,
+    416
+  ],
+  "frames/frostfang_idle_07.png": [
+    79,
+    148,
+    433,
+    416
+  ],
+  "frames/frostfang_run_00.png": [
+    77,
+    190,
+    434,
+    419
+  ],
+  "frames/frostfang_run_01.png": [
+    78,
+    190,
+    434,
+    414
+  ],
+  "frames/frostfang_run_02.png": [
+    77,
+    185,
+    435,
+    409
+  ],
+  "frames/frostfang_run_03.png": [
+    80,
+    179,
+    431,
+    412
+  ],
+  "frames/frostfang_run_04.png": [
+    79,
+    203,
+    432,
+    418
+  ],
+  "frames/frostfang_run_05.png": [
+    79,
+    183,
+    434,
+    415
+  ],
+  "frames/frostfang_run_06.png": [
+    77,
+    176,
+    435,
+    410
+  ],
+  "frames/frostfang_run_07.png": [
+    79,
+    189,
+    433,
+    414
+  ],
+  "frames/frostfang_attack_00.png": [
+    80,
+    177,
+    431,
+    418
+  ],
+  "frames/frostfang_attack_01.png": [
+    82,
+    194,
+    430,
+    418
+  ],
+  "frames/frostfang_attack_02.png": [
+    84,
+    205,
+    427,
+    418
+  ],
+  "frames/frostfang_attack_03.png": [
+    86,
+    194,
+    425,
+    418
+  ],
+  "frames/frostfang_attack_04.png": [
+    87,
+    178,
+    425,
+    418
+  ],
+  "frames/frostfang_attack_05.png": [
+    77,
+    192,
+    434,
+    418
+  ],
+  "frames/frostfang_attack_06.png": [
+    71,
+    205,
+    442,
+    418
+  ],
+  "frames/frostfang_attack_07.png": [
+    80,
+    142,
+    432,
+    419
+  ],
+  "frames/frostfang_attack_08.png": [
+    82,
+    169,
+    430,
+    418
+  ],
+  "frames/frostfang_attack_09.png": [
+    83,
+    179,
+    428,
+    418
+  ],
+  "frames/frostfang_attack_10.png": [
+    83,
+    179,
+    429,
+    418
+  ],
+  "frames/frostfang_attack_11.png": [
+    80,
+    168,
+    431,
+    418
+  ],
+  "frames/frostfang_hit_00.png": [
+    69,
+    151,
+    442,
+    419
+  ],
+  "frames/frostfang_hit_01.png": [
+    81,
+    130,
+    431,
+    419
+  ],
+  "frames/frostfang_hit_02.png": [
+    94,
+    123,
+    419,
+    418
+  ],
+  "frames/frostfang_hit_03.png": [
+    74,
+    152,
+    437,
+    418
+  ],
+  "frames/frostfang_defeat_00.png": [
+    84,
+    144,
+    428,
+    419
+  ],
+  "frames/frostfang_defeat_01.png": [
+    83,
+    162,
+    427,
+    418
+  ],
+  "frames/frostfang_defeat_02.png": [
+    83,
+    184,
+    428,
+    418
+  ],
+  "frames/frostfang_defeat_03.png": [
+    80,
+    201,
+    432,
+    418
+  ],
+  "frames/frostfang_defeat_04.png": [
+    71,
+    211,
+    440,
+    418
+  ],
+  "frames/frostfang_defeat_05.png": [
+    70,
+    228,
+    441,
+    418
+  ],
+  "frames/frostfang_defeat_06.png": [
+    70,
+    248,
+    441,
+    419
+  ],
+  "frames/frostfang_defeat_07.png": [
+    67,
+    260,
+    444,
+    418
+  ],
+  "frames/frostfang_victory_00.png": [
+    89,
+    138,
+    425,
+    418
+  ],
+  "frames/frostfang_victory_01.png": [
+    87,
+    134,
+    427,
+    418
+  ],
+  "frames/frostfang_victory_02.png": [
+    88,
+    108,
+    426,
+    420
+  ],
+  "frames/frostfang_victory_03.png": [
+    78,
+    140,
+    433,
+    420
+  ],
+  "effects/frostfang_claw_slash_00.png": [
+    162,
+    210,
+    350,
+    360
+  ],
+  "effects/frostfang_claw_slash_01.png": [
+    122,
+    139,
+    389,
+    360
+  ],
+  "effects/frostfang_claw_slash_02.png": [
+    102,
+    79,
+    410,
+    360
+  ],
+  "effects/frostfang_claw_slash_03.png": [
+    88,
+    57,
+    423,
+    360
+  ],
+  "effects/frostfang_claw_slash_04.png": [
+    93,
+    54,
+    419,
+    360
+  ],
+  "effects/frostfang_claw_slash_05.png": [
+    101,
+    81,
+    410,
+    360
+  ],
+  "effects/frostfang_claw_slash_06.png": [
+    121,
+    146,
+    390,
+    360
+  ],
+  "effects/frostfang_claw_slash_07.png": [
+    160,
+    211,
+    346,
+    348
+  ],
+  "effects/frostfang_lunge_trail_00.png": [
+    170,
+    292,
+    342,
+    359
+  ],
+  "effects/frostfang_lunge_trail_01.png": [
+    145,
+    260,
+    367,
+    359
+  ],
+  "effects/frostfang_lunge_trail_02.png": [
+    116,
+    217,
+    397,
+    360
+  ],
+  "effects/frostfang_lunge_trail_03.png": [
+    91,
+    177,
+    422,
+    360
+  ],
+  "effects/frostfang_lunge_trail_04.png": [
+    106,
+    186,
+    407,
+    357
+  ],
+  "effects/frostfang_lunge_trail_05.png": [
+    121,
+    205,
+    391,
+    357
+  ],
+  "effects/frostfang_lunge_trail_06.png": [
+    136,
+    227,
+    376,
+    360
+  ],
+  "effects/frostfang_lunge_trail_07.png": [
+    159,
+    255,
+    356,
+    359
+  ],
+  "effects/frostfang_ice_impact_00.png": [
+    155,
+    281,
+    357,
+    360
+  ],
+  "effects/frostfang_ice_impact_01.png": [
+    132,
+    229,
+    380,
+    360
+  ],
+  "effects/frostfang_ice_impact_02.png": [
+    113,
+    195,
+    399,
+    360
+  ],
+  "effects/frostfang_ice_impact_03.png": [
+    103,
+    130,
+    409,
+    360
+  ],
+  "effects/frostfang_ice_impact_04.png": [
+    93,
+    97,
+    418,
+    360
+  ],
+  "effects/frostfang_ice_impact_05.png": [
+    96,
+    83,
+    416,
+    360
+  ],
+  "effects/frostfang_ice_impact_06.png": [
+    114,
+    137,
+    398,
+    359
+  ],
+  "effects/frostfang_ice_impact_07.png": [
+    132,
+    197,
+    380,
+    360
+  ],
+  "effects/frostfang_defeat_burst_00.png": [
+    147,
+    282,
+    365,
+    357
+  ],
+  "effects/frostfang_defeat_burst_01.png": [
+    128,
+    213,
+    381,
+    357
+  ],
+  "effects/frostfang_defeat_burst_02.png": [
+    121,
+    165,
+    390,
+    357
+  ],
+  "effects/frostfang_defeat_burst_03.png": [
+    94,
+    111,
+    416,
+    357
+  ],
+  "effects/frostfang_defeat_burst_04.png": [
+    110,
+    118,
+    403,
+    357
+  ],
+  "effects/frostfang_defeat_burst_05.png": [
+    119,
+    144,
+    392,
+    357
+  ],
+  "effects/frostfang_defeat_burst_06.png": [
+    116,
+    199,
+    395,
+    358
+  ],
+  "effects/frostfang_defeat_burst_07.png": [
+    154,
+    252,
+    356,
+    357
+  ],
+  "master.png": [
+    86,
+    180,
+    426,
+    420
+  ]
+}

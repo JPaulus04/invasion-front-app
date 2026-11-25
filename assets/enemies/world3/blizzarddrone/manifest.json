@@ -1,0 +1,124 @@
+{
+  "character": "Blizzard Drone",
+  "source": "Approved World 3 Blizzard Drone design",
+  "pixels": 512,
+  "art_pivot_px": [
+    256,
+    425
+  ],
+  "idle_height_px": 230,
+  "states": {
+    "idle": {
+      "fps": 8,
+      "loop": true,
+      "frames": [
+        "frames/blizzarddrone_idle_00.png",
+        "frames/blizzarddrone_idle_01.png",
+        "frames/blizzarddrone_idle_02.png",
+        "frames/blizzarddrone_idle_03.png",
+        "frames/blizzarddrone_idle_04.png",
+        "frames/blizzarddrone_idle_05.png",
+        "frames/blizzarddrone_idle_06.png",
+        "frames/blizzarddrone_idle_07.png"
+      ]
+    },
+    "run": {
+      "fps": 12,
+      "loop": true,
+      "frames": [
+        "frames/blizzarddrone_run_00.png",
+        "frames/blizzarddrone_run_01.png",
+        "frames/blizzarddrone_run_02.png",
+        "frames/blizzarddrone_run_03.png",
+        "frames/blizzarddrone_run_04.png",
+        "frames/blizzarddrone_run_05.png",
+        "frames/blizzarddrone_run_06.png",
+        "frames/blizzarddrone_run_07.png"
+      ]
+    },
+    "attack": {
+      "fps": 15,
+      "loop": false,
+      "frames": [
+        "frames/blizzarddrone_attack_00.png",
+        "frames/blizzarddrone_attack_01.png",
+        "frames/blizzarddrone_attack_02.png",
+        "frames/blizzarddrone_attack_03.png",
+        "frames/blizzarddrone_attack_04.png",
+        "frames/blizzarddrone_attack_05.png",
+        "frames/blizzarddrone_attack_06.png",
+        "frames/blizzarddrone_attack_07.png",
+        "frames/blizzarddrone_attack_08.png",
+        "frames/blizzarddrone_attack_09.png",
+        "frames/blizzarddrone_attack_10.png",
+        "frames/blizzarddrone_attack_11.png"
+      ]
+    },
+    "hit": {
+      "fps": 12,
+      "loop": false,
+      "frames": [
+        "frames/blizzarddrone_hit_00.png",
+        "frames/blizzarddrone_hit_01.png",
+        "frames/blizzarddrone_hit_02.png",
+        "frames/blizzarddrone_hit_03.png"
+      ]
+    },
+    "defeat": {
+      "fps": 9,
+      "loop": false,
+      "frames": [
+        "frames/blizzarddrone_defeat_00.png",
+        "frames/blizzarddrone_defeat_01.png",
+        "frames/blizzarddrone_defeat_02.png",
+        "frames/blizzarddrone_defeat_03.png",
+        "frames/blizzarddrone_defeat_04.png",
+        "frames/blizzarddrone_defeat_05.png",
+        "frames/blizzarddrone_defeat_06.png",
+        "frames/blizzarddrone_defeat_07.png"
+      ]
+    },
+    "victory": {
+      "fps": 7,
+      "loop": false,
+      "frames": [
+        "frames/blizzarddrone_victory_00.png",
+        "frames/blizzarddrone_victory_01.png",
+        "frames/blizzarddrone_victory_02.png",
+        "frames/blizzarddrone_victory_03.png"
+      ]
+    }
+  },
+  "effects": {
+    "propulsion": {
+      "fps": 18,
+      "loop": true,
+      "frames": [
+        "effects/blizzarddrone_propulsion_00.png",
+        "effects/blizzarddrone_propulsion_01.png",
+        "effects/blizzarddrone_propulsion_02.png",
+        "effects/blizzarddrone_propulsion_03.png"
+      ]
+    },
+    "frost_projectile": {
+      "fps": 20,
+      "loop": true,
+      "frames": [
+        "effects/blizzarddrone_frost_projectile_00.png",
+        "effects/blizzarddrone_frost_projectile_01.png",
+        "effects/blizzarddrone_frost_projectile_02.png",
+        "effects/blizzarddrone_frost_projectile_03.png"
+      ]
+    },
+    "freezing_area": {
+      "fps": 9,
+      "loop": false,
+      "frames": [
+        "effects/blizzarddrone_freezing_area_00.png",
+        "effects/blizzarddrone_freezing_area_01.png",
+        "effects/blizzarddrone_freezing_area_02.png",
+        "effects/blizzarddrone_freezing_area_03.png"
+      ]
+    }
+  }
+}

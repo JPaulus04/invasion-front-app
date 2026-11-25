@@ -1,0 +1,50 @@
+{
+  "body_pivot_px": [
+    256,
+    421
+  ],
+  "effect_pivots_px": {
+    "ground_slam": [
+      256,
+      376
+    ],
+    "frost_shockwave": [
+      256,
+      256
+    ],
+    "ice_debris": [
+      256,
+      378
+    ]
+  },
+  "attack_slam": {
+    "body_frame": 6,
+    "effects": [
+      {
+        "name": "frost_shockwave",
+        "offset_px": [
+          4,
+          -4
+        ],
+        "layer": "behind"
+      },
+      {
+        "name": "ground_slam",
+        "offset_px": [
+          4,
+          6
+        ],
+        "layer": "front"
+      },
+      {
+        "name": "ice_debris",
+        "offset_px": [
+          4,
+          -14
+        ],
+        "layer": "front",
+        "delay_seconds": 0.05
+      }
+    ]
+  }
+}

@@ -1,0 +1,338 @@
+{
+  "frames/blizzarddrone_idle_00.png": [
+    80,
+    120,
+    432,
+    350
+  ],
+  "frames/blizzarddrone_idle_01.png": [
+    80,
+    126,
+    432,
+    356
+  ],
+  "frames/blizzarddrone_idle_02.png": [
+    80,
+    128,
+    432,
+    358
+  ],
+  "frames/blizzarddrone_idle_03.png": [
+    80,
+    126,
+    432,
+    356
+  ],
+  "frames/blizzarddrone_idle_04.png": [
+    80,
+    120,
+    432,
+    350
+  ],
+  "frames/blizzarddrone_idle_05.png": [
+    80,
+    114,
+    432,
+    344
+  ],
+  "frames/blizzarddrone_idle_06.png": [
+    80,
+    112,
+    432,
+    342
+  ],
+  "frames/blizzarddrone_idle_07.png": [
+    80,
+    114,
+    432,
+    344
+  ],
+  "frames/blizzarddrone_run_00.png": [
+    80,
+    117,
+    432,
+    347
+  ],
+  "frames/blizzarddrone_run_01.png": [
+    80,
+    123,
+    429,
+    342
+  ],
+  "frames/blizzarddrone_run_02.png": [
+    83,
+    107,
+    430,
+    338
+  ],
+  "frames/blizzarddrone_run_03.png": [
+    85,
+    111,
+    432,
+    342
+  ],
+  "frames/blizzarddrone_run_04.png": [
+    85,
+    124,
+    434,
+    347
+  ],
+  "frames/blizzarddrone_run_05.png": [
+    84,
+    129,
+    433,
+    352
+  ],
+  "frames/blizzarddrone_run_06.png": [
+    82,
+    135,
+    431,
+    354
+  ],
+  "frames/blizzarddrone_run_07.png": [
+    78,
+    121,
+    430,
+    351
+  ],
+  "frames/blizzarddrone_attack_00.png": [
+    80,
+    121,
+    432,
+    351
+  ],
+  "frames/blizzarddrone_attack_01.png": [
+    80,
+    122,
+    432,
+    350
+  ],
+  "frames/blizzarddrone_attack_02.png": [
+    79,
+    121,
+    431,
+    349
+  ],
+  "frames/blizzarddrone_attack_03.png": [
+    79,
+    120,
+    431,
+    348
+  ],
+  "frames/blizzarddrone_attack_04.png": [
+    79,
+    133,
+    428,
+    343
+  ],
+  "frames/blizzarddrone_attack_05.png": [
+    80,
+    136,
+    429,
+    346
+  ],
+  "frames/blizzarddrone_attack_06.png": [
+    82,
+    127,
+    431,
+    350
+  ],
+  "frames/blizzarddrone_attack_07.png": [
+    80,
+    121,
+    432,
+    349
+  ],
+  "frames/blizzarddrone_attack_08.png": [
+    79,
+    134,
+    428,
+    344
+  ],
+  "frames/blizzarddrone_attack_09.png": [
+    81,
+    137,
+    430,
+    347
+  ],
+  "frames/blizzarddrone_attack_10.png": [
+    83,
+    128,
+    432,
+    351
+  ],
+  "frames/blizzarddrone_attack_11.png": [
+    80,
+    122,
+    432,
+    352
+  ],
+  "frames/blizzarddrone_hit_00.png": [
+    77,
+    125,
+    430,
+    355
+  ],
+  "frames/blizzarddrone_hit_01.png": [
+    85,
+    128,
+    430,
+    358
+  ],
+  "frames/blizzarddrone_hit_02.png": [
+    87,
+    133,
+    425,
+    355
+  ],
+  "frames/blizzarddrone_hit_03.png": [
+    82,
+    128,
+    431,
+    351
+  ],
+  "frames/blizzarddrone_defeat_00.png": [
+    80,
+    123,
+    433,
+    353
+  ],
+  "frames/blizzarddrone_defeat_01.png": [
+    85,
+    133,
+    430,
+    363
+  ],
+  "frames/blizzarddrone_defeat_02.png": [
+    85,
+    147,
+    430,
+    377
+  ],
+  "frames/blizzarddrone_defeat_03.png": [
+    77,
+    172,
+    432,
+    393
+  ],
+  "frames/blizzarddrone_defeat_04.png": [
+    76,
+    188,
+    431,
+    409
+  ],
+  "frames/blizzarddrone_defeat_05.png": [
+    99,
+    203,
+    407,
+    424
+  ],
+  "frames/blizzarddrone_defeat_06.png": [
+    100,
+    201,
+    408,
+    422
+  ],
+  "frames/blizzarddrone_defeat_07.png": [
+    100,
+    203,
+    408,
+    424
+  ],
+  "frames/blizzarddrone_victory_00.png": [
+    84,
+    120,
+    428,
+    349
+  ],
+  "frames/blizzarddrone_victory_01.png": [
+    85,
+    94,
+    424,
+    338
+  ],
+  "frames/blizzarddrone_victory_02.png": [
+    92,
+    93,
+    423,
+    331
+  ],
+  "frames/blizzarddrone_victory_03.png": [
+    85,
+    117,
+    428,
+    346
+  ],
+  "effects/blizzarddrone_propulsion_00.png": [
+    241,
+    183,
+    265,
+    243
+  ],
+  "effects/blizzarddrone_propulsion_01.png": [
+    231,
+    183,
+    271,
+    307
+  ],
+  "effects/blizzarddrone_propulsion_02.png": [
+    238,
+    183,
+    282,
+    277
+  ],
+  "effects/blizzarddrone_propulsion_03.png": [
+    238,
+    183,
+    282,
+    243
+  ],
+  "effects/blizzarddrone_frost_projectile_00.png": [
+    220,
+    237,
+    354,
+    274
+  ],
+  "effects/blizzarddrone_frost_projectile_01.png": [
+    166,
+    227,
+    354,
+    285
+  ],
+  "effects/blizzarddrone_frost_projectile_02.png": [
+    148,
+    223,
+    352,
+    296
+  ],
+  "effects/blizzarddrone_frost_projectile_03.png": [
+    188,
+    232,
+    353,
+    278
+  ],
+  "effects/blizzarddrone_freezing_area_00.png": [
+    174,
+    210,
+    338,
+    302
+  ],
+  "effects/blizzarddrone_freezing_area_01.png": [
+    123,
+    184,
+    390,
+    328
+  ],
+  "effects/blizzarddrone_freezing_area_02.png": [
+    75,
+    156,
+    437,
+    357
+  ],
+  "effects/blizzarddrone_freezing_area_03.png": [
+    97,
+    169,
+    415,
+    344
+  ]
+}
