@@ -1,0 +1,27 @@
+name: Authored environment preflight
+on:
+  push:
+    branches:
+      - feature/build342-next-world-art-preflight
+    paths:
+      - 'scripts/validate_toxic_environment.py'
+      - 'scripts/check_art_sprites.py'
+      - 'tests/test_environment_art_preflight.py'
+      - '.github/workflows/environment-art-preflight.yml'
+  workflow_dispatch:
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'Pillow>=11,<13'
+      - name: Check all three world contracts and negative controls
+        run: python tests/test_environment_art_preflight.py -v
+      - name: Check real Toxic candidate asset set
+        run: python scripts/validate_toxic_environment.py OutpostZero/ArtAssets --world 2
+      - name: Check existing production PNG contracts
+        run: python scripts/check_art_sprites.py
