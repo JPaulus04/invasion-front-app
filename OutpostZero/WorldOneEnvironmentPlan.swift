@@ -283,7 +283,19 @@ enum ToxicEnvironmentPlan {
             Array(Set(materialNames + props.map { $0.asset })).sorted()
         }
         func variant(column: Int, row: Int) -> Int {
-            ((column + 3*row + room) % 4 + 4) % 4
+            // Checkerboard parity guarantees distinct edge neighbors. A
+            // mixed coordinate seed chooses between two textures per parity,
+            // avoiding the former fixed four-cell diagonal repeat.
+            let parity = (column & 1) ^ (row & 1)
+            var hash = UInt64(truncatingIfNeeded: column) &* 0x9E3779B185EBCA87
+            hash ^= UInt64(truncatingIfNeeded: row) &* 0xC2B2AE3D27D4EB4F
+            hash ^= UInt64(truncatingIfNeeded: room) &* 0x165667B19E3779F9
+            hash ^= hash >> 30
+            hash = hash &* 0xBF58476D1CE4E5B9
+            hash ^= hash >> 27
+            hash = hash &* 0x94D049BB133111EB
+            hash ^= hash >> 31
+            return parity + 2 * Int(hash & 1)
         }
     }
     // All props must be delivered with visible contact 32px from the base

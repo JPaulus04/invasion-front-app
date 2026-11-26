@@ -93,6 +93,11 @@ struct WorldOneEnvironmentTests {
                         precondition(p.variant(column: column,row: row) != p.variant(column: column,row: row+1))
                     }
                 }
+                let sample = (-6...6).flatMap { y in (-6...6).map { x in p.variant(column: x,row: y) } }
+                precondition(Set(sample) == Set(0..<4))
+                precondition((-6...6).contains { y in (-6...2).contains { x in
+                    p.variant(column: x,row: y) != p.variant(column: x+4,row: y)
+                } }, "Toxic ground must not repeat every four columns")
                 if [10,20,30].contains(room) { precondition(p.theme == .boss) }
                 // Existing hazard geometry still has authority and the scene
                 // preview does not replace its nodes or damage rules.
