@@ -1,25 +1,29 @@
 """Capture the current campaign routes using Debug fixtures in the iOS app."""
 from pathlib import Path
+import shutil
 import signal
 import subprocess
 import time
 
 from PIL import Image
 from run_phase4_simulator import BUNDLE, command, focused_simulator
+from simulator_startup import RecoverableStartupError, content, snapshot
 
 
-def capture(device, output, fixture, flag, marker):
+def capture(device, output, fixture, flag, marker, *, first=False):
     log = output / f"{fixture}.log"
     errors = output / f"{fixture}-stderr.log"
     launch_error = None
+    launched_at = time.time()
+    options = () if first else ("--terminate-running-process",)
     try:
-        command("xcrun", "simctl", "launch", "--terminate-running-process",
-                f"--stdout={log}", f"--stderr={errors}", device, BUNDLE, flag, timeout=90)
+        command("xcrun", "simctl", "launch", *options,
+                f"--stdout={log}", f"--stderr={errors}", device, BUNDLE, flag, timeout=120 if first else 90)
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
         # simctl's client can stall while the app continues launching.
         # Accept the fixture only after the original process reports ready.
         launch_error = error
-    deadline = time.monotonic() + (150 if marker == "[BUILD341 PERF]" else 45)
+    deadline = time.monotonic() + (150 if marker == "[BUILD341 PERF]" else 60 if first else 45)
     while time.monotonic() < deadline:
         if errors.exists() and any(term in errors.read_text(errors="replace")
                                    for term in ("Precondition failed", "Fatal error")):
@@ -28,7 +32,20 @@ def capture(device, output, fixture, flag, marker):
             break
         time.sleep(0.25)
     else:
-        raise TimeoutError(f"Expected {marker!r} in {log}") from launch_error
+        if first:
+            diagnosis = snapshot(command, device, output, "launch-failure", launched_at)
+            # A late marker during diagnostics belongs to the same process.
+            if marker not in content(log):
+                if (launch_error and not getattr(launch_error, "stdout", None)
+                        and not content(log) and not content(errors)
+                        and diagnosis["app_proven_absent"]):
+                    raise RecoverableStartupError("Initial recovery fixture never launched") from launch_error
+                raise TimeoutError(f"Expected {marker!r} in {log}; launch state is unresolved") from launch_error
+        else:
+            raise TimeoutError(f"Expected {marker!r} in {log}") from launch_error
+    errors_text = content(errors)
+    if any(term in errors_text for term in ("Precondition failed", "Fatal error")):
+        raise AssertionError(f"App assertion in {errors}")
     time.sleep(0.8)
     capture_visible_frame(device, output, fixture)
 
@@ -92,9 +109,13 @@ def main():
         "3-0", "3-10-result", "3-20-result", "3-29", "3-30-result",
         "4-0", "4-10-result", "4-15", "4-20-result", "4-29", "4-30-result",
     ]
-    with focused_simulator("build341", output) as device:
-        capture(device, output, "legacy-iron-recovery", "-captureRecoveryScreenshot",
-                "[BUILD341 MIGRATED]")
+    def prepare(device, attempt):
+        capture(device, attempt, "legacy-iron-recovery", "-captureRecoveryScreenshot",
+                "[BUILD341 MIGRATED]", first=True)
+        for evidence in attempt.glob("legacy-iron-recovery.*"):
+            shutil.copy2(evidence, output / evidence.name)
+
+    with focused_simulator("build341", output, prepare=prepare) as device:
         capture(device, output, "legacy-frontier-recovery", "-captureBuild341LegacyFrontier",
                 "[BUILD341 MIGRATED] Frontier Forest continued from Room 20 to Room 21")
         for fixture in fixtures:
