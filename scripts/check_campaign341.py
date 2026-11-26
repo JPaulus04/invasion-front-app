@@ -24,11 +24,26 @@ def capture(device, output, fixture, flag, marker):
     else:
         raise TimeoutError(f"Expected {marker!r} in {log}")
     time.sleep(0.8)
-    path = output / f"{fixture}.png"
-    command("xcrun", "simctl", "io", device, "screenshot", str(path), timeout=55)
-    with Image.open(path) as image:
-        colors = image.convert("RGB").resize((120, 200)).getcolors(24000)
-        assert image.height > image.width and colors and len(colors) > 200, path
+    capture_visible_frame(device, output, fixture)
+
+
+def capture_visible_frame(device, output, fixture):
+    # The app can report its fixture ready before CoreSimulator presents
+    # the first drawable. Keep every rejected image and poll the same app.
+    rejected = output / "rejected-surfaces"
+    rejected.mkdir(exist_ok=True)
+    result = output / f"{fixture}.png"
+    for attempt in range(1, 5):
+        probe = rejected / f"{fixture}-{attempt}.png"
+        command("xcrun", "simctl", "io", device, "screenshot", str(probe), timeout=35)
+        with Image.open(probe) as image:
+            colors = image.convert("RGB").resize((120, 200)).getcolors(24000)
+            if image.height > image.width and colors and len(colors) > 200:
+                probe.replace(result)
+                return
+        if attempt < 4:
+            time.sleep(2)
+    raise RuntimeError(f"{fixture}: the running app did not present a usable frame; see {rejected}")
 
 
 def record_stoneback(device, output):
