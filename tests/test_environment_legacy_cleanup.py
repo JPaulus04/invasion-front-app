@@ -34,3 +34,23 @@ class EnvironmentLegacyCleanupTests(unittest.TestCase):
         self.assertIn("sprite.anchorPoint = CGPoint(x: 0.5, y: anchorY)", shared)
         self.assertNotIn("physicsBody", shared)
         self.assertIn("static func installPortal", forest)
+
+    def test_device_feedback_routes_and_preview(self):
+        source = (ROOT / "OutpostZero" / "OutpostScene.swift").read_text()
+        hub = source.split("let islandAssets:", 1)[1].split("overlayText((unlocked", 1)[0]
+        for mapping in ('0: "world_forest_island"', '1: "world_toxic_island"', '2: "world_iron_island"', '3: "world_ice_island"'):
+            self.assertIn(mapping, hub)
+        self.assertIn("productionImage(named: assetName)", hub)
+        self.assertIn("dimensions.width*factor, height: dimensions.height*factor", hub)
+        self.assertGreater(hub.index("WorldShowcase.island"), hub.index("} else {"))
+        preview = source.split('"-previewDimensionalHazards"', 1)[1].split("#endif", 1)[0]
+        self.assertIn("DimensionalLiquidPreview.install", preview)
+        self.assertIn("acidVisualNodes.append(shape)", preview)
+        self.assertIn("DimensionalLiquidPreview.updateAcid", source)
+        renderer = (ROOT / "OutpostZero" / "WorldOneEnvironment.swift").read_text()
+        liquid = renderer.split("enum DimensionalLiquidPreview", 1)[1]
+        self.assertIn("patch.outlinePath()", liquid)
+        self.assertIn("cg.clip()", liquid)
+        self.assertIn("format.opaque = false", liquid)
+        self.assertIn("768/max(w,h)", liquid)
+        self.assertNotIn("physicsBody", liquid)

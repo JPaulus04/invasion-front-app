@@ -1,4 +1,5 @@
 import SpriteKit
+import UIKit
 
 /// Shared authored scenery primitives. Callers own the faction asset names,
 /// room bounds, collision and hazard rules. Nothing here creates physics bodies.
@@ -184,3 +185,107 @@ enum ToxicEnvironment {
         return root
     }
 }
+
+
+#if DEBUG
+/// Candidate liquid presentation generated once per room, from the same
+/// immutable polygon that gameplay uses. No collision or per-frame drawing.
+enum DimensionalLiquidPreview {
+    static func install(on node: SKShapeNode, patch: TerrainHazards.Patch, seed: Int) -> Bool {
+        let size = patch.frame.size
+        guard patch.kind != .rubble, size.width.isFinite, size.height.isFinite,
+              size.width > 1, size.height > 1 else { return false }
+        let acid = patch.kind == .acid
+        let idle = surface(patch: patch, seed: seed, active: false)
+        let active = acid ? surface(patch: patch, seed: seed, active: true) : nil
+        node.fillColor = .clear
+        node.strokeColor = .clear
+        node.glowWidth = 0
+        func add(_ image: UIImage, name: String, hidden: Bool) {
+            let sprite = SKSpriteNode(texture: SKTexture(image: image))
+            sprite.texture?.filteringMode = .linear
+            sprite.name = name
+            sprite.size = size
+            sprite.zPosition = 0.1
+            sprite.isHidden = hidden
+            node.addChild(sprite)
+        }
+        add(idle, name: "dimensionalLiquidIdle", hidden: false)
+        if let active { add(active, name: "dimensionalLiquidActive", hidden: true) }
+        return true
+    }
+
+    static func updateAcid(on node: SKShapeNode, active: Bool) -> Bool {
+        guard let idle = node.childNode(withName: "dimensionalLiquidIdle"),
+              let danger = node.childNode(withName: "dimensionalLiquidActive") else { return false }
+        idle.isHidden = active
+        danger.isHidden = !active
+        return true
+    }
+
+    private static func surface(patch: TerrainHazards.Patch, seed: Int, active: Bool) -> UIImage {
+        let size = patch.frame.size
+        let w = size.width, h = size.height
+        let acid = patch.kind == .acid
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        // Limit raster allocation, including on larger tablet/expanded rooms.
+        format.scale = min(2, 768/max(w,h))
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { context in
+            let cg = context.cgContext
+            cg.translateBy(x: w/2, y: h/2)
+            cg.scaleBy(x: 1, y: -1)
+            let path = patch.outlinePath()
+            cg.addPath(path)
+            cg.clip() // Everything, including the bright edge, stays inside the hit polygon.
+            let low = acid ? UIColor(red: 0.08,green: 0.17,blue: 0.035,alpha: 1)
+                           : UIColor(red: 0.035,green: 0.12,blue: 0.19,alpha: 1)
+            let high = acid ? (active ? UIColor(red: 0.43,green: 0.86,blue: 0.095,alpha: 1)
+                                      : UIColor(red: 0.20,green: 0.40,blue: 0.095,alpha: 1))
+                            : UIColor(red: 0.12,green: 0.38,blue: 0.48,alpha: 1)
+            let cs = CGColorSpaceCreateDeviceRGB()
+            if let gradient = CGGradient(colorsSpace: cs, colors: [low.cgColor,high.cgColor,low.cgColor] as CFArray,
+                                         locations: [0,0.48,1]) {
+                cg.drawLinearGradient(gradient, start: CGPoint(x: -w/2,y: -h/2),
+                    end: CGPoint(x: w/2,y: h/2), options: [.drawsBeforeStartLocation,.drawsAfterEndLocation])
+            }
+            var state = UInt64(truncatingIfNeeded: seed)
+            func random() -> CGFloat {
+                state = state &* 6364136223846793005 &+ 1442695040888963407
+                return CGFloat((state >> 32) % 10000)/10000
+            }
+            // Broad irregular caustics; no evenly spaced artificial lines.
+            for _ in 0..<22 {
+                let x = (random()-0.5)*w, y = (random()-0.5)*h
+                let rw = (0.12+random()*0.28)*w
+                let rh = (0.025+random()*0.08)*h
+                cg.setFillColor(high.withAlphaComponent(0.06+random()*0.12).cgColor)
+                cg.fillEllipse(in: CGRect(x: x-rw/2,y: y-rh/2,width: rw,height: rh))
+            }
+            // Recessed bank and narrow, restrained surface rim, clipped inward.
+            cg.setLineJoin(.round)
+            cg.addPath(path)
+            cg.setLineWidth(12)
+            cg.setStrokeColor(low.withAlphaComponent(0.85).cgColor)
+            cg.strokePath()
+            cg.addPath(path)
+            cg.setLineWidth(3.0)
+            cg.setStrokeColor((acid ? UIColor(red: 0.60,green: 0.75,blue: 0.22,alpha: active ? 0.9 : 0.45)
+                                    : UIColor(red: 0.34,green: 0.57,blue: 0.59,alpha: 0.65)).cgColor)
+            cg.strokePath()
+            for _ in 0..<(acid ? 12 : 7) {
+                let x = (random()-0.5)*w, y = (random()-0.5)*h
+                guard path.contains(CGPoint(x: x,y: y)) else { continue }
+                let radius = max(1.5,min(w,h)*(0.018+random()*0.025))
+                let bubble = CGRect(x: x-radius,y: y-radius*0.55,width: radius*2,height: radius*1.1)
+                cg.setFillColor(low.withAlphaComponent(0.35).cgColor)
+                cg.fillEllipse(in: bubble)
+                cg.setStrokeColor(high.withAlphaComponent(active ? 0.8 : 0.45).cgColor)
+                cg.setLineWidth(0.8)
+                cg.strokeEllipse(in: bubble)
+            }
+        }
+    }
+}
+#endif

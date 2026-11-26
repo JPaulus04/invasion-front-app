@@ -3323,28 +3323,28 @@ final class OutpostScene: SKScene {
         // Give the physical island the majority of the hero region instead
         // of rendering it as a small illustration between UI labels.
         let stageWidth = min(size.width - 18, 390)
-        let diorama = WorldShowcase.island(world: world.id, locked: !unlocked,
-            width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
-        diorama.name = "worldDiorama"
         // Prefer authored island art where the biome matches the destination.
         // Never display the lava or void concept as an unrelated playable world.
         let islandAssets: [Int: String] = [
             0: "world_forest_island",
+            1: "world_toxic_island",
+            2: "world_iron_island",
             3: "world_ice_island",
             4: "world_lava_island",
             8: "world_ice_island",
             12: "world_void_island"
         ]
         if let assetName = islandAssets[world.id],
-           let image = UIImage(named: assetName) {
+           let image = productionImage(named: assetName) {
             let islandTexture = SKTexture(image: image)
             islandTexture.filteringMode = .linear
             let islandSprite = SKSpriteNode(texture: islandTexture)
             islandSprite.name = "worldDiorama"
             let dimensions = islandTexture.size()
-            let width = min(size.width - 20, 345) * scale
-            islandSprite.size = CGSize(width: width,
-                height: min((260) * scale, width * dimensions.height / max(1, dimensions.width)))
+            let maxWidth = min(size.width - 20, 345) * scale
+            let maxHeight = 260 * scale
+            let factor = min(maxWidth/max(1, dimensions.width), maxHeight/max(1, dimensions.height))
+            islandSprite.size = CGSize(width: dimensions.width*factor, height: dimensions.height*factor)
             islandSprite.position = CGPoint(x: 0, y: 0)
             islandSprite.zPosition = 2
             islandSprite.alpha = unlocked ? 1 : 0.5
@@ -3360,6 +3360,10 @@ final class OutpostScene: SKScene {
                                  withKey: "homeIslandFloat")
             }
         } else {
+            // Construct the procedural fallback only when no authored island resolves.
+            let diorama = WorldShowcase.island(world: world.id, locked: !unlocked,
+                width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
+            diorama.name = "worldDiorama"
             diorama.position.y = 4 * scale
             diorama.setScale(1.18 * scale)
             diorama.zPosition = 2
@@ -4511,6 +4515,17 @@ final class OutpostScene: SKScene {
             shape.position = CGPoint(x: patch.frame.midX, y: patch.frame.midY)
             shape.lineWidth = 1.65
             shape.zPosition = 0
+            #if DEBUG
+            // Preview only; compare actual device-scale captures before replacing
+            // the existing production liquid visuals. Physics remains unchanged.
+            if patch.kind != .rubble && selectedWorld.id != 0 &&
+                ProcessInfo.processInfo.arguments.contains("-previewDimensionalHazards"),
+                DimensionalLiquidPreview.install(on: shape, patch: patch, seed: wave*31+hazardIndex) {
+                if patch.kind == .acid { acidVisualNodes.append(shape) }
+                hazardScenery.addChild(shape)
+                continue
+            }
+            #endif
             switch patch.kind {
             case .water:
                 shape.fillColor = SKColor(red: 0.035, green: 0.17, blue: 0.25, alpha: 0.96)
@@ -4966,6 +4981,9 @@ final class OutpostScene: SKScene {
         if displayedAcidActive != acidOn {
             displayedAcidActive = acidOn
             for shape in acidVisualNodes {
+                #if DEBUG
+                if DimensionalLiquidPreview.updateAcid(on: shape, active: acidOn) { continue }
+                #endif
                 // Illustrated pools must remain transparent above their
                 // authored texture when the hazard toggles on/off.
                 if let illustration = shape.childNode(withName: "illustratedTerrain")

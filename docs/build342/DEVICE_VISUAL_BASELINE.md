@@ -15,3 +15,9 @@ User supplied ten actual Build 340 screenshots (IMG_0052.jpeg through IMG_0061.j
 Code review: OutpostScene's authored islandAssets mapping includes stable IDs 0 (forest) and 3 (ice), not 1 (Toxic Crossing) or 2 (Iron Wastes). WorldShowcase fallback constructs props from world1_* families. The screenshots are consistent with this fallback. Inspect Frost Expanse on device before diagnosing its island. Do not change progression or replace valid assets simply based on screenshot appearance.
 
 Prioritize gameplay environment artwork first, then complete the selector dioramas. Review representative standard, gate-open and boss scenes at phone scale before enabling production landscape route. Preserve Build 341 release separation. No gameplay, image assets, release controls or main changed by this documentation commit.
+
+## Device correction pass
+
+- Selector: add stable-ID authored island keys 1 (world_toxic_island) and 2 (world_iron_island); use existing production image resolver and proportional fit. Only construct the procedural fallback if no authored image resolves. Actual new island files are not present, so Toxic/Iron retain their fallback until art arrives. Forest/ice asset names preserved.
+- Hazard preview: DEBUG launch flag `-previewDimensionalHazards` enables a bounded raster candidate generated directly from each immutable TerrainHazards patch outline. Transparent outside the polygon, recessed colored bank, irregular surface detail, separate pre-rendered active/inactive acid states. Original collision, timing, damage and rubble paths remain untouched. No production activation and no claimed visual approval; review on actual simulator before switching.
+- Regression source checks cover routing, proportional scaling, exact outline clipping, texture bounds and acid state dispatch. Hosted compile, tests and screenshot review still required. Existing prop/ground PNG backlog unchanged.
