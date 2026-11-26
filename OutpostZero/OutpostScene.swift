@@ -5908,6 +5908,33 @@ final class OutpostScene: SKScene {
                 arena.childNode(withName: "roomArtwork")?.isHidden = true
                 let root = ToxicEnvironment.make(plan,
                     texture: { [weak self] in self?.worldOneTexture(named: $0) })
+                // In fixed-camera rooms the playable rectangle ends well
+                // below the HUD. Use the actual visible nonwalkable north
+                // strip, rather than relying on offscreen perimeter counts.
+                if !expandedArenaPreview {
+                    let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+                    let bandBottom = roomBounds.maxY + 4
+                    let height = min(78, hudBottom - bandBottom - 8,
+                                     max(0, roomBounds.width/2 - 96))
+                    if height >= 38 {
+                        let anchor = ToxicEnvironmentPlan.propAnchorY
+                        let names = wave.isMultiple(of: 2)
+                            ? ["world2_prop_pipe", "world2_prop_tank"]
+                            : ["world2_prop_tank", "world2_prop_wall"]
+                        for (index, name) in names.enumerated() {
+                            let x = index == 0 ? roomBounds.minX+height/2+3 : roomBounds.maxX-height/2-3
+                            let position = CGPoint(x: x,y: bandBottom+height*anchor)
+                            let frame = CGRect(x: x-height/2,y: bandBottom,width: height,height: height)
+                            guard !frame.intersects(roomBounds),
+                                  abs(x-roomBounds.midX) >= 80+height/2 else { continue }
+                            AuthoredEnvironmentRenderer.installGroundedProp(asset: name,
+                                position: position, size: CGSize(width: height,height: height),
+                                anchorY: anchor, bounds: roomBounds, in: root,
+                                texture: { [weak self] in self?.worldOneTexture(named: $0) })
+                            root.children.last?.name = "toxicNorthLandmark"
+                        }
+                    }
+                }
                 // Flat, nonblocking fragments are the only new art allowed
                 // inside the walkable area. Large solid props stay outside.
                 let patches = TerrainHazards.patches(world: 1, room: max(1, wave), bounds: roomBounds)
@@ -7956,6 +7983,16 @@ final class OutpostScene: SKScene {
                     width: abs(b.x-a.x), height: abs(b.y-a.y))
                 let intersection = viewport.intersection(screenFrame)
                 return !intersection.isNull && intersection.width >= 8 && intersection.height >= 8
+            }
+            let landmarks = root.children.filter { $0.name == "toxicNorthLandmark" }
+            let bandTop = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+            let band = CGRect(x: 0,y: roomBounds.maxY,width: size.width,
+                              height: max(0,bandTop-roomBounds.maxY))
+            if !expandedArenaPreview {
+                let frames = landmarks.map { $0.calculateAccumulatedFrame() }
+                precondition(frames.allSatisfy { band.contains($0) && !$0.intersects(roomBounds) },
+                             "North landmarks must stay in the visible nonwalkable strip")
+                print("[BUILD342 TOXIC LANDMARKS] room=\(wave) count=\(landmarks.count) band=\(band)")
             }
             if expandedArenaPreview {
                 precondition(fragments.filter(visible).count >= 2,
