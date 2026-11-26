@@ -4,6 +4,7 @@ on:
     paths:
       - 'OutpostZero/ArtAssets/world2_*.png'
       - 'scripts/validate_toxic_environment.py'
+      - 'scripts/check_art_sprites.py'
       - 'OutpostZero/OutpostScene.swift'
       - 'OutpostZero/WorldOneEnvironment.swift'
       - 'scripts/check_build342_hazards.py'
@@ -31,7 +32,8 @@ jobs:
           python3 scripts/generate_pilot_art.py
           python3 scripts/generate_enemy_art.py
           xcodegen generate
-          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build | tee build342-hazard-build.log
+          # Keep candidate PNG bytes unchanged for the strict source/bundle comparison.
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO COMPRESS_PNG_FILES=NO STRIP_PNG_TEXT=NO build | tee build342-hazard-build.log
           mkdir simulator-app
           ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
       - name: Validate actual bundled Toxic candidate assets
