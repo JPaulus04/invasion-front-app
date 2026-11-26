@@ -392,3 +392,37 @@ enum DimensionalLiquidPreview {
     }
 }
 #endif
+
+
+#if DEBUG
+/// Staged Frost Expanse presentation; never changes gameplay geometry.
+enum FrostEnvironment {
+    static func make(_ plan: FrostEnvironmentPlan.Plan,
+                     texture: (String) -> SKTexture?) -> SKNode {
+        let root = SKNode()
+        root.name = "authoredFrostWorld"
+        root.addChild(AuthoredEnvironmentRenderer.tiledGround(
+            bounds: plan.groundBounds, origin: plan.bounds.origin,
+            cell: WorldOneEnvironmentPlan.cellSize,
+            materialName: { column, row in
+                FrostEnvironmentPlan.materials[plan.variant(column: column,row: row)]
+            }, texture: texture))
+        for prop in plan.landmarks {
+            AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
+                position: prop.position,size: prop.size,anchorY: prop.anchorY,
+                bounds: plan.bounds,in: root,texture: texture)
+        }
+        for snow in plan.snowbanks {
+            guard let art = texture(snow.asset) else { continue }
+            let sprite = SKSpriteNode(texture: art)
+            sprite.name = "frostGroundSnow"
+            sprite.position = snow.position
+            sprite.size = snow.size
+            sprite.zPosition = -12
+            sprite.alpha = 0.82
+            root.addChild(sprite)
+        }
+        return root
+    }
+}
+#endif
