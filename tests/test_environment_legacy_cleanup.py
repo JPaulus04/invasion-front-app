@@ -60,6 +60,8 @@ class EnvironmentLegacyCleanupTests(unittest.TestCase):
         fixture = source.split("private func captureBuild342Hazards", 1)[1].split("private func prepareBuild341StonebackLive", 1)[0]
         self.assertIn("Requested dimensional liquid did not load", fixture)
         self.assertIn("patch.outlinePath().boundingBoxOfPath", fixture)
+        self.assertIn("$0 <= 0.05", fixture)
+        self.assertIn("Liquid geometry mismatch", fixture)
         self.assertIn("DimensionalLiquidPreview.updateAcid", fixture)
         self.assertIn("[BUILD342 HAZARDS]", fixture)
         script = (ROOT / "scripts" / "check_build342_hazards.py").read_text()

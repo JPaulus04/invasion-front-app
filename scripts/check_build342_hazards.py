@@ -28,7 +28,7 @@ def capture(device, output, fixture, first=False):
     while time.monotonic() < deadline:
         if errors.exists() and any(term in errors.read_text(errors="replace")
                                    for term in ("Precondition failed", "Fatal error")):
-            raise AssertionError(f"App assertion: {errors}")
+            raise AssertionError(f"App assertion: {errors}\n{errors.read_text(errors='replace')[-4000:]}")
         if log.exists() and marker in log.read_text(errors="replace"):
             break
         time.sleep(0.5)

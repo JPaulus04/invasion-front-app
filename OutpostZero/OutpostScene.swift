@@ -7821,7 +7821,17 @@ final class OutpostScene: SKScene {
                       abs($0.frame.midY-node.position.y) < 0.01 }) else {
                     preconditionFailure("Liquid node has no authoritative patch")
                 }
-                precondition(idle.size == patch.frame.size && path.boundingBoxOfPath == patch.outlinePath().boundingBoxOfPath)
+                // SpriteKit bridges these values through Float-backed geometry.
+                // Keep a strict subpixel tolerance; never accept a scaled or
+                // displaced damage boundary merely to pass a screenshot test.
+                let actual = path.boundingBoxOfPath
+                let expected = patch.outlinePath().boundingBoxOfPath
+                let deltas = [abs(idle.size.width-patch.frame.width),
+                              abs(idle.size.height-patch.frame.height),
+                              abs(actual.minX-expected.minX), abs(actual.minY-expected.minY),
+                              abs(actual.maxX-expected.maxX), abs(actual.maxY-expected.maxY)]
+                precondition(deltas.allSatisfy { $0.isFinite && $0 <= 0.05 },
+                    "Liquid geometry mismatch: sprite=\(idle.size) patch=\(patch.frame.size) path=\(actual) expected=\(expected) deltas=\(deltas)")
                 if kind == .acid {
                     precondition(state == "active" || state == "idle")
                     precondition(DimensionalLiquidPreview.updateAcid(on: node, active: state == "active"))
