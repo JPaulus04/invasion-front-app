@@ -51,7 +51,10 @@ def main():
             capture(device, output, name, f"-captureBuild341Faction={name}",
                     f"[BUILD341 FACTION] name={name} ")
         for name, variant in (("warforge", "2"), ("warforge", "3"),
-                              ("cryooverlord", "phase2"), ("frostwyrm", "burrow")):
+                              ("cryooverlord", "phase2"), ("frostwyrm", "burrow"),
+                              ("press_giant", "alternate"), ("gantry_warden", "alternate"),
+                              ("permafrostcrusher", "alternate"), ("frostwyrm", "alternate"),
+                              ("cryooverlord", "alternate"), ("cryooverlord", "freeze")):
             capture(device, output, f"{name}-{variant}", f"-captureBuild341Faction={name}:{variant}",
                     f"[BUILD341 FACTION] name={name} variant={variant} ")
 

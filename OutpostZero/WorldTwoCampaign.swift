@@ -74,14 +74,35 @@ enum FrontierFactionArt {
         switch character {
         case "frostwyrm": return sequence == "attack" ? 5 : 3
         case "cryooverlord", "cryogunner": return 3
-        case "permafrostcrusher": return 4
+        case "permafrostcrusher": return sequence == "charge" ? 2 : 6
+        case "frostfang", "shardstinger": return 7
+        case "glacierbrute": return 6
+        case "blizzarddrone": return 8
         default: return 4
         }
     }
+    static func emissionFrames(character: String, sequence: String) -> [Int] {
+        if character == "cryogunner" { return [3, 7] }
+        if character == "cryooverlord" && sequence == "attack" { return [3, 6] }
+        if character == "sentry" { return [4, 5, 6] }
+        return [activeFrame(character: character, sequence: sequence)]
+    }
+    static func groundAttack(character: String, sequence: String) -> Bool {
+        switch character {
+        case "press_giant", "gantry_warden", "permafrostcrusher", "blizzarddrone": return true
+        case "frostwyrm": return sequence == "tail_sweep"
+        case "cryooverlord": return sequence != "attack"
+        case "warforge": return sequence != "attack_2"
+        default: return false
+        }
+    }
+    static func frameTime(_ frame: Int, state: WorldTwoCampaign.Manifest.Sequence) -> TimeInterval {
+        let active = max(0, min(frame, state.frames.count - 1))
+        if let durations = state.frame_durations_ms { return durations.prefix(active).reduce(0, +) / 1000 }
+        return Double(active) / state.fps
+    }
     static func attackDelay(character: String, sequence: String, state: WorldTwoCampaign.Manifest.Sequence) -> TimeInterval {
-        let active = min(activeFrame(character: character, sequence: sequence), state.frames.count - 1)
-        if let durations = state.frame_durations_ms { return durations.prefix(max(0, active)).reduce(0, +) / 1000 }
-        return Double(max(0, active)) / state.fps
+        frameTime(activeFrame(character: character, sequence: sequence), state: state)
     }
     static func bossName(world: Int, room: Int) -> String? {
         guard let name = character(world: world, room: room, type: 1, slot: 0, boss: true) else { return nil }

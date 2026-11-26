@@ -8019,6 +8019,8 @@ final class OutpostScene: SKScene {
             precondition(enemies[0].shotTarget == nil)
             combatClock.advance(manifest.states["phase_transition"]!.duration + 0.01, playing: true)
         }
+        if variant == "alternate" { enemies[0].worldTwoTurn = 1 }
+        if name == "cryooverlord", variant == "freeze" { enemies[0].worldTwoTurn = 2 }
         if name == "frostwyrm", variant == "burrow" {
             enemies[0].worldTwoTurn = 2
             precondition(updateFrontierFactionAttack(at: 0) && enemies[0].worldTwoAction == "burrow")
@@ -8036,9 +8038,27 @@ final class OutpostScene: SKScene {
             if name == "warforge", let phase = Int(variant), (2...3).contains(phase) {
                 precondition(enemies[0].worldTwoPhase == phase && enemies[0].worldTwoAction == "attack_" + String(phase))
             }
-            combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
-            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget == nil)
-            precondition(projectiles.count + lobs.count == 1)
+            let sequence = enemies[0].worldTwoAction
+            let groundAttack = FrontierFactionArt.groundAttack(character: name, sequence: sequence)
+            let expectedEmissions = FrontierFactionArt.emissionFrames(character: name, sequence: sequence).count
+            if groundAttack {
+                precondition(lobs.count == 1 && lobs[0].shell.isHidden && lobs[0].impactAt > combatTime)
+                pilotShieldUntil = 0
+                let before = health
+                updateHostileAttacks(delta: 0)
+                precondition(health == before)
+            }
+            for _ in 0..<expectedEmissions {
+                combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
+                precondition(updateFrontierFactionAttack(at: 0))
+            }
+            precondition(enemies[0].shotTarget == nil)
+            precondition(projectiles.count + lobs.count == expectedEmissions)
+            if groundAttack {
+                let before = health
+                updateHostileAttacks(delta: 0)
+                precondition(lobs.isEmpty && health < before)
+            }
         } else {
             pilot.position = CGPoint(x: enemy.node.position.x, y: enemy.node.position.y - 20)
             pilotShieldUntil = 0
@@ -8312,9 +8332,22 @@ final class OutpostScene: SKScene {
                     if targetIsReactor { damageDefenseDevice() }
                     else { damagePilot(enemy.behavior == 3 ? 8 : 5) }
                 }
-            } else if name == "lobber" || name == "blizzarddrone" ||
-                        (boss && !(name == "cryooverlord" && action == "attack") &&
-                         !(name == "frostwyrm" && action == "attack")) {
+            } else if FrontierFactionArt.groundAttack(character: name, sequence: action) {
+                // The warning was established at anticipation. Its impact is
+                // due at this active frame, with no visible airborne shell.
+                if name == "permafrostcrusher" && action == "charge" {
+                    let length = max(1, distance(origin, target))
+                    let travel = min(96, max(0, length - enemy.radius))
+                    let landing = RoomRules.clamp(CGPoint(x: origin.x + (target.x - origin.x) * travel / length,
+                        y: origin.y + (target.y - origin.y) * travel / length),
+                        to: roomBounds.insetBy(dx: enemy.radius, dy: enemy.radius))
+                    enemy.node.position = TerrainHazards.resolveMovement(from: origin, to: landing,
+                        patches: roomHazards, radius: enemy.radius)
+                    effect(effectName, at: enemy.node.position)
+                } else {
+                    effect(effectName, at: target)
+                }
+            } else if name == "lobber" || (name == "warforge" && action == "attack_2") {
                 let releaseOrigin: CGPoint
                 if name == "lobber", let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
                     releaseOrigin = art.convert(CGPoint(x: (125 / 512.0 - art.anchorPoint.x) * art.size.width,
@@ -8326,11 +8359,30 @@ final class OutpostScene: SKScene {
                 let projectileName = ["cryogunner": "frost_projectile", "cryooverlord": "cryo_projectile",
                                       "frostwyrm": "ice_shards"][name]
                 let projectileArt = projectileName.flatMap { WorldOneEnemyAnimation.worldTwoFrames(enemy: name, sequence: $0) }
-                fireProjectile(from: origin, toward: target, authoredTextures: projectileArt)
-                effect(effectName, at: origin)
+                let muzzleOrigin: CGPoint
+                if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    let offsets: [String: [CGFloat]] = ["cryogunner": [171, -76], "cryooverlord": [155, -327],
+                                                       "frostwyrm": [172, -263]]
+                    if let offset = offsets[name] {
+                        muzzleOrigin = art.convert(CGPoint(x: offset[0] * art.size.width / 512,
+                                                          y: -offset[1] * art.size.height / 512), to: arena)
+                    } else { muzzleOrigin = origin }
+                } else { muzzleOrigin = origin }
+                fireProjectile(from: muzzleOrigin, toward: target, authoredTextures: projectileArt)
+                effect(effectName, at: muzzleOrigin)
+            }
+            let emission = FrontierFactionArt.emissionFrames(character: name, sequence: action)
+            let shot = min(enemy.worldTwoStep, emission.count - 1)
+            if shot + 1 < emission.count, let state = manifest.states[action] {
+                enemies[index].worldTwoStep = shot + 1
+                enemies[index].nextAttack = combatTime + max(0.05,
+                    FrontierFactionArt.frameTime(emission[shot + 1], state: state) -
+                    FrontierFactionArt.frameTime(emission[shot], state: state))
+                return true
             }
             enemies[index].shotTarget = nil
-            enemies[index].nextAttack = combatTime + max(0.3, manifest.states[action].map { $0.duration - FrontierFactionArt.attackDelay(character: name, sequence: action, state: $0) } ?? 0.5) + 1.2
+            enemies[index].nextAttack = combatTime + max(0.3,
+                manifest.states[action].map { $0.duration - FrontierFactionArt.frameTime(emission[shot], state: $0) } ?? 0.5) + 1.2
             return true
         }
         if melee && distance(enemy.node.position, currentTarget) > meleeRange { return true }
@@ -8385,6 +8437,7 @@ final class OutpostScene: SKScene {
         enemies[index].shotTarget = target
         enemies[index].worldTwoAction = sequence
         enemies[index].worldTwoTurn += 1
+        enemies[index].worldTwoStep = 0
         let path = CGMutablePath()
         path.move(to: .zero)
         path.addLine(to: CGPoint(x: target.x - enemy.node.position.x, y: target.y - enemy.node.position.y))
@@ -8399,6 +8452,10 @@ final class OutpostScene: SKScene {
             WorldOneEnemyAnimation.play(.attack, enemy: name, on: art, sequence: sequence)
         }
         let anticipation = FrontierFactionArt.attackDelay(character: name, sequence: sequence, state: state)
+        if FrontierFactionArt.groundAttack(character: name, sequence: sequence) {
+            launchLob(from: enemy.node.position, target: target, radius: boss ? 54 : 43,
+                      flightTime: max(0.1, anticipation), showsProjectile: false)
+        }
         enemies[index].nextAttack = combatTime + anticipation
         return true
     }
