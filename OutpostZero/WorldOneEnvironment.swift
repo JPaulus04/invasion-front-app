@@ -269,11 +269,58 @@ enum DimensionalLiquidPreview {
             cg.setLineWidth(12)
             cg.setStrokeColor(low.withAlphaComponent(0.85).cgColor)
             cg.strokePath()
-            cg.addPath(path)
-            cg.setLineWidth(3.0)
-            cg.setStrokeColor((acid ? UIColor(red: 0.60,green: 0.75,blue: 0.22,alpha: active ? 0.9 : 0.45)
-                                    : UIColor(red: 0.34,green: 0.57,blue: 0.59,alpha: 0.65)).cgColor)
-            cg.strokePath()
+            if acid {
+                // Vary the inward bank thickness and mineral deposits, rather
+                // than tracing a bright, uniform polygon like a UI icon.
+                // All raster marks remain clipped to the authoritative path.
+                cg.setLineCap(.round)
+                let vertices = patch.outline.map { CGPoint(x: $0.x*w, y: $0.y*h) }
+                let unit = min(w,h)
+                let bank = UIColor(red: 0.26, green: 0.23, blue: 0.12, alpha: 1)
+                let mineral = UIColor(red: 0.49, green: 0.47, blue: 0.24, alpha: 1)
+                let lip = UIColor(red: 0.66, green: 0.79, blue: 0.27, alpha: 1)
+                for index in vertices.indices {
+                    let a = vertices[index]
+                    let b = vertices[(index+1)%vertices.count]
+                    let length = hypot(b.x-a.x,b.y-a.y)
+                    guard length > 0.01 else { continue }
+                    let steps = max(1, Int(ceil(length/max(3,unit*0.055))))
+                    for part in 0..<steps {
+                        let t0 = CGFloat(part)/CGFloat(steps)
+                        let t1 = CGFloat(part+1)/CGFloat(steps)
+                        let start = CGPoint(x: a.x+(b.x-a.x)*t0,y: a.y+(b.y-a.y)*t0)
+                        let end = CGPoint(x: a.x+(b.x-a.x)*t1,y: a.y+(b.y-a.y)*t1)
+                        let width = max(2,unit*(0.055+random()*0.085))
+                        cg.move(to: start)
+                        cg.addLine(to: end)
+                        cg.setLineWidth(width)
+                        cg.setStrokeColor(bank.withAlphaComponent(0.56+random()*0.32).cgColor)
+                        cg.strokePath()
+                        let radius = max(0.8,unit*(0.008+random()*0.018))
+                        cg.setFillColor(mineral.withAlphaComponent(0.25+random()*0.40).cgColor)
+                        cg.fillEllipse(in: CGRect(x: end.x-radius,y: end.y-radius,
+                                                  width: radius*2,height: radius*2))
+                        if random() > 0.50 {
+                            cg.move(to: start)
+                            cg.addLine(to: end)
+                            cg.setLineWidth(max(0.8,width*0.22))
+                            cg.setStrokeColor(lip.withAlphaComponent(active ? 0.66 : 0.32).cgColor)
+                            cg.strokePath()
+                        }
+                    }
+                }
+                // Thin continuous dark contact line communicates the exact
+                // damage boundary even where the mineral highlights break.
+                cg.addPath(path)
+                cg.setLineWidth(1.4)
+                cg.setStrokeColor(low.withAlphaComponent(0.9).cgColor)
+                cg.strokePath()
+            } else {
+                cg.addPath(path)
+                cg.setLineWidth(3.0)
+                cg.setStrokeColor(UIColor(red: 0.34,green: 0.57,blue: 0.59,alpha: 0.65).cgColor)
+                cg.strokePath()
+            }
             for _ in 0..<(acid ? 12 : 7) {
                 let x = (random()-0.5)*w, y = (random()-0.5)*h
                 guard path.contains(CGPoint(x: x,y: y)) else { continue }
