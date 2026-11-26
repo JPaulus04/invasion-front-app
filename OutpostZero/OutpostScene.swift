@@ -1,6 +1,7 @@
 import SpriteKit
 // Build 330 validation checkpoint: integrated pause, terrain lighting, and pilot presentation.
 import UIKit
+import Darwin
 
 final class OutpostScene: SKScene {
     private enum Phase { case ready, worldSelect, headquarters, gearBay, abilityLab, loadout, playing, levelUp, checkpoint, gate, settings, interrupted, worldComplete, restoration, gameOver }
@@ -1694,6 +1695,10 @@ final class OutpostScene: SKScene {
         }
         if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341=") }) {
             captureBuild341(String(capture.dropFirst("-captureBuild341=".count)))
+        }
+        if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341Performance=") }) {
+            let world = capture.hasSuffix("3") ? WorldCatalog.frostIndex : WorldCatalog.ironIndex
+            prepareBuild341Performance(world: world)
         }
         if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341Faction=") }) {
             captureBuild341Faction(String(capture.dropFirst("-captureBuild341Faction=".count)))
@@ -7228,6 +7233,9 @@ final class OutpostScene: SKScene {
             }
         } else {
             updateSimulation(currentTime)
+            #if DEBUG
+            updateBuild341Performance(currentTime)
+            #endif
         }
     }
 
@@ -7974,6 +7982,57 @@ final class OutpostScene: SKScene {
         fflush(stdout)
     }
 
+    private var build341FrameTimes: [TimeInterval] = []
+    private var build341PreviousFrame: TimeInterval?
+    private var build341PeakHostiles = 0
+    private var build341PeakTextureCacheBytes = 0
+    private var build341TransitionMS: TimeInterval?
+
+    private func prepareBuild341Performance(world: Int) {
+        worldMapIndex = world
+        wave = 23
+        gateUnlocked = true
+        let before = ProcessInfo.processInfo.systemUptime
+        startWave()
+        build341TransitionMS = (ProcessInfo.processInfo.systemUptime - before) * 1000
+        let roster = world == WorldCatalog.frostIndex
+            ? FrontierFactionArt.frostRegulars : FrontierFactionArt.ironRegulars
+        let encounters = roster.sorted { $0.key < $1.key }.map { ($0.key, $0.value) }
+        let units = world == WorldCatalog.ironIndex
+            ? encounters + [(0, "scrapper"), (3, "overclock")] : encounters
+        for (role, name) in units + units {
+            spawnEnemy(artReviewType: role, factionReviewCharacter: name)
+        }
+        precondition(enemies.count == units.count * 2)
+        spawned = waveTarget
+        pilotShieldUntil = combatTime + 120
+        lastShot = combatTime + 120
+    }
+
+    private func updateBuild341Performance(_ time: TimeInterval) {
+        guard let transition = build341TransitionMS else { return }
+        if let previous = build341PreviousFrame, time > previous {
+            build341FrameTimes.append(time - previous)
+        }
+        build341PreviousFrame = time
+        movementTarget = CGPoint(x: roomBounds.midX + cos(combatTime) * 95,
+                                 y: roomBounds.midY + sin(combatTime) * 125)
+        build341PeakHostiles = max(build341PeakHostiles, projectiles.count + lobs.count)
+        build341PeakTextureCacheBytes = max(build341PeakTextureCacheBytes, WorldOneEnemyAnimation.cachedFactionTextureBytes)
+        guard build341FrameTimes.count == 360 else { return }
+        var usage = rusage()
+        let resident = getrusage(RUSAGE_SELF, &usage) == 0 ? Int64(usage.ru_maxrss) : -1
+        let samples = build341FrameTimes.sorted()
+        let p95 = samples[Int(Double(samples.count - 1) * 0.95)] * 1000
+        let fps = Double(samples.count) / samples.reduce(0, +)
+        precondition(build341PeakHostiles > 0 && fps > 0)
+        print("[BUILD341 PERF] world=\(worldMapIndex + 1) frames=\(samples.count) fps=\(fps) p95_ms=\(p95) " +
+              "room_setup_ms=\(transition) peak_texture_cache_bytes=\(build341PeakTextureCacheBytes) " +
+              "peak_resident_bytes=\(resident) peak_hostile_effects=\(build341PeakHostiles) enemies=\(enemies.count)")
+        fflush(stdout)
+        build341TransitionMS = nil
+    }
+
     private func captureBuild341Faction(_ selection: String) {
         let parts = selection.split(separator: ":")
         let name = String(parts[0])
@@ -8037,6 +8096,8 @@ final class OutpostScene: SKScene {
             precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget != nil)
             if name == "warforge", let phase = Int(variant), (2...3).contains(phase) {
                 precondition(enemies[0].worldTwoPhase == phase && enemies[0].worldTwoAction == "attack_" + String(phase))
+                precondition(enemy.node.childNode(withName: "warforgePhaseNotice") != nil &&
+                             art.childNode(withName: "warforgePhaseLayer") != nil)
             }
             let sequence = enemies[0].worldTwoAction
             let groundAttack = FrontierFactionArt.groundAttack(character: name, sequence: sequence)
@@ -8048,10 +8109,12 @@ final class OutpostScene: SKScene {
                 updateHostileAttacks(delta: 0)
                 precondition(health == before)
             }
-            for _ in 0..<expectedEmissions {
-                combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
-                precondition(updateFrontierFactionAttack(at: 0))
-            }
+            // A single late tick crosses all scheduled frames. Each due
+            // emission must be dispatched exactly once without stretching the burst.
+            let attack = manifest.states[sequence]!
+            combatClock.advance(attack.duration + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0))
+            precondition(updateFrontierFactionAttack(at: 0))
             precondition(enemies[0].shotTarget == nil)
             precondition(projectiles.count + lobs.count == expectedEmissions)
             if groundAttack {
@@ -8282,6 +8345,7 @@ final class OutpostScene: SKScene {
             let sprite = SKSpriteNode(texture: first, size: CGSize(width: size, height: size))
             sprite.position = position
             sprite.zPosition = 5.5
+            sprite.speed = fastForward ? 2 : 1
             arena.addChild(sprite)
             let animation: SKAction
             if let durations = state.frame_durations_ms, durations.count == loaded.count {
@@ -8317,7 +8381,7 @@ final class OutpostScene: SKScene {
             }
             return true
         }
-        if let target = enemy.shotTarget {
+        while let target = enemies[index].shotTarget, combatTime >= enemies[index].nextAttack {
             enemy.node.childNode(withName: "factionAim")?.removeFromParent()
             let origin = enemy.node.position
             let frostEffects = ["cryogunner": "muzzle_flash", "blizzarddrone": "freezing_area",
@@ -8372,35 +8436,39 @@ final class OutpostScene: SKScene {
                 effect(effectName, at: muzzleOrigin)
             }
             let emission = FrontierFactionArt.emissionFrames(character: name, sequence: action)
-            let shot = min(enemy.worldTwoStep, emission.count - 1)
+            let shot = min(enemies[index].worldTwoStep, emission.count - 1)
             if shot + 1 < emission.count, let state = manifest.states[action] {
                 enemies[index].worldTwoStep = shot + 1
-                enemies[index].nextAttack = combatTime + max(0.05,
-                    FrontierFactionArt.frameTime(emission[shot + 1], state: state) -
-                    FrontierFactionArt.frameTime(emission[shot], state: state))
-                return true
+                // Anchor to the attack's start so a late tick neither shifts
+                // the burst nor suppresses any emission that is already due.
+                enemies[index].nextAttack = enemy.fireAt +
+                    FrontierFactionArt.frameTime(emission[shot + 1], state: state)
+                continue
             }
             enemies[index].shotTarget = nil
-            enemies[index].nextAttack = combatTime + max(0.3,
-                manifest.states[action].map { $0.duration - FrontierFactionArt.frameTime(emission[shot], state: $0) } ?? 0.5) + 1.2
+            let recovery = name == "warforge" ? [1.65, 1.20, 0.90][enemy.worldTwoPhase - 1] : 1.2
+            enemies[index].nextAttack = max(enemy.fireAt + (manifest.states[action]?.duration ?? 0.5),
+                                            combatTime + 0.3) + recovery
             return true
         }
+        if enemy.shotTarget != nil { return true }
         if melee && distance(enemy.node.position, currentTarget) > meleeRange { return true }
         let threats = enemies.filter { $0.shotTarget != nil }.count + projectiles.count + lobs.count
         guard melee || boss || CombatRules.mayBeginRangedAttack(room: wave, activeThreats: threats) else { return true }
         var sequence = "attack"
         if name == "warforge" {
             let phase = enemy.health * 3 <= enemy.maxHealth ? 3 : (enemy.health * 3 <= enemy.maxHealth * 2 ? 2 : 1)
-            enemies[index].worldTwoPhase = phase
-            if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
-                WorldOneEnemyAnimation.setWarforgePhase(phase, on: art)
-            }
             if phase > enemy.worldTwoPhase {
+                enemies[index].worldTwoPhase = phase
+                if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    WorldOneEnemyAnimation.setWarforgePhase(phase, on: art)
+                }
                 let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
                 label.text = phase == 2 ? "FURNACE OVERLOAD" : "CORE EXPOSED"
+                label.name = "warforgePhaseNotice"
                 label.fontSize = 14
                 label.fontColor = .systemOrange
-                label.position.y = 95
+                label.position.y = 150
                 label.zPosition = 15
                 enemy.node.addChild(label)
                 label.run(.sequence([.wait(forDuration: 1.6), .fadeOut(withDuration: 0.3), .removeFromParent()]))
@@ -8449,6 +8517,7 @@ final class OutpostScene: SKScene {
         enemy.node.addChild(warning)
         if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
             art.xScale = target.x < enemy.node.position.x ? -1 : 1
+            art.speed = fastForward ? 2 : 1
             WorldOneEnemyAnimation.play(.attack, enemy: name, on: art, sequence: sequence)
         }
         let anticipation = FrontierFactionArt.attackDelay(character: name, sequence: sequence, state: state)
@@ -8456,6 +8525,7 @@ final class OutpostScene: SKScene {
             launchLob(from: enemy.node.position, target: target, radius: boss ? 54 : 43,
                       flightTime: max(0.1, anticipation), showsProjectile: false)
         }
+        enemies[index].fireAt = combatTime
         enemies[index].nextAttack = combatTime + anticipation
         return true
     }

@@ -15,6 +15,15 @@ enum WorldOneEnemyAnimation {
     private static var preloaded = false
     private static var memoryObserver: NSObjectProtocol?
 
+    #if DEBUG
+    static var cachedFactionTextureBytes: Int {
+        costs.reduce(into: 0) { total, entry in
+            let name = String(entry.key.split(separator: ".", maxSplits: 1)[0])
+            if FrontierFactionArt.folder(name) != nil { total += entry.value }
+        }
+    }
+    #endif
+
     static func preload() {
         guard !preloaded else { return }
         preloaded = true

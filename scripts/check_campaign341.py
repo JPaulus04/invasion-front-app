@@ -3,7 +3,7 @@ from pathlib import Path
 import time
 
 from PIL import Image
-from run_phase4_simulator import BUNDLE, command, fresh_simulator
+from run_phase4_simulator import BUNDLE, command, focused_simulator
 
 
 def capture(device, output, fixture, flag, marker):
@@ -11,7 +11,7 @@ def capture(device, output, fixture, flag, marker):
     errors = output / f"{fixture}-stderr.log"
     command("xcrun", "simctl", "launch", "--terminate-running-process",
             f"--stdout={log}", f"--stderr={errors}", device, BUNDLE, flag, timeout=90)
-    deadline = time.monotonic() + 45
+    deadline = time.monotonic() + (90 if marker == "[BUILD341 PERF]" else 45)
     while time.monotonic() < deadline:
         if errors.exists() and any(term in errors.read_text(errors="replace")
                                    for term in ("Precondition failed", "Fatal error")):
@@ -35,8 +35,11 @@ def main():
     fixtures = [
         "1-1", "1-10", "1-10-result", "1-18", "1-20", "1-20-result",
         "1-30", "1-30-exposed", "1-30-result",
+        "2-10-result", "2-20-result", "2-30-result",
+        "3-0", "3-10-result", "3-20-result", "3-29", "3-30-result",
+        "4-0", "4-10-result", "4-15", "4-20-result", "4-29", "4-30-result",
     ]
-    with fresh_simulator("build341", output, controlled=True) as device:
+    with focused_simulator("build341", output) as device:
         capture(device, output, "legacy-iron-recovery", "-captureRecoveryScreenshot",
                 "[BUILD341 MIGRATED]")
         capture(device, output, "legacy-frontier-recovery", "-captureBuild341LegacyFrontier",
@@ -44,6 +47,9 @@ def main():
         for fixture in fixtures:
             capture(device, output, fixture, f"-captureBuild341={fixture}",
                     f"[BUILD341 READY] fixture={fixture} ")
+        for world in (3, 4):
+            capture(device, output, f"performance-world{world}",
+                    f"-captureBuild341Performance={world}", "[BUILD341 PERF]")
         for name in ("frostfang", "cryogunner", "glacierbrute", "blizzarddrone", "shardstinger",
                      "permafrostcrusher", "frostwyrm", "cryooverlord",
                      "bulkhead", "grunt", "rail_skater", "raider", "lobber", "sentry",
