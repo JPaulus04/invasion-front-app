@@ -7958,6 +7958,13 @@ final class OutpostScene: SKScene {
                     spawned: spawned, target: waveTarget, living: enemies.count))
                 completeWave()
                 while progress.pendingChoices > 0 { chooseLevelUpgrade(levelChoices[0]) }
+                // Wounded pilots legitimately receive the optional repair checkpoint
+                // after a milestone clear. Verify it and return to the visible exit.
+                if phase == .checkpoint {
+                    precondition(room.isMultiple(of: 5) && room < worldWaveCount &&
+                                 health < maximumHealth && checkpointPresented)
+                    showZoneGate()
+                }
                 precondition(phase == (room == worldWaveCount ? .worldComplete : .gate))
             }
             holdDefenseQAScreenshot = true
