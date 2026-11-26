@@ -59,6 +59,8 @@ enum FrontierFactionArt {
     static let ironBosses = [10: "press_giant", 20: "gantry_warden", 30: "warforge"]
     static let frostRegulars = [0: "frostfang", 2: "shardstinger", 3: "glacierbrute", 4: "cryogunner", 5: "blizzarddrone"]
     static let ironRegulars = [0: "grunt", 1: "rail_skater", 2: "raider", 3: "bulkhead", 4: "sentry", 5: "lobber"]
+    static let chargeTravel: [String: CGFloat] = ["grunt": 74, "rail_skater": 116]
+    static let speedScale: [String: CGFloat] = ["rail_skater": 1.18, "scrapper": 0.82, "overclock": 1.28]
 
     static func character(world: Int, room: Int, type: Int, slot: Int, boss: Bool) -> String? {
         if world == WorldCatalog.frostIndex { return boss ? frostBosses[room] : frostRegulars[type] }

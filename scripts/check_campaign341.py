@@ -1,5 +1,7 @@
 """Capture the current campaign routes using Debug fixtures in the iOS app."""
 from pathlib import Path
+import signal
+import subprocess
 import time
 
 from PIL import Image
@@ -11,7 +13,7 @@ def capture(device, output, fixture, flag, marker):
     errors = output / f"{fixture}-stderr.log"
     command("xcrun", "simctl", "launch", "--terminate-running-process",
             f"--stdout={log}", f"--stderr={errors}", device, BUNDLE, flag, timeout=90)
-    deadline = time.monotonic() + (90 if marker == "[BUILD341 PERF]" else 45)
+    deadline = time.monotonic() + (150 if marker == "[BUILD341 PERF]" else 45)
     while time.monotonic() < deadline:
         if errors.exists() and any(term in errors.read_text(errors="replace")
                                    for term in ("Precondition failed", "Fatal error")):
@@ -27,6 +29,27 @@ def capture(device, output, fixture, flag, marker):
     with Image.open(path) as image:
         colors = image.convert("RGB").resize((120, 200)).getcolors(24000)
         assert image.height > image.width and colors and len(colors) > 200, path
+
+
+def record_stoneback(device, output):
+    capture(device, output, "stoneback-live", "-captureBuild341StonebackLive", "[BUILD341 LIVE]")
+    path = output / "stoneback-live.mp4"
+    with (output / "stoneback-video.log").open("w") as log:
+        recorder = subprocess.Popen(
+            ["xcrun", "simctl", "io", device, "recordVideo", "--codec=h264", str(path)],
+            stdout=log, stderr=subprocess.STDOUT,
+        )
+        try:
+            time.sleep(7)
+            if recorder.poll() is None:
+                recorder.send_signal(signal.SIGINT)
+            recorder.wait(timeout=15)
+        finally:
+            if recorder.poll() is None:
+                recorder.kill()
+                recorder.wait(timeout=5)
+    if not path.is_file() or path.stat().st_size < 4096:
+        raise RuntimeError("Stoneback recording is missing or incomplete")
 
 
 def main():
@@ -47,6 +70,7 @@ def main():
         for fixture in fixtures:
             capture(device, output, fixture, f"-captureBuild341={fixture}",
                     f"[BUILD341 READY] fixture={fixture} ")
+        record_stoneback(device, output)
         for world in (3, 4):
             capture(device, output, f"performance-world{world}",
                     f"-captureBuild341Performance={world}", "[BUILD341 PERF]")

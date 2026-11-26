@@ -223,6 +223,13 @@ enum WorldOneEnemyAnimation {
                      sequence: String? = nil, frameDuration: TimeInterval? = nil,
                      completion: (() -> Void)? = nil) -> Bool {
         let current = (sprite.userData?[motionKey] as? String).flatMap(Motion.init(rawValue:))
+        if motion == .hit, current == .attack, FrontierFactionArt.folder(enemy) != nil {
+            // Keep the windup visible while the authored event is pending.
+            sprite.run(.sequence([.colorize(with: .white, colorBlendFactor: 0.7, duration: 0.04),
+                                  .colorize(withColorBlendFactor: 0, duration: 0.12)]),
+                       withKey: "factionAttackHitFeedback")
+            return true
+        }
         let authored = FrontierFactionArt.manifest(enemy)?.sequence(sequence ?? (motion == .move ? "run" : motion.rawValue))
         guard (sequence != nil && current != .defeat ||
                EnemyAnimationRules.canTransition(from: current,to: motion)),
@@ -296,7 +303,7 @@ enum WorldOneEnemyAnimation {
         visual.userData = NSMutableDictionary(dictionary: ["animatedEnemy":name])
         visual.position = CGPoint(x: position.x+source.position.x,y: position.y+source.position.y)
         visual.zPosition = depth; visual.xScale = source.xScale
-        if name == "warforge" { visual.speed = source.speed }
+        if FrontierFactionArt.folder(name) != nil { visual.speed = source.speed }
         parent.addChild(visual)
         if !play(.defeat,enemy: name,on: visual,completion: { [weak visual] in visual?.removeFromParent() }) {
             visual.removeFromParent(); return false

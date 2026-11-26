@@ -167,7 +167,7 @@ final class OutpostScene: SKScene {
         let expiresAt: TimeInterval
     }
     private var warforgeHeat: [WarforgeHeat] = []
-    private var warforgeShutdownUntil: TimeInterval = 0
+    private var factionBossDefeatUntil: TimeInterval = 0
     private var projectiles: [Projectile] = []
     private var lobs: [Lob] = []
     private let hud = SKNode()
@@ -1704,6 +1704,9 @@ final class OutpostScene: SKScene {
         }
         if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341=") }) {
             captureBuild341(String(capture.dropFirst("-captureBuild341=".count)))
+        }
+        if ProcessInfo.processInfo.arguments.contains("-captureBuild341StonebackLive") {
+            prepareBuild341StonebackLive()
         }
         if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341Performance=") }) {
             let world = capture.hasSuffix("3") ? WorldCatalog.frostIndex : WorldCatalog.ironIndex
@@ -5418,7 +5421,7 @@ final class OutpostScene: SKScene {
         }
         phase = .playing
         arena.isPaused = false
-        warforgeShutdownUntil = 0
+        factionBossDefeatUntil = 0
         clearHostileAttacks()
         defenseDevice.removeFromParent()
         // Surviving enemies cannot accompany a departing pilot. Discard
@@ -6979,7 +6982,8 @@ final class OutpostScene: SKScene {
         let enemyHP = ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames")
             ? 70 : max(1, Int((Double(baseEnemyHP) * healthFactor).rounded()))
         let standardSpeed = CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
-        let speed = miniBoss?.speed ?? (isBoss ? 20 : standardSpeed)
+        let factionSpeed = worldTwoCharacter.flatMap { FrontierFactionArt.speedScale[$0] } ?? 1
+        let speed = miniBoss?.speed ?? (isBoss ? 20 : standardSpeed * factionSpeed)
         // Keep the track and fill together above the larger illustrated sprite.
         let animatedGrunt = (node.childNode(withName: "enemyArt") as? SKSpriteNode)
             .map { WorldOneEnemyAnimation.isMossbot($0) } ?? false
@@ -7563,7 +7567,6 @@ final class OutpostScene: SKScene {
             }
         }
         for index in enemies.indices.reversed() {
-            let current = enemies[index].node.position
             let enemy = enemies[index]
             guard combatTime >= enemy.activeAt else { continue }
             enemy.node.alpha = 1
@@ -7578,6 +7581,8 @@ final class OutpostScene: SKScene {
             if enemies[index].worldTwoBurrowed { continue }
             if ranged && !usesWorldTwoAttack { updateRangedAttack(at: index) }
             if usesWorldTwoAttack && (enemies[index].shotTarget != nil || enemy.worldTwoCharacter == "venomspitter") { continue }
+            // A committed charge can move the enemy during the attack update.
+            let current = enemy.node.position
             // Melee foes attack the device. Shooters still target the pilot.
             let pursuitTarget = activeEncounter == .equipmentDefense &&
                 enemy.behavior < 4 ? defenseDevice.position : pilot.position
@@ -7977,11 +7982,11 @@ final class OutpostScene: SKScene {
                 }
                 for index in enemies.indices { enemies[index].health = 0 }
                 removeDefeatedEnemies()
-                if warforgeShutdownUntil > combatTime {
+                if factionBossDefeatUntil > combatTime {
                     completeWave()
                     precondition(phase == .playing && !roomCleared)
                     precondition(arena.childNode(withName: "enemyDefeatVisual") != nil)
-                    combatClock.advance(warforgeShutdownUntil - combatTime + 0.01, playing: true)
+                    combatClock.advance(factionBossDefeatUntil - combatTime + 0.01, playing: true)
                 }
                 precondition(bossNode == nil && RoomRules.isCleared(
                     spawned: spawned, target: waveTarget, living: enemies.count))
@@ -8000,6 +8005,22 @@ final class OutpostScene: SKScene {
             arena.isPaused = true
         }
         print("[BUILD341 READY] fixture=\(selection) world=\(selectedWorld.title) biome=\(selectedWorld.biome) rooms=\(worldWaveCount) phase=\(phase)")
+        fflush(stdout)
+    }
+
+    private func prepareBuild341StonebackLive() {
+        worldMapIndex = 0
+        wave = 19
+        gateUnlocked = true
+        startWave()
+        spawned = 1
+        spawnEnemy()
+        precondition(enemies.count == 1 && bossNode != nil && frontierMiniBoss?.name == "STONEBACK")
+        enemies[0].node.position = pilot.position.applying(CGAffineTransform(translationX: 0, y: 106))
+        pilotShieldUntil = combatTime + 60
+        lastShot = combatTime + 60
+        updateArenaCamera(delta: 1)
+        print("[BUILD341 LIVE] Stoneback ready")
         fflush(stdout)
     }
 
@@ -8040,7 +8061,7 @@ final class OutpostScene: SKScene {
                                  y: roomBounds.midY + sin(combatTime) * 125)
         build341PeakHostiles = max(build341PeakHostiles, projectiles.count + lobs.count)
         build341PeakTextureCacheBytes = max(build341PeakTextureCacheBytes, WorldOneEnemyAnimation.cachedFactionTextureBytes)
-        guard build341FrameTimes.count == 360 else { return }
+        guard build341FrameTimes.count == 1800 else { return }
         var usage = rusage()
         let resident = getrusage(RUSAGE_SELF, &usage) == 0 ? Int64(usage.ru_maxrss) : -1
         let samples = build341FrameTimes.sorted()
@@ -8121,6 +8142,9 @@ final class OutpostScene: SKScene {
                              art.childNode(withName: "warforgePhaseLayer") != nil)
             }
             let sequence = enemies[0].worldTwoAction
+            let warningPose = art.texture
+            EnemyCombatFeedback.hit(enemy.node, from: pilot.position)
+            precondition(art.texture === warningPose, "Hits must not replace the authored attack pose")
             let groundAttack = FrontierFactionArt.groundAttack(character: name, sequence: sequence)
             let expectedEmissions = FrontierFactionArt.emissionFrames(character: name, sequence: sequence).count
             if groundAttack {
@@ -8365,8 +8389,19 @@ final class OutpostScene: SKScene {
         let melee = !boss && enemy.behavior < 4
         let targetIsReactor = melee && activeEncounter == .equipmentDefense
         let currentTarget = targetIsReactor ? defenseDevice.position : pilot.position
-        let meleeRange: CGFloat = enemy.radius + (name == "rail_skater" || name == "raider" ? 40 : 26)
+        let meleeRange: CGFloat = enemy.radius + (name == "raider" ? 40 : 26)
+        let chargeTravel = FrontierFactionArt.chargeTravel[name] ?? 0
         guard enemy.health > 0, combatTime >= enemy.nextAttack else { return true }
+        func advanceToward(_ target: CGPoint, limit: CGFloat) {
+            let origin = enemy.node.position
+            let length = max(1, distance(origin, target))
+            let travel = min(limit, max(0, length - enemy.radius))
+            let landing = RoomRules.clamp(CGPoint(x: origin.x + (target.x - origin.x) * travel / length,
+                y: origin.y + (target.y - origin.y) * travel / length),
+                to: roomBounds.insetBy(dx: enemy.radius, dy: enemy.radius))
+            enemy.node.position = TerrainHazards.resolveMovement(from: origin, to: landing,
+                patches: roomHazards, radius: enemy.radius)
+        }
         func effect(_ sequence: String, at position: CGPoint) {
             guard let state = manifest.sequence(sequence),
                   let loaded = WorldOneEnemyAnimation.worldTwoFrames(enemy: name, sequence: sequence) else { return }
@@ -8424,8 +8459,10 @@ final class OutpostScene: SKScene {
                 "cryooverlord": action == "heavy_slam" ? "melee_impact" : (action == "freeze_cast" ? "freezing_hazard" : "muzzle_flash")]
             let effectName = FrontierFactionArt.ironNames.contains(name) ? action + "_fx" : frostEffects[name] ?? ""
             if melee {
+                if chargeTravel > 0 { advanceToward(target, limit: chargeTravel) }
                 effect(effectName, at: target)
-                if distance(origin, currentTarget) <= meleeRange && distance(target, currentTarget) <= 30 {
+                if distance(enemy.node.position, currentTarget) <= meleeRange &&
+                   distance(target, currentTarget) <= 30 {
                     if targetIsReactor { damageDefenseDevice() }
                     else { damagePilot(enemy.behavior == 3 ? 8 : 5) }
                 }
@@ -8433,13 +8470,7 @@ final class OutpostScene: SKScene {
                 // The warning was established at anticipation. Its impact is
                 // due at this active frame, with no visible airborne shell.
                 if name == "permafrostcrusher" && action == "charge" {
-                    let length = max(1, distance(origin, target))
-                    let travel = min(96, max(0, length - enemy.radius))
-                    let landing = RoomRules.clamp(CGPoint(x: origin.x + (target.x - origin.x) * travel / length,
-                        y: origin.y + (target.y - origin.y) * travel / length),
-                        to: roomBounds.insetBy(dx: enemy.radius, dy: enemy.radius))
-                    enemy.node.position = TerrainHazards.resolveMovement(from: origin, to: landing,
-                        patches: roomHazards, radius: enemy.radius)
+                    advanceToward(target, limit: 96)
                     effect(effectName, at: enemy.node.position)
                 } else {
                     effect(effectName, at: target)
@@ -8486,7 +8517,7 @@ final class OutpostScene: SKScene {
             return true
         }
         if enemy.shotTarget != nil { return true }
-        if melee && distance(enemy.node.position, currentTarget) > meleeRange { return true }
+        if melee && distance(enemy.node.position, currentTarget) > meleeRange + chargeTravel { return true }
         let threats = enemies.filter { $0.shotTarget != nil }.count + projectiles.count + lobs.count
         guard melee || boss || CombatRules.mayBeginRangedAttack(room: wave, activeThreats: threats) else { return true }
         var sequence = "attack"
@@ -9473,10 +9504,10 @@ final class OutpostScene: SKScene {
                 let showsDefeat = WorldOneEnemyAnimation.defeatCopy(of: source,
                     at: enemies[index].node.position, in: arena,
                     depth: enemies[index].node.zPosition + 0.1)
-                if defeatedBoss, showsDefeat, enemies[index].worldTwoCharacter == "warforge",
-                   let shutdown = FrontierFactionArt.manifests["warforge"]?.states["defeat"] {
+                if defeatedBoss, showsDefeat, let character = enemies[index].worldTwoCharacter,
+                   let defeat = FrontierFactionArt.manifests[character]?.states["defeat"] {
                     clearHostileAttacks()
-                    warforgeShutdownUntil = combatTime + shutdown.duration
+                    factionBossDefeatUntil = combatTime + defeat.duration
                 }
             }
             enemies[index].node.removeFromParent()
@@ -9570,7 +9601,7 @@ final class OutpostScene: SKScene {
     }
 
     private func completeWave() {
-        guard !roomCleared, combatTime >= warforgeShutdownUntil else { return }
+        guard !roomCleared, combatTime >= factionBossDefeatUntil else { return }
         roomCleared = true
         if qaStationaryRun || qaMovingRun {
             qaRecordState("clear")
@@ -9613,7 +9644,7 @@ final class OutpostScene: SKScene {
     @discardableResult
     private func presentPendingLevelUp(returningTo destination: Phase) -> Bool {
         guard health > 0, progress.pendingChoices > 0,
-              combatTime >= warforgeShutdownUntil else { return false }
+              combatTime >= factionBossDefeatUntil else { return false }
         levelUpReturnPhase = destination
         showLevelUp()
         return true
@@ -10623,7 +10654,7 @@ final class OutpostScene: SKScene {
     }
 
     private func restart() {
-        warforgeShutdownUntil = 0
+        factionBossDefeatUntil = 0
         for drop in xpDrops { drop.node.removeFromParent() }
         xpDrops.removeAll()
         for enemy in enemies { enemy.node.removeFromParent() }
