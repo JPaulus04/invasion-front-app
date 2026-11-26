@@ -1,15 +1,19 @@
 name: World 2 iOS validation
 on:
+  push:
+    branches: [main]
   pull_request:
     paths:
       - 'OutpostZero/**'
       - 'assets/enemies/world2/**'
       - '.github/workflows/world2-validation.yml'
+      - 'scripts/run_phase4_simulator.py'
+      - 'scripts/check_world2_simulator.py'
   workflow_dispatch:
 jobs:
   world2:
     runs-on: macos-15
-    timeout-minutes: 24
+    timeout-minutes: 30
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:

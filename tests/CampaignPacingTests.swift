@@ -1,12 +1,12 @@
 import Foundation
 
-/// Deterministic 20-room resource/XP integration checks for all playable
+/// Deterministic campaign resource/XP integration checks for all playable
 /// worlds. This is NOT a simulated human or a claim about dodge skill.
 @main
 struct CampaignPacingTests {
     static func main() {
         // Survival and optional defense are deliberately interspersed.
-        // The boss remains Room 20, regardless of encounter density.
+        // Campaign room counts and boss pacing come from the production rules.
         let bounds = CGRect(x: 26, y: 70, width: 264, height: 300)
         precondition(!FlankSwarmRules.shouldWarn(
             world: 0, room: 1, nextSlot: 4))
@@ -121,7 +121,7 @@ struct CampaignPacingTests {
             playerDefeated: true, worldCompleted: true)
         precondition(!contradictory.hasValidOutcome)
         // Support threats survive longer than grunts while keeping boss HP exact.
-        for room in 1..<20 {
+        for room in 1..<WorldCatalog.roomCount(0) where FrontierMiniBoss.encounters[room] == nil {
             let grunt = CampaignPacing.enemyHealth(world: 0, room: room, type: 0)
             for role in [4, 5] {
                 let support = CampaignPacing.enemyHealth(world: 0, room: room, type: role)
@@ -129,9 +129,9 @@ struct CampaignPacingTests {
             }
             precondition(CombatRules.shooterTelegraph(room: room) >= 0.48)
         }
-        precondition(CampaignPacing.enemyHealth(world: 0, room: 20, type: 4) == WorldCatalog.info(0).bossHealth)
+        precondition(CampaignPacing.enemyHealth(world: 0, room: 30, type: 4) == WorldCatalog.info(0).bossHealth)
         let expectedSurvival = [3, 3, 3, 3]
-        let expectedDefense = [1, 0, 1, 0]
+        let expectedDefense = [1, 0, 0, 1]
         for world in 0..<WorldCatalog.playableCount {
             var timed = 0
             var survival = 0
@@ -139,7 +139,7 @@ struct CampaignPacingTests {
             var priorArena = 0
             for room in 1...WorldCatalog.roomCount(world) {
                 let kind = SurvivalEncounterRules.kind(world: world, room: room)
-                if room == WorldCatalog.roomCount(world) || (world == 1 && [10, 20].contains(room)) {
+                if room == WorldCatalog.roomCount(world) || ([10, 20].contains(room)) {
                     precondition(kind == .boss)
                     continue
                 }
@@ -356,9 +356,9 @@ struct CampaignPacingTests {
             elapsed: 10, duration: deadline, integrity: 0, living: 0))
         precondition(EquipmentDefenseRules.applyHit(integrity: 3) == 0)
         precondition(EquipmentDefenseRules.fails(integrity: 0))
-        precondition(EquipmentDefenseRules.completionSalvage(room: 12, integrity: 0) == 0)
-        precondition(EquipmentDefenseRules.completionSalvage(room: 12, integrity: 1) ==
-                     PersistentProgression.roomReward(room: 12),
+        precondition(EquipmentDefenseRules.completionSalvage(room: 12, integrity: 0, finalRoom: WorldCatalog.roomCount(0)) == 0)
+        precondition(EquipmentDefenseRules.completionSalvage(room: 12, integrity: 1, finalRoom: WorldCatalog.roomCount(0)) ==
+                     PersistentProgression.roomReward(room: 12, finalRoom: WorldCatalog.roomCount(0)),
                      "Successful defense must retain its existing payout")
         precondition(!EquipmentDefenseRules.succeeds(
             elapsed: deadline, duration: deadline, integrity: 0))
@@ -366,7 +366,7 @@ struct CampaignPacingTests {
             elapsed: deadline, duration: deadline, integrity: 1))
         precondition(!EquipmentDefenseRules.succeeds(
             elapsed: deadline - 0.01, duration: deadline, integrity: 150))
-        precondition(SurvivalEncounterRules.kind(world: 2, room: 15) == .equipmentDefense)
+        precondition(SurvivalEncounterRules.kind(world: WorldCatalog.ironIndex, room: 15) == .equipmentDefense)
         for room in 1...20 {
             for slot in 0..<100 {
                 let unit = SurvivalEncounterRules.swarmType(
@@ -383,7 +383,7 @@ struct CampaignPacingTests {
         precondition(CampaignPacing.targetEnemies(room: 0) == 0)
         precondition(CampaignPacing.targetEnemies(room: 1) == 5)
         precondition(CampaignPacing.targetEnemies(room: 5) == 9)
-        precondition(CampaignPacing.targetEnemies(room: 10) == 19)
+        precondition(CampaignPacing.targetEnemies(room: 10) == 1)
         precondition(CampaignPacing.targetEnemies(room: 19) == 37)
         precondition(CampaignPacing.incomingDamage(amount: 12, room: 3) == 11)
         precondition(CampaignPacing.incomingDamage(amount: 12, room: 8) == 12)
@@ -391,6 +391,17 @@ struct CampaignPacingTests {
         precondition(CampaignPacing.hitGracePeriod(room: 2) >
                      CampaignPacing.hitGracePeriod(room: 17))
         precondition(CampaignPacing.targetEnemies(room: 20) == 1)
+        precondition(CampaignPacing.targetEnemies(room: 30) == 1)
+        precondition(FrontierMiniBoss.encounters[10]?.name == "BARKGUARD")
+        precondition(FrontierMiniBoss.encounters[20]?.name == "STONEBACK")
+        for world in [WorldCatalog.frostIndex, WorldCatalog.ironIndex] {
+            precondition(SurvivalEncounterRules.kind(world: world, room: 20) == .boss)
+            precondition(SurvivalEncounterRules.kind(world: world, room: 30) == .boss)
+            precondition(CampaignPacing.targetEnemies(room: 30, world: world) == 1)
+        }
+        precondition(CampaignPacing.targetEnemies(room: 29, world: WorldCatalog.ironIndex) <
+                     CampaignPacing.targetEnemies(room: 28, world: WorldCatalog.ironIndex))
+        precondition(CampaignPacing.targetEnemies(room: 1, world: 4) == 0)
         precondition(CampaignPacing.spawnInterval(room: 19) <=
                      CampaignPacing.spawnInterval(room: 6))
         precondition(CampaignPacing.killXP(type: 0, isBoss: false) == 9)

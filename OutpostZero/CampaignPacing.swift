@@ -1,13 +1,37 @@
 import Foundation
 
+struct FrontierMiniBoss {
+    let name: String
+    let role: Int
+    let health: Int
+    let speed: CGFloat
+    let attackSequence: String
+    let impactFrame: Int
+    let attackRange: CGFloat
+    let impactRadius: CGFloat
+    let windup: TimeInterval
+    let recovery: TimeInterval
+    let targetsPilot: Bool
+
+    var attackFrameDuration: TimeInterval { windup / Double(impactFrame) }
+
+    static let encounters: [Int: FrontierMiniBoss] = [
+        10: .init(name: "BARKGUARD", role: 1, health: 105, speed: 65, attackSequence: "attack_slam",
+                  impactFrame: 9, attackRange: 68,
+                  impactRadius: 74, windup: 0.60, recovery: 1.45, targetsPilot: false),
+        20: .init(name: "STONEBACK", role: 3, health: 155, speed: 44, attackSequence: "attack",
+                  impactFrame: 6, attackRange: 180,
+                  impactRadius: 52, windup: 0.72, recovery: 1.65, targetsPilot: true)
+    ]
+}
+
 /// Values shared by live combat and deterministic full-campaign QA. Keeping
 /// these rules together prevents tests from drifting away from actual runs.
 enum CampaignPacing {
-    static let roomsPerWorld = 20
-
     static func targetEnemies(room: Int, world: Int = 0) -> Int {
-        guard (1...WorldCatalog.roomCount(world)).contains(room) else { return 0 }
+        guard room > 0, room <= WorldCatalog.roomCount(world) else { return 0 }
         if SurvivalEncounterRules.kind(world: world, room: room) == .boss { return 1 }
+        if world == WorldCatalog.ironIndex && room == WorldCatalog.roomCount(world) - 1 { return 12 }
         // First five rooms teach dodging and upgrades without overwhelming
         // the player. Pressure then ramps continuously into the final rooms.
         if room <= 5 { return 4 + room }
@@ -15,23 +39,24 @@ enum CampaignPacing {
         return min(38, 19 + (room - 10) * 2)
     }
 
-    static func spawnInterval(room: Int) -> TimeInterval {
+    static func spawnInterval(room: Int, world: Int = 0) -> TimeInterval {
         let established = max(0.42, 1.20 - Double(max(1, room)) * 0.032)
         // Preserve an approachable opening and tighten the gaps between
         // reinforcements near the end of a world. Boss cadence is irrelevant:
         // the final room spawns its boss as a single encounter.
         if room <= 5 { return established + 0.18 }
         if room <= 10 { return established + 0.08 }
-        if room >= 16 && room < roomsPerWorld { return max(0.40, established - 0.06) }
+        if room >= 16 && !WorldCatalog.isFinalRoom(world: world, room: room) { return max(0.40, established - 0.06) }
         return established
     }
 
     static func enemyHealth(world: Int, room: Int, type: Int) -> Int {
-        if world == 1 {
-            if room == 10 { return 115 }
-            if room == 20 { return 175 }
+        if world == 0, let miniBoss = FrontierMiniBoss.encounters[room] { return miniBoss.health }
+        if (1..<WorldCatalog.playableCount).contains(world) {
+            if room == 10 { return 115 + (world - 1) * 15 }
+            if room == 20 { return 175 + (world - 1) * 20 }
         }
-        if room == WorldCatalog.roomCount(world) { return WorldCatalog.info(world).bossHealth }
+        if WorldCatalog.isFinalRoom(world: world, room: room) { return WorldCatalog.info(world).bossHealth }
         let scaling = max(0, room - 1)
         let baseline = type == 3 ? 12 + scaling * 3 :
             (type == 1 ? 5 + scaling * 2 : 2 + scaling)
@@ -79,7 +104,7 @@ enum CampaignPacing {
 }
 
 
-/// Explicit, deliberately varied encounter layouts for playable 20-room worlds.
+/// Explicit, deliberately varied encounter layouts for playable worlds.
 /// Rules are authored separately from SpriteKit to make pacing inspectable
 /// before they are wired into movement, hostile spawning and save recovery.
 /// A separate mission type: keep a vulnerable field device intact under fire.
@@ -183,8 +208,8 @@ enum EquipmentDefenseRules {
 
     /// The existing defense-room Salvage is its optional objective bonus.
     /// Failure preserves earned kill rewards and permits campaign progress.
-    static func completionSalvage(room: Int, integrity: Int) -> Int {
-        integrity > 0 ? PersistentProgression.roomReward(room: room) : 0
+    static func completionSalvage(room: Int, integrity: Int, finalRoom: Int) -> Int {
+        integrity > 0 ? PersistentProgression.roomReward(room: room, finalRoom: finalRoom) : 0
     }
 
     static func maySpawn(elapsed: TimeInterval, duration: TimeInterval,
@@ -210,7 +235,7 @@ enum SurvivalEncounterRules {
 
     // These placements vary by world. An equipment-defense mission does not
     // replace a boss and must never be confused with a survival XP-farm loop.
-    // Three spaced endurance interruptions per 20-room campaign world.
+    // Three spaced endurance interruptions per campaign world, keyed by faction ID.
     // Dedicated optional endurance missions use a separate progression path.
     private static let survivalRooms: [[Int]] = [
         [6, 9, 17], [5, 11, 17], [6, 12, 18], [5, 11, 17]
@@ -221,11 +246,14 @@ enum SurvivalEncounterRules {
 
     static func kind(world: Int, room: Int) -> Kind {
         let finalRoom = WorldCatalog.roomCount(world)
-        if room == finalRoom || (world == 1 && (room == 10 || room == 20)) { return .boss }
-        guard (1..<finalRoom).contains(room) else { return .tactical }
-        guard (0..<survivalRooms.count).contains(world) else { return .tactical }
-        if defenseRooms[world].contains(room) { return .equipmentDefense }
-        return survivalRooms[world].contains(room) ? .survival : .tactical
+        if WorldCatalog.isFinalRoom(world: world, room: room) ||
+            (world == 0 && FrontierMiniBoss.encounters[room] != nil) ||
+            ((1..<WorldCatalog.playableCount).contains(world) && (room == 10 || room == 20)) { return .boss }
+        guard room > 0, room < finalRoom else { return .tactical }
+        let faction = WorldCatalog.info(world).id
+        guard survivalRooms.indices.contains(faction) else { return .tactical }
+        if defenseRooms[faction].contains(room) { return .equipmentDefense }
+        return survivalRooms[faction].contains(room) ? .survival : .tactical
     }
 
     /// Longer battles are deliberate, not room-clear waves. They are
@@ -307,7 +335,7 @@ enum FlankSwarmRules {
     static let speedMultiplier: CGFloat = 1.28
 
     static func shouldWarn(world: Int, room: Int, nextSlot: Int) -> Bool {
-        world == 0 && room >= 5 && room < 20 &&
+        world == 0 && room >= 5 &&
         SurvivalEncounterRules.kind(world: world, room: room) == .tactical &&
         (nextSlot == 4 || (room >= 13 && nextSlot == 13))
     }

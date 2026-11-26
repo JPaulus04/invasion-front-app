@@ -1,0 +1,41 @@
+{
+  "body_pivot_px": [
+    256,
+    420
+  ],
+  "effect_pivots_px": {
+    "muzzle_flash": [
+      96,
+      256
+    ],
+    "frost_projectile": [
+      336,
+      256
+    ],
+    "projectile_impact": [
+      256,
+      378
+    ]
+  },
+  "attack_fire": [
+    {
+      "body_frame": 3,
+      "muzzle_offset_px": [
+        171,
+        -76
+      ]
+    },
+    {
+      "body_frame": 7,
+      "muzzle_offset_px": [
+        169,
+        -86
+      ]
+    }
+  ],
+  "contact": {
+    "effect": "projectile_impact",
+    "position": "confirmed projectile contact"
+  },
+  "preview_projectile_speed_art_px_per_second": 1100
+}

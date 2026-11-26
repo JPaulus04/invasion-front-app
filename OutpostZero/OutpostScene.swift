@@ -1,6 +1,7 @@
 import SpriteKit
 // Build 330 validation checkpoint: integrated pause, terrain lighting, and pilot presentation.
 import UIKit
+import Darwin
 
 final class OutpostScene: SKScene {
     private enum Phase { case ready, worldSelect, headquarters, gearBay, abilityLab, loadout, playing, levelUp, checkpoint, gate, settings, interrupted, worldComplete, restoration, gameOver }
@@ -157,7 +158,16 @@ final class OutpostScene: SKScene {
         let launchedAt: TimeInterval
         let impactAt: TimeInterval
         let radius: CGFloat
+        var leavesHeat = false
     }
+    private struct WarforgeHeat {
+        let node: SKShapeNode
+        let radius: CGFloat
+        let activeAt: TimeInterval
+        let expiresAt: TimeInterval
+    }
+    private var warforgeHeat: [WarforgeHeat] = []
+    private var factionBossDefeatUntil: TimeInterval = 0
     private var projectiles: [Projectile] = []
     private var lobs: [Lob] = []
     private let hud = SKNode()
@@ -392,8 +402,13 @@ final class OutpostScene: SKScene {
     private var scrapyardWardenEnraged = false
     private var guardianTransitionUntil: TimeInterval = 0
     private var worldWaveCount: Int { WorldCatalog.roomCount(worldMapIndex) }
-    private var worldTwoBossName: String? {
-        worldMapIndex == WorldTwoCampaign.world ? WorldTwoCampaign.bossNames[wave] : nil
+    private var frontierMiniBoss: FrontierMiniBoss? {
+        worldMapIndex == 0 ? FrontierMiniBoss.encounters[wave] : nil
+    }
+
+    private var roomBossName: String? {
+        if let frontierMiniBoss { return frontierMiniBoss.name }
+        return worldMapIndex == WorldTwoCampaign.world ? WorldTwoCampaign.bossNames[wave] : FrontierFactionArt.bossName(world: worldMapIndex, room: wave)
     }
     private let coreBranches = ["WEAPONS", "REACTOR", "ARMOR", "MOBILITY", "SYSTEMS"]
     private var availableCores: Int { UserDefaults.standard.integer(forKey: "powerCoresAvailable") }
@@ -435,7 +450,7 @@ final class OutpostScene: SKScene {
         guard worldMapIndex == 0, wave > 0, phase != .worldSelect else { return nil }
         let encounter: WorldOneRoomGeometry.Encounter
         if wave == worldWaveCount {
-            encounter = .tactical
+            encounter = .finalBoss
         } else {
             switch activeEncounter {
             case .survival: encounter = .survival
@@ -858,7 +873,7 @@ final class OutpostScene: SKScene {
             // Avoid leaving a QA fixture in the simulator defaults.
             recovery.clear()
             let laterWorld = RunSnapshot(
-                version: RunSnapshot.schema, worldIndex: 2,
+                version: 4, worldIndex: 2,
                 room: 12, location: .battle,
                 health: 24, coins: 406, damage: 4, fireRate: 2,
                 chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 1,
@@ -867,15 +882,21 @@ final class OutpostScene: SKScene {
                 progress: RunProgress(), abilities: ["chain", "orbit", "incendiary"],
                 earnedSalvage: 140, roomSalvageCredit: 18,
                 roomCoinCredit: 32, roomXPCredit: 40)
-            precondition(recovery.save(laterWorld))
+            // A schema-4 fixture represents a persisted Build 340 run in Iron Wastes.
+            guard let legacyData = try? JSONEncoder().encode(laterWorld) else {
+                preconditionFailure("Could not encode the Build 340 recovery fixture")
+            }
+            UserDefaults.standard.set(legacyData, forKey: "outpostZeroRunSnapshotV1")
             worldMapIndex = 0
             showReady()
             precondition(overlayButtons["recover_run"] != nil,
                          "Any selected world must offer the existing saved run")
             recoverSavedRun()
-            precondition(worldMapIndex == 2 && wave == 12 &&
+            precondition(worldMapIndex == WorldCatalog.ironIndex && wave == 12 &&
                          phase == .interrupted && health == 24,
                          "Resume must reopen the actual world, not the selected map card")
+            print("[BUILD341 MIGRATED] Iron Wastes Room 12 restored in World 4")
+            fflush(stdout)
             recovery.clear()
             // Run the *real* recovery path through all three survival
             // interruption states, not just the serializable snapshot type.
@@ -904,7 +925,7 @@ final class OutpostScene: SKScene {
                 survivorSave.timedEncounterSpawned = 7
                 survivorSave.timedEncounterLiving = 3
                 precondition(recovery.save(survivorSave))
-                worldMapIndex = 2 // Resume must select the saved world.
+                worldMapIndex = WorldCatalog.ironIndex // Resume must select the saved world.
                 showReady()
                 recoverSavedRun()
                 precondition(worldMapIndex == 0 && wave == 6 &&
@@ -1476,7 +1497,7 @@ final class OutpostScene: SKScene {
             "-captureFrontierGuardianResolvedScreenshot")
         if guardianBase || guardianExposed || guardianResolved {
             worldMapIndex = 0
-            wave = 19
+            wave = worldWaveCount - 1
             gateUnlocked = true
             startWave()
             spawned = waveTarget
@@ -1486,7 +1507,7 @@ final class OutpostScene: SKScene {
             // the first active frame and falsely made all the art look ghostly.
             bossNode?.alpha = 1
             bossNode?.childNode(withName: "spawnWarning")?.removeFromParent()
-            precondition(wave == 20 && enemies.count == 1 && bossNode != nil &&
+            precondition(wave == worldWaveCount && enemies.count == 1 && bossNode != nil &&
                          bossNode?.alpha == 1 &&
                          enemies[0].health == selectedWorld.bossHealth &&
                          bossNode?.childNode(withName: "bossArt") != nil &&
@@ -1678,6 +1699,22 @@ final class OutpostScene: SKScene {
         // Real SpriteKit boss integration: stage the final room and
         // confirm each world's attack behavior, health and telegraphs.
         #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-captureBuild341LegacyFrontier") {
+            captureBuild341LegacyFrontier()
+        }
+        if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341=") }) {
+            captureBuild341(String(capture.dropFirst("-captureBuild341=".count)))
+        }
+        if ProcessInfo.processInfo.arguments.contains("-captureBuild341StonebackLive") {
+            prepareBuild341StonebackLive()
+        }
+        if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341Performance=") }) {
+            let world = capture.hasSuffix("3") ? WorldCatalog.frostIndex : WorldCatalog.ironIndex
+            prepareBuild341Performance(world: world)
+        }
+        if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341Faction=") }) {
+            captureBuild341Faction(String(capture.dropFirst("-captureBuild341Faction=".count)))
+        }
         if let review = worldTwoReview {
             worldMapIndex = WorldTwoCampaign.world
             wave = review - 1
@@ -1709,9 +1746,12 @@ final class OutpostScene: SKScene {
             fflush(stdout)
         }
         #endif
-        let bossCaptureFlags = ["-captureRootLordScreenshot", "-captureToxicMatriarchScreenshot",
-                                "-captureWarforgeScreenshot", "-captureFrostWraithScreenshot"]
-        if let index = bossCaptureFlags.firstIndex(where: { ProcessInfo.processInfo.arguments.contains($0) }) {
+        let bossCaptureFlags = [
+            ("-captureRootLordScreenshot", 0), ("-captureToxicMatriarchScreenshot", 1),
+            ("-captureWarforgeScreenshot", WorldCatalog.ironIndex),
+            ("-captureFrostWraithScreenshot", WorldCatalog.frostIndex)
+        ]
+        if let (_, index) = bossCaptureFlags.first(where: { ProcessInfo.processInfo.arguments.contains($0.0) }) {
             worldMapIndex = index
             wave = worldWaveCount - 1
             gateUnlocked = true
@@ -1724,11 +1764,11 @@ final class OutpostScene: SKScene {
             pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY - 100)
             precondition(enemies.count == 1 && wave == worldWaveCount &&
                          enemies[0].health == selectedWorld.bossHealth &&
-                         bossNode?.childNode(withName: index == 1 ? "enemyArt" : "bossArt") != nil &&
+                         bossNode?.childNode(withName: index == 0 ? "bossArt" : "enemyArt") != nil &&
                          zoneBanner.text == "BOSS: \(selectedWorld.boss)",
                          "Boss capture must use the production encounter and artwork")
             combatClock.advance(2.2, playing: true)
-            if !updateWorldTwoAttack(at: 0) { updateRangedAttack(at: 0) }
+            if !updateWorldTwoAttack(at: 0) && !updateFrontierFactionAttack(at: 0) { updateRangedAttack(at: 0) }
             precondition(!lobs.isEmpty || enemies[0].shotTarget != nil,
                          "Every boss must present a real combat telegraph")
             arena.isPaused = true
@@ -1771,13 +1811,13 @@ final class OutpostScene: SKScene {
                          WorldCatalog.completed(1),
                          "Defeating World 2 must unlock a next-world button")
             advanceToNextWorld()
-            precondition(worldMapIndex == 2 && wave == 1 &&
-                         phase == .playing && lockedLoadout.selected.isEmpty &&
+            precondition(worldMapIndex == WorldCatalog.frostIndex && wave == 1 &&
+                         phase == .playing && selectedWorld.biome == 4 && lockedLoadout.selected.isEmpty &&
                          roomHazards.contains(where: { $0.kind == .water }) &&
                          !roomHazards.contains(where: { $0.kind == .acid }),
                          "Next world must enter Room 1 with fresh empty abilities")
             precondition(roomHazards.contains(where: { $0.kind == .water }),
-                         "Iron Wastes must start with blocked water channels")
+                         "Frost Expanse must start with blocked ice channels")
             arena.isPaused = true
             phase = .levelUp
             updateHUD()
@@ -1788,15 +1828,15 @@ final class OutpostScene: SKScene {
         // tutorial bypass in regular gameplay.
         if ProcessInfo.processInfo.arguments.contains("-captureFourthWorldTransitionScreenshot") {
             for index in 0..<2 { _ = WorldCatalog.recordVictory(index, stars: 1) }
-            worldMapIndex = 2
+            worldMapIndex = WorldCatalog.frostIndex
             showReady()
             precondition(enterSelectedWorld())
             completeWorld()
             precondition(WorldCatalog.unlocked(3) && overlayButtons["next_world"] != nil)
             advanceToNextWorld()
-            precondition(worldMapIndex == 3 && wave == 1 && phase == .playing &&
-                         lockedLoadout.selected.isEmpty && selectedWorld.biome == 4,
-                         "World 3 victory must enter the playable Frost Expanse")
+            precondition(worldMapIndex == WorldCatalog.ironIndex && wave == 1 && phase == .playing &&
+                         lockedLoadout.selected.isEmpty && selectedWorld.biome == 1,
+                         "World 3 victory must enter the playable Iron Wastes")
             arena.isPaused = true
             phase = .levelUp
             updateHUD()
@@ -1834,7 +1874,7 @@ final class OutpostScene: SKScene {
             ("-captureWorldOneOutpostScreenshot", 1),
             ("-captureWorldOneSwampScreenshot", 6),
             ("-captureWorldOneCavesScreenshot", 12),
-            ("-captureWorldOneBossScreenshot", 20),
+            ("-captureWorldOneBossScreenshot", WorldCatalog.roomCount(0)),
             // Revisit captures exercise alternate authored floor compositions,
             // not only the first appearance of each landscape.
             ("-captureWorldOneOutpostRevisitScreenshot", 7),
@@ -1917,7 +1957,7 @@ final class OutpostScene: SKScene {
            ProcessInfo.processInfo.arguments.contains("-captureFrostTerrainScreenshot") {
             let arguments = ProcessInfo.processInfo.arguments
             worldMapIndex = arguments.contains("-captureToxicTerrainScreenshot") ? 1
-                : (arguments.contains("-captureIronTerrainScreenshot") ? 2 : 3)
+                : (arguments.contains("-captureIronTerrainScreenshot") ? WorldCatalog.ironIndex : WorldCatalog.frostIndex)
             wave = 0
             gateUnlocked = true
             startWave()
@@ -1959,7 +1999,7 @@ final class OutpostScene: SKScene {
             updateHUD()
         }
         // Dedicated victory-screen fixture: render the real completion summary
-        // without relying on a full 20-room gameplay run.
+        // without relying on a full campaign run.
         if ProcessInfo.processInfo.arguments.contains("-captureVictoryScreenshot") {
             showWorldCompleteSummary()
             precondition(phase == .worldComplete && arena.isHidden &&
@@ -2447,7 +2487,7 @@ final class OutpostScene: SKScene {
         // Three open survival compositions, selected deterministically per
         // world and wave. Landmarks remain decorative and close to the edge:
         // none can obstruct movement or create invisible collision.
-        let survivalLayout = (max(0, wave - 1) + worldMapIndex) % 3
+        let survivalLayout = (max(0, wave - 1) + selectedWorld.id) % 3
         let landmarkPositions: [(CGFloat, CGFloat)]
         switch survivalLayout {
         case 0: // Ruined perimeter: asymmetric corners.
@@ -2676,7 +2716,7 @@ final class OutpostScene: SKScene {
         route.fontColor = SKColor(white: 0.86, alpha: 1)
         route.position = CGPoint(x: centerX, y: top - 39)
         chrome.addChild(route)
-        // A continuous bar maps directly to the displayed 20-room count.
+        // A continuous bar maps directly to the displayed campaign room count.
         let routeWidth = max(32, centerWidth - 16)
         let routeTrack = SKShapeNode(rect: CGRect(x: 0, y: 0, width: routeWidth, height: 5), cornerRadius: 2)
         routeTrack.position = CGPoint(x: centerX - routeWidth / 2, y: top - 56)
@@ -2830,8 +2870,8 @@ final class OutpostScene: SKScene {
         checkpointButton.isHidden = phase != .gate || !wave.isMultiple(of: 5) || checkpointUsed
         // Preserve the selected world's identity while combat is paused
         // for upgrades or QA captures. Only pre-run screens use the game title.
-        let titleText = (wave == worldWaveCount || worldTwoBossName != nil) && phase == .playing
-            ? (worldTwoBossName ?? selectedWorld.boss)
+        let titleText = (wave == worldWaveCount || roomBossName != nil) && phase == .playing
+            ? (roomBossName ?? selectedWorld.boss)
             : (wave > 0 && phase != .ready && phase != .loadout
                ? selectedWorld.title : "OUTPOST ZERO")
         if title.text != titleText { title.text = titleText }
@@ -3283,7 +3323,7 @@ final class OutpostScene: SKScene {
         // Give the physical island the majority of the hero region instead
         // of rendering it as a small illustration between UI labels.
         let stageWidth = min(size.width - 18, 390)
-        let diorama = WorldShowcase.island(world: worldMapIndex, locked: !unlocked,
+        let diorama = WorldShowcase.island(world: world.id, locked: !unlocked,
             width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
         diorama.name = "worldDiorama"
         // Prefer authored island art where the biome matches the destination.
@@ -3295,7 +3335,7 @@ final class OutpostScene: SKScene {
             8: "world_ice_island",
             12: "world_void_island"
         ]
-        if let assetName = islandAssets[worldMapIndex],
+        if let assetName = islandAssets[world.id],
            let image = UIImage(named: assetName) {
             let islandTexture = SKTexture(image: image)
             islandTexture.filteringMode = .linear
@@ -4142,7 +4182,9 @@ final class OutpostScene: SKScene {
         installHubShell(active: "nav_abilities")
         overlayText("MISSION LOADOUT", y: 162, fontSize: 23)
         overlayText("PRIMARY: AUTO RIFLE  •  ALWAYS EQUIPPED", y: 126, fontSize: 11)
-        overlayText("WORLD \(worldMapIndex + 1)  •  LOCKED FOR \(worldWaveCount) ROOMS", y: 99, fontSize: 12)
+        overlayText(worldWaveCount > 0
+                    ? "WORLD \(worldMapIndex + 1)  •  LOCKED FOR \(worldWaveCount) ROOMS"
+                    : "WORLD \(worldMapIndex + 1)  •  RESERVED", y: 99, fontSize: 12)
         overlayText("\(draftLoadout.selected.count)/3 TACTICAL ABILITIES SELECTED",
                     y: 76, fontSize: 12)
         let options: [(String, String)] = [
@@ -4449,7 +4491,7 @@ final class OutpostScene: SKScene {
         acidVisualNodes.removeAll()
         displayedAcidActive = nil
         roomHazards = TerrainHazards.patches(
-            world: worldMapIndex, room: wave, bounds: roomBounds,
+            world: selectedWorld.id, room: wave, bounds: roomBounds,
             preview: ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot"))
         if let layout = worldOneLiveLayout {
             roomHazards += layout.boundaryObstacles.map {
@@ -4501,7 +4543,7 @@ final class OutpostScene: SKScene {
             if patch.kind != .rubble {
                 let material = patch.kind == .acid ? "acid" : "water"
                 let biome = worldMapIndex == 1 ? "toxic"
-                    : (worldMapIndex == 2 ? "industrial" : "frost")
+                    : (worldMapIndex == WorldCatalog.ironIndex ? "industrial" : "frost")
                 let assetName = "terrain_\(biome)_\(material)_\(hazardIndex)"
                 if let illustration = productionImage(named: assetName) {
                     let texture = SKTexture(image: illustration)
@@ -5379,6 +5421,7 @@ final class OutpostScene: SKScene {
         }
         phase = .playing
         arena.isPaused = false
+        factionBossDefeatUntil = 0
         clearHostileAttacks()
         defenseDevice.removeFromParent()
         // Surviving enemies cannot accompany a departing pilot. Discard
@@ -5488,7 +5531,7 @@ final class OutpostScene: SKScene {
         }
         nextAcidDamageAt = combatTime + 1.0
         enemyAcidDamageAt.removeAll()
-        if wave == 1 || (wave - 1) % 5 == 0 || wave == worldWaveCount || worldTwoBossName != nil ||
+        if wave == 1 || (wave - 1) % 5 == 0 || wave == worldWaveCount || roomBossName != nil ||
            [4, 9, 14, 19].contains(wave) {
             zoneBanner.removeAllActions()
             let labels: [String]
@@ -5498,8 +5541,8 @@ final class OutpostScene: SKScene {
             case 4: labels = ["FROZEN PASS", "ICEBOUND RELAY", "GLACIAL TRENCH", "WRAITH SANCTUM"]
             default: labels = zoneNames
             }
-            zoneBanner.text = wave == worldWaveCount || worldTwoBossName != nil
-                ? "BOSS: \(worldTwoBossName ?? selectedWorld.boss)"
+            zoneBanner.text = wave == worldWaveCount || roomBossName != nil
+                ? "BOSS: \(roomBossName ?? selectedWorld.boss)"
                 : ([4, 9, 14, 19].contains(wave)
                     ? EncounterDirector.title(room: wave)
                     : labels[activeZone])
@@ -6609,15 +6652,18 @@ final class OutpostScene: SKScene {
         spawnClock = 0
     }
 
-    private func spawnEnemy(artReviewType: Int? = nil) {
-        let isBoss = (wave == worldWaveCount || worldTwoBossName != nil) && artReviewType == nil
+    private func spawnEnemy(artReviewType: Int? = nil, factionReviewCharacter: String? = nil) {
+        let isBoss = artReviewType == nil &&
+            SurvivalEncounterRules.kind(world: worldMapIndex, room: wave) == .boss
         // Shooters arrive in room 6; lobbers join mixed groups from room 11.
         let roll = EncounterDirector.enemyRoll(
-            world: worldMapIndex, room: wave, slot: spawned)
-        let type = artReviewType ?? WorldCatalog.enemyType(
-            world: worldMapIndex, room: wave, roll: roll)
-        let worldTwoCharacter = worldMapIndex == WorldTwoCampaign.world
-            ? (isBoss ? WorldTwoCampaign.bosses[wave] : WorldTwoCampaign.regulars[type]) : nil
+            world: selectedWorld.id, room: wave, slot: spawned, isBoss: isBoss)
+        let miniBoss = isBoss ? frontierMiniBoss : nil
+        let type = artReviewType ?? (isBoss ? (miniBoss?.role ?? 1) : WorldCatalog.enemyType(
+            world: worldMapIndex, room: wave, roll: roll))
+        let worldTwoCharacter = factionReviewCharacter ?? (worldMapIndex == WorldTwoCampaign.world
+            ? (isBoss ? WorldTwoCampaign.bosses[wave] : WorldTwoCampaign.regulars[type])
+            : FrontierFactionArt.character(world: worldMapIndex, room: wave, type: type, slot: spawned, boss: isBoss))
         let worldTwoArt = worldTwoCharacter.flatMap { character -> SKSpriteNode? in
             let sprite = SKSpriteNode()
             return WorldOneEnemyAnimation.install(on: sprite, facingLeft: false, character: character) ? sprite : nil
@@ -6634,7 +6680,7 @@ final class OutpostScene: SKScene {
             node.fillColor = .clear
             node.strokeColor = .clear
         }
-        let usesIllustratedEnemy = !isBoss && productionImage(named: type == 1 ? "scout_idle" : (type == 2 ? "raider_idle" : (type == 3 ? "heavy_idle" : (type == 4 ? "shooter_idle" : (type == 5 ? "lobber_idle" : "grunt_idle"))))) != nil
+        let usesIllustratedEnemy = (!isBoss || miniBoss != nil) && productionImage(named: type == 1 ? "scout_idle" : (type == 2 ? "raider_idle" : (type == 3 ? "heavy_idle" : (type == 4 ? "shooter_idle" : (type == 5 ? "lobber_idle" : "grunt_idle"))))) != nil
         // Textured chassis overlay: preserves collision geometry while changing the visible silhouette.
         if let worldTwoArt {
             node.fillColor = .clear
@@ -6642,7 +6688,7 @@ final class OutpostScene: SKScene {
             worldTwoArt.name = "enemyArt"
             worldTwoArt.zPosition = 0.8
             node.addChild(worldTwoArt)
-        } else if !isBoss {
+        } else if !isBoss || miniBoss != nil {
             // Use class-specific artwork only for matching roles; never recolor finished illustrations.
             let assetName = type == 1 ? "scout_idle" : (type == 2 ? "raider_idle" : (type == 3 ? "heavy_idle" : (type == 4 ? "shooter_idle" : (type == 5 ? "lobber_idle" : "grunt_idle"))))
             let hasProductionArt = productionImage(named: assetName) != nil
@@ -6788,7 +6834,7 @@ final class OutpostScene: SKScene {
         if !usesIllustratedEnemy && !usesWorldTwoArt && !isBoss {
             node.addChild(core)
         }
-        if isBoss && !usesWorldTwoArt { BossArtwork.install(on: node, world: worldMapIndex) }
+        if isBoss && miniBoss == nil && !usesWorldTwoArt { BossArtwork.install(on: node, world: selectedWorld.id) }
         if type >= 4 && !usesIllustratedEnemy && !usesWorldTwoArt && !isBoss {
             let weapon = SKShapeNode(rectOf: CGSize(width: type == 5 ? 22 : 8, height: 26), cornerRadius: 3)
             weapon.fillColor = type == 5 ? .systemYellow : .systemCyan
@@ -6842,7 +6888,7 @@ final class OutpostScene: SKScene {
             // Orchestrated arrival lanes distinguish flanks, crossfire, and
             // mortar groups. Every candidate still respects terrain and
             // the pilot's minimum spawn separation.
-            let lane = EncounterDirector.spawnLane(room: wave, slot: spawned)
+            let lane = EncounterDirector.spawnLane(room: wave, slot: spawned, isBoss: isBoss)
             let x: CGFloat
             switch lane {
             case .left: x = CGFloat.random(in: 0.08...0.36, using: &spawnRandom)
@@ -6889,7 +6935,7 @@ final class OutpostScene: SKScene {
                         ? [CGPoint(x: 0.5, y: 0.80), CGPoint(x: 0.5, y: 0.55),
                            CGPoint(x: 0.5, y: 0.25)] : []))
         }
-        if isBoss {
+        if isBoss && miniBoss == nil {
             if let objective = worldOneLiveLayout?.objective {
                 node.position = CGPoint(x: roomBounds.minX + objective.x,
                                         y: roomBounds.minY + objective.y)
@@ -6935,14 +6981,16 @@ final class OutpostScene: SKScene {
         }
         let enemyHP = ProcessInfo.processInfo.arguments.contains("-captureRangedCombatFrames")
             ? 70 : max(1, Int((Double(baseEnemyHP) * healthFactor).rounded()))
-        let speed = isBoss ? CGFloat(20) : CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
+        let standardSpeed = CGFloat(type == 2 ? 105 : (type == 3 ? 32 : (type == 1 ? 38 : 65))) + CGFloat(min(wave * 3, 45))
+        let factionSpeed = worldTwoCharacter.flatMap { FrontierFactionArt.speedScale[$0] } ?? 1
+        let speed = miniBoss?.speed ?? (isBoss ? 20 : standardSpeed * factionSpeed)
         // Keep the track and fill together above the larger illustrated sprite.
         let animatedGrunt = (node.childNode(withName: "enemyArt") as? SKSpriteNode)
             .map { WorldOneEnemyAnimation.isMossbot($0) } ?? false
         let animationCharacter = (node.childNode(withName: "enemyArt") as? SKSpriteNode)
             .flatMap { WorldOneEnemyAnimation.character(on: $0) }
         let authoredHealthOffset = animationCharacter.flatMap { CharacterAnimationCatalog.healthBarY($0) }
-        let healthBarOffset: CGFloat = isBoss ? 118 : (usesWorldTwoArt ? 64 : (authoredHealthOffset.map { CGFloat($0) } ?? (animatedGrunt ? 47 :
+        let healthBarOffset: CGFloat = isBoss && miniBoss == nil ? 118 : (usesWorldTwoArt ? 64 : (authoredHealthOffset.map { CGFloat($0) } ?? (animatedGrunt ? 47 :
             (usesIllustratedEnemy ? radius * (type == 3 ? 1.66 : 1.60) + 5 : radius + 8))))
         let barWidth: CGFloat = isBoss ? 148 : min(48, radius * 2.0)
         let barHeight: CGFloat = isBoss ? 8 : 4
@@ -6968,7 +7016,7 @@ final class OutpostScene: SKScene {
             // tiny anonymous bar used for grunts.
             let nameplate = SKLabelNode(fontNamed: "AvenirNext-Heavy")
             nameplate.name = "guardianBossNameplate"
-            nameplate.text = worldTwoBossName ?? selectedWorld.boss
+            nameplate.text = roomBossName ?? selectedWorld.boss
             nameplate.fontSize = 11
             nameplate.fontColor = .systemYellow
             nameplate.position.y = healthBarOffset + 13
@@ -7117,7 +7165,7 @@ final class OutpostScene: SKScene {
                 pilot.position = CGPoint(x: roomBounds.midX,
                     y: roomBounds.midY-(activeEncounter == .equipmentDefense ? 145 : 90))
             }
-            if room == 20 {
+            if room == worldWaveCount {
                 pilot.position = CGPoint(x: roomBounds.midX,y: roomBounds.midY-100)
                 spawned = 1
                 spawnEnemy()
@@ -7146,7 +7194,7 @@ final class OutpostScene: SKScene {
         case 2: enter(6)
         case 3: enter(11)
         case 4: enter(12)
-        case 5: enter(20)
+        case 5: enter(WorldCatalog.roomCount(0))
         case 6:
             clearedPassage()
             pilot.position = CGPoint(x: passageGate.position.x,y: passageGate.position.y-190)
@@ -7199,6 +7247,9 @@ final class OutpostScene: SKScene {
             }
         } else {
             updateSimulation(currentTime)
+            #if DEBUG
+            updateBuild341Performance(currentTime)
+            #endif
         }
     }
 
@@ -7499,7 +7550,7 @@ final class OutpostScene: SKScene {
                 return
             }
         } else {
-            let interval = CampaignPacing.spawnInterval(room: wave)
+            let interval = CampaignPacing.spawnInterval(room: wave, world: worldMapIndex)
             if pendingFlankSwarm == nil &&
                spawned < waveTarget && spawnClock >= interval {
                 spawnClock -= interval
@@ -7516,16 +7567,22 @@ final class OutpostScene: SKScene {
             }
         }
         for index in enemies.indices.reversed() {
-            let current = enemies[index].node.position
             let enemy = enemies[index]
             guard combatTime >= enemy.activeAt else { continue }
             enemy.node.alpha = 1
             enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
-            let ranged = enemy.behavior >= 4 || enemy.node === bossNode
-            let usesWorldTwoAttack = updateWorldTwoAttack(at: index)
+            let miniBoss = enemy.node === bossNode ? frontierMiniBoss : nil
+            if let miniBoss {
+                updateFrontierMiniBoss(at: index, configuration: miniBoss)
+                if combatTime < enemies[index].nextAttack { continue }
+            }
+            let ranged = enemy.behavior >= 4 || (enemy.node === bossNode && miniBoss == nil)
+            let usesWorldTwoAttack = updateWorldTwoAttack(at: index) || updateFrontierFactionAttack(at: index)
             if enemies[index].worldTwoBurrowed { continue }
             if ranged && !usesWorldTwoAttack { updateRangedAttack(at: index) }
             if usesWorldTwoAttack && (enemies[index].shotTarget != nil || enemy.worldTwoCharacter == "venomspitter") { continue }
+            // A committed charge can move the enemy during the attack update.
+            let current = enemy.node.position
             // Melee foes attack the device. Shooters still target the pilot.
             let pursuitTarget = activeEncounter == .equipmentDefense &&
                 enemy.behavior < 4 ? defenseDevice.position : pilot.position
@@ -7622,6 +7679,7 @@ final class OutpostScene: SKScene {
                 }
             }
             if activeEncounter == .equipmentDefense && enemy.behavior < 4 &&
+                !(enemy.worldTwoCharacter.map { FrontierFactionArt.manifests[$0] != nil } ?? false) &&
                 distance(enemy.node.position, defenseDevice.position) < enemy.radius + 28 {
                 let previousIntegrity = defenseIntegrity
                 damageDefenseDevice()
@@ -7632,7 +7690,7 @@ final class OutpostScene: SKScene {
                 }
                 if phase != .playing { return }
             }
-            if distance(enemy.node.position, pilot.position) < enemy.radius + 14 {
+            if miniBoss == nil && !(enemy.worldTwoCharacter.map { FrontierFactionArt.manifests[$0] != nil } ?? false) && distance(enemy.node.position, pilot.position) < enemy.radius + 14 {
                 let previousHealth = health
                 damagePilot(enemy.node === bossNode ? 12 : (enemy.behavior == 3 ? 8 : 5))
                 if health < previousHealth,
@@ -7802,6 +7860,357 @@ final class OutpostScene: SKScene {
     }
 
     #if DEBUG
+    private func captureBuild341LegacyFrontier() {
+        let snapshot = RunSnapshot(
+            version: 4, worldIndex: 0, room: 20, location: .clearedGate,
+            health: 61, coins: 1406, damage: 4, fireRate: 3,
+            chainLevel: 1, explosiveLevel: 0, incendiaryLevel: 0,
+            orbitLevel: 2, runArmor: 20, checkpointUsed: true,
+            checkpointPresented: true, progress: RunProgress(),
+            abilities: ["chain", "orbit", "incendiary"],
+            earnedSalvage: 290, roomSalvageCredit: 48,
+            roomCoinCredit: 250, roomXPCredit: 60)
+        UserDefaults.standard.set(try! JSONEncoder().encode(snapshot), forKey: "outpostZeroRunSnapshotV1")
+        _ = WorldCatalog.recordVictory(0, stars: 3)
+        let cores = availableCores
+        recoverSavedRun()
+        precondition(wave == 20 && roomCleared && !passageGate.isHidden &&
+                     phase == .interrupted && coins == 1406 &&
+                     salvageBankedThisRun == 290 && WorldCatalog.unlocked(1))
+        precondition(roomSalvageRecoveredCredit == 48 && roomCoinsRecoveredCredit == 250 &&
+                     roomXPRecoveredCredit == 60 && availableCores == cores)
+        resumeInterruptedRun()
+        pilot.position = passageGate.position
+        updateSimulation(1)
+        precondition(wave == 21 && phase == .playing && availableCores == cores)
+        holdDefenseQAScreenshot = true
+        arena.isPaused = true
+        recovery.clear()
+        print("[BUILD341 MIGRATED] Frontier Forest continued from Room 20 to Room 21")
+        fflush(stdout)
+    }
+
+    private func captureBuild341(_ selection: String) {
+        let fields = selection.split(separator: "-")
+        guard fields.count == 2 || fields.count == 3,
+              let number = Int(fields[0]), (1...WorldCatalog.playableCount).contains(number),
+              let room = Int(fields[1]), room >= 0 else {
+            preconditionFailure("Invalid campaign review fixture")
+        }
+        worldMapIndex = number - 1
+        precondition(room <= worldWaveCount)
+        let result = fields.last == "result"
+        let guardianExposed = fields.last == "exposed"
+        precondition(fields.count == 2 || result || guardianExposed)
+        for prior in 0..<worldMapIndex { _ = WorldCatalog.recordVictory(prior, stars: 1) }
+        precondition(WorldCatalog.unlocked(worldMapIndex))
+
+        if room == 0 {
+            showReady()
+            validateHubNavigation()
+            precondition(overlay.childNode(withName: "worldDiorama") != nil &&
+                         overlayButtons["start"] != nil)
+        } else {
+            wave = room - 1
+            gateUnlocked = true
+            startWave()
+            precondition(wave == room && phase == .playing)
+            spawned = 1
+            spawnEnemy()
+            for enemy in enemies {
+                enemy.node.alpha = 1
+                enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
+            }
+            let isBoss = SurvivalEncounterRules.kind(world: worldMapIndex, room: wave) == .boss
+            let isFrontierFinal = worldMapIndex == 0 && room == worldWaveCount
+            precondition((bossNode != nil) == isBoss && (!guardianExposed || isFrontierFinal))
+            if isBoss, !enemies.isEmpty {
+                precondition(enemies.count == 1 && waveTarget == 1)
+                combatClock.advance(2.2, playing: true)
+                if let miniBoss = frontierMiniBoss {
+                    let origin = enemies[0].node.position
+                    pilot.position = CGPoint(x: origin.x, y: origin.y - min(80, miniBoss.attackRange - 4))
+                    updateArenaCamera(delta: 1)
+                    updateFrontierMiniBoss(at: 0, configuration: miniBoss)
+                    let art = enemies[0].node.childNode(withName: "enemyArt") as? SKSpriteNode
+                    precondition(art.flatMap { WorldOneEnemyAnimation.character(on: $0) } == miniBoss.name.lowercased())
+                    precondition(lobs.count == 1 && lobs[0].impactAt > combatTime &&
+                                 lobs[0].target == (miniBoss.targetsPilot ? pilot.position : origin))
+                    let healthBeforeAttack = health
+                    updateHostileAttacks(delta: 0)
+                    precondition(health == healthBeforeAttack)
+                    if result {
+                        let target = lobs[0].target
+                        pilot.position.x = target.x + miniBoss.impactRadius + 20
+                        combatClock.advance(miniBoss.windup + 0.01, playing: true)
+                        updateHostileAttacks(delta: 0)
+                        precondition(health == healthBeforeAttack && lobs.isEmpty)
+
+                        combatClock.advance(miniBoss.recovery + 0.01, playing: true)
+                        pilot.position = origin
+                        updateFrontierMiniBoss(at: 0, configuration: miniBoss)
+                        precondition(lobs.count == 1)
+                        combatClock.advance(miniBoss.windup + 0.01, playing: true)
+                        updateHostileAttacks(delta: 0)
+                        precondition(health < healthBeforeAttack && lobs.isEmpty)
+                    }
+                } else if isFrontierFinal && (guardianExposed || result) {
+                    let threshold = FrontierGuardianRules.armorBreakHealth(maxHealth: enemies[0].maxHealth)
+                    enemies[0].health = threshold
+                    updateFrontierGuardianPhase()
+                    precondition(guardianArmorBroken && lobs.count == 2)
+                    if result {
+                        combatClock.advance(FrontierGuardianRules.transitionSeconds + 0.01, playing: true)
+                    }
+                } else if !updateWorldTwoAttack(at: 0) && !updateFrontierFactionAttack(at: 0) {
+                    updateRangedAttack(at: 0)
+                }
+                precondition(result || enemies[0].shotTarget != nil || !lobs.isEmpty,
+                             "Boss fixture must display an avoidable attack warning")
+            }
+            updateHUD()
+            let label = hud.childNode(withName: "combatChrome")?.childNode(withName: "hudRoomLabel") as? SKLabelNode
+            precondition(label?.text == "ROOM \(room)/\(worldWaveCount)")
+            precondition(pilotHealthTrack.parent === pilot && !pilotHealthTrack.isHidden &&
+                         pilotHealthTrack.position.y < 0)
+            if result {
+                precondition(isBoss)
+                if enemies[0].worldTwoCharacter == "warforge" {
+                    // The separate phase fixtures exercise each transition.
+                    // Stage the final defeat after its exposed-core phase.
+                    enemies[0].worldTwoPhase = 3
+                }
+                for index in enemies.indices { enemies[index].health = 0 }
+                removeDefeatedEnemies()
+                if factionBossDefeatUntil > combatTime {
+                    completeWave()
+                    precondition(phase == .playing && !roomCleared)
+                    precondition(arena.childNode(withName: "enemyDefeatVisual") != nil)
+                    combatClock.advance(factionBossDefeatUntil - combatTime + 0.01, playing: true)
+                }
+                precondition(bossNode == nil && RoomRules.isCleared(
+                    spawned: spawned, target: waveTarget, living: enemies.count))
+                completeWave()
+                while progress.pendingChoices > 0 { chooseLevelUpgrade(levelChoices[0]) }
+                // Wounded pilots legitimately receive the optional repair checkpoint
+                // after a milestone clear. Verify it and return to the visible exit.
+                if phase == .checkpoint {
+                    precondition(room.isMultiple(of: 5) && room < worldWaveCount &&
+                                 health < maximumHealth && checkpointPresented)
+                    showZoneGate()
+                }
+                precondition(phase == (room == worldWaveCount ? .worldComplete : .gate))
+            }
+            holdDefenseQAScreenshot = true
+            arena.isPaused = true
+        }
+        print("[BUILD341 READY] fixture=\(selection) world=\(selectedWorld.title) biome=\(selectedWorld.biome) rooms=\(worldWaveCount) phase=\(phase)")
+        fflush(stdout)
+    }
+
+    private func prepareBuild341StonebackLive() {
+        worldMapIndex = 0
+        wave = 19
+        gateUnlocked = true
+        startWave()
+        spawned = 1
+        spawnEnemy()
+        precondition(enemies.count == 1 && bossNode != nil && frontierMiniBoss?.name == "STONEBACK")
+        enemies[0].node.position = pilot.position.applying(CGAffineTransform(translationX: 0, y: 106))
+        pilotShieldUntil = combatTime + 60
+        lastShot = combatTime + 60
+        updateArenaCamera(delta: 1)
+        print("[BUILD341 LIVE] Stoneback ready")
+        fflush(stdout)
+    }
+
+    private var build341FrameTimes: [TimeInterval] = []
+    private var build341PreviousFrame: TimeInterval?
+    private var build341PeakHostiles = 0
+    private var build341PeakTextureCacheBytes = 0
+    private var build341TransitionMS: TimeInterval?
+
+    private func prepareBuild341Performance(world: Int) {
+        worldMapIndex = world
+        wave = 23
+        gateUnlocked = true
+        let before = ProcessInfo.processInfo.systemUptime
+        startWave()
+        build341TransitionMS = (ProcessInfo.processInfo.systemUptime - before) * 1000
+        let roster = world == WorldCatalog.frostIndex
+            ? FrontierFactionArt.frostRegulars : FrontierFactionArt.ironRegulars
+        let encounters = roster.sorted { $0.key < $1.key }.map { ($0.key, $0.value) }
+        let units = world == WorldCatalog.ironIndex
+            ? encounters + [(0, "scrapper"), (3, "overclock")] : encounters
+        for (role, name) in units + units {
+            spawnEnemy(artReviewType: role, factionReviewCharacter: name)
+        }
+        precondition(enemies.count == units.count * 2)
+        spawned = waveTarget
+        pilotShieldUntil = combatTime + 120
+        lastShot = combatTime + 120
+    }
+
+    private func updateBuild341Performance(_ time: TimeInterval) {
+        guard let transition = build341TransitionMS else { return }
+        if let previous = build341PreviousFrame, time > previous {
+            build341FrameTimes.append(time - previous)
+        }
+        build341PreviousFrame = time
+        movementTarget = CGPoint(x: roomBounds.midX + cos(combatTime) * 95,
+                                 y: roomBounds.midY + sin(combatTime) * 125)
+        build341PeakHostiles = max(build341PeakHostiles, projectiles.count + lobs.count)
+        build341PeakTextureCacheBytes = max(build341PeakTextureCacheBytes, WorldOneEnemyAnimation.cachedFactionTextureBytes)
+        guard build341FrameTimes.count == 1800 else { return }
+        var usage = rusage()
+        let resident = getrusage(RUSAGE_SELF, &usage) == 0 ? Int64(usage.ru_maxrss) : -1
+        let samples = build341FrameTimes.sorted()
+        let p95 = samples[Int(Double(samples.count - 1) * 0.95)] * 1000
+        let fps = Double(samples.count) / samples.reduce(0, +)
+        precondition(build341PeakHostiles > 0 && fps > 0)
+        print("[BUILD341 PERF] world=\(worldMapIndex + 1) frames=\(samples.count) fps=\(fps) p95_ms=\(p95) " +
+              "room_setup_ms=\(transition) peak_texture_cache_bytes=\(build341PeakTextureCacheBytes) " +
+              "peak_resident_bytes=\(resident) peak_hostile_effects=\(build341PeakHostiles) enemies=\(enemies.count)")
+        fflush(stdout)
+        build341TransitionMS = nil
+    }
+
+    private func captureBuild341Faction(_ selection: String) {
+        let parts = selection.split(separator: ":")
+        let name = String(parts[0])
+        let variant = parts.count > 1 ? String(parts[1]) : ""
+        let isFrost = FrontierFactionArt.frostNames.contains(name)
+        worldMapIndex = isFrost ? WorldCatalog.frostIndex : WorldCatalog.ironIndex
+        let bosses = isFrost ? FrontierFactionArt.frostBosses : FrontierFactionArt.ironBosses
+        let regulars = isFrost ? FrontierFactionArt.frostRegulars : FrontierFactionArt.ironRegulars
+        let room = bosses.first(where: { $0.value == name })?.key
+        let role = regulars.first(where: { $0.value == name })?.key ?? (name == "overclock" ? 3 : 0)
+        precondition(FrontierFactionArt.manifests.count == 19)
+        guard let manifest = FrontierFactionArt.manifests[name] else { preconditionFailure("Missing manifest " + name) }
+        for (sequence, state) in manifest.states.merging(manifest.effects ?? [:], uniquingKeysWith: { first, _ in first }) {
+            precondition(WorldOneEnemyAnimation.worldTwoFrames(enemy: name, sequence: sequence)?.count == state.frames.count,
+                         "Missing bundled frames: " + name + "/" + sequence)
+        }
+        wave = (room ?? 23) - 1
+        gateUnlocked = true
+        startWave()
+        spawned = waveTarget
+        spawnEnemy(artReviewType: room == nil ? role : nil, factionReviewCharacter: name)
+        precondition(enemies.count == 1)
+        let enemy = enemies[0]
+        guard let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode else {
+            preconditionFailure("No faction artwork installed")
+        }
+        precondition(WorldOneEnemyAnimation.character(on: art) == name)
+        enemy.node.alpha = 1
+        enemy.node.childNode(withName: "spawnWarning")?.removeFromParent()
+        enemy.node.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY + 40)
+        pilot.position = CGPoint(x: roomBounds.midX, y: roomBounds.midY - 65)
+        pilotShieldUntil = combatTime + 60
+        lastShot = combatTime + 60
+        combatClock.advance(2.2, playing: true)
+        if name == "warforge", let phase = Int(variant), (2...3).contains(phase) {
+            enemies[0].health = enemy.maxHealth * (4 - phase) / 3
+            updateEnemyHealthBar(at: 0)
+        }
+        if name == "cryooverlord", variant == "phase2" {
+            enemies[0].health = enemy.maxHealth * 2 / 3
+            updateEnemyHealthBar(at: 0)
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].worldTwoPhase == 2)
+            precondition(enemies[0].shotTarget == nil)
+            combatClock.advance(manifest.states["phase_transition"]!.duration + 0.01, playing: true)
+        }
+        if variant == "alternate" { enemies[0].worldTwoTurn = 1 }
+        if name == "cryooverlord", variant == "freeze" { enemies[0].worldTwoTurn = 2 }
+        if name == "frostwyrm", variant == "burrow" {
+            enemies[0].worldTwoTurn = 2
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].worldTwoAction == "burrow")
+            precondition(enemies[0].worldTwoBurrowed)
+            combatClock.advance(manifest.states["burrow"]!.duration + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0) && art.isHidden)
+            combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].worldTwoAction == "emerge" && !art.isHidden)
+            combatClock.advance(manifest.states["emerge"]!.duration + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0) && !enemies[0].worldTwoBurrowed)
+            combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
+        }
+        if room != nil || role >= 4 {
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget != nil)
+            if name == "warforge", let phase = Int(variant), (2...3).contains(phase) {
+                precondition(enemies[0].worldTwoPhase == phase && enemies[0].worldTwoAction == "attack_" + String(phase))
+                precondition(enemy.node.childNode(withName: "warforgePhaseNotice") != nil &&
+                             art.childNode(withName: "warforgePhaseLayer") != nil)
+            }
+            let sequence = enemies[0].worldTwoAction
+            let warningPose = art.texture
+            EnemyCombatFeedback.hit(enemy.node, from: pilot.position)
+            precondition(art.texture === warningPose, "Hits must not replace the authored attack pose")
+            let groundAttack = FrontierFactionArt.groundAttack(character: name, sequence: sequence)
+            let expectedEmissions = FrontierFactionArt.emissionFrames(character: name, sequence: sequence).count
+            if groundAttack {
+                precondition(lobs.count == 1 && lobs[0].shell.isHidden && lobs[0].impactAt > combatTime)
+                pilotShieldUntil = 0
+                let before = health
+                updateHostileAttacks(delta: 0)
+                precondition(health == before)
+            }
+            // A single late tick crosses all scheduled frames. Each due
+            // emission must be dispatched exactly once without stretching the burst.
+            let attack = manifest.states[sequence]!
+            combatClock.advance(attack.duration + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0))
+            precondition(updateFrontierFactionAttack(at: 0))
+            precondition(enemies[0].shotTarget == nil)
+            precondition(projectiles.count + lobs.count == expectedEmissions)
+            if groundAttack {
+                let before = health
+                updateHostileAttacks(delta: 0)
+                precondition(lobs.isEmpty && health < before)
+            }
+            if name == "warforge" && variant == "2" {
+                precondition(lobs[0].leavesHeat)
+                combatClock.advance(max(0, lobs[0].impactAt - combatTime) + 0.01, playing: true)
+                updateHostileAttacks(delta: 0)
+                precondition(lobs.isEmpty && warforgeHeat.count == 1)
+                let zone = warforgeHeat[0]
+                pilotShieldUntil = 0
+                let before = health
+                combatClock.advance(zone.activeAt - combatTime + 0.01, playing: true)
+                updateHostileAttacks(delta: 0)
+                precondition(health < before)
+            }
+        } else {
+            pilot.position = CGPoint(x: enemy.node.position.x, y: enemy.node.position.y - 20)
+            pilotShieldUntil = 0
+            let healthBefore = health
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget != nil)
+            // Dodge after the target locks and before the active frame.
+            pilot.position.y -= 80
+            combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget == nil && health == healthBefore)
+            combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
+            pilot.position.y += 80
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget != nil)
+            combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget == nil && health < healthBefore)
+            precondition(projectiles.isEmpty && lobs.isEmpty)
+            pilot.position.y -= 80
+        }
+        // The simulation assertions above use the combat clock. Freeze the
+        // actual authored active texture to allow a clean device-scale review.
+        let sequence = enemies[0].worldTwoAction
+        if let frames = WorldOneEnemyAnimation.worldTwoFrames(enemy: name, sequence: sequence), !frames.isEmpty {
+            let active = min(FrontierFactionArt.activeFrame(character: name, sequence: sequence), frames.count - 1)
+            art.texture = frames[max(0, active)]
+        }
+        updateArenaCamera(delta: 1)
+        updateHUD()
+        holdDefenseQAScreenshot = true
+        arena.isPaused = true
+        print("[BUILD341 FACTION] name=\(name) variant=\(variant) room=\(wave) frames=loaded attack=verified")
+        fflush(stdout)
+    }
+
     private let worldTwoReview = ProcessInfo.processInfo.arguments
         .first { $0.hasPrefix("-captureWorldTwoRoom=") }
         .flatMap { Int($0.split(separator: "=").last ?? "") }
@@ -7971,6 +8380,244 @@ final class OutpostScene: SKScene {
         return true
     }
 
+    /// World 3/4 ranged and boss attacks use the manifest's timing and the
+    /// existing projectile/area-warning collision paths.
+    private func updateFrontierFactionAttack(at index: Int) -> Bool {
+        let enemy = enemies[index]
+        guard let name = enemy.worldTwoCharacter, let manifest = FrontierFactionArt.manifests[name] else { return false }
+        let boss = enemy.node === bossNode
+        let melee = !boss && enemy.behavior < 4
+        let targetIsReactor = melee && activeEncounter == .equipmentDefense
+        let currentTarget = targetIsReactor ? defenseDevice.position : pilot.position
+        let meleeRange: CGFloat = enemy.radius + (name == "raider" ? 40 : 26)
+        let chargeTravel = FrontierFactionArt.chargeTravel[name] ?? 0
+        guard enemy.health > 0, combatTime >= enemy.nextAttack else { return true }
+        func advanceToward(_ target: CGPoint, limit: CGFloat) {
+            let origin = enemy.node.position
+            let length = max(1, distance(origin, target))
+            let travel = min(limit, max(0, length - enemy.radius))
+            let landing = RoomRules.clamp(CGPoint(x: origin.x + (target.x - origin.x) * travel / length,
+                y: origin.y + (target.y - origin.y) * travel / length),
+                to: roomBounds.insetBy(dx: enemy.radius, dy: enemy.radius))
+            enemy.node.position = TerrainHazards.resolveMovement(from: origin, to: landing,
+                patches: roomHazards, radius: enemy.radius)
+        }
+        func effect(_ sequence: String, at position: CGPoint) {
+            guard let state = manifest.sequence(sequence),
+                  let loaded = WorldOneEnemyAnimation.worldTwoFrames(enemy: name, sequence: sequence) else { return }
+            let offset = FrontierFactionArt.ironNames.contains(name) && sequence.hasSuffix("_fx")
+                ? min(FrontierFactionArt.activeFrame(character: name, sequence: sequence), loaded.count - 1) : 0
+            let frames = Array(loaded.dropFirst(max(0, offset)))
+            guard let first = frames.first else { return }
+            let size: CGFloat = boss ? 145 : 84
+            let sprite = SKSpriteNode(texture: first, size: CGSize(width: size, height: size))
+            sprite.position = position
+            sprite.zPosition = 5.5
+            sprite.speed = fastForward ? 2 : 1
+            arena.addChild(sprite)
+            let animation: SKAction
+            if let durations = state.frame_durations_ms, durations.count == loaded.count {
+                animation = .sequence(zip(frames, durations.dropFirst(max(0, offset))).flatMap { texture, milliseconds in
+                    [SKAction.setTexture(texture), SKAction.wait(forDuration: milliseconds / 1000)]
+                })
+            } else { animation = .animate(with: frames, timePerFrame: 1/state.fps) }
+            sprite.run(.sequence([animation, .removeFromParent()]))
+        }
+        let action = enemy.worldTwoAction
+        if name == "frostwyrm", ["burrow", "submerged", "emerge"].contains(action) {
+            let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode
+            switch action {
+            case "burrow":
+                art?.isHidden = true
+                enemies[index].worldTwoAction = "submerged"
+                let point = RoomRules.spawnPoint(in: roomBounds, radius: enemy.radius, pilot: pilot.position,
+                    candidates: [CGPoint(x: enemy.node.position.x < roomBounds.midX ? 0.72 : 0.28, y: 0.7)])
+                enemy.node.position = TerrainHazards.resolveMovement(from: enemy.node.position, to: point,
+                    patches: roomHazards, radius: enemy.radius)
+                effect("burrow_emergence", at: enemy.node.position)
+                enemies[index].nextAttack = combatTime + 0.7
+            case "submerged":
+                art?.isHidden = false
+                if let art { WorldOneEnemyAnimation.play(.attack, enemy: name, on: art, sequence: "emerge") }
+                enemies[index].worldTwoAction = "emerge"
+                effect("burrow_emergence", at: enemy.node.position)
+                enemies[index].nextAttack = combatTime + (manifest.states["emerge"]?.duration ?? 0.6)
+            default:
+                enemies[index].worldTwoBurrowed = false
+                enemies[index].worldTwoAction = ""
+                enemies[index].nextAttack = combatTime + 0.6
+            }
+            return true
+        }
+        while let target = enemies[index].shotTarget, combatTime >= enemies[index].nextAttack {
+            enemy.node.childNode(withName: "factionAim")?.removeFromParent()
+            let origin = enemy.node.position
+            let frostEffects = ["cryogunner": "muzzle_flash", "blizzarddrone": "freezing_area",
+                "frostfang": "claw_slash", "shardstinger": "stinger_strike", "glacierbrute": "ground_slam",
+                "permafrostcrusher": action == "charge" ? "charge_trail" : "seismic_stomp",
+                "frostwyrm": action == "tail_sweep" ? "tail_sweep" : "frost_breath",
+                "cryooverlord": action == "heavy_slam" ? "melee_impact" : (action == "freeze_cast" ? "freezing_hazard" : "muzzle_flash")]
+            let effectName = FrontierFactionArt.ironNames.contains(name) ? action + "_fx" : frostEffects[name] ?? ""
+            if melee {
+                if chargeTravel > 0 { advanceToward(target, limit: chargeTravel) }
+                effect(effectName, at: target)
+                if distance(enemy.node.position, currentTarget) <= meleeRange &&
+                   distance(target, currentTarget) <= 30 {
+                    if targetIsReactor { damageDefenseDevice() }
+                    else { damagePilot(enemy.behavior == 3 ? 8 : 5) }
+                }
+            } else if FrontierFactionArt.groundAttack(character: name, sequence: action) {
+                // The warning was established at anticipation. Its impact is
+                // due at this active frame, with no visible airborne shell.
+                if name == "permafrostcrusher" && action == "charge" {
+                    advanceToward(target, limit: 96)
+                    effect(effectName, at: enemy.node.position)
+                } else {
+                    effect(effectName, at: target)
+                }
+            } else if name == "lobber" || (name == "warforge" && action == "attack_2") {
+                let releaseOrigin: CGPoint
+                if name == "lobber", let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    releaseOrigin = art.convert(CGPoint(x: (125 / 512.0 - art.anchorPoint.x) * art.size.width,
+                        y: (1 - 115 / 512.0 - art.anchorPoint.y) * art.size.height), to: arena)
+                } else { releaseOrigin = origin }
+                launchLob(from: releaseOrigin, target: target, radius: boss ? 54 : 43,
+                          authoredBomb: name == "lobber", leavesHeat: name == "warforge")
+                effect(effectName, at: origin)
+            } else {
+                let projectileName = ["cryogunner": "frost_projectile", "cryooverlord": "cryo_projectile",
+                                      "frostwyrm": "ice_shards"][name]
+                let projectileArt = projectileName.flatMap { WorldOneEnemyAnimation.worldTwoFrames(enemy: name, sequence: $0) }
+                let muzzleOrigin: CGPoint
+                if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    let offsets: [String: [CGFloat]] = ["cryogunner": [171, -76], "cryooverlord": [155, -327],
+                                                       "frostwyrm": [172, -263]]
+                    if let offset = offsets[name] {
+                        muzzleOrigin = art.convert(CGPoint(x: offset[0] * art.size.width / 512,
+                                                          y: -offset[1] * art.size.height / 512), to: arena)
+                    } else { muzzleOrigin = origin }
+                } else { muzzleOrigin = origin }
+                fireProjectile(from: muzzleOrigin, toward: target, authoredTextures: projectileArt)
+                effect(effectName, at: muzzleOrigin)
+            }
+            let emission = FrontierFactionArt.emissionFrames(character: name, sequence: action)
+            let shot = min(enemies[index].worldTwoStep, emission.count - 1)
+            if shot + 1 < emission.count, let state = manifest.states[action] {
+                enemies[index].worldTwoStep = shot + 1
+                // Anchor to the attack's start so a late tick neither shifts
+                // the burst nor suppresses any emission that is already due.
+                enemies[index].nextAttack = enemy.fireAt +
+                    FrontierFactionArt.frameTime(emission[shot + 1], state: state)
+                continue
+            }
+            enemies[index].shotTarget = nil
+            let recovery = name == "warforge" ? [1.65, 1.20, 0.90][enemy.worldTwoPhase - 1] : 1.2
+            enemies[index].nextAttack = max(enemy.fireAt + (manifest.states[action]?.duration ?? 0.5),
+                                            combatTime + 0.3) + recovery
+            return true
+        }
+        if enemy.shotTarget != nil { return true }
+        if melee && distance(enemy.node.position, currentTarget) > meleeRange + chargeTravel { return true }
+        let threats = enemies.filter { $0.shotTarget != nil }.count + projectiles.count + lobs.count
+        guard melee || boss || CombatRules.mayBeginRangedAttack(room: wave, activeThreats: threats) else { return true }
+        var sequence = "attack"
+        if name == "warforge" {
+            let phase = enemy.health * 3 <= enemy.maxHealth ? 3 : (enemy.health * 3 <= enemy.maxHealth * 2 ? 2 : 1)
+            if phase > enemy.worldTwoPhase {
+                enemies[index].worldTwoPhase = phase
+                if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    WorldOneEnemyAnimation.setWarforgePhase(phase, on: art)
+                }
+                let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
+                label.text = phase == 2 ? "FURNACE OVERLOAD" : "CORE EXPOSED"
+                label.name = "warforgePhaseNotice"
+                label.fontSize = 14
+                label.fontColor = phase == 2 ? .systemOrange : .systemCyan
+                if let nameplate = enemy.node.childNode(withName: "guardianBossNameplate") as? SKLabelNode {
+                    nameplate.text = "WARFORGE · " + (phase == 2 ? "OVERLOAD" : "EXPOSED CORE")
+                    nameplate.fontColor = label.fontColor
+                }
+                label.position.y = 150
+                label.zPosition = 15
+                enemy.node.addChild(label)
+                label.run(.sequence([.wait(forDuration: 1.6), .fadeOut(withDuration: 0.3), .removeFromParent()]))
+            }
+            sequence = phase == 1 ? "attack" : (phase == 2 ? "attack_2" : "attack_3")
+        } else if name == "frostwyrm" && enemy.worldTwoTurn % 3 == 2 {
+            if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                WorldOneEnemyAnimation.play(.attack, enemy: name, on: art, sequence: "burrow")
+            }
+            enemies[index].worldTwoAction = "burrow"
+            enemies[index].worldTwoBurrowed = true
+            enemies[index].worldTwoTurn += 1
+            effect("burrow_emergence", at: enemy.node.position)
+            enemies[index].nextAttack = combatTime + (manifest.states["burrow"]?.duration ?? 0.5)
+            return true
+        } else if name == "cryooverlord" {
+            let phase = enemy.health * 3 <= enemy.maxHealth ? 3 : (enemy.health * 3 <= enemy.maxHealth * 2 ? 2 : 1)
+            if phase > enemy.worldTwoPhase, let transition = manifest.states["phase_transition"] {
+                enemies[index].worldTwoPhase = phase
+                if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                    WorldOneEnemyAnimation.play(.attack, enemy: name, on: art, sequence: "phase_transition")
+                }
+                effect("phase_pulse", at: enemy.node.position)
+                enemies[index].nextAttack = combatTime + transition.duration
+                return true
+            }
+            sequence = ["attack", "heavy_slam", "freeze_cast"][enemy.worldTwoTurn % 3]
+        } else if boss && !enemy.worldTwoTurn.isMultiple(of: 2) {
+            sequence = ["permafrostcrusher": "charge", "frostwyrm": "tail_sweep", "cryooverlord": "heavy_slam",
+                        "press_giant": "attack_2", "gantry_warden": "attack_2"][name] ?? "attack"
+        }
+        guard let state = manifest.states[sequence] else { return false }
+        let target = currentTarget
+        enemies[index].shotTarget = target
+        enemies[index].worldTwoAction = sequence
+        enemies[index].worldTwoTurn += 1
+        enemies[index].worldTwoStep = 0
+        let path = CGMutablePath()
+        path.move(to: .zero)
+        path.addLine(to: CGPoint(x: target.x - enemy.node.position.x, y: target.y - enemy.node.position.y))
+        let warning = SKShapeNode(path: path)
+        warning.name = "factionAim"
+        warning.strokeColor = FrontierFactionArt.frostNames.contains(name) ? .systemCyan : .systemOrange
+        warning.lineWidth = 2
+        warning.zPosition = -0.4
+        enemy.node.addChild(warning)
+        if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+            art.xScale = target.x < enemy.node.position.x ? -1 : 1
+            art.speed = fastForward ? 2 : 1
+            WorldOneEnemyAnimation.play(.attack, enemy: name, on: art, sequence: sequence)
+        }
+        let anticipation = FrontierFactionArt.attackDelay(character: name, sequence: sequence, state: state)
+        if FrontierFactionArt.groundAttack(character: name, sequence: sequence) {
+            launchLob(from: enemy.node.position, target: target, radius: boss ? 54 : 43,
+                      flightTime: max(0.1, anticipation), showsProjectile: false)
+        }
+        enemies[index].fireAt = combatTime
+        enemies[index].nextAttack = combatTime + anticipation
+        return true
+    }
+
+    private func updateFrontierMiniBoss(at index: Int, configuration: FrontierMiniBoss) {
+        let enemy = enemies[index]
+        let origin = enemy.node.position
+        guard enemy.health > 0, combatTime >= enemy.nextAttack,
+              distance(origin, pilot.position) <= configuration.attackRange else { return }
+        let target = configuration.targetsPilot ? pilot.position : origin
+        if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+            art.speed = fastForward ? 2 : 1
+            let facing = pilot.position.x - origin.x
+            WorldOneEnemyAnimation.updateLocomotion(on: art, moving: false, dx: facing)
+            WorldOneEnemyAnimation.play(.attack, enemy: configuration.name.lowercased(), on: art,
+                                        sequence: configuration.attackSequence,
+                                        frameDuration: configuration.attackFrameDuration)
+        }
+        launchLob(from: origin, target: target, radius: configuration.impactRadius,
+                  flightTime: configuration.windup, showsProjectile: false)
+        enemies[index].nextAttack = combatTime + configuration.windup + configuration.recovery
+    }
+
     private func updateRangedAttack(at index: Int) {
         let enemy = enemies[index]
         if let target = enemy.shotTarget {
@@ -7996,7 +8643,7 @@ final class OutpostScene: SKScene {
             // three-lane volley once its armor is badly damaged. This
             // changes attack cadence, not projectile speed or warning time.
             let damagedWarden = enemy.node === bossNode &&
-                worldMapIndex == 2 && selectedWorld.bossStyle == 1 &&
+                worldMapIndex == WorldCatalog.ironIndex && selectedWorld.bossStyle == 1 &&
                 scrapyardWardenEnraged
             let baseCooldown = CombatRules.shooterCooldown(room: wave)
             enemies[index].nextAttack = combatTime +
@@ -8049,7 +8696,7 @@ final class OutpostScene: SKScene {
                 // The scrapyard boss has a distinct orange warning language.
                 // Keep all three volley lanes visible for the full wind-up.
                 let wardenOverdrive = enemy.node === bossNode &&
-                    worldMapIndex == 2 && scrapyardWardenEnraged
+                    worldMapIndex == WorldCatalog.ironIndex && scrapyardWardenEnraged
                 aim.strokeColor = wardenOverdrive
                     ? .systemOrange.withAlphaComponent(0.95)
                     : (reactorShot ? .systemCyan.withAlphaComponent(0.95)
@@ -8166,7 +8813,7 @@ final class OutpostScene: SKScene {
         ]))
     }
 
-    private func fireProjectile(from origin: CGPoint, toward target: CGPoint) {
+    private func fireProjectile(from origin: CGPoint, toward target: CGPoint, authoredTextures: [SKTexture]? = nil) {
         let dx = target.x - origin.x
         let dy = target.y - origin.y
         let length = max(1, hypot(dx, dy))
@@ -8174,7 +8821,7 @@ final class OutpostScene: SKScene {
         // and a short directional tail. Collision radius and speed stay intact.
         let node = SKShapeNode(circleOfRadius: 6)
         let hostileColor = wave == worldWaveCount
-            ? BossArtwork.colors[min(3, worldMapIndex)] : .systemPink
+            ? BossArtwork.colors[min(3, selectedWorld.id)] : .systemPink
         hostileMuzzleBurst(at:origin,toward:target,color:hostileColor)
         node.fillColor = hostileColor
         node.strokeColor = .white
@@ -8215,6 +8862,16 @@ final class OutpostScene: SKScene {
         warningCore.position = CGPoint(x: 2, y: 0)
         warningCore.zPosition = 2
         node.addChild(warningCore)
+        if let authoredTextures, let first = authoredTextures.first {
+            node.fillColor = .clear
+            node.strokeColor = .clear
+            node.glowWidth = 0
+            node.removeAllChildren()
+            let art = SKSpriteNode(texture: first, size: CGSize(width: 42, height: 42))
+            art.anchorPoint = CGPoint(x: 336.0 / 512, y: 0.5)
+            node.addChild(art)
+            art.run(.repeatForever(.animate(with: authoredTextures, timePerFrame: 0.08)))
+        }
         node.run(.repeatForever(.sequence([
             .scale(to: 1.12, duration: 0.16),
             .scale(to: 1.0, duration: 0.16)
@@ -8224,8 +8881,9 @@ final class OutpostScene: SKScene {
                                       expiresAt: combatTime + 6))
     }
 
-    private func launchLob(from origin: CGPoint, target: CGPoint) {
-        let radius: CGFloat = 43
+    private func launchLob(from origin: CGPoint, target: CGPoint, radius: CGFloat = 43,
+                           flightTime: TimeInterval = 1.4, showsProjectile: Bool = true,
+                           authoredBomb: Bool = false, leavesHeat: Bool = false) {
         let marker = SKShapeNode(circleOfRadius: radius)
         marker.position = target
         marker.fillColor = .systemOrange.withAlphaComponent(0.23)
@@ -8272,12 +8930,32 @@ final class OutpostScene: SKScene {
         shell.glowWidth = 5
         shell.position = origin
         shell.zPosition = 13
+        shell.isHidden = !showsProjectile
+        if authoredBomb, let url = Bundle.main.url(forResource: "lobber_bomb", withExtension: "png", subdirectory: "enemies/world4/projectiles"),
+           let image = UIImage(contentsOfFile: url.path) {
+            shell.fillColor = .clear
+            shell.strokeColor = .clear
+            shell.glowWidth = 0
+            let art = SKSpriteNode(texture: SKTexture(image: image), size: CGSize(width: 30, height: 30))
+            shell.addChild(art)
+        }
         arena.addChild(shell)
         lobs.append(Lob(marker: marker, shell: shell, origin: origin, target: target,
-                        launchedAt: combatTime, impactAt: combatTime + 1.4, radius: radius))
+                        launchedAt: combatTime, impactAt: combatTime + flightTime, radius: radius,
+                        leavesHeat: leavesHeat))
     }
 
     private func updateHostileAttacks(delta: TimeInterval) {
+        for index in warforgeHeat.indices.reversed() {
+            let zone = warforgeHeat[index]
+            if combatTime >= zone.expiresAt {
+                zone.node.removeFromParent()
+                warforgeHeat.remove(at: index)
+            } else if combatTime >= zone.activeAt &&
+                        CombatRules.blastHits(center: zone.node.position, pilot: pilot.position, radius: zone.radius) {
+                damagePilot(5)
+            }
+        }
         for index in projectiles.indices.reversed() {
             let shot = projectiles[index]
             let start = shot.node.position
@@ -8335,6 +9013,17 @@ final class OutpostScene: SKScene {
                     damageDefenseDevice()
                 }
                 impact(at: lob.target, color: .systemOrange, destroyed: true)
+                if lob.leavesHeat {
+                    let zone = SKShapeNode(circleOfRadius: lob.radius)
+                    zone.position = lob.target
+                    zone.strokeColor = .systemRed
+                    zone.fillColor = .systemOrange.withAlphaComponent(0.22)
+                    zone.lineWidth = 3
+                    zone.zPosition = 3
+                    arena.addChild(zone)
+                    warforgeHeat.append(WarforgeHeat(node: zone, radius: lob.radius,
+                        activeAt: combatTime + 0.4, expiresAt: combatTime + 2.5))
+                }
                 lob.marker.removeFromParent()
                 lob.shell.removeFromParent()
                 lobs.remove(at: index)
@@ -8347,6 +9036,8 @@ final class OutpostScene: SKScene {
         for lob in lobs { lob.marker.removeFromParent(); lob.shell.removeFromParent() }
         projectiles.removeAll()
         lobs.removeAll()
+        for zone in warforgeHeat { zone.node.removeFromParent() }
+        warforgeHeat.removeAll()
     }
 
     private func rebuildOrbitingDefenses() {
@@ -8606,7 +9297,11 @@ final class OutpostScene: SKScene {
                                          rank: explosiveLevel,
                                          burning: incendiaryLevel > 0)
         }
-        let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus + commanderDamageBonus
+        let baseBulletDamage = damage + permanentDamageBonus + gearWeaponBonus + commanderDamageBonus
+        let foe = enemies[index]
+        let coreExposed = foe.worldTwoCharacter == "warforge" && foe.worldTwoPhase == 3 &&
+            foe.shotTarget == nil && combatTime < foe.nextAttack
+        let totalBulletDamage = baseBulletDamage + (coreExposed ? max(1, baseBulletDamage / 3) : 0)
         // Elemental hits must read differently from ordinary kinetic shots.
         let hitColor: SKColor = explosiveLevel > 0 ? .systemOrange :
             (incendiaryLevel > 0 ? .systemRed :
@@ -8740,11 +9435,11 @@ final class OutpostScene: SKScene {
     }
 
     private func updateScrapyardWardenPhase() {
-        guard worldMapIndex == 2, wave == worldWaveCount,
+        guard worldMapIndex == WorldCatalog.ironIndex, wave == worldWaveCount,
               !scrapyardWardenEnraged, !roomCleared,
               let bossNode,
               let enemy = enemies.first(where: { $0.node === bossNode }),
-              enemy.health > 0, enemy.health * 2 <= enemy.maxHealth else { return }
+              enemy.worldTwoCharacter != "warforge", enemy.health > 0, enemy.health * 2 <= enemy.maxHealth else { return }
         scrapyardWardenEnraged = true
         // The overdrive phase is authoritative for both the visual warning
         // and the faster volley cadence. Avoid a silent speed-up before the
@@ -8768,6 +9463,16 @@ final class OutpostScene: SKScene {
     private func removeDefeatedEnemies() {
         updateFrontierGuardianPhase()
         updateScrapyardWardenPhase()
+        if let index = enemies.firstIndex(where: { $0.worldTwoCharacter == "warforge" }),
+           enemies[index].worldTwoPhase < 3 {
+            // Heavy hits may cross a threshold, but cannot erase the next
+            // phase entirely. The next attack uses the new phase's pattern.
+            let lowest = enemies[index].worldTwoPhase == 1 ? enemies[index].maxHealth / 3 + 1 : 1
+            if enemies[index].health < lowest {
+                enemies[index].health = lowest
+                updateEnemyHealthBar(at: index)
+            }
+        }
         var defeatedCount = 0
         var paidXPTotal = 0
         for index in enemies.indices.reversed() where enemies[index].health <= 0 {
@@ -8800,9 +9505,14 @@ final class OutpostScene: SKScene {
                                        role: enemies[index].behavior,
                                        isBoss: defeatedBoss)
             if let source = enemies[index].node.childNode(withName: "enemyArt") as? SKSpriteNode {
-                WorldOneEnemyAnimation.defeatCopy(of: source,
+                let showsDefeat = WorldOneEnemyAnimation.defeatCopy(of: source,
                     at: enemies[index].node.position, in: arena,
                     depth: enemies[index].node.zPosition + 0.1)
+                if defeatedBoss, showsDefeat, let character = enemies[index].worldTwoCharacter,
+                   let defeat = FrontierFactionArt.manifests[character]?.states["defeat"] {
+                    clearHostileAttacks()
+                    factionBossDefeatUntil = combatTime + defeat.duration
+                }
             }
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
@@ -8895,7 +9605,7 @@ final class OutpostScene: SKScene {
     }
 
     private func completeWave() {
-        guard !roomCleared else { return }
+        guard !roomCleared, combatTime >= factionBossDefeatUntil else { return }
         roomCleared = true
         if qaStationaryRun || qaMovingRun {
             qaRecordState("clear")
@@ -8907,7 +9617,8 @@ final class OutpostScene: SKScene {
         }
         clearHostileAttacks()
         let completionSalvage = activeEncounter == .equipmentDefense
-            ? EquipmentDefenseRules.completionSalvage(room: wave, integrity: defenseIntegrity)
+            ? EquipmentDefenseRules.completionSalvage(room: wave, integrity: defenseIntegrity,
+                                                       finalRoom: worldWaveCount)
             : PersistentProgression.roomReward(room: wave, finalRoom: worldWaveCount)
         bankSalvage(completionSalvage)
         if activeEncounter == .equipmentDefense {
@@ -8936,7 +9647,8 @@ final class OutpostScene: SKScene {
 
     @discardableResult
     private func presentPendingLevelUp(returningTo destination: Phase) -> Bool {
-        guard health > 0, progress.pendingChoices > 0 else { return false }
+        guard health > 0, progress.pendingChoices > 0,
+              combatTime >= factionBossDefeatUntil else { return false }
         levelUpReturnPhase = destination
         showLevelUp()
         return true
@@ -9588,7 +10300,7 @@ final class OutpostScene: SKScene {
                 near: pilot.position, in: roomBounds, patches: roomHazards)
         }
         extractionPortal.strokeColor = worldMapIndex == 1 ? .systemTeal :
-            (worldMapIndex == 2 ? .systemGreen : .systemCyan)
+            (worldMapIndex == WorldCatalog.ironIndex ? .systemGreen : .systemCyan)
         extractionPortal.childNode(withName: "extractionCore")?.removeAllActions()
         extractionPortal.childNode(withName: "extractionCore")?.run(
             .repeatForever(.sequence([
@@ -9946,6 +10658,7 @@ final class OutpostScene: SKScene {
     }
 
     private func restart() {
+        factionBossDefeatUntil = 0
         for drop in xpDrops { drop.node.removeFromParent() }
         xpDrops.removeAll()
         for enemy in enemies { enemy.node.removeFromParent() }

@@ -1,0 +1,142 @@
+{
+  "character": "Permafrost Crusher",
+  "room": 10,
+  "pixels": 512,
+  "art_pivot_px": [
+    256,
+    433
+  ],
+  "idle_height_px": 216,
+  "states": {
+    "idle": {
+      "frames": [
+        "frames/permafrostcrusher_idle_00.png",
+        "frames/permafrostcrusher_idle_01.png",
+        "frames/permafrostcrusher_idle_02.png",
+        "frames/permafrostcrusher_idle_03.png",
+        "frames/permafrostcrusher_idle_04.png",
+        "frames/permafrostcrusher_idle_05.png",
+        "frames/permafrostcrusher_idle_06.png",
+        "frames/permafrostcrusher_idle_07.png"
+      ],
+      "fps": 8,
+      "loop": true
+    },
+    "run": {
+      "frames": [
+        "frames/permafrostcrusher_run_00.png",
+        "frames/permafrostcrusher_run_01.png",
+        "frames/permafrostcrusher_run_02.png",
+        "frames/permafrostcrusher_run_03.png",
+        "frames/permafrostcrusher_run_04.png",
+        "frames/permafrostcrusher_run_05.png",
+        "frames/permafrostcrusher_run_06.png",
+        "frames/permafrostcrusher_run_07.png"
+      ],
+      "fps": 10,
+      "loop": true
+    },
+    "attack": {
+      "frames": [
+        "frames/permafrostcrusher_attack_00.png",
+        "frames/permafrostcrusher_attack_01.png",
+        "frames/permafrostcrusher_attack_02.png",
+        "frames/permafrostcrusher_attack_03.png",
+        "frames/permafrostcrusher_attack_04.png",
+        "frames/permafrostcrusher_attack_05.png",
+        "frames/permafrostcrusher_attack_06.png",
+        "frames/permafrostcrusher_attack_07.png",
+        "frames/permafrostcrusher_attack_08.png",
+        "frames/permafrostcrusher_attack_09.png",
+        "frames/permafrostcrusher_attack_10.png",
+        "frames/permafrostcrusher_attack_11.png"
+      ],
+      "fps": 14,
+      "loop": false
+    },
+    "hit": {
+      "frames": [
+        "frames/permafrostcrusher_hit_00.png",
+        "frames/permafrostcrusher_hit_01.png",
+        "frames/permafrostcrusher_hit_02.png",
+        "frames/permafrostcrusher_hit_03.png"
+      ],
+      "fps": 12,
+      "loop": false
+    },
+    "defeat": {
+      "frames": [
+        "frames/permafrostcrusher_defeat_00.png",
+        "frames/permafrostcrusher_defeat_01.png",
+        "frames/permafrostcrusher_defeat_02.png",
+        "frames/permafrostcrusher_defeat_03.png",
+        "frames/permafrostcrusher_defeat_04.png",
+        "frames/permafrostcrusher_defeat_05.png",
+        "frames/permafrostcrusher_defeat_06.png",
+        "frames/permafrostcrusher_defeat_07.png"
+      ],
+      "fps": 9,
+      "loop": false
+    },
+    "victory": {
+      "frames": [
+        "frames/permafrostcrusher_victory_00.png",
+        "frames/permafrostcrusher_victory_01.png",
+        "frames/permafrostcrusher_victory_02.png",
+        "frames/permafrostcrusher_victory_03.png"
+      ],
+      "fps": 7,
+      "loop": false
+    },
+    "charge": {
+      "frames": [
+        "frames/permafrostcrusher_charge_00.png",
+        "frames/permafrostcrusher_charge_01.png",
+        "frames/permafrostcrusher_charge_02.png",
+        "frames/permafrostcrusher_charge_03.png",
+        "frames/permafrostcrusher_charge_04.png",
+        "frames/permafrostcrusher_charge_05.png",
+        "frames/permafrostcrusher_charge_06.png",
+        "frames/permafrostcrusher_charge_07.png"
+      ],
+      "fps": 13,
+      "loop": false
+    }
+  },
+  "effects": {
+    "charge_trail": {
+      "frames": [
+        "effects/permafrostcrusher_charge_trail_00.png",
+        "effects/permafrostcrusher_charge_trail_01.png",
+        "effects/permafrostcrusher_charge_trail_02.png",
+        "effects/permafrostcrusher_charge_trail_03.png",
+        "effects/permafrostcrusher_charge_trail_04.png",
+        "effects/permafrostcrusher_charge_trail_05.png",
+        "effects/permafrostcrusher_charge_trail_06.png",
+        "effects/permafrostcrusher_charge_trail_07.png"
+      ],
+      "fps": 16,
+      "loop": true
+    },
+    "seismic_stomp": {
+      "frames": [
+        "effects/permafrostcrusher_seismic_stomp_00.png",
+        "effects/permafrostcrusher_seismic_stomp_01.png",
+        "effects/permafrostcrusher_seismic_stomp_02.png",
+        "effects/permafrostcrusher_seismic_stomp_03.png"
+      ],
+      "fps": 20,
+      "loop": false
+    },
+    "frost_shockwave": {
+      "frames": [
+        "effects/permafrostcrusher_frost_shockwave_00.png",
+        "effects/permafrostcrusher_frost_shockwave_01.png",
+        "effects/permafrostcrusher_frost_shockwave_02.png",
+        "effects/permafrostcrusher_frost_shockwave_03.png"
+      ],
+      "fps": 14,
+      "loop": false
+    }
+  }
+}

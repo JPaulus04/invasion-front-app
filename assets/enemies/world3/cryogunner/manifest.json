@@ -1,0 +1,124 @@
+{
+  "character": "Cryo Gunner",
+  "source": "Approved World 3 quadruped design",
+  "pixels": 512,
+  "art_pivot_px": [
+    256,
+    420
+  ],
+  "idle_height_px": 295,
+  "states": {
+    "idle": {
+      "fps": 8,
+      "loop": true,
+      "frames": [
+        "frames/cryogunner_idle_00.png",
+        "frames/cryogunner_idle_01.png",
+        "frames/cryogunner_idle_02.png",
+        "frames/cryogunner_idle_03.png",
+        "frames/cryogunner_idle_04.png",
+        "frames/cryogunner_idle_05.png",
+        "frames/cryogunner_idle_06.png",
+        "frames/cryogunner_idle_07.png"
+      ]
+    },
+    "run": {
+      "fps": 11,
+      "loop": true,
+      "frames": [
+        "frames/cryogunner_run_00.png",
+        "frames/cryogunner_run_01.png",
+        "frames/cryogunner_run_02.png",
+        "frames/cryogunner_run_03.png",
+        "frames/cryogunner_run_04.png",
+        "frames/cryogunner_run_05.png",
+        "frames/cryogunner_run_06.png",
+        "frames/cryogunner_run_07.png"
+      ]
+    },
+    "attack": {
+      "fps": 15,
+      "loop": false,
+      "frames": [
+        "frames/cryogunner_attack_00.png",
+        "frames/cryogunner_attack_01.png",
+        "frames/cryogunner_attack_02.png",
+        "frames/cryogunner_attack_03.png",
+        "frames/cryogunner_attack_04.png",
+        "frames/cryogunner_attack_05.png",
+        "frames/cryogunner_attack_06.png",
+        "frames/cryogunner_attack_07.png",
+        "frames/cryogunner_attack_08.png",
+        "frames/cryogunner_attack_09.png",
+        "frames/cryogunner_attack_10.png",
+        "frames/cryogunner_attack_11.png"
+      ]
+    },
+    "hit": {
+      "fps": 12,
+      "loop": false,
+      "frames": [
+        "frames/cryogunner_hit_00.png",
+        "frames/cryogunner_hit_01.png",
+        "frames/cryogunner_hit_02.png",
+        "frames/cryogunner_hit_03.png"
+      ]
+    },
+    "defeat": {
+      "fps": 9,
+      "loop": false,
+      "frames": [
+        "frames/cryogunner_defeat_00.png",
+        "frames/cryogunner_defeat_01.png",
+        "frames/cryogunner_defeat_02.png",
+        "frames/cryogunner_defeat_03.png",
+        "frames/cryogunner_defeat_04.png",
+        "frames/cryogunner_defeat_05.png",
+        "frames/cryogunner_defeat_06.png",
+        "frames/cryogunner_defeat_07.png"
+      ]
+    },
+    "victory": {
+      "fps": 7,
+      "loop": false,
+      "frames": [
+        "frames/cryogunner_victory_00.png",
+        "frames/cryogunner_victory_01.png",
+        "frames/cryogunner_victory_02.png",
+        "frames/cryogunner_victory_03.png"
+      ]
+    }
+  },
+  "effects": {
+    "muzzle_flash": {
+      "fps": 30,
+      "loop": false,
+      "frames": [
+        "effects/cryogunner_muzzle_flash_00.png",
+        "effects/cryogunner_muzzle_flash_01.png",
+        "effects/cryogunner_muzzle_flash_02.png",
+        "effects/cryogunner_muzzle_flash_03.png"
+      ]
+    },
+    "frost_projectile": {
+      "fps": 20,
+      "loop": true,
+      "frames": [
+        "effects/cryogunner_frost_projectile_00.png",
+        "effects/cryogunner_frost_projectile_01.png",
+        "effects/cryogunner_frost_projectile_02.png",
+        "effects/cryogunner_frost_projectile_03.png"
+      ]
+    },
+    "projectile_impact": {
+      "fps": 20,
+      "loop": false,
+      "frames": [
+        "effects/cryogunner_projectile_impact_00.png",
+        "effects/cryogunner_projectile_impact_01.png",
+        "effects/cryogunner_projectile_impact_02.png",
+        "effects/cryogunner_projectile_impact_03.png"
+      ]
+    }
+  }
+}

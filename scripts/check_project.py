@@ -58,7 +58,7 @@ if not all(fragment in scene for fragment in (
         "private func installDefenseDevice()",
         "private func damageDefenseDevice()",
         "private func markDefenseDeviceResolved()",
-        "EquipmentDefenseRules.completionSalvage(room: wave, integrity: defenseIntegrity)",
+        "EquipmentDefenseRules.completionSalvage(room: wave, integrity: defenseIntegrity,",
         "defenseObjectiveIntegrity:",
         "-captureEquipmentDefenseScreenshot",
         "-captureEquipmentDefenseClearScreenshot")):
@@ -264,7 +264,7 @@ if '? selectedWorld.title : "OUTPOST ZERO"' not in scene and 'selectedWorld.titl
 if "WorldCatalog.recordBestRoom(worldMapIndex, room: wave)" not in scene:
     errors.append("Best room must be tracked as each new room begins")
 if "WorldCatalog.recordBestRoom(worldMapIndex, room: worldWaveCount)" not in scene:
-    errors.append("Completed worlds must record Room 20 as their best result")
+    errors.append("Completed worlds must record their configured final room as their best result")
 if 'key: "recover_run"' not in scene or 'WORLD \\(saved.worldIndex + 1) · FLOOR \\(saved.room)' not in scene:
     errors.append("Saved runs from later worlds must be directly resumable on the default world map")
 if "CampaignPacing.targetEnemies(room: wave, world: worldMapIndex)" not in scene or "CampaignPacing.enemyHealth(world: worldMapIndex" not in scene:

@@ -1,0 +1,182 @@
+{
+  "character": "press_giant",
+  "role": "room 10 mini-boss",
+  "source": "masters/press_giant_master.png",
+  "pixels": 512,
+  "art_pivot_px": [
+    256,
+    465.0
+  ],
+  "idle_height_px": 355.0,
+  "states": {
+    "attack": {
+      "fps": 6.779661,
+      "loop": false,
+      "frames": [
+        "frames/press_giant_attack_00.png",
+        "frames/press_giant_attack_01.png",
+        "frames/press_giant_attack_02.png",
+        "frames/press_giant_attack_03.png",
+        "frames/press_giant_attack_04.png",
+        "frames/press_giant_attack_05.png",
+        "frames/press_giant_attack_06.png",
+        "frames/press_giant_attack_07.png"
+      ],
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        90,
+        120,
+        140,
+        200
+      ]
+    },
+    "attack_2": {
+      "fps": 6.779661,
+      "loop": false,
+      "frames": [
+        "frames/press_giant_attack_2_00.png",
+        "frames/press_giant_attack_2_01.png",
+        "frames/press_giant_attack_2_02.png",
+        "frames/press_giant_attack_2_03.png",
+        "frames/press_giant_attack_2_04.png",
+        "frames/press_giant_attack_2_05.png",
+        "frames/press_giant_attack_2_06.png",
+        "frames/press_giant_attack_2_07.png"
+      ],
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        90,
+        120,
+        140,
+        200
+      ]
+    },
+    "attack_2_fx": {
+      "fps": 6.779661,
+      "loop": false,
+      "frames": [
+        "effects/press_giant_attack_2_fx_00.png",
+        "effects/press_giant_attack_2_fx_01.png",
+        "effects/press_giant_attack_2_fx_02.png",
+        "effects/press_giant_attack_2_fx_03.png",
+        "effects/press_giant_attack_2_fx_04.png",
+        "effects/press_giant_attack_2_fx_05.png",
+        "effects/press_giant_attack_2_fx_06.png",
+        "effects/press_giant_attack_2_fx_07.png"
+      ],
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        90,
+        120,
+        140,
+        200
+      ]
+    },
+    "attack_fx": {
+      "fps": 6.779661,
+      "loop": false,
+      "frames": [
+        "effects/press_giant_attack_fx_00.png",
+        "effects/press_giant_attack_fx_01.png",
+        "effects/press_giant_attack_fx_02.png",
+        "effects/press_giant_attack_fx_03.png",
+        "effects/press_giant_attack_fx_04.png",
+        "effects/press_giant_attack_fx_05.png",
+        "effects/press_giant_attack_fx_06.png",
+        "effects/press_giant_attack_fx_07.png"
+      ],
+      "frame_durations_ms": [
+        100,
+        150,
+        180,
+        200,
+        90,
+        120,
+        140,
+        200
+      ]
+    },
+    "defeat": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/press_giant_defeat_00.png",
+        "frames/press_giant_defeat_01.png",
+        "frames/press_giant_defeat_02.png",
+        "frames/press_giant_defeat_03.png",
+        "frames/press_giant_defeat_04.png",
+        "frames/press_giant_defeat_05.png",
+        "frames/press_giant_defeat_06.png",
+        "frames/press_giant_defeat_07.png",
+        "frames/press_giant_defeat_08.png",
+        "frames/press_giant_defeat_09.png"
+      ]
+    },
+    "hit": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/press_giant_hit_00.png",
+        "frames/press_giant_hit_01.png",
+        "frames/press_giant_hit_02.png",
+        "frames/press_giant_hit_03.png",
+        "frames/press_giant_hit_04.png",
+        "frames/press_giant_hit_05.png"
+      ]
+    },
+    "idle": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "frames/press_giant_idle_00.png",
+        "frames/press_giant_idle_01.png",
+        "frames/press_giant_idle_02.png",
+        "frames/press_giant_idle_03.png",
+        "frames/press_giant_idle_04.png",
+        "frames/press_giant_idle_05.png",
+        "frames/press_giant_idle_06.png",
+        "frames/press_giant_idle_07.png"
+      ]
+    },
+    "run": {
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        "frames/press_giant_run_00.png",
+        "frames/press_giant_run_01.png",
+        "frames/press_giant_run_02.png",
+        "frames/press_giant_run_03.png",
+        "frames/press_giant_run_04.png",
+        "frames/press_giant_run_05.png",
+        "frames/press_giant_run_06.png",
+        "frames/press_giant_run_07.png"
+      ]
+    },
+    "victory": {
+      "fps": 10,
+      "loop": false,
+      "frames": [
+        "frames/press_giant_victory_00.png",
+        "frames/press_giant_victory_01.png",
+        "frames/press_giant_victory_02.png",
+        "frames/press_giant_victory_03.png"
+      ]
+    }
+  },
+  "effects": [
+    "attack_2_fx",
+    "attack_fx"
+  ],
+  "gameplay_validation": "pending",
+  "status": "CANDIDATE_NOT_APPROVED",
+  "timing_note": "fps is constant-rate fallback only; use explicit per-frame duration for attack and FX synchronization. Art pivot is measured from idle alpha bounds, not a collider."
+}

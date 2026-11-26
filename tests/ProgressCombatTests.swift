@@ -97,16 +97,18 @@ struct ProgressCombatTests {
         CombatEvolutionGeometryTests.verifyRangedRepositioning()
         CombatEvolutionGeometryTests.verifyEnergyWheelGeometry()
         var earnedRun = RunProgress()
-        precondition(earnedRun.claimMastery(room: 1))
-        precondition(!earnedRun.claimMastery(room: 1))
-        precondition(!earnedRun.claimMastery(room: 25))
+        precondition(earnedRun.claimMastery(room: 1, finalRoom: WorldCatalog.roomCount(0)))
+        precondition(!earnedRun.claimMastery(room: 1, finalRoom: WorldCatalog.roomCount(0)))
+        precondition(earnedRun.claimMastery(room: 30, finalRoom: WorldCatalog.roomCount(0)))
+        precondition(!earnedRun.claimMastery(room: 30, finalRoom: WorldCatalog.roomCount(0)))
+        precondition(!earnedRun.claimMastery(room: 31, finalRoom: WorldCatalog.roomCount(0)))
         let suiteMastery = "outpost.zero.mastery.test"
         let masteryStore = UserDefaults(suiteName: suiteMastery)!
         masteryStore.removePersistentDomain(forName: suiteMastery)
         let mastery = PlayerMastery(storage: masteryStore)
         precondition(mastery.level == 1 && mastery.capacity == 2)
         for _ in 0..<8 {
-            for room in 1...20 { _ = mastery.awardClearedRoom(room) }
+            for room in 1...20 { _ = mastery.awardClearedRoom(room, finalRoom: WorldCatalog.roomCount(0)) }
         }
         precondition(mastery.level >= 20 && mastery.capacity == 3)
         // Salvage survives failed attempts, and purchase benefits are
@@ -138,8 +140,8 @@ struct ProgressCombatTests {
         let restarted = PersistentProgression(storage: store)
         precondition(restarted.rank("weapon") == 1 && restarted.rank("chain") == 1)
         precondition(restarted.salvage == permanent.salvage)
-        precondition(PersistentProgression.roomReward(room: 12) >
-                     PersistentProgression.roomReward(room: 3))
+        precondition(PersistentProgression.roomReward(room: 12, finalRoom: WorldCatalog.roomCount(0)) >
+                     PersistentProgression.roomReward(room: 3, finalRoom: WorldCatalog.roomCount(0)))
         precondition(PersistentProgression.enemyReward(isHeavy: false, isBoss: true) >
                      PersistentProgression.enemyReward(isHeavy: false, isBoss: false))
         // The reduced completion bonus must match the live economy.
@@ -197,6 +199,22 @@ struct ProgressCombatTests {
         evolvedSave.energyWheelEvolved = true
         precondition(evolvedSave.isValid && recover.save(evolvedSave))
         precondition(recover.load()?.energyWheelEvolved == true)
+        // Exercise actual Build 340 bytes with both legacy faction IDs.
+        for (legacyIndex, currentIndex) in [(2, WorldCatalog.ironIndex), (3, WorldCatalog.frostIndex)] {
+            var legacy = evolvedSave
+            legacy.version = 4
+            legacy.worldIndex = legacyIndex
+            let data = try! JSONEncoder().encode(legacy)
+            recoveryStorage.set(data, forKey: "outpostZeroRunSnapshotV1")
+            let migrated = recover.load()!
+            precondition(migrated.version == RunSnapshot.schema &&
+                         migrated.worldID == legacyIndex && migrated.worldIndex == currentIndex)
+            precondition(migrated.room == legacy.room && migrated.coins == legacy.coins &&
+                         migrated.abilities == legacy.abilities &&
+                         migrated.progress.xp == legacy.progress.xp &&
+                         migrated.energyWheelEvolved == true)
+            precondition(recover.load()?.worldIndex == currentIndex)
+        }
         // Restore the baseline save before testing timed-room recovery.
         precondition(recover.save(saved))
 
@@ -276,7 +294,7 @@ struct ProgressCombatTests {
         precondition(RunRecoveryStore.incrementalReward(
             earnedOnReplay: 80, previouslyCredited: 84, reward: 8) == 4)
         let completedRoom = RunSnapshot(
-            version: RunSnapshot.schema, worldIndex: 0, room: 20, location: .clearedGate,
+            version: 4, worldIndex: 0, room: 20, location: .clearedGate,
             health: 15, coins: 2500, damage: 9, fireRate: 5,
             chainLevel: 3, explosiveLevel: 3, incendiaryLevel: 3,
             orbitLevel: 3, runArmor: 80, checkpointUsed: true, checkpointPresented: true,
@@ -284,9 +302,13 @@ struct ProgressCombatTests {
             abilities: ["chain", "incendiary", "orbit"],
             earnedSalvage: 1100, roomSalvageCredit: 88,
             roomCoinCredit: 42, roomXPCredit: 62)
-        precondition(completedRoom.isValid && recover.save(completedRoom))
-        precondition(recover.load()?.location == .clearedGate)
-        precondition(recover.load()?.checkpointPresented == true)
+        recoveryStorage.set(try! JSONEncoder().encode(completedRoom), forKey: "outpostZeroRunSnapshotV1")
+        let legacyFrontier = recover.load()
+        precondition(legacyFrontier?.location == .clearedGate && legacyFrontier?.room == 20)
+        precondition(legacyFrontier?.checkpointPresented == true && legacyFrontier?.roomSalvageCredit == 88)
+        precondition(legacyFrontier?.roomCoinCredit == 42 && legacyFrontier?.roomXPCredit == 62)
+        precondition(!WorldCatalog.isFinalRoom(world: 0, room: 20))
+        precondition(WorldCatalog.isFinalRoom(world: 0, room: 30))
         // A cleared milestone is recovered with its healing offer already
         // recorded; returning to its open gate must not show it again.
         let offeredCheckpoint = RunSnapshot(
@@ -419,7 +441,7 @@ struct ProgressCombatTests {
         precondition(EncounterDirector.style(room: 4) == .flank)
         precondition(EncounterDirector.style(room: 6) == .crossfire)
         precondition(EncounterDirector.style(room: 12) == .siege)
-        precondition(EncounterDirector.style(room: 20) == .boss)
+        precondition(EncounterDirector.style(room: 20, isBoss: true) == .boss)
         precondition(EncounterDirector.spawnLane(room: 4, slot: 0) == .left)
         precondition(EncounterDirector.spawnLane(room: 4, slot: 2) == .right)
         precondition(EncounterDirector.spawnLane(room: 6, slot: 0) == .left)

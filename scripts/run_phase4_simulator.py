@@ -9,7 +9,7 @@ import shutil
 from pathlib import Path
 import subprocess
 import time
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from simulator_startup import (RecoverableStartupError, content, launch_initial,
                                snapshot, wait_for_app_registration, wait_for_render_surface)
 
@@ -49,7 +49,7 @@ def command(*args, timeout=60, check=True):
 
 
 @contextmanager
-def fresh_simulator(profile, output, controlled=False, device_type="iPhone-16-Pro"):
+def fresh_simulator(profile, output, controlled=False, device_type="iPhone-16-Pro", warm_before_spawn=False):
     # Match the proven presentation setup: cold CoreSimulator discovery can
     # exceed 60 seconds before the app has even been installed. Retry setup
     # only; never restart a campaign or manufacture a missing outcome.
@@ -97,7 +97,7 @@ def fresh_simulator(profile, output, controlled=False, device_type="iPhone-16-Pr
                 for args in actions:
                     command(*args, timeout=240 if args[2] == 'bootstatus' else
                             150 if stage == 'install' else 60)
-                if stage == 'boot':
+                if stage == 'boot' and not warm_before_spawn:
                     # Probe process-control responsiveness without enumerating
                     # every launchd service on a cold simulator. A full
                     # launchctl list stalled during defense visual review.
@@ -111,6 +111,8 @@ def fresh_simulator(profile, output, controlled=False, device_type="iPhone-16-Pr
                     if controlled:
                         wait_for_app_registration(command, device, output)
                         wait_for_render_surface(command, device, output)
+                    if warm_before_spawn:
+                        ready_command('xcrun', 'simctl', 'spawn', device, '/usr/bin/true')
             except (subprocess.TimeoutExpired, subprocess.CalledProcessError,
                     RecoverableStartupError) as error:
                 snapshot(command, device, output, f'{stage}-failure', began)
@@ -132,6 +134,28 @@ def fresh_simulator(profile, output, controlled=False, device_type="iPhone-16-Pr
         if startup_failed and cleanup_failed:
             raise RuntimeError('Could not fence failed device; startup recovery forbidden')
 
+
+@contextmanager
+def focused_simulator(profile, output):
+    # Boot status alone can finish while process control is still cold.
+    # Registration and a real render surface warm the device before probing.
+    # Retry setup on a compatible fresh phone only after the previous device
+    # was fenced. Gameplay and app-launch errors propagate without retry.
+    for device_type in ("iPhone-16-Pro", "iPhone-16"):
+        startup = output / f"startup-{device_type}"
+        startup.mkdir(exist_ok=False)
+        with ExitStack() as stack:
+            try:
+                device = stack.enter_context(fresh_simulator(
+                    profile, startup, controlled=True, device_type=device_type,
+                    warm_before_spawn=True))
+            except RecoverableStartupError:
+                if device_type == "iPhone-16":
+                    raise
+                print("::warning::Cold device setup failed; trying a fresh iPhone 16", flush=True)
+                continue
+            yield device
+            return
 
 def run(profile, limit, seed, batch, output):
     output = Path(output)

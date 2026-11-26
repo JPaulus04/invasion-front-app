@@ -1,0 +1,27 @@
+PASS bulkhead: 7 states, 52 references
+PASS gantry_warden: 9 states, 68 references
+PASS grunt: 7 states, 52 references
+PASS lobber: 7 states, 52 references
+PASS overclock: 7 states, 52 references
+PASS press_giant: 9 states, 68 references
+PASS raider: 7 states, 52 references
+PASS rail_skater: 7 states, 52 references
+PASS scrapper: 7 states, 52 references
+PASS sentry: 7 states, 52 references
+PASS warforge: 11 states, 84 references
+TIMING bulkhead/attack: authored 490ms, uniform 475ms, drift 15ms
+TIMING gantry_warden/attack: authored 630ms, uniform 605ms, drift 25ms
+TIMING gantry_warden/attack_2: authored 630ms, uniform 605ms, drift 25ms
+TIMING grunt/attack: authored 490ms, uniform 475ms, drift 15ms
+TIMING lobber/attack: authored 490ms, uniform 475ms, drift 15ms
+TIMING overclock/attack: authored 490ms, uniform 475ms, drift 15ms
+TIMING press_giant/attack: authored 630ms, uniform 590ms, drift 40ms
+TIMING press_giant/attack_2: authored 630ms, uniform 590ms, drift 40ms
+TIMING raider/attack: authored 490ms, uniform 475ms, drift 15ms
+TIMING rail_skater/attack: authored 330ms, uniform 356ms, drift -26ms
+TIMING scrapper/attack: authored 490ms, uniform 475ms, drift 15ms
+TIMING sentry/attack: authored 490ms, uniform 475ms, drift 15ms
+TIMING warforge/attack: authored 630ms, uniform 590ms, drift 40ms
+TIMING warforge/attack_2: authored 630ms, uniform 590ms, drift 40ms
+TIMING warforge/attack_3: authored 630ms, uniform 590ms, drift 40ms
+PASS 11 native decodes; 636 unique sequence references; 15 timing records; max uniform-FPS active-event drift 40ms

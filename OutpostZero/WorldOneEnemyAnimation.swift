@@ -15,6 +15,15 @@ enum WorldOneEnemyAnimation {
     private static var preloaded = false
     private static var memoryObserver: NSObjectProtocol?
 
+    #if DEBUG
+    static var cachedFactionTextureBytes: Int {
+        costs.reduce(into: 0) { total, entry in
+            let name = String(entry.key.split(separator: ".", maxSplits: 1)[0])
+            if FrontierFactionArt.folder(name) != nil { total += entry.value }
+        }
+    }
+    #endif
+
     static func preload() {
         guard !preloaded else { return }
         preloaded = true
@@ -58,29 +67,29 @@ enum WorldOneEnemyAnimation {
 
     private static func profile(_ name: String) -> CharacterAnimationCatalog.Profile? {
         if let existing = CharacterAnimationCatalog.profile(name) { return existing }
-        guard let manifest = WorldTwoCampaign.manifests[name] else { return nil }
+        guard let manifest = FrontierFactionArt.manifest(name) else { return nil }
         let height: Double
         switch name {
-        case "corrosionravager", "blighthydra": height = 101
-        case "toxictyrant": height = 126
-        case "toxicbrute": height = 70
+        case "corrosionravager", "blighthydra", "permafrostcrusher", "frostwyrm", "press_giant", "gantry_warden": height = 101
+        case "toxictyrant", "cryooverlord", "warforge": height = 126
+        case "toxicbrute", "glacierbrute", "bulkhead", "overclock": height = 70
         default: height = 52
         }
-        return .init(name: name, folder: WorldTwoCampaign.folder, pixels: manifest.pixels,
+        return .init(name: name, folder: FrontierFactionArt.folder(name) ?? WorldTwoCampaign.folder, pixels: manifest.pixels,
                      ground: manifest.art_pivot_px[1], idleHeight: manifest.idle_height_px,
                      bodyHeight: height, footY: -16,
                      sequences: manifest.states.mapValues { $0.frames.count }, quarantine: [])
     }
 
     static func worldTwoFrames(enemy: String, sequence: String) -> [SKTexture]? {
-        guard WorldTwoCampaign.manifests[enemy]?.states[sequence] != nil else { return nil }
+        guard FrontierFactionArt.manifest(enemy)?.sequence(sequence) != nil else { return nil }
         return textures(enemy: enemy, motion: .idle, sequence: sequence)
     }
 
     static func textures(enemy: String, motion: Motion, variant: Int = 0, sequence override: String? = nil) -> [SKTexture]? {
         guard let profile = profile(enemy) else { return nil }
         let sequence = override ?? profile.sequence(motion,variant: variant)
-        let manifest = WorldTwoCampaign.manifests[enemy]
+        let manifest = FrontierFactionArt.manifest(enemy)
         let key = enemy+"."+sequence
         if let frames = cache[key] {
             if costs[key] != nil { recent.removeAll { $0 == key }; recent.append(key) }
@@ -100,8 +109,9 @@ enum WorldOneEnemyAnimation {
             unavailable.insert(key); return nil
         }
         var frames: [SKTexture] = []; var bytes = 0
-        let names = manifest?.states[sequence]?.frames.map(WorldTwoCampaign.frameName) ?? profile.frameNames(sequence: sequence)
-        for name in names {
+        let paths = manifest?.sequence(sequence)?.frames
+        let names = paths?.map(WorldTwoCampaign.frameName) ?? profile.frameNames(sequence: sequence)
+        for (index, name) in names.enumerated() {
             let texture: SKTexture
             if enemy == "mossbot" {
                 guard let image = UIImage(named: name), let source = image.cgImage,
@@ -119,7 +129,8 @@ enum WorldOneEnemyAnimation {
                 } else { texture = SKTexture(image: image) }
                 bytes += 512*512*4
             } else {
-                guard let url = Bundle.main.url(forResource: name,withExtension: "png",subdirectory: profile.folder),
+                let subfolder = FrontierFactionArt.folder(enemy).flatMap { folder in paths.map { folder + "/" + ($0[index] as NSString).deletingLastPathComponent } } ?? profile.folder
+                guard let url = Bundle.main.url(forResource: name,withExtension: "png",subdirectory: subfolder),
                       let source = CGImageSourceCreateWithURL(url as CFURL,nil),
                       let props = CGImageSourceCopyPropertiesAtIndex(source,0,nil) as? [CFString:Any],
                       (props[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue == profile.pixels,
@@ -169,6 +180,34 @@ enum WorldOneEnemyAnimation {
         sprite.size = CGSize(width: side,height: side)
         sprite.anchorPoint = CGPoint(x: 0.5,y: 1-p.registeredGround(motion)/Double(p.pixels))
     }
+    static func setWarforgePhase(_ phase: Int, on sprite: SKSpriteNode) {
+        sprite.userData?["warforgePhase"] = phase
+        updateWarforgePhaseLayer(on: sprite)
+    }
+
+    private static func updateWarforgePhaseLayer(on sprite: SKSpriteNode) {
+        sprite.childNode(withName: "warforgePhaseLayer")?.removeFromParent()
+        guard character(on: sprite) == "warforge",
+              let active = sprite.userData?[motionKey] as? String,
+              active == Motion.idle.rawValue || active == Motion.attack.rawValue else { return }
+        // Core pixels in all 24 attack frames register to the source master
+        // exactly. Idle poses shift by at most three source pixels.
+        let phase = sprite.userData?["warforgePhase"] as? Int ?? 1
+        let names = phase == 1 ? ["warforge_armored_shutters"] :
+            (phase == 2 ? ["warforge_overload_shutters"] : (0..<8).map { String(format: "warforge_core_pulse_%02d", $0) })
+        let textures = names.compactMap { name -> SKTexture? in
+            guard let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "enemies/world4/phase_layers"),
+                  let image = UIImage(contentsOfFile: url.path) else { return nil }
+            return SKTexture(image: image)
+        }
+        guard textures.count == names.count, let first = textures.first else { return }
+        let layer = SKSpriteNode(texture: first, size: sprite.size)
+        layer.name = "warforgePhaseLayer"
+        layer.anchorPoint = sprite.anchorPoint
+        layer.zPosition = 0.1
+        sprite.addChild(layer)
+        if textures.count > 1 { layer.run(.repeatForever(.animate(with: textures, timePerFrame: 0.10))) }
+    }
     static func updateLocomotion(on sprite: SKSpriteNode, moving: Bool, dx: CGFloat) {
         guard let name = character(on: sprite) else { return }
         let next: Motion = moving ? .move : .idle
@@ -181,9 +220,17 @@ enum WorldOneEnemyAnimation {
     }
     @discardableResult
     static func play(_ motion: Motion, enemy: String, on sprite: SKSpriteNode,
-                     sequence: String? = nil, completion: (() -> Void)? = nil) -> Bool {
+                     sequence: String? = nil, frameDuration: TimeInterval? = nil,
+                     completion: (() -> Void)? = nil) -> Bool {
         let current = (sprite.userData?[motionKey] as? String).flatMap(Motion.init(rawValue:))
-        let authored = WorldTwoCampaign.manifests[enemy]?.states[sequence ?? (motion == .move ? "run" : motion.rawValue)]
+        if motion == .hit, current == .attack, FrontierFactionArt.folder(enemy) != nil {
+            // Keep the windup visible while the authored event is pending.
+            sprite.run(.sequence([.colorize(with: .white, colorBlendFactor: 0.7, duration: 0.04),
+                                  .colorize(withColorBlendFactor: 0, duration: 0.12)]),
+                       withKey: "factionAttackHitFeedback")
+            return true
+        }
+        let authored = FrontierFactionArt.manifest(enemy)?.sequence(sequence ?? (motion == .move ? "run" : motion.rawValue))
         guard (sequence != nil && current != .defeat ||
                EnemyAnimationRules.canTransition(from: current,to: motion)),
               let p = profile(enemy) else { return false }
@@ -198,9 +245,10 @@ enum WorldOneEnemyAnimation {
         if motion == .attack { sprite.userData?["animationAttackOrdinal"] = ordinal+1 }
         sprite.removeAction(forKey: actionKey); sprite.texture = first
         geometry(p,motion: frames == nil ? .idle : motion,on: sprite)
-        if let manifest = WorldTwoCampaign.manifests[enemy] {
+        if let manifest = FrontierFactionArt.manifest(enemy) {
             sprite.anchorPoint.x = manifest.art_pivot_px[0] / Double(manifest.pixels)
         }
+        if enemy == "warforge" { updateWarforgePhaseLayer(on: sprite) }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-captureBuild337EnemySequence") {
             print("[ENEMY ART] motion=\(motion.rawValue) frames=\(frames?.count ?? 0)")
@@ -209,7 +257,14 @@ enum WorldOneEnemyAnimation {
         #endif
         let action: SKAction
         if let frames {
-            action = .animate(with: frames,timePerFrame: 1/(authored?.fps ?? motion.framesPerSecond),resize: false,restore: false)
+            let timePerFrame = frameDuration ?? 1/(authored?.fps ?? motion.framesPerSecond)
+            if frameDuration == nil, let durations = authored?.frame_durations_ms, durations.count == frames.count {
+                action = .sequence(zip(frames, durations).flatMap { texture, milliseconds in
+                    [SKAction.setTexture(texture), SKAction.wait(forDuration: milliseconds / 1000)]
+                })
+            } else {
+                action = .animate(with: frames, timePerFrame: timePerFrame, resize: false, restore: false)
+            }
         } else if motion == .defeat {
             action = .fadeOut(withDuration: 0.35)
         } else if motion == .hit {
@@ -248,6 +303,7 @@ enum WorldOneEnemyAnimation {
         visual.userData = NSMutableDictionary(dictionary: ["animatedEnemy":name])
         visual.position = CGPoint(x: position.x+source.position.x,y: position.y+source.position.y)
         visual.zPosition = depth; visual.xScale = source.xScale
+        if FrontierFactionArt.folder(name) != nil { visual.speed = source.speed }
         parent.addChild(visual)
         if !play(.defeat,enemy: name,on: visual,completion: { [weak visual] in visual?.removeFromParent() }) {
             visual.removeFromParent(); return false

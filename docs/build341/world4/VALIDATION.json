@@ -1,0 +1,20 @@
+{
+  "status": "CANDIDATE_NOT_APPROVED",
+  "source_pngs_verified": 661,
+  "output_pngs_verified": 661,
+  "unique_basenames": 661,
+  "character_manifests": 11,
+  "attack_sequences": 15,
+  "frame_refs_resolved": true,
+  "source_sha256_match": true,
+  "source_archive_crc_pass": true,
+  "schema_reference": "OutpostZero/WorldTwoCampaign.swift @ main 5ba22b2d4b533eb96c9c128da677bcad52b57d6e",
+  "swift_decode_test": "PASS (Linux Swift Foundation; reproduced WorldTwoCampaign.Manifest schema)",
+  "visual_approval": "pending; procedural movement and actual playback unresolved",
+  "gameplay_validation": "not run; requires iOS engine",
+  "native_decoded_manifests": 11,
+  "native_sequence_references": 636,
+  "timing_records_checked": 15,
+  "max_uniform_fps_active_event_drift_ms": 40,
+  "archive_png_bytes_verified": 661
+}

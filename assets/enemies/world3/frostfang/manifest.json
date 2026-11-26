@@ -1,0 +1,150 @@
+{
+  "character": "Frostfang",
+  "source": "World 3 Frostfang approved master and dedicated pose sheets",
+  "pixels": 512,
+  "art_pivot_px": [
+    256,
+    417
+  ],
+  "idle_height_px": 267,
+  "states": {
+    "idle": {
+      "fps": 8,
+      "loop": true,
+      "frames": [
+        "frames/frostfang_idle_00.png",
+        "frames/frostfang_idle_01.png",
+        "frames/frostfang_idle_02.png",
+        "frames/frostfang_idle_03.png",
+        "frames/frostfang_idle_04.png",
+        "frames/frostfang_idle_05.png",
+        "frames/frostfang_idle_06.png",
+        "frames/frostfang_idle_07.png"
+      ]
+    },
+    "run": {
+      "fps": 12,
+      "loop": true,
+      "frames": [
+        "frames/frostfang_run_00.png",
+        "frames/frostfang_run_01.png",
+        "frames/frostfang_run_02.png",
+        "frames/frostfang_run_03.png",
+        "frames/frostfang_run_04.png",
+        "frames/frostfang_run_05.png",
+        "frames/frostfang_run_06.png",
+        "frames/frostfang_run_07.png"
+      ]
+    },
+    "attack": {
+      "fps": 15,
+      "loop": false,
+      "frames": [
+        "frames/frostfang_attack_00.png",
+        "frames/frostfang_attack_01.png",
+        "frames/frostfang_attack_02.png",
+        "frames/frostfang_attack_03.png",
+        "frames/frostfang_attack_04.png",
+        "frames/frostfang_attack_05.png",
+        "frames/frostfang_attack_06.png",
+        "frames/frostfang_attack_07.png",
+        "frames/frostfang_attack_08.png",
+        "frames/frostfang_attack_09.png",
+        "frames/frostfang_attack_10.png",
+        "frames/frostfang_attack_11.png"
+      ]
+    },
+    "hit": {
+      "fps": 12,
+      "loop": false,
+      "frames": [
+        "frames/frostfang_hit_00.png",
+        "frames/frostfang_hit_01.png",
+        "frames/frostfang_hit_02.png",
+        "frames/frostfang_hit_03.png"
+      ]
+    },
+    "defeat": {
+      "fps": 9,
+      "loop": false,
+      "frames": [
+        "frames/frostfang_defeat_00.png",
+        "frames/frostfang_defeat_01.png",
+        "frames/frostfang_defeat_02.png",
+        "frames/frostfang_defeat_03.png",
+        "frames/frostfang_defeat_04.png",
+        "frames/frostfang_defeat_05.png",
+        "frames/frostfang_defeat_06.png",
+        "frames/frostfang_defeat_07.png"
+      ]
+    },
+    "victory": {
+      "fps": 7,
+      "loop": false,
+      "frames": [
+        "frames/frostfang_victory_00.png",
+        "frames/frostfang_victory_01.png",
+        "frames/frostfang_victory_02.png",
+        "frames/frostfang_victory_03.png"
+      ]
+    }
+  },
+  "effects": {
+    "claw_slash": {
+      "fps": 24,
+      "loop": false,
+      "frames": [
+        "effects/frostfang_claw_slash_00.png",
+        "effects/frostfang_claw_slash_01.png",
+        "effects/frostfang_claw_slash_02.png",
+        "effects/frostfang_claw_slash_03.png",
+        "effects/frostfang_claw_slash_04.png",
+        "effects/frostfang_claw_slash_05.png",
+        "effects/frostfang_claw_slash_06.png",
+        "effects/frostfang_claw_slash_07.png"
+      ]
+    },
+    "lunge_trail": {
+      "fps": 16,
+      "loop": false,
+      "frames": [
+        "effects/frostfang_lunge_trail_00.png",
+        "effects/frostfang_lunge_trail_01.png",
+        "effects/frostfang_lunge_trail_02.png",
+        "effects/frostfang_lunge_trail_03.png",
+        "effects/frostfang_lunge_trail_04.png",
+        "effects/frostfang_lunge_trail_05.png",
+        "effects/frostfang_lunge_trail_06.png",
+        "effects/frostfang_lunge_trail_07.png"
+      ]
+    },
+    "ice_impact": {
+      "fps": 16,
+      "loop": false,
+      "frames": [
+        "effects/frostfang_ice_impact_00.png",
+        "effects/frostfang_ice_impact_01.png",
+        "effects/frostfang_ice_impact_02.png",
+        "effects/frostfang_ice_impact_03.png",
+        "effects/frostfang_ice_impact_04.png",
+        "effects/frostfang_ice_impact_05.png",
+        "effects/frostfang_ice_impact_06.png",
+        "effects/frostfang_ice_impact_07.png"
+      ]
+    },
+    "defeat_burst": {
+      "fps": 16,
+      "loop": false,
+      "frames": [
+        "effects/frostfang_defeat_burst_00.png",
+        "effects/frostfang_defeat_burst_01.png",
+        "effects/frostfang_defeat_burst_02.png",
+        "effects/frostfang_defeat_burst_03.png",
+        "effects/frostfang_defeat_burst_04.png",
+        "effects/frostfang_defeat_burst_05.png",
+        "effects/frostfang_defeat_burst_06.png",
+        "effects/frostfang_defeat_burst_07.png"
+      ]
+    }
+  }
+}

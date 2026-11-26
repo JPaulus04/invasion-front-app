@@ -1,0 +1,338 @@
+{
+  "frames/glacierbrute_idle_00.png": [
+    74,
+    153,
+    439,
+    421
+  ],
+  "frames/glacierbrute_idle_01.png": [
+    74,
+    153,
+    439,
+    421
+  ],
+  "frames/glacierbrute_idle_02.png": [
+    74,
+    153,
+    439,
+    421
+  ],
+  "frames/glacierbrute_idle_03.png": [
+    74,
+    153,
+    439,
+    421
+  ],
+  "frames/glacierbrute_idle_04.png": [
+    74,
+    153,
+    439,
+    421
+  ],
+  "frames/glacierbrute_idle_05.png": [
+    74,
+    153,
+    439,
+    421
+  ],
+  "frames/glacierbrute_idle_06.png": [
+    74,
+    153,
+    439,
+    421
+  ],
+  "frames/glacierbrute_idle_07.png": [
+    74,
+    153,
+    439,
+    421
+  ],
+  "frames/glacierbrute_run_00.png": [
+    74,
+    153,
+    439,
+    421
+  ],
+  "frames/glacierbrute_run_01.png": [
+    69,
+    134,
+    444,
+    421
+  ],
+  "frames/glacierbrute_run_02.png": [
+    61,
+    133,
+    451,
+    421
+  ],
+  "frames/glacierbrute_run_03.png": [
+    78,
+    133,
+    434,
+    421
+  ],
+  "frames/glacierbrute_run_04.png": [
+    78,
+    134,
+    435,
+    421
+  ],
+  "frames/glacierbrute_run_05.png": [
+    76,
+    134,
+    437,
+    421
+  ],
+  "frames/glacierbrute_run_06.png": [
+    67,
+    133,
+    445,
+    421
+  ],
+  "frames/glacierbrute_run_07.png": [
+    57,
+    132,
+    456,
+    421
+  ],
+  "frames/glacierbrute_attack_00.png": [
+    63,
+    136,
+    450,
+    421
+  ],
+  "frames/glacierbrute_attack_01.png": [
+    76,
+    176,
+    436,
+    421
+  ],
+  "frames/glacierbrute_attack_02.png": [
+    76,
+    177,
+    436,
+    422
+  ],
+  "frames/glacierbrute_attack_03.png": [
+    76,
+    145,
+    437,
+    421
+  ],
+  "frames/glacierbrute_attack_04.png": [
+    72,
+    97,
+    441,
+    421
+  ],
+  "frames/glacierbrute_attack_05.png": [
+    72,
+    96,
+    441,
+    420
+  ],
+  "frames/glacierbrute_attack_06.png": [
+    83,
+    168,
+    430,
+    421
+  ],
+  "frames/glacierbrute_attack_07.png": [
+    95,
+    204,
+    418,
+    421
+  ],
+  "frames/glacierbrute_attack_08.png": [
+    95,
+    205,
+    418,
+    422
+  ],
+  "frames/glacierbrute_attack_09.png": [
+    73,
+    167,
+    439,
+    421
+  ],
+  "frames/glacierbrute_attack_10.png": [
+    73,
+    166,
+    439,
+    420
+  ],
+  "frames/glacierbrute_attack_11.png": [
+    71,
+    131,
+    441,
+    421
+  ],
+  "frames/glacierbrute_hit_00.png": [
+    75,
+    127,
+    438,
+    421
+  ],
+  "frames/glacierbrute_hit_01.png": [
+    91,
+    149,
+    421,
+    421
+  ],
+  "frames/glacierbrute_hit_02.png": [
+    63,
+    173,
+    450,
+    421
+  ],
+  "frames/glacierbrute_hit_03.png": [
+    72,
+    146,
+    441,
+    421
+  ],
+  "frames/glacierbrute_defeat_00.png": [
+    78,
+    151,
+    435,
+    421
+  ],
+  "frames/glacierbrute_defeat_01.png": [
+    78,
+    152,
+    435,
+    422
+  ],
+  "frames/glacierbrute_defeat_02.png": [
+    73,
+    193,
+    439,
+    421
+  ],
+  "frames/glacierbrute_defeat_03.png": [
+    73,
+    194,
+    439,
+    422
+  ],
+  "frames/glacierbrute_defeat_04.png": [
+    76,
+    223,
+    437,
+    421
+  ],
+  "frames/glacierbrute_defeat_05.png": [
+    76,
+    224,
+    437,
+    422
+  ],
+  "frames/glacierbrute_defeat_06.png": [
+    65,
+    274,
+    448,
+    421
+  ],
+  "frames/glacierbrute_defeat_07.png": [
+    66,
+    274,
+    449,
+    421
+  ],
+  "frames/glacierbrute_victory_00.png": [
+    75,
+    149,
+    438,
+    421
+  ],
+  "frames/glacierbrute_victory_01.png": [
+    70,
+    146,
+    443,
+    421
+  ],
+  "frames/glacierbrute_victory_02.png": [
+    97,
+    73,
+    416,
+    421
+  ],
+  "frames/glacierbrute_victory_03.png": [
+    71,
+    151,
+    442,
+    421
+  ],
+  "effects/glacierbrute_ground_slam_00.png": [
+    197,
+    285,
+    315,
+    376
+  ],
+  "effects/glacierbrute_ground_slam_01.png": [
+    143,
+    198,
+    370,
+    376
+  ],
+  "effects/glacierbrute_ground_slam_02.png": [
+    102,
+    121,
+    411,
+    376
+  ],
+  "effects/glacierbrute_ground_slam_03.png": [
+    104,
+    165,
+    409,
+    376
+  ],
+  "effects/glacierbrute_frost_shockwave_00.png": [
+    193,
+    217,
+    319,
+    296
+  ],
+  "effects/glacierbrute_frost_shockwave_01.png": [
+    141,
+    190,
+    372,
+    322
+  ],
+  "effects/glacierbrute_frost_shockwave_02.png": [
+    80,
+    168,
+    433,
+    344
+  ],
+  "effects/glacierbrute_frost_shockwave_03.png": [
+    84,
+    165,
+    429,
+    348
+  ],
+  "effects/glacierbrute_ice_debris_00.png": [
+    203,
+    276,
+    309,
+    378
+  ],
+  "effects/glacierbrute_ice_debris_01.png": [
+    176,
+    228,
+    337,
+    378
+  ],
+  "effects/glacierbrute_ice_debris_02.png": [
+    143,
+    204,
+    369,
+    378
+  ],
+  "effects/glacierbrute_ice_debris_03.png": [
+    156,
+    217,
+    356,
+    378
+  ]
+}

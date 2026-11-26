@@ -1,0 +1,506 @@
+{
+  "frames/frostwyrm_idle_00.png": [
+    60,
+    69,
+    451,
+    433
+  ],
+  "frames/frostwyrm_idle_01.png": [
+    60,
+    69,
+    451,
+    433
+  ],
+  "frames/frostwyrm_idle_02.png": [
+    60,
+    69,
+    451,
+    433
+  ],
+  "frames/frostwyrm_idle_03.png": [
+    60,
+    69,
+    451,
+    433
+  ],
+  "frames/frostwyrm_idle_04.png": [
+    60,
+    69,
+    451,
+    433
+  ],
+  "frames/frostwyrm_idle_05.png": [
+    60,
+    69,
+    451,
+    433
+  ],
+  "frames/frostwyrm_idle_06.png": [
+    60,
+    69,
+    451,
+    433
+  ],
+  "frames/frostwyrm_idle_07.png": [
+    60,
+    69,
+    451,
+    433
+  ],
+  "frames/frostwyrm_run_00.png": [
+    60,
+    69,
+    451,
+    433
+  ],
+  "frames/frostwyrm_run_01.png": [
+    63,
+    96,
+    448,
+    433
+  ],
+  "frames/frostwyrm_run_02.png": [
+    62,
+    97,
+    447,
+    434
+  ],
+  "frames/frostwyrm_run_03.png": [
+    47,
+    144,
+    465,
+    433
+  ],
+  "frames/frostwyrm_run_04.png": [
+    48,
+    144,
+    466,
+    433
+  ],
+  "frames/frostwyrm_run_05.png": [
+    65,
+    81,
+    447,
+    433
+  ],
+  "frames/frostwyrm_run_06.png": [
+    67,
+    81,
+    449,
+    433
+  ],
+  "frames/frostwyrm_run_07.png": [
+    59,
+    69,
+    450,
+    433
+  ],
+  "frames/frostwyrm_attack_00.png": [
+    60,
+    69,
+    451,
+    433
+  ],
+  "frames/frostwyrm_attack_01.png": [
+    67,
+    55,
+    444,
+    433
+  ],
+  "frames/frostwyrm_attack_02.png": [
+    68,
+    53,
+    445,
+    431
+  ],
+  "frames/frostwyrm_attack_03.png": [
+    63,
+    133,
+    449,
+    433
+  ],
+  "frames/frostwyrm_attack_04.png": [
+    62,
+    133,
+    448,
+    433
+  ],
+  "frames/frostwyrm_attack_05.png": [
+    59,
+    94,
+    452,
+    433
+  ],
+  "frames/frostwyrm_attack_06.png": [
+    62,
+    93,
+    455,
+    432
+  ],
+  "frames/frostwyrm_attack_07.png": [
+    59,
+    94,
+    452,
+    433
+  ],
+  "frames/frostwyrm_attack_08.png": [
+    60,
+    94,
+    453,
+    433
+  ],
+  "frames/frostwyrm_attack_09.png": [
+    65,
+    81,
+    447,
+    433
+  ],
+  "frames/frostwyrm_attack_10.png": [
+    65,
+    80,
+    447,
+    432
+  ],
+  "frames/frostwyrm_attack_11.png": [
+    60,
+    70,
+    451,
+    434
+  ],
+  "frames/frostwyrm_hit_00.png": [
+    60,
+    170,
+    451,
+    433
+  ],
+  "frames/frostwyrm_hit_01.png": [
+    57,
+    171,
+    448,
+    434
+  ],
+  "frames/frostwyrm_hit_02.png": [
+    62,
+    211,
+    449,
+    433
+  ],
+  "frames/frostwyrm_hit_03.png": [
+    63,
+    211,
+    450,
+    433
+  ],
+  "frames/frostwyrm_defeat_00.png": [
+    61,
+    212,
+    448,
+    434
+  ],
+  "frames/frostwyrm_defeat_01.png": [
+    60,
+    213,
+    447,
+    435
+  ],
+  "frames/frostwyrm_defeat_02.png": [
+    60,
+    274,
+    452,
+    433
+  ],
+  "frames/frostwyrm_defeat_03.png": [
+    59,
+    274,
+    451,
+    433
+  ],
+  "frames/frostwyrm_defeat_04.png": [
+    61,
+    274,
+    453,
+    433
+  ],
+  "frames/frostwyrm_defeat_05.png": [
+    60,
+    275,
+    452,
+    434
+  ],
+  "frames/frostwyrm_defeat_06.png": [
+    62,
+    304,
+    450,
+    433
+  ],
+  "frames/frostwyrm_defeat_07.png": [
+    61,
+    304,
+    449,
+    433
+  ],
+  "frames/frostwyrm_victory_00.png": [
+    62,
+    176,
+    450,
+    433
+  ],
+  "frames/frostwyrm_victory_01.png": [
+    63,
+    133,
+    449,
+    433
+  ],
+  "frames/frostwyrm_victory_02.png": [
+    65,
+    98,
+    447,
+    433
+  ],
+  "frames/frostwyrm_victory_03.png": [
+    62,
+    176,
+    449,
+    433
+  ],
+  "frames/frostwyrm_tail_sweep_00.png": [
+    62,
+    81,
+    444,
+    433
+  ],
+  "frames/frostwyrm_tail_sweep_01.png": [
+    50,
+    101,
+    462,
+    433
+  ],
+  "frames/frostwyrm_tail_sweep_02.png": [
+    54,
+    99,
+    466,
+    431
+  ],
+  "frames/frostwyrm_tail_sweep_03.png": [
+    44,
+    106,
+    467,
+    433
+  ],
+  "frames/frostwyrm_tail_sweep_04.png": [
+    47,
+    106,
+    470,
+    433
+  ],
+  "frames/frostwyrm_tail_sweep_05.png": [
+    47,
+    144,
+    465,
+    433
+  ],
+  "frames/frostwyrm_tail_sweep_06.png": [
+    48,
+    144,
+    466,
+    433
+  ],
+  "frames/frostwyrm_tail_sweep_07.png": [
+    58,
+    69,
+    449,
+    433
+  ],
+  "frames/frostwyrm_burrow_00.png": [
+    57,
+    173,
+    454,
+    433
+  ],
+  "frames/frostwyrm_burrow_01.png": [
+    57,
+    175,
+    454,
+    435
+  ],
+  "frames/frostwyrm_burrow_02.png": [
+    60,
+    256,
+    452,
+    433
+  ],
+  "frames/frostwyrm_burrow_03.png": [
+    60,
+    263,
+    452,
+    440
+  ],
+  "frames/frostwyrm_burrow_04.png": [
+    60,
+    327,
+    451,
+    433
+  ],
+  "frames/frostwyrm_burrow_05.png": [
+    60,
+    330,
+    451,
+    436
+  ],
+  "frames/frostwyrm_emerge_00.png": [
+    61,
+    327,
+    452,
+    433
+  ],
+  "frames/frostwyrm_emerge_01.png": [
+    60,
+    256,
+    452,
+    433
+  ],
+  "frames/frostwyrm_emerge_02.png": [
+    57,
+    173,
+    454,
+    433
+  ],
+  "frames/frostwyrm_emerge_03.png": [
+    61,
+    193,
+    451,
+    433
+  ],
+  "frames/frostwyrm_emerge_04.png": [
+    61,
+    191,
+    451,
+    431
+  ],
+  "frames/frostwyrm_emerge_05.png": [
+    61,
+    69,
+    452,
+    433
+  ],
+  "effects/frostwyrm_frost_breath_00.png": [
+    45,
+    229,
+    219,
+    284
+  ],
+  "effects/frostwyrm_frost_breath_01.png": [
+    45,
+    177,
+    350,
+    336
+  ],
+  "effects/frostwyrm_frost_breath_02.png": [
+    45,
+    151,
+    380,
+    361
+  ],
+  "effects/frostwyrm_frost_breath_03.png": [
+    45,
+    167,
+    367,
+    346
+  ],
+  "effects/frostwyrm_burrow_emergence_00.png": [
+    177,
+    261,
+    335,
+    376
+  ],
+  "effects/frostwyrm_burrow_emergence_01.png": [
+    152,
+    226,
+    361,
+    376
+  ],
+  "effects/frostwyrm_burrow_emergence_02.png": [
+    122,
+    188,
+    391,
+    376
+  ],
+  "effects/frostwyrm_burrow_emergence_03.png": [
+    143,
+    235,
+    370,
+    376
+  ],
+  "effects/frostwyrm_tail_sweep_00.png": [
+    162,
+    210,
+    350,
+    360
+  ],
+  "effects/frostwyrm_tail_sweep_01.png": [
+    122,
+    139,
+    389,
+    360
+  ],
+  "effects/frostwyrm_tail_sweep_02.png": [
+    102,
+    79,
+    410,
+    360
+  ],
+  "effects/frostwyrm_tail_sweep_03.png": [
+    88,
+    57,
+    423,
+    360
+  ],
+  "effects/frostwyrm_tail_sweep_04.png": [
+    93,
+    54,
+    419,
+    360
+  ],
+  "effects/frostwyrm_tail_sweep_05.png": [
+    101,
+    81,
+    410,
+    360
+  ],
+  "effects/frostwyrm_tail_sweep_06.png": [
+    121,
+    146,
+    390,
+    360
+  ],
+  "effects/frostwyrm_tail_sweep_07.png": [
+    160,
+    211,
+    346,
+    348
+  ],
+  "effects/frostwyrm_ice_shards_00.png": [
+    220,
+    237,
+    354,
+    274
+  ],
+  "effects/frostwyrm_ice_shards_01.png": [
+    166,
+    227,
+    354,
+    285
+  ],
+  "effects/frostwyrm_ice_shards_02.png": [
+    148,
+    223,
+    352,
+    296
+  ],
+  "effects/frostwyrm_ice_shards_03.png": [
+    188,
+    232,
+    353,
+    278
+  ]
+}

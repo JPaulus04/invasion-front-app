@@ -55,24 +55,24 @@ enum WorldOneRoomGeometry {
         let decorationExclusion: CGRect
     }
 
-    static func kind(room: Int, encounter: Encounter) -> Kind {
-        if room == 20 { return .rootLord }
+    private static func kind(encounter: Encounter) -> Kind {
         switch encounter {
         case .tactical: return .passage
         case .survival: return .survival
         case .equipmentDefense: return .defense
+        case .finalBoss: return .rootLord
         }
     }
 
-    enum Encounter { case tactical, survival, equipmentDefense }
+    enum Encounter { case tactical, survival, equipmentDefense, finalBoss }
 
     /// A layout contract, not an arena resizing operation. The caller supplies
     /// a fixed world-space unit (typically the live player's collision width).
     static func make(room: Int, playerWidth: CGFloat,
                      encounter: Encounter) -> Layout {
-        precondition((1...20).contains(room))
+        precondition(room > 0)
         precondition(playerWidth > 0 && playerWidth.isFinite)
-        let kind = kind(room: room, encounter: encounter)
+        let kind = kind(encounter: encounter)
         let u = playerWidth
         switch kind {
         case .passage:
@@ -115,11 +115,11 @@ enum WorldOneRoomGeometry {
                 decorationExclusion: b.insetBy(dx: 3*u, dy: 3*u))
         case .rootLord:
             let b = CGRect(x: 0, y: 0, width: 37*u, height: 32*u)
+            let bossPosition = CGPoint(x: b.midX, y: b.maxY - 13*u)
             return Layout(kind: kind, unit: u, bounds: b,
                 entry: CGPoint(x: b.midX, y: 3*u), exit: nil,
                 combatPockets: [b.insetBy(dx: 5*u, dy: 5*u)],
-                objective: CGPoint(x: b.midX, y: b.maxY-9*u),
-                approachPoints: [CGPoint(x: b.midX, y: b.maxY-9*u)],
+                objective: bossPosition, approachPoints: [bossPosition],
                 decorationExclusion: b.insetBy(dx: 5*u, dy: 5*u))
         }
     }

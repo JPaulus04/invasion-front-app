@@ -15,10 +15,14 @@ struct WorldOneUnifiedTests {
         }
         var silhouettes = Set<String>()
         var propSignatures = Set<String>()
-        for room in 1...20 {
+        let finalRoom = WorldCatalog.roomCount(0)
+        for room in 1...finalRoom {
             let kind = SurvivalEncounterRules.kind(world: 0, room: room)
-            let encounter: WorldOneRoomGeometry.Encounter = kind == .survival ? .survival :
-                (kind == .equipmentDefense ? .equipmentDefense : .tactical)
+            let encounter: WorldOneRoomGeometry.Encounter
+            if room == finalRoom { encounter = .finalBoss }
+            else if kind == .survival { encounter = .survival }
+            else if kind == .equipmentDefense { encounter = .equipmentDefense }
+            else { encounter = .tactical }
             let layout = WorldOneRoomGeometry.make(room: room, playerWidth: 28, encounter: encounter)
             let origin = CGPoint(x: -137, y: 41)
             let plan = WorldOneEnvironmentPlan.make(room: room, layout: layout, origin: origin, aspect: aspect)
@@ -100,7 +104,7 @@ struct WorldOneUnifiedTests {
                 }
             }
         }
-        precondition(silhouettes.count >= 5 && propSignatures.count == 20)
-        print("20 authored layouts: deterministic scenery clearance, varied silhouettes, area budgets, safe spawns, portal/camera and fixed material scale passed")
+        precondition(silhouettes.count >= 5 && propSignatures.count == finalRoom)
+        print("\(finalRoom) authored layouts: deterministic scenery clearance, varied silhouettes, area budgets, safe spawns, portal/camera and fixed material scale passed")
     }
 }

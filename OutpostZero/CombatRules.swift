@@ -53,7 +53,6 @@ enum CombatRules {
     /// enemy population the instant shooters appear. The threat increases
     /// through late rooms, with mixed melee enemies still present.
     static func enemyType(room: Int, roll: Int) -> Int {
-        if room == 20 { return 1 }
         if room >= 11 && roll < min(26, 12 + (room - 11) * 2) { return 5 }
         // Teach dodging from the opening room: a single clearly telegraphed
         // shooter enters each early encounter rather than a passive melee-only wave.
@@ -211,8 +210,8 @@ enum EncounterDirector {
 
     enum Lane { case left, right, center }
 
-    static func style(room: Int) -> Style {
-        if room >= 20 { return .boss }
+    static func style(room: Int, isBoss: Bool = false) -> Style {
+        if isBoss { return .boss }
         // Introduce positioning mechanics in the first three rooms:
         // basic pursuit, alternating flanks, then telegraphed crossfire.
         // Early enemy counts and shooter limits remain unchanged.
@@ -249,7 +248,8 @@ enum EncounterDirector {
 
     /// Give each encounter an intentional unit mixture without overriding
     /// world-specific enemy unlocks or spawning excessive ranged attackers.
-    static func enemyRoll(world: Int, room: Int, slot: Int) -> Int {
+    static func enemyRoll(world: Int, room: Int, slot: Int, isBoss: Bool = false) -> Int {
+        if isBoss { return 50 }
         let seed = (max(0, slot) * 37 + max(0, room) * 17 +
                     max(0, world) * 11) % 100
         // Rooms 1-5 should be readable even in Worlds 2/3. Keep the roll
@@ -281,7 +281,7 @@ enum EncounterDirector {
         }
         // World 1 flank rooms also need a priority ranged target; support
         // alternates with melee arrivals rather than replacing the whole wave.
-        if world == 0 && room >= 6 && room < 20 && style(room: room) == .flank {
+        if world == 0 && room >= 6 && style(room: room) == .flank {
             if slot % 5 == 0 { return room >= 11 ? 30 : 10 }
         }
         // Controlled ranged slots avoid accidentally making 50% of late
@@ -317,8 +317,8 @@ enum EncounterDirector {
         }
     }
 
-    static func spawnLane(room: Int, slot: Int) -> Lane {
-        switch style(room: room) {
+    static func spawnLane(room: Int, slot: Int, isBoss: Bool = false) -> Lane {
+        switch style(room: room, isBoss: isBoss) {
         case .patrol, .boss: return .center
         case .flank:
             // Pairs coming from alternate sides are easier to understand

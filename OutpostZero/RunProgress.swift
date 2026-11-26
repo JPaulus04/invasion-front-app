@@ -9,7 +9,7 @@ struct RunProgress: Codable {
     // Optional so older Build 319 snapshots decode without changing schema.
     private(set) var masteryCreditedRooms: [Int]? = nil
 
-    mutating func claimMastery(room: Int, finalRoom: Int = 20) -> Bool {
+    mutating func claimMastery(room: Int, finalRoom: Int) -> Bool {
         guard (1...finalRoom).contains(room),
               !(masteryCreditedRooms ?? []).contains(room) else { return false }
         masteryCreditedRooms = (masteryCreditedRooms ?? []) + [room]
@@ -19,9 +19,8 @@ struct RunProgress: Codable {
     // Legacy thresholds remain intact for unrevised worlds.
     var stars: Int { damageTaken <= 10 ? 3 : (damageTaken <= 50 ? 2 : 1) }
     func stars(forWorld world: Int) -> Int {
-        // Twenty-room Frontier Forest includes four survival arenas and a
-        // reactor defense. A good clear with 112 damage should earn two
-        // stars; three still requires consistently skillful dodging.
+        // Frontier Forest retains its earned-star thresholds across the
+        // campaign expansion so existing core entitlements stay consistent.
         if world == 0 {
             return damageTaken <= 75 ? 3 : (damageTaken <= 180 ? 2 : 1)
         }

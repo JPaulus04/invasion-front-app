@@ -4,7 +4,7 @@ from pathlib import Path
 import re
 import time
 
-from run_phase4_simulator import BUNDLE, command, fresh_simulator
+from run_phase4_simulator import BUNDLE, command, focused_simulator
 
 
 def wait_for_log(path, check, timeout=45):
@@ -44,5 +44,5 @@ def run_encounters(device, output):
 if __name__ == "__main__":
     output = Path("world2-review").resolve()
     output.mkdir(exist_ok=True)
-    with fresh_simulator("world2", output, controlled=True) as device:
+    with focused_simulator("world2", output) as device:
         run_encounters(device, output)

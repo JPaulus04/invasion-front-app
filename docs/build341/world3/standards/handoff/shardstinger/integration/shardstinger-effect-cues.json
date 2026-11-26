@@ -1,0 +1,32 @@
+{
+  "body_pivot_px": [
+    256,
+    420
+  ],
+  "effect_pivots_px": {
+    "stinger_strike": [
+      256,
+      378
+    ],
+    "emerging_crystals": [
+      256,
+      378
+    ],
+    "ice_hazard": [
+      256,
+      256
+    ]
+  },
+  "tail_attack": {
+    "body_frame": 7,
+    "stinger_strike_offset_px": [
+      171,
+      4
+    ],
+    "emerging_crystals_delay_seconds": 0.07
+  },
+  "ice_hazard": {
+    "position": "resolved strike location",
+    "loop_for_gameplay_hazard_duration": true
+  }
+}

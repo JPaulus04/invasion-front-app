@@ -1,0 +1,52 @@
+{
+  "body_pivot_px": [
+    256,
+    433
+  ],
+  "effect_pivots_px": {
+    "charge_trail": [
+      256,
+      360
+    ],
+    "seismic_stomp": [
+      256,
+      376
+    ],
+    "frost_shockwave": [
+      256,
+      256
+    ]
+  },
+  "events": {
+    "charge": [
+      {
+        "effect": "charge_trail",
+        "body_frame": 2,
+        "x_offset_px": -177,
+        "y_offset_px": -4,
+        "scale": 1.1,
+        "layer": "back"
+      }
+    ],
+    "attack": [
+      {
+        "effect": "seismic_stomp",
+        "body_frame": 6,
+        "x_offset_px": 86,
+        "y_offset_px": 2,
+        "scale": 0.84,
+        "layer": "front"
+      },
+      {
+        "effect": "frost_shockwave",
+        "body_frame": 6,
+        "x_offset_px": 86,
+        "y_offset_px": -2,
+        "scale": 1.12,
+        "layer": "back"
+      }
+    ]
+  },
+  "cue_note": "Frame indices are zero-based. Art coordinates are right-facing source pixels.",
+  "behavior": "Commit the charge and travel only through gameplay. Stomp has its own ground impact cue."
+}

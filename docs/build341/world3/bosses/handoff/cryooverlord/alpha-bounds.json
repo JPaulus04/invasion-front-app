@@ -1,0 +1,554 @@
+{
+  "frames/cryooverlord_idle_00.png": [
+    64,
+    87,
+    448,
+    433
+  ],
+  "frames/cryooverlord_idle_01.png": [
+    64,
+    87,
+    448,
+    433
+  ],
+  "frames/cryooverlord_idle_02.png": [
+    64,
+    87,
+    448,
+    433
+  ],
+  "frames/cryooverlord_idle_03.png": [
+    64,
+    87,
+    448,
+    433
+  ],
+  "frames/cryooverlord_idle_04.png": [
+    64,
+    87,
+    448,
+    433
+  ],
+  "frames/cryooverlord_idle_05.png": [
+    64,
+    87,
+    448,
+    433
+  ],
+  "frames/cryooverlord_idle_06.png": [
+    64,
+    87,
+    448,
+    433
+  ],
+  "frames/cryooverlord_idle_07.png": [
+    64,
+    87,
+    448,
+    433
+  ],
+  "frames/cryooverlord_run_00.png": [
+    64,
+    87,
+    448,
+    433
+  ],
+  "frames/cryooverlord_run_01.png": [
+    66,
+    87,
+    446,
+    433
+  ],
+  "frames/cryooverlord_run_02.png": [
+    65,
+    88,
+    445,
+    434
+  ],
+  "frames/cryooverlord_run_03.png": [
+    68,
+    89,
+    444,
+    433
+  ],
+  "frames/cryooverlord_run_04.png": [
+    69,
+    89,
+    445,
+    433
+  ],
+  "frames/cryooverlord_run_05.png": [
+    72,
+    83,
+    439,
+    433
+  ],
+  "frames/cryooverlord_run_06.png": [
+    74,
+    83,
+    441,
+    433
+  ],
+  "frames/cryooverlord_run_07.png": [
+    63,
+    87,
+    447,
+    433
+  ],
+  "frames/cryooverlord_attack_00.png": [
+    64,
+    87,
+    448,
+    433
+  ],
+  "frames/cryooverlord_attack_01.png": [
+    61,
+    175,
+    451,
+    433
+  ],
+  "frames/cryooverlord_attack_02.png": [
+    62,
+    74,
+    449,
+    433
+  ],
+  "frames/cryooverlord_attack_03.png": [
+    62,
+    75,
+    449,
+    434
+  ],
+  "frames/cryooverlord_attack_04.png": [
+    53,
+    103,
+    458,
+    433
+  ],
+  "frames/cryooverlord_attack_05.png": [
+    51,
+    103,
+    456,
+    433
+  ],
+  "frames/cryooverlord_attack_06.png": [
+    71,
+    178,
+    441,
+    433
+  ],
+  "frames/cryooverlord_attack_07.png": [
+    71,
+    180,
+    441,
+    435
+  ],
+  "frames/cryooverlord_attack_08.png": [
+    55,
+    103,
+    460,
+    433
+  ],
+  "frames/cryooverlord_attack_09.png": [
+    70,
+    194,
+    442,
+    433
+  ],
+  "frames/cryooverlord_attack_10.png": [
+    69,
+    194,
+    441,
+    433
+  ],
+  "frames/cryooverlord_attack_11.png": [
+    64,
+    88,
+    448,
+    434
+  ],
+  "frames/cryooverlord_hit_00.png": [
+    54,
+    191,
+    457,
+    433
+  ],
+  "frames/cryooverlord_hit_01.png": [
+    52,
+    191,
+    455,
+    433
+  ],
+  "frames/cryooverlord_hit_02.png": [
+    54,
+    191,
+    457,
+    433
+  ],
+  "frames/cryooverlord_hit_03.png": [
+    63,
+    88,
+    447,
+    434
+  ],
+  "frames/cryooverlord_defeat_00.png": [
+    54,
+    191,
+    457,
+    433
+  ],
+  "frames/cryooverlord_defeat_01.png": [
+    53,
+    192,
+    456,
+    434
+  ],
+  "frames/cryooverlord_defeat_02.png": [
+    58,
+    200,
+    453,
+    433
+  ],
+  "frames/cryooverlord_defeat_03.png": [
+    57,
+    200,
+    452,
+    433
+  ],
+  "frames/cryooverlord_defeat_04.png": [
+    62,
+    211,
+    449,
+    433
+  ],
+  "frames/cryooverlord_defeat_05.png": [
+    61,
+    212,
+    448,
+    434
+  ],
+  "frames/cryooverlord_defeat_06.png": [
+    72,
+    224,
+    439,
+    433
+  ],
+  "frames/cryooverlord_defeat_07.png": [
+    71,
+    224,
+    438,
+    433
+  ],
+  "frames/cryooverlord_victory_00.png": [
+    61,
+    175,
+    451,
+    433
+  ],
+  "frames/cryooverlord_victory_01.png": [
+    71,
+    178,
+    441,
+    433
+  ],
+  "frames/cryooverlord_victory_02.png": [
+    70,
+    194,
+    442,
+    433
+  ],
+  "frames/cryooverlord_victory_03.png": [
+    67,
+    195,
+    445,
+    433
+  ],
+  "frames/cryooverlord_heavy_slam_00.png": [
+    69,
+    184,
+    444,
+    433
+  ],
+  "frames/cryooverlord_heavy_slam_01.png": [
+    56,
+    34,
+    456,
+    433
+  ],
+  "frames/cryooverlord_heavy_slam_02.png": [
+    57,
+    33,
+    457,
+    432
+  ],
+  "frames/cryooverlord_heavy_slam_03.png": [
+    54,
+    103,
+    457,
+    433
+  ],
+  "frames/cryooverlord_heavy_slam_04.png": [
+    54,
+    104,
+    457,
+    434
+  ],
+  "frames/cryooverlord_heavy_slam_05.png": [
+    46,
+    193,
+    465,
+    433
+  ],
+  "frames/cryooverlord_heavy_slam_06.png": [
+    46,
+    195,
+    465,
+    435
+  ],
+  "frames/cryooverlord_heavy_slam_07.png": [
+    62,
+    87,
+    446,
+    433
+  ],
+  "frames/cryooverlord_phase_transition_00.png": [
+    68,
+    184,
+    443,
+    433
+  ],
+  "frames/cryooverlord_phase_transition_01.png": [
+    56,
+    181,
+    455,
+    433
+  ],
+  "frames/cryooverlord_phase_transition_02.png": [
+    56,
+    181,
+    455,
+    433
+  ],
+  "frames/cryooverlord_phase_transition_03.png": [
+    46,
+    193,
+    465,
+    433
+  ],
+  "frames/cryooverlord_phase_transition_04.png": [
+    46,
+    193,
+    465,
+    433
+  ],
+  "frames/cryooverlord_phase_transition_05.png": [
+    52,
+    187,
+    460,
+    433
+  ],
+  "frames/cryooverlord_phase_transition_06.png": [
+    52,
+    187,
+    460,
+    433
+  ],
+  "frames/cryooverlord_phase_transition_07.png": [
+    52,
+    188,
+    460,
+    434
+  ],
+  "frames/cryooverlord_freeze_cast_00.png": [
+    65,
+    89,
+    449,
+    435
+  ],
+  "frames/cryooverlord_freeze_cast_01.png": [
+    70,
+    194,
+    442,
+    433
+  ],
+  "frames/cryooverlord_freeze_cast_02.png": [
+    70,
+    194,
+    442,
+    433
+  ],
+  "frames/cryooverlord_freeze_cast_03.png": [
+    45,
+    194,
+    464,
+    434
+  ],
+  "frames/cryooverlord_freeze_cast_04.png": [
+    46,
+    193,
+    465,
+    433
+  ],
+  "frames/cryooverlord_freeze_cast_05.png": [
+    47,
+    195,
+    466,
+    435
+  ],
+  "frames/cryooverlord_freeze_cast_06.png": [
+    52,
+    186,
+    460,
+    432
+  ],
+  "frames/cryooverlord_freeze_cast_07.png": [
+    64,
+    89,
+    448,
+    435
+  ],
+  "effects/cryooverlord_phase_pulse_00.png": [
+    211,
+    213,
+    301,
+    300
+  ],
+  "effects/cryooverlord_phase_pulse_01.png": [
+    161,
+    173,
+    351,
+    339
+  ],
+  "effects/cryooverlord_phase_pulse_02.png": [
+    125,
+    141,
+    388,
+    371
+  ],
+  "effects/cryooverlord_phase_pulse_03.png": [
+    100,
+    108,
+    412,
+    404
+  ],
+  "effects/cryooverlord_final_defeat_00.png": [
+    142,
+    150,
+    370,
+    363
+  ],
+  "effects/cryooverlord_final_defeat_01.png": [
+    95,
+    109,
+    417,
+    403
+  ],
+  "effects/cryooverlord_final_defeat_02.png": [
+    123,
+    139,
+    389,
+    373
+  ],
+  "effects/cryooverlord_final_defeat_03.png": [
+    151,
+    158,
+    361,
+    354
+  ],
+  "effects/cryooverlord_muzzle_flash_00.png": [
+    85,
+    207,
+    185,
+    299
+  ],
+  "effects/cryooverlord_muzzle_flash_01.png": [
+    79,
+    175,
+    257,
+    328
+  ],
+  "effects/cryooverlord_muzzle_flash_02.png": [
+    72,
+    142,
+    334,
+    362
+  ],
+  "effects/cryooverlord_muzzle_flash_03.png": [
+    84,
+    186,
+    257,
+    321
+  ],
+  "effects/cryooverlord_cryo_projectile_00.png": [
+    220,
+    237,
+    354,
+    274
+  ],
+  "effects/cryooverlord_cryo_projectile_01.png": [
+    166,
+    227,
+    354,
+    285
+  ],
+  "effects/cryooverlord_cryo_projectile_02.png": [
+    148,
+    223,
+    352,
+    296
+  ],
+  "effects/cryooverlord_cryo_projectile_03.png": [
+    188,
+    232,
+    353,
+    278
+  ],
+  "effects/cryooverlord_melee_impact_00.png": [
+    197,
+    285,
+    315,
+    376
+  ],
+  "effects/cryooverlord_melee_impact_01.png": [
+    143,
+    198,
+    370,
+    376
+  ],
+  "effects/cryooverlord_melee_impact_02.png": [
+    102,
+    121,
+    411,
+    376
+  ],
+  "effects/cryooverlord_melee_impact_03.png": [
+    104,
+    165,
+    409,
+    376
+  ],
+  "effects/cryooverlord_freezing_hazard_00.png": [
+    174,
+    210,
+    338,
+    302
+  ],
+  "effects/cryooverlord_freezing_hazard_01.png": [
+    123,
+    184,
+    390,
+    328
+  ],
+  "effects/cryooverlord_freezing_hazard_02.png": [
+    75,
+    156,
+    437,
+    357
+  ],
+  "effects/cryooverlord_freezing_hazard_03.png": [
+    97,
+    169,
+    415,
+    344
+  ]
+}
