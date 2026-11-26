@@ -34,3 +34,11 @@ A dedicated isolated tank sprite was generated, cleaned of detached alpha noise,
 All five PNGs decoded and verified. 32 ordered edge comparisons pass with zero pixel delta. The tank alpha bbox is (74,36,437,484). These hashes supersede the prior local ground candidates. No binary asset upload yet. Five remaining props and exact-polygon hazard artwork remain open; production landscape gate stays closed.
 
 Previous commit cbc30ed passed hosted compile (45871337015), World 2 (45871336931), and campaign (45871336964). Those runs did not validate the replacement art.
+
+## Revision 3 — damaged pipe and asset preflight
+
+New local candidate: `world2_prop_pipe.png` (246207 bytes; SHA-256 `190560b311fdbbba02a3f0f36e2f263b47ca09498f8cb9e2b6f790a6b91672cb`). Cleaned detached alpha noise and normalized to 512x512 RGBA, alpha bbox (36,75,476,486), measured contact row 479. Tank and pipe were reviewed together over candidate ground at 82, 106 and 160 px; distinctive upright silhouettes and readable steel/rust/corrosion. Both remain provisional pending full-scene review. No simulated gameplay capture is claimed. Two subsequent image outputs were labeled concept boards and rejected; their claims of completion do not represent actual status.
+
+Added `scripts/validate_toxic_environment.py` (requires Pillow), a repeatable candidate preflight for the four ground and six prop PNGs. The local six-file set passed format, clearance, contact, alpha and all 32 edge comparisons. Four prop files are missing. Strict mode returned exit 1 as intended; candidate mode reported no technical errors and technical_complete=false. Negative controls rejected a deliberately altered edge pixel and a misregistered pipe. Hazard art is a separate later gate; technical checks are not visual approval. Pillow emitted a getdata deprecation warning, not a validation error.
+
+Build 342 code at b0400e4 passed iOS compile (45884737723) and World 2 validation (45884737668); campaign 45884737726 was still running at last check. Actual six PNG files remain local, not in GitHub. No legacy rendering route switched on and no changes to main or Build 341 release controls.
