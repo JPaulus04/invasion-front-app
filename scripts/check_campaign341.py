@@ -55,16 +55,25 @@ def capture_visible_frame(device, output, fixture):
 def record_stoneback(device, output):
     capture(device, output, "stoneback-live", "-captureBuild341StonebackLive", "[BUILD341 LIVE]")
     path = output / "stoneback-live.mp4"
-    with (output / "stoneback-video.log").open("w") as log:
+    record_video(device, path, output / "stoneback-video.log")
+
+
+def record_video(device, path, log_path):
+    with log_path.open("w") as log:
         recorder = subprocess.Popen(
             ["xcrun", "simctl", "io", device, "recordVideo", "--codec=h264", str(path)],
             stdout=log, stderr=subprocess.STDOUT,
         )
         try:
+            deadline = time.monotonic() + 45
+            while "Recording started" not in log_path.read_text(errors="replace"):
+                if recorder.poll() is not None or time.monotonic() >= deadline:
+                    raise RuntimeError(f"Simulator recorder did not become ready; see {log_path}")
+                time.sleep(1)
             time.sleep(7)
             if recorder.poll() is None:
                 recorder.send_signal(signal.SIGINT)
-            recorder.wait(timeout=15)
+            recorder.wait(timeout=20)
         finally:
             if recorder.poll() is None:
                 recorder.kill()
@@ -91,7 +100,6 @@ def main():
         for fixture in fixtures:
             capture(device, output, fixture, f"-captureBuild341={fixture}",
                     f"[BUILD341 READY] fixture={fixture} ")
-        record_stoneback(device, output)
         for world in (3, 4):
             capture(device, output, f"performance-world{world}",
                     f"-captureBuild341Performance={world}", "[BUILD341 PERF]")
@@ -108,6 +116,7 @@ def main():
                               ("cryooverlord", "alternate"), ("cryooverlord", "freeze")):
             capture(device, output, f"{name}-{variant}", f"-captureBuild341Faction={name}:{variant}",
                     f"[BUILD341 FACTION] name={name} variant={variant} ")
+        record_stoneback(device, output)
 
 
 if __name__ == "__main__":

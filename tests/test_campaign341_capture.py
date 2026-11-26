@@ -3,12 +3,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from check_campaign341 import capture, capture_visible_frame
+from check_campaign341 import capture, capture_visible_frame, record_video
 
 
 class Campaign341SurfaceTests(unittest.TestCase):
@@ -59,3 +59,25 @@ class Campaign341SurfaceTests(unittest.TestCase):
                 capture("phone", output, "iron", "-captureIron", "[READY]")
                 command.assert_called_once()
                 frame.assert_called_once_with("phone", output, "iron")
+
+    def test_does_not_stop_recorder_before_encoding_starts(self):
+        recorder = Mock()
+        recorder.poll.side_effect = (None, None, 0)
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            movie = output / "stoneback.mp4"
+            log = output / "video.log"
+
+            def delay(seconds):
+                if seconds == 1:
+                    self.assertFalse(recorder.send_signal.called)
+                    log.write_text("Recording started")
+                elif seconds == 7:
+                    movie.write_bytes(b"frame" * 1024)
+
+            with patch("check_campaign341.subprocess.Popen", return_value=recorder), patch(
+                "check_campaign341.time.sleep", side_effect=delay
+            ) as sleep:
+                record_video("phone", movie, log)
+            self.assertEqual([item.args[0] for item in sleep.call_args_list], [1, 7])
+            recorder.send_signal.assert_called_once()
