@@ -1,3 +1,4 @@
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -7,7 +8,7 @@ from unittest.mock import patch
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from check_campaign341 import capture_visible_frame
+from check_campaign341 import capture, capture_visible_frame
 
 
 class Campaign341SurfaceTests(unittest.TestCase):
@@ -41,3 +42,20 @@ class Campaign341SurfaceTests(unittest.TestCase):
                 self.assertEqual(command.call_count, 4)
             self.assertFalse((output / "legacy-iron.png").exists())
             self.assertEqual(len(list((output / "rejected-surfaces").glob("*.png"))), 4)
+
+
+    def test_observes_original_app_after_launch_client_times_out(self):
+        def launch(*args, **kwargs):
+            self.assertEqual(args[2], "launch")
+            log = next(arg for arg in args if arg.startswith("--stdout="))
+            Path(log.removeprefix("--stdout=")).write_text("[READY]")
+            raise subprocess.TimeoutExpired(args, 90)
+
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            with patch("check_campaign341.command", side_effect=launch) as command, patch(
+                "check_campaign341.capture_visible_frame"
+            ) as frame, patch("check_campaign341.time.sleep"):
+                capture("phone", output, "iron", "-captureIron", "[READY]")
+                command.assert_called_once()
+                frame.assert_called_once_with("phone", output, "iron")
