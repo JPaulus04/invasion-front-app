@@ -42,3 +42,9 @@ Extracted the active World 1 fixed-size ground tiling and grounded-prop presenta
 - Boss, passage and defense dressing should vary without masking the exit, reactor, hit warnings or walkable lanes.
 
 No complete approved World 2 landscape set was found in the available prior context. Do not simply tint World 1 forest artwork and call it production Toxic Crossing. Active legacy World 2–4 paths remain until replacements are visually verified. New source guards cover the shared primitives; hosted iOS validation is required to establish behavior equivalence.
+
+## Phase 4 — Toxic Crossing staging
+
+Added ToxicEnvironmentPlan and ToxicEnvironment using the shared tile/prop primitives. The plan uses live room bounds, four deterministic tile variants, six prop kinds and four dressing themes; Rooms 10/20/30 are boss-dressed. Full prop frames stay outside the navigable rectangle, with north/south central clearance. The existing hazard renderer and its collision/damage polygon remain authoritative. The DEBUG-only launch argument `-previewAuthoredToxicEnvironment` activates the candidate only if all ten required textures exist; missing inputs log a blocker and keep the live legacy renderer intact. No production route change, no new PNGs, no environment visual approval.
+
+Asset contract: world2_ground_0…3 (1024 square seamless RGBA) and world2_prop_{tank,pipe,debris,boulder,vegetation,wall} (transparent normalized 512 canvas with intended contact 32 px above the bottom; check actual alpha and revise measured anchor before approval). Hazard art remains a separate next step; do not paint damaging acid into ground tiles. The existing native environment test now covers 90 room/bounds combinations, tile adjacency, deterministic placement, prop clearance and preserved acid geometry. Native hosted execution pending.

@@ -162,3 +162,25 @@ enum WorldOneEnvironment {
         gate.addChild(energy)
     }
 }
+
+
+/// Staged World 2 presentation; activated only by the explicit DEBUG preview.
+enum ToxicEnvironment {
+    static func make(_ plan: ToxicEnvironmentPlan.Plan,
+                     texture: (String) -> SKTexture?) -> SKNode {
+        let root = SKNode()
+        root.name = "authoredToxicWorld"
+        root.addChild(AuthoredEnvironmentRenderer.tiledGround(
+            bounds: plan.groundBounds, origin: plan.bounds.origin,
+            cell: WorldOneEnvironmentPlan.cellSize,
+            materialName: { column, row in
+                plan.materialNames[plan.variant(column: column, row: row)]
+            }, texture: texture))
+        for prop in plan.props {
+            AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
+                position: prop.position, size: prop.size, anchorY: prop.anchorY,
+                bounds: plan.bounds, in: root, texture: texture)
+        }
+        return root
+    }
+}

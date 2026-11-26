@@ -73,6 +73,35 @@ struct WorldOneEnvironmentTests {
             "Boss artwork and its name/health must fit below the HUD on approach")
         precondition(swamp.cameraTarget(for: swamp.entry) == swamp.entry)
         precondition(defense.cameraTarget(for: defense.entry) == defense.entry)
+        // Candidate Toxic scenery must not enter the actual navigable bounds.
+        let toxicBounds = [CGRect(x: 28,y: 70,width: 337,height: 557),
+                           CGRect(x: -110,y: 40,width: 620,height: 850),
+                           CGRect(x: 0,y: 0,width: 120,height: 160)]
+        precondition(ToxicEnvironmentPlan.productionAssets.count == 10)
+        precondition(Set(ToxicEnvironmentPlan.productionAssets).count == 10)
+        for bounds in toxicBounds {
+            for room in 1...30 {
+                let p = ToxicEnvironmentPlan.make(room: room, bounds: bounds, aspect: { _ in 1 })
+                precondition(p.bounds == bounds && p.groundBounds.contains(bounds))
+                precondition(!p.props.isEmpty && p.props.allSatisfy { !$0.frame.intersects(bounds) })
+                precondition(Set(p.requiredAssets).isSubset(of: Set(ToxicEnvironmentPlan.productionAssets)))
+                let repeatPlan = ToxicEnvironmentPlan.make(room: room, bounds: bounds, aspect: { _ in 1 })
+                precondition(p.props.map { $0.position } == repeatPlan.props.map { $0.position })
+                for column in -3...3 {
+                    for row in -3...3 {
+                        precondition(p.variant(column: column,row: row) != p.variant(column: column+1,row: row))
+                        precondition(p.variant(column: column,row: row) != p.variant(column: column,row: row+1))
+                    }
+                }
+                if [10,20,30].contains(room) { precondition(p.theme == .boss) }
+                // Existing hazard geometry still has authority and the scene
+                // preview does not replace its nodes or damage rules.
+                let hazards = TerrainHazards.patches(world: 1,room: room,bounds: bounds)
+                precondition(hazards.filter { $0.kind == .acid }.count == 2)
+                precondition(hazards.allSatisfy { h in p.props.allSatisfy { !$0.frame.intersects(h.frame) } })
+            }
+        }
+        print("Toxic candidate: 90 room/bounds plans, deterministic props and hazard clearance")
         print("Four environment identities, corridor traversal, pocket navigation and safe framing passed")
     }
 }

@@ -5843,6 +5843,31 @@ final class OutpostScene: SKScene {
         }
         arena.childNode(withName: "roomArtwork")?.isHidden = false
 
+        #if DEBUG
+        // Explicit development preview only. Missing art fails closed to the
+        // intact live landscape; never display partially loaded replacements.
+        if worldMapIndex == 1 &&
+            ProcessInfo.processInfo.arguments.contains("-previewAuthoredToxicEnvironment") {
+            let missing = ToxicEnvironmentPlan.productionAssets.filter { worldOneTexture(named: $0) == nil }
+            if missing.isEmpty {
+                let plan = ToxicEnvironmentPlan.make(room: max(1,wave), bounds: roomBounds,
+                    aspect: { [weak self] name in
+                        guard let texture = self?.worldOneTexture(named: name) else { return 1 }
+                        return texture.size().width/max(1,texture.size().height)
+                    })
+                zoneScenery.removeAllChildren()
+                arena.childNode(withName: "campaignExterior")?.removeFromParent()
+                arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+                arena.childNode(withName: "roomArtwork")?.isHidden = true
+                zoneScenery.addChild(ToxicEnvironment.make(plan,
+                    texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+                print("[BUILD342 TOXIC PREVIEW] room=\(wave) theme=\(plan.theme.rawValue)")
+                return
+            }
+            print("[BUILD342 TOXIC PREVIEW BLOCKED] missing=\(missing.joined(separator: ","))")
+        }
+        #endif
+
         // Legacy later-world presentation remains active until authored faction scenery replaces it.
         let zone = selectedWorld.biome == 1 ? max(1, requestedZone) : max(2, requestedZone)
         zoneScenery.removeAllChildren()

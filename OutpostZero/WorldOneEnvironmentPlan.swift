@@ -256,3 +256,83 @@ enum WorldOneEnvironmentPlan {
             reclamation: reclamation,groundPlants: groundPlants)
     }
 }
+
+
+/// Toxic Crossing production contract. Uses the existing live room bounds;
+/// no terrain, collision, spawn, or progression changes. Art is staged separately.
+enum ToxicEnvironmentPlan {
+    enum Theme: String, CaseIterable {
+        case containment, runoff, ruins, boss
+        static func forRoom(_ room: Int) -> Theme {
+            if [10, 20, 30].contains(room) { return .boss }
+            switch (max(1, room)-1)/5 {
+            case 0, 3: return .containment
+            case 1, 4: return .runoff
+            default: return .ruins
+            }
+        }
+    }
+    struct Plan {
+        let room: Int
+        let theme: Theme
+        let bounds: CGRect
+        let groundBounds: CGRect
+        let props: [WorldOneEnvironmentPlan.Prop]
+        var materialNames: [String] { (0..<4).map { "world2_ground_\($0)" } }
+        var requiredAssets: [String] {
+            Array(Set(materialNames + props.map { $0.asset })).sorted()
+        }
+        func variant(column: Int, row: Int) -> Int {
+            ((column + 3*row + room) % 4 + 4) % 4
+        }
+    }
+    // All props must be delivered with visible contact 32px from the base
+    // of a normalized 512px canvas, subject to actual alpha inspection.
+    static let propAnchorY: CGFloat = 32.0/512.0
+    static let propNames = ["tank", "pipe", "debris", "boulder", "vegetation", "wall"]
+    static var productionAssets: [String] {
+        (0..<4).map { "world2_ground_\($0)" } + propNames.map { "world2_prop_\($0)" }
+    }
+    static func make(room: Int, bounds: CGRect, aspect: (String) -> CGFloat) -> Plan {
+        precondition(room > 0 && bounds.width > 0 && bounds.height > 0)
+        let theme = Theme.forRoom(room)
+        let sequence: [Int]
+        switch theme {
+        case .containment: sequence = [0, 1, 2, 5, 4, 3]
+        case .runoff: sequence = [1, 4, 3, 0, 2, 5]
+        case .ruins: sequence = [5, 2, 3, 4, 1, 0]
+        case .boss: sequence = [0, 5, 1, 3, 2, 4]
+        }
+        var props: [WorldOneEnvironmentPlan.Prop] = []
+        for side in 0..<4 {
+            let length = side < 2 ? bounds.height : bounds.width
+            let count = max(2, Int(length/112))
+            for index in 0..<count {
+                let kind = sequence[(index + side + room) % sequence.count]
+                let asset = "world2_prop_\(propNames[kind])"
+                let height: CGFloat = (theme == .boss ? 106 : 82) + CGFloat((index*13+room*7+side*3)%25)
+                let ratio = aspect(asset)
+                let width = height * (ratio.isFinite && ratio > 0 ? ratio : 1)
+                let t = (CGFloat(index)+0.5)/CGFloat(count)
+                let gap = CGFloat(8+(index*17+room*11)%18)
+                let x: CGFloat, y: CGFloat
+                switch side {
+                case 0: x = bounds.minX-gap-width/2; y = bounds.minY+length*t
+                case 1: x = bounds.maxX+gap+width/2; y = bounds.minY+length*t
+                case 2: x = bounds.minX+length*t; y = bounds.minY-gap-height*(1-propAnchorY)
+                default: x = bounds.minX+length*t; y = bounds.maxY+gap+height*propAnchorY
+                }
+                // Leave a wide north/south center opening for the existing
+                // entry, exit portal and boss presentation.
+                if side >= 2 && abs(x-bounds.midX) < 90+width/2 { continue }
+                let prop = WorldOneEnvironmentPlan.Prop(asset: asset,
+                    position: CGPoint(x: x,y: y), size: CGSize(width: width,height: height),
+                    anchorY: propAnchorY, foreground: false)
+                precondition(!prop.frame.intersects(bounds))
+                props.append(prop)
+            }
+        }
+        return Plan(room: room, theme: theme, bounds: bounds,
+                    groundBounds: bounds.insetBy(dx: -300,dy: -300), props: props)
+    }
+}
