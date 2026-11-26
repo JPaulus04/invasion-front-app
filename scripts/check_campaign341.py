@@ -50,6 +50,10 @@ def main():
                      "scrapper", "overclock", "press_giant", "gantry_warden", "warforge"):
             capture(device, output, name, f"-captureBuild341Faction={name}",
                     f"[BUILD341 FACTION] name={name} ")
+        for name, variant in (("warforge", "2"), ("warforge", "3"),
+                              ("cryooverlord", "phase2"), ("frostwyrm", "burrow")):
+            capture(device, output, f"{name}-{variant}", f"-captureBuild341Faction={name}:{variant}",
+                    f"[BUILD341 FACTION] name={name} variant={variant} ")
 
 
 if __name__ == "__main__":

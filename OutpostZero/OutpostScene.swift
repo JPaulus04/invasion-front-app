@@ -7974,7 +7974,10 @@ final class OutpostScene: SKScene {
         fflush(stdout)
     }
 
-    private func captureBuild341Faction(_ name: String) {
+    private func captureBuild341Faction(_ selection: String) {
+        let parts = selection.split(separator: ":")
+        let name = String(parts[0])
+        let variant = parts.count > 1 ? String(parts[1]) : ""
         let isFrost = FrontierFactionArt.frostNames.contains(name)
         worldMapIndex = isFrost ? WorldCatalog.frostIndex : WorldCatalog.ironIndex
         let bosses = isFrost ? FrontierFactionArt.frostBosses : FrontierFactionArt.ironBosses
@@ -8005,23 +8008,66 @@ final class OutpostScene: SKScene {
         pilotShieldUntil = combatTime + 60
         lastShot = combatTime + 60
         combatClock.advance(2.2, playing: true)
+        if name == "warforge", let phase = Int(variant), (2...3).contains(phase) {
+            enemies[0].health = enemy.maxHealth * (4 - phase) / 3
+            updateEnemyHealthBar(at: 0)
+        }
+        if name == "cryooverlord", variant == "phase2" {
+            enemies[0].health = enemy.maxHealth * 2 / 3
+            updateEnemyHealthBar(at: 0)
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].worldTwoPhase == 2)
+            precondition(enemies[0].shotTarget == nil)
+            combatClock.advance(manifest.states["phase_transition"]!.duration + 0.01, playing: true)
+        }
+        if name == "frostwyrm", variant == "burrow" {
+            enemies[0].worldTwoTurn = 2
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].worldTwoAction == "burrow")
+            precondition(enemies[0].worldTwoBurrowed)
+            combatClock.advance(manifest.states["burrow"]!.duration + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0) && art.isHidden)
+            combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].worldTwoAction == "emerge" && !art.isHidden)
+            combatClock.advance(manifest.states["emerge"]!.duration + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0) && !enemies[0].worldTwoBurrowed)
+            combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
+        }
         if room != nil || role >= 4 {
             precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget != nil)
+            if name == "warforge", let phase = Int(variant), (2...3).contains(phase) {
+                precondition(enemies[0].worldTwoPhase == phase && enemies[0].worldTwoAction == "attack_" + String(phase))
+            }
             combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
             precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget == nil)
             precondition(projectiles.count + lobs.count == 1)
         } else {
             pilot.position = CGPoint(x: enemy.node.position.x, y: enemy.node.position.y - 20)
+            pilotShieldUntil = 0
+            let healthBefore = health
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget != nil)
+            // Dodge after the target locks and before the active frame.
+            pilot.position.y -= 80
+            combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget == nil && health == healthBefore)
+            combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
+            pilot.position.y += 80
             precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget != nil)
             combatClock.advance(max(0, enemies[0].nextAttack - combatTime) + 0.01, playing: true)
-            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget == nil)
+            precondition(updateFrontierFactionAttack(at: 0) && enemies[0].shotTarget == nil && health < healthBefore)
             precondition(projectiles.isEmpty && lobs.isEmpty)
+            pilot.position.y -= 80
+        }
+        // The simulation assertions above use the combat clock. Freeze the
+        // actual authored active texture to allow a clean device-scale review.
+        let sequence = enemies[0].worldTwoAction
+        if let frames = WorldOneEnemyAnimation.worldTwoFrames(enemy: name, sequence: sequence), !frames.isEmpty {
+            let active = min(FrontierFactionArt.activeFrame(character: name, sequence: sequence), frames.count - 1)
+            art.texture = frames[max(0, active)]
         }
         updateArenaCamera(delta: 1)
         updateHUD()
         holdDefenseQAScreenshot = true
         arena.isPaused = true
-        print("[BUILD341 FACTION] name=\(name) room=\(wave) frames=loaded attack=verified")
+        print("[BUILD341 FACTION] name=\(name) variant=\(variant) room=\(wave) frames=loaded attack=verified")
         fflush(stdout)
     }
 
@@ -8226,6 +8272,31 @@ final class OutpostScene: SKScene {
             sprite.run(.sequence([animation, .removeFromParent()]))
         }
         let action = enemy.worldTwoAction
+        if name == "frostwyrm", ["burrow", "submerged", "emerge"].contains(action) {
+            let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode
+            switch action {
+            case "burrow":
+                art?.isHidden = true
+                enemies[index].worldTwoAction = "submerged"
+                let point = RoomRules.spawnPoint(in: roomBounds, radius: enemy.radius, pilot: pilot.position,
+                    candidates: [CGPoint(x: enemy.node.position.x < roomBounds.midX ? 0.72 : 0.28, y: 0.7)])
+                enemy.node.position = TerrainHazards.resolveMovement(from: enemy.node.position, to: point,
+                    patches: roomHazards, radius: enemy.radius)
+                effect("burrow_emergence", at: enemy.node.position)
+                enemies[index].nextAttack = combatTime + 0.7
+            case "submerged":
+                art?.isHidden = false
+                if let art { WorldOneEnemyAnimation.play(.attack, enemy: name, on: art, sequence: "emerge") }
+                enemies[index].worldTwoAction = "emerge"
+                effect("burrow_emergence", at: enemy.node.position)
+                enemies[index].nextAttack = combatTime + (manifest.states["emerge"]?.duration ?? 0.6)
+            default:
+                enemies[index].worldTwoBurrowed = false
+                enemies[index].worldTwoAction = ""
+                enemies[index].nextAttack = combatTime + 0.6
+            }
+            return true
+        }
         if let target = enemy.shotTarget {
             enemy.node.childNode(withName: "factionAim")?.removeFromParent()
             let origin = enemy.node.position
@@ -8283,6 +8354,16 @@ final class OutpostScene: SKScene {
                 label.run(.sequence([.wait(forDuration: 1.6), .fadeOut(withDuration: 0.3), .removeFromParent()]))
             }
             sequence = phase == 1 ? "attack" : (phase == 2 ? "attack_2" : "attack_3")
+        } else if name == "frostwyrm" && enemy.worldTwoTurn % 3 == 2 {
+            if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+                WorldOneEnemyAnimation.play(.attack, enemy: name, on: art, sequence: "burrow")
+            }
+            enemies[index].worldTwoAction = "burrow"
+            enemies[index].worldTwoBurrowed = true
+            enemies[index].worldTwoTurn += 1
+            effect("burrow_emergence", at: enemy.node.position)
+            enemies[index].nextAttack = combatTime + (manifest.states["burrow"]?.duration ?? 0.5)
+            return true
         } else if name == "cryooverlord" {
             let phase = enemy.health * 3 <= enemy.maxHealth ? 3 : (enemy.health * 3 <= enemy.maxHealth * 2 ? 2 : 1)
             if phase > enemy.worldTwoPhase, let transition = manifest.states["phase_transition"] {

@@ -173,15 +173,16 @@ enum WorldOneEnemyAnimation {
     }
     static func setWarforgePhase(_ phase: Int, on sprite: SKSpriteNode) {
         sprite.userData?["warforgePhase"] = phase
-        if sprite.userData?[motionKey] as? String == Motion.idle.rawValue {
-            updateWarforgeIdleLayer(on: sprite)
-        }
+        updateWarforgePhaseLayer(on: sprite)
     }
 
-    private static func updateWarforgeIdleLayer(on sprite: SKSpriteNode) {
+    private static func updateWarforgePhaseLayer(on sprite: SKSpriteNode) {
         sprite.childNode(withName: "warforgePhaseLayer")?.removeFromParent()
         guard character(on: sprite) == "warforge",
-              sprite.userData?[motionKey] as? String == Motion.idle.rawValue else { return }
+              let active = sprite.userData?[motionKey] as? String,
+              active == Motion.idle.rawValue || active == Motion.attack.rawValue else { return }
+        // Core pixels in all 24 attack frames register to the source master
+        // exactly. Idle poses shift by at most three source pixels.
         let phase = sprite.userData?["warforgePhase"] as? Int ?? 1
         let names = phase == 1 ? ["warforge_armored_shutters"] :
             (phase == 2 ? ["warforge_overload_shutters"] : (0..<8).map { String(format: "warforge_core_pulse_%02d", $0) })
@@ -231,7 +232,7 @@ enum WorldOneEnemyAnimation {
         if let manifest = FrontierFactionArt.manifest(enemy) {
             sprite.anchorPoint.x = manifest.art_pivot_px[0] / Double(manifest.pixels)
         }
-        if enemy == "warforge" { updateWarforgeIdleLayer(on: sprite) }
+        if enemy == "warforge" { updateWarforgePhaseLayer(on: sprite) }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-captureBuild337EnemySequence") {
             print("[ENEMY ART] motion=\(motion.rawValue) frames=\(frames?.count ?? 0)")
