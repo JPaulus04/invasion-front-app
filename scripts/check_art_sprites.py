@@ -80,6 +80,9 @@ for path in files:
     width, height, depth, color, compression, filtering, interlace = struct.unpack(">IIBBBBB", data[16:29])
     is_arena_background = path.stem == "world1_overgrown_stone_arena"
     is_world_one_floor = path.stem.startswith("world1_") and "_floor_" in path.stem
+    is_toxic_ground = path.parent == ASSETS and path.stem in {
+        f"world2_ground_{variant}" for variant in range(4)
+    }
     if is_arena_background:
         # The approved arena painting is landscape and fitted by the scene.
         # Keep the portrait contract for the separate full-screen floor sets.
@@ -92,12 +95,15 @@ for path in files:
             errors.append(f"{label}: World 1 floor too small ({width}x{height}); need at least 512x768")
         if width >= height:
             errors.append(f"{label}: World 1 floor must be portrait-oriented ({width}x{height})")
+    elif is_toxic_ground:
+        if (width, height) != (1024, 1024) or color != 6:
+            errors.append(f"{label}: Toxic ground must be 1024x1024 RGBA")
     elif width < 96 or height < 96:
         errors.append(f"{label}: too small ({width}x{height}); need at least 96x96")
     # Floor illustrations are full-bleed opaque backgrounds; props and
     # characters must have transparent cutout edges. Do not reject valid
     # authored floor artwork for lacking transparency.
-    is_floor = "_floor_" in path.stem or path.stem.endswith("_floor") or is_arena_background
+    is_floor = "_floor_" in path.stem or path.stem.endswith("_floor") or is_arena_background or is_toxic_ground
     allowed_colors = (2, 6) if is_floor else (4, 6)
     if color not in allowed_colors:
         errors.append(f"{label}: unexpected PNG color type {color} for {'floor' if is_floor else 'sprite'}")
@@ -108,6 +114,8 @@ for path in files:
     if color in (4, 6) and depth == 8 and not interlace:
         try:
             minimum, maximum = alpha_range(data, width, height, color)
+            if is_toxic_ground and minimum != 255:
+                errors.append(f"{label}: Toxic ground must be fully opaque")
             if not is_floor and minimum != 0:
                 errors.append(f"{label}: no fully transparent pixels; background may be baked in")
             if maximum != 255:
