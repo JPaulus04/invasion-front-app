@@ -1,5 +1,59 @@
 import SpriteKit
 
+/// Shared authored scenery primitives. Callers own the faction asset names,
+/// room bounds, collision and hazard rules. Nothing here creates physics bodies.
+enum AuthoredEnvironmentRenderer {
+    static func tiledGround(bounds: CGRect, origin: CGPoint, cell: CGFloat,
+                            materialName: (Int, Int) -> String,
+                            texture: (String) -> SKTexture?) -> SKNode {
+        precondition(cell > 0)
+        let ground = SKNode()
+        ground.name = "unifiedGround"
+        ground.zPosition = -18
+        let minColumn = Int(floor((bounds.minX-origin.x)/cell))
+        let maxColumn = Int(ceil((bounds.maxX-origin.x)/cell))
+        let minRow = Int(floor((bounds.minY-origin.y)/cell))
+        let maxRow = Int(ceil((bounds.maxY-origin.y)/cell))
+        for row in minRow..<maxRow {
+            for column in minColumn..<maxColumn {
+                let name = materialName(column, row)
+                guard let material = texture(name) else {
+                    preconditionFailure("Missing authored ground material: \(name)")
+                }
+                let tile = SKSpriteNode(texture: material)
+                tile.name = name
+                tile.anchorPoint = .zero
+                tile.size = CGSize(width: cell, height: cell)
+                tile.position = CGPoint(x: origin.x+CGFloat(column)*cell,
+                                        y: origin.y+CGFloat(row)*cell)
+                ground.addChild(tile)
+            }
+        }
+        return ground
+    }
+
+    static func installGroundedProp(asset: String, position: CGPoint, size: CGSize,
+                                   anchorY: CGFloat, bounds: CGRect, in root: SKNode,
+                                   texture: (String) -> SKTexture?) {
+        guard let material = texture(asset) else {
+            preconditionFailure("Missing authored scenery: \(asset)")
+        }
+        let sprite = SKSpriteNode(texture: material)
+        sprite.name = "unifiedScenery_\(asset)"
+        sprite.size = size
+        sprite.anchorPoint = CGPoint(x: 0.5, y: anchorY)
+        sprite.position = position
+        // Low depth keeps combat actors and their cues readable.
+        sprite.zPosition = 0.4 - (position.y-bounds.minY)/max(1, bounds.height)*0.3
+        let shadow = SKSpriteNode(texture: ProductionPresentation.glow(.black.withAlphaComponent(0.3)))
+        shadow.size = CGSize(width: size.width*0.72, height: size.height*0.16)
+        shadow.position = CGPoint(x: position.x+7, y: position.y)
+        shadow.zPosition = -0.3
+        root.addChild(shadow)
+        root.addChild(sprite)
+    }
+}
+
 /// Sole World 1 environment renderer. Material cells are authored-pixel,
 /// seam-compatible components in fixed world units; no stretched arena painting.
 enum WorldOneEnvironment {
@@ -7,30 +61,12 @@ enum WorldOneEnvironment {
                      texture: (String) -> SKTexture?) -> SKNode {
         let root = SKNode()
         root.name = "build338World"
-        let ground = SKNode()
-        ground.name = "unifiedGround"
-        ground.zPosition = -18
-        let cell = WorldOneEnvironmentPlan.cellSize
-        let minColumn = Int(floor((plan.groundBounds.minX-plan.groundOrigin.x)/cell))
-        let maxColumn = Int(ceil((plan.groundBounds.maxX-plan.groundOrigin.x)/cell))
-        let minRow = Int(floor((plan.groundBounds.minY-plan.groundOrigin.y)/cell))
-        let maxRow = Int(ceil((plan.groundBounds.maxY-plan.groundOrigin.y)/cell))
-        for row in minRow..<maxRow {
-            for column in minColumn..<maxColumn {
-                let name = plan.materialNames[plan.variant(column: column, row: row)]
-                guard let material = texture(name) else {
-                    preconditionFailure("Missing Build 338 ground material: \(name)")
-                }
-                let tile = SKSpriteNode(texture: material)
-                tile.name = name
-                tile.anchorPoint = .zero
-                tile.size = CGSize(width: cell, height: cell)
-                tile.position = CGPoint(x: plan.groundOrigin.x+CGFloat(column)*cell,
-                                        y: plan.groundOrigin.y+CGFloat(row)*cell)
-                ground.addChild(tile)
-            }
-        }
-        root.addChild(ground)
+        root.addChild(AuthoredEnvironmentRenderer.tiledGround(
+            bounds: plan.groundBounds, origin: plan.groundOrigin,
+            cell: WorldOneEnvironmentPlan.cellSize,
+            materialName: { column, row in
+                plan.materialNames[plan.variant(column: column, row: row)]
+            }, texture: texture))
         for patch in plan.reclamation {
             guard let art = texture(patch.asset) else { preconditionFailure("Missing authored reclamation bed") }
             let bed = SKSpriteNode(texture: art)
@@ -80,23 +116,9 @@ enum WorldOneEnvironment {
             }
         }
         for prop in plan.props {
-            guard let material = texture(prop.asset) else {
-                preconditionFailure("Missing Build 338 scenery: \(prop.asset)")
-            }
-            let sprite = SKSpriteNode(texture: material)
-            sprite.name = "unifiedScenery_\(prop.asset)"
-            sprite.size = prop.size
-            sprite.anchorPoint = CGPoint(x: 0.5, y: prop.anchorY)
-            sprite.position = prop.position
-            // All solid sprites stay outside navigable space. Low depth keeps
-            // combat actors and their cues readable even at the forest edge.
-            sprite.zPosition = 0.4 - (prop.position.y-plan.bounds.minY)/max(1, plan.bounds.height)*0.3
-            let shadow = SKSpriteNode(texture: ProductionPresentation.glow(.black.withAlphaComponent(0.3)))
-            shadow.size = CGSize(width: prop.size.width*0.72, height: prop.size.height*0.16)
-            shadow.position = CGPoint(x: prop.position.x+7, y: prop.position.y)
-            shadow.zPosition = -0.3
-            root.addChild(shadow)
-            root.addChild(sprite)
+            AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
+                position: prop.position, size: prop.size, anchorY: prop.anchorY,
+                bounds: plan.bounds, in: root, texture: texture)
         }
         return root
     }

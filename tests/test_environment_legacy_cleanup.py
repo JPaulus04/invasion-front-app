@@ -21,3 +21,16 @@ class EnvironmentLegacyCleanupTests(unittest.TestCase):
         self.assertFalse((ROOT / "OutpostZero/ArtAssets/forest_undergrowth_polished.png").exists())
         workflow = (ROOT / ".github" / "workflows" / "ios-build.yml").read_text()
         self.assertNotIn("forest_undergrowth_polished.png", workflow)
+
+    def test_forest_uses_shared_visual_primitives(self):
+        source = (ROOT / "OutpostZero" / "WorldOneEnvironment.swift").read_text()
+        shared, forest = source.split("enum WorldOneEnvironment {", 1)
+        self.assertIn("enum AuthoredEnvironmentRenderer", shared)
+        self.assertIn("AuthoredEnvironmentRenderer.tiledGround(", forest)
+        self.assertIn("AuthoredEnvironmentRenderer.installGroundedProp(", forest)
+        self.assertIn("plan.variant(column: column, row: row)", forest)
+        self.assertIn("tile.anchorPoint = .zero", shared)
+        self.assertIn("ground.zPosition = -18", shared)
+        self.assertIn("sprite.anchorPoint = CGPoint(x: 0.5, y: anchorY)", shared)
+        self.assertNotIn("physicsBody", shared)
+        self.assertIn("static func installPortal", forest)

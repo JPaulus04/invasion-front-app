@@ -29,3 +29,16 @@ Phase 1 is intentionally behavior-preserving, not the landscape visual upgrade. 
 | repeated Mossbot frames | Retain | Identical file hashes alone do not prove redundant animation timeline slots. |
 
 The world-selector passes the stable faction ID to WorldShowcase. Its old shared world1_* prop families also need replacement with dedicated faction art, but the ordering is not itself evidence of a faction-ID bug. No active later-world landscape, gameplay, or save behavior is changed by this pass.
+
+## Phase 3 — shared authored environment primitives
+
+Extracted the active World 1 fixed-size ground tiling and grounded-prop presentation into AuthoredEnvironmentRenderer. World 1 still supplies the same material variant, world origin, bounds, texture provider, positions, sizes and anchors. Ground depth, shadows and portal presentation are unchanged. This prepares reuse by all factions without introducing a second renderer or changing collision.
+
+### Toxic Crossing production inputs (proposed filenames, not existing/approved art)
+
+- Four seamless 1024×1024 ground material variants at a common authored density: dark contaminated soil, worn stone, corrosion and subtle mineral staining. Use deterministic tile choice, not room-sized stretching.
+- Transparent perimeter props: corroded containment tank, broken pipe, industrial debris, acid-stained boulder, toxic vegetation and damaged retaining wall. Measure visible grounding anchors.
+- Acid hazard art: small dimensional pits and narrow streams, irregular feathered rims, recessed fluid, bubbles and subdued glow. Use existing hazard polygon/damage geometry as authority; keep damage boundary visible. No unexplained boxes or lines, no large flat green pools.
+- Boss, passage and defense dressing should vary without masking the exit, reactor, hit warnings or walkable lanes.
+
+No complete approved World 2 landscape set was found in the available prior context. Do not simply tint World 1 forest artwork and call it production Toxic Crossing. Active legacy World 2–4 paths remain until replacements are visually verified. New source guards cover the shared primitives; hosted iOS validation is required to establish behavior equivalence.
