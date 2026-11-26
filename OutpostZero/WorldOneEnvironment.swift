@@ -177,6 +177,9 @@ enum ToxicEnvironment {
             materialName: { column, row in
                 plan.materialNames[plan.variant(column: column, row: row)]
             }, texture: texture))
+        // A single world-space material wash interrupts recurring motifs
+        // without rotating tiles or disturbing their verified shared edges.
+        root.addChild(materialVariation(plan))
         for prop in plan.props {
             AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
                 position: prop.position, size: prop.size, anchorY: prop.anchorY,
@@ -184,6 +187,59 @@ enum ToxicEnvironment {
         }
         return root
     }
+
+    private static func materialVariation(_ plan: ToxicEnvironmentPlan.Plan) -> SKSpriteNode {
+        let bounds = plan.groundBounds
+        let extent = max(bounds.width, bounds.height)
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        // One bounded raster per room, independent of camera movement.
+        format.scale = min(1, 768/max(1,extent))
+        let renderer = UIGraphicsImageRenderer(size: bounds.size, format: format)
+        let image = renderer.image { context in
+            let cg = context.cgContext
+            var state = UInt64(truncatingIfNeeded: plan.room) &+ 0x9E3779B185EBCA87
+            func random() -> CGFloat {
+                state = state &* 6364136223846793005 &+ 1442695040888963407
+                return CGFloat((state >> 32) % 10000)/10000
+            }
+            let cs = CGColorSpaceCreateDeviceRGB()
+            let colors = [
+                UIColor(red: 0.19, green: 0.13, blue: 0.08, alpha: 1),
+                UIColor(red: 0.41, green: 0.34, blue: 0.24, alpha: 1),
+                UIColor(red: 0.30, green: 0.29, blue: 0.19, alpha: 1)
+            ]
+            let count = min(36, max(12, Int(bounds.width*bounds.height/60000)))
+            for index in 0..<count {
+                let color = colors[index % colors.count]
+                let radius: CGFloat = 95 + random()*125
+                let opacity: CGFloat = 0.055 + random()*0.09
+                let x = random()*bounds.width
+                let y = random()*bounds.height
+                let angle = random()*CGFloat.pi
+                guard let gradient = CGGradient(colorsSpace: cs,
+                    colors: [color.withAlphaComponent(opacity).cgColor,
+                             color.withAlphaComponent(opacity*0.48).cgColor,
+                             color.withAlphaComponent(0).cgColor] as CFArray,
+                    locations: [0,0.48,1]) else { continue }
+                cg.saveGState()
+                cg.translateBy(x: x,y: y)
+                cg.rotate(by: angle)
+                cg.scaleBy(x: 1,y: 0.55+random()*0.40)
+                cg.drawRadialGradient(gradient, startCenter: .zero, startRadius: 0,
+                                      endCenter: .zero, endRadius: radius, options: [])
+                cg.restoreGState()
+            }
+        }
+        let node = SKSpriteNode(texture: SKTexture(image: image))
+        node.texture?.filteringMode = .linear
+        node.name = "toxicMaterialVariation"
+        node.size = bounds.size
+        node.position = CGPoint(x: bounds.midX,y: bounds.midY)
+        node.zPosition = -17.5
+        return node
+    }
+
 }
 
 
