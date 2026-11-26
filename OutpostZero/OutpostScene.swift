@@ -8038,6 +8038,43 @@ final class OutpostScene: SKScene {
             }
             print("[BUILD342 AUTHORED TOXIC] room=\(wave) tiles=\(ground.children.count) props=\(props.count) visibleProps=\(props.filter(visible).count) fragments=\(fragments.count) visibleFragments=\(fragments.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
         }
+        if ProcessInfo.processInfo.arguments.contains("-previewAuthoredFrostEnvironment") {
+            precondition(selectedWorld.id == 3 && preview && state == "water")
+            guard let root = zoneScenery.childNode(withName: "authoredFrostWorld"),
+                  let ground = root.childNode(withName: "unifiedGround") else {
+                preconditionFailure("Authored Frost landscape did not load")
+            }
+            precondition(!ground.children.isEmpty)
+            precondition(FrostEnvironmentPlan.productionAssets.allSatisfy { worldOneTexture(named: $0) != nil })
+            let landmarks = root.children.filter { $0.name?.hasPrefix("unifiedScenery_") == true }
+            let snow = root.children.filter { $0.name == "frostGroundSnow" }
+            let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredFrostRubble") }
+            precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            let viewport = RoomRules.bounds(for: size)
+            func visible(_ node: SKNode) -> Bool {
+                guard let parent = node.parent else { return false }
+                let frame = node.calculateAccumulatedFrame()
+                let a = convert(CGPoint(x: frame.minX,y: frame.minY),from: parent)
+                let b = convert(CGPoint(x: frame.maxX,y: frame.maxY),from: parent)
+                let projected = CGRect(x: min(a.x,b.x),y: min(a.y,b.y),
+                    width: abs(a.x-b.x),height: abs(a.y-b.y))
+                let overlap = viewport.intersection(projected)
+                return !overlap.isNull && overlap.width >= 8 && overlap.height >= 8
+            }
+            if expandedArenaPreview {
+                precondition(snow.filter(visible).count >= 2,
+                             "Expanded Frost arena must display ground scenery")
+            } else {
+                let top = size.height - max(16,view?.safeAreaInsets.top ?? 0) - 88
+                let band = CGRect(x: 0,y: roomBounds.maxY,width: size.width,
+                                  height: max(0,top-roomBounds.maxY))
+                precondition(landmarks.allSatisfy { band.contains($0.calculateAccumulatedFrame()) })
+                if min(86,band.height-8,roomBounds.width/2-85) >= 36 {
+                    precondition(!landmarks.isEmpty, "Frost scenery must populate usable north band")
+                }
+            }
+            print("[BUILD342 AUTHORED FROST] room=\(wave) tiles=\(ground.children.count) landmarks=\(landmarks.count) snow=\(snow.count) visibleSnow=\(snow.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
+        }
         // This flag is used only on paused QA captures; damage is not applied.
         print("[BUILD342 HAZARDS] fixture=\(selection) liquidCount=\(liquids.count) preview=\(preview)")
         fflush(stdout)
