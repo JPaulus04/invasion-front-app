@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import tempfile
+from contextlib import contextmanager
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -9,6 +10,8 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from check_campaign341 import capture, capture_visible_frame, record_video
+from run_phase4_simulator import focused_simulator
+from simulator_startup import RecoverableStartupError
 
 
 class Campaign341SurfaceTests(unittest.TestCase):
@@ -81,3 +84,47 @@ class Campaign341SurfaceTests(unittest.TestCase):
                 record_video("phone", movie, log)
             self.assertEqual([item.args[0] for item in sleep.call_args_list], [1, 7])
             recorder.send_signal.assert_called_once()
+
+    def test_first_fixture_requires_positive_process_absence(self):
+        for proven_absent in (True, False):
+            with self.subTest(proven_absent=proven_absent), tempfile.TemporaryDirectory() as folder:
+                timeout = subprocess.TimeoutExpired("simctl", 120)
+                expected = RecoverableStartupError if proven_absent else TimeoutError
+                with patch("check_campaign341.command", side_effect=timeout) as launch, patch(
+                    "check_campaign341.time.monotonic", side_effect=(0, 61)
+                ), patch("check_campaign341.snapshot", return_value={"app_proven_absent": proven_absent}):
+                    with self.assertRaises(expected):
+                        capture("phone", Path(folder), "iron", "-captureIron", "[READY]", first=True)
+                self.assertNotIn("--terminate-running-process", launch.call_args.args)
+
+    def test_fresh_device_retry_waits_for_fence_and_rejects_late_output(self):
+        for late_output in (False, True):
+            with self.subTest(late_output=late_output), tempfile.TemporaryDirectory() as folder:
+                events = []
+
+                @contextmanager
+                def fresh(profile, startup, *, controlled, device_type, warm_before_spawn):
+                    events.append(("start", device_type))
+                    try:
+                        yield device_type
+                    finally:
+                        events.append(("fenced", device_type))
+                        if late_output:
+                            (startup / "initial-fixture" / "iron.log").write_text("[READY]")
+
+                def prepare(device, output):
+                    if device == "iPhone-16-Pro":
+                        raise RecoverableStartupError("proven unstarted first fixture")
+
+                with patch("run_phase4_simulator.fresh_simulator", side_effect=fresh):
+                    if late_output:
+                        with self.assertRaisesRegex(RuntimeError, "during cleanup"):
+                            with focused_simulator("build341", Path(folder), prepare=prepare):
+                                self.fail("The alternate device was started")
+                    else:
+                        with focused_simulator("build341", Path(folder), prepare=prepare) as device:
+                            self.assertEqual(device, "iPhone-16")
+                expected = [("start", "iPhone-16-Pro"), ("fenced", "iPhone-16-Pro")]
+                if not late_output:
+                    expected += [("start", "iPhone-16"), ("fenced", "iPhone-16")]
+                self.assertEqual(events, expected)
