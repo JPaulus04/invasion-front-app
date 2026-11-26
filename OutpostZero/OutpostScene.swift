@@ -4553,7 +4553,33 @@ final class OutpostScene: SKScene {
                     ? SKColor(red: 0.12, green: 0.23, blue: 0.26, alpha: 1)
                     : SKColor(red: 0.13, green: 0.19, blue: 0.18, alpha: 1)
                 shape.lineWidth = 2
+                #if DEBUG
+                if selectedWorld.id == 1 &&
+                    ProcessInfo.processInfo.arguments.contains("-previewAuthoredToxicEnvironment") &&
+                    ToxicEnvironmentPlan.productionAssets.allSatisfy({ worldOneTexture(named: $0) != nil }),
+                    let texture = worldOneTexture(named: "world2_prop_wall") {
+                    // Trim only transparent canvas padding (measured alpha
+                    // bbox 36,134,476,485); fit proportionally inside the
+                    // original collision rectangle. Do not move the patch.
+                    let trim = CGRect(x: 34.0/512, y: 25.0/512,
+                                      width: 444.0/512, height: 355.0/512)
+                    let cropped = SKTexture(rect: trim, in: texture)
+                    cropped.filteringMode = .linear
+                    let art = SKSpriteNode(texture: cropped)
+                    art.name = "authoredToxicRubble"
+                    let ratio: CGFloat = 444.0/355
+                    let height = min(patch.frame.height, patch.frame.width/ratio)
+                    art.size = CGSize(width: height*ratio, height: height)
+                    art.zPosition = 0.8
+                    shape.fillColor = SKColor(red: 0.16, green: 0.17, blue: 0.14, alpha: 0.88)
+                    shape.strokeColor = SKColor(red: 0.25, green: 0.24, blue: 0.18, alpha: 0.7)
+                    shape.addChild(art)
+                } else {
+                    decorateRubbleObstacle(shape, size: patch.frame.size)
+                }
+                #else
                 decorateRubbleObstacle(shape, size: patch.frame.size)
+                #endif
             }
             // Prefer authored transparent terrain illustrations when bundled.
             // They are presentation-only: the exact polygon above remains the
@@ -5880,8 +5906,36 @@ final class OutpostScene: SKScene {
                 arena.childNode(withName: "campaignExterior")?.removeFromParent()
                 arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
                 arena.childNode(withName: "roomArtwork")?.isHidden = true
-                zoneScenery.addChild(ToxicEnvironment.make(plan,
-                    texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+                let root = ToxicEnvironment.make(plan,
+                    texture: { [weak self] in self?.worldOneTexture(named: $0) })
+                // Flat, nonblocking fragments are the only new art allowed
+                // inside the walkable area. Large solid props stay outside.
+                let patches = TerrainHazards.patches(world: 1, room: max(1, wave), bounds: roomBounds)
+                let reserved = [entryPoint, authoredGatePosition].map {
+                    CGRect(x: $0.x-64, y: $0.y-64, width: 128, height: 128)
+                }
+                if let debris = worldOneTexture(named: "world2_prop_debris") {
+                    for side in [-1, 1] {
+                        for (index, fraction) in [CGFloat(0.12), 0.29, 0.47, 0.65, 0.84].enumerated() {
+                            let x = side < 0 ? roomBounds.minX+22 : roomBounds.maxX-22
+                            let y = roomBounds.minY+roomBounds.height*fraction
+                            let w: CGFloat = 30+CGFloat((index+wave)%3)*4
+                            let frame = CGRect(x: x-w/2, y: y-11, width: w, height: 22)
+                            guard roomBounds.contains(frame),
+                                  !patches.contains(where: { $0.frame.insetBy(dx: -8, dy: -8).intersects(frame) }),
+                                  !reserved.contains(where: { $0.intersects(frame) }) else { continue }
+                            let fragment = SKSpriteNode(texture: debris)
+                            fragment.name = "toxicGroundFragment"
+                            fragment.position = CGPoint(x: x, y: y)
+                            fragment.size = frame.size
+                            fragment.xScale = CGFloat(side)
+                            fragment.alpha = 0.8
+                            fragment.zPosition = -12
+                            root.addChild(fragment)
+                        }
+                    }
+                }
+                zoneScenery.addChild(root)
                 print("[BUILD342 TOXIC PREVIEW] room=\(wave) theme=\(plan.theme.rawValue)")
                 return
             }
@@ -7853,7 +7907,23 @@ final class OutpostScene: SKScene {
             let props = root.children.filter { $0.name?.hasPrefix("unifiedScenery_") == true }
             precondition(!ground.children.isEmpty && !props.isEmpty)
             precondition(ToxicEnvironmentPlan.productionAssets.allSatisfy { worldOneTexture(named: $0) != nil })
-            print("[BUILD342 AUTHORED TOXIC] room=\(wave) tiles=\(ground.children.count) props=\(props.count)")
+            let fragments = root.children.filter { $0.name == "toxicGroundFragment" }
+            let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredToxicRubble") }
+            precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            // Count actual projected sprite-frame intersections, not simply
+            // nodes that may be hidden outside the phone's combat viewport.
+            let viewport = RoomRules.bounds(for: size)
+            func visible(_ node: SKNode) -> Bool {
+                guard let parent = node.parent else { return false }
+                let frame = node.calculateAccumulatedFrame()
+                let a = convert(CGPoint(x: frame.minX, y: frame.minY), from: parent)
+                let b = convert(CGPoint(x: frame.maxX, y: frame.maxY), from: parent)
+                let screenFrame = CGRect(x: min(a.x,b.x), y: min(a.y,b.y),
+                    width: abs(b.x-a.x), height: abs(b.y-a.y))
+                let intersection = viewport.intersection(screenFrame)
+                return !intersection.isNull && intersection.width >= 8 && intersection.height >= 8
+            }
+            print("[BUILD342 AUTHORED TOXIC] room=\(wave) tiles=\(ground.children.count) props=\(props.count) visibleProps=\(props.filter(visible).count) fragments=\(fragments.count) visibleFragments=\(fragments.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
         }
         // This flag is used only on paused QA captures; damage is not applied.
         print("[BUILD342 HAZARDS] fixture=\(selection) liquidCount=\(liquids.count) preview=\(preview)")
