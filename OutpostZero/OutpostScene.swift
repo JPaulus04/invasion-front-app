@@ -5915,23 +5915,57 @@ final class OutpostScene: SKScene {
                     CGRect(x: $0.x-64, y: $0.y-64, width: 128, height: 128)
                 }
                 if let debris = worldOneTexture(named: "world2_prop_debris") {
+                    var occupied: [CGRect] = []
+                    func addFragment(x: CGFloat, y: CGFloat, width: CGFloat, facing: Int, angle: CGFloat = 0) {
+                        let height = width * 0.65
+                        // Reserve the rotated sprite's full envelope, including
+                        // a margin so loose fragments never touch hazard rims.
+                        let envelope = CGRect(x: x-width*0.65, y: y-width*0.65,
+                                              width: width*1.3, height: width*1.3)
+                        guard roomBounds.contains(envelope),
+                              !patches.contains(where: { $0.frame.insetBy(dx: -8, dy: -8).intersects(envelope) }),
+                              !reserved.contains(where: { $0.intersects(envelope) }),
+                              !occupied.contains(where: { $0.intersects(envelope.insetBy(dx: -12, dy: -12)) }) else { return }
+                        let fragment = SKSpriteNode(texture: debris)
+                        fragment.name = "toxicGroundFragment"
+                        fragment.position = CGPoint(x: x, y: y)
+                        fragment.size = CGSize(width: width, height: height)
+                        fragment.xScale = CGFloat(facing)
+                        fragment.zRotation = angle
+                        fragment.alpha = 0.75
+                        fragment.zPosition = -12
+                        root.addChild(fragment)
+                        occupied.append(envelope)
+                    }
+                    // Tactical rooms retain their verified edge layout.
                     for side in [-1, 1] {
                         for (index, fraction) in [CGFloat(0.12), 0.29, 0.47, 0.65, 0.84].enumerated() {
-                            let x = side < 0 ? roomBounds.minX+22 : roomBounds.maxX-22
+                            let width: CGFloat = 30+CGFloat((index+wave)%3)*4
+                            let inset = max(22, width*0.65+1)
+                            let x = side < 0 ? roomBounds.minX+inset : roomBounds.maxX-inset
                             let y = roomBounds.minY+roomBounds.height*fraction
-                            let w: CGFloat = 30+CGFloat((index+wave)%3)*4
-                            let frame = CGRect(x: x-w/2, y: y-11, width: w, height: 22)
-                            guard roomBounds.contains(frame),
-                                  !patches.contains(where: { $0.frame.insetBy(dx: -8, dy: -8).intersects(frame) }),
-                                  !reserved.contains(where: { $0.intersects(frame) }) else { continue }
-                            let fragment = SKSpriteNode(texture: debris)
-                            fragment.name = "toxicGroundFragment"
-                            fragment.position = CGPoint(x: x, y: y)
-                            fragment.size = frame.size
-                            fragment.xScale = CGFloat(side)
-                            fragment.alpha = 0.8
-                            fragment.zPosition = -12
-                            root.addChild(fragment)
+                            addFragment(x: x, y: y, width: width, facing: side)
+                        }
+                    }
+                    if expandedArenaPreview {
+                        // A survival camera sees only part of the larger map.
+                        // Scatter sparse, ankle-height, nonblocking fragments
+                        // through interior side lanes as well as the perimeter.
+                        // Keep the center approach open and the work bounded.
+                        let columns = min(8, max(4, Int(ceil(roomBounds.width/120))))
+                        let rows = min(10, max(4, Int(ceil(roomBounds.height/135))))
+                        for row in 0..<rows {
+                            for column in 0..<columns {
+                                let seed = wave*97 + row*37 + column*19
+                                let dx = CGFloat(seed%23-11)
+                                let dy = CGFloat((seed*7)%31-15)
+                                let x = roomBounds.minX + roomBounds.width*(CGFloat(column)+0.5)/CGFloat(columns) + dx
+                                let y = roomBounds.minY + roomBounds.height*(CGFloat(row)+0.5)/CGFloat(rows) + dy
+                                guard abs(x-roomBounds.midX) >= 46 else { continue }
+                                addFragment(x: x, y: y, width: CGFloat(25+seed%10),
+                                            facing: seed.isMultiple(of: 2) ? 1 : -1,
+                                            angle: CGFloat(seed%7-3)*0.12)
+                            }
                         }
                     }
                 }
@@ -7922,6 +7956,10 @@ final class OutpostScene: SKScene {
                     width: abs(b.x-a.x), height: abs(b.y-a.y))
                 let intersection = viewport.intersection(screenFrame)
                 return !intersection.isNull && intersection.width >= 8 && intersection.height >= 8
+            }
+            if expandedArenaPreview {
+                precondition(fragments.filter(visible).count >= 2,
+                             "Expanded Toxic arena requires visible low-profile scenery at the actual capture camera")
             }
             print("[BUILD342 AUTHORED TOXIC] room=\(wave) tiles=\(ground.children.count) props=\(props.count) visibleProps=\(props.filter(visible).count) fragments=\(fragments.count) visibleFragments=\(fragments.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
         }
