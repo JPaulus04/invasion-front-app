@@ -11,8 +11,14 @@ from run_phase4_simulator import BUNDLE, command, focused_simulator
 def capture(device, output, fixture, flag, marker):
     log = output / f"{fixture}.log"
     errors = output / f"{fixture}-stderr.log"
-    command("xcrun", "simctl", "launch", "--terminate-running-process",
-            f"--stdout={log}", f"--stderr={errors}", device, BUNDLE, flag, timeout=90)
+    launch_error = None
+    try:
+        command("xcrun", "simctl", "launch", "--terminate-running-process",
+                f"--stdout={log}", f"--stderr={errors}", device, BUNDLE, flag, timeout=90)
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as error:
+        # simctl's client can stall while the app continues launching.
+        # Accept the fixture only after the original process reports ready.
+        launch_error = error
     deadline = time.monotonic() + (150 if marker == "[BUILD341 PERF]" else 45)
     while time.monotonic() < deadline:
         if errors.exists() and any(term in errors.read_text(errors="replace")
@@ -22,7 +28,7 @@ def capture(device, output, fixture, flag, marker):
             break
         time.sleep(0.25)
     else:
-        raise TimeoutError(f"Expected {marker!r} in {log}")
+        raise TimeoutError(f"Expected {marker!r} in {log}") from launch_error
     time.sleep(0.8)
     capture_visible_frame(device, output, fixture)
 
