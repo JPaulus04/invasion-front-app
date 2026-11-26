@@ -15,3 +15,17 @@ Base: 350d35b0c6c528633eb36fa675a5fdbcb7bf8d4b (Build 341 merged gameplay). Sepa
 5. Compare representative standard, passage, defense, survival and boss arenas for each world, including performance and hazard readability.
 
 Phase 1 is intentionally behavior-preserving, not the landscape visual upgrade. Hosted compile and gameplay tests are still required.
+
+## Phase 2 — asset dependency audit
+
+| Asset family | Disposition | Reason |
+| --- | --- | --- |
+| forest_undergrowth_polished.png | Remove from app resources and obsolete CI file-presence assertion | Only runtime call sites were removed in phase 1; repository search found historical documentation and that assertion only. |
+| forest_pine_polished / forest_broadleaf_polished | Retain | Authored World 1 environment plan still uses them. |
+| world1_overgrown_stone_arena.png | Retain for now | Ground material baking uses this source; provenance must be preserved. It is a candidate for relocation outside the runtime bundle, not deletion. |
+| world1_* family assets | Retain | World 1 layout and world-selector dioramas use dynamically constructed names. |
+| boss_toxic_matriarch / boss_frost_wraith / boss_warforge | Retain for now | BossArtwork.install still serves the no-manifest/fallback path. Verify actual fallback policy and update tests before removal. Root Lord artwork remains live. |
+| legacy pilot and generic enemy PNGs | Retain for now | Still reachable through HUD, procedural presentation and fallback paths; need an explicit runtime coverage audit. |
+| repeated Mossbot frames | Retain | Identical file hashes alone do not prove redundant animation timeline slots. |
+
+The world-selector passes the stable faction ID to WorldShowcase. Its old shared world1_* prop families also need replacement with dedicated faction art, but the ordering is not itself evidence of a faction-ID bug. No active later-world landscape, gameplay, or save behavior is changed by this pass.

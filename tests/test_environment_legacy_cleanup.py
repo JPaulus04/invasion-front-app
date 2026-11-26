@@ -16,3 +16,8 @@ class EnvironmentLegacyCleanupTests(unittest.TestCase):
         self.assertIn("selectedWorld.biome == 1 ? max(1, requestedZone) : max(2, requestedZone)", scenery)
         for live in ("addToxicEdgeProp", "FrostFloorArt.texture", "addFloodedEdgeProp", "scrapyardFloorDetail"):
             self.assertIn(live, scenery)
+
+    def test_retired_undergrowth_not_shipped_or_required(self):
+        self.assertFalse((ROOT / "OutpostZero/ArtAssets/forest_undergrowth_polished.png").exists())
+        workflow = (ROOT / ".github" / "workflows" / "ios-build.yml").read_text()
+        self.assertNotIn("forest_undergrowth_polished.png", workflow)
