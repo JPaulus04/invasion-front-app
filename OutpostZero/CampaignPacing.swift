@@ -52,9 +52,9 @@ enum CampaignPacing {
 
     static func enemyHealth(world: Int, room: Int, type: Int) -> Int {
         if world == 0, let miniBoss = FrontierMiniBoss.encounters[room] { return miniBoss.health }
-        if world == 1 {
-            if room == 10 { return 115 }
-            if room == 20 { return 175 }
+        if (1..<WorldCatalog.playableCount).contains(world) {
+            if room == 10 { return 115 + (world - 1) * 15 }
+            if room == 20 { return 175 + (world - 1) * 20 }
         }
         if WorldCatalog.isFinalRoom(world: world, room: room) { return WorldCatalog.info(world).bossHealth }
         let scaling = max(0, room - 1)
@@ -248,7 +248,7 @@ enum SurvivalEncounterRules {
         let finalRoom = WorldCatalog.roomCount(world)
         if WorldCatalog.isFinalRoom(world: world, room: room) ||
             (world == 0 && FrontierMiniBoss.encounters[room] != nil) ||
-            (world == 1 && (room == 10 || room == 20)) { return .boss }
+            ((1..<WorldCatalog.playableCount).contains(world) && (room == 10 || room == 20)) { return .boss }
         guard room > 0, room < finalRoom else { return .tactical }
         let faction = WorldCatalog.info(world).id
         guard survivalRooms.indices.contains(faction) else { return .tactical }

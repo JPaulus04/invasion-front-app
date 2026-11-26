@@ -22,7 +22,7 @@ enum WorldCatalog {
                   brief: "Learn the movement and combat basics", biome: 0, bossStyle: 0, bossHealth: 180, enemyHealthBonus: 0),
         WorldInfo(id: 1, roomCount: 30, title: "TOXIC CROSSING", region: "FRONTIER", boss: "TOXIC TYRANT",
                   brief: "Poisoned ruins: dodge acid volleys and mutant swarms", biome: 2, bossStyle: 2, bossHealth: 235, enemyHealthBonus: 1),
-        WorldInfo(id: 3, roomCount: 30, title: "FROST EXPANSE", region: "FRONTIER", boss: "FROST WRAITH",
+        WorldInfo(id: 3, roomCount: 30, title: "FROST EXPANSE", region: "FRONTIER", boss: "CRYO OVERLORD",
                   brief: "Frozen frontier: find safe lanes between ice volleys", biome: 4, bossStyle: 3, bossHealth: 300, enemyHealthBonus: 3),
         WorldInfo(id: 2, roomCount: 30, title: "IRON WASTES", region: "FRONTIER", boss: "WARFORGE",
                   brief: "Industrial stronghold: read volleys and dodge machines", biome: 1, bossStyle: 1, bossHealth: 275, enemyHealthBonus: 2),

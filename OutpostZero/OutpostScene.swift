@@ -398,7 +398,7 @@ final class OutpostScene: SKScene {
 
     private var roomBossName: String? {
         if let frontierMiniBoss { return frontierMiniBoss.name }
-        return worldMapIndex == WorldTwoCampaign.world ? WorldTwoCampaign.bossNames[wave] : nil
+        return worldMapIndex == WorldTwoCampaign.world ? WorldTwoCampaign.bossNames[wave] : FrontierFactionArt.bossName(world: worldMapIndex, room: wave)
     }
     private let coreBranches = ["WEAPONS", "REACTOR", "ARMOR", "MOBILITY", "SYSTEMS"]
     private var availableCores: Int { UserDefaults.standard.integer(forKey: "powerCoresAvailable") }
@@ -6641,7 +6641,8 @@ final class OutpostScene: SKScene {
         let type = artReviewType ?? (isBoss ? (miniBoss?.role ?? 1) : WorldCatalog.enemyType(
             world: worldMapIndex, room: wave, roll: roll))
         let worldTwoCharacter = worldMapIndex == WorldTwoCampaign.world
-            ? (isBoss ? WorldTwoCampaign.bosses[wave] : WorldTwoCampaign.regulars[type]) : nil
+            ? (isBoss ? WorldTwoCampaign.bosses[wave] : WorldTwoCampaign.regulars[type])
+            : FrontierFactionArt.character(world: worldMapIndex, room: wave, type: type, slot: spawned, boss: isBoss)
         let worldTwoArt = worldTwoCharacter.flatMap { character -> SKSpriteNode? in
             let sprite = SKSpriteNode()
             return WorldOneEnemyAnimation.install(on: sprite, facingLeft: false, character: character) ? sprite : nil
@@ -7552,7 +7553,7 @@ final class OutpostScene: SKScene {
                 if combatTime < enemies[index].nextAttack { continue }
             }
             let ranged = enemy.behavior >= 4 || (enemy.node === bossNode && miniBoss == nil)
-            let usesWorldTwoAttack = updateWorldTwoAttack(at: index)
+            let usesWorldTwoAttack = updateWorldTwoAttack(at: index) || updateFrontierFactionAttack(at: index)
             if enemies[index].worldTwoBurrowed { continue }
             if ranged && !usesWorldTwoAttack { updateRangedAttack(at: index) }
             if usesWorldTwoAttack && (enemies[index].shotTarget != nil || enemy.worldTwoCharacter == "venomspitter") { continue }
@@ -7662,7 +7663,7 @@ final class OutpostScene: SKScene {
                 }
                 if phase != .playing { return }
             }
-            if miniBoss == nil && distance(enemy.node.position, pilot.position) < enemy.radius + 14 {
+            if miniBoss == nil && !(enemy.node === bossNode && enemy.worldTwoCharacter.map { FrontierFactionArt.manifests[$0] != nil } == true) && distance(enemy.node.position, pilot.position) < enemy.radius + 14 {
                 let previousHealth = health
                 damagePilot(enemy.node === bossNode ? 12 : (enemy.behavior == 3 ? 8 : 5))
                 if health < previousHealth,
@@ -8131,6 +8132,77 @@ final class OutpostScene: SKScene {
         return true
     }
 
+    /// World 3/4 ranged and boss attacks use the manifest's timing and the
+    /// existing projectile/area-warning collision paths.
+    private func updateFrontierFactionAttack(at index: Int) -> Bool {
+        let enemy = enemies[index]
+        guard let name = enemy.worldTwoCharacter, let manifest = FrontierFactionArt.manifests[name] else { return false }
+        let boss = enemy.node === bossNode
+        guard boss || enemy.behavior >= 4 else { return false }
+        guard enemy.health > 0, combatTime >= enemy.nextAttack else { return true }
+        func effect(_ sequence: String, at position: CGPoint) {
+            guard let state = manifest.sequence(sequence),
+                  let frames = WorldOneEnemyAnimation.worldTwoFrames(enemy: name, sequence: sequence),
+                  let first = frames.first else { return }
+            let size: CGFloat = boss ? 145 : 84
+            let sprite = SKSpriteNode(texture: first, size: CGSize(width: size, height: size))
+            sprite.position = position
+            sprite.zPosition = 5.5
+            arena.addChild(sprite)
+            sprite.run(.sequence([.animate(with: frames, timePerFrame: 1/state.fps), .removeFromParent()]))
+        }
+        let action = enemy.worldTwoAction
+        if let target = enemy.shotTarget {
+            enemy.node.childNode(withName: "factionAim")?.removeFromParent()
+            let origin = enemy.node.position
+            let frostEffects = ["cryogunner": "muzzle_flash", "blizzarddrone": "freezing_area",
+                "permafrostcrusher": "seismic_stomp", "frostwyrm": "frost_breath", "cryooverlord": "melee_impact"]
+            let effectName = FrontierFactionArt.ironNames.contains(name) ? action + "_fx" : frostEffects[name] ?? ""
+            if name == "lobber" || name == "blizzarddrone" || boss {
+                launchLob(from: origin, target: target, radius: boss ? 54 : 43, authoredBomb: name == "lobber")
+                effect(effectName, at: origin)
+            } else {
+                fireProjectile(from: origin, toward: target)
+                effect(effectName, at: origin)
+            }
+            enemies[index].shotTarget = nil
+            enemies[index].nextAttack = combatTime + max(0.3, (manifest.states[action]?.duration ?? 1) - 0.5) + 1.2
+            return true
+        }
+        let threats = enemies.filter { $0.shotTarget != nil }.count + projectiles.count + lobs.count
+        guard boss || CombatRules.mayBeginRangedAttack(room: wave, activeThreats: threats) else { return true }
+        var sequence = "attack"
+        if name == "warforge" {
+            let phase = enemy.health * 3 <= enemy.maxHealth ? 3 : (enemy.health * 3 <= enemy.maxHealth * 2 ? 2 : 1)
+            enemies[index].worldTwoPhase = phase
+            sequence = phase == 1 ? "attack" : (phase == 2 ? "attack_2" : "attack_3")
+        } else if boss && !enemy.worldTwoTurn.isMultiple(of: 2) {
+            sequence = ["permafrostcrusher": "charge", "frostwyrm": "tail_sweep", "cryooverlord": "heavy_slam",
+                        "press_giant": "attack_2", "gantry_warden": "attack_2"][name] ?? "attack"
+        }
+        guard let state = manifest.states[sequence] else { return false }
+        let target = pilot.position
+        enemies[index].shotTarget = target
+        enemies[index].worldTwoAction = sequence
+        enemies[index].worldTwoTurn += 1
+        let path = CGMutablePath()
+        path.move(to: .zero)
+        path.addLine(to: CGPoint(x: target.x - enemy.node.position.x, y: target.y - enemy.node.position.y))
+        let warning = SKShapeNode(path: path)
+        warning.name = "factionAim"
+        warning.strokeColor = FrontierFactionArt.frostNames.contains(name) ? .systemCyan : .systemOrange
+        warning.lineWidth = 2
+        warning.zPosition = -0.4
+        enemy.node.addChild(warning)
+        if let art = enemy.node.childNode(withName: "enemyArt") as? SKSpriteNode {
+            art.xScale = target.x < enemy.node.position.x ? -1 : 1
+            WorldOneEnemyAnimation.play(.attack, enemy: name, on: art, sequence: sequence)
+        }
+        let anticipation = state.frame_durations_ms.map { $0.prefix(4).reduce(0, +) / 1000 } ?? min(0.5, state.duration / 2)
+        enemies[index].nextAttack = combatTime + anticipation
+        return true
+    }
+
     private func updateFrontierMiniBoss(at index: Int, configuration: FrontierMiniBoss) {
         let enemy = enemies[index]
         let origin = enemy.node.position
@@ -8404,7 +8476,7 @@ final class OutpostScene: SKScene {
     }
 
     private func launchLob(from origin: CGPoint, target: CGPoint, radius: CGFloat = 43,
-                           flightTime: TimeInterval = 1.4, showsProjectile: Bool = true) {
+                           flightTime: TimeInterval = 1.4, showsProjectile: Bool = true, authoredBomb: Bool = false) {
         let marker = SKShapeNode(circleOfRadius: radius)
         marker.position = target
         marker.fillColor = .systemOrange.withAlphaComponent(0.23)
@@ -8452,6 +8524,14 @@ final class OutpostScene: SKScene {
         shell.position = origin
         shell.zPosition = 13
         shell.isHidden = !showsProjectile
+        if authoredBomb, let url = Bundle.main.url(forResource: "lobber_bomb", withExtension: "png", subdirectory: "enemies/world4/projectiles"),
+           let image = UIImage(contentsOfFile: url.path) {
+            shell.fillColor = .clear
+            shell.strokeColor = .clear
+            shell.glowWidth = 0
+            let art = SKSpriteNode(texture: SKTexture(image: image), size: CGSize(width: 30, height: 30))
+            shell.addChild(art)
+        }
         arena.addChild(shell)
         lobs.append(Lob(marker: marker, shell: shell, origin: origin, target: target,
                         launchedAt: combatTime, impactAt: combatTime + flightTime, radius: radius))

@@ -139,7 +139,7 @@ struct CampaignPacingTests {
             var priorArena = 0
             for room in 1...WorldCatalog.roomCount(world) {
                 let kind = SurvivalEncounterRules.kind(world: world, room: room)
-                if room == WorldCatalog.roomCount(world) || (world <= 1 && [10, 20].contains(room)) {
+                if room == WorldCatalog.roomCount(world) || ([10, 20].contains(room)) {
                     precondition(kind == .boss)
                     continue
                 }
@@ -395,7 +395,7 @@ struct CampaignPacingTests {
         precondition(FrontierMiniBoss.encounters[10]?.name == "BARKGUARD")
         precondition(FrontierMiniBoss.encounters[20]?.name == "STONEBACK")
         for world in [WorldCatalog.frostIndex, WorldCatalog.ironIndex] {
-            precondition(SurvivalEncounterRules.kind(world: world, room: 20) == .tactical)
+            precondition(SurvivalEncounterRules.kind(world: world, room: 20) == .boss)
             precondition(SurvivalEncounterRules.kind(world: world, room: 30) == .boss)
             precondition(CampaignPacing.targetEnemies(room: 30, world: world) == 1)
         }

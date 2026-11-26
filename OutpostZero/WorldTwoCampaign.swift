@@ -12,12 +12,24 @@ enum WorldTwoCampaign {
             let fps: Double
             let loop: Bool
             let frames: [String]
-            var duration: TimeInterval { Double(frames.count) / fps }
+            let frame_durations_ms: [Double]?
+            var duration: TimeInterval { frame_durations_ms.map { $0.reduce(0, +) / 1000 } ?? Double(frames.count) / fps }
         }
         let pixels: Int
         let art_pivot_px: [Double]
         let idle_height_px: Double
         let states: [String: Sequence]
+        let effects: [String: Sequence]?
+        private enum CodingKeys: String, CodingKey { case pixels, art_pivot_px, idle_height_px, states, effects }
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            pixels = try container.decode(Int.self, forKey: .pixels)
+            art_pivot_px = try container.decode([Double].self, forKey: .art_pivot_px)
+            idle_height_px = try container.decode(Double.self, forKey: .idle_height_px)
+            states = try container.decode([String: Sequence].self, forKey: .states)
+            effects = try? container.decode([String: Sequence].self, forKey: .effects)
+        }
+        func sequence(_ name: String) -> Sequence? { states[name] ?? effects?[name] }
     }
 
     static let folder = "enemies/world2"
@@ -39,4 +51,46 @@ enum WorldTwoCampaign {
             result[name] = manifest
         }
     }()
+}
+
+/// Display indices are deliberately independent of the persisted faction IDs.
+enum FrontierFactionArt {
+    static let frostBosses = [10: "permafrostcrusher", 20: "frostwyrm", 30: "cryooverlord"]
+    static let ironBosses = [10: "press_giant", 20: "gantry_warden", 30: "warforge"]
+    static let frostRegulars = [0: "frostfang", 2: "shardstinger", 3: "glacierbrute", 4: "cryogunner", 5: "blizzarddrone"]
+    static let ironRegulars = [0: "grunt", 1: "rail_skater", 2: "raider", 3: "bulkhead", 4: "sentry", 5: "lobber"]
+
+    static func character(world: Int, room: Int, type: Int, slot: Int, boss: Bool) -> String? {
+        if world == WorldCatalog.frostIndex { return boss ? frostBosses[room] : frostRegulars[type] }
+        guard world == WorldCatalog.ironIndex else { return nil }
+        if boss { return ironBosses[room] }
+        if room >= 21 && slot.isMultiple(of: 7) { return "overclock" }
+        if type == 2 && slot.isMultiple(of: 2) { return "rail_skater" }
+        if type == 0 && room >= 6 && slot.isMultiple(of: 3) { return "scrapper" }
+        return ironRegulars[type]
+    }
+    static func bossName(world: Int, room: Int) -> String? {
+        guard let name = character(world: world, room: room, type: 1, slot: 0, boss: true) else { return nil }
+        return ["permafrostcrusher": "PERMAFROST CRUSHER", "frostwyrm": "FROST WYRM", "cryooverlord": "CRYO OVERLORD"][name] ?? name.replacingOccurrences(of: "_", with: " ").uppercased()
+    }
+    static let frostNames = Set(frostRegulars.values).union(frostBosses.values)
+    static let ironNames = Set(ironRegulars.values).union(ironBosses.values).union(["scrapper", "overclock"])
+    static func folder(_ name: String) -> String? {
+        if frostNames.contains(name) { return "enemies/world3/" + name }
+        if ironNames.contains(name) { return "enemies/world4" }
+        return nil
+    }
+    static let manifests: [String: WorldTwoCampaign.Manifest] = {
+        (frostNames.union(ironNames)).reduce(into: [:]) { result, name in
+            guard let folder = folder(name),
+                  let url = Bundle.main.url(forResource: frostNames.contains(name) ? "manifest" : name + ".manifest", withExtension: "json", subdirectory: folder),
+                  let data = try? Data(contentsOf: url),
+                  let manifest = try? JSONDecoder().decode(WorldTwoCampaign.Manifest.self, from: data),
+                  manifest.pixels == 512, manifest.art_pivot_px.count == 2, manifest.idle_height_px > 0 else { return }
+            result[name] = manifest
+        }
+    }()
+    static func manifest(_ name: String) -> WorldTwoCampaign.Manifest? {
+        manifests[name] ?? WorldTwoCampaign.manifests[name]
+    }
 }

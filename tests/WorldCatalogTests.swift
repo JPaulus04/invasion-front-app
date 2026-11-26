@@ -95,7 +95,7 @@ struct WorldCatalogTests {
         precondition(WorldCatalog.enemyType(world: 1, room: 9, roll: 10) == 5)
         precondition(WorldCatalog.enemyType(world: 2, room: 8, roll: 10) == 5)
         precondition(WorldCatalog.info(1).boss == "TOXIC TYRANT")
-        precondition(WorldCatalog.info(2).boss == "FROST WRAITH" && WorldCatalog.info(3).boss == "WARFORGE")
+        precondition(WorldCatalog.info(2).boss == "CRYO OVERLORD" && WorldCatalog.info(3).boss == "WARFORGE")
         precondition(WorldCatalog.info(1).bossStyle == 2)
         precondition(WorldCatalog.info(2).bossStyle == 3 && WorldCatalog.info(3).bossStyle == 1)
         precondition(WorldCatalog.recordBestRoom(1, room: 30, storage: store) == 30)

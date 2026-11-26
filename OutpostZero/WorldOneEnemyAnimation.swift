@@ -58,29 +58,29 @@ enum WorldOneEnemyAnimation {
 
     private static func profile(_ name: String) -> CharacterAnimationCatalog.Profile? {
         if let existing = CharacterAnimationCatalog.profile(name) { return existing }
-        guard let manifest = WorldTwoCampaign.manifests[name] else { return nil }
+        guard let manifest = FrontierFactionArt.manifest(name) else { return nil }
         let height: Double
         switch name {
-        case "corrosionravager", "blighthydra": height = 101
-        case "toxictyrant": height = 126
-        case "toxicbrute": height = 70
+        case "corrosionravager", "blighthydra", "permafrostcrusher", "frostwyrm", "press_giant", "gantry_warden": height = 101
+        case "toxictyrant", "cryooverlord", "warforge": height = 126
+        case "toxicbrute", "glacierbrute", "bulkhead", "overclock": height = 70
         default: height = 52
         }
-        return .init(name: name, folder: WorldTwoCampaign.folder, pixels: manifest.pixels,
+        return .init(name: name, folder: FrontierFactionArt.folder(name) ?? WorldTwoCampaign.folder, pixels: manifest.pixels,
                      ground: manifest.art_pivot_px[1], idleHeight: manifest.idle_height_px,
                      bodyHeight: height, footY: -16,
                      sequences: manifest.states.mapValues { $0.frames.count }, quarantine: [])
     }
 
     static func worldTwoFrames(enemy: String, sequence: String) -> [SKTexture]? {
-        guard WorldTwoCampaign.manifests[enemy]?.states[sequence] != nil else { return nil }
+        guard FrontierFactionArt.manifest(enemy)?.sequence(sequence) != nil else { return nil }
         return textures(enemy: enemy, motion: .idle, sequence: sequence)
     }
 
     static func textures(enemy: String, motion: Motion, variant: Int = 0, sequence override: String? = nil) -> [SKTexture]? {
         guard let profile = profile(enemy) else { return nil }
         let sequence = override ?? profile.sequence(motion,variant: variant)
-        let manifest = WorldTwoCampaign.manifests[enemy]
+        let manifest = FrontierFactionArt.manifest(enemy)
         let key = enemy+"."+sequence
         if let frames = cache[key] {
             if costs[key] != nil { recent.removeAll { $0 == key }; recent.append(key) }
@@ -100,8 +100,9 @@ enum WorldOneEnemyAnimation {
             unavailable.insert(key); return nil
         }
         var frames: [SKTexture] = []; var bytes = 0
-        let names = manifest?.states[sequence]?.frames.map(WorldTwoCampaign.frameName) ?? profile.frameNames(sequence: sequence)
-        for name in names {
+        let paths = manifest?.sequence(sequence)?.frames
+        let names = paths?.map(WorldTwoCampaign.frameName) ?? profile.frameNames(sequence: sequence)
+        for (index, name) in names.enumerated() {
             let texture: SKTexture
             if enemy == "mossbot" {
                 guard let image = UIImage(named: name), let source = image.cgImage,
@@ -119,7 +120,8 @@ enum WorldOneEnemyAnimation {
                 } else { texture = SKTexture(image: image) }
                 bytes += 512*512*4
             } else {
-                guard let url = Bundle.main.url(forResource: name,withExtension: "png",subdirectory: profile.folder),
+                let subfolder = FrontierFactionArt.folder(enemy).flatMap { folder in paths.map { folder + "/" + ($0[index] as NSString).deletingLastPathComponent } } ?? profile.folder
+                guard let url = Bundle.main.url(forResource: name,withExtension: "png",subdirectory: subfolder),
                       let source = CGImageSourceCreateWithURL(url as CFURL,nil),
                       let props = CGImageSourceCopyPropertiesAtIndex(source,0,nil) as? [CFString:Any],
                       (props[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue == profile.pixels,
@@ -184,7 +186,7 @@ enum WorldOneEnemyAnimation {
                      sequence: String? = nil, frameDuration: TimeInterval? = nil,
                      completion: (() -> Void)? = nil) -> Bool {
         let current = (sprite.userData?[motionKey] as? String).flatMap(Motion.init(rawValue:))
-        let authored = WorldTwoCampaign.manifests[enemy]?.states[sequence ?? (motion == .move ? "run" : motion.rawValue)]
+        let authored = FrontierFactionArt.manifest(enemy)?.sequence(sequence ?? (motion == .move ? "run" : motion.rawValue))
         guard (sequence != nil && current != .defeat ||
                EnemyAnimationRules.canTransition(from: current,to: motion)),
               let p = profile(enemy) else { return false }
@@ -199,7 +201,7 @@ enum WorldOneEnemyAnimation {
         if motion == .attack { sprite.userData?["animationAttackOrdinal"] = ordinal+1 }
         sprite.removeAction(forKey: actionKey); sprite.texture = first
         geometry(p,motion: frames == nil ? .idle : motion,on: sprite)
-        if let manifest = WorldTwoCampaign.manifests[enemy] {
+        if let manifest = FrontierFactionArt.manifest(enemy) {
             sprite.anchorPoint.x = manifest.art_pivot_px[0] / Double(manifest.pixels)
         }
         #if DEBUG
@@ -211,7 +213,13 @@ enum WorldOneEnemyAnimation {
         let action: SKAction
         if let frames {
             let timePerFrame = frameDuration ?? 1/(authored?.fps ?? motion.framesPerSecond)
-            action = .animate(with: frames, timePerFrame: timePerFrame, resize: false, restore: false)
+            if frameDuration == nil, let durations = authored?.frame_durations_ms, durations.count == frames.count {
+                action = .sequence(zip(frames, durations).flatMap { texture, milliseconds in
+                    [SKAction.setTexture(texture), SKAction.wait(forDuration: milliseconds / 1000)]
+                })
+            } else {
+                action = .animate(with: frames, timePerFrame: timePerFrame, resize: false, restore: false)
+            }
         } else if motion == .defeat {
             action = .fadeOut(withDuration: 0.35)
         } else if motion == .hit {
