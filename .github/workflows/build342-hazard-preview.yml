@@ -2,6 +2,8 @@ name: Build 342 focused hazard preview
 on:
   pull_request:
     paths:
+      - 'OutpostZero/ArtAssets/world2_*.png'
+      - 'scripts/validate_toxic_environment.py'
       - 'OutpostZero/OutpostScene.swift'
       - 'OutpostZero/WorldOneEnvironment.swift'
       - 'scripts/check_build342_hazards.py'
@@ -14,7 +16,7 @@ jobs:
   hazard-preview:
     if: github.head_ref == 'feature/build342-legacy-environment-cleanup' || github.ref_name == 'feature/build342-legacy-environment-cleanup'
     runs-on: macos-15
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
@@ -32,6 +34,22 @@ jobs:
           xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build | tee build342-hazard-build.log
           mkdir simulator-app
           ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
+      - name: Validate actual bundled Toxic candidate assets
+        run: |
+          python3 scripts/validate_toxic_environment.py OutpostZero/ArtAssets
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          src = Path("OutpostZero/ArtAssets")
+          bundle = Path("simulator-app/OutpostZero.app")
+          files = list(src.glob("world2_ground_*.png")) + list(src.glob("world2_prop_*.png"))
+          assert len(files) == 10, len(files)
+          for f in files:
+              copies = list(bundle.rglob(f.name))
+              assert len(copies) == 1, (f.name, copies)
+              assert hashlib.sha256(f.read_bytes()).digest() == hashlib.sha256(copies[0].read_bytes()).digest(), f.name
+          print("All ten actual candidate PNGs are in the app bundle, byte-identical.")
+          PY
       - name: Capture actual renderer comparison
         run: |
           set -o pipefail

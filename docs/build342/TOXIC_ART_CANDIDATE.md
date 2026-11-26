@@ -42,3 +42,20 @@ New local candidate: `world2_prop_pipe.png` (246207 bytes; SHA-256 `190560b311fd
 Added `scripts/validate_toxic_environment.py` (requires Pillow), a repeatable candidate preflight for the four ground and six prop PNGs. The local six-file set passed format, clearance, contact, alpha and all 32 edge comparisons. Four prop files are missing. Strict mode returned exit 1 as intended; candidate mode reported no technical errors and technical_complete=false. Negative controls rejected a deliberately altered edge pixel and a misregistered pipe. Hazard art is a separate later gate; technical checks are not visual approval. Pillow emitted a getdata deprecation warning, not a validation error.
 
 Build 342 code at b0400e4 passed iOS compile (45884737723) and World 2 validation (45884737668); campaign 45884737726 was still running at last check. Actual six PNG files remain local, not in GitHub. No legacy rendering route switched on and no changes to main or Build 341 release controls.
+
+## Candidate transfer completed
+
+All ten PNGs from the preserved 5,744,434-byte candidate archive were uploaded byte-for-byte using Git blobs; Git SHA-1 matched the local originals for every asset. Files now live under OutpostZero/ArtAssets on the Build 342 development branch, not main. Latest focused hazard run 45889374092 passed all six captures at prior commit 809f604; iOS compile and full campaign on that commit were still running at last check; World 2 passed. This revision adds a strict bundled-byte check and four authored landscape captures (rooms 1, 6, 11, 30), requiring actual ground tiles and props plus loaded textures, with the dimensional liquid preview active. No production route activated; visual approval, viewport coverage, placement and performance remain outstanding. Vegetation/wall are lower-resolution concept cutouts. 
+
+| Candidate | Exact Git blob SHA |
+|---|---|
+| world2_ground_0.png | 88d93f72676c5ddcaf5720651c9035d19732faed |
+| world2_ground_1.png | 42b58380ab472c4db707e3864243d08bd9055588 |
+| world2_ground_2.png | 26695e3b8725e7f1bfc4e721bda6510f62d7517f |
+| world2_ground_3.png | cba2a47ebac333ec32746c76b82f2be2391efbcd |
+| world2_prop_tank.png | 3bec2398be9002ef7e6a42e66261d24aefebed1e |
+| world2_prop_pipe.png | 281903e157bf5cc1f2c0161beba1f42924a321f9 |
+| world2_prop_debris.png | 60a4f9eb75aa929e0b9829c36ef038824a5ab60f |
+| world2_prop_boulder.png | ef2ede7a702e1a3bfc2497f7b4aa536503e2f991 |
+| world2_prop_vegetation.png | e58153fa89cc2b044666fa7105ea4811812d4c79 |
+| world2_prop_wall.png | 540db4a81d559a8cc9a40169115f0b542efda697 |

@@ -7844,6 +7844,17 @@ final class OutpostScene: SKScene {
         } else {
             precondition(liquids.allSatisfy { $0.childNode(withName: "dimensionalLiquidIdle") == nil })
         }
+        if ProcessInfo.processInfo.arguments.contains("-previewAuthoredToxicEnvironment") {
+            precondition(selectedWorld.id == 1 && preview)
+            guard let root = zoneScenery.childNode(withName: "authoredToxicWorld"),
+                  let ground = root.childNode(withName: "unifiedGround") else {
+                preconditionFailure("Authored Toxic landscape did not load")
+            }
+            let props = root.children.filter { $0.name?.hasPrefix("unifiedScenery_") == true }
+            precondition(!ground.children.isEmpty && !props.isEmpty)
+            precondition(ToxicEnvironmentPlan.productionAssets.allSatisfy { worldOneTexture(named: $0) != nil })
+            print("[BUILD342 AUTHORED TOXIC] room=\(wave) tiles=\(ground.children.count) props=\(props.count)")
+        }
         // This flag is used only on paused QA captures; damage is not applied.
         print("[BUILD342 HAZARDS] fixture=\(selection) liquidCount=\(liquids.count) preview=\(preview)")
         fflush(stdout)
