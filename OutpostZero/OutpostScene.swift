@@ -4574,6 +4574,19 @@ final class OutpostScene: SKScene {
                     shape.fillColor = SKColor(red: 0.16, green: 0.17, blue: 0.14, alpha: 0.88)
                     shape.strokeColor = SKColor(red: 0.25, green: 0.24, blue: 0.18, alpha: 0.7)
                     shape.addChild(art)
+                } else if selectedWorld.id == 3 &&
+                    ProcessInfo.processInfo.arguments.contains("-previewAuthoredFrostEnvironment") &&
+                    FrostEnvironmentPlan.productionAssets.allSatisfy({ worldOneTexture(named: $0) != nil }),
+                    let texture = worldOneTexture(named: wave.isMultiple(of: 3)
+                        ? "world3_prop_wreckage" : "world3_prop_ruin_wall") {
+                    let art = SKSpriteNode(texture: texture)
+                    art.name = "authoredFrostRubble"
+                    let side = min(patch.frame.width,patch.frame.height)
+                    art.size = CGSize(width: side,height: side)
+                    art.zPosition = 0.8
+                    shape.fillColor = SKColor(red: 0.17,green: 0.22,blue: 0.30,alpha: 1)
+                    shape.strokeColor = SKColor(red: 0.32,green: 0.42,blue: 0.52,alpha: 0.7)
+                    shape.addChild(art)
                 } else {
                     decorateRubbleObstacle(shape, size: patch.frame.size)
                 }
@@ -6001,6 +6014,31 @@ final class OutpostScene: SKScene {
                 return
             }
             print("[BUILD342 TOXIC PREVIEW BLOCKED] missing=\(missing.joined(separator: ","))")
+        }
+        if selectedWorld.id == 3 &&
+            ProcessInfo.processInfo.arguments.contains("-previewAuthoredFrostEnvironment") {
+            let missing = FrostEnvironmentPlan.productionAssets.filter { worldOneTexture(named: $0) == nil }
+            if missing.isEmpty {
+                let bounds = roomBounds
+                let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+                let band = CGRect(x: 0,y: bounds.maxY,width: size.width,
+                                  height: max(0,hudBottom-bounds.maxY))
+                let reserved = [entryPoint, authoredGatePosition].map {
+                    CGRect(x: $0.x-64,y: $0.y-64,width: 128,height: 128)
+                }
+                let plan = FrostEnvironmentPlan.make(room: max(1,wave),bounds: bounds,
+                    northBand: band,patches: TerrainHazards.patches(world: 3,room: max(1,wave),bounds: bounds),
+                    reserved: reserved,expanded: expandedArenaPreview)
+                zoneScenery.removeAllChildren()
+                arena.childNode(withName: "campaignExterior")?.removeFromParent()
+                arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+                arena.childNode(withName: "roomArtwork")?.isHidden = true
+                zoneScenery.addChild(FrostEnvironment.make(plan,
+                    texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+                print("[BUILD342 FROST PREVIEW] room=\(wave) landmarks=\(plan.landmarks.count) snowbanks=\(plan.snowbanks.count)")
+                return
+            }
+            print("[BUILD342 FROST PREVIEW BLOCKED] missing=\(missing.joined(separator: ","))")
         }
         #endif
 
