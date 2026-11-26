@@ -8532,7 +8532,11 @@ final class OutpostScene: SKScene {
                 label.text = phase == 2 ? "FURNACE OVERLOAD" : "CORE EXPOSED"
                 label.name = "warforgePhaseNotice"
                 label.fontSize = 14
-                label.fontColor = .systemOrange
+                label.fontColor = phase == 2 ? .systemOrange : .systemCyan
+                if let nameplate = enemy.node.childNode(withName: "guardianBossNameplate") as? SKLabelNode {
+                    nameplate.text = "WARFORGE · " + (phase == 2 ? "OVERLOAD" : "EXPOSED CORE")
+                    nameplate.fontColor = label.fontColor
+                }
                 label.position.y = 150
                 label.zPosition = 15
                 enemy.node.addChild(label)
