@@ -1705,6 +1705,9 @@ final class OutpostScene: SKScene {
         if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341=") }) {
             captureBuild341(String(capture.dropFirst("-captureBuild341=".count)))
         }
+        if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild342Hazards=") }) {
+            captureBuild342Hazards(String(capture.dropFirst("-captureBuild342Hazards=".count)))
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureBuild341StonebackLive") {
             prepareBuild341StonebackLive()
         }
@@ -7789,6 +7792,50 @@ final class OutpostScene: SKScene {
             arena.isPaused = true
         }
         print("[BUILD341 READY] fixture=\(selection) world=\(selectedWorld.title) biome=\(selectedWorld.biome) rooms=\(worldWaveCount) phase=\(phase)")
+        fflush(stdout)
+    }
+
+    /// Presentation-only QA fixture; the ordinary game never invokes it.
+    private func captureBuild342Hazards(_ selection: String) {
+        let parts = selection.split(separator: "-")
+        precondition(parts.count == 3)
+        let state = String(parts[2])
+        precondition(["legacy","active","idle","water"].contains(state))
+        captureBuild341("\(parts[0])-\(parts[1])")
+        let preview = ProcessInfo.processInfo.arguments.contains("-previewDimensionalHazards")
+        precondition(preview == (state != "legacy"))
+        let liquids = hazardScenery.children.compactMap { $0 as? SKShapeNode }.filter {
+            $0.name == "terrain_acid" || $0.name == "terrain_water"
+        }
+        precondition(liquids.count == roomHazards.filter { $0.kind != .rubble }.count && !liquids.isEmpty)
+        if preview {
+            for node in liquids {
+                guard let idle = node.childNode(withName: "dimensionalLiquidIdle") as? SKSpriteNode,
+                      let path = node.path, let texture = idle.texture else {
+                    preconditionFailure("Requested dimensional liquid did not load")
+                }
+                precondition(texture.size().width > 0 && texture.size().height > 0)
+                let kind: TerrainHazards.Kind = node.name == "terrain_acid" ? .acid : .water
+                guard let patch = roomHazards.first(where: { $0.kind == kind &&
+                      abs($0.frame.midX-node.position.x) < 0.01 &&
+                      abs($0.frame.midY-node.position.y) < 0.01 }) else {
+                    preconditionFailure("Liquid node has no authoritative patch")
+                }
+                precondition(idle.size == patch.frame.size && path.boundingBoxOfPath == patch.outlinePath().boundingBoxOfPath)
+                if kind == .acid {
+                    precondition(state == "active" || state == "idle")
+                    precondition(DimensionalLiquidPreview.updateAcid(on: node, active: state == "active"))
+                    precondition(idle.isHidden == (state == "active"))
+                    precondition(node.childNode(withName: "dimensionalLiquidActive")?.isHidden == (state != "active"))
+                } else {
+                    precondition(state == "water" && node.childNode(withName: "dimensionalLiquidActive") == nil)
+                }
+            }
+        } else {
+            precondition(liquids.allSatisfy { $0.childNode(withName: "dimensionalLiquidIdle") == nil })
+        }
+        // This flag is used only on paused QA captures; damage is not applied.
+        print("[BUILD342 HAZARDS] fixture=\(selection) liquidCount=\(liquids.count) preview=\(preview)")
         fflush(stdout)
     }
 

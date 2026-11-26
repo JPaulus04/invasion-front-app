@@ -54,3 +54,15 @@ class EnvironmentLegacyCleanupTests(unittest.TestCase):
         self.assertIn("format.opaque = false", liquid)
         self.assertIn("768/max(w,h)", liquid)
         self.assertNotIn("physicsBody", liquid)
+
+    def test_hazard_review_requires_real_preview_nodes(self):
+        source = (ROOT / "OutpostZero" / "OutpostScene.swift").read_text()
+        fixture = source.split("private func captureBuild342Hazards", 1)[1].split("private func prepareBuild341StonebackLive", 1)[0]
+        self.assertIn("Requested dimensional liquid did not load", fixture)
+        self.assertIn("patch.outlinePath().boundingBoxOfPath", fixture)
+        self.assertIn("DimensionalLiquidPreview.updateAcid", fixture)
+        self.assertIn("[BUILD342 HAZARDS]", fixture)
+        script = (ROOT / "scripts" / "check_build342_hazards.py").read_text()
+        for name in ("2-1-legacy", "2-1-idle", "2-1-active", "2-30-active", "3-1-water", "4-1-water"):
+            self.assertIn(name, script)
+        self.assertIn("Human visual comparison still required", script)

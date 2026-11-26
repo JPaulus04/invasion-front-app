@@ -1,0 +1,46 @@
+name: Build 342 focused hazard preview
+on:
+  pull_request:
+    paths:
+      - 'OutpostZero/OutpostScene.swift'
+      - 'OutpostZero/WorldOneEnvironment.swift'
+      - 'scripts/check_build342_hazards.py'
+      - '.github/workflows/build342-hazard-preview.yml'
+  workflow_dispatch:
+concurrency:
+  group: build342-hazards-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  hazard-preview:
+    if: github.head_ref == 'feature/build342-legacy-environment-cleanup' || github.ref_name == 'feature/build342-legacy-environment-cleanup'
+    runs-on: macos-15
+    timeout-minutes: 25
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Debug simulator app
+        run: |
+          set -o pipefail
+          python3 -m pip install --break-system-packages 'Pillow>=11'
+          brew install xcodegen
+          python3 scripts/generate_icon.py
+          python3 scripts/generate_forest_art.py
+          python3 scripts/generate_pilot_art.py
+          python3 scripts/generate_enemy_art.py
+          xcodegen generate
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build | tee build342-hazard-build.log
+          mkdir simulator-app
+          ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
+      - name: Capture actual renderer comparison
+        run: |
+          set -o pipefail
+          mkdir -p build342-hazard-review
+          python3 scripts/check_build342_hazards.py 2>&1 | tee build342-hazard-review/simulator.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build342-hazard-comparison
+          path: |
+            build342-hazard-build.log
+            build342-hazard-review/
