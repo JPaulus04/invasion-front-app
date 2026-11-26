@@ -44,6 +44,12 @@ def main():
         for fixture in fixtures:
             capture(device, output, fixture, f"-captureBuild341={fixture}",
                     f"[BUILD341 READY] fixture={fixture} ")
+        for name in ("frostfang", "cryogunner", "glacierbrute", "blizzarddrone", "shardstinger",
+                     "permafrostcrusher", "frostwyrm", "cryooverlord",
+                     "bulkhead", "grunt", "rail_skater", "raider", "lobber", "sentry",
+                     "scrapper", "overclock", "press_giant", "gantry_warden", "warforge"):
+            capture(device, output, name, f"-captureBuild341Faction={name}",
+                    f"[BUILD341 FACTION] name={name} ")
 
 
 if __name__ == "__main__":

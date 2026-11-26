@@ -171,6 +171,33 @@ enum WorldOneEnemyAnimation {
         sprite.size = CGSize(width: side,height: side)
         sprite.anchorPoint = CGPoint(x: 0.5,y: 1-p.registeredGround(motion)/Double(p.pixels))
     }
+    static func setWarforgePhase(_ phase: Int, on sprite: SKSpriteNode) {
+        sprite.userData?["warforgePhase"] = phase
+        if sprite.userData?[motionKey] as? String == Motion.idle.rawValue {
+            updateWarforgeIdleLayer(on: sprite)
+        }
+    }
+
+    private static func updateWarforgeIdleLayer(on sprite: SKSpriteNode) {
+        sprite.childNode(withName: "warforgePhaseLayer")?.removeFromParent()
+        guard character(on: sprite) == "warforge",
+              sprite.userData?[motionKey] as? String == Motion.idle.rawValue else { return }
+        let phase = sprite.userData?["warforgePhase"] as? Int ?? 1
+        let names = phase == 1 ? ["warforge_armored_shutters"] :
+            (phase == 2 ? ["warforge_overload_shutters"] : (0..<8).map { String(format: "warforge_core_pulse_%02d", $0) })
+        let textures = names.compactMap { name -> SKTexture? in
+            guard let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "enemies/world4/phase_layers"),
+                  let image = UIImage(contentsOfFile: url.path) else { return nil }
+            return SKTexture(image: image)
+        }
+        guard textures.count == names.count, let first = textures.first else { return }
+        let layer = SKSpriteNode(texture: first, size: sprite.size)
+        layer.name = "warforgePhaseLayer"
+        layer.anchorPoint = sprite.anchorPoint
+        layer.zPosition = 0.1
+        sprite.addChild(layer)
+        if textures.count > 1 { layer.run(.repeatForever(.animate(with: textures, timePerFrame: 0.10))) }
+    }
     static func updateLocomotion(on sprite: SKSpriteNode, moving: Bool, dx: CGFloat) {
         guard let name = character(on: sprite) else { return }
         let next: Motion = moving ? .move : .idle
@@ -204,6 +231,7 @@ enum WorldOneEnemyAnimation {
         if let manifest = FrontierFactionArt.manifest(enemy) {
             sprite.anchorPoint.x = manifest.art_pivot_px[0] / Double(manifest.pixels)
         }
+        if enemy == "warforge" { updateWarforgeIdleLayer(on: sprite) }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-captureBuild337EnemySequence") {
             print("[ENEMY ART] motion=\(motion.rawValue) frames=\(frames?.count ?? 0)")

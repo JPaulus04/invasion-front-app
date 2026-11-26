@@ -64,10 +64,24 @@ enum FrontierFactionArt {
         if world == WorldCatalog.frostIndex { return boss ? frostBosses[room] : frostRegulars[type] }
         guard world == WorldCatalog.ironIndex else { return nil }
         if boss { return ironBosses[room] }
-        if room >= 21 && slot.isMultiple(of: 7) { return "overclock" }
+        if room >= 21 && type == 3 && slot.isMultiple(of: 3) { return "overclock" }
         if type == 2 && slot.isMultiple(of: 2) { return "rail_skater" }
         if type == 0 && room >= 6 && slot.isMultiple(of: 3) { return "scrapper" }
         return ironRegulars[type]
+    }
+    static func activeFrame(character: String, sequence: String) -> Int {
+        if ironNames.contains(character) { return character == "rail_skater" ? 3 : 4 }
+        switch character {
+        case "frostwyrm": return sequence == "attack" ? 5 : 3
+        case "cryooverlord", "cryogunner": return 3
+        case "permafrostcrusher": return 4
+        default: return 4
+        }
+    }
+    static func attackDelay(character: String, sequence: String, state: WorldTwoCampaign.Manifest.Sequence) -> TimeInterval {
+        let active = min(activeFrame(character: character, sequence: sequence), state.frames.count - 1)
+        if let durations = state.frame_durations_ms { return durations.prefix(max(0, active)).reduce(0, +) / 1000 }
+        return Double(max(0, active)) / state.fps
     }
     static func bossName(world: Int, room: Int) -> String? {
         guard let name = character(world: world, room: room, type: 1, slot: 0, boss: true) else { return nil }
