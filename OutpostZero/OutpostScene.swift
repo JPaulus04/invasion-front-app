@@ -158,7 +158,16 @@ final class OutpostScene: SKScene {
         let launchedAt: TimeInterval
         let impactAt: TimeInterval
         let radius: CGFloat
+        var leavesHeat = false
     }
+    private struct WarforgeHeat {
+        let node: SKShapeNode
+        let radius: CGFloat
+        let activeAt: TimeInterval
+        let expiresAt: TimeInterval
+    }
+    private var warforgeHeat: [WarforgeHeat] = []
+    private var warforgeShutdownUntil: TimeInterval = 0
     private var projectiles: [Projectile] = []
     private var lobs: [Lob] = []
     private let hud = SKNode()
@@ -5409,6 +5418,7 @@ final class OutpostScene: SKScene {
         }
         phase = .playing
         arena.isPaused = false
+        warforgeShutdownUntil = 0
         clearHostileAttacks()
         defenseDevice.removeFromParent()
         // Surviving enemies cannot accompany a departing pilot. Discard
@@ -7960,8 +7970,19 @@ final class OutpostScene: SKScene {
                          pilotHealthTrack.position.y < 0)
             if result {
                 precondition(isBoss)
+                if enemies[0].worldTwoCharacter == "warforge" {
+                    // The separate phase fixtures exercise each transition.
+                    // Stage the final defeat after its exposed-core phase.
+                    enemies[0].worldTwoPhase = 3
+                }
                 for index in enemies.indices { enemies[index].health = 0 }
                 removeDefeatedEnemies()
+                if warforgeShutdownUntil > combatTime {
+                    completeWave()
+                    precondition(phase == .playing && !roomCleared)
+                    precondition(arena.childNode(withName: "enemyDefeatVisual") != nil)
+                    combatClock.advance(warforgeShutdownUntil - combatTime + 0.01, playing: true)
+                }
                 precondition(bossNode == nil && RoomRules.isCleared(
                     spawned: spawned, target: waveTarget, living: enemies.count))
                 completeWave()
@@ -8121,6 +8142,18 @@ final class OutpostScene: SKScene {
                 let before = health
                 updateHostileAttacks(delta: 0)
                 precondition(lobs.isEmpty && health < before)
+            }
+            if name == "warforge" && variant == "2" {
+                precondition(lobs[0].leavesHeat)
+                combatClock.advance(max(0, lobs[0].impactAt - combatTime) + 0.01, playing: true)
+                updateHostileAttacks(delta: 0)
+                precondition(lobs.isEmpty && warforgeHeat.count == 1)
+                let zone = warforgeHeat[0]
+                pilotShieldUntil = 0
+                let before = health
+                combatClock.advance(zone.activeAt - combatTime + 0.01, playing: true)
+                updateHostileAttacks(delta: 0)
+                precondition(health < before)
             }
         } else {
             pilot.position = CGPoint(x: enemy.node.position.x, y: enemy.node.position.y - 20)
@@ -8417,7 +8450,8 @@ final class OutpostScene: SKScene {
                     releaseOrigin = art.convert(CGPoint(x: (125 / 512.0 - art.anchorPoint.x) * art.size.width,
                         y: (1 - 115 / 512.0 - art.anchorPoint.y) * art.size.height), to: arena)
                 } else { releaseOrigin = origin }
-                launchLob(from: releaseOrigin, target: target, radius: boss ? 54 : 43, authoredBomb: name == "lobber")
+                launchLob(from: releaseOrigin, target: target, radius: boss ? 54 : 43,
+                          authoredBomb: name == "lobber", leavesHeat: name == "warforge")
                 effect(effectName, at: origin)
             } else {
                 let projectileName = ["cryogunner": "frost_projectile", "cryooverlord": "cryo_projectile",
@@ -8813,7 +8847,8 @@ final class OutpostScene: SKScene {
     }
 
     private func launchLob(from origin: CGPoint, target: CGPoint, radius: CGFloat = 43,
-                           flightTime: TimeInterval = 1.4, showsProjectile: Bool = true, authoredBomb: Bool = false) {
+                           flightTime: TimeInterval = 1.4, showsProjectile: Bool = true,
+                           authoredBomb: Bool = false, leavesHeat: Bool = false) {
         let marker = SKShapeNode(circleOfRadius: radius)
         marker.position = target
         marker.fillColor = .systemOrange.withAlphaComponent(0.23)
@@ -8871,10 +8906,21 @@ final class OutpostScene: SKScene {
         }
         arena.addChild(shell)
         lobs.append(Lob(marker: marker, shell: shell, origin: origin, target: target,
-                        launchedAt: combatTime, impactAt: combatTime + flightTime, radius: radius))
+                        launchedAt: combatTime, impactAt: combatTime + flightTime, radius: radius,
+                        leavesHeat: leavesHeat))
     }
 
     private func updateHostileAttacks(delta: TimeInterval) {
+        for index in warforgeHeat.indices.reversed() {
+            let zone = warforgeHeat[index]
+            if combatTime >= zone.expiresAt {
+                zone.node.removeFromParent()
+                warforgeHeat.remove(at: index)
+            } else if combatTime >= zone.activeAt &&
+                        CombatRules.blastHits(center: zone.node.position, pilot: pilot.position, radius: zone.radius) {
+                damagePilot(5)
+            }
+        }
         for index in projectiles.indices.reversed() {
             let shot = projectiles[index]
             let start = shot.node.position
@@ -8932,6 +8978,17 @@ final class OutpostScene: SKScene {
                     damageDefenseDevice()
                 }
                 impact(at: lob.target, color: .systemOrange, destroyed: true)
+                if lob.leavesHeat {
+                    let zone = SKShapeNode(circleOfRadius: lob.radius)
+                    zone.position = lob.target
+                    zone.strokeColor = .systemRed
+                    zone.fillColor = .systemOrange.withAlphaComponent(0.22)
+                    zone.lineWidth = 3
+                    zone.zPosition = 3
+                    arena.addChild(zone)
+                    warforgeHeat.append(WarforgeHeat(node: zone, radius: lob.radius,
+                        activeAt: combatTime + 0.4, expiresAt: combatTime + 2.5))
+                }
                 lob.marker.removeFromParent()
                 lob.shell.removeFromParent()
                 lobs.remove(at: index)
@@ -8944,6 +9001,8 @@ final class OutpostScene: SKScene {
         for lob in lobs { lob.marker.removeFromParent(); lob.shell.removeFromParent() }
         projectiles.removeAll()
         lobs.removeAll()
+        for zone in warforgeHeat { zone.node.removeFromParent() }
+        warforgeHeat.removeAll()
     }
 
     private func rebuildOrbitingDefenses() {
@@ -9203,7 +9262,11 @@ final class OutpostScene: SKScene {
                                          rank: explosiveLevel,
                                          burning: incendiaryLevel > 0)
         }
-        let totalBulletDamage = damage + permanentDamageBonus + gearWeaponBonus + commanderDamageBonus
+        let baseBulletDamage = damage + permanentDamageBonus + gearWeaponBonus + commanderDamageBonus
+        let foe = enemies[index]
+        let coreExposed = foe.worldTwoCharacter == "warforge" && foe.worldTwoPhase == 3 &&
+            foe.shotTarget == nil && combatTime < foe.nextAttack
+        let totalBulletDamage = baseBulletDamage + (coreExposed ? max(1, baseBulletDamage / 3) : 0)
         // Elemental hits must read differently from ordinary kinetic shots.
         let hitColor: SKColor = explosiveLevel > 0 ? .systemOrange :
             (incendiaryLevel > 0 ? .systemRed :
@@ -9365,6 +9428,16 @@ final class OutpostScene: SKScene {
     private func removeDefeatedEnemies() {
         updateFrontierGuardianPhase()
         updateScrapyardWardenPhase()
+        if let index = enemies.firstIndex(where: { $0.worldTwoCharacter == "warforge" }),
+           enemies[index].worldTwoPhase < 3 {
+            // Heavy hits may cross a threshold, but cannot erase the next
+            // phase entirely. The next attack uses the new phase's pattern.
+            let lowest = enemies[index].worldTwoPhase == 1 ? enemies[index].maxHealth / 3 + 1 : 1
+            if enemies[index].health < lowest {
+                enemies[index].health = lowest
+                updateEnemyHealthBar(at: index)
+            }
+        }
         var defeatedCount = 0
         var paidXPTotal = 0
         for index in enemies.indices.reversed() where enemies[index].health <= 0 {
@@ -9397,9 +9470,14 @@ final class OutpostScene: SKScene {
                                        role: enemies[index].behavior,
                                        isBoss: defeatedBoss)
             if let source = enemies[index].node.childNode(withName: "enemyArt") as? SKSpriteNode {
-                WorldOneEnemyAnimation.defeatCopy(of: source,
+                let showsDefeat = WorldOneEnemyAnimation.defeatCopy(of: source,
                     at: enemies[index].node.position, in: arena,
                     depth: enemies[index].node.zPosition + 0.1)
+                if defeatedBoss, showsDefeat, enemies[index].worldTwoCharacter == "warforge",
+                   let shutdown = FrontierFactionArt.manifests["warforge"]?.states["defeat"] {
+                    clearHostileAttacks()
+                    warforgeShutdownUntil = combatTime + shutdown.duration
+                }
             }
             enemies[index].node.removeFromParent()
             enemies.remove(at: index)
@@ -9492,7 +9570,7 @@ final class OutpostScene: SKScene {
     }
 
     private func completeWave() {
-        guard !roomCleared else { return }
+        guard !roomCleared, combatTime >= warforgeShutdownUntil else { return }
         roomCleared = true
         if qaStationaryRun || qaMovingRun {
             qaRecordState("clear")
@@ -9534,7 +9612,8 @@ final class OutpostScene: SKScene {
 
     @discardableResult
     private func presentPendingLevelUp(returningTo destination: Phase) -> Bool {
-        guard health > 0, progress.pendingChoices > 0 else { return false }
+        guard health > 0, progress.pendingChoices > 0,
+              combatTime >= warforgeShutdownUntil else { return false }
         levelUpReturnPhase = destination
         showLevelUp()
         return true
@@ -10544,6 +10623,7 @@ final class OutpostScene: SKScene {
     }
 
     private func restart() {
+        warforgeShutdownUntil = 0
         for drop in xpDrops { drop.node.removeFromParent() }
         xpDrops.removeAll()
         for enemy in enemies { enemy.node.removeFromParent() }

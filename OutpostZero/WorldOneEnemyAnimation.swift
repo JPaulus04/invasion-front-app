@@ -296,6 +296,7 @@ enum WorldOneEnemyAnimation {
         visual.userData = NSMutableDictionary(dictionary: ["animatedEnemy":name])
         visual.position = CGPoint(x: position.x+source.position.x,y: position.y+source.position.y)
         visual.zPosition = depth; visual.xScale = source.xScale
+        if name == "warforge" { visual.speed = source.speed }
         parent.addChild(visual)
         if !play(.defeat,enemy: name,on: visual,completion: { [weak visual] in visual?.removeFromParent() }) {
             visual.removeFromParent(); return false
