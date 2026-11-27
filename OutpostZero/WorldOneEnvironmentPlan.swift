@@ -348,3 +348,96 @@ enum ToxicEnvironmentPlan {
                     groundBounds: bounds.insetBy(dx: -300,dy: -300), props: props)
     }
 }
+
+
+/// World 3 display number, stable gameplay ID 3. Art-only layout.
+enum FrostEnvironmentPlan {
+    static let propKinds = ["ice_crystal", "frozen_boulder", "wreckage",
+                            "snowbank", "frozen_pillar", "ruin_wall"]
+    static let materials = (0..<4).map { "world3_ground_\($0)" }
+    static var productionAssets: [String] {
+        materials + propKinds.map { "world3_prop_\($0)" }
+    }
+    static let anchorY: CGFloat = 32.0/512.0
+    struct Plan {
+        let room: Int
+        let bounds: CGRect
+        let groundBounds: CGRect
+        let landmarks: [WorldOneEnvironmentPlan.Prop]
+        let snowbanks: [WorldOneEnvironmentPlan.GroundPlant]
+        let rubble: [WorldOneEnvironmentPlan.Prop]
+        func variant(column: Int, row: Int) -> Int {
+            let parity = (column & 1) ^ (row & 1)
+            var hash = UInt64(truncatingIfNeeded: column) &* 0x9E3779B185EBCA87
+            hash ^= UInt64(truncatingIfNeeded: row) &* 0xC2B2AE3D27D4EB4F
+            hash ^= UInt64(truncatingIfNeeded: room) &* 0x165667B19E3779F9
+            hash ^= hash >> 30
+            hash = hash &* 0xBF58476D1CE4E5B9
+            hash ^= hash >> 27
+            return parity + 2*Int(hash & 1)
+        }
+    }
+    static func make(room: Int, bounds: CGRect, northBand: CGRect?,
+                     patches: [TerrainHazards.Patch], reserved: [CGRect],
+                     expanded: Bool) -> Plan {
+        precondition(room > 0 && bounds.width > 0 && bounds.height > 0)
+        var landmarks: [WorldOneEnvironmentPlan.Prop] = []
+        var snowbanks: [WorldOneEnvironmentPlan.GroundPlant] = []
+        var rubble: [WorldOneEnvironmentPlan.Prop] = []
+        // Do not place tall scenery where players can walk through it. For a
+        // fixed camera use the visible north band instead of offscreen props.
+        if !expanded, let band = northBand {
+            let h = min(86, band.height-8, bounds.width/2-85)
+            if h >= 36 {
+                let pairs = [["ice_crystal","frozen_pillar"], ["wreckage","frozen_boulder"],
+                             ["ruin_wall","ice_crystal"], ["frozen_pillar","wreckage"]]
+                let pair = pairs[(room-1)%pairs.count]
+                for (index, kind) in pair.enumerated() {
+                    let x = index == 0 ? bounds.minX+h/2+2 : bounds.maxX-h/2-2
+                    let item = WorldOneEnvironmentPlan.Prop(asset: "world3_prop_\(kind)",
+                        position: CGPoint(x: x,y: band.minY+4+h*anchorY),
+                        size: CGSize(width: h,height: h),anchorY: anchorY,foreground: false)
+                    if band.contains(item.frame), !bounds.intersects(item.frame),
+                       !reserved.contains(where: { $0.intersects(item.frame) }) {
+                        landmarks.append(item)
+                    }
+                }
+            }
+        }
+        // Only the existing solid rubble patch receives a blocking-looking
+        // art skin. Neither its frame nor its collision behavior is changed.
+        for patch in patches where patch.kind == .rubble {
+            let kind = room.isMultiple(of: 3) ? "wreckage" : "ruin_wall"
+            let side = min(patch.frame.width,patch.frame.height)
+            guard side > 0 else { continue }
+            let item = WorldOneEnvironmentPlan.Prop(asset: "world3_prop_\(kind)",
+                position: CGPoint(x: patch.frame.midX,y: patch.frame.midY-side/2+side*anchorY),
+                size: CGSize(width: side,height: side),anchorY: anchorY,foreground: false)
+            if patch.frame.contains(item.frame) { rubble.append(item) }
+        }
+        // Flat snow cover is decorative and placed away from hazards, gates,
+        // objectives and the central approach. Distribute it across survival
+        // camera positions, not only the far perimeter.
+        let columns = expanded ? min(8,max(4,Int(ceil(bounds.width/110)))) : 4
+        let rows = expanded ? min(10,max(4,Int(ceil(bounds.height/120)))) : 5
+        for row in 0..<rows {
+            for column in 0..<columns {
+                let seed = room*97+row*37+column*19
+                let x = bounds.minX+bounds.width*(CGFloat(column)+0.5)/CGFloat(columns)+CGFloat(seed%17-8)
+                let y = bounds.minY+bounds.height*(CGFloat(row)+0.5)/CGFloat(rows)+CGFloat(seed%23-11)
+                guard abs(x-bounds.midX) >= 48 else { continue }
+                let width: CGFloat = 34+CGFloat(seed%19)
+                let item = WorldOneEnvironmentPlan.GroundPlant(asset: "world3_prop_snowbank",
+                    position: CGPoint(x:x,y:y),size: CGSize(width:width,height:width))
+                let frame = item.frame
+                guard bounds.contains(frame),
+                      !patches.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }),
+                      !reserved.contains(where: { $0.intersects(frame) }),
+                      !snowbanks.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }) else { continue }
+                snowbanks.append(item)
+            }
+        }
+        return Plan(room: room,bounds: bounds,groundBounds: bounds.insetBy(dx:-300,dy:-300),
+                    landmarks: landmarks,snowbanks:snowbanks,rubble:rubble)
+    }
+}

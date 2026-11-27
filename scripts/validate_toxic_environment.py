@@ -1,17 +1,33 @@
-"""Validate Toxic Crossing candidate PNGs; this does not grant visual approval."""
+"""Validate authored environment candidates; technical checks never grant visual approval."""
 import argparse
 import hashlib
 import json
 from pathlib import Path
 from PIL import Image
 
-GROUND = [f'world2_ground_{i}.png' for i in range(4)]
-PROPS = [f'world2_prop_{kind}.png' for kind in ('tank', 'pipe', 'debris', 'boulder', 'vegetation', 'wall')]
+# Asset prefixes use display-world numbering, NOT stable gameplay IDs.
+# World 2 -> ID 1; World 3 (Frost Expanse) -> ID 3; World 4 (Iron Wastes) -> ID 2.
+# World 3 and 4 names are proposed production contracts, not delivered assets.
+PROP_KINDS = {
+    2: ('tank', 'pipe', 'debris', 'boulder', 'vegetation', 'wall'),
+    3: ('ice_crystal', 'frozen_boulder', 'wreckage', 'snowbank', 'frozen_pillar', 'ruin_wall'),
+    4: ('scrap_heap', 'broken_machine', 'steel_barrier', 'rusted_tank', 'pipe', 'debris'),
+}
 
 
-def validate(root):
+def asset_names(world):
+    return ([f'world{world}_ground_{i}.png' for i in range(4)],
+            [f'world{world}_prop_{kind}.png' for kind in PROP_KINDS[world]])
+
+
+# Preserve existing import and command-line behavior for Toxic Crossing.
+GROUND, PROPS = asset_names(2)
+
+
+def validate(root, world=2):
+    ground_names, prop_names = asset_names(world)
     errors, missing, assets, ground = [], [], {}, {}
-    for name in GROUND + PROPS:
+    for name in ground_names + prop_names:
         path = root / name
         if not path.is_file():
             missing.append(name)
@@ -21,12 +37,12 @@ def validate(root):
                 im.verify()
             with Image.open(path) as im:
                 im.load()
-                size = 1024 if name in GROUND else 512
+                size = 1024 if name in ground_names else 512
                 if im.format != 'PNG' or im.mode != 'RGBA' or im.size != (size, size):
                     raise ValueError(f'expected {size}x{size} RGBA PNG')
                 alpha = im.getchannel('A')
                 bbox = alpha.getbbox()
-                if name in GROUND:
+                if name in ground_names:
                     if alpha.getextrema() != (255, 255):
                         raise ValueError('ground must be opaque')
                     ground[name] = {side: im.crop(rect).tobytes() for side, rect in {
@@ -49,7 +65,7 @@ def validate(root):
                 pairs += 1
                 if ae[start] != be[end]:
                     errors.append(f'edge mismatch: {a} {start} / {b} {end}')
-    return {'assets': assets, 'missing': missing, 'errors': errors, 'edge_comparisons': pairs,
+    return {'world_display_number': world, 'assets': assets, 'missing': missing, 'errors': errors, 'edge_comparisons': pairs,
             'technical_complete': not errors and not missing and pairs == 32,
             'visual_approved': False}
 
@@ -57,8 +73,10 @@ def validate(root):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('folder', type=Path)
+    parser.add_argument('--world', type=int, choices=sorted(PROP_KINDS), default=2,
+                        help='display world number; defaults to Toxic Crossing (2)')
     parser.add_argument('--allow-incomplete', action='store_true', help='candidate review only; never implies completeness')
     args = parser.parse_args()
-    report = validate(args.folder)
+    report = validate(args.folder, args.world)
     print(json.dumps(report, indent=2))
     raise SystemExit(0 if (report['technical_complete'] or (args.allow_incomplete and not report['errors'])) else 1)

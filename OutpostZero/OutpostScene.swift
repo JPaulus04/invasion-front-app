@@ -4574,6 +4574,19 @@ final class OutpostScene: SKScene {
                     shape.fillColor = SKColor(red: 0.16, green: 0.17, blue: 0.14, alpha: 0.88)
                     shape.strokeColor = SKColor(red: 0.25, green: 0.24, blue: 0.18, alpha: 0.7)
                     shape.addChild(art)
+                } else if selectedWorld.id == 3 &&
+                    ProcessInfo.processInfo.arguments.contains("-previewAuthoredFrostEnvironment") &&
+                    FrostEnvironmentPlan.productionAssets.allSatisfy({ worldOneTexture(named: $0) != nil }),
+                    let texture = worldOneTexture(named: wave.isMultiple(of: 3)
+                        ? "world3_prop_wreckage" : "world3_prop_ruin_wall") {
+                    let art = SKSpriteNode(texture: texture)
+                    art.name = "authoredFrostRubble"
+                    let side = min(patch.frame.width,patch.frame.height)
+                    art.size = CGSize(width: side,height: side)
+                    art.zPosition = 0.8
+                    shape.fillColor = SKColor(red: 0.17,green: 0.22,blue: 0.30,alpha: 1)
+                    shape.strokeColor = SKColor(red: 0.32,green: 0.42,blue: 0.52,alpha: 0.7)
+                    shape.addChild(art)
                 } else {
                     decorateRubbleObstacle(shape, size: patch.frame.size)
                 }
@@ -6001,6 +6014,31 @@ final class OutpostScene: SKScene {
                 return
             }
             print("[BUILD342 TOXIC PREVIEW BLOCKED] missing=\(missing.joined(separator: ","))")
+        }
+        if selectedWorld.id == 3 &&
+            ProcessInfo.processInfo.arguments.contains("-previewAuthoredFrostEnvironment") {
+            let missing = FrostEnvironmentPlan.productionAssets.filter { worldOneTexture(named: $0) == nil }
+            if missing.isEmpty {
+                let bounds = roomBounds
+                let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+                let band = CGRect(x: 0,y: bounds.maxY,width: size.width,
+                                  height: max(0,hudBottom-bounds.maxY))
+                let reserved = [entryPoint, authoredGatePosition].map {
+                    CGRect(x: $0.x-64,y: $0.y-64,width: 128,height: 128)
+                }
+                let plan = FrostEnvironmentPlan.make(room: max(1,wave),bounds: bounds,
+                    northBand: band,patches: TerrainHazards.patches(world: 3,room: max(1,wave),bounds: bounds),
+                    reserved: reserved,expanded: expandedArenaPreview)
+                zoneScenery.removeAllChildren()
+                arena.childNode(withName: "campaignExterior")?.removeFromParent()
+                arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+                arena.childNode(withName: "roomArtwork")?.isHidden = true
+                zoneScenery.addChild(FrostEnvironment.make(plan,
+                    texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+                print("[BUILD342 FROST PREVIEW] room=\(wave) landmarks=\(plan.landmarks.count) snowbanks=\(plan.snowbanks.count)")
+                return
+            }
+            print("[BUILD342 FROST PREVIEW BLOCKED] missing=\(missing.joined(separator: ","))")
         }
         #endif
 
@@ -7999,6 +8037,43 @@ final class OutpostScene: SKScene {
                              "Expanded Toxic arena requires visible low-profile scenery at the actual capture camera")
             }
             print("[BUILD342 AUTHORED TOXIC] room=\(wave) tiles=\(ground.children.count) props=\(props.count) visibleProps=\(props.filter(visible).count) fragments=\(fragments.count) visibleFragments=\(fragments.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
+        }
+        if ProcessInfo.processInfo.arguments.contains("-previewAuthoredFrostEnvironment") {
+            precondition(selectedWorld.id == 3 && preview && state == "water")
+            guard let root = zoneScenery.childNode(withName: "authoredFrostWorld"),
+                  let ground = root.childNode(withName: "unifiedGround") else {
+                preconditionFailure("Authored Frost landscape did not load")
+            }
+            precondition(!ground.children.isEmpty)
+            precondition(FrostEnvironmentPlan.productionAssets.allSatisfy { worldOneTexture(named: $0) != nil })
+            let landmarks = root.children.filter { $0.name?.hasPrefix("unifiedScenery_") == true }
+            let snow = root.children.filter { $0.name == "frostGroundSnow" }
+            let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredFrostRubble") }
+            precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            let viewport = RoomRules.bounds(for: size)
+            func visible(_ node: SKNode) -> Bool {
+                guard let parent = node.parent else { return false }
+                let frame = node.calculateAccumulatedFrame()
+                let a = convert(CGPoint(x: frame.minX,y: frame.minY),from: parent)
+                let b = convert(CGPoint(x: frame.maxX,y: frame.maxY),from: parent)
+                let projected = CGRect(x: min(a.x,b.x),y: min(a.y,b.y),
+                    width: abs(a.x-b.x),height: abs(a.y-b.y))
+                let overlap = viewport.intersection(projected)
+                return !overlap.isNull && overlap.width >= 8 && overlap.height >= 8
+            }
+            if expandedArenaPreview {
+                precondition(snow.filter(visible).count >= 2,
+                             "Expanded Frost arena must display ground scenery")
+            } else {
+                let top = size.height - max(16,view?.safeAreaInsets.top ?? 0) - 88
+                let band = CGRect(x: 0,y: roomBounds.maxY,width: size.width,
+                                  height: max(0,top-roomBounds.maxY))
+                precondition(landmarks.allSatisfy { band.contains($0.calculateAccumulatedFrame()) })
+                if min(86,band.height-8,roomBounds.width/2-85) >= 36 {
+                    precondition(!landmarks.isEmpty, "Frost scenery must populate usable north band")
+                }
+            }
+            print("[BUILD342 AUTHORED FROST] room=\(wave) tiles=\(ground.children.count) landmarks=\(landmarks.count) snow=\(snow.count) visibleSnow=\(snow.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
         }
         // This flag is used only on paused QA captures; damage is not applied.
         print("[BUILD342 HAZARDS] fixture=\(selection) liquidCount=\(liquids.count) preview=\(preview)")

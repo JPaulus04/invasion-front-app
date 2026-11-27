@@ -106,6 +106,42 @@ struct WorldOneEnvironmentTests {
                 precondition(hazards.allSatisfy { h in p.props.allSatisfy { !$0.frame.intersects(h.frame) } })
             }
         }
+        precondition(FrostEnvironmentPlan.productionAssets.count == 10)
+        precondition(Set(FrostEnvironmentPlan.productionAssets).count == 10)
+        precondition(Set(FrostEnvironmentPlan.productionAssets).isDisjoint(with: Set(ToxicEnvironmentPlan.productionAssets)))
+        for (index,bounds) in toxicBounds.enumerated() {
+            let expanded = index == 1
+            let band = CGRect(x:bounds.minX,y:bounds.maxY,width:bounds.width,height:110)
+            let reserved = [CGRect(x:bounds.midX-64,y:bounds.minY,width:128,height:128),
+                            CGRect(x:bounds.midX-64,y:bounds.maxY-128,width:128,height:128)]
+            for room in 1...30 {
+                let patches = TerrainHazards.patches(world:3,room:room,bounds:bounds)
+                let p = FrostEnvironmentPlan.make(room:room,bounds:bounds,northBand:band,
+                    patches:patches,reserved:reserved,expanded:expanded)
+                precondition(p.groundBounds.contains(bounds))
+                precondition(p.landmarks.allSatisfy { band.contains($0.frame) && !$0.frame.intersects(bounds) })
+                if expanded { precondition(p.landmarks.isEmpty) }
+                if index == 0 { precondition(p.landmarks.count == 2) }
+                precondition(p.rubble.count == patches.filter { $0.kind == .rubble }.count)
+                precondition(p.rubble.allSatisfy { prop in
+                    patches.contains { $0.kind == .rubble && $0.frame.contains(prop.frame) }
+                })
+                precondition(p.snowbanks.allSatisfy { snow in
+                    bounds.contains(snow.frame) && !reserved.contains { $0.intersects(snow.frame) } &&
+                    !patches.contains { $0.frame.insetBy(dx:-8,dy:-8).intersects(snow.frame) }
+                })
+                let repeatPlan = FrostEnvironmentPlan.make(room:room,bounds:bounds,northBand:band,
+                    patches:patches,reserved:reserved,expanded:expanded)
+                precondition(p.snowbanks.map { $0.position } == repeatPlan.snowbanks.map { $0.position })
+                for col in -3...3 {
+                    for row in -3...3 {
+                        precondition(p.variant(column:col,row:row) != p.variant(column:col+1,row:row))
+                        precondition(p.variant(column:col,row:row) != p.variant(column:col,row:row+1))
+                    }
+                }
+            }
+        }
+        print("Frost candidate: 90 room/bounds plans, safe landmarks, snow cover and rubble skin")
         print("Toxic candidate: 90 room/bounds plans, deterministic props and hazard clearance")
         print("Four environment identities, corridor traversal, pocket navigation and safe framing passed")
     }
