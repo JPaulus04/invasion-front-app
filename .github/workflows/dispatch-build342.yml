@@ -1,0 +1,32 @@
+name: Queue TestFlight 342
+on:
+  push:
+    branches: [release/dispatch-342-7d2eedf]
+    paths: [.github/workflows/dispatch-build342.yml]
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: dispatch-testflight-build-342
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Start upload from verified main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERIFIED_SHA: 7d2eedf448f8ba9dd9a5c492809c40e89b8255b7
+          VERIFY_RUN: "46030466635"
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GH_REPO/actions/runs/$VERIFY_RUN" --jq '.head_sha + " " + .conclusion')" = "$VERIFIED_SHA success"
+          active_runs="$(gh run list --workflow testflight.yml --branch main --commit "$VERIFIED_SHA" --limit 20 --json status --jq '[.[] | select(.status != "completed")] | length')"
+          test "$active_runs" = 0
+          test "$(gh api "repos/$GH_REPO/branches/main" --jq '.commit.sha')" = "$VERIFIED_SHA"
+          gh workflow run testflight.yml --ref main -f build_number=342 -f verify_only=false -f use_build338_reviewed_evidence=false
