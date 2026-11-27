@@ -56,16 +56,52 @@ jobs:
           ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
       - name: Verify all authored faction resources in the built bundle
         run: python3 scripts/verify_build341_bundle.py --bundle simulator-app/OutpostZero.app > build341-bundle.json
-      - name: Capture campaign and recovery fixtures
-        run: |
-          set -o pipefail
-          mkdir -p build341-review
-          python3 scripts/check_campaign341.py 2>&1 | tee build341-review/simulator.log
+      - name: Package simulator app preserving permissions
+        run: tar -czf simulator-app.tar.gz simulator-app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build341-simulator-app
+          path: simulator-app.tar.gz
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: build341-campaign-captures
+          name: build341-build-evidence
           path: |
             build341.log
             build341-bundle.json
-            build341-review/
+  capture:
+    needs: campaign
+    runs-on: macos-15
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [campaign, performance, characters, recording]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: build341-simulator-app
+          path: .
+      - name: Prepare validation dependencies
+        run: |
+          python3 -m pip install --break-system-packages 'Pillow>=11'
+          tar -xzf simulator-app.tar.gz
+          if [ "${{ matrix.group }}" = recording ]; then
+            command -v ffmpeg || brew install ffmpeg
+            ffmpeg -version
+          fi
+      - name: Capture selected validation group
+        run: |
+          set -o pipefail
+          mkdir -p build341-review
+          python3 scripts/check_campaign341.py --group "${{ matrix.group }}" 2>&1 | tee build341-review/simulator.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build341-captures-${{ matrix.group }}
+          path: build341-review/
+          if-no-files-found: error
