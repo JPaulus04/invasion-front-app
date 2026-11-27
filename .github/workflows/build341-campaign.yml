@@ -14,11 +14,11 @@ on:
   workflow_dispatch:
 concurrency:
   group: build341-campaign-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   campaign:
     runs-on: macos-15
-    timeout-minutes: 36
+    timeout-minutes: 50
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
@@ -37,6 +37,10 @@ jobs:
           "$RUNNER_TEMP/environments"
           swiftc "${common[@]}" "${environment[@]}" tests/WorldOneUnifiedTests.swift -o "$RUNNER_TEMP/unified"
           "$RUNNER_TEMP/unified"
+      - name: Verify recording dependencies
+        run: |
+          command -v ffmpeg || brew install ffmpeg
+          ffmpeg -version
       - name: Build iOS Simulator app
         run: |
           set -o pipefail
