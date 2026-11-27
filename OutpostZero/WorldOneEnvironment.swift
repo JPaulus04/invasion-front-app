@@ -320,6 +320,11 @@ enum DimensionalLiquidPreview {
                 cg.setFillColor(high.withAlphaComponent(0.06+random()*0.12).cgColor)
                 cg.fillEllipse(in: CGRect(x: x-rw/2,y: y-rh/2,width: rw,height: rh))
             }
+            if let bank {
+                blendWaterShoreline(in: cg, path: path, patch: patch,
+                                    bank: bank, random: random)
+                return
+            }
             // Recessed bank and narrow, restrained surface rim, clipped inward.
             cg.setLineJoin(.round)
             cg.addPath(path)
@@ -372,27 +377,6 @@ enum DimensionalLiquidPreview {
                 cg.setLineWidth(1.4)
                 cg.setStrokeColor(low.withAlphaComponent(0.9).cgColor)
                 cg.strokePath()
-            } else if let bank {
-                // Keep the floor-colored lip inside the collision boundary.
-                // Light hits one cut face, while the opposite side falls into shadow.
-                let width = min(14, max(5, min(w,h)*0.20))
-                cg.setLineCap(.round)
-                let vertices = patch.outline.map { CGPoint(x: $0.x*w, y: $0.y*h) }
-                for index in vertices.indices {
-                    let a = vertices[index]
-                    let b = vertices[(index+1)%vertices.count]
-                    let depth = width*(0.70+random()*0.35)
-                    cg.move(to: a)
-                    cg.addLine(to: b)
-                    cg.setLineWidth(depth)
-                    cg.setStrokeColor(low.withAlphaComponent(0.94).cgColor)
-                    cg.strokePath()
-                    cg.move(to: a)
-                    cg.addLine(to: b)
-                    cg.setLineWidth(depth*(b.x >= a.x ? 0.57 : 0.36))
-                    cg.setStrokeColor(bank.withAlphaComponent(0.60+random()*0.29).cgColor)
-                    cg.strokePath()
-                }
             } else {
                 cg.addPath(path)
                 cg.setLineWidth(3.0)
@@ -412,6 +396,54 @@ enum DimensionalLiquidPreview {
             }
         }
     }
+
+    private static func blendWaterShoreline(in cg: CGContext, path: CGPath,
+                                             patch: TerrainHazards.Patch,
+                                             bank: UIColor, random: () -> CGFloat) {
+        let size = patch.frame.size
+        let shallows = min(12, max(4, min(size.width, size.height)*0.16))
+        cg.setLineJoin(.round)
+
+        // Tint the transparent shallows with the local ground palette.
+        // Layered low-opacity bands taper into the deeper water.
+        for step in (1...16).reversed() {
+            cg.addPath(path)
+            cg.setLineWidth(2*shallows*CGFloat(step)/16)
+            cg.setStrokeColor(bank.withAlphaComponent(0.035).cgColor)
+            cg.strokePath()
+        }
+
+        // Let the floor tiles show through near the shoreline. The clip
+        // remains the exact collision path and keeps every mark inside it.
+        cg.setBlendMode(.destinationOut)
+        for step in (1...24).reversed() {
+            cg.addPath(path)
+            cg.setLineWidth(1.5*shallows*CGFloat(step)/24)
+            cg.setStrokeColor(UIColor.black.withAlphaComponent(0.065).cgColor)
+            cg.strokePath()
+        }
+
+        // Soft pockets of exposed floor break up straight edges without
+        // adding a continuous rim or changing the playable shoreline.
+        let colors = [UIColor.black.withAlphaComponent(0.28).cgColor,
+                      UIColor.black.withAlphaComponent(0).cgColor]
+        guard let feather = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                       colors: colors as CFArray, locations: [0, 1]) else { return }
+        let vertices = patch.outline.map { CGPoint(x: $0.x*size.width, y: $0.y*size.height) }
+        for index in vertices.indices {
+            let a = vertices[index]
+            let b = vertices[(index+1)%vertices.count]
+            let count = max(1, Int(hypot(b.x-a.x, b.y-a.y)/(shallows*1.8)))
+            for offset in 0..<count {
+                let fraction = (CGFloat(offset) + 0.2 + random()*0.6)/CGFloat(count)
+                let center = CGPoint(x: a.x+(b.x-a.x)*fraction, y: a.y+(b.y-a.y)*fraction)
+                cg.drawRadialGradient(feather, startCenter: center, startRadius: 0,
+                                      endCenter: center, endRadius: shallows*(0.8+random()*0.65),
+                                      options: [])
+            }
+        }
+    }
+
 }
 
 
