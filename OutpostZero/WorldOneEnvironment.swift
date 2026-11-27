@@ -243,17 +243,17 @@ enum ToxicEnvironment {
 }
 
 
-#if DEBUG
-/// Candidate liquid presentation generated once per room, from the same
+/// Rasterized liquid presentation generated once per room, from the same
 /// immutable polygon that gameplay uses. No collision or per-frame drawing.
 enum DimensionalLiquidPreview {
-    static func install(on node: SKShapeNode, patch: TerrainHazards.Patch, seed: Int) -> Bool {
+    static func install(on node: SKShapeNode, patch: TerrainHazards.Patch,
+                        seed: Int, bank: UIColor? = nil) -> Bool {
         let size = patch.frame.size
         guard patch.kind != .rubble, size.width.isFinite, size.height.isFinite,
               size.width > 1, size.height > 1 else { return false }
         let acid = patch.kind == .acid
-        let idle = surface(patch: patch, seed: seed, active: false)
-        let active = acid ? surface(patch: patch, seed: seed, active: true) : nil
+        let idle = surface(patch: patch, seed: seed, active: false, bank: bank)
+        let active = acid ? surface(patch: patch, seed: seed, active: true, bank: nil) : nil
         node.fillColor = .clear
         node.strokeColor = .clear
         node.glowWidth = 0
@@ -279,7 +279,8 @@ enum DimensionalLiquidPreview {
         return true
     }
 
-    private static func surface(patch: TerrainHazards.Patch, seed: Int, active: Bool) -> UIImage {
+    private static func surface(patch: TerrainHazards.Patch, seed: Int,
+                                active: Bool, bank: UIColor?) -> UIImage {
         let size = patch.frame.size
         let w = size.width, h = size.height
         let acid = patch.kind == .acid
@@ -371,6 +372,27 @@ enum DimensionalLiquidPreview {
                 cg.setLineWidth(1.4)
                 cg.setStrokeColor(low.withAlphaComponent(0.9).cgColor)
                 cg.strokePath()
+            } else if let bank {
+                // Keep the floor-colored lip inside the collision boundary.
+                // Light hits one cut face, while the opposite side falls into shadow.
+                let width = min(14, max(5, min(w,h)*0.20))
+                cg.setLineCap(.round)
+                let vertices = patch.outline.map { CGPoint(x: $0.x*w, y: $0.y*h) }
+                for index in vertices.indices {
+                    let a = vertices[index]
+                    let b = vertices[(index+1)%vertices.count]
+                    let depth = width*(0.70+random()*0.35)
+                    cg.move(to: a)
+                    cg.addLine(to: b)
+                    cg.setLineWidth(depth)
+                    cg.setStrokeColor(low.withAlphaComponent(0.94).cgColor)
+                    cg.strokePath()
+                    cg.move(to: a)
+                    cg.addLine(to: b)
+                    cg.setLineWidth(depth*(b.x >= a.x ? 0.57 : 0.36))
+                    cg.setStrokeColor(bank.withAlphaComponent(0.60+random()*0.29).cgColor)
+                    cg.strokePath()
+                }
             } else {
                 cg.addPath(path)
                 cg.setLineWidth(3.0)
@@ -391,7 +413,6 @@ enum DimensionalLiquidPreview {
         }
     }
 }
-#endif
 
 
 /// Authored Frost Expanse presentation; never changes gameplay geometry.

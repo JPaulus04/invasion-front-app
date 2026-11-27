@@ -4546,6 +4546,16 @@ final class OutpostScene: SKScene {
                 continue
             }
             #endif
+            if patch.kind == .water, let authoredWorld, authoredWorld == 2 || authoredWorld == 3 {
+                let bank = authoredWorld == 3
+                    ? UIColor(red: 0.37, green: 0.47, blue: 0.54, alpha: 1)
+                    : UIColor(red: 0.31, green: 0.27, blue: 0.21, alpha: 1)
+                if DimensionalLiquidPreview.install(on: shape, patch: patch,
+                    seed: wave*31+hazardIndex, bank: bank) {
+                    hazardScenery.addChild(shape)
+                    continue
+                }
+            }
             switch patch.kind {
             case .water:
                 shape.fillColor = SKColor(red: 0.035, green: 0.17, blue: 0.25, alpha: 0.96)
@@ -4572,24 +4582,27 @@ final class OutpostScene: SKScene {
                 shape.lineWidth = 2
                 if authoredWorld == 1,
                     let texture = worldOneTexture(named: "world2_prop_wall") {
-                    installAuthoredRubble(on: shape, texture: texture, name: "authoredToxicRubble",
-                                          canvasCrop: CGRect(x: 34, y: 25, width: 444, height: 355))
+                    hazardScenery.addChild(authoredRubble(at: shape.position, footprint: patch.frame.size,
+                        texture: texture, name: "authoredToxicRubble", canvasCrop: CGRect(x: 34, y: 25, width: 444, height: 355)))
+                    continue
                 } else if authoredWorld == 3,
                     let texture = worldOneTexture(named: wave.isMultiple(of: 3)
                         ? "world3_prop_wreckage" : "world3_prop_ruin_wall") {
                     let crop = wave.isMultiple(of: 3)
                         ? CGRect(x: 30, y: 25, width: 452, height: 335)
                         : CGRect(x: 34, y: 29, width: 444, height: 195)
-                    installAuthoredRubble(on: shape, texture: texture, name: "authoredFrostRubble",
-                                          canvasCrop: crop)
+                    hazardScenery.addChild(authoredRubble(at: shape.position, footprint: patch.frame.size,
+                        texture: texture, name: "authoredFrostRubble", canvasCrop: crop))
+                    continue
                 } else if authoredWorld == 2,
                     let texture = worldOneTexture(named: wave.isMultiple(of: 3)
                         ? "world4_prop_scrap_heap" : "world4_prop_steel_barrier") {
                     let crop = wave.isMultiple(of: 3)
                         ? CGRect(x: 34, y: 29, width: 444, height: 278)
                         : CGRect(x: 34, y: 29, width: 444, height: 254)
-                    installAuthoredRubble(on: shape, texture: texture, name: "authoredIronRubble",
-                                          canvasCrop: crop)
+                    hazardScenery.addChild(authoredRubble(at: shape.position, footprint: patch.frame.size,
+                        texture: texture, name: "authoredIronRubble", canvasCrop: crop))
+                    continue
                 } else {
                     decorateRubbleObstacle(shape, size: patch.frame.size)
                 }
@@ -4641,9 +4654,11 @@ final class OutpostScene: SKScene {
     }
 
 
-    private func installAuthoredRubble(on shape: SKShapeNode, texture: SKTexture,
-                                       name: String, canvasCrop: CGRect) {
-        guard let footprint = shape.path?.boundingBoxOfPath else { return }
+    private func authoredRubble(at position: CGPoint, footprint: CGSize, texture: SKTexture,
+                                name: String, canvasCrop: CGRect) -> SKNode {
+        let obstacle = SKNode()
+        obstacle.name = "terrain_rubble"
+        obstacle.position = position
         // Crop only transparent padding. The 512px source coordinates start
         // at the lower left, as expected by SpriteKit's texture rect.
         let rect = canvasCrop.applying(CGAffineTransform(scaleX: 1.0/512, y: 1.0/512))
@@ -4658,10 +4673,9 @@ final class OutpostScene: SKScene {
         shadow.size = CGSize(width: art.size.width, height: art.size.height*0.32)
         shadow.position.y = -art.size.height*0.38
         shadow.zPosition = 0.2
-        shape.fillColor = .clear
-        shape.strokeColor = .clear
-        shape.addChild(shadow)
-        shape.addChild(art)
+        obstacle.addChild(shadow)
+        obstacle.addChild(art)
+        return obstacle
     }
 
     /// Authored shorelines, shallow bays and reactive industrial runoff use
@@ -7994,7 +8008,8 @@ final class OutpostScene: SKScene {
             $0.name == "terrain_acid" || $0.name == "terrain_water"
         }
         precondition(liquids.count == roomHazards.filter { $0.kind != .rubble }.count && !liquids.isEmpty)
-        if preview {
+        let recessedWater = !legacyEnvironment && (selectedWorld.id == 2 || selectedWorld.id == 3)
+        if preview || recessedWater {
             for node in liquids {
                 guard let idle = node.childNode(withName: "dimensionalLiquidIdle") as? SKSpriteNode,
                       let path = node.path, let texture = idle.texture else {
@@ -8049,6 +8064,8 @@ final class OutpostScene: SKScene {
             let fragments = root.children.filter { $0.name == "toxicGroundFragment" }
             let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredToxicRubble") }
             precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            precondition(rubble.allSatisfy { !($0.parent is SKShapeNode) },
+                         "Authored props must not render a collision shape behind the art")
             // Count actual projected sprite-frame intersections, not simply
             // nodes that may be hidden outside the phone's combat viewport.
             let viewport = RoomRules.bounds(for: size)
@@ -8090,6 +8107,8 @@ final class OutpostScene: SKScene {
             let snow = root.children.filter { $0.name == "frostGroundSnow" }
             let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredFrostRubble") }
             precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            precondition(rubble.allSatisfy { !($0.parent is SKShapeNode) },
+                         "Authored props must not render a collision shape behind the art")
             let viewport = RoomRules.bounds(for: size)
             func visible(_ node: SKNode) -> Bool {
                 guard let parent = node.parent else { return false }
@@ -8127,6 +8146,8 @@ final class OutpostScene: SKScene {
             let fragments = root.children.filter { $0.name == "ironGroundDebris" }
             let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredIronRubble") }
             precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            precondition(rubble.allSatisfy { !($0.parent is SKShapeNode) },
+                         "Authored props must not render a collision shape behind the art")
             let viewport = RoomRules.bounds(for: size)
             func visible(_ node: SKNode) -> Bool {
                 guard let parent = node.parent else { return false }
