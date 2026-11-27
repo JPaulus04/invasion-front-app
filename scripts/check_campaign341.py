@@ -1,4 +1,7 @@
 """Capture the current campaign routes using Debug fixtures in the iOS app."""
+import argparse
+import json
+import os
 from pathlib import Path
 import signal
 import subprocess
@@ -76,8 +79,32 @@ def record_stoneback(device, output):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--group", choices=("all", "campaign", "performance", "characters", "recording"), default="all")
+    args = parser.parse_args()
     output = Path("build341-review").resolve()
     output.mkdir(exist_ok=True)
+    groups = ("campaign", "performance", "characters", "recording") if args.group == "all" else (args.group,)
+    results = {}
+    for group in groups:
+        destination = output / group
+        destination.mkdir(exist_ok=False)
+        try:
+            run_group(group, destination)
+            results[group] = {"status": "passed"}
+        except Exception as error:
+            results[group] = {"status": "failed", "error": repr(error)}
+            print(f"::error::{group}: {error}", flush=True)
+        finally:
+            (output / "results.json").write_text(json.dumps({
+                "source": os.environ.get("GITHUB_SHA"),
+                "groups": results,
+            }, indent=2))
+    if any(result["status"] != "passed" for result in results.values()):
+        raise RuntimeError("One or more mandatory validation groups failed")
+
+
+def run_group(group, output):
     fixtures = [
         "1-1", "1-10", "1-10-result", "1-18", "1-20", "1-20-result",
         "1-30", "1-30-exposed", "1-30-result",
@@ -86,32 +113,34 @@ def main():
         "4-0", "4-10-result", "4-15", "4-20-result", "4-29", "4-30-result",
     ]
     with focused_simulator("build341", output) as device:
-        capture(device, output, "legacy-iron-recovery", "-captureRecoveryScreenshot",
-                "[BUILD341 MIGRATED]")
-        capture(device, output, "legacy-frontier-recovery", "-captureBuild341LegacyFrontier",
-                "[BUILD341 MIGRATED] Frontier Forest continued from Room 20 to Room 21")
-        for fixture in fixtures:
-            capture(device, output, fixture, f"-captureBuild341={fixture}",
-                    f"[BUILD341 READY] fixture={fixture} ")
-        for world in (3, 4):
-            capture(device, output, f"performance-world{world}",
-                    f"-captureBuild341Performance={world}", "[BUILD341 PERF]")
-        for name in ("frostfang", "cryogunner", "glacierbrute", "blizzarddrone", "shardstinger",
-                     "permafrostcrusher", "frostwyrm", "cryooverlord",
-                     "bulkhead", "grunt", "rail_skater", "raider", "lobber", "sentry",
-                     "scrapper", "overclock", "press_giant", "gantry_warden", "warforge"):
-            capture(device, output, name, f"-captureBuild341Faction={name}",
-                    f"[BUILD341 FACTION] name={name} ")
-        for name, variant in (("warforge", "2"), ("warforge", "3"),
-                              ("cryooverlord", "phase2"), ("frostwyrm", "burrow"),
-                              ("press_giant", "alternate"), ("gantry_warden", "alternate"),
-                              ("permafrostcrusher", "alternate"), ("frostwyrm", "alternate"),
-                              ("cryooverlord", "alternate"), ("cryooverlord", "freeze")):
-            capture(device, output, f"{name}-{variant}", f"-captureBuild341Faction={name}:{variant}",
-                    f"[BUILD341 FACTION] name={name} variant={variant} ")
-
-        # Recording failure must not suppress unrelated evidence.
-        record_stoneback(device, output)
+        if group == "campaign":
+            capture(device, output, "legacy-iron-recovery", "-captureRecoveryScreenshot",
+                    "[BUILD341 MIGRATED]")
+            capture(device, output, "legacy-frontier-recovery", "-captureBuild341LegacyFrontier",
+                    "[BUILD341 MIGRATED] Frontier Forest continued from Room 20 to Room 21")
+            for fixture in fixtures:
+                capture(device, output, fixture, f"-captureBuild341={fixture}",
+                        f"[BUILD341 READY] fixture={fixture} ")
+        elif group == "performance":
+            for world in (3, 4):
+                capture(device, output, f"performance-world{world}",
+                        f"-captureBuild341Performance={world}", "[BUILD341 PERF]")
+        elif group == "characters":
+            for name in ("frostfang", "cryogunner", "glacierbrute", "blizzarddrone", "shardstinger",
+                         "permafrostcrusher", "frostwyrm", "cryooverlord",
+                         "bulkhead", "grunt", "rail_skater", "raider", "lobber", "sentry",
+                         "scrapper", "overclock", "press_giant", "gantry_warden", "warforge"):
+                capture(device, output, name, f"-captureBuild341Faction={name}",
+                        f"[BUILD341 FACTION] name={name} ")
+            for name, variant in (("warforge", "2"), ("warforge", "3"),
+                                  ("cryooverlord", "phase2"), ("frostwyrm", "burrow"),
+                                  ("press_giant", "alternate"), ("gantry_warden", "alternate"),
+                                  ("permafrostcrusher", "alternate"), ("frostwyrm", "alternate"),
+                                  ("cryooverlord", "alternate"), ("cryooverlord", "freeze")):
+                capture(device, output, f"{name}-{variant}", f"-captureBuild341Faction={name}:{variant}",
+                        f"[BUILD341 FACTION] name={name} variant={variant} ")
+        elif group == "recording":
+            record_stoneback(device, output)
 
 
 if __name__ == "__main__":
