@@ -142,6 +142,43 @@ struct WorldOneEnvironmentTests {
             }
         }
         print("Frost candidate: 90 room/bounds plans, safe landmarks, snow cover and rubble skin")
+        precondition(IronEnvironmentPlan.productionAssets.count == 10)
+        precondition(Set(IronEnvironmentPlan.productionAssets).count == 10)
+        precondition(Set(IronEnvironmentPlan.productionAssets).isDisjoint(with: Set(ToxicEnvironmentPlan.productionAssets)))
+        precondition(Set(IronEnvironmentPlan.productionAssets).isDisjoint(with: Set(FrostEnvironmentPlan.productionAssets)))
+        for (index,bounds) in toxicBounds.enumerated() {
+            let expanded = index == 1
+            let band = CGRect(x:bounds.minX,y:bounds.maxY,width:bounds.width,height:110)
+            let reserved = [CGRect(x:bounds.midX-64,y:bounds.minY,width:128,height:128),
+                            CGRect(x:bounds.midX-64,y:bounds.maxY-128,width:128,height:128)]
+            for room in 1...30 {
+                let patches = TerrainHazards.patches(world:2,room:room,bounds:bounds)
+                let p = IronEnvironmentPlan.make(room:room,bounds:bounds,northBand:band,
+                    patches:patches,reserved:reserved,expanded:expanded)
+                precondition(p.groundBounds.contains(bounds))
+                precondition(p.landmarks.allSatisfy { band.contains($0.frame) && !$0.frame.intersects(bounds) })
+                if expanded { precondition(p.landmarks.isEmpty) }
+                if index == 0 { precondition(p.landmarks.count == 2) }
+                precondition(p.rubble.count == patches.filter { $0.kind == .rubble }.count)
+                precondition(p.rubble.allSatisfy { prop in
+                    patches.contains { $0.kind == .rubble && $0.frame.contains(prop.frame) }
+                })
+                precondition(p.fragments.allSatisfy { snow in
+                    bounds.contains(snow.frame) && !reserved.contains { $0.intersects(snow.frame) } &&
+                    !patches.contains { $0.frame.insetBy(dx:-8,dy:-8).intersects(snow.frame) }
+                })
+                let repeatPlan = IronEnvironmentPlan.make(room:room,bounds:bounds,northBand:band,
+                    patches:patches,reserved:reserved,expanded:expanded)
+                precondition(p.fragments.map { $0.position } == repeatPlan.fragments.map { $0.position })
+                for col in -3...3 {
+                    for row in -3...3 {
+                        precondition(p.variant(column:col,row:row) != p.variant(column:col+1,row:row))
+                        precondition(p.variant(column:col,row:row) != p.variant(column:col,row:row+1))
+                    }
+                }
+            }
+        }
+        print("Iron candidate: 90 room/bounds plans, safe landmarks, debris and rubble skin")
         print("Toxic candidate: 90 room/bounds plans, deterministic props and hazard clearance")
         print("Four environment identities, corridor traversal, pocket navigation and safe framing passed")
     }
