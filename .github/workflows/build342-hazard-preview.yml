@@ -1,0 +1,67 @@
+name: Build 342 focused hazard preview
+on:
+  pull_request:
+    paths:
+      - 'OutpostZero/ArtAssets/world2_*.png'
+      - 'scripts/validate_toxic_environment.py'
+      - 'scripts/check_art_sprites.py'
+      - 'OutpostZero/OutpostScene.swift'
+      - 'OutpostZero/WorldOneEnvironment.swift'
+      - 'OutpostZero/WorldShowcase.swift'
+      - 'scripts/check_build342_hazards.py'
+      - '.github/workflows/build342-hazard-preview.yml'
+  workflow_dispatch:
+concurrency:
+  group: build342-hazards-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  hazard-preview:
+    if: contains(fromJSON('["feature/build342-legacy-environment-cleanup","feature/build342-integration"]'), github.head_ref || github.ref_name)
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Debug simulator app
+        run: |
+          set -o pipefail
+          python3 -m pip install --break-system-packages 'Pillow>=11'
+          brew install xcodegen
+          python3 scripts/generate_icon.py
+          python3 scripts/generate_forest_art.py
+          python3 scripts/generate_pilot_art.py
+          python3 scripts/generate_enemy_art.py
+          xcodegen generate
+          # Keep candidate PNG bytes unchanged for the strict source/bundle comparison.
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO COMPRESS_PNG_FILES=NO STRIP_PNG_TEXT=NO build | tee build342-hazard-build.log
+          mkdir simulator-app
+          ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
+      - name: Validate actual bundled Toxic candidate assets
+        run: |
+          python3 scripts/validate_toxic_environment.py OutpostZero/ArtAssets
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          src = Path("OutpostZero/ArtAssets")
+          bundle = Path("simulator-app/OutpostZero.app")
+          files = list(src.glob("world2_ground_*.png")) + list(src.glob("world2_prop_*.png"))
+          assert len(files) == 10, len(files)
+          for f in files:
+              copies = list(bundle.rglob(f.name))
+              assert len(copies) == 1, (f.name, copies)
+              assert hashlib.sha256(f.read_bytes()).digest() == hashlib.sha256(copies[0].read_bytes()).digest(), f.name
+          print("All ten actual candidate PNGs are in the app bundle, byte-identical.")
+          PY
+      - name: Capture actual renderer comparison
+        run: |
+          set -o pipefail
+          mkdir -p build342-hazard-review
+          python3 scripts/check_build342_hazards.py 2>&1 | tee build342-hazard-review/simulator.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build342-hazard-comparison
+          path: |
+            build342-hazard-build.log
+            build342-hazard-review/

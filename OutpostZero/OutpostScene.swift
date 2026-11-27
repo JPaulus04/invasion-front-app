@@ -1705,6 +1705,9 @@ final class OutpostScene: SKScene {
         if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild341=") }) {
             captureBuild341(String(capture.dropFirst("-captureBuild341=".count)))
         }
+        if let capture = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("-captureBuild342Hazards=") }) {
+            captureBuild342Hazards(String(capture.dropFirst("-captureBuild342Hazards=".count)))
+        }
         if ProcessInfo.processInfo.arguments.contains("-captureBuild341StonebackLive") {
             prepareBuild341StonebackLive()
         }
@@ -3323,28 +3326,28 @@ final class OutpostScene: SKScene {
         // Give the physical island the majority of the hero region instead
         // of rendering it as a small illustration between UI labels.
         let stageWidth = min(size.width - 18, 390)
-        let diorama = WorldShowcase.island(world: world.id, locked: !unlocked,
-            width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
-        diorama.name = "worldDiorama"
         // Prefer authored island art where the biome matches the destination.
         // Never display the lava or void concept as an unrelated playable world.
         let islandAssets: [Int: String] = [
             0: "world_forest_island",
+            1: "world_toxic_island",
+            2: "world_iron_island",
             3: "world_ice_island",
             4: "world_lava_island",
             8: "world_ice_island",
             12: "world_void_island"
         ]
         if let assetName = islandAssets[world.id],
-           let image = UIImage(named: assetName) {
+           let image = productionImage(named: assetName) {
             let islandTexture = SKTexture(image: image)
             islandTexture.filteringMode = .linear
             let islandSprite = SKSpriteNode(texture: islandTexture)
             islandSprite.name = "worldDiorama"
             let dimensions = islandTexture.size()
-            let width = min(size.width - 20, 345) * scale
-            islandSprite.size = CGSize(width: width,
-                height: min((260) * scale, width * dimensions.height / max(1, dimensions.width)))
+            let maxWidth = min(size.width - 20, 345) * scale
+            let maxHeight = 260 * scale
+            let factor = min(maxWidth/max(1, dimensions.width), maxHeight/max(1, dimensions.height))
+            islandSprite.size = CGSize(width: dimensions.width*factor, height: dimensions.height*factor)
             islandSprite.position = CGPoint(x: 0, y: 0)
             islandSprite.zPosition = 2
             islandSprite.alpha = unlocked ? 1 : 0.5
@@ -3360,6 +3363,10 @@ final class OutpostScene: SKScene {
                                  withKey: "homeIslandFloat")
             }
         } else {
+            // Construct the procedural fallback only when no authored island resolves.
+            let diorama = WorldShowcase.island(world: world.id, locked: !unlocked,
+                width: stageWidth, texture: { [weak self] in self?.worldOneTexture(named: $0) })
+            diorama.name = "worldDiorama"
             diorama.position.y = 4 * scale
             diorama.setScale(1.18 * scale)
             diorama.zPosition = 2
@@ -4486,6 +4493,22 @@ final class OutpostScene: SKScene {
         return true
     }
 
+    private var authoredEnvironmentWorldID: Int? {
+        guard wave > 0 else { return nil }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-captureBuild342LegacyEnvironment") { return nil }
+        #endif
+        let id = selectedWorld.id
+        let assets: [String]
+        switch id {
+        case 1: assets = ToxicEnvironmentPlan.productionAssets
+        case 3: assets = FrostEnvironmentPlan.productionAssets
+        case 2: assets = IronEnvironmentPlan.productionAssets
+        default: return nil
+        }
+        return assets.allSatisfy { worldOneTexture(named: $0) != nil } ? id : nil
+    }
+
     private func rebuildTerrainHazards() {
         hazardScenery.removeAllChildren()
         acidVisualNodes.removeAll()
@@ -4499,6 +4522,7 @@ final class OutpostScene: SKScene {
                     frame: $0.offsetBy(dx: roomBounds.minX, dy: roomBounds.minY), outline: [])
             }
         }
+        let authoredWorld = authoredEnvironmentWorldID
         for (hazardIndex, patch) in roomHazards.enumerated() {
             if worldMapIndex == 0 && worldOneLiveLayout?.kind == .passage &&
                 !ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot") {
@@ -4511,6 +4535,17 @@ final class OutpostScene: SKScene {
             shape.position = CGPoint(x: patch.frame.midX, y: patch.frame.midY)
             shape.lineWidth = 1.65
             shape.zPosition = 0
+            #if DEBUG
+            // Preview only; compare actual device-scale captures before replacing
+            // the existing production liquid visuals. Physics remains unchanged.
+            if patch.kind != .rubble && selectedWorld.id != 0 &&
+                ProcessInfo.processInfo.arguments.contains("-previewDimensionalHazards"),
+                DimensionalLiquidPreview.install(on: shape, patch: patch, seed: wave*31+hazardIndex) {
+                if patch.kind == .acid { acidVisualNodes.append(shape) }
+                hazardScenery.addChild(shape)
+                continue
+            }
+            #endif
             switch patch.kind {
             case .water:
                 shape.fillColor = SKColor(red: 0.035, green: 0.17, blue: 0.25, alpha: 0.96)
@@ -4535,7 +4570,29 @@ final class OutpostScene: SKScene {
                     ? SKColor(red: 0.12, green: 0.23, blue: 0.26, alpha: 1)
                     : SKColor(red: 0.13, green: 0.19, blue: 0.18, alpha: 1)
                 shape.lineWidth = 2
-                decorateRubbleObstacle(shape, size: patch.frame.size)
+                if authoredWorld == 1,
+                    let texture = worldOneTexture(named: "world2_prop_wall") {
+                    installAuthoredRubble(on: shape, texture: texture, name: "authoredToxicRubble",
+                                          canvasCrop: CGRect(x: 34, y: 25, width: 444, height: 355))
+                } else if authoredWorld == 3,
+                    let texture = worldOneTexture(named: wave.isMultiple(of: 3)
+                        ? "world3_prop_wreckage" : "world3_prop_ruin_wall") {
+                    let crop = wave.isMultiple(of: 3)
+                        ? CGRect(x: 30, y: 25, width: 452, height: 335)
+                        : CGRect(x: 34, y: 29, width: 444, height: 195)
+                    installAuthoredRubble(on: shape, texture: texture, name: "authoredFrostRubble",
+                                          canvasCrop: crop)
+                } else if authoredWorld == 2,
+                    let texture = worldOneTexture(named: wave.isMultiple(of: 3)
+                        ? "world4_prop_scrap_heap" : "world4_prop_steel_barrier") {
+                    let crop = wave.isMultiple(of: 3)
+                        ? CGRect(x: 34, y: 29, width: 444, height: 278)
+                        : CGRect(x: 34, y: 29, width: 444, height: 254)
+                    installAuthoredRubble(on: shape, texture: texture, name: "authoredIronRubble",
+                                          canvasCrop: crop)
+                } else {
+                    decorateRubbleObstacle(shape, size: patch.frame.size)
+                }
             }
             // Prefer authored transparent terrain illustrations when bundled.
             // They are presentation-only: the exact polygon above remains the
@@ -4567,7 +4624,7 @@ final class OutpostScene: SKScene {
             // A subdued offset shadow gives solid obstacles a grounded edge.
             // Keep liquid silhouettes unshadowed so their shorelines remain
             // aligned with the gameplay hazard polygon.
-            if patch.kind == .rubble, let silhouette = shape.path {
+            if patch.kind == .rubble, shape.fillColor != .clear, let silhouette = shape.path {
                 let groundShadow = SKShapeNode(path: silhouette)
                 groundShadow.name = "rubbleContactShadow"
                 groundShadow.position = CGPoint(x: shape.position.x + 4,
@@ -4583,6 +4640,29 @@ final class OutpostScene: SKScene {
         }
     }
 
+
+    private func installAuthoredRubble(on shape: SKShapeNode, texture: SKTexture,
+                                       name: String, canvasCrop: CGRect) {
+        guard let footprint = shape.path?.boundingBoxOfPath else { return }
+        // Crop only transparent padding. The 512px source coordinates start
+        // at the lower left, as expected by SpriteKit's texture rect.
+        let rect = canvasCrop.applying(CGAffineTransform(scaleX: 1.0/512, y: 1.0/512))
+        let cropped = SKTexture(rect: rect, in: texture)
+        cropped.filteringMode = .linear
+        let art = SKSpriteNode(texture: cropped)
+        art.name = name
+        let scale = min(footprint.width/canvasCrop.width, footprint.height/canvasCrop.height)
+        art.size = CGSize(width: canvasCrop.width*scale, height: canvasCrop.height*scale)
+        art.zPosition = 0.8
+        let shadow = SKSpriteNode(texture: ProductionPresentation.glow(.black.withAlphaComponent(0.48)))
+        shadow.size = CGSize(width: art.size.width, height: art.size.height*0.32)
+        shadow.position.y = -art.size.height*0.38
+        shadow.zPosition = 0.2
+        shape.fillColor = .clear
+        shape.strokeColor = .clear
+        shape.addChild(shadow)
+        shape.addChild(art)
+    }
 
     /// Authored shorelines, shallow bays and reactive industrial runoff use
     /// the same polygon silhouette as game logic; all details are decorative.
@@ -4966,6 +5046,9 @@ final class OutpostScene: SKScene {
         if displayedAcidActive != acidOn {
             displayedAcidActive = acidOn
             for shape in acidVisualNodes {
+                #if DEBUG
+                if DimensionalLiquidPreview.updateAcid(on: shape, active: acidOn) { continue }
+                #endif
                 // Illustrated pools must remain transparent above their
                 // authored texture when the hazard toggles on/off.
                 if let illustration = shape.childNode(withName: "illustratedTerrain")
@@ -5577,34 +5660,6 @@ final class OutpostScene: SKScene {
         saveRunRecovery()
     }
 
-    private lazy var forestPineTexture: SKTexture = {
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 72, height: 100))
-        let image = renderer.image { context in
-            let cg = context.cgContext
-            cg.setFillColor(UIColor(red: 0.27, green: 0.19, blue: 0.13, alpha: 1).cgColor)
-            cg.fill(CGRect(x: 32, y: 67, width: 9, height: 28))
-            for (level, width) in [(0, 26.0), (1, 31.0), (2, 35.0)] {
-                let y = CGFloat(8 + level * 21)
-                let half = CGFloat(width)
-                let path = UIBezierPath()
-                path.move(to: CGPoint(x: 36, y: y))
-                path.addLine(to: CGPoint(x: 36 - half, y: y + 39))
-                path.addQuadCurve(to: CGPoint(x: 36 + half, y: y + 39),
-                                  controlPoint: CGPoint(x: 36, y: y + 32))
-                path.close()
-                UIColor(red: 0.08 + CGFloat(level) * 0.025, green: 0.31 + CGFloat(level) * 0.045,
-                        blue: 0.24 + CGFloat(level) * 0.015, alpha: 1).setFill()
-                path.fill()
-                cg.setStrokeColor(UIColor(red: 0.32, green: 0.65, blue: 0.48, alpha: 0.6).cgColor)
-                cg.setLineWidth(1.5)
-                cg.move(to: CGPoint(x: 35, y: y + 6))
-                cg.addLine(to: CGPoint(x: 21, y: y + 30))
-                cg.strokePath()
-            }
-        }
-        return SKTexture(image: image)
-    }()
-
     private func worldColor(for zone: Int) -> SKColor {
         if worldMapIndex == 0 { return zoneColors[min(3, max(0, zone))] }
         if selectedWorld.biome == 4 { return SKColor(red: 0.16, green: 0.30, blue: 0.44, alpha: 1) }
@@ -5871,16 +5926,158 @@ final class OutpostScene: SKScene {
         }
         arena.childNode(withName: "roomArtwork")?.isHidden = false
 
-        // Later worlds emphasize industrial ruins rather than using the
-        // forest's illustrated pines for every environment.
-        let zone = worldMapIndex == 0 ? requestedZone :
-            (selectedWorld.biome == 1 ? max(1, requestedZone) : max(2, requestedZone))
+        // Use the complete pack for this world or fall back to its legacy scenery.
+        switch authoredEnvironmentWorldID {
+        case 1?:
+            let plan = ToxicEnvironmentPlan.make(room: max(1,wave), bounds: roomBounds,
+                aspect: { [weak self] name in
+                    guard let texture = self?.worldOneTexture(named: name) else { return 1 }
+                    return texture.size().width/max(1,texture.size().height)
+                })
+            zoneScenery.removeAllChildren()
+            arena.childNode(withName: "campaignExterior")?.removeFromParent()
+            arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+            arena.childNode(withName: "roomArtwork")?.isHidden = true
+            let root = ToxicEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) })
+            // In fixed-camera rooms the playable rectangle ends well
+            // below the HUD. Use the actual visible nonwalkable north
+            // strip, rather than relying on offscreen perimeter counts.
+            if !expandedArenaPreview {
+                let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+                let bandBottom = roomBounds.maxY + 4
+                let height = min(78, hudBottom - bandBottom - 8,
+                                 max(0, roomBounds.width/2 - 96))
+                if height >= 38 {
+                    let anchor = ToxicEnvironmentPlan.propAnchorY
+                    let names: [String]
+                    switch plan.theme {
+                    case .containment: names = ["world2_prop_tank", "world2_prop_wall"]
+                    case .runoff: names = ["world2_prop_pipe", "world2_prop_vegetation"]
+                    case .ruins: names = ["world2_prop_boulder", "world2_prop_wall"]
+                    case .boss: names = ["world2_prop_wall", "world2_prop_tank"]
+                    }
+                    for (index, name) in names.enumerated() {
+                        let x = index == 0 ? roomBounds.minX+height/2+3 : roomBounds.maxX-height/2-3
+                        let position = CGPoint(x: x,y: bandBottom+height*anchor)
+                        let frame = CGRect(x: x-height/2,y: bandBottom,width: height,height: height)
+                        guard !frame.intersects(roomBounds),
+                              abs(x-roomBounds.midX) >= 80+height/2 else { continue }
+                        AuthoredEnvironmentRenderer.installGroundedProp(asset: name,
+                            position: position, size: CGSize(width: height,height: height),
+                            anchorY: anchor, bounds: roomBounds, in: root,
+                            texture: { [weak self] in self?.worldOneTexture(named: $0) })
+                        root.children.last?.name = "toxicNorthLandmark"
+                    }
+                }
+            }
+            // Flat, nonblocking fragments are the only new art allowed
+            // inside the walkable area. Large solid props stay outside.
+            let patches = TerrainHazards.patches(world: 1, room: max(1, wave), bounds: roomBounds)
+            let reserved = [entryPoint, authoredGatePosition].map {
+                CGRect(x: $0.x-64, y: $0.y-64, width: 128, height: 128)
+            }
+            if let debris = worldOneTexture(named: "world2_prop_debris") {
+                var occupied: [CGRect] = []
+                func addFragment(x: CGFloat, y: CGFloat, width: CGFloat, facing: Int, angle: CGFloat = 0) {
+                    let height = width * 0.65
+                    // Reserve the rotated sprite's full envelope, including
+                    // a margin so loose fragments never touch hazard rims.
+                    let envelope = CGRect(x: x-width*0.65, y: y-width*0.65,
+                                          width: width*1.3, height: width*1.3)
+                    guard roomBounds.contains(envelope),
+                          !patches.contains(where: { $0.frame.insetBy(dx: -8, dy: -8).intersects(envelope) }),
+                          !reserved.contains(where: { $0.intersects(envelope) }),
+                          !occupied.contains(where: { $0.intersects(envelope.insetBy(dx: -12, dy: -12)) }) else { return }
+                    let fragment = SKSpriteNode(texture: debris)
+                    fragment.name = "toxicGroundFragment"
+                    fragment.position = CGPoint(x: x, y: y)
+                    fragment.size = CGSize(width: width, height: height)
+                    fragment.xScale = CGFloat(facing)
+                    fragment.zRotation = angle
+                    fragment.alpha = 0.75
+                    fragment.zPosition = -12
+                    root.addChild(fragment)
+                    occupied.append(envelope)
+                }
+                // Tactical rooms retain their verified edge layout.
+                for side in [-1, 1] {
+                    for (index, fraction) in [CGFloat(0.12), 0.29, 0.47, 0.65, 0.84].enumerated() {
+                        let width: CGFloat = 30+CGFloat((index+wave)%3)*4
+                        let inset = max(22, width*0.65+1)
+                        let x = side < 0 ? roomBounds.minX+inset : roomBounds.maxX-inset
+                        let y = roomBounds.minY+roomBounds.height*fraction
+                        addFragment(x: x, y: y, width: width, facing: side)
+                    }
+                }
+                if expandedArenaPreview {
+                    // A survival camera sees only part of the larger map.
+                    // Scatter sparse, ankle-height, nonblocking fragments
+                    // through interior side lanes as well as the perimeter.
+                    // Keep the center approach open and the work bounded.
+                    let columns = min(8, max(4, Int(ceil(roomBounds.width/120))))
+                    let rows = min(10, max(4, Int(ceil(roomBounds.height/135))))
+                    for row in 0..<rows {
+                        for column in 0..<columns {
+                            let seed = wave*97 + row*37 + column*19
+                            let dx = CGFloat(seed%23-11)
+                            let dy = CGFloat((seed*7)%31-15)
+                            let x = roomBounds.minX + roomBounds.width*(CGFloat(column)+0.5)/CGFloat(columns) + dx
+                            let y = roomBounds.minY + roomBounds.height*(CGFloat(row)+0.5)/CGFloat(rows) + dy
+                            guard abs(x-roomBounds.midX) >= 46 else { continue }
+                            addFragment(x: x, y: y, width: CGFloat(25+seed%10),
+                                        facing: seed.isMultiple(of: 2) ? 1 : -1,
+                                        angle: CGFloat(seed%7-3)*0.12)
+                        }
+                    }
+                }
+            }
+            zoneScenery.addChild(root)
+            return
+        case 3?:
+            let bounds = roomBounds
+            let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+            let band = CGRect(x: 0,y: bounds.maxY,width: size.width,
+                              height: max(0,hudBottom-bounds.maxY))
+            let reserved = [entryPoint, authoredGatePosition].map {
+                CGRect(x: $0.x-64,y: $0.y-64,width: 128,height: 128)
+            }
+            let plan = FrostEnvironmentPlan.make(room: max(1,wave),bounds: bounds,
+                northBand: band,patches: TerrainHazards.patches(world: 3,room: max(1,wave),bounds: bounds),
+                reserved: reserved,expanded: expandedArenaPreview)
+            zoneScenery.removeAllChildren()
+            arena.childNode(withName: "campaignExterior")?.removeFromParent()
+            arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+            arena.childNode(withName: "roomArtwork")?.isHidden = true
+            zoneScenery.addChild(FrostEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            return
+        case 2?:
+            let bounds = roomBounds
+            let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+            let band = CGRect(x: 0,y: bounds.maxY,width: size.width,
+                              height: max(0,hudBottom-bounds.maxY))
+            let reserved = [entryPoint, authoredGatePosition].map {
+                CGRect(x: $0.x-64,y: $0.y-64,width: 128,height: 128)
+            }
+            let plan = IronEnvironmentPlan.make(room: max(1,wave),bounds: bounds,
+                northBand: band,patches: TerrainHazards.patches(world: 2,room: max(1,wave),bounds: bounds),
+                reserved: reserved,expanded: expandedArenaPreview)
+            zoneScenery.removeAllChildren()
+            arena.childNode(withName: "campaignExterior")?.removeFromParent()
+            arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+            arena.childNode(withName: "roomArtwork")?.isHidden = true
+            zoneScenery.addChild(IronEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            return
+        default:
+            break
+        }
+
+        // Legacy scenery covers missing packs and worlds without authored environments.
+        let zone = selectedWorld.biome == 1 ? max(1, requestedZone) : max(2, requestedZone)
         zoneScenery.removeAllChildren()
-        // Forest art is atmospheric, not terrain geometry. Only World 1
-        // displays the continuous forest texture; later worlds retain their
-        // distinct opaque industrial and toxic environment palettes.
         let roomArt = arena.childNode(withName: "roomArtwork")
-        let nonForestWorld = worldMapIndex != 0
         arena.childNode(withName: "campaignExterior")?.removeFromParent()
 
         if selectedWorld.biome == 4 {
@@ -5941,23 +6138,12 @@ final class OutpostScene: SKScene {
                 }
             }
         }
-        // Forest floor: low-contrast, deterministic leaf litter and worn
-        // earth marks break up the flat ground without hiding projectiles.
-        // Ground marks are strictly decorative and never alter collision.
-
-        // Environmental wayfinding: the floor is NOT painted with a literal
-        // road. Two broken banks of stones and vegetation frame an open
-        // approach toward the portal. The middle remains completely free for
-        // combat, dodging and alternative approaches. This is the procedural
-        // fallback only; authored landscape paintings own their composition.
-
         // Alternate prop placement between rooms so successive arenas feel less repetitive.
         let count = selectedWorld.biome == 1 ? 6+(wave%2) : (zone <= 1 ? 8+(wave%3) : 5+(wave%3))
         let roomVariant = (((wave-1)%4)+4)%4
         for index in 0..<count {
             let leftSide = (index + roomVariant).isMultiple(of: 2)
-            let side: CGFloat = zone == 0 ? (leftSide ? 0.12 : 0.88) :
-                (zone == 1 ? (leftSide ? 0.16 : 0.84) : (leftSide ? 0.09 : 0.91))
+            let side: CGFloat = zone == 1 ? (leftSide ? 0.16 : 0.84) : (leftSide ? 0.09 : 0.91)
             let x = size.width*side + CGFloat(((index*7+roomVariant*3)%5)-2)*8
             let spacing = max(18, (roomBounds.height-120)/CGFloat(count))
             let shift = CGFloat(((index*11+wave*7)%19)-9)
@@ -5966,16 +6152,6 @@ final class OutpostScene: SKScene {
             let prop: SKShapeNode
             // Later worlds retain their existing biome props.
             switch zone {
-            case 0: // Tall pines along the forest approach.
-                prop = SKShapeNode(path: {
-                    let path = CGMutablePath()
-                    path.move(to: CGPoint(x: 0, y: 23))
-                    path.addLine(to: CGPoint(x: -15, y: -18))
-                    path.addLine(to: CGPoint(x: 15, y: -18))
-                    path.closeSubpath()
-                    return path
-                }())
-                prop.fillColor = .systemGreen
             case 1: // Dense overgrowth.
                 prop = SKShapeNode(ellipseOf: CGSize(width: 30, height: 17))
                 prop.fillColor = .systemMint
@@ -5988,18 +6164,10 @@ final class OutpostScene: SKScene {
             }
             prop.strokeColor = .white.withAlphaComponent(0.22)
             prop.lineWidth = 1
-            // The old guardian-zone props were intentionally ghostly red
-            // beacons; their illustrated tree replacements must be opaque.
-            prop.alpha = worldMapIndex == 0 && zone == 3 ? 0.94 :
-                (selectedWorld.biome == 2 ? 0.94 :
-                    (zone == 0 ? 0.95 : (zone == 1 ? 0.92 : 0.55)))
+            prop.alpha = selectedWorld.biome == 2 ? 0.94 : (zone == 1 ? 0.92 : 0.55)
             prop.position = CGPoint(x: x, y: y)
 
             zoneScenery.addChild(prop)
-            // Production World 1 scenery is composed from individually
-            // illustrated transparent sprites. Keep gameplay geometry and
-            // placement independent of the image artwork.
-
             if selectedWorld.biome == 4 {
                 prop.fillColor = .clear
                 prop.strokeColor = .clear
@@ -6023,39 +6191,7 @@ final class OutpostScene: SKScene {
                 }
                 continue
             }
-            if zone == 3 && worldMapIndex == 0 {
-                // Organic side framing leaves the pilot's central travel lane
-                // clear and restores recognizable Frontier Forest identity
-                // throughout the final five rooms. Nothing here blocks movement.
-                prop.fillColor = .clear
-                prop.strokeColor = .clear
-                let tree = SKSpriteNode(texture: productionTexture(
-                    named: index.isMultiple(of: 3) ? "forest_broadleaf" : "forest_pine",
-                    fallback: forestPineTexture))
-                tree.name = "guardianClearingTree"
-                tree.size = CGSize(width: 80 + CGFloat(index % 2) * 13,
-                                   height: 80 + CGFloat(index % 2) * 13)
-                tree.position.y = 6
-                tree.zPosition = 0.8
-                prop.addChild(tree)
-                let stone = SKShapeNode(path: BattlefieldArt.terrainShape(
-                    width: 32, height: 12, variation: index + wave))
-                stone.fillColor = SKColor(red: 0.35, green: 0.39,
-                                          blue: 0.29, alpha: 0.92)
-                stone.strokeColor = .clear
-                stone.position.y = -35
-                stone.zPosition = 0.9
-                prop.addChild(stone)
-                if index.isMultiple(of: 3) {
-                    let glow = SKShapeNode(circleOfRadius: 4)
-                    glow.position = CGPoint(x: leftSide ? 15 : -15, y: -29)
-                    glow.fillColor = .systemMint
-                    glow.strokeColor = .clear
-                    glow.glowWidth = 3
-                    glow.zPosition = 1.3
-                    prop.addChild(glow)
-                }
-            } else if zone == 3 {
+            if zone == 3 {
                 // Existing later-world industrial guardian markers remain.
                 let beacon = SKShapeNode(circleOfRadius: 5)
                 beacon.position.y = 15
@@ -6089,7 +6225,7 @@ final class OutpostScene: SKScene {
                                  leftSide: leftSide, guardian: zone == 3)
             }
             if selectedWorld.biome == 1 && index.isMultiple(of: 2) {
-                // World 2 scrapyard identity: layered salvaged plating and
+                // Iron Wastes scrapyard identity: layered salvaged plating and
                 // riveted beams frame the flooded industrial arena. Decorative
                 // only: the existing water hazard owns collision and slowdown.
                 let scrap = SKShapeNode(rectOf: CGSize(
@@ -6132,171 +6268,7 @@ final class OutpostScene: SKScene {
                 // decorative edge props; water slowdowns come from hazards.
                 addFloodedEdgeProp(to: prop, index: index, leftSide: leftSide)
             }
-            if zone == 1 && worldMapIndex == 0 {
-                // Overgrown Path has a distinct canopy: broadleaf trees,
-                // hanging vines and larger layered thickets. All remain on
-                // the perimeter, outside the player's movement corridor.
-                prop.fillColor = .clear
-                prop.strokeColor = .clear
-                let canopy = (index + roomVariant) % 3 != 1
-                if canopy {
-                    let shadow = SKShapeNode(ellipseOf: CGSize(width: 48, height: 13))
-                    shadow.fillColor = .black.withAlphaComponent(0.32)
-                    shadow.strokeColor = .clear
-                    shadow.position = CGPoint(x: 5, y: -24)
-                    shadow.zPosition = -0.6
-                    prop.addChild(shadow)
-                    let tree = SKSpriteNode(texture: productionTexture(
-                        named: "forest_broadleaf", fallback: forestPineTexture))
-                    tree.size = CGSize(width: 94, height: 94)
-                    tree.position = CGPoint(x: leftSide ? -5 : 5, y: 8)
-                    // Mirroring reverses the authored upper-left lighting.
-                    tree.xScale = 1
-                    tree.zRotation = CGFloat((index + wave) % 5 - 2) * 0.025
-                    tree.zPosition = 0.8
-                    prop.addChild(tree)
-                    // Visible broadleaf roots end above the nominal canvas
-                    // border; transparent edge noise is not ground contact.
-                    let root = tree.convert(CGPoint(x: 0, y: -tree.size.height * 0.395), to: prop)
-                    shadow.position = CGPoint(x: root.x + tree.size.width * 0.06, y: root.y)
-                    // Remove disconnected vine strokes; illustrated canopy stays.
-                } else if !addForestUndergrowth(to: prop, width: 70) {
-                    let underbrush = SKShapeNode(path: BattlefieldArt.terrainShape(
-                        width: 53, height: 17, variation: index + wave))
-                    underbrush.fillColor = SKColor(red: 0.08, green: 0.21, blue: 0.14, alpha: 0.9)
-                    underbrush.strokeColor = .clear
-                    underbrush.position.y = -12
-                    prop.addChild(underbrush)
-                    for leafIndex in 0..<8 {
-                        let leaf = SKShapeNode(ellipseOf: CGSize(
-                            width: CGFloat(15 + leafIndex % 3 * 4),
-                            height: CGFloat(10 + leafIndex % 2 * 4)))
-                        leaf.fillColor = SKColor(
-                            red: 0.09 + CGFloat(leafIndex % 3) * 0.025,
-                            green: 0.32 + CGFloat(leafIndex % 4) * 0.045,
-                            blue: 0.17 + CGFloat(leafIndex % 2) * 0.04, alpha: 0.96)
-                        leaf.strokeColor = .clear
-                        leaf.position = CGPoint(
-                            x: CGFloat((leafIndex * 11) % 60 - 29),
-                            y: CGFloat((leafIndex * 13) % 21 - 7))
-                        leaf.zRotation = CGFloat((leafIndex * 3 + wave) % 7 - 3) * 0.20
-                        leaf.zPosition = 0.2 + CGFloat(leafIndex) * 0.01
-                        prop.addChild(leaf)
-                    }
-                }
-            }
-            if zone == 0 {
-                // Render a shaded, irregular pine sprite instead of exposing the triangle primitive.
-                prop.fillColor = .clear
-                prop.strokeColor = .clear
-                let shadow = SKShapeNode(ellipseOf: CGSize(width: 43, height: 14))
-                shadow.fillColor = SKColor.black.withAlphaComponent(0.32)
-                shadow.strokeColor = .clear
-                shadow.position = CGPoint(x: 9, y: -22)
-                shadow.zPosition = -0.5
-                prop.addChild(shadow)
-                // Roughly every third tree is a broadleaf: intentionally distinct
-                // outline, with a consistent side placement and clear center lane.
-                let isBroadleaf = (index + roomVariant).isMultiple(of: 3)
-                let treeAsset = isBroadleaf ? "forest_broadleaf" : "forest_pine"
-                let hasTreeArt = productionImage(named: treeAsset) != nil
-                let tree = SKSpriteNode(texture: productionTexture(named: treeAsset, fallback: forestPineTexture))
-                tree.size = CGSize(
-                    width: 59 + CGFloat((index * 3 + wave) % 5) * 8,
-                    height: 59 + CGFloat((index * 3 + wave) % 5) * 8
-                )
-                tree.xScale = 1
-                tree.zRotation = CGFloat(((index * 7 + wave * 3) % 9) - 4) * 0.018
-                tree.position = CGPoint(x: isBroadleaf ? (leftSide ? 5 : -5) : 0, y: 5)
-                tree.zPosition = 1
-                prop.addChild(tree)
-                // Follow the visible root, including sprite size and rotation;
-                // a fixed y offset makes the smaller authored trees float.
-                let rootDepth: CGFloat = isBroadleaf ? 0.395 : 0.42
-                let root = tree.convert(CGPoint(x: 0, y: -tree.size.height * rootDepth), to: prop)
-                shadow.position = CGPoint(x: root.x + tree.size.width * 0.06, y: root.y)
-                shadow.xScale = tree.size.width * 0.48 / 43
-                shadow.yScale = tree.size.height * 0.14 / 14
-                // Layered pine foliage and trunk add depth without blocking movement.
-                let trunk = SKShapeNode(rectOf: CGSize(width: 6, height: 17), cornerRadius: 2)
-                trunk.fillColor = .brown
-                trunk.strokeColor = .clear
-                trunk.position = CGPoint(x: 0, y: -15)
-                trunk.zPosition = -0.1
-                trunk.isHidden = hasTreeArt
-                prop.addChild(trunk)
-                let canopy = SKShapeNode(ellipseOf: CGSize(width: 20, height: 12))
-                canopy.fillColor = .systemMint.withAlphaComponent(0.65)
-                canopy.strokeColor = .clear
-                canopy.position = CGPoint(x: -3, y: 3)
-                canopy.zPosition = 1
-                canopy.isHidden = hasTreeArt
-                prop.addChild(canopy)
-            }
         }
-        // Sparse, asymmetrical forest dressing. Avoid evenly spaced ellipses:
-        // they created obvious rows and dark round spots in the simulator.
-
-        // Fern silhouettes frame the path and vary by room without adding collision.
-        if zone == 0 {
-            for index in 0..<7 {
-                let side: CGFloat = index.isMultiple(of: 2) ? -1 : 1
-                let x = size.width * (side < 0 ? 0.18 : 0.82)
-                    + CGFloat(((index * 13 + wave * 5) % 21) - 10)
-                let y = roomBounds.minY + 80
-                    + CGFloat(index) * max(28, (roomBounds.height - 150) / 7)
-                let fern = SKNode()
-                fern.position = CGPoint(x: x, y: y)
-                fern.zPosition = -0.45
-                if addForestUndergrowth(to: fern, width: 42 + CGFloat(index % 3) * 6) {
-                    zoneScenery.addChild(fern)
-                    continue
-                }
-                let stem = SKShapeNode(rectOf: CGSize(width: 2, height: 19), cornerRadius: 1)
-                stem.fillColor = SKColor(red: 0.13, green: 0.34, blue: 0.18, alpha: 0.8)
-                stem.strokeColor = .clear
-                fern.addChild(stem)
-                for leafIndex in 0..<6 {
-                    let leaf = SKShapeNode(ellipseOf: CGSize(width: 12, height: 4))
-                    leaf.fillColor = SKColor(red: 0.13 + CGFloat(leafIndex % 2) * 0.04,
-                                             green: 0.40 + CGFloat(leafIndex % 3) * 0.04,
-                                             blue: 0.22, alpha: 0.82)
-                    leaf.strokeColor = .clear
-                    leaf.position = CGPoint(x: leafIndex.isMultiple(of: 2) ? -6 : 6,
-                                            y: CGFloat(leafIndex - 3) * 3)
-                    leaf.zRotation = (leafIndex.isMultiple(of: 2) ? 1 : -1) * 0.32
-                    fern.addChild(leaf)
-                }
-                zoneScenery.addChild(fern)
-            }
-        }
-        // No uniformly spaced horizontal accent dashes: the forest is not a grid.
-    }
-
-    /// Decorative only: keep undergrowth outside collision and combat logic.
-    /// Authored highlights always face upper-left; never mirror the texture.
-    @discardableResult
-    private func addForestUndergrowth(to parent: SKNode, width: CGFloat) -> Bool {
-        guard worldMapIndex == 0,
-              let image = productionImage(named: "forest_undergrowth_polished") else {
-            return false
-        }
-        let shadow = SKShapeNode(ellipseOf: CGSize(width: width * 0.70,
-                                                  height: width * 0.13))
-        shadow.name = "forestUndergrowthContact"
-        shadow.position = CGPoint(x: width * 0.035, y: 0)
-        shadow.fillColor = .black.withAlphaComponent(0.22)
-        shadow.strokeColor = .clear
-        shadow.zPosition = -0.1
-        parent.addChild(shadow)
-        let shrub = SKSpriteNode(texture: SKTexture(image: image))
-        shrub.name = "forestUndergrowthArt"
-        shrub.size = CGSize(width: width, height: width)
-        // The normalized 256px canvas has a 57px lower transparent margin.
-        shrub.anchorPoint = CGPoint(x: 0.5, y: 57.0 / 256.0)
-        shrub.zPosition = 0.2
-        parent.addChild(shrub)
-        return true
     }
 
     // Production art takes precedence when a validated PNG is bundled in the app.
@@ -8005,6 +7977,183 @@ final class OutpostScene: SKScene {
             arena.isPaused = true
         }
         print("[BUILD341 READY] fixture=\(selection) world=\(selectedWorld.title) biome=\(selectedWorld.biome) rooms=\(worldWaveCount) phase=\(phase)")
+        fflush(stdout)
+    }
+
+    /// Presentation-only QA fixture; the ordinary game never invokes it.
+    private func captureBuild342Hazards(_ selection: String) {
+        let parts = selection.split(separator: "-")
+        precondition(parts.count == 3)
+        let state = String(parts[2])
+        precondition(["legacy","active","idle","water"].contains(state))
+        captureBuild341("\(parts[0])-\(parts[1])")
+        let preview = ProcessInfo.processInfo.arguments.contains("-previewDimensionalHazards")
+        let legacyEnvironment = ProcessInfo.processInfo.arguments.contains("-captureBuild342LegacyEnvironment")
+        precondition(preview == (legacyEnvironment && state != "legacy"))
+        let liquids = hazardScenery.children.compactMap { $0 as? SKShapeNode }.filter {
+            $0.name == "terrain_acid" || $0.name == "terrain_water"
+        }
+        precondition(liquids.count == roomHazards.filter { $0.kind != .rubble }.count && !liquids.isEmpty)
+        if preview {
+            for node in liquids {
+                guard let idle = node.childNode(withName: "dimensionalLiquidIdle") as? SKSpriteNode,
+                      let path = node.path, let texture = idle.texture else {
+                    preconditionFailure("Requested dimensional liquid did not load")
+                }
+                precondition(texture.size().width > 0 && texture.size().height > 0)
+                let kind: TerrainHazards.Kind = node.name == "terrain_acid" ? .acid : .water
+                guard let patch = roomHazards.first(where: { $0.kind == kind &&
+                      abs($0.frame.midX-node.position.x) < 0.01 &&
+                      abs($0.frame.midY-node.position.y) < 0.01 }) else {
+                    preconditionFailure("Liquid node has no authoritative patch")
+                }
+                // SpriteKit bridges these values through Float-backed geometry.
+                // Keep a strict subpixel tolerance; never accept a scaled or
+                // displaced damage boundary merely to pass a screenshot test.
+                let actual = path.boundingBoxOfPath
+                let expected = patch.outlinePath().boundingBoxOfPath
+                let deltas = [abs(idle.size.width-patch.frame.width),
+                              abs(idle.size.height-patch.frame.height),
+                              abs(actual.minX-expected.minX), abs(actual.minY-expected.minY),
+                              abs(actual.maxX-expected.maxX), abs(actual.maxY-expected.maxY)]
+                precondition(deltas.allSatisfy { $0.isFinite && $0 <= 0.05 },
+                    "Liquid geometry mismatch: sprite=\(idle.size) patch=\(patch.frame.size) path=\(actual) expected=\(expected) deltas=\(deltas)")
+                if kind == .acid {
+                    precondition(state == "active" || state == "idle")
+                    precondition(DimensionalLiquidPreview.updateAcid(on: node, active: state == "active"))
+                    precondition(idle.isHidden == (state == "active"))
+                    precondition(node.childNode(withName: "dimensionalLiquidActive")?.isHidden == (state != "active"))
+                } else {
+                    precondition(state == "water" && node.childNode(withName: "dimensionalLiquidActive") == nil)
+                }
+            }
+        } else {
+            precondition(liquids.allSatisfy { $0.childNode(withName: "dimensionalLiquidIdle") == nil })
+            if !legacyEnvironment && selectedWorld.id == 1 {
+                precondition(state == "active" || state == "idle")
+                waveElapsed = state == "active" ? 2.5 : 0
+                phase = .levelUp // Stage the live hazard visuals without applying damage.
+                updateTerrainHazards()
+                phase = .playing
+                precondition(displayedAcidActive == (state == "active"))
+            }
+        }
+        if !legacyEnvironment && selectedWorld.id == 1 {
+            guard let root = zoneScenery.childNode(withName: "authoredToxicWorld"),
+                  let ground = root.childNode(withName: "unifiedGround") else {
+                preconditionFailure("Authored Toxic landscape did not load")
+            }
+            let props = root.children.filter { $0.name?.hasPrefix("unifiedScenery_") == true }
+            precondition(!ground.children.isEmpty && !props.isEmpty)
+            precondition(ToxicEnvironmentPlan.productionAssets.allSatisfy { worldOneTexture(named: $0) != nil })
+            let fragments = root.children.filter { $0.name == "toxicGroundFragment" }
+            let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredToxicRubble") }
+            precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            // Count actual projected sprite-frame intersections, not simply
+            // nodes that may be hidden outside the phone's combat viewport.
+            let viewport = RoomRules.bounds(for: size)
+            func visible(_ node: SKNode) -> Bool {
+                guard let parent = node.parent else { return false }
+                let frame = node.calculateAccumulatedFrame()
+                let a = convert(CGPoint(x: frame.minX, y: frame.minY), from: parent)
+                let b = convert(CGPoint(x: frame.maxX, y: frame.maxY), from: parent)
+                let screenFrame = CGRect(x: min(a.x,b.x), y: min(a.y,b.y),
+                    width: abs(b.x-a.x), height: abs(b.y-a.y))
+                let intersection = viewport.intersection(screenFrame)
+                return !intersection.isNull && intersection.width >= 8 && intersection.height >= 8
+            }
+            let landmarks = root.children.filter { $0.name == "toxicNorthLandmark" }
+            let bandTop = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+            let band = CGRect(x: 0,y: roomBounds.maxY,width: size.width,
+                              height: max(0,bandTop-roomBounds.maxY))
+            if !expandedArenaPreview {
+                let frames = landmarks.map { $0.calculateAccumulatedFrame() }
+                precondition(frames.allSatisfy { band.contains($0) && !$0.intersects(roomBounds) },
+                             "North landmarks must stay in the visible nonwalkable strip")
+                print("[BUILD342 TOXIC LANDMARKS] room=\(wave) count=\(landmarks.count) band=\(band)")
+            }
+            if expandedArenaPreview {
+                precondition(fragments.filter(visible).count >= 2,
+                             "Expanded Toxic arena requires visible low-profile scenery at the actual capture camera")
+            }
+            print("[BUILD342 AUTHORED TOXIC] room=\(wave) tiles=\(ground.children.count) props=\(props.count) visibleProps=\(props.filter(visible).count) fragments=\(fragments.count) visibleFragments=\(fragments.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
+        }
+        if !legacyEnvironment && selectedWorld.id == 3 {
+            precondition(state == "water")
+            guard let root = zoneScenery.childNode(withName: "authoredFrostWorld"),
+                  let ground = root.childNode(withName: "unifiedGround") else {
+                preconditionFailure("Authored Frost landscape did not load")
+            }
+            precondition(!ground.children.isEmpty)
+            precondition(FrostEnvironmentPlan.productionAssets.allSatisfy { worldOneTexture(named: $0) != nil })
+            let landmarks = root.children.filter { $0.name?.hasPrefix("unifiedScenery_") == true }
+            let snow = root.children.filter { $0.name == "frostGroundSnow" }
+            let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredFrostRubble") }
+            precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            let viewport = RoomRules.bounds(for: size)
+            func visible(_ node: SKNode) -> Bool {
+                guard let parent = node.parent else { return false }
+                let frame = node.calculateAccumulatedFrame()
+                let a = convert(CGPoint(x: frame.minX,y: frame.minY),from: parent)
+                let b = convert(CGPoint(x: frame.maxX,y: frame.maxY),from: parent)
+                let projected = CGRect(x: min(a.x,b.x),y: min(a.y,b.y),
+                    width: abs(a.x-b.x),height: abs(a.y-b.y))
+                let overlap = viewport.intersection(projected)
+                return !overlap.isNull && overlap.width >= 8 && overlap.height >= 8
+            }
+            if expandedArenaPreview {
+                precondition(snow.filter(visible).count >= 2,
+                             "Expanded Frost arena must display ground scenery")
+            } else {
+                let top = size.height - max(16,view?.safeAreaInsets.top ?? 0) - 88
+                let band = CGRect(x: 0,y: roomBounds.maxY,width: size.width,
+                                  height: max(0,top-roomBounds.maxY))
+                precondition(landmarks.allSatisfy { band.contains($0.calculateAccumulatedFrame()) })
+                if min(86,band.height-8,roomBounds.width/2-85) >= 36 {
+                    precondition(!landmarks.isEmpty, "Frost scenery must populate usable north band")
+                }
+            }
+            print("[BUILD342 AUTHORED FROST] room=\(wave) tiles=\(ground.children.count) landmarks=\(landmarks.count) snow=\(snow.count) visibleSnow=\(snow.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
+        }
+        if !legacyEnvironment && selectedWorld.id == 2 {
+            precondition(state == "water")
+            guard let root = zoneScenery.childNode(withName: "authoredIronWorld"),
+                  let ground = root.childNode(withName: "unifiedGround") else {
+                preconditionFailure("Authored Iron landscape did not load")
+            }
+            precondition(!ground.children.isEmpty)
+            precondition(IronEnvironmentPlan.productionAssets.allSatisfy { worldOneTexture(named: $0) != nil })
+            let landmarks = root.children.filter { $0.name?.hasPrefix("unifiedScenery_") == true }
+            let fragments = root.children.filter { $0.name == "ironGroundDebris" }
+            let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredIronRubble") }
+            precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            let viewport = RoomRules.bounds(for: size)
+            func visible(_ node: SKNode) -> Bool {
+                guard let parent = node.parent else { return false }
+                let frame = node.calculateAccumulatedFrame()
+                let a = convert(CGPoint(x: frame.minX,y: frame.minY),from: parent)
+                let b = convert(CGPoint(x: frame.maxX,y: frame.maxY),from: parent)
+                let projected = CGRect(x: min(a.x,b.x),y: min(a.y,b.y),
+                    width: abs(a.x-b.x),height: abs(a.y-b.y))
+                let overlap = viewport.intersection(projected)
+                return !overlap.isNull && overlap.width >= 8 && overlap.height >= 8
+            }
+            if expandedArenaPreview {
+                precondition(fragments.filter(visible).count >= 2,
+                             "Expanded Iron arena must display ground scenery")
+            } else {
+                let top = size.height - max(16,view?.safeAreaInsets.top ?? 0) - 88
+                let band = CGRect(x: 0,y: roomBounds.maxY,width: size.width,
+                                  height: max(0,top-roomBounds.maxY))
+                precondition(landmarks.allSatisfy { band.contains($0.calculateAccumulatedFrame()) })
+                if min(86,band.height-8,roomBounds.width/2-85) >= 36 {
+                    precondition(!landmarks.isEmpty, "Iron scenery must populate usable north band")
+                }
+            }
+            print("[BUILD342 AUTHORED IRON] room=\(wave) tiles=\(ground.children.count) landmarks=\(landmarks.count) fragments=\(fragments.count) visibleFragments=\(fragments.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
+        }
+        // This flag is used only on paused QA captures; damage is not applied.
+        print("[BUILD342 HAZARDS] fixture=\(selection) liquidCount=\(liquids.count) preview=\(preview)")
         fflush(stdout)
     }
 

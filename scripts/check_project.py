@@ -310,7 +310,7 @@ if "CombatRules.mortarWarningScale(" not in scene:
     errors.append("Mortar warning must advance from combat time even at 2x speed")
 # Room transitions must remain player-driven: no exit during combat,
 # and a visible exit only after the room-clear condition is satisfied.
-start_wave = scene.split("private func startWave()", 1)[-1].split("private lazy var forestPineTexture", 1)[0]
+start_wave = scene.split("private func startWave()", 1)[-1].split("private func worldColor(for zone: Int)", 1)[0]
 gate_section = scene.split("private func showZoneGate()", 1)[-1].split("private func ", 1)[0]
 if "passageGate.isHidden = true" not in start_wave:
     errors.append("Exit gate must stay hidden during active combat")

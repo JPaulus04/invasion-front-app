@@ -9,7 +9,7 @@ import shutil
 from pathlib import Path
 import subprocess
 import time
-from contextlib import ExitStack, contextmanager
+from contextlib import contextmanager
 from simulator_startup import (RecoverableStartupError, content, launch_initial,
                                snapshot, wait_for_app_registration, wait_for_render_surface)
 
@@ -136,26 +136,30 @@ def fresh_simulator(profile, output, controlled=False, device_type="iPhone-16-Pr
 
 
 @contextmanager
-def focused_simulator(profile, output):
-    # Boot status alone can finish while process control is still cold.
-    # Registration and a real render surface warm the device before probing.
-    # Retry setup on a compatible fresh phone only after the previous device
-    # was fenced. Gameplay and app-launch errors propagate without retry.
+def focused_simulator(profile, output, prepare=None):
+    # Retry setup or a proven unstarted initial fixture after fencing the
+    # previous device. Once yielded, the suite always owns that one device.
     for device_type in ("iPhone-16-Pro", "iPhone-16"):
         startup = output / f"startup-{device_type}"
         startup.mkdir(exist_ok=False)
-        with ExitStack() as stack:
-            try:
-                device = stack.enter_context(fresh_simulator(
-                    profile, startup, controlled=True, device_type=device_type,
-                    warm_before_spawn=True))
-            except RecoverableStartupError:
-                if device_type == "iPhone-16":
-                    raise
-                print("::warning::Cold device setup failed; trying a fresh iPhone 16", flush=True)
-                continue
-            yield device
-            return
+        initial = startup / "initial-fixture"
+        yielded = False
+        try:
+            with fresh_simulator(profile, startup, controlled=True,
+                                 device_type=device_type, warm_before_spawn=True) as device:
+                if prepare is not None:
+                    initial.mkdir()
+                    prepare(device, initial)
+                yielded = True
+                yield device
+                return
+        except RecoverableStartupError:
+            if yielded or device_type == "iPhone-16":
+                raise
+            if any(content(log) for log in initial.glob("*.log")):
+                raise RuntimeError("The original fixture emitted output during cleanup; refusing a retry")
+            print("::warning::Simulator did not start the fixture; using one fresh iPhone 16", flush=True)
+
 
 def run(profile, limit, seed, batch, output):
     output = Path(output)

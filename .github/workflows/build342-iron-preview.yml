@@ -1,0 +1,78 @@
+name: Build 342 Iron Wastes focused preview
+on:
+  pull_request:
+    paths:
+      - 'OutpostZero/ArtAssets/world4_*.png'
+      - 'OutpostZero/OutpostScene.swift'
+      - 'OutpostZero/WorldOneEnvironment.swift'
+      - 'OutpostZero/WorldOneEnvironmentPlan.swift'
+      - 'scripts/check_build342_iron.py'
+      - 'scripts/check_build342_hazards.py'
+      - 'scripts/validate_toxic_environment.py'
+      - '.github/workflows/build342-iron-preview.yml'
+  workflow_dispatch:
+concurrency:
+  group: build342-iron-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  asset-preflight:
+    if: contains(fromJSON('["feature/build342-iron-landscape-preview","feature/build342-integration"]'), github.head_ref || github.ref_name)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'Pillow>=11,<13'
+      - name: Require complete Iron Wastes asset set
+        run: python scripts/validate_toxic_environment.py OutpostZero/ArtAssets --world 4
+  iron-preview:
+    needs: asset-preflight
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Debug simulator app
+        run: |
+          set -o pipefail
+          python3 -m pip install --break-system-packages 'Pillow>=11'
+          brew install xcodegen
+          python3 scripts/generate_icon.py
+          python3 scripts/generate_forest_art.py
+          python3 scripts/generate_pilot_art.py
+          python3 scripts/generate_enemy_art.py
+          xcodegen generate
+          xcodebuild -project OutpostZero.xcodeproj -scheme OutpostZero -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO COMPRESS_PNG_FILES=NO STRIP_PNG_TEXT=NO build | tee build342-iron-build.log
+          mkdir simulator-app
+          ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
+      - name: Verify all ten real PNGs in simulator app
+        run: |
+          python3 scripts/validate_toxic_environment.py OutpostZero/ArtAssets --world 4
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          src = Path("OutpostZero/ArtAssets")
+          bundle = Path("simulator-app/OutpostZero.app")
+          files = list(src.glob("world4_ground_*.png")) + list(src.glob("world4_prop_*.png"))
+          assert len(files) == 10, len(files)
+          for f in files:
+              copies = list(bundle.rglob(f.name))
+              assert len(copies) == 1, (f.name, copies)
+              assert hashlib.sha256(f.read_bytes()).digest() == hashlib.sha256(copies[0].read_bytes()).digest(), f.name
+          print("All ten Iron Wastes candidate PNGs are byte-identical in the app bundle.")
+          PY
+      - name: Capture actual Iron Wastes renderer comparison
+        run: |
+          set -o pipefail
+          mkdir -p build342-iron-review
+          python3 scripts/check_build342_iron.py 2>&1 | tee build342-iron-review/simulator.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build342-iron-comparison
+          path: |
+            build342-iron-build.log
+            build342-iron-review/

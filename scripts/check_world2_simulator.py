@@ -2,7 +2,9 @@
 
 from pathlib import Path
 import re
+import subprocess
 import time
+from PIL import Image
 
 from run_phase4_simulator import BUNDLE, command, focused_simulator
 
@@ -15,6 +17,32 @@ def wait_for_log(path, check, timeout=45):
             return
         time.sleep(0.25)
     raise AssertionError(f"Missing expected simulator events in {path}\n{log}")
+
+
+def capture_verified_screenshot(device, path):
+    """Retry a failed read-only capture on the same running encounter."""
+    for attempt in (1, 2):
+        candidate = path.with_name(f"{path.stem}-attempt{attempt}.png")
+        try:
+            command("xcrun", "simctl", "io", device, "screenshot",
+                    str(candidate), timeout=55)
+            with Image.open(candidate) as image:
+                if image.format != "PNG" or image.width <= 0 or image.height <= image.width:
+                    raise ValueError("Expected portrait PNG from the active simulator")
+                image.verify()
+            with Image.open(candidate) as image:
+                image.load()
+                colors = image.convert("RGB").resize((120, 200)).getcolors(24000)
+                if not colors or len(colors) <= 200:
+                    raise ValueError("Screenshot has no usable rendered surface")
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError, ValueError) as exc:
+            print(f"::warning::Screenshot attempt {attempt} failed: {exc}", flush=True)
+            if attempt == 2:
+                raise
+            time.sleep(2)
+            continue
+        candidate.replace(path)
+        return
 
 
 def run_encounters(device, output):
@@ -36,8 +64,7 @@ def run_encounters(device, output):
             (room != 10 or "all eight manifests and frames loaded" in log) and
             re.search(events, log, re.DOTALL)
         ))
-        command("xcrun", "simctl", "io", device, "screenshot",
-                str(output / f"{room}-{enemy}.png"), timeout=55)
+        capture_verified_screenshot(device, output / f"{room}-{enemy}.png")
         print(f"Room {room}: {enemy} passed", flush=True)
 
 

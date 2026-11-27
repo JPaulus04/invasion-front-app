@@ -73,6 +73,114 @@ struct WorldOneEnvironmentTests {
             "Boss artwork and its name/health must fit below the HUD on approach")
         precondition(swamp.cameraTarget(for: swamp.entry) == swamp.entry)
         precondition(defense.cameraTarget(for: defense.entry) == defense.entry)
+        // Candidate Toxic scenery must not enter the actual navigable bounds.
+        let toxicBounds = [CGRect(x: 28,y: 70,width: 337,height: 557),
+                           CGRect(x: -110,y: 40,width: 620,height: 850),
+                           CGRect(x: 0,y: 0,width: 120,height: 160),
+                           RoomRules.bounds(for: CGSize(width: 852, height: 393))]
+        precondition(ToxicEnvironmentPlan.productionAssets.count == 10)
+        precondition(Set(ToxicEnvironmentPlan.productionAssets).count == 10)
+        for bounds in toxicBounds {
+            for room in 1...30 {
+                let p = ToxicEnvironmentPlan.make(room: room, bounds: bounds, aspect: { _ in 1 })
+                precondition(p.bounds == bounds && p.groundBounds.contains(bounds))
+                precondition(!p.props.isEmpty && p.props.allSatisfy { !$0.frame.intersects(bounds) })
+                precondition(Set(p.requiredAssets).isSubset(of: Set(ToxicEnvironmentPlan.productionAssets)))
+                let repeatPlan = ToxicEnvironmentPlan.make(room: room, bounds: bounds, aspect: { _ in 1 })
+                precondition(p.props.map { $0.position } == repeatPlan.props.map { $0.position })
+                for column in -3...3 {
+                    for row in -3...3 {
+                        precondition(p.variant(column: column,row: row) != p.variant(column: column+1,row: row))
+                        precondition(p.variant(column: column,row: row) != p.variant(column: column,row: row+1))
+                    }
+                }
+                let sample = (-6...6).flatMap { y in (-6...6).map { x in p.variant(column: x,row: y) } }
+                precondition(Set(sample) == Set(0..<4))
+                precondition((-6...6).contains { y in (-6...2).contains { x in
+                    p.variant(column: x,row: y) != p.variant(column: x+4,row: y)
+                } }, "Toxic ground must not repeat every four columns")
+                if [10,20,30].contains(room) { precondition(p.theme == .boss) }
+                // Existing hazard geometry still has authority and the scene
+                // preview does not replace its nodes or damage rules.
+                let hazards = TerrainHazards.patches(world: 1,room: room,bounds: bounds)
+                precondition(hazards.filter { $0.kind == .acid }.count == 2)
+                precondition(hazards.allSatisfy { h in p.props.allSatisfy { !$0.frame.intersects(h.frame) } })
+            }
+        }
+        precondition(FrostEnvironmentPlan.productionAssets.count == 10)
+        precondition(Set(FrostEnvironmentPlan.productionAssets).count == 10)
+        precondition(Set(FrostEnvironmentPlan.productionAssets).isDisjoint(with: Set(ToxicEnvironmentPlan.productionAssets)))
+        for (index,bounds) in toxicBounds.enumerated() {
+            let expanded = index == 1
+            let band = CGRect(x:bounds.minX,y:bounds.maxY,width:bounds.width,height:110)
+            let reserved = [CGRect(x:bounds.midX-64,y:bounds.minY,width:128,height:128),
+                            CGRect(x:bounds.midX-64,y:bounds.maxY-128,width:128,height:128)]
+            for room in 1...30 {
+                let patches = TerrainHazards.patches(world:3,room:room,bounds:bounds)
+                let p = FrostEnvironmentPlan.make(room:room,bounds:bounds,northBand:band,
+                    patches:patches,reserved:reserved,expanded:expanded)
+                precondition(p.groundBounds.contains(bounds))
+                precondition(p.landmarks.allSatisfy { band.contains($0.frame) && !$0.frame.intersects(bounds) })
+                if expanded { precondition(p.landmarks.isEmpty) }
+                if index == 0 { precondition(p.landmarks.count == 2) }
+                precondition(p.rubble.count == patches.filter { $0.kind == .rubble }.count)
+                precondition(p.rubble.allSatisfy { prop in
+                    patches.contains { $0.kind == .rubble && $0.frame.contains(prop.frame) }
+                })
+                precondition(p.snowbanks.allSatisfy { snow in
+                    bounds.contains(snow.frame) && !reserved.contains { $0.intersects(snow.frame) } &&
+                    !patches.contains { $0.frame.insetBy(dx:-8,dy:-8).intersects(snow.frame) }
+                })
+                let repeatPlan = FrostEnvironmentPlan.make(room:room,bounds:bounds,northBand:band,
+                    patches:patches,reserved:reserved,expanded:expanded)
+                precondition(p.snowbanks.map { $0.position } == repeatPlan.snowbanks.map { $0.position })
+                for col in -3...3 {
+                    for row in -3...3 {
+                        precondition(p.variant(column:col,row:row) != p.variant(column:col+1,row:row))
+                        precondition(p.variant(column:col,row:row) != p.variant(column:col,row:row+1))
+                    }
+                }
+            }
+        }
+        print("Frost candidate: 120 room/bounds plans, safe landmarks, snow cover and rubble skin")
+        precondition(IronEnvironmentPlan.productionAssets.count == 10)
+        precondition(Set(IronEnvironmentPlan.productionAssets).count == 10)
+        precondition(Set(IronEnvironmentPlan.productionAssets).isDisjoint(with: Set(ToxicEnvironmentPlan.productionAssets)))
+        precondition(Set(IronEnvironmentPlan.productionAssets).isDisjoint(with: Set(FrostEnvironmentPlan.productionAssets)))
+        for (index,bounds) in toxicBounds.enumerated() {
+            let expanded = index == 1
+            let band = CGRect(x:bounds.minX,y:bounds.maxY,width:bounds.width,height:110)
+            let reserved = [CGRect(x:bounds.midX-64,y:bounds.minY,width:128,height:128),
+                            CGRect(x:bounds.midX-64,y:bounds.maxY-128,width:128,height:128)]
+            for room in 1...30 {
+                let patches = TerrainHazards.patches(world:2,room:room,bounds:bounds)
+                let p = IronEnvironmentPlan.make(room:room,bounds:bounds,northBand:band,
+                    patches:patches,reserved:reserved,expanded:expanded)
+                precondition(p.groundBounds.contains(bounds))
+                precondition(p.landmarks.allSatisfy { band.contains($0.frame) && !$0.frame.intersects(bounds) })
+                if expanded { precondition(p.landmarks.isEmpty) }
+                if index == 0 { precondition(p.landmarks.count == 2) }
+                precondition(p.rubble.count == patches.filter { $0.kind == .rubble }.count)
+                precondition(p.rubble.allSatisfy { prop in
+                    patches.contains { $0.kind == .rubble && $0.frame.contains(prop.frame) }
+                })
+                precondition(p.fragments.allSatisfy { snow in
+                    bounds.contains(snow.frame) && !reserved.contains { $0.intersects(snow.frame) } &&
+                    !patches.contains { $0.frame.insetBy(dx:-8,dy:-8).intersects(snow.frame) }
+                })
+                let repeatPlan = IronEnvironmentPlan.make(room:room,bounds:bounds,northBand:band,
+                    patches:patches,reserved:reserved,expanded:expanded)
+                precondition(p.fragments.map { $0.position } == repeatPlan.fragments.map { $0.position })
+                for col in -3...3 {
+                    for row in -3...3 {
+                        precondition(p.variant(column:col,row:row) != p.variant(column:col+1,row:row))
+                        precondition(p.variant(column:col,row:row) != p.variant(column:col,row:row+1))
+                    }
+                }
+            }
+        }
+        print("Iron candidate: 120 room/bounds plans, safe landmarks, debris and rubble skin")
+        print("Toxic candidate: 120 room/bounds plans, deterministic props and hazard clearance")
         print("Four environment identities, corridor traversal, pocket navigation and safe framing passed")
     }
 }

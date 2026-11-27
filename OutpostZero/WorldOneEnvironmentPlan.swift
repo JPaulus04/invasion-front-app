@@ -256,3 +256,282 @@ enum WorldOneEnvironmentPlan {
             reclamation: reclamation,groundPlants: groundPlants)
     }
 }
+
+
+/// Toxic Crossing production contract. Uses the existing live room bounds;
+/// no terrain, collision, spawn, or progression changes. Art is staged separately.
+enum ToxicEnvironmentPlan {
+    enum Theme: String, CaseIterable {
+        case containment, runoff, ruins, boss
+        static func forRoom(_ room: Int) -> Theme {
+            if [10, 20, 30].contains(room) { return .boss }
+            switch (max(1, room)-1)/5 {
+            case 0, 3: return .containment
+            case 1, 4: return .runoff
+            default: return .ruins
+            }
+        }
+    }
+    struct Plan {
+        let room: Int
+        let theme: Theme
+        let bounds: CGRect
+        let groundBounds: CGRect
+        let props: [WorldOneEnvironmentPlan.Prop]
+        var materialNames: [String] { (0..<4).map { "world2_ground_\($0)" } }
+        var requiredAssets: [String] {
+            Array(Set(materialNames + props.map { $0.asset })).sorted()
+        }
+        func variant(column: Int, row: Int) -> Int {
+            // Checkerboard parity guarantees distinct edge neighbors. A
+            // mixed coordinate seed chooses between two textures per parity,
+            // avoiding the former fixed four-cell diagonal repeat.
+            let parity = (column & 1) ^ (row & 1)
+            var hash = UInt64(truncatingIfNeeded: column) &* 0x9E3779B185EBCA87
+            hash ^= UInt64(truncatingIfNeeded: row) &* 0xC2B2AE3D27D4EB4F
+            hash ^= UInt64(truncatingIfNeeded: room) &* 0x165667B19E3779F9
+            hash ^= hash >> 30
+            hash = hash &* 0xBF58476D1CE4E5B9
+            hash ^= hash >> 27
+            hash = hash &* 0x94D049BB133111EB
+            hash ^= hash >> 31
+            return parity + 2 * Int(hash & 1)
+        }
+    }
+    // All props must be delivered with visible contact 32px from the base
+    // of a normalized 512px canvas, subject to actual alpha inspection.
+    static let propAnchorY: CGFloat = 32.0/512.0
+    static let propNames = ["tank", "pipe", "debris", "boulder", "vegetation", "wall"]
+    static var productionAssets: [String] {
+        (0..<4).map { "world2_ground_\($0)" } + propNames.map { "world2_prop_\($0)" }
+    }
+    static func make(room: Int, bounds: CGRect, aspect: (String) -> CGFloat) -> Plan {
+        precondition(room > 0 && bounds.width > 0 && bounds.height > 0)
+        let theme = Theme.forRoom(room)
+        let sequence: [Int]
+        switch theme {
+        case .containment: sequence = [0, 1, 2, 5, 4, 3]
+        case .runoff: sequence = [1, 4, 3, 0, 2, 5]
+        case .ruins: sequence = [5, 2, 3, 4, 1, 0]
+        case .boss: sequence = [0, 5, 1, 3, 2, 4]
+        }
+        var props: [WorldOneEnvironmentPlan.Prop] = []
+        for side in 0..<4 {
+            let length = side < 2 ? bounds.height : bounds.width
+            let count = max(2, Int(length/112))
+            for index in 0..<count {
+                let kind = sequence[(index + side + room) % sequence.count]
+                let asset = "world2_prop_\(propNames[kind])"
+                let height: CGFloat = (theme == .boss ? 106 : 82) + CGFloat((index*13+room*7+side*3)%25)
+                let ratio = aspect(asset)
+                let width = height * (ratio.isFinite && ratio > 0 ? ratio : 1)
+                let t = (CGFloat(index)+0.5)/CGFloat(count)
+                let gap = CGFloat(8+(index*17+room*11)%18)
+                let x: CGFloat, y: CGFloat
+                switch side {
+                case 0: x = bounds.minX-gap-width/2; y = bounds.minY+length*t
+                case 1: x = bounds.maxX+gap+width/2; y = bounds.minY+length*t
+                case 2: x = bounds.minX+length*t; y = bounds.minY-gap-height*(1-propAnchorY)
+                default: x = bounds.minX+length*t; y = bounds.maxY+gap+height*propAnchorY
+                }
+                // Leave a wide north/south center opening for the existing
+                // entry, exit portal and boss presentation.
+                if side >= 2 && abs(x-bounds.midX) < 90+width/2 { continue }
+                let prop = WorldOneEnvironmentPlan.Prop(asset: asset,
+                    position: CGPoint(x: x,y: y), size: CGSize(width: width,height: height),
+                    anchorY: propAnchorY, foreground: false)
+                precondition(!prop.frame.intersects(bounds))
+                props.append(prop)
+            }
+        }
+        return Plan(room: room, theme: theme, bounds: bounds,
+                    groundBounds: bounds.insetBy(dx: -300,dy: -300), props: props)
+    }
+}
+
+
+/// World 3 display number, stable gameplay ID 3. Art-only layout.
+enum FrostEnvironmentPlan {
+    static let propKinds = ["ice_crystal", "frozen_boulder", "wreckage",
+                            "snowbank", "frozen_pillar", "ruin_wall"]
+    static let materials = (0..<4).map { "world3_ground_\($0)" }
+    static var productionAssets: [String] {
+        materials + propKinds.map { "world3_prop_\($0)" }
+    }
+    static let anchorY: CGFloat = 32.0/512.0
+    struct Plan {
+        let room: Int
+        let bounds: CGRect
+        let groundBounds: CGRect
+        let landmarks: [WorldOneEnvironmentPlan.Prop]
+        let snowbanks: [WorldOneEnvironmentPlan.GroundPlant]
+        let rubble: [WorldOneEnvironmentPlan.Prop]
+        func variant(column: Int, row: Int) -> Int {
+            let parity = (column & 1) ^ (row & 1)
+            var hash = UInt64(truncatingIfNeeded: column) &* 0x9E3779B185EBCA87
+            hash ^= UInt64(truncatingIfNeeded: row) &* 0xC2B2AE3D27D4EB4F
+            hash ^= UInt64(truncatingIfNeeded: room) &* 0x165667B19E3779F9
+            hash ^= hash >> 30
+            hash = hash &* 0xBF58476D1CE4E5B9
+            hash ^= hash >> 27
+            return parity + 2*Int(hash & 1)
+        }
+    }
+    static func make(room: Int, bounds: CGRect, northBand: CGRect?,
+                     patches: [TerrainHazards.Patch], reserved: [CGRect],
+                     expanded: Bool) -> Plan {
+        precondition(room > 0 && bounds.width > 0 && bounds.height > 0)
+        var landmarks: [WorldOneEnvironmentPlan.Prop] = []
+        var snowbanks: [WorldOneEnvironmentPlan.GroundPlant] = []
+        var rubble: [WorldOneEnvironmentPlan.Prop] = []
+        // Do not place tall scenery where players can walk through it. For a
+        // fixed camera use the visible north band instead of offscreen props.
+        if !expanded, let band = northBand {
+            let h = min(86, band.height-8, bounds.width/2-85)
+            if h >= 36 {
+                let pairs = [["ice_crystal","frozen_pillar"], ["wreckage","frozen_boulder"],
+                             ["ruin_wall","ice_crystal"], ["frozen_pillar","wreckage"]]
+                let pair = pairs[(room-1)%pairs.count]
+                for (index, kind) in pair.enumerated() {
+                    let x = index == 0 ? bounds.minX+h/2+2 : bounds.maxX-h/2-2
+                    let item = WorldOneEnvironmentPlan.Prop(asset: "world3_prop_\(kind)",
+                        position: CGPoint(x: x,y: band.minY+4+h*anchorY),
+                        size: CGSize(width: h,height: h),anchorY: anchorY,foreground: false)
+                    if band.contains(item.frame), !bounds.intersects(item.frame),
+                       !reserved.contains(where: { $0.intersects(item.frame) }) {
+                        landmarks.append(item)
+                    }
+                }
+            }
+        }
+        // Only the existing solid rubble patch receives a blocking-looking
+        // art skin. Neither its frame nor its collision behavior is changed.
+        for patch in patches where patch.kind == .rubble {
+            let kind = room.isMultiple(of: 3) ? "wreckage" : "ruin_wall"
+            let side = min(patch.frame.width,patch.frame.height)
+            guard side > 0 else { continue }
+            let item = WorldOneEnvironmentPlan.Prop(asset: "world3_prop_\(kind)",
+                position: CGPoint(x: patch.frame.midX,y: patch.frame.midY-side/2+side*anchorY),
+                size: CGSize(width: side,height: side),anchorY: anchorY,foreground: false)
+            if patch.frame.contains(item.frame) { rubble.append(item) }
+        }
+        // Flat snow cover is decorative and placed away from hazards, gates,
+        // objectives and the central approach. Distribute it across survival
+        // camera positions, not only the far perimeter.
+        let columns = expanded ? min(8,max(4,Int(ceil(bounds.width/110)))) : 4
+        let rows = expanded ? min(10,max(4,Int(ceil(bounds.height/120)))) : 5
+        for row in 0..<rows {
+            for column in 0..<columns {
+                let seed = room*97+row*37+column*19
+                let x = bounds.minX+bounds.width*(CGFloat(column)+0.5)/CGFloat(columns)+CGFloat(seed%17-8)
+                let y = bounds.minY+bounds.height*(CGFloat(row)+0.5)/CGFloat(rows)+CGFloat(seed%23-11)
+                guard abs(x-bounds.midX) >= 48 else { continue }
+                let width: CGFloat = 34+CGFloat(seed%19)
+                let item = WorldOneEnvironmentPlan.GroundPlant(asset: "world3_prop_snowbank",
+                    position: CGPoint(x:x,y:y),size: CGSize(width:width,height:width))
+                let frame = item.frame
+                guard bounds.contains(frame),
+                      !patches.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }),
+                      !reserved.contains(where: { $0.intersects(frame) }),
+                      !snowbanks.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }) else { continue }
+                snowbanks.append(item)
+            }
+        }
+        return Plan(room: room,bounds: bounds,groundBounds: bounds.insetBy(dx:-300,dy:-300),
+                    landmarks: landmarks,snowbanks:snowbanks,rubble:rubble)
+    }
+}
+
+
+/// World 4 display number, stable gameplay ID 2. Art-only layout.
+enum IronEnvironmentPlan {
+    static let propKinds = ["scrap_heap", "broken_machine", "steel_barrier",
+                            "rusted_tank", "pipe", "debris"]
+    static let materials = (0..<4).map { "world4_ground_\($0)" }
+    static var productionAssets: [String] {
+        materials + propKinds.map { "world4_prop_\($0)" }
+    }
+    static let anchorY: CGFloat = 32.0/512.0
+    struct Plan {
+        let room: Int
+        let bounds: CGRect
+        let groundBounds: CGRect
+        let landmarks: [WorldOneEnvironmentPlan.Prop]
+        let fragments: [WorldOneEnvironmentPlan.GroundPlant]
+        let rubble: [WorldOneEnvironmentPlan.Prop]
+        func variant(column: Int, row: Int) -> Int {
+            let parity = (column & 1) ^ (row & 1)
+            var hash = UInt64(truncatingIfNeeded: column) &* 0x9E3779B185EBCA87
+            hash ^= UInt64(truncatingIfNeeded: row) &* 0xC2B2AE3D27D4EB4F
+            hash ^= UInt64(truncatingIfNeeded: room) &* 0x165667B19E3779F9
+            hash ^= hash >> 30
+            hash = hash &* 0xBF58476D1CE4E5B9
+            hash ^= hash >> 27
+            return parity + 2*Int(hash & 1)
+        }
+    }
+    static func make(room: Int, bounds: CGRect, northBand: CGRect?,
+                     patches: [TerrainHazards.Patch], reserved: [CGRect],
+                     expanded: Bool) -> Plan {
+        precondition(room > 0 && bounds.width > 0 && bounds.height > 0)
+        var landmarks: [WorldOneEnvironmentPlan.Prop] = []
+        var fragments: [WorldOneEnvironmentPlan.GroundPlant] = []
+        var rubble: [WorldOneEnvironmentPlan.Prop] = []
+        // Do not place tall scenery where players can walk through it. For a
+        // fixed camera use the visible north band instead of offscreen props.
+        if !expanded, let band = northBand {
+            let h = min(86, band.height-8, bounds.width/2-85)
+            if h >= 36 {
+                let pairs = [["rusted_tank","pipe"], ["broken_machine","scrap_heap"],
+                             ["steel_barrier","rusted_tank"], ["pipe","broken_machine"]]
+                let pair = pairs[(room-1)%pairs.count]
+                for (index, kind) in pair.enumerated() {
+                    let x = index == 0 ? bounds.minX+h/2+2 : bounds.maxX-h/2-2
+                    let item = WorldOneEnvironmentPlan.Prop(asset: "world4_prop_\(kind)",
+                        position: CGPoint(x: x,y: band.minY+4+h*anchorY),
+                        size: CGSize(width: h,height: h),anchorY: anchorY,foreground: false)
+                    if band.contains(item.frame), !bounds.intersects(item.frame),
+                       !reserved.contains(where: { $0.intersects(item.frame) }) {
+                        landmarks.append(item)
+                    }
+                }
+            }
+        }
+        // Only the existing solid rubble patch receives a blocking-looking
+        // art skin. Neither its frame nor its collision behavior is changed.
+        for patch in patches where patch.kind == .rubble {
+            let kind = room.isMultiple(of: 3) ? "scrap_heap" : "steel_barrier"
+            let side = min(patch.frame.width,patch.frame.height)
+            guard side > 0 else { continue }
+            let item = WorldOneEnvironmentPlan.Prop(asset: "world4_prop_\(kind)",
+                position: CGPoint(x: patch.frame.midX,y: patch.frame.midY-side/2+side*anchorY),
+                size: CGSize(width: side,height: side),anchorY: anchorY,foreground: false)
+            if patch.frame.contains(item.frame) { rubble.append(item) }
+        }
+        // Low-profile metal fragments are decorative and placed away from hazards, gates,
+        // objectives and the central approach. Distribute it across survival
+        // camera positions, not only the far perimeter.
+        let columns = expanded ? min(8,max(4,Int(ceil(bounds.width/110)))) : 4
+        let rows = expanded ? min(10,max(4,Int(ceil(bounds.height/120)))) : 5
+        for row in 0..<rows {
+            for column in 0..<columns {
+                let seed = room*97+row*37+column*19
+                if !expanded && seed.isMultiple(of: 3) { continue }
+                let x = bounds.minX+bounds.width*(CGFloat(column)+0.5)/CGFloat(columns)+CGFloat(seed%33-16)
+                let y = bounds.minY+bounds.height*(CGFloat(row)+0.5)/CGFloat(rows)+CGFloat(seed%37-18)
+                guard abs(x-bounds.midX) >= 48 else { continue }
+                let width: CGFloat = 31+CGFloat(seed%23)
+                let item = WorldOneEnvironmentPlan.GroundPlant(asset: "world4_prop_debris",
+                    position: CGPoint(x:x,y:y),size: CGSize(width:width,height:width))
+                let frame = item.frame
+                guard bounds.contains(frame),
+                      !patches.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }),
+                      !reserved.contains(where: { $0.intersects(frame) }),
+                      !fragments.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }) else { continue }
+                fragments.append(item)
+            }
+        }
+        return Plan(room: room,bounds: bounds,groundBounds: bounds.insetBy(dx:-300,dy:-300),
+                    landmarks: landmarks,fragments:fragments,rubble:rubble)
+    }
+}
