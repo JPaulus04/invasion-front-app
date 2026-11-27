@@ -32,24 +32,47 @@ def capture(device, output, fixture, flag, marker):
 
 
 def record_stoneback(device, output):
-    capture(device, output, "stoneback-live", "-captureBuild341StonebackLive", "[BUILD341 LIVE]")
     path = output / "stoneback-live.mp4"
-    with (output / "stoneback-video.log").open("w") as log:
-        recorder = subprocess.Popen(
-            ["xcrun", "simctl", "io", device, "recordVideo", "--codec=h264", str(path)],
-            stdout=log, stderr=subprocess.STDOUT,
-        )
-        try:
-            time.sleep(7)
-            if recorder.poll() is None:
+    for attempt in (1, 2):
+        capture(device, output, f"stoneback-live-attempt-{attempt}",
+                "-captureBuild341StonebackLive", "[BUILD341 LIVE]")
+        candidate = output / f"stoneback-attempt-{attempt}.mp4"
+        diagnostic = output / f"stoneback-video-attempt-{attempt}.log"
+        with diagnostic.open("w") as log:
+            recorder = subprocess.Popen(
+                ["xcrun", "simctl", "io", device, "recordVideo", "--codec=h264", str(candidate)],
+                stdout=log, stderr=subprocess.STDOUT,
+            )
+            try:
+                deadline = time.monotonic() + 30
+                while recorder.poll() is None and time.monotonic() < deadline:
+                    if candidate.exists() and candidate.stat().st_size > 0:
+                        break
+                    time.sleep(0.25)
+                else:
+                    raise RuntimeError("Recorder did not initialize")
+                time.sleep(7)
+                if recorder.poll() is not None:
+                    raise RuntimeError("Recorder exited before capture completed")
                 recorder.send_signal(signal.SIGINT)
-            recorder.wait(timeout=15)
-        finally:
-            if recorder.poll() is None:
-                recorder.kill()
-                recorder.wait(timeout=5)
-    if not path.is_file() or path.stat().st_size < 4096:
-        raise RuntimeError("Stoneback recording is missing or incomplete")
+                recorder.wait(timeout=45)
+                if not candidate.is_file() or candidate.stat().st_size < 4096:
+                    raise RuntimeError("Recording missing or incomplete")
+                # Decode the complete video, not merely its container header.
+                subprocess.run(["ffmpeg", "-v", "error", "-xerror", "-i", str(candidate),
+                                "-map", "0:v:0", "-f", "null", "-"],
+                               check=True, timeout=60, stdout=log, stderr=log)
+                candidate.replace(path)
+                return
+            except (RuntimeError, subprocess.SubprocessError) as error:
+                print(f"::warning::Stoneback recording attempt {attempt}: {error}", flush=True)
+                log.write(f"\nAttempt {attempt}: {error}; returncode={recorder.poll()}\n")
+                if attempt == 2:
+                    raise
+            finally:
+                if recorder.poll() is None:
+                    recorder.kill()
+                    recorder.wait(timeout=10)
 
 
 def main():
@@ -70,7 +93,6 @@ def main():
         for fixture in fixtures:
             capture(device, output, fixture, f"-captureBuild341={fixture}",
                     f"[BUILD341 READY] fixture={fixture} ")
-        record_stoneback(device, output)
         for world in (3, 4):
             capture(device, output, f"performance-world{world}",
                     f"-captureBuild341Performance={world}", "[BUILD341 PERF]")
@@ -87,6 +109,9 @@ def main():
                               ("cryooverlord", "alternate"), ("cryooverlord", "freeze")):
             capture(device, output, f"{name}-{variant}", f"-captureBuild341Faction={name}:{variant}",
                     f"[BUILD341 FACTION] name={name} variant={variant} ")
+
+        # Recording failure must not suppress unrelated evidence.
+        record_stoneback(device, output)
 
 
 if __name__ == "__main__":
