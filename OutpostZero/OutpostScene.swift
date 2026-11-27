@@ -4493,6 +4493,22 @@ final class OutpostScene: SKScene {
         return true
     }
 
+    private var authoredEnvironmentWorldID: Int? {
+        guard wave > 0 else { return nil }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-captureBuild342LegacyEnvironment") { return nil }
+        #endif
+        let id = selectedWorld.id
+        let assets: [String]
+        switch id {
+        case 1: assets = ToxicEnvironmentPlan.productionAssets
+        case 3: assets = FrostEnvironmentPlan.productionAssets
+        case 2: assets = IronEnvironmentPlan.productionAssets
+        default: return nil
+        }
+        return assets.allSatisfy { worldOneTexture(named: $0) != nil } ? id : nil
+    }
+
     private func rebuildTerrainHazards() {
         hazardScenery.removeAllChildren()
         acidVisualNodes.removeAll()
@@ -4506,6 +4522,7 @@ final class OutpostScene: SKScene {
                     frame: $0.offsetBy(dx: roomBounds.minX, dy: roomBounds.minY), outline: [])
             }
         }
+        let authoredWorld = authoredEnvironmentWorldID
         for (hazardIndex, patch) in roomHazards.enumerated() {
             if worldMapIndex == 0 && worldOneLiveLayout?.kind == .passage &&
                 !ProcessInfo.processInfo.arguments.contains("-captureTerrainHazardsScreenshot") {
@@ -4553,16 +4570,11 @@ final class OutpostScene: SKScene {
                     ? SKColor(red: 0.12, green: 0.23, blue: 0.26, alpha: 1)
                     : SKColor(red: 0.13, green: 0.19, blue: 0.18, alpha: 1)
                 shape.lineWidth = 2
-                #if DEBUG
-                if selectedWorld.id == 1 &&
-                    ProcessInfo.processInfo.arguments.contains("-previewAuthoredToxicEnvironment") &&
-                    ToxicEnvironmentPlan.productionAssets.allSatisfy({ worldOneTexture(named: $0) != nil }),
+                if authoredWorld == 1,
                     let texture = worldOneTexture(named: "world2_prop_wall") {
                     installAuthoredRubble(on: shape, texture: texture, name: "authoredToxicRubble",
                                           canvasCrop: CGRect(x: 34, y: 25, width: 444, height: 355))
-                } else if selectedWorld.id == 3 &&
-                    ProcessInfo.processInfo.arguments.contains("-previewAuthoredFrostEnvironment") &&
-                    FrostEnvironmentPlan.productionAssets.allSatisfy({ worldOneTexture(named: $0) != nil }),
+                } else if authoredWorld == 3,
                     let texture = worldOneTexture(named: wave.isMultiple(of: 3)
                         ? "world3_prop_wreckage" : "world3_prop_ruin_wall") {
                     let crop = wave.isMultiple(of: 3)
@@ -4570,9 +4582,7 @@ final class OutpostScene: SKScene {
                         : CGRect(x: 34, y: 29, width: 444, height: 195)
                     installAuthoredRubble(on: shape, texture: texture, name: "authoredFrostRubble",
                                           canvasCrop: crop)
-                } else if selectedWorld.id == 2 &&
-                    ProcessInfo.processInfo.arguments.contains("-previewAuthoredIronEnvironment") &&
-                    IronEnvironmentPlan.productionAssets.allSatisfy({ worldOneTexture(named: $0) != nil }),
+                } else if authoredWorld == 2,
                     let texture = worldOneTexture(named: wave.isMultiple(of: 3)
                         ? "world4_prop_scrap_heap" : "world4_prop_steel_barrier") {
                     let crop = wave.isMultiple(of: 3)
@@ -4583,9 +4593,6 @@ final class OutpostScene: SKScene {
                 } else {
                     decorateRubbleObstacle(shape, size: patch.frame.size)
                 }
-                #else
-                decorateRubbleObstacle(shape, size: patch.frame.size)
-                #endif
             }
             // Prefer authored transparent terrain illustrations when bundled.
             // They are presentation-only: the exact polygon above remains the
@@ -4634,7 +4641,6 @@ final class OutpostScene: SKScene {
     }
 
 
-    #if DEBUG
     private func installAuthoredRubble(on shape: SKShapeNode, texture: SKTexture,
                                        name: String, canvasCrop: CGRect) {
         guard let footprint = shape.path?.boundingBoxOfPath else { return }
@@ -4657,7 +4663,6 @@ final class OutpostScene: SKScene {
         shape.addChild(shadow)
         shape.addChild(art)
     }
-    #endif
 
     /// Authored shorelines, shallow bays and reactive industrial runoff use
     /// the same polygon silhouette as game logic; all details are decorative.
@@ -5921,175 +5926,155 @@ final class OutpostScene: SKScene {
         }
         arena.childNode(withName: "roomArtwork")?.isHidden = false
 
-        #if DEBUG
-        // Explicit development preview only. Missing art fails closed to the
-        // intact live landscape; never display partially loaded replacements.
-        if selectedWorld.id == 1 &&
-            ProcessInfo.processInfo.arguments.contains("-previewAuthoredToxicEnvironment") {
-            let missing = ToxicEnvironmentPlan.productionAssets.filter { worldOneTexture(named: $0) == nil }
-            if missing.isEmpty {
-                let plan = ToxicEnvironmentPlan.make(room: max(1,wave), bounds: roomBounds,
-                    aspect: { [weak self] name in
-                        guard let texture = self?.worldOneTexture(named: name) else { return 1 }
-                        return texture.size().width/max(1,texture.size().height)
-                    })
-                zoneScenery.removeAllChildren()
-                arena.childNode(withName: "campaignExterior")?.removeFromParent()
-                arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
-                arena.childNode(withName: "roomArtwork")?.isHidden = true
-                let root = ToxicEnvironment.make(plan,
-                    texture: { [weak self] in self?.worldOneTexture(named: $0) })
-                // In fixed-camera rooms the playable rectangle ends well
-                // below the HUD. Use the actual visible nonwalkable north
-                // strip, rather than relying on offscreen perimeter counts.
-                if !expandedArenaPreview {
-                    let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
-                    let bandBottom = roomBounds.maxY + 4
-                    let height = min(78, hudBottom - bandBottom - 8,
-                                     max(0, roomBounds.width/2 - 96))
-                    if height >= 38 {
-                        let anchor = ToxicEnvironmentPlan.propAnchorY
-                        let names: [String]
-                        switch plan.theme {
-                        case .containment: names = ["world2_prop_tank", "world2_prop_wall"]
-                        case .runoff: names = ["world2_prop_pipe", "world2_prop_vegetation"]
-                        case .ruins: names = ["world2_prop_boulder", "world2_prop_wall"]
-                        case .boss: names = ["world2_prop_wall", "world2_prop_tank"]
-                        }
-                        for (index, name) in names.enumerated() {
-                            let x = index == 0 ? roomBounds.minX+height/2+3 : roomBounds.maxX-height/2-3
-                            let position = CGPoint(x: x,y: bandBottom+height*anchor)
-                            let frame = CGRect(x: x-height/2,y: bandBottom,width: height,height: height)
-                            guard !frame.intersects(roomBounds),
-                                  abs(x-roomBounds.midX) >= 80+height/2 else { continue }
-                            AuthoredEnvironmentRenderer.installGroundedProp(asset: name,
-                                position: position, size: CGSize(width: height,height: height),
-                                anchorY: anchor, bounds: roomBounds, in: root,
-                                texture: { [weak self] in self?.worldOneTexture(named: $0) })
-                            root.children.last?.name = "toxicNorthLandmark"
-                        }
-                    }
-                }
-                // Flat, nonblocking fragments are the only new art allowed
-                // inside the walkable area. Large solid props stay outside.
-                let patches = TerrainHazards.patches(world: 1, room: max(1, wave), bounds: roomBounds)
-                let reserved = [entryPoint, authoredGatePosition].map {
-                    CGRect(x: $0.x-64, y: $0.y-64, width: 128, height: 128)
-                }
-                if let debris = worldOneTexture(named: "world2_prop_debris") {
-                    var occupied: [CGRect] = []
-                    func addFragment(x: CGFloat, y: CGFloat, width: CGFloat, facing: Int, angle: CGFloat = 0) {
-                        let height = width * 0.65
-                        // Reserve the rotated sprite's full envelope, including
-                        // a margin so loose fragments never touch hazard rims.
-                        let envelope = CGRect(x: x-width*0.65, y: y-width*0.65,
-                                              width: width*1.3, height: width*1.3)
-                        guard roomBounds.contains(envelope),
-                              !patches.contains(where: { $0.frame.insetBy(dx: -8, dy: -8).intersects(envelope) }),
-                              !reserved.contains(where: { $0.intersects(envelope) }),
-                              !occupied.contains(where: { $0.intersects(envelope.insetBy(dx: -12, dy: -12)) }) else { return }
-                        let fragment = SKSpriteNode(texture: debris)
-                        fragment.name = "toxicGroundFragment"
-                        fragment.position = CGPoint(x: x, y: y)
-                        fragment.size = CGSize(width: width, height: height)
-                        fragment.xScale = CGFloat(facing)
-                        fragment.zRotation = angle
-                        fragment.alpha = 0.75
-                        fragment.zPosition = -12
-                        root.addChild(fragment)
-                        occupied.append(envelope)
-                    }
-                    // Tactical rooms retain their verified edge layout.
-                    for side in [-1, 1] {
-                        for (index, fraction) in [CGFloat(0.12), 0.29, 0.47, 0.65, 0.84].enumerated() {
-                            let width: CGFloat = 30+CGFloat((index+wave)%3)*4
-                            let inset = max(22, width*0.65+1)
-                            let x = side < 0 ? roomBounds.minX+inset : roomBounds.maxX-inset
-                            let y = roomBounds.minY+roomBounds.height*fraction
-                            addFragment(x: x, y: y, width: width, facing: side)
-                        }
-                    }
-                    if expandedArenaPreview {
-                        // A survival camera sees only part of the larger map.
-                        // Scatter sparse, ankle-height, nonblocking fragments
-                        // through interior side lanes as well as the perimeter.
-                        // Keep the center approach open and the work bounded.
-                        let columns = min(8, max(4, Int(ceil(roomBounds.width/120))))
-                        let rows = min(10, max(4, Int(ceil(roomBounds.height/135))))
-                        for row in 0..<rows {
-                            for column in 0..<columns {
-                                let seed = wave*97 + row*37 + column*19
-                                let dx = CGFloat(seed%23-11)
-                                let dy = CGFloat((seed*7)%31-15)
-                                let x = roomBounds.minX + roomBounds.width*(CGFloat(column)+0.5)/CGFloat(columns) + dx
-                                let y = roomBounds.minY + roomBounds.height*(CGFloat(row)+0.5)/CGFloat(rows) + dy
-                                guard abs(x-roomBounds.midX) >= 46 else { continue }
-                                addFragment(x: x, y: y, width: CGFloat(25+seed%10),
-                                            facing: seed.isMultiple(of: 2) ? 1 : -1,
-                                            angle: CGFloat(seed%7-3)*0.12)
-                            }
-                        }
-                    }
-                }
-                zoneScenery.addChild(root)
-                print("[BUILD342 TOXIC PREVIEW] room=\(wave) theme=\(plan.theme.rawValue)")
-                return
-            }
-            print("[BUILD342 TOXIC PREVIEW BLOCKED] missing=\(missing.joined(separator: ","))")
-        }
-        if selectedWorld.id == 3 &&
-            ProcessInfo.processInfo.arguments.contains("-previewAuthoredFrostEnvironment") {
-            let missing = FrostEnvironmentPlan.productionAssets.filter { worldOneTexture(named: $0) == nil }
-            if missing.isEmpty {
-                let bounds = roomBounds
+        // Use the complete pack for this world or fall back to its legacy scenery.
+        switch authoredEnvironmentWorldID {
+        case 1?:
+            let plan = ToxicEnvironmentPlan.make(room: max(1,wave), bounds: roomBounds,
+                aspect: { [weak self] name in
+                    guard let texture = self?.worldOneTexture(named: name) else { return 1 }
+                    return texture.size().width/max(1,texture.size().height)
+                })
+            zoneScenery.removeAllChildren()
+            arena.childNode(withName: "campaignExterior")?.removeFromParent()
+            arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+            arena.childNode(withName: "roomArtwork")?.isHidden = true
+            let root = ToxicEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) })
+            // In fixed-camera rooms the playable rectangle ends well
+            // below the HUD. Use the actual visible nonwalkable north
+            // strip, rather than relying on offscreen perimeter counts.
+            if !expandedArenaPreview {
                 let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
-                let band = CGRect(x: 0,y: bounds.maxY,width: size.width,
-                                  height: max(0,hudBottom-bounds.maxY))
-                let reserved = [entryPoint, authoredGatePosition].map {
-                    CGRect(x: $0.x-64,y: $0.y-64,width: 128,height: 128)
+                let bandBottom = roomBounds.maxY + 4
+                let height = min(78, hudBottom - bandBottom - 8,
+                                 max(0, roomBounds.width/2 - 96))
+                if height >= 38 {
+                    let anchor = ToxicEnvironmentPlan.propAnchorY
+                    let names: [String]
+                    switch plan.theme {
+                    case .containment: names = ["world2_prop_tank", "world2_prop_wall"]
+                    case .runoff: names = ["world2_prop_pipe", "world2_prop_vegetation"]
+                    case .ruins: names = ["world2_prop_boulder", "world2_prop_wall"]
+                    case .boss: names = ["world2_prop_wall", "world2_prop_tank"]
+                    }
+                    for (index, name) in names.enumerated() {
+                        let x = index == 0 ? roomBounds.minX+height/2+3 : roomBounds.maxX-height/2-3
+                        let position = CGPoint(x: x,y: bandBottom+height*anchor)
+                        let frame = CGRect(x: x-height/2,y: bandBottom,width: height,height: height)
+                        guard !frame.intersects(roomBounds),
+                              abs(x-roomBounds.midX) >= 80+height/2 else { continue }
+                        AuthoredEnvironmentRenderer.installGroundedProp(asset: name,
+                            position: position, size: CGSize(width: height,height: height),
+                            anchorY: anchor, bounds: roomBounds, in: root,
+                            texture: { [weak self] in self?.worldOneTexture(named: $0) })
+                        root.children.last?.name = "toxicNorthLandmark"
+                    }
                 }
-                let plan = FrostEnvironmentPlan.make(room: max(1,wave),bounds: bounds,
-                    northBand: band,patches: TerrainHazards.patches(world: 3,room: max(1,wave),bounds: bounds),
-                    reserved: reserved,expanded: expandedArenaPreview)
-                zoneScenery.removeAllChildren()
-                arena.childNode(withName: "campaignExterior")?.removeFromParent()
-                arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
-                arena.childNode(withName: "roomArtwork")?.isHidden = true
-                zoneScenery.addChild(FrostEnvironment.make(plan,
-                    texture: { [weak self] in self?.worldOneTexture(named: $0) }))
-                print("[BUILD342 FROST PREVIEW] room=\(wave) landmarks=\(plan.landmarks.count) snowbanks=\(plan.snowbanks.count)")
-                return
             }
-            print("[BUILD342 FROST PREVIEW BLOCKED] missing=\(missing.joined(separator: ","))")
-        }
-        if selectedWorld.id == 2 &&
-            ProcessInfo.processInfo.arguments.contains("-previewAuthoredIronEnvironment") {
-            let missing = IronEnvironmentPlan.productionAssets.filter { worldOneTexture(named: $0) == nil }
-            if missing.isEmpty {
-                let bounds = roomBounds
-                let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
-                let band = CGRect(x: 0,y: bounds.maxY,width: size.width,
-                                  height: max(0,hudBottom-bounds.maxY))
-                let reserved = [entryPoint, authoredGatePosition].map {
-                    CGRect(x: $0.x-64,y: $0.y-64,width: 128,height: 128)
+            // Flat, nonblocking fragments are the only new art allowed
+            // inside the walkable area. Large solid props stay outside.
+            let patches = TerrainHazards.patches(world: 1, room: max(1, wave), bounds: roomBounds)
+            let reserved = [entryPoint, authoredGatePosition].map {
+                CGRect(x: $0.x-64, y: $0.y-64, width: 128, height: 128)
+            }
+            if let debris = worldOneTexture(named: "world2_prop_debris") {
+                var occupied: [CGRect] = []
+                func addFragment(x: CGFloat, y: CGFloat, width: CGFloat, facing: Int, angle: CGFloat = 0) {
+                    let height = width * 0.65
+                    // Reserve the rotated sprite's full envelope, including
+                    // a margin so loose fragments never touch hazard rims.
+                    let envelope = CGRect(x: x-width*0.65, y: y-width*0.65,
+                                          width: width*1.3, height: width*1.3)
+                    guard roomBounds.contains(envelope),
+                          !patches.contains(where: { $0.frame.insetBy(dx: -8, dy: -8).intersects(envelope) }),
+                          !reserved.contains(where: { $0.intersects(envelope) }),
+                          !occupied.contains(where: { $0.intersects(envelope.insetBy(dx: -12, dy: -12)) }) else { return }
+                    let fragment = SKSpriteNode(texture: debris)
+                    fragment.name = "toxicGroundFragment"
+                    fragment.position = CGPoint(x: x, y: y)
+                    fragment.size = CGSize(width: width, height: height)
+                    fragment.xScale = CGFloat(facing)
+                    fragment.zRotation = angle
+                    fragment.alpha = 0.75
+                    fragment.zPosition = -12
+                    root.addChild(fragment)
+                    occupied.append(envelope)
                 }
-                let plan = IronEnvironmentPlan.make(room: max(1,wave),bounds: bounds,
-                    northBand: band,patches: TerrainHazards.patches(world: 2,room: max(1,wave),bounds: bounds),
-                    reserved: reserved,expanded: expandedArenaPreview)
-                zoneScenery.removeAllChildren()
-                arena.childNode(withName: "campaignExterior")?.removeFromParent()
-                arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
-                arena.childNode(withName: "roomArtwork")?.isHidden = true
-                zoneScenery.addChild(IronEnvironment.make(plan,
-                    texture: { [weak self] in self?.worldOneTexture(named: $0) }))
-                print("[BUILD342 IRON PREVIEW] room=\(wave) landmarks=\(plan.landmarks.count) fragments=\(plan.fragments.count)")
-                return
+                // Tactical rooms retain their verified edge layout.
+                for side in [-1, 1] {
+                    for (index, fraction) in [CGFloat(0.12), 0.29, 0.47, 0.65, 0.84].enumerated() {
+                        let width: CGFloat = 30+CGFloat((index+wave)%3)*4
+                        let inset = max(22, width*0.65+1)
+                        let x = side < 0 ? roomBounds.minX+inset : roomBounds.maxX-inset
+                        let y = roomBounds.minY+roomBounds.height*fraction
+                        addFragment(x: x, y: y, width: width, facing: side)
+                    }
+                }
+                if expandedArenaPreview {
+                    // A survival camera sees only part of the larger map.
+                    // Scatter sparse, ankle-height, nonblocking fragments
+                    // through interior side lanes as well as the perimeter.
+                    // Keep the center approach open and the work bounded.
+                    let columns = min(8, max(4, Int(ceil(roomBounds.width/120))))
+                    let rows = min(10, max(4, Int(ceil(roomBounds.height/135))))
+                    for row in 0..<rows {
+                        for column in 0..<columns {
+                            let seed = wave*97 + row*37 + column*19
+                            let dx = CGFloat(seed%23-11)
+                            let dy = CGFloat((seed*7)%31-15)
+                            let x = roomBounds.minX + roomBounds.width*(CGFloat(column)+0.5)/CGFloat(columns) + dx
+                            let y = roomBounds.minY + roomBounds.height*(CGFloat(row)+0.5)/CGFloat(rows) + dy
+                            guard abs(x-roomBounds.midX) >= 46 else { continue }
+                            addFragment(x: x, y: y, width: CGFloat(25+seed%10),
+                                        facing: seed.isMultiple(of: 2) ? 1 : -1,
+                                        angle: CGFloat(seed%7-3)*0.12)
+                        }
+                    }
+                }
             }
-            print("[BUILD342 IRON PREVIEW BLOCKED] missing=\(missing.joined(separator: ","))")
+            zoneScenery.addChild(root)
+            return
+        case 3?:
+            let bounds = roomBounds
+            let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+            let band = CGRect(x: 0,y: bounds.maxY,width: size.width,
+                              height: max(0,hudBottom-bounds.maxY))
+            let reserved = [entryPoint, authoredGatePosition].map {
+                CGRect(x: $0.x-64,y: $0.y-64,width: 128,height: 128)
+            }
+            let plan = FrostEnvironmentPlan.make(room: max(1,wave),bounds: bounds,
+                northBand: band,patches: TerrainHazards.patches(world: 3,room: max(1,wave),bounds: bounds),
+                reserved: reserved,expanded: expandedArenaPreview)
+            zoneScenery.removeAllChildren()
+            arena.childNode(withName: "campaignExterior")?.removeFromParent()
+            arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+            arena.childNode(withName: "roomArtwork")?.isHidden = true
+            zoneScenery.addChild(FrostEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            return
+        case 2?:
+            let bounds = roomBounds
+            let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+            let band = CGRect(x: 0,y: bounds.maxY,width: size.width,
+                              height: max(0,hudBottom-bounds.maxY))
+            let reserved = [entryPoint, authoredGatePosition].map {
+                CGRect(x: $0.x-64,y: $0.y-64,width: 128,height: 128)
+            }
+            let plan = IronEnvironmentPlan.make(room: max(1,wave),bounds: bounds,
+                northBand: band,patches: TerrainHazards.patches(world: 2,room: max(1,wave),bounds: bounds),
+                reserved: reserved,expanded: expandedArenaPreview)
+            zoneScenery.removeAllChildren()
+            arena.childNode(withName: "campaignExterior")?.removeFromParent()
+            arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+            arena.childNode(withName: "roomArtwork")?.isHidden = true
+            zoneScenery.addChild(IronEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            return
+        default:
+            break
         }
-        #endif
 
-        // Legacy later-world presentation remains active until authored faction scenery replaces it.
+        // Legacy scenery covers missing packs and worlds without authored environments.
         let zone = selectedWorld.biome == 1 ? max(1, requestedZone) : max(2, requestedZone)
         zoneScenery.removeAllChildren()
         let roomArt = arena.childNode(withName: "roomArtwork")
@@ -8003,7 +7988,8 @@ final class OutpostScene: SKScene {
         precondition(["legacy","active","idle","water"].contains(state))
         captureBuild341("\(parts[0])-\(parts[1])")
         let preview = ProcessInfo.processInfo.arguments.contains("-previewDimensionalHazards")
-        precondition(preview == (state != "legacy"))
+        let legacyEnvironment = ProcessInfo.processInfo.arguments.contains("-captureBuild342LegacyEnvironment")
+        precondition(preview == (legacyEnvironment && state != "legacy"))
         let liquids = hazardScenery.children.compactMap { $0 as? SKShapeNode }.filter {
             $0.name == "terrain_acid" || $0.name == "terrain_water"
         }
@@ -8043,9 +8029,16 @@ final class OutpostScene: SKScene {
             }
         } else {
             precondition(liquids.allSatisfy { $0.childNode(withName: "dimensionalLiquidIdle") == nil })
+            if !legacyEnvironment && selectedWorld.id == 1 {
+                precondition(state == "active" || state == "idle")
+                waveElapsed = state == "active" ? 2.5 : 0
+                phase = .levelUp // Stage the live hazard visuals without applying damage.
+                updateTerrainHazards()
+                phase = .playing
+                precondition(displayedAcidActive == (state == "active"))
+            }
         }
-        if ProcessInfo.processInfo.arguments.contains("-previewAuthoredToxicEnvironment") {
-            precondition(selectedWorld.id == 1 && preview)
+        if !legacyEnvironment && selectedWorld.id == 1 {
             guard let root = zoneScenery.childNode(withName: "authoredToxicWorld"),
                   let ground = root.childNode(withName: "unifiedGround") else {
                 preconditionFailure("Authored Toxic landscape did not load")
@@ -8085,8 +8078,8 @@ final class OutpostScene: SKScene {
             }
             print("[BUILD342 AUTHORED TOXIC] room=\(wave) tiles=\(ground.children.count) props=\(props.count) visibleProps=\(props.filter(visible).count) fragments=\(fragments.count) visibleFragments=\(fragments.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
         }
-        if ProcessInfo.processInfo.arguments.contains("-previewAuthoredFrostEnvironment") {
-            precondition(selectedWorld.id == 3 && preview && state == "water")
+        if !legacyEnvironment && selectedWorld.id == 3 {
+            precondition(state == "water")
             guard let root = zoneScenery.childNode(withName: "authoredFrostWorld"),
                   let ground = root.childNode(withName: "unifiedGround") else {
                 preconditionFailure("Authored Frost landscape did not load")
@@ -8122,8 +8115,8 @@ final class OutpostScene: SKScene {
             }
             print("[BUILD342 AUTHORED FROST] room=\(wave) tiles=\(ground.children.count) landmarks=\(landmarks.count) snow=\(snow.count) visibleSnow=\(snow.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
         }
-        if ProcessInfo.processInfo.arguments.contains("-previewAuthoredIronEnvironment") {
-            precondition(selectedWorld.id == 2 && preview && state == "water")
+        if !legacyEnvironment && selectedWorld.id == 2 {
+            precondition(state == "water")
             guard let root = zoneScenery.childNode(withName: "authoredIronWorld"),
                   let ground = root.childNode(withName: "unifiedGround") else {
                 preconditionFailure("Authored Iron landscape did not load")

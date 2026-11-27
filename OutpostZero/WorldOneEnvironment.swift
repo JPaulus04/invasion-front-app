@@ -165,7 +165,7 @@ enum WorldOneEnvironment {
 }
 
 
-/// Staged World 2 presentation; activated only by the explicit DEBUG preview.
+/// Authored Toxic Crossing scenery.
 enum ToxicEnvironment {
     static func make(_ plan: ToxicEnvironmentPlan.Plan,
                      texture: (String) -> SKTexture?) -> SKNode {
@@ -394,8 +394,7 @@ enum DimensionalLiquidPreview {
 #endif
 
 
-#if DEBUG
-/// Staged Frost Expanse presentation; never changes gameplay geometry.
+/// Authored Frost Expanse presentation; never changes gameplay geometry.
 enum FrostEnvironment {
     static func make(_ plan: FrostEnvironmentPlan.Plan,
                      texture: (String) -> SKTexture?) -> SKNode {
@@ -433,11 +432,9 @@ enum FrostEnvironment {
         return root
     }
 }
-#endif
 
 
-#if DEBUG
-/// Staged Iron Wastes presentation; never changes gameplay geometry.
+/// Authored Iron Wastes presentation; never changes gameplay geometry.
 enum IronEnvironment {
     static func make(_ plan: IronEnvironmentPlan.Plan,
                      texture: (String) -> SKTexture?) -> SKNode {
@@ -471,4 +468,3 @@ enum IronEnvironment {
         return root
     }
 }
-#endif

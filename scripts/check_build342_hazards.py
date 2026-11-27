@@ -19,14 +19,10 @@ def capture(device, output, fixture, first=False, authored=False, frost=False, i
         args.append("--terminate-running-process")
     args += [f"--stdout={log}", f"--stderr={errors}", device, BUNDLE,
              f"-captureBuild341={fixture}" if selector else f"-captureBuild342Hazards={fixture}"]
-    if not selector and not fixture.endswith("-legacy"):
-        args.append("-previewDimensionalHazards")
-    if authored:
-        args.append("-previewAuthoredToxicEnvironment")
-    if frost:
-        args.append("-previewAuthoredFrostEnvironment")
-    if iron:
-        args.append("-previewAuthoredIronEnvironment")
+    if not (selector or authored or frost or iron):
+        args.append("-captureBuild342LegacyEnvironment")
+        if not fixture.endswith("-legacy"):
+            args.append("-previewDimensionalHazards")
     failure = None
     try:
         command(*args, timeout=90)
