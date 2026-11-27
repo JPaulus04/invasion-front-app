@@ -105,3 +105,43 @@ jobs:
           name: build341-captures-${{ matrix.group }}
           path: build341-review/
           if-no-files-found: error
+  acceptance:
+    if: always()
+    needs: [campaign, capture]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: build341-captures-*
+          path: evidence
+      - name: Verify mandatory results and source identity
+        env:
+          BUILD_RESULT: ${{ needs.campaign.result }}
+          CAPTURE_RESULT: ${{ needs.capture.result }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          groups = ("campaign", "performance", "characters", "recording")
+          failures = []
+          rows = ["| Group | Result |", "|---|---|"]
+          for group in groups:
+              path = Path("evidence") / f"build341-captures-{group}" / "results.json"
+              try:
+                  result = json.loads(path.read_text())
+                  if result["source"] != os.environ["GITHUB_SHA"]:
+                      raise ValueError("source mismatch")
+                  if result["groups"][group]["status"] != "passed":
+                      raise ValueError("group failed")
+                  status = "passed"
+              except (OSError, ValueError, KeyError, TypeError) as error:
+                  status = "failed or missing"
+                  failures.append(f"{group}: {error}")
+              rows.append(f"| {group} | {status} |")
+          if os.environ["BUILD_RESULT"] != "success" or os.environ["CAPTURE_RESULT"] != "success":
+              failures.append("Mandatory upstream job unsuccessful")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("\n".join(rows) + "\n")
+          if failures:
+              raise SystemExit("\n".join(failures))
+          PY
