@@ -4587,6 +4587,19 @@ final class OutpostScene: SKScene {
                     shape.fillColor = SKColor(red: 0.17,green: 0.22,blue: 0.30,alpha: 1)
                     shape.strokeColor = SKColor(red: 0.32,green: 0.42,blue: 0.52,alpha: 0.7)
                     shape.addChild(art)
+                } else if selectedWorld.id == 2 &&
+                    ProcessInfo.processInfo.arguments.contains("-previewAuthoredIronEnvironment") &&
+                    IronEnvironmentPlan.productionAssets.allSatisfy({ worldOneTexture(named: $0) != nil }),
+                    let texture = worldOneTexture(named: wave.isMultiple(of: 3)
+                        ? "world4_prop_scrap_heap" : "world4_prop_steel_barrier") {
+                    let art = SKSpriteNode(texture: texture)
+                    art.name = "authoredIronRubble"
+                    let side = min(patch.frame.width,patch.frame.height)
+                    art.size = CGSize(width: side,height: side)
+                    art.zPosition = 0.8
+                    shape.fillColor = SKColor(red: 0.25,green: 0.20,blue: 0.17,alpha: 1)
+                    shape.strokeColor = SKColor(red: 0.48,green: 0.32,blue: 0.20,alpha: 0.7)
+                    shape.addChild(art)
                 } else {
                     decorateRubbleObstacle(shape, size: patch.frame.size)
                 }
@@ -6039,6 +6052,31 @@ final class OutpostScene: SKScene {
                 return
             }
             print("[BUILD342 FROST PREVIEW BLOCKED] missing=\(missing.joined(separator: ","))")
+        }
+        if selectedWorld.id == 2 &&
+            ProcessInfo.processInfo.arguments.contains("-previewAuthoredIronEnvironment") {
+            let missing = IronEnvironmentPlan.productionAssets.filter { worldOneTexture(named: $0) == nil }
+            if missing.isEmpty {
+                let bounds = roomBounds
+                let hudBottom = size.height - max(16, view?.safeAreaInsets.top ?? 0) - 88
+                let band = CGRect(x: 0,y: bounds.maxY,width: size.width,
+                                  height: max(0,hudBottom-bounds.maxY))
+                let reserved = [entryPoint, authoredGatePosition].map {
+                    CGRect(x: $0.x-64,y: $0.y-64,width: 128,height: 128)
+                }
+                let plan = IronEnvironmentPlan.make(room: max(1,wave),bounds: bounds,
+                    northBand: band,patches: TerrainHazards.patches(world: 2,room: max(1,wave),bounds: bounds),
+                    reserved: reserved,expanded: expandedArenaPreview)
+                zoneScenery.removeAllChildren()
+                arena.childNode(withName: "campaignExterior")?.removeFromParent()
+                arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
+                arena.childNode(withName: "roomArtwork")?.isHidden = true
+                zoneScenery.addChild(IronEnvironment.make(plan,
+                    texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+                print("[BUILD342 IRON PREVIEW] room=\(wave) landmarks=\(plan.landmarks.count) fragments=\(plan.fragments.count)")
+                return
+            }
+            print("[BUILD342 IRON PREVIEW BLOCKED] missing=\(missing.joined(separator: ","))")
         }
         #endif
 
@@ -8074,6 +8112,43 @@ final class OutpostScene: SKScene {
                 }
             }
             print("[BUILD342 AUTHORED FROST] room=\(wave) tiles=\(ground.children.count) landmarks=\(landmarks.count) snow=\(snow.count) visibleSnow=\(snow.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
+        }
+        if ProcessInfo.processInfo.arguments.contains("-previewAuthoredIronEnvironment") {
+            precondition(selectedWorld.id == 2 && preview && state == "water")
+            guard let root = zoneScenery.childNode(withName: "authoredIronWorld"),
+                  let ground = root.childNode(withName: "unifiedGround") else {
+                preconditionFailure("Authored Iron landscape did not load")
+            }
+            precondition(!ground.children.isEmpty)
+            precondition(IronEnvironmentPlan.productionAssets.allSatisfy { worldOneTexture(named: $0) != nil })
+            let landmarks = root.children.filter { $0.name?.hasPrefix("unifiedScenery_") == true }
+            let fragments = root.children.filter { $0.name == "ironGroundDebris" }
+            let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredIronRubble") }
+            precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            let viewport = RoomRules.bounds(for: size)
+            func visible(_ node: SKNode) -> Bool {
+                guard let parent = node.parent else { return false }
+                let frame = node.calculateAccumulatedFrame()
+                let a = convert(CGPoint(x: frame.minX,y: frame.minY),from: parent)
+                let b = convert(CGPoint(x: frame.maxX,y: frame.maxY),from: parent)
+                let projected = CGRect(x: min(a.x,b.x),y: min(a.y,b.y),
+                    width: abs(a.x-b.x),height: abs(a.y-b.y))
+                let overlap = viewport.intersection(projected)
+                return !overlap.isNull && overlap.width >= 8 && overlap.height >= 8
+            }
+            if expandedArenaPreview {
+                precondition(fragments.filter(visible).count >= 2,
+                             "Expanded Iron arena must display ground scenery")
+            } else {
+                let top = size.height - max(16,view?.safeAreaInsets.top ?? 0) - 88
+                let band = CGRect(x: 0,y: roomBounds.maxY,width: size.width,
+                                  height: max(0,top-roomBounds.maxY))
+                precondition(landmarks.allSatisfy { band.contains($0.calculateAccumulatedFrame()) })
+                if min(86,band.height-8,roomBounds.width/2-85) >= 36 {
+                    precondition(!landmarks.isEmpty, "Iron scenery must populate usable north band")
+                }
+            }
+            print("[BUILD342 AUTHORED IRON] room=\(wave) tiles=\(ground.children.count) landmarks=\(landmarks.count) fragments=\(fragments.count) visibleFragments=\(fragments.filter(visible).count) rubble=\(rubble.count) visibleRubble=\(rubble.filter(visible).count)")
         }
         // This flag is used only on paused QA captures; damage is not applied.
         print("[BUILD342 HAZARDS] fixture=\(selection) liquidCount=\(liquids.count) preview=\(preview)")
