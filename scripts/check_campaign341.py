@@ -98,6 +98,7 @@ def main():
         finally:
             (output / "results.json").write_text(json.dumps({
                 "source": os.environ.get("GITHUB_SHA"),
+                "app_sha256": os.environ.get("QA_APP_SHA256"),
                 "groups": results,
             }, indent=2))
     if any(result["status"] != "passed" for result in results.values()):
