@@ -9,6 +9,7 @@ import time
 
 from PIL import Image
 from run_phase4_simulator import BUNDLE, command, focused_simulator
+from simulator_startup import RecoverableStartupError
 
 
 def capture(device, output, fixture, flag, marker):
@@ -78,6 +79,22 @@ def record_stoneback(device, output):
                     recorder.wait(timeout=10)
 
 
+def classify_failure(error):
+    if isinstance(error, RecoverableStartupError):
+        return "simulator_startup"
+    if isinstance(error, AssertionError):
+        return "validation_assertion"
+    if isinstance(error, FileNotFoundError):
+        return "missing_dependency_or_evidence"
+    if isinstance(error, subprocess.TimeoutExpired):
+        return "external_command_timeout"
+    if isinstance(error, subprocess.CalledProcessError):
+        return "external_command_failed"
+    if isinstance(error, TimeoutError):
+        return "fixture_readiness_timeout"
+    return "unclassified_failure"
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--group", choices=("all", "campaign", "performance", "characters", "recording"), default="all")
@@ -93,7 +110,8 @@ def main():
             run_group(group, destination)
             results[group] = {"status": "passed"}
         except Exception as error:
-            results[group] = {"status": "failed", "error": repr(error)}
+            results[group] = {"status": "failed", "error": repr(error),
+                              "category": classify_failure(error)}
             print(f"::error::{group}: {error}", flush=True)
         finally:
             (output / "results.json").write_text(json.dumps({
