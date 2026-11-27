@@ -14,11 +14,11 @@ on:
   workflow_dispatch:
 concurrency:
   group: build341-campaign-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   campaign:
     runs-on: macos-15
-    timeout-minutes: 36
+    timeout-minutes: 50
     env:
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
@@ -52,16 +52,105 @@ jobs:
           ditto DerivedData/Build/Products/Debug-iphonesimulator/OutpostZero.app simulator-app/OutpostZero.app
       - name: Verify all authored faction resources in the built bundle
         run: python3 scripts/verify_build341_bundle.py --bundle simulator-app/OutpostZero.app > build341-bundle.json
-      - name: Capture campaign and recovery fixtures
+      - name: Package simulator app preserving permissions
         run: |
-          set -o pipefail
-          mkdir -p build341-review
-          python3 scripts/check_campaign341.py 2>&1 | tee build341-review/simulator.log
+          tar -czf simulator-app.tar.gz simulator-app
+          shasum -a 256 simulator-app.tar.gz > simulator-app.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build341-simulator-app
+          path: |
+            simulator-app.tar.gz
+            simulator-app.sha256
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: build341-campaign-captures
+          name: build341-build-evidence
           path: |
             build341.log
             build341-bundle.json
-            build341-review/
+  capture:
+    needs: campaign
+    runs-on: macos-15
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [campaign, performance, characters, recording]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: build341-simulator-app
+          path: .
+      - name: Prepare validation dependencies
+        run: |
+          python3 -m pip install --break-system-packages 'Pillow>=11'
+          shasum -a 256 -c simulator-app.sha256
+          tar -xzf simulator-app.tar.gz
+          if [ "${{ matrix.group }}" = recording ]; then
+            command -v ffmpeg || brew install ffmpeg
+            ffmpeg -version
+          fi
+      - name: Capture selected validation group
+        run: |
+          set -o pipefail
+          mkdir -p build341-review
+          export QA_APP_SHA256="$(shasum -a 256 simulator-app.tar.gz | cut -d ' ' -f 1)"
+          python3 scripts/check_campaign341.py --group "${{ matrix.group }}" 2>&1 | tee build341-review/simulator.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build341-captures-${{ matrix.group }}
+          path: build341-review/
+          if-no-files-found: error
+  acceptance:
+    if: always()
+    needs: [campaign, capture]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: build341-captures-*
+          path: evidence
+      - uses: actions/download-artifact@v4
+        with:
+          name: build341-simulator-app
+          path: compiled
+      - name: Verify mandatory results and source identity
+        env:
+          BUILD_RESULT: ${{ needs.campaign.result }}
+          CAPTURE_RESULT: ${{ needs.capture.result }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          groups = ("campaign", "performance", "characters", "recording")
+          expected = Path('compiled/simulator-app.sha256').read_text().split()[0]
+          failures = []
+          rows = ["| Group | Result |", "|---|---|"]
+          for group in groups:
+              path = Path("evidence") / f"build341-captures-{group}" / "results.json"
+              try:
+                  result = json.loads(path.read_text())
+                  if result["source"] != os.environ["GITHUB_SHA"]:
+                      raise ValueError("source mismatch")
+                  if result["app_sha256"] != expected:
+                      raise ValueError("compiled application mismatch")
+                  if result["groups"][group]["status"] != "passed":
+                      raise ValueError("group failed")
+                  status = "passed"
+              except (OSError, ValueError, KeyError, TypeError) as error:
+                  status = "failed or missing"
+                  failures.append(f"{group}: {error}")
+              rows.append(f"| {group} | {status} |")
+          if os.environ["BUILD_RESULT"] != "success" or os.environ["CAPTURE_RESULT"] != "success":
+              failures.append("Mandatory upstream job unsuccessful")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("\n".join(rows) + "\n")
+          if failures:
+              raise SystemExit("\n".join(failures))
+          PY
