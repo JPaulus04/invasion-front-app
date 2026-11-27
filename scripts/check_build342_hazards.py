@@ -8,10 +8,10 @@ from run_phase4_simulator import BUNDLE, command, focused_simulator
 FIXTURES = ("2-1-legacy", "2-1-idle", "2-1-active", "2-30-active", "3-1-water", "4-1-water")
 
 
-def capture(device, output, fixture, first=False, authored=False, frost=False):
-    if authored and frost:
+def capture(device, output, fixture, first=False, authored=False, frost=False, iron=False):
+    if sum((authored, frost, iron)) > 1:
         raise ValueError("Choose one authored environment")
-    label = ("frost-" if frost else "authored-" if authored else "") + fixture
+    label = ("iron-" if iron else "frost-" if frost else "authored-" if authored else "") + fixture
     log = output / (label + ".log")
     errors = output / (label + "-stderr.log")
     args = ["xcrun", "simctl", "launch"]
@@ -25,6 +25,8 @@ def capture(device, output, fixture, first=False, authored=False, frost=False):
         args.append("-previewAuthoredToxicEnvironment")
     if frost:
         args.append("-previewAuthoredFrostEnvironment")
+    if iron:
+        args.append("-previewAuthoredIronEnvironment")
     failure = None
     try:
         command(*args, timeout=90)
@@ -39,7 +41,8 @@ def capture(device, output, fixture, first=False, authored=False, frost=False):
         if log.exists():
             content = log.read_text(errors="replace")
             if (marker in content and (not authored or "[BUILD342 AUTHORED TOXIC]" in content)
-                    and (not frost or "[BUILD342 AUTHORED FROST]" in content)):
+                    and (not frost or "[BUILD342 AUTHORED FROST]" in content)
+                    and (not iron or "[BUILD342 AUTHORED IRON]" in content)):
                 break
         time.sleep(0.5)
     else:
