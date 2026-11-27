@@ -426,3 +426,37 @@ enum FrostEnvironment {
     }
 }
 #endif
+
+
+#if DEBUG
+/// Staged Iron Wastes presentation; never changes gameplay geometry.
+enum IronEnvironment {
+    static func make(_ plan: IronEnvironmentPlan.Plan,
+                     texture: (String) -> SKTexture?) -> SKNode {
+        let root = SKNode()
+        root.name = "authoredIronWorld"
+        root.addChild(AuthoredEnvironmentRenderer.tiledGround(
+            bounds: plan.groundBounds, origin: plan.bounds.origin,
+            cell: WorldOneEnvironmentPlan.cellSize,
+            materialName: { column, row in
+                IronEnvironmentPlan.materials[plan.variant(column: column,row: row)]
+            }, texture: texture))
+        for prop in plan.landmarks {
+            AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
+                position: prop.position,size: prop.size,anchorY: prop.anchorY,
+                bounds: plan.bounds,in: root,texture: texture)
+        }
+        for fragment in plan.fragments {
+            guard let art = texture(fragment.asset) else { continue }
+            let sprite = SKSpriteNode(texture: art)
+            sprite.name = "ironGroundDebris"
+            sprite.position = fragment.position
+            sprite.size = fragment.size
+            sprite.zPosition = -12
+            sprite.alpha = 0.82
+            root.addChild(sprite)
+        }
+        return root
+    }
+}
+#endif
