@@ -7,7 +7,6 @@ from PIL import Image
 
 # Asset prefixes use display-world numbering, NOT stable gameplay IDs.
 # World 2 -> ID 1; World 3 (Frost Expanse) -> ID 3; World 4 (Iron Wastes) -> ID 2.
-# World 3 and 4 names are proposed production contracts, not delivered assets.
 PROP_KINDS = {
     2: ('tank', 'pipe', 'debris', 'boulder', 'vegetation', 'wall'),
     3: ('ice_crystal', 'frozen_boulder', 'wreckage', 'snowbank', 'frozen_pillar', 'ruin_wall'),
@@ -24,7 +23,7 @@ def asset_names(world):
 GROUND, PROPS = asset_names(2)
 
 
-def validate(root, world=2):
+def validate(root, world=2, bundle=None):
     ground_names, prop_names = asset_names(world)
     errors, missing, assets, ground = [], [], {}, {}
     for name in ground_names + prop_names:
@@ -65,6 +64,16 @@ def validate(root, world=2):
                 pairs += 1
                 if ae[start] != be[end]:
                     errors.append(f'edge mismatch: {a} {start} / {b} {end}')
+    if bundle is not None:
+        bundled = {name: [] for name in ground_names + prop_names}
+        for path in bundle.rglob('*.png'):
+            if path.name in bundled:
+                bundled[path.name].append(path)
+        for name, copies in bundled.items():
+            if len(copies) != 1:
+                errors.append(f'{name}: expected one app bundle resource, found {len(copies)}')
+            elif name in assets and hashlib.sha256(copies[0].read_bytes()).hexdigest() != assets[name]['sha256']:
+                errors.append(f'{name}: app bundle bytes differ from source')
     return {'world_display_number': world, 'assets': assets, 'missing': missing, 'errors': errors, 'edge_comparisons': pairs,
             'technical_complete': not errors and not missing and pairs == 32,
             'visual_approved': False}
@@ -76,7 +85,8 @@ if __name__ == '__main__':
     parser.add_argument('--world', type=int, choices=sorted(PROP_KINDS), default=2,
                         help='display world number; defaults to Toxic Crossing (2)')
     parser.add_argument('--allow-incomplete', action='store_true', help='candidate review only; never implies completeness')
+    parser.add_argument('--bundle', type=Path, help='require byte-identical assets in the built app')
     args = parser.parse_args()
-    report = validate(args.folder, args.world)
+    report = validate(args.folder, args.world, args.bundle)
     print(json.dumps(report, indent=2))
     raise SystemExit(0 if (report['technical_complete'] or (args.allow_incomplete and not report['errors'])) else 1)
