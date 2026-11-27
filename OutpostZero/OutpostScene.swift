@@ -4547,11 +4547,9 @@ final class OutpostScene: SKScene {
             }
             #endif
             if patch.kind == .water, let authoredWorld, authoredWorld == 2 || authoredWorld == 3 {
-                let bank = authoredWorld == 3
-                    ? UIColor(red: 0.37, green: 0.47, blue: 0.54, alpha: 1)
-                    : UIColor(red: 0.31, green: 0.27, blue: 0.21, alpha: 1)
+                let shoreline: DimensionalLiquidPreview.Shoreline = authoredWorld == 3 ? .ice : .metal
                 if DimensionalLiquidPreview.install(on: shape, patch: patch,
-                    seed: wave*31+hazardIndex, bank: bank) {
+                    seed: wave*31+hazardIndex, shoreline: shoreline) {
                     hazardScenery.addChild(shape)
                     continue
                 }

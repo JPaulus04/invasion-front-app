@@ -246,14 +246,18 @@ enum ToxicEnvironment {
 /// Rasterized liquid presentation generated once per room, from the same
 /// immutable polygon that gameplay uses. No collision or per-frame drawing.
 enum DimensionalLiquidPreview {
+    enum Shoreline: Equatable {
+        case ice, metal
+    }
+
     static func install(on node: SKShapeNode, patch: TerrainHazards.Patch,
-                        seed: Int, bank: UIColor? = nil) -> Bool {
+                        seed: Int, shoreline: Shoreline? = nil) -> Bool {
         let size = patch.frame.size
         guard patch.kind != .rubble, size.width.isFinite, size.height.isFinite,
               size.width > 1, size.height > 1 else { return false }
         let acid = patch.kind == .acid
-        let idle = surface(patch: patch, seed: seed, active: false, bank: bank)
-        let active = acid ? surface(patch: patch, seed: seed, active: true, bank: nil) : nil
+        let idle = surface(patch: patch, seed: seed, active: false, shoreline: shoreline)
+        let active = acid ? surface(patch: patch, seed: seed, active: true, shoreline: nil) : nil
         node.fillColor = .clear
         node.strokeColor = .clear
         node.glowWidth = 0
@@ -280,7 +284,7 @@ enum DimensionalLiquidPreview {
     }
 
     private static func surface(patch: TerrainHazards.Patch, seed: Int,
-                                active: Bool, bank: UIColor?) -> UIImage {
+                                active: Bool, shoreline: Shoreline?) -> UIImage {
         let size = patch.frame.size
         let w = size.width, h = size.height
         let acid = patch.kind == .acid
@@ -296,9 +300,11 @@ enum DimensionalLiquidPreview {
             let path = patch.outlinePath()
             cg.addPath(path)
             cg.clip() // Everything, including the bright edge, stays inside the hit polygon.
-            let low = acid ? UIColor(red: 0.08,green: 0.17,blue: 0.035,alpha: 1)
+            let low = shoreline == .metal ? UIColor(red: 0.065, green: 0.105, blue: 0.12, alpha: 1)
+                           : acid ? UIColor(red: 0.08,green: 0.17,blue: 0.035,alpha: 1)
                            : UIColor(red: 0.035,green: 0.12,blue: 0.19,alpha: 1)
-            let high = acid ? (active ? UIColor(red: 0.43,green: 0.86,blue: 0.095,alpha: 1)
+            let high = shoreline == .metal ? UIColor(red: 0.18, green: 0.30, blue: 0.33, alpha: 1)
+                            : acid ? (active ? UIColor(red: 0.43,green: 0.86,blue: 0.095,alpha: 1)
                                       : UIColor(red: 0.20,green: 0.40,blue: 0.095,alpha: 1))
                             : UIColor(red: 0.12,green: 0.38,blue: 0.48,alpha: 1)
             let cs = CGColorSpaceCreateDeviceRGB()
@@ -312,18 +318,20 @@ enum DimensionalLiquidPreview {
                 state = state &* 6364136223846793005 &+ 1442695040888963407
                 return CGFloat((state >> 32) % 10000)/10000
             }
-            // Broad irregular caustics; no evenly spaced artificial lines.
+            if let shoreline {
+                drawWaterReflections(in: cg, path: path, size: size,
+                                     shoreline: shoreline, random: random)
+                blendWaterShoreline(in: cg, path: path, patch: patch,
+                                    shoreline: shoreline, random: random)
+                return
+            }
+            // Broad irregular caustics for the original liquid preview.
             for _ in 0..<22 {
                 let x = (random()-0.5)*w, y = (random()-0.5)*h
                 let rw = (0.12+random()*0.28)*w
                 let rh = (0.025+random()*0.08)*h
                 cg.setFillColor(high.withAlphaComponent(0.06+random()*0.12).cgColor)
                 cg.fillEllipse(in: CGRect(x: x-rw/2,y: y-rh/2,width: rw,height: rh))
-            }
-            if let bank {
-                blendWaterShoreline(in: cg, path: path, patch: patch,
-                                    bank: bank, random: random)
-                return
             }
             // Recessed bank and narrow, restrained surface rim, clipped inward.
             cg.setLineJoin(.round)
@@ -397,43 +405,85 @@ enum DimensionalLiquidPreview {
         }
     }
 
+    private static func drawWaterReflections(in cg: CGContext, path: CGPath, size: CGSize,
+                                             shoreline: Shoreline, random: () -> CGFloat) {
+        let width = size.width
+        let height = size.height
+        let span = min(width, height)
+        let reflectedLight = UIColor(red: 0.63, green: 0.79, blue: 0.81, alpha: 1)
+        cg.setLineCap(.round)
+        for _ in 0..<(shoreline == .metal ? 24 : 16) {
+            let x = (random() - 0.5) * width
+            let y = (random() - 0.5) * height
+            let length = span * (0.07 + random() * 0.19)
+            let start = CGPoint(x: x - length / 2, y: y)
+            let end = CGPoint(x: x + length / 2, y: y + length * 0.05)
+            guard path.contains(start), path.contains(end) else { continue }
+            cg.move(to: start)
+            cg.addQuadCurve(to: end, control: CGPoint(x: x, y: y + length * 0.09))
+            cg.setLineWidth(0.6 + random() * 0.8)
+            cg.setStrokeColor(reflectedLight.withAlphaComponent(0.12 + random() * 0.26).cgColor)
+            cg.strokePath()
+        }
+    }
+
     private static func blendWaterShoreline(in cg: CGContext, path: CGPath,
                                              patch: TerrainHazards.Patch,
-                                             bank: UIColor, random: () -> CGFloat) {
+                                             shoreline: Shoreline, random: () -> CGFloat) {
         let size = patch.frame.size
-        let shallows = min(12, max(4, min(size.width, size.height)*0.16))
+        let metal = shoreline == .metal
+        let span = min(size.width, size.height)
+        let shallows = metal ? min(4.5, max(2, span * 0.06))
+                             : min(7.5, max(2, span * 0.09))
+        let bank = metal ? UIColor(red: 0.28, green: 0.23, blue: 0.19, alpha: 1)
+                         : UIColor(red: 0.37, green: 0.47, blue: 0.54, alpha: 1)
         cg.setLineJoin(.round)
 
-        // Tint the transparent shallows with the local ground palette.
-        // Layered low-opacity bands taper into the deeper water.
-        for step in (1...16).reversed() {
+        // Tint the shallows while allowing the actual floor art to show through.
+        for step in (1...8).reversed() {
             cg.addPath(path)
-            cg.setLineWidth(2*shallows*CGFloat(step)/16)
-            cg.setStrokeColor(bank.withAlphaComponent(0.035).cgColor)
+            cg.setLineWidth(2 * shallows * CGFloat(step) / 8)
+            cg.setStrokeColor(bank.withAlphaComponent(0.065).cgColor)
             cg.strokePath()
         }
 
-        // Let the floor tiles show through near the shoreline. The clip
-        // remains the exact collision path and keeps every mark inside it.
+        let vertices = patch.outline.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
+        let contact = metal ? UIColor(red: 0.07, green: 0.065, blue: 0.06, alpha: 1)
+                            : UIColor(red: 0.66, green: 0.80, blue: 0.86, alpha: 1)
+        // Broken contact marks give the shoreline depth without tracing the polygon.
+        for index in vertices.indices {
+            let a = vertices[index]
+            let b = vertices[(index + 1) % vertices.count]
+            let dx = b.x - a.x
+            let dy = b.y - a.y
+            guard hypot(dx, dy) >= 6 else { continue }
+            let start = 0.12 + random() * 0.32
+            let end = start + 0.16 + random() * 0.26
+            cg.move(to: CGPoint(x: a.x + dx * start, y: a.y + dy * start))
+            cg.addLine(to: CGPoint(x: a.x + dx * end, y: a.y + dy * end))
+            cg.setLineWidth(metal ? 4.2 : 3.3)
+            cg.setStrokeColor(contact.withAlphaComponent(metal ? 0.55 : 0.42).cgColor)
+            cg.strokePath()
+        }
+
         cg.setBlendMode(.destinationOut)
-        for step in (1...24).reversed() {
+        for step in (1...12).reversed() {
             cg.addPath(path)
-            cg.setLineWidth(1.5*shallows*CGFloat(step)/24)
-            cg.setStrokeColor(UIColor.black.withAlphaComponent(0.065).cgColor)
+            cg.setLineWidth(1.5 * shallows * CGFloat(step) / 12)
+            cg.setStrokeColor(UIColor.black.withAlphaComponent(0.13).cgColor)
             cg.strokePath()
         }
 
         // Soft pockets of exposed floor break up straight edges without
         // adding a continuous rim or changing the playable shoreline.
-        let colors = [UIColor.black.withAlphaComponent(0.28).cgColor,
+        let colors = [UIColor.black.withAlphaComponent(0.32).cgColor,
                       UIColor.black.withAlphaComponent(0).cgColor]
         guard let feather = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
                                        colors: colors as CFArray, locations: [0, 1]) else { return }
-        let vertices = patch.outline.map { CGPoint(x: $0.x*size.width, y: $0.y*size.height) }
         for index in vertices.indices {
             let a = vertices[index]
             let b = vertices[(index+1)%vertices.count]
-            let count = max(1, Int(hypot(b.x-a.x, b.y-a.y)/(shallows*1.8)))
+            let count = max(1, Int(hypot(b.x-a.x, b.y-a.y)/(shallows*2.8)))
             for offset in 0..<count {
                 let fraction = (CGFloat(offset) + 0.2 + random()*0.6)/CGFloat(count)
                 let center = CGPoint(x: a.x+(b.x-a.x)*fraction, y: a.y+(b.y-a.y)*fraction)
