@@ -508,7 +508,7 @@ enum IronEnvironmentPlan {
                 size: CGSize(width: side,height: side),anchorY: anchorY,foreground: false)
             if patch.frame.contains(item.frame) { rubble.append(item) }
         }
-        // Low-profile metal fragments is decorative and placed away from hazards, gates,
+        // Low-profile metal fragments are decorative and placed away from hazards, gates,
         // objectives and the central approach. Distribute it across survival
         // camera positions, not only the far perimeter.
         let columns = expanded ? min(8,max(4,Int(ceil(bounds.width/110)))) : 4
@@ -516,10 +516,11 @@ enum IronEnvironmentPlan {
         for row in 0..<rows {
             for column in 0..<columns {
                 let seed = room*97+row*37+column*19
-                let x = bounds.minX+bounds.width*(CGFloat(column)+0.5)/CGFloat(columns)+CGFloat(seed%17-8)
-                let y = bounds.minY+bounds.height*(CGFloat(row)+0.5)/CGFloat(rows)+CGFloat(seed%23-11)
+                if !expanded && seed.isMultiple(of: 3) { continue }
+                let x = bounds.minX+bounds.width*(CGFloat(column)+0.5)/CGFloat(columns)+CGFloat(seed%33-16)
+                let y = bounds.minY+bounds.height*(CGFloat(row)+0.5)/CGFloat(rows)+CGFloat(seed%37-18)
                 guard abs(x-bounds.midX) >= 48 else { continue }
-                let width: CGFloat = 34+CGFloat(seed%19)
+                let width: CGFloat = 31+CGFloat(seed%23)
                 let item = WorldOneEnvironmentPlan.GroundPlant(asset: "world4_prop_debris",
                     position: CGPoint(x:x,y:y),size: CGSize(width:width,height:width))
                 let frame = item.frame

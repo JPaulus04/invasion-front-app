@@ -213,7 +213,7 @@ enum ToxicEnvironment {
             for index in 0..<count {
                 let color = colors[index % colors.count]
                 let radius: CGFloat = 95 + random()*125
-                let opacity: CGFloat = 0.055 + random()*0.09
+                let opacity: CGFloat = 0.10 + random()*0.12
                 let x = random()*bounds.width
                 let y = random()*bounds.height
                 let angle = random()*CGFloat.pi
@@ -401,12 +401,20 @@ enum FrostEnvironment {
                      texture: (String) -> SKTexture?) -> SKNode {
         let root = SKNode()
         root.name = "authoredFrostWorld"
-        root.addChild(AuthoredEnvironmentRenderer.tiledGround(
+        let ground = AuthoredEnvironmentRenderer.tiledGround(
             bounds: plan.groundBounds, origin: plan.bounds.origin,
             cell: WorldOneEnvironmentPlan.cellSize,
             materialName: { column, row in
                 FrostEnvironmentPlan.materials[plan.variant(column: column,row: row)]
-            }, texture: texture))
+            }, texture: texture)
+        // A uniform slate tint quiets the ice highlights without introducing
+        // seams or changing the cool colors of the enemies and landmarks.
+        let slate = SKColor(red: 0.24, green: 0.32, blue: 0.41, alpha: 1)
+        for case let tile as SKSpriteNode in ground.children {
+            tile.color = slate
+            tile.colorBlendFactor = 0.22
+        }
+        root.addChild(ground)
         for prop in plan.landmarks {
             AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
                 position: prop.position,size: prop.size,anchorY: prop.anchorY,
@@ -446,14 +454,18 @@ enum IronEnvironment {
                 position: prop.position,size: prop.size,anchorY: prop.anchorY,
                 bounds: plan.bounds,in: root,texture: texture)
         }
-        for fragment in plan.fragments {
+        for (index, fragment) in plan.fragments.enumerated() {
             guard let art = texture(fragment.asset) else { continue }
             let sprite = SKSpriteNode(texture: art)
             sprite.name = "ironGroundDebris"
             sprite.position = fragment.position
-            sprite.size = fragment.size
+            // The displayed sprite stays inside the reserved square even
+            // after rotation, so fragments still clear hazards and objectives.
+            sprite.size = CGSize(width: fragment.size.width*0.79, height: fragment.size.height*0.79)
+            sprite.zRotation = CGFloat((plan.room+index*3)%7-3)*0.10
+            sprite.xScale = index.isMultiple(of: 2) ? 1 : -1
             sprite.zPosition = -12
-            sprite.alpha = 0.82
+            sprite.alpha = 0.56 + CGFloat(index%4)*0.07
             root.addChild(sprite)
         }
         return root

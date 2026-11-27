@@ -4558,48 +4558,28 @@ final class OutpostScene: SKScene {
                     ProcessInfo.processInfo.arguments.contains("-previewAuthoredToxicEnvironment") &&
                     ToxicEnvironmentPlan.productionAssets.allSatisfy({ worldOneTexture(named: $0) != nil }),
                     let texture = worldOneTexture(named: "world2_prop_wall") {
-                    // Trim only transparent canvas padding (measured alpha
-                    // bbox 36,134,476,485); fit proportionally inside the
-                    // original collision rectangle. Do not move the patch.
-                    let trim = CGRect(x: 34.0/512, y: 25.0/512,
-                                      width: 444.0/512, height: 355.0/512)
-                    let cropped = SKTexture(rect: trim, in: texture)
-                    cropped.filteringMode = .linear
-                    let art = SKSpriteNode(texture: cropped)
-                    art.name = "authoredToxicRubble"
-                    let ratio: CGFloat = 444.0/355
-                    let height = min(patch.frame.height, patch.frame.width/ratio)
-                    art.size = CGSize(width: height*ratio, height: height)
-                    art.zPosition = 0.8
-                    shape.fillColor = SKColor(red: 0.16, green: 0.17, blue: 0.14, alpha: 0.88)
-                    shape.strokeColor = SKColor(red: 0.25, green: 0.24, blue: 0.18, alpha: 0.7)
-                    shape.addChild(art)
+                    installAuthoredRubble(on: shape, texture: texture, name: "authoredToxicRubble",
+                                          canvasCrop: CGRect(x: 34, y: 25, width: 444, height: 355))
                 } else if selectedWorld.id == 3 &&
                     ProcessInfo.processInfo.arguments.contains("-previewAuthoredFrostEnvironment") &&
                     FrostEnvironmentPlan.productionAssets.allSatisfy({ worldOneTexture(named: $0) != nil }),
                     let texture = worldOneTexture(named: wave.isMultiple(of: 3)
                         ? "world3_prop_wreckage" : "world3_prop_ruin_wall") {
-                    let art = SKSpriteNode(texture: texture)
-                    art.name = "authoredFrostRubble"
-                    let side = min(patch.frame.width,patch.frame.height)
-                    art.size = CGSize(width: side,height: side)
-                    art.zPosition = 0.8
-                    shape.fillColor = SKColor(red: 0.17,green: 0.22,blue: 0.30,alpha: 1)
-                    shape.strokeColor = SKColor(red: 0.32,green: 0.42,blue: 0.52,alpha: 0.7)
-                    shape.addChild(art)
+                    let crop = wave.isMultiple(of: 3)
+                        ? CGRect(x: 30, y: 25, width: 452, height: 335)
+                        : CGRect(x: 34, y: 29, width: 444, height: 195)
+                    installAuthoredRubble(on: shape, texture: texture, name: "authoredFrostRubble",
+                                          canvasCrop: crop)
                 } else if selectedWorld.id == 2 &&
                     ProcessInfo.processInfo.arguments.contains("-previewAuthoredIronEnvironment") &&
                     IronEnvironmentPlan.productionAssets.allSatisfy({ worldOneTexture(named: $0) != nil }),
                     let texture = worldOneTexture(named: wave.isMultiple(of: 3)
                         ? "world4_prop_scrap_heap" : "world4_prop_steel_barrier") {
-                    let art = SKSpriteNode(texture: texture)
-                    art.name = "authoredIronRubble"
-                    let side = min(patch.frame.width,patch.frame.height)
-                    art.size = CGSize(width: side,height: side)
-                    art.zPosition = 0.8
-                    shape.fillColor = SKColor(red: 0.25,green: 0.20,blue: 0.17,alpha: 1)
-                    shape.strokeColor = SKColor(red: 0.48,green: 0.32,blue: 0.20,alpha: 0.7)
-                    shape.addChild(art)
+                    let crop = wave.isMultiple(of: 3)
+                        ? CGRect(x: 34, y: 29, width: 444, height: 278)
+                        : CGRect(x: 34, y: 29, width: 444, height: 254)
+                    installAuthoredRubble(on: shape, texture: texture, name: "authoredIronRubble",
+                                          canvasCrop: crop)
                 } else {
                     decorateRubbleObstacle(shape, size: patch.frame.size)
                 }
@@ -4637,7 +4617,7 @@ final class OutpostScene: SKScene {
             // A subdued offset shadow gives solid obstacles a grounded edge.
             // Keep liquid silhouettes unshadowed so their shorelines remain
             // aligned with the gameplay hazard polygon.
-            if patch.kind == .rubble, let silhouette = shape.path {
+            if patch.kind == .rubble, shape.fillColor != .clear, let silhouette = shape.path {
                 let groundShadow = SKShapeNode(path: silhouette)
                 groundShadow.name = "rubbleContactShadow"
                 groundShadow.position = CGPoint(x: shape.position.x + 4,
@@ -4653,6 +4633,31 @@ final class OutpostScene: SKScene {
         }
     }
 
+
+    #if DEBUG
+    private func installAuthoredRubble(on shape: SKShapeNode, texture: SKTexture,
+                                       name: String, canvasCrop: CGRect) {
+        guard let footprint = shape.path?.boundingBoxOfPath else { return }
+        // Crop only transparent padding. The 512px source coordinates start
+        // at the lower left, as expected by SpriteKit's texture rect.
+        let rect = canvasCrop.applying(CGAffineTransform(scaleX: 1.0/512, y: 1.0/512))
+        let cropped = SKTexture(rect: rect, in: texture)
+        cropped.filteringMode = .linear
+        let art = SKSpriteNode(texture: cropped)
+        art.name = name
+        let scale = min(footprint.width/canvasCrop.width, footprint.height/canvasCrop.height)
+        art.size = CGSize(width: canvasCrop.width*scale, height: canvasCrop.height*scale)
+        art.zPosition = 0.8
+        let shadow = SKSpriteNode(texture: ProductionPresentation.glow(.black.withAlphaComponent(0.48)))
+        shadow.size = CGSize(width: art.size.width, height: art.size.height*0.32)
+        shadow.position.y = -art.size.height*0.38
+        shadow.zPosition = 0.2
+        shape.fillColor = .clear
+        shape.strokeColor = .clear
+        shape.addChild(shadow)
+        shape.addChild(art)
+    }
+    #endif
 
     /// Authored shorelines, shallow bays and reactive industrial runoff use
     /// the same polygon silhouette as game logic; all details are decorative.
@@ -5944,9 +5949,13 @@ final class OutpostScene: SKScene {
                                      max(0, roomBounds.width/2 - 96))
                     if height >= 38 {
                         let anchor = ToxicEnvironmentPlan.propAnchorY
-                        let names = wave.isMultiple(of: 2)
-                            ? ["world2_prop_pipe", "world2_prop_tank"]
-                            : ["world2_prop_tank", "world2_prop_wall"]
+                        let names: [String]
+                        switch plan.theme {
+                        case .containment: names = ["world2_prop_tank", "world2_prop_wall"]
+                        case .runoff: names = ["world2_prop_pipe", "world2_prop_vegetation"]
+                        case .ruins: names = ["world2_prop_boulder", "world2_prop_wall"]
+                        case .boss: names = ["world2_prop_wall", "world2_prop_tank"]
+                        }
                         for (index, name) in names.enumerated() {
                             let x = index == 0 ? roomBounds.minX+height/2+3 : roomBounds.maxX-height/2-3
                             let position = CGPoint(x: x,y: bandBottom+height*anchor)
