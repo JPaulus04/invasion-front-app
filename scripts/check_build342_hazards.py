@@ -8,18 +8,18 @@ from run_phase4_simulator import BUNDLE, command, focused_simulator
 FIXTURES = ("2-1-legacy", "2-1-idle", "2-1-active", "2-30-active", "3-1-water", "4-1-water")
 
 
-def capture(device, output, fixture, first=False, authored=False, frost=False, iron=False):
+def capture(device, output, fixture, first=False, authored=False, frost=False, iron=False, selector=False):
     if sum((authored, frost, iron)) > 1:
         raise ValueError("Choose one authored environment")
-    label = ("iron-" if iron else "frost-" if frost else "authored-" if authored else "") + fixture
+    label = ("selector-" if selector else "iron-" if iron else "frost-" if frost else "authored-" if authored else "") + fixture
     log = output / (label + ".log")
     errors = output / (label + "-stderr.log")
     args = ["xcrun", "simctl", "launch"]
     if not first:
         args.append("--terminate-running-process")
     args += [f"--stdout={log}", f"--stderr={errors}", device, BUNDLE,
-             f"-captureBuild342Hazards={fixture}"]
-    if not fixture.endswith("-legacy"):
+             f"-captureBuild341={fixture}" if selector else f"-captureBuild342Hazards={fixture}"]
+    if not selector and not fixture.endswith("-legacy"):
         args.append("-previewDimensionalHazards")
     if authored:
         args.append("-previewAuthoredToxicEnvironment")
@@ -32,7 +32,7 @@ def capture(device, output, fixture, first=False, authored=False, frost=False, i
         command(*args, timeout=90)
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as exc:
         failure = exc  # Observe the same process; do not blindly relaunch.
-    marker = f"[BUILD342 HAZARDS] fixture={fixture} "
+    marker = f"[BUILD341 READY] fixture={fixture} " if selector else f"[BUILD342 HAZARDS] fixture={fixture} "
     deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         if errors.exists() and any(term in errors.read_text(errors="replace")
@@ -68,7 +68,9 @@ def main():
             capture(device, output, fixture, first=index == 0)
         for fixture in ("2-1-active", "2-6-idle", "2-11-active", "2-30-active"):
             capture(device, output, fixture, authored=True)
-    print("Ten requested renderer captures present. Human visual comparison still required.")
+        for world in range(1, 5):
+            capture(device, output, f"{world}-0", selector=True)
+    print("Ten renderer captures and four selector captures present. Human visual comparison still required.")
 
 
 if __name__ == "__main__":

@@ -117,18 +117,45 @@ enum WorldShowcase {
             shelf.zPosition = 0.2
             root.addChild(shelf)
         }
-        let family = ["ruined_outpost", "swamp_basin", "toxic_caves", "boss_arena"][world % 4]
-        let props: [(String, CGFloat, CGFloat, CGFloat)] = world == 0
-            ? [("vegetation",-114,23,92),("wall",-64,43,91),("vegetation",111,14,103),
-               ("boulder",87,-34,57),("debris",-82,-44,55),("lantern",62,37,63)]
-            : [("wall",-100,29,91),("boulder",-60,-36,64),("wall",94,27,104),
-               ("crate",104,-32,50),("lantern",-26,52,60),("vegetation",-120,-16,55)]
-        for (kind,x,y,height) in props {
-            guard let art = texture("world1_\(family)_\(kind)") else { continue }
+        let shared: [(String, CGFloat, CGFloat, CGFloat)] =
+            [("wall",-100,29,91),("boulder",-60,-36,64),("wall",94,27,104),
+             ("crate",104,-32,50),("lantern",-26,52,60),("vegetation",-120,-16,55)]
+        let prefix: String
+        let props: [(String, CGFloat, CGFloat, CGFloat)]
+        // Keys are stable faction IDs. Landscape filenames use display numbers.
+        switch world {
+        case 0:
+            prefix = "world1_ruined_outpost_"
+            props = [("vegetation",-114,23,92),("wall",-64,43,91),("vegetation",111,14,103),
+                     ("boulder",87,-34,57),("debris",-82,-44,55),("lantern",62,37,63)]
+        case 1:
+            prefix = "world2_prop_"
+            props = [("tank",-100,29,91),("boulder",-60,-36,64),("wall",94,27,104),
+                     ("debris",104,-32,50),("pipe",-26,52,60),("vegetation",-120,-16,55)]
+        case 2:
+            prefix = "world4_prop_"
+            props = [("rusted_tank",-100,29,91),("scrap_heap",-60,-36,64),("steel_barrier",94,27,104),
+                     ("debris",104,-32,50),("pipe",-26,52,60),("broken_machine",-120,-16,55)]
+        case 3:
+            prefix = "world3_prop_"
+            props = [("frozen_pillar",-100,29,91),("frozen_boulder",-60,-36,64),("ruin_wall",94,27,104),
+                     ("wreckage",104,-32,50),("ice_crystal",-26,52,60),("snowbank",-120,-16,55)]
+        default:
+            let family = ["ruined_outpost", "swamp_basin", "toxic_caves", "boss_arena"][world % 4]
+            prefix = "world1_\(family)_"
+            props = shared
+        }
+        let terrainProps = props.compactMap { kind, x, y, height in
+            texture(prefix + kind).map { (prefix + kind, x, y, height, $0) }
+        }
+        // A missing faction pack keeps the colored skyline without mixing
+        // partially loaded resources or borrowing another world's scenery.
+        for (asset,x,y,height,art) in terrainProps
+            where world == 0 || world > 3 || terrainProps.count == props.count {
             let sprite = SKSpriteNode(texture: art)
             let ratio = art.size().width / max(1,art.size().height)
             sprite.size = CGSize(width: min(112,height*ratio),height: min(height,112/max(0.1,ratio)))
-            sprite.anchorPoint = CGPoint(x:0.5,y:WorldOneArtMetrics.groundAnchorY(for:"world1_\(family)_\(kind)"))
+            sprite.anchorPoint = CGPoint(x:0.5,y:world == 0 || world > 3 ? WorldOneArtMetrics.groundAnchorY(for: asset) : 32.0/512.0)
             sprite.position = CGPoint(x:x,y:y)
             sprite.zPosition = 2 - y / 100
             root.addChild(sprite)

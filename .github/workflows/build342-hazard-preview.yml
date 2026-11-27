@@ -7,6 +7,7 @@ on:
       - 'scripts/check_art_sprites.py'
       - 'OutpostZero/OutpostScene.swift'
       - 'OutpostZero/WorldOneEnvironment.swift'
+      - 'OutpostZero/WorldShowcase.swift'
       - 'scripts/check_build342_hazards.py'
       - '.github/workflows/build342-hazard-preview.yml'
   workflow_dispatch:
@@ -15,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   hazard-preview:
-    if: github.head_ref == 'feature/build342-legacy-environment-cleanup' || github.ref_name == 'feature/build342-legacy-environment-cleanup'
+    if: contains(fromJSON('["feature/build342-legacy-environment-cleanup","feature/build342-integration"]'), github.head_ref || github.ref_name)
     runs-on: macos-15
     timeout-minutes: 30
     env:

@@ -5919,7 +5919,7 @@ final class OutpostScene: SKScene {
         #if DEBUG
         // Explicit development preview only. Missing art fails closed to the
         // intact live landscape; never display partially loaded replacements.
-        if worldMapIndex == 1 &&
+        if selectedWorld.id == 1 &&
             ProcessInfo.processInfo.arguments.contains("-previewAuthoredToxicEnvironment") {
             let missing = ToxicEnvironmentPlan.productionAssets.filter { worldOneTexture(named: $0) == nil }
             if missing.isEmpty {

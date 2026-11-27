@@ -76,7 +76,8 @@ struct WorldOneEnvironmentTests {
         // Candidate Toxic scenery must not enter the actual navigable bounds.
         let toxicBounds = [CGRect(x: 28,y: 70,width: 337,height: 557),
                            CGRect(x: -110,y: 40,width: 620,height: 850),
-                           CGRect(x: 0,y: 0,width: 120,height: 160)]
+                           CGRect(x: 0,y: 0,width: 120,height: 160),
+                           RoomRules.bounds(for: CGSize(width: 852, height: 393))]
         precondition(ToxicEnvironmentPlan.productionAssets.count == 10)
         precondition(Set(ToxicEnvironmentPlan.productionAssets).count == 10)
         for bounds in toxicBounds {
@@ -141,7 +142,7 @@ struct WorldOneEnvironmentTests {
                 }
             }
         }
-        print("Frost candidate: 90 room/bounds plans, safe landmarks, snow cover and rubble skin")
+        print("Frost candidate: 120 room/bounds plans, safe landmarks, snow cover and rubble skin")
         precondition(IronEnvironmentPlan.productionAssets.count == 10)
         precondition(Set(IronEnvironmentPlan.productionAssets).count == 10)
         precondition(Set(IronEnvironmentPlan.productionAssets).isDisjoint(with: Set(ToxicEnvironmentPlan.productionAssets)))
@@ -178,8 +179,8 @@ struct WorldOneEnvironmentTests {
                 }
             }
         }
-        print("Iron candidate: 90 room/bounds plans, safe landmarks, debris and rubble skin")
-        print("Toxic candidate: 90 room/bounds plans, deterministic props and hazard clearance")
+        print("Iron candidate: 120 room/bounds plans, safe landmarks, debris and rubble skin")
+        print("Toxic candidate: 120 room/bounds plans, deterministic props and hazard clearance")
         print("Four environment identities, corridor traversal, pocket navigation and safe framing passed")
     }
 }
