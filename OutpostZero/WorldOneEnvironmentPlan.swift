@@ -426,15 +426,23 @@ enum FrostEnvironmentPlan {
                 let x = bounds.minX+bounds.width*(CGFloat(column)+0.5)/CGFloat(columns)+CGFloat(seed%17-8)
                 let y = bounds.minY+bounds.height*(CGFloat(row)+0.5)/CGFloat(rows)+CGFloat(seed%23-11)
                 guard abs(x-bounds.midX) >= 48 else { continue }
-                let width: CGFloat = 34+CGFloat(seed%19)
-                let item = WorldOneEnvironmentPlan.GroundPlant(asset: "world3_prop_snowbank",
-                    position: CGPoint(x:x,y:y),size: CGSize(width:width,height:width))
-                let frame = item.frame
-                guard bounds.contains(frame),
-                      !patches.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }),
-                      !reserved.contains(where: { $0.intersects(frame) }),
-                      !snowbanks.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }) else { continue }
-                snowbanks.append(item)
+                // Reserve a horizontal drift envelope rather than the
+                // transparent square canvas. Alternate broad and small
+                // drifts, retaining the original small size as a fallback.
+                let small: CGFloat = 34+CGFloat(seed%19)
+                let large: CGFloat = expanded ? small*1.25 : small*1.60
+                for width in [large,small] {
+                    let item = WorldOneEnvironmentPlan.GroundPlant(asset: "world3_prop_snowbank",
+                        position: CGPoint(x:x,y:y),size: CGSize(width:width,height:width*0.52))
+                    let frame = item.frame
+                    guard abs(x-bounds.midX) >= 38+width/2,
+                          bounds.contains(frame),
+                          !patches.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }),
+                          !reserved.contains(where: { $0.intersects(frame) }),
+                          !snowbanks.contains(where: { $0.frame.insetBy(dx:-5,dy:-5).intersects(frame) }) else { continue }
+                    snowbanks.append(item)
+                    break
+                }
             }
         }
         return Plan(room: room,bounds: bounds,groundBounds: bounds.insetBy(dx:-300,dy:-300),
@@ -520,15 +528,21 @@ enum IronEnvironmentPlan {
                 let x = bounds.minX+bounds.width*(CGFloat(column)+0.5)/CGFloat(columns)+CGFloat(seed%33-16)
                 let y = bounds.minY+bounds.height*(CGFloat(row)+0.5)/CGFloat(rows)+CGFloat(seed%37-18)
                 guard abs(x-bounds.midX) >= 48 else { continue }
-                let width: CGFloat = 31+CGFloat(seed%23)
-                let item = WorldOneEnvironmentPlan.GroundPlant(asset: "world4_prop_debris",
-                    position: CGPoint(x:x,y:y),size: CGSize(width:width,height:width))
-                let frame = item.frame
-                guard bounds.contains(frame),
-                      !patches.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }),
-                      !reserved.contains(where: { $0.intersects(frame) }),
-                      !fragments.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }) else { continue }
-                fragments.append(item)
+                let small: CGFloat = 31+CGFloat(seed%23)
+                let large: CGFloat = min(66, small*(expanded ? 1.15 : 1.35))
+                for width in [large,small] {
+                    // Keep the entire rotated crop within the reservation.
+                    let item = WorldOneEnvironmentPlan.GroundPlant(asset: "world4_prop_debris",
+                        position: CGPoint(x:x,y:y),size: CGSize(width:width,height:width*0.78))
+                    let frame = item.frame
+                    guard abs(x-bounds.midX) >= 36+width/2,
+                          bounds.contains(frame),
+                          !patches.contains(where: { $0.frame.insetBy(dx:-8,dy:-8).intersects(frame) }),
+                          !reserved.contains(where: { $0.intersects(frame) }),
+                          !fragments.contains(where: { $0.frame.insetBy(dx:-5,dy:-5).intersects(frame) }) else { continue }
+                    fragments.append(item)
+                    break
+                }
             }
         }
         return Plan(room: room,bounds: bounds,groundBounds: bounds.insetBy(dx:-300,dy:-300),
