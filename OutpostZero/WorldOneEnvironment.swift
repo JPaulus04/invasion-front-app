@@ -51,48 +51,117 @@ enum AuthoredEnvironmentRenderer {
         root.addChild(sprite)
     }
 
-    /// Two feathered, material-tinted layers at the measured ground contact.
-    /// Reuses the cached presentation texture; no new art or collision shapes.
+    /// A footprint is relative to the visible base, in displayed sprite units.
+    /// These profiles follow the existing source silhouettes rather than their
+    /// transparent canvas. They affect presentation only.
+    private struct ContactFootprint {
+        let x: CGFloat
+        let y: CGFloat
+        let width: CGFloat
+        let depth: CGFloat
+        init(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ depth: CGFloat) {
+            self.x = x; self.y = y; self.width = width; self.depth = depth
+        }
+    }
+
+    private static func contactProfile(_ name: String) -> [ContactFootprint] {
+        switch name {
+        case "world2_prop_pipe":
+            return [.init(-0.15, 0.035, 0.56, 0.15)]
+        case "world2_prop_tank":
+            return [.init(-0.25, 0.06, 0.23, 0.13), .init(-0.10, 0, 0.23, 0.12),
+                    .init(0.16, 0, 0.24, 0.12)]
+        case "world2_prop_wall", "world4_prop_steel_barrier":
+            return [.init(-0.29, 0.015, 0.28, 0.15), .init(0.29, 0.06, 0.28, 0.15),
+                    .init(0, 0.045, 0.48, 0.12)]
+        case "world4_prop_rusted_tank":
+            return [.init(-0.25, 0.03, 0.25, 0.14), .init(0.31, 0.04, 0.25, 0.14)]
+        case "world4_prop_pipe":
+            return [.init(-0.34, 0.015, 0.20, 0.10), .init(-0.13, 0, 0.19, 0.10),
+                    .init(0.06, 0.015, 0.15, 0.09), .init(0.34, 0.02, 0.19, 0.10)]
+        case "world3_prop_ice_crystal", "world3_prop_frozen_boulder",
+             "world3_prop_frozen_pillar", "world3_prop_ruin_wall",
+             "world3_prop_wreckage", "world2_prop_boulder",
+             "world2_prop_vegetation", "world2_prop_debris",
+             "world4_prop_scrap_heap", "world4_prop_broken_machine", "world4_prop_debris":
+            return [.init(-0.24, 0.035, 0.37, 0.16), .init(0.05, 0.015, 0.42, 0.18),
+                    .init(0.29, 0.055, 0.29, 0.14)]
+        case "world3_prop_snowbank":
+            return [.init(-0.23, 0.035, 0.43, 0.11), .init(0.19, 0.04, 0.55, 0.13)]
+        default:
+            if name.contains("pine") || name.contains("broadleaf") || name.contains("lantern") {
+                return [.init(0, 0.015, 0.26, 0.13)]
+            }
+            if name.contains("wall") || name.contains("boulder") ||
+                name.contains("debris") || name.contains("vegetation") {
+                return [.init(-0.22, 0.025, 0.38, 0.16), .init(0.18, 0.04, 0.42, 0.15)]
+            }
+            return [.init(0, 0.02, 0.70, 0.15)]
+        }
+    }
+
+    /// A terrain-tinted penumbra and localized contacts, with a soft material
+    /// wash beneath natural bases. Cached gradients are reused across rooms.
+    /// No baked artwork is modified and no collision shapes are created.
     static func installGroundContact(asset: String, position: CGPoint, size: CGSize,
-                                     zPosition: CGFloat, in root: SKNode) {
+                                     zPosition: CGFloat, in root: SKNode,
+                                     rotation: CGFloat = 0, mirrored: Bool = false,
+                                     lowProfile: Bool = false) {
         let name = asset.lowercased()
         let frost = name.hasPrefix("world3_") || name.contains("frostrubble")
         let iron = name.hasPrefix("world4_") || name.contains("ironrubble")
         let toxic = name.hasPrefix("world2_") || name.contains("toxicrubble")
         let tone: UIColor
+        let material: UIColor
         if frost {
             tone = UIColor(red: 0.16, green: 0.22, blue: 0.30, alpha: 1)
+            material = UIColor(red: 0.62, green: 0.72, blue: 0.81, alpha: 1)
         } else if iron {
             tone = UIColor(red: 0.12, green: 0.095, blue: 0.075, alpha: 1)
+            material = UIColor(red: 0.39, green: 0.29, blue: 0.21, alpha: 1)
         } else if toxic {
             tone = UIColor(red: 0.10, green: 0.15, blue: 0.07, alpha: 1)
+            material = UIColor(red: 0.31, green: 0.34, blue: 0.18, alpha: 1)
         } else {
             tone = UIColor(red: 0.12, green: 0.15, blue: 0.10, alpha: 1)
+            material = UIColor(red: 0.31, green: 0.36, blue: 0.21, alpha: 1)
         }
+        let contacts = contactProfile(name)
+        let natural = frost || name.contains("boulder") || name.contains("vegetation") ||
+            name.contains("debris") || name.contains("wreckage") || name.contains("scrap") ||
+            name.contains("pine") || name.contains("broadleaf")
+        let minX = contacts.map { $0.x - $0.width / 2 }.min() ?? -0.3
+        let maxX = contacts.map { $0.x + $0.width / 2 }.max() ?? 0.3
+        let span = maxX - minX
+        let center = (minX + maxX) / 2
 
-        let slender = name.contains("lantern") || name.contains("pine") ||
-            name.contains("broadleaf") || name.contains("crystal") ||
-            name.contains("vegetation") || name.contains("antenna")
-        let rubble = name.contains("rubble")
-        let width = size.width * (rubble ? 0.90 : slender ? 0.46 : 0.74)
-        let depth = max(3, min(width * 0.22, size.height * 0.18))
-
-        func layer(_ suffix: String, opacity: CGFloat, widthScale: CGFloat,
-                   depthScale: CGFloat, yOffset: CGFloat, z: CGFloat) {
-            let node = SKSpriteNode(texture: ProductionPresentation.glow(tone.withAlphaComponent(opacity)))
+        func layer(_ suffix: String, color: UIColor, opacity: CGFloat,
+                   x: CGFloat, y: CGFloat, width: CGFloat, depth: CGFloat, z: CGFloat) {
+            let node = SKSpriteNode(texture: ProductionPresentation.glow(color.withAlphaComponent(opacity)))
             node.name = "propGroundContact_\(suffix)"
-            node.size = CGSize(width: width * widthScale, height: depth * depthScale)
-            node.position = CGPoint(x: position.x, y: position.y + yOffset)
+            node.size = CGSize(width: max(1, size.width * width), height: max(1, size.height * depth))
+            let dx = size.width * x * (mirrored ? -1 : 1)
+            let dy = size.height * y
+            node.position = CGPoint(x: position.x + dx * cos(rotation) - dy * sin(rotation),
+                                    y: position.y + dx * sin(rotation) + dy * cos(rotation))
+            node.zRotation = rotation
             node.zPosition = z
             root.addChild(node)
         }
 
-        // The wide penumbra follows the floor; a narrower contact layer
-        // anchors the silhouette instead of producing an offset black oval.
-        layer("ambient", opacity: frost ? 0.25 : 0.29, widthScale: 1.24,
-              depthScale: 1.55, yOffset: -depth * 0.12, z: zPosition)
-        layer("core", opacity: frost ? 0.39 : 0.48, widthScale: 0.86,
-              depthScale: 0.62, yOffset: 0, z: zPosition + 0.04)
+        // The penumbra covers the full footprint, not the upper silhouette.
+        layer("ambient", color: tone, opacity: lowProfile ? 0.14 : 0.26,
+              x: center, y: 0.015, width: span * 1.20, depth: 0.23, z: zPosition)
+        if natural {
+            layer("material", color: material, opacity: lowProfile ? 0.20 : 0.14,
+                  x: center, y: -0.015, width: span * 1.30, depth: 0.23, z: zPosition + 0.01)
+        }
+        for (index, foot) in contacts.enumerated() {
+            layer("core_\(index)", color: tone,
+                  opacity: lowProfile ? 0.15 : frost ? 0.32 : 0.42,
+                  x: foot.x, y: foot.y, width: foot.width, depth: foot.depth,
+                  z: zPosition + 0.04)
+        }
     }
 }
 
@@ -570,7 +639,14 @@ enum FrostEnvironment {
             sprite.position = snow.position
             sprite.size = snow.size
             sprite.zPosition = -12
-            sprite.alpha = 0.82
+            sprite.alpha = 0.92
+            sprite.color = slate
+            sprite.colorBlendFactor = 0.12
+            // Full-canvas art has a measured base at 32/512 from the bottom.
+            let contact = CGPoint(x: snow.position.x,
+                                  y: snow.position.y + snow.size.height * (FrostEnvironmentPlan.anchorY - 0.5))
+            AuthoredEnvironmentRenderer.installGroundContact(asset: snow.asset,
+                position: contact, size: snow.size, zPosition: -12.2, in: root, lowProfile: true)
             root.addChild(sprite)
         }
         return root
@@ -606,7 +682,15 @@ enum IronEnvironment {
             sprite.zRotation = CGFloat((plan.room+index*3)%7-3)*0.10
             sprite.xScale = index.isMultiple(of: 2) ? 1 : -1
             sprite.zPosition = -12
-            sprite.alpha = 0.56 + CGFloat(index%4)*0.07
+            sprite.alpha = 0.80 + CGFloat(index%4)*0.04
+            sprite.color = SKColor(red: 0.36, green: 0.30, blue: 0.26, alpha: 1)
+            sprite.colorBlendFactor = 0.12
+            let dy = sprite.size.height * (IronEnvironmentPlan.anchorY - 0.5)
+            let contact = CGPoint(x: fragment.position.x - dy * sin(sprite.zRotation),
+                                  y: fragment.position.y + dy * cos(sprite.zRotation))
+            AuthoredEnvironmentRenderer.installGroundContact(asset: fragment.asset,
+                position: contact, size: sprite.size, zPosition: -12.2, in: root,
+                rotation: sprite.zRotation, mirrored: sprite.xScale < 0, lowProfile: true)
             root.addChild(sprite)
         }
         return root
