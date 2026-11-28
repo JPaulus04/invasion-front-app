@@ -2581,6 +2581,23 @@ final class OutpostScene: SKScene {
         arena.addChild(floor)
     }
 
+    /// Fixed authored tactical framing reveals nonwalkable exterior art.
+    /// No room coordinates, touch direction, collision or spawn rules change.
+    private var authoredTacticalFraming: (scale: CGFloat, offset: CGPoint) {
+        let zoom = min(0.85, WorldOneFraming.scale(size: size,
+            safeTop: view?.safeAreaInsets.top ?? 0,
+            safeBottom: view?.safeAreaInsets.bottom ?? 0))
+        let center = CGPoint(x: roomBounds.midX, y: roomBounds.midY)
+        return (zoom, CGPoint(x: center.x*(1-zoom), y: center.y*(1-zoom)))
+    }
+
+    private var hasAuthoredTacticalScenery: Bool {
+        guard wave > 0, !expandedArenaPreview, worldMapIndex != 0 else { return false }
+        return zoneScenery.childNode(withName: "authoredToxicWorld") != nil ||
+            zoneScenery.childNode(withName: "authoredFrostWorld") != nil ||
+            zoneScenery.childNode(withName: "authoredIronWorld") != nil
+    }
+
     private func updateArenaCamera(delta: TimeInterval) {
         let target: CGPoint
         if worldMapIndex == 0 && wave > 0 {
@@ -2593,6 +2610,10 @@ final class OutpostScene: SKScene {
         } else if expandedArenaPreview {
             arena.setScale(1)
             target = ArenaLayout.offset(for: pilot.position, viewportSize: size)
+        } else if hasAuthoredTacticalScenery {
+            let framing = authoredTacticalFraming
+            arena.setScale(framing.scale)
+            target = framing.offset
         } else {
             arena.setScale(1)
             target = .zero
@@ -5628,6 +5649,8 @@ final class OutpostScene: SKScene {
         backgroundColor = worldColor(for: activeZone)
         updateZoneScenery(activeZone)
         rebuildTerrainHazards()
+        // The authored root is now installed, including on the first room.
+        if hasAuthoredTacticalScenery { updateArenaCamera(delta: 1) }
         defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
         nextDefenseHitAt = combatTime + 1.5
         if activeEncounter == .equipmentDefense { installDefenseDevice() }
@@ -5934,8 +5957,13 @@ final class OutpostScene: SKScene {
     private func installVisibleExterior(in root: SKNode, displayWorld: Int) {
         guard !expandedArenaPreview else { return }
         let bounds = roomBounds
-        let viewport = CGRect(origin: .zero, size: size)
-        let bottom = max(8, view?.safeAreaInsets.bottom ?? 0)
+        let framing = authoredTacticalFraming
+        let screen = CGRect(origin: .zero, size: size)
+        let viewport = CGRect(x: (screen.minX-framing.offset.x)/framing.scale,
+                              y: (screen.minY-framing.offset.y)/framing.scale,
+                              width: screen.width/framing.scale,
+                              height: screen.height/framing.scale)
+        let bottom = (max(8, view?.safeAreaInsets.bottom ?? 0)-framing.offset.y)/framing.scale
         let names: [String]
         switch displayWorld {
         case 2: names = ["world2_prop_vegetation", "world2_prop_boulder", "world2_prop_wall", "world2_prop_debris"]
@@ -5950,7 +5978,9 @@ final class OutpostScene: SKScene {
         func add(_ name: String, x: CGFloat, y: CGFloat, h: CGFloat) {
             guard h >= 26 else { return }
             let frame = CGRect(x: x-h/2, y: y, width: h, height: h)
-            guard viewport.contains(frame), !bounds.intersects(frame),
+            let visible = viewport.intersection(frame)
+            guard !visible.isNull, visible.width >= min(22,h*0.35),
+                  visible.height >= min(22,h*0.35), !bounds.intersects(frame),
                   !occupied.contains(where: { $0.intersects(frame.insetBy(dx: -2,dy: -2)) }) else { return }
             AuthoredEnvironmentRenderer.installGroundedProp(asset: name,
                 position: CGPoint(x: x,y: y+h*anchor), size: CGSize(width: h,height: h),
@@ -5960,7 +5990,7 @@ final class OutpostScene: SKScene {
             occupied.append(frame)
         }
 
-        let southHeight = min(76, bounds.minY-bottom-8, max(0,bounds.width/2-82))
+        let southHeight = min(100, bounds.minY-bottom-8, max(0,bounds.width/2-82))
         if southHeight >= 26 {
             for (index, sign) in [CGFloat(-1),CGFloat(1)].enumerated() {
                 let x = bounds.midX+sign*(bounds.width/2-southHeight/2-3)
@@ -5969,15 +5999,20 @@ final class OutpostScene: SKScene {
                     y: bounds.minY-southHeight-4,h: southHeight)
             }
         }
-        // Side strips may be too narrow on phones; skip them rather than
-        // force a prop into the playable area. On wide devices use them.
+        // Build a staggered exterior belt, not a row of miniatures.
+        // Partial viewport clipping is intentional, as in Frontier Forest;
+        // the complete sprite remains outside the playable rectangle.
         for side in 0..<2 {
-            let available = side == 0 ? bounds.minX : viewport.maxX-bounds.maxX
-            let h = min(54, available-6)
-            guard h >= 26 else { continue }
-            let x = side == 0 ? bounds.minX-h/2-3 : bounds.maxX+h/2+3
-            for (index,fraction) in [CGFloat(0.25),0.53,0.79].enumerated() {
-                let y = bounds.minY+bounds.height*fraction-h/2
+            let available = side == 0 ? bounds.minX-viewport.minX : viewport.maxX-bounds.maxX
+            guard available >= 24 else { continue }
+            let count = max(3, min(7, Int(ceil(bounds.height/88))))
+            for index in 0..<count {
+                let seed = wave*31+side*13+index*19
+                let h = min(96, max(44,available*1.15)) * (0.80+CGFloat(seed%17)/50)
+                let gap = CGFloat(2+seed%7)
+                let x = side == 0 ? bounds.minX-h/2-gap : bounds.maxX+h/2+gap
+                let fraction = (CGFloat(index)+0.5)/CGFloat(count)
+                let y = bounds.minY+bounds.height*fraction-h/2+CGFloat(seed%17-8)
                 add(names[(wave+side+index)%names.count],x: x,y: y,h: h)
             }
         }
