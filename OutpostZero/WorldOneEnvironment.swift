@@ -66,6 +66,31 @@ enum AuthoredEnvironmentRenderer {
 
     private static func contactProfile(_ name: String) -> [ContactFootprint] {
         switch name {
+        // Angled forest masonry has different ground-contact heights on
+        // either end. Follow the inspected source silhouette, not its box.
+        case "world1_ruined_outpost_wall":
+            return [.init(-0.32, 0.23, 0.27, 0.14), .init(-0.02, 0.12, 0.38, 0.15),
+                    .init(0.30, 0.025, 0.29, 0.13)]
+        case "world1_swamp_basin_wall":
+            return [.init(-0.32, 0.02, 0.30, 0.16), .init(0, 0.12, 0.39, 0.16),
+                    .init(0.32, 0.25, 0.28, 0.16)]
+        case "world1_toxic_caves_wall":
+            return [.init(-0.33, 0.20, 0.29, 0.15), .init(-0.02, 0.055, 0.37, 0.17),
+                    .init(0.29, 0.015, 0.29, 0.15)]
+        case "world1_boss_arena_wall":
+            return [.init(-0.32, 0.20, 0.27, 0.15), .init(-0.02, 0.095, 0.38, 0.16),
+                    .init(0.29, 0.025, 0.30, 0.16)]
+        case "world1_swamp_basin_debris":
+            return [.init(-0.26, 0.13, 0.36, 0.15), .init(0.015, 0.02, 0.35, 0.13),
+                    .init(0.30, 0.14, 0.26, 0.17)]
+        case "world1_boss_arena_debris", "world1_toxic_caves_debris":
+            return [.init(-0.23, 0.10, 0.36, 0.16), .init(0.02, 0.025, 0.39, 0.17),
+                    .init(0.29, 0.12, 0.28, 0.15)]
+        case "world1_swamp_basin_boulder", "world1_toxic_caves_boulder":
+            return [.init(0, 0.035, 0.53, 0.19)]
+        case "world1_boss_arena_boulder":
+            return [.init(-0.23, 0.09, 0.32, 0.17), .init(0.03, 0.02, 0.41, 0.18),
+                    .init(0.27, 0.08, 0.26, 0.15)]
         case "world2_prop_pipe":
             return [.init(-0.15, 0.035, 0.56, 0.15)]
         case "world2_prop_tank":
@@ -122,12 +147,15 @@ enum AuthoredEnvironmentRenderer {
         } else if toxic {
             tone = UIColor(red: 0.10, green: 0.15, blue: 0.07, alpha: 1)
             material = UIColor(red: 0.31, green: 0.34, blue: 0.18, alpha: 1)
+        } else if name.hasPrefix("world1_toxic_caves_") {
+            tone = UIColor(red: 0.14, green: 0.13, blue: 0.22, alpha: 1)
+            material = UIColor(red: 0.26, green: 0.25, blue: 0.35, alpha: 1)
         } else {
             tone = UIColor(red: 0.12, green: 0.15, blue: 0.10, alpha: 1)
             material = UIColor(red: 0.31, green: 0.36, blue: 0.21, alpha: 1)
         }
         let contacts = contactProfile(name)
-        let natural = frost || name.contains("boulder") || name.contains("vegetation") ||
+        let natural = frost || name.hasPrefix("world1_") || name.contains("boulder") || name.contains("vegetation") ||
             name.contains("debris") || name.contains("wreckage") || name.contains("scrap") ||
             name.contains("pine") || name.contains("broadleaf")
         let minX = contacts.map { $0.x - $0.width / 2 }.min() ?? -0.3
@@ -149,12 +177,28 @@ enum AuthoredEnvironmentRenderer {
             root.addChild(node)
         }
 
-        // The penumbra covers the full footprint, not the upper silhouette.
-        layer("ambient", color: tone, opacity: lowProfile ? 0.14 : 0.26,
-              x: center, y: 0.015, width: span * 1.20, depth: 0.23, z: zPosition)
-        if natural {
-            layer("material", color: material, opacity: lowProfile ? 0.20 : 0.14,
-                  x: center, y: -0.015, width: span * 1.30, depth: 0.23, z: zPosition + 0.01)
+        // Follow sloped foundations with overlapping local penumbras rather
+        // than drawing one detached horizontal strip below the full object.
+        let contactYs = contacts.map { $0.y }
+        let sloped = (contactYs.max() ?? 0) - (contactYs.min() ?? 0) > 0.085
+        if sloped {
+            for (index, foot) in contacts.enumerated() {
+                layer("ambient_\(index)", color: tone, opacity: 0.22,
+                      x: foot.x, y: foot.y, width: foot.width * 1.35,
+                      depth: foot.depth * 1.45, z: zPosition)
+                if natural {
+                    layer("material_\(index)", color: material, opacity: 0.12,
+                          x: foot.x, y: foot.y - 0.025, width: foot.width * 1.45,
+                          depth: foot.depth * 1.45, z: zPosition + 0.01)
+                }
+            }
+        } else {
+            layer("ambient", color: tone, opacity: lowProfile ? 0.14 : 0.26,
+                  x: center, y: 0.015, width: span * 1.20, depth: 0.23, z: zPosition)
+            if natural {
+                layer("material", color: material, opacity: lowProfile ? 0.20 : 0.14,
+                      x: center, y: -0.015, width: span * 1.30, depth: 0.23, z: zPosition + 0.01)
+            }
         }
         for (index, foot) in contacts.enumerated() {
             layer("core_\(index)", color: tone,
