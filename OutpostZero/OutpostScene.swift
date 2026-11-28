@@ -5975,19 +5975,26 @@ final class OutpostScene: SKScene {
         var occupied = root.children.filter {
             $0.name?.hasPrefix("unifiedScenery_") == true || $0.name == "toxicNorthLandmark"
         }.map { $0.calculateAccumulatedFrame() }
-        func add(_ name: String, x: CGFloat, y: CGFloat, h: CGFloat) {
-            guard h >= 26 else { return }
+        @discardableResult
+        func add(_ name: String, x: CGFloat, y: CGFloat, h: CGFloat,
+                 companion: Bool = false) -> Bool {
+            guard h >= 24 else { return false }
             let frame = CGRect(x: x-h/2, y: y, width: h, height: h)
             let visible = viewport.intersection(frame)
+            // A small companion may overlap transparent margins of a
+            // neighboring exterior sprite, but not its central silhouette.
+            let clearance = companion ? frame.insetBy(dx: h*0.19, dy: h*0.19)
+                                      : frame.insetBy(dx: -2,dy: -2)
             guard !visible.isNull, visible.width >= min(22,h*0.35),
                   visible.height >= min(22,h*0.35), !bounds.intersects(frame),
-                  !occupied.contains(where: { $0.intersects(frame.insetBy(dx: -2,dy: -2)) }) else { return }
+                  !occupied.contains(where: { $0.intersects(clearance) }) else { return false }
             AuthoredEnvironmentRenderer.installGroundedProp(asset: name,
                 position: CGPoint(x: x,y: y+h*anchor), size: CGSize(width: h,height: h),
                 anchorY: anchor, bounds: bounds, in: root,
                 texture: { [weak self] in self?.worldOneTexture(named: $0) })
             root.children.last?.name = "biomeExteriorLandmark"
             occupied.append(frame)
+            return true
         }
 
         let southHeight = min(100, bounds.minY-bottom-8, max(0,bounds.width/2-82))
@@ -5999,21 +6006,45 @@ final class OutpostScene: SKScene {
                     y: bounds.minY-southHeight-4,h: southHeight)
             }
         }
-        // Build a staggered exterior belt, not a row of miniatures.
-        // Partial viewport clipping is intentional, as in Frontier Forest;
-        // the complete sprite remains outside the playable rectangle.
+        // Compose asymmetrical groups: one dominant landmark with a
+        // smaller material-related satellite, separated by breathing room.
+        // The full sprite frames stay outside combat even when cropped
+        // naturally by the viewport. Seeded placement is stable per room.
+        let companions: [String]
+        switch displayWorld {
+        case 2: companions = ["world2_prop_debris", "world2_prop_vegetation"]
+        case 3: companions = ["world3_prop_snowbank", "world3_prop_frozen_boulder"]
+        default: companions = ["world4_prop_debris", "world4_prop_scrap_heap"]
+        }
         for side in 0..<2 {
             let available = side == 0 ? bounds.minX-viewport.minX : viewport.maxX-bounds.maxX
             guard available >= 24 else { continue }
-            let count = max(3, min(7, Int(ceil(bounds.height/88))))
+            let count = max(2, min(5, Int(ceil(bounds.height/135))))
             for index in 0..<count {
                 let seed = wave*31+side*13+index*19
-                let h = min(96, max(44,available*1.15)) * (0.80+CGFloat(seed%17)/50)
-                let gap = CGFloat(2+seed%7)
+                let h = min(110, max(52,available*1.40)) * (0.88+CGFloat(seed%13)/50)
+                let gap = CGFloat(2+seed%6)
                 let x = side == 0 ? bounds.minX-h/2-gap : bounds.maxX+h/2+gap
                 let fraction = (CGFloat(index)+0.5)/CGFloat(count)
-                let y = bounds.minY+bounds.height*fraction-h/2+CGFloat(seed%17-8)
-                add(names[(wave+side+index)%names.count],x: x,y: y,h: h)
+                let y = bounds.minY+bounds.height*fraction-h/2+CGFloat(seed%35-17)
+                let primary = names[(wave+side+index*3)%names.count]
+                // Existing offscreen authored props may occupy the first
+                // position. Try a short stagger before omitting the group.
+                var placedY: CGFloat? = nil
+                for shift in [CGFloat(0), -h*0.30, h*0.30] {
+                    if add(primary,x: x,y: y+shift,h: h) {
+                        placedY = y+shift
+                        break
+                    }
+                }
+                guard let baseY = placedY else { continue }
+                let small = max(26,min(54,h*0.56))
+                let smallX = side == 0 ? bounds.minX-small/2-2 : bounds.maxX+small/2+2
+                let companionName = companions[(seed+index)%companions.count]
+                let offsets: [CGFloat] = seed.isMultiple(of: 2) ? [h-6,-small+6] : [-small+6,h-6]
+                for offset in offsets {
+                    if add(companionName,x: smallX,y: baseY+offset,h: small,companion: true) { break }
+                }
             }
         }
         #if DEBUG
