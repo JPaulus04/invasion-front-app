@@ -5929,6 +5929,65 @@ final class OutpostScene: SKScene {
         }
     }
 
+    /// Compose the visible, nonwalkable perimeter using the already-authored
+    /// props. Do not add collision, or place large scenery in combat lanes.
+    private func installVisibleExterior(in root: SKNode, displayWorld: Int) {
+        guard !expandedArenaPreview else { return }
+        let bounds = roomBounds
+        let viewport = CGRect(origin: .zero, size: size)
+        let bottom = max(8, view?.safeAreaInsets.bottom ?? 0)
+        let names: [String]
+        switch displayWorld {
+        case 2: names = ["world2_prop_vegetation", "world2_prop_boulder", "world2_prop_wall", "world2_prop_debris"]
+        case 3: names = ["world3_prop_frozen_boulder", "world3_prop_snowbank", "world3_prop_ruin_wall", "world3_prop_ice_crystal"]
+        case 4: names = ["world4_prop_scrap_heap", "world4_prop_pipe", "world4_prop_steel_barrier", "world4_prop_broken_machine"]
+        default: return
+        }
+        let anchor: CGFloat = 32.0/512.0
+        var occupied = root.children.filter {
+            $0.name?.hasPrefix("unifiedScenery_") == true || $0.name == "toxicNorthLandmark"
+        }.map { $0.calculateAccumulatedFrame() }
+        func add(_ name: String, x: CGFloat, y: CGFloat, h: CGFloat) {
+            guard h >= 26 else { return }
+            let frame = CGRect(x: x-h/2, y: y, width: h, height: h)
+            guard viewport.contains(frame), !bounds.intersects(frame),
+                  !occupied.contains(where: { $0.intersects(frame.insetBy(dx: -2,dy: -2)) }) else { return }
+            AuthoredEnvironmentRenderer.installGroundedProp(asset: name,
+                position: CGPoint(x: x,y: y+h*anchor), size: CGSize(width: h,height: h),
+                anchorY: anchor, bounds: bounds, in: root,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) })
+            root.children.last?.name = "biomeExteriorLandmark"
+            occupied.append(frame)
+        }
+
+        let southHeight = min(76, bounds.minY-bottom-8, max(0,bounds.width/2-82))
+        if southHeight >= 26 {
+            for (index, sign) in [CGFloat(-1),CGFloat(1)].enumerated() {
+                let x = bounds.midX+sign*(bounds.width/2-southHeight/2-3)
+                guard abs(x-bounds.midX) >= 62+southHeight/2 else { continue }
+                add(names[(wave+index)%names.count], x: x,
+                    y: bounds.minY-southHeight-4,h: southHeight)
+            }
+        }
+        // Side strips may be too narrow on phones; skip them rather than
+        // force a prop into the playable area. On wide devices use them.
+        for side in 0..<2 {
+            let available = side == 0 ? bounds.minX : viewport.maxX-bounds.maxX
+            let h = min(54, available-6)
+            guard h >= 26 else { continue }
+            let x = side == 0 ? bounds.minX-h/2-3 : bounds.maxX+h/2+3
+            for (index,fraction) in [CGFloat(0.25),0.53,0.79].enumerated() {
+                let y = bounds.minY+bounds.height*fraction-h/2
+                add(names[(wave+side+index)%names.count],x: x,y: y,h: h)
+            }
+        }
+        #if DEBUG
+        precondition(root.children.filter { $0.name == "biomeExteriorLandmark" }
+            .allSatisfy { !bounds.intersects($0.calculateAccumulatedFrame()) },
+            "Exterior scenery must not enter playable bounds")
+        #endif
+    }
+
     private func updateZoneScenery(_ requestedZone: Int) {
         if worldMapIndex == 0 {
             zoneScenery.removeAllChildren()
@@ -6056,6 +6115,7 @@ final class OutpostScene: SKScene {
                     }
                 }
             }
+            installVisibleExterior(in: root, displayWorld: 2)
             zoneScenery.addChild(root)
             return
         case 3?:
@@ -6073,8 +6133,10 @@ final class OutpostScene: SKScene {
             arena.childNode(withName: "campaignExterior")?.removeFromParent()
             arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
             arena.childNode(withName: "roomArtwork")?.isHidden = true
-            zoneScenery.addChild(FrostEnvironment.make(plan,
-                texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            let root = FrostEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) })
+            installVisibleExterior(in: root, displayWorld: 3)
+            zoneScenery.addChild(root)
             return
         case 2?:
             let bounds = roomBounds
@@ -6091,8 +6153,10 @@ final class OutpostScene: SKScene {
             arena.childNode(withName: "campaignExterior")?.removeFromParent()
             arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
             arena.childNode(withName: "roomArtwork")?.isHidden = true
-            zoneScenery.addChild(IronEnvironment.make(plan,
-                texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            let root = IronEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) })
+            installVisibleExterior(in: root, displayWorld: 4)
+            zoneScenery.addChild(root)
             return
         default:
             break
