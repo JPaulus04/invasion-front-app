@@ -5954,8 +5954,66 @@ final class OutpostScene: SKScene {
 
     /// Compose the visible, nonwalkable perimeter using the already-authored
     /// props. Do not add collision, or place large scenery in combat lanes.
+    /// Expanded survival rooms reveal different edges while the camera
+    /// follows the pilot. Dress the full exterior once, not just the
+    /// initial viewport, and never place solid-looking scenery in combat.
+    private func installSurvivalExterior(in root: SKNode, displayWorld: Int) {
+        let b = roomBounds
+        let names: [String]
+        switch displayWorld {
+        case 2: names = ["world2_prop_vegetation","world2_prop_tank","world2_prop_pipe","world2_prop_boulder","world2_prop_debris"]
+        case 3: names = ["world3_prop_ice_crystal","world3_prop_frozen_boulder","world3_prop_ruin_wall","world3_prop_frozen_pillar","world3_prop_snowbank"]
+        case 4: names = ["world4_prop_scrap_heap","world4_prop_pipe","world4_prop_rusted_tank","world4_prop_broken_machine","world4_prop_debris"]
+        default: return
+        }
+        var occupied = root.children.filter {
+            $0.name?.hasPrefix("unifiedScenery_") == true
+        }.map { $0.calculateAccumulatedFrame() }
+        let anchor: CGFloat = 32.0/512.0
+        func place(x: CGFloat,y: CGFloat,h: CGFloat,index: Int) {
+            let frame = CGRect(x:x-h/2,y:y,width:h,height:h)
+            guard !b.intersects(frame),
+                  !occupied.contains(where: { $0.intersects(frame.insetBy(dx:2,dy:2)) }) else { return }
+            AuthoredEnvironmentRenderer.installGroundedProp(asset:names[(wave+index)%names.count],
+                position:CGPoint(x:x,y:y+h*anchor),size:CGSize(width:h,height:h),
+                anchorY:anchor,bounds:b,in:root,
+                texture:{ [weak self] in self?.worldOneTexture(named:$0) })
+            root.children.last?.name = "biomeExteriorLandmark"
+            occupied.append(frame)
+        }
+        // Alternate substantial forms and low companions. Centered gaps
+        // at the ends maintain visual access to entry/extraction lanes.
+        for side in 0..<2 {
+            let count = max(3,min(10,Int(ceil(b.height/110))))
+            for index in 0..<count {
+                let seed = wave*97+side*31+index*19
+                let h = CGFloat(68+seed%35)
+                let x = side == 0 ? b.minX-h/2-2 : b.maxX+h/2+2
+                let y = b.minY+b.height*(CGFloat(index)+0.5)/CGFloat(count)-h/2+CGFloat(seed%19-9)
+                place(x:x,y:y,h:h,index:index*3+side)
+            }
+            let endCount = max(4,min(9,Int(ceil(b.width/105))))
+            for index in 0..<endCount {
+                let seed = wave*53+side*23+index*17
+                let h = CGFloat(74+seed%35)
+                let x = b.minX+b.width*(CGFloat(index)+0.5)/CGFloat(endCount)
+                guard abs(x-b.midX) >= h/2+42 else { continue }
+                let y = side == 0 ? b.minY-h-3 : b.maxY+3
+                place(x:x,y:y,h:h,index:index*2+side+1)
+            }
+        }
+        #if DEBUG
+        precondition(root.children.filter { $0.name == "biomeExteriorLandmark" }
+            .allSatisfy { !b.intersects($0.calculateAccumulatedFrame()) },
+            "Survival exterior scenery must not enter playable bounds")
+        #endif
+    }
+
     private func installVisibleExterior(in root: SKNode, displayWorld: Int) {
-        guard !expandedArenaPreview else { return }
+        if expandedArenaPreview {
+            installSurvivalExterior(in:root,displayWorld:displayWorld)
+            return
+        }
         let bounds = roomBounds
         let framing = authoredTacticalFraming
         let screen = CGRect(origin: .zero, size: size)
