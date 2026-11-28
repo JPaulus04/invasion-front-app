@@ -85,7 +85,7 @@ enum AuthoredEnvironmentRenderer {
                 return CGFloat((seed >> 32) % 10000)/10000
             }
             let count = max(4, min(14, Int(ceil(bounds.height / 105))))
-            let band = min(116, bounds.width * 0.24)
+            let band = min(124, bounds.width * 0.28)
             // Edge-connected banks, with irregular gaps and widths rather
             // than a uniform outline. Keep the middle combat lane subdued.
             for side in [CGFloat(-1), CGFloat(1)] {
@@ -95,7 +95,7 @@ enum AuthoredEnvironmentRenderer {
                     let y = bounds.height*t
                     for lobe in 0..<3 {
                         let color = lobe == 0 ? palette.1 : palette.0
-                        let opacity: CGFloat = lobe == 0 ? 0.14 : (world == 3 ? 0.19 : 0.17)
+                        let opacity: CGFloat = lobe == 0 ? 0.19 : (world == 3 ? 0.29 : 0.26)
                         let radius = band*(0.52 + random()*0.40)
                         guard let gradient = CGGradient(colorsSpace: cs,
                             colors: [color.withAlphaComponent(opacity).cgColor,
@@ -109,6 +109,32 @@ enum AuthoredEnvironmentRenderer {
                         cg.scaleBy(x: 0.75+random()*0.20, y: 1.05+random()*0.50)
                         cg.drawRadialGradient(gradient, startCenter: .zero, startRadius: 0,
                                               endCenter: .zero, endRadius: radius, options: [])
+                        cg.restoreGState()
+                    }
+                }
+            }
+            // Continuous terrain beneath the new end-cap scenery. The
+            // strongest material variation is beyond the playable border;
+            // taper into the two corners without tinting the entry lane.
+            for end in [CGFloat(0),bounds.height] {
+                for side in [CGFloat(-1),CGFloat(1)] {
+                    for lobe in 0..<5 {
+                        let x = bounds.width/2 + side*(bounds.width*(0.24+random()*0.24))
+                        let y = end + (end == 0 ? -1 : 1)*band*(0.10+random()*0.33)
+                        let color = lobe.isMultiple(of:3) ? palette.1 : palette.0
+                        let alpha: CGFloat = lobe.isMultiple(of:3) ? 0.21 : 0.30
+                        let radius = band*(0.55+random()*0.48)
+                        guard let gradient = CGGradient(colorsSpace: cs,
+                            colors:[color.withAlphaComponent(alpha).cgColor,
+                                    color.withAlphaComponent(alpha*0.5).cgColor,
+                                    color.withAlphaComponent(0).cgColor] as CFArray,
+                            locations:[0,0.42,1]) else { continue }
+                        cg.saveGState()
+                        cg.translateBy(x:x,y:y)
+                        cg.rotate(by:(random()-0.5)*0.45)
+                        cg.scaleBy(x:1.2+random()*0.35,y:0.55+random()*0.23)
+                        cg.drawRadialGradient(gradient,startCenter:.zero,startRadius:0,
+                                              endCenter:.zero,endRadius:radius,options:[])
                         cg.restoreGState()
                     }
                 }
