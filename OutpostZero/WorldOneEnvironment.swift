@@ -769,19 +769,25 @@ enum FrostEnvironment {
         }
         for snow in plan.snowbanks {
             guard let art = texture(snow.asset) else { continue }
-            let sprite = SKSpriteNode(texture: art)
+            // Trim transparent canvas, not the painted drift. Keep a
+            // little padding around the inspected 512px alpha silhouette.
+            let crop = CGRect(x: 25, y: 25, width: 462, height: 173)
+            let trimmed = SKTexture(rect: crop.applying(CGAffineTransform(scaleX: 1.0/512,y: 1.0/512)), in: art)
+            trimmed.filteringMode = .linear
+            let sprite = SKSpriteNode(texture: trimmed)
             sprite.name = "frostGroundSnow"
             sprite.position = snow.position
-            sprite.size = snow.size
+            let scale = min(snow.size.width/crop.width, snow.size.height/crop.height)
+            sprite.size = CGSize(width: crop.width*scale,height: crop.height*scale)
             sprite.zPosition = -12
             sprite.alpha = 0.96
             sprite.color = slate
             sprite.colorBlendFactor = 0.12
-            // Full-canvas art has a measured base at 32/512 from the bottom.
-            let contact = CGPoint(x: snow.position.x,
-                                  y: snow.position.y + snow.size.height * (FrostEnvironmentPlan.anchorY - 0.5))
+            let contact = CGPoint(x: snow.position.x + (256-crop.midX)*scale,
+                                  y: snow.position.y + (32-crop.midY)*scale)
             AuthoredEnvironmentRenderer.installGroundContact(asset: snow.asset,
-                position: contact, size: snow.size, zPosition: -12.2, in: root, lowProfile: true)
+                position: contact, size: CGSize(width:512*scale,height:512*scale),
+                zPosition: -12.2, in: root, lowProfile: true)
             root.addChild(sprite)
         }
         return root
@@ -809,23 +815,29 @@ enum IronEnvironment {
         }
         for (index, fragment) in plan.fragments.enumerated() {
             guard let art = texture(fragment.asset) else { continue }
-            let sprite = SKSpriteNode(texture: art)
+            let crop = CGRect(x: 25,y: 25,width:462,height:260)
+            let trimmed = SKTexture(rect: crop.applying(CGAffineTransform(scaleX: 1.0/512,y: 1.0/512)), in: art)
+            trimmed.filteringMode = .linear
+            let sprite = SKSpriteNode(texture: trimmed)
             sprite.name = "ironGroundDebris"
             sprite.position = fragment.position
-            // The displayed sprite stays inside the reserved square even
-            // after rotation, so fragments still clear hazards and objectives.
-            sprite.size = CGSize(width: fragment.size.width*0.79, height: fragment.size.height*0.79)
-            sprite.zRotation = CGFloat((plan.room+index*3)%7-3)*0.10
+            sprite.zRotation = CGFloat((plan.room+index*3)%7-3)*0.08
+            let c = abs(cos(sprite.zRotation)), t = abs(sin(sprite.zRotation))
+            // Fit the rotated artwork inside the reserved envelope.
+            let scale = min(fragment.size.width/(crop.width*c+crop.height*t),
+                            fragment.size.height/(crop.width*t+crop.height*c))*0.94
+            sprite.size = CGSize(width:crop.width*scale,height:crop.height*scale)
             sprite.xScale = index.isMultiple(of: 2) ? 1 : -1
             sprite.zPosition = -12
-            sprite.alpha = 0.80 + CGFloat(index%4)*0.04
+            sprite.alpha = 0.90 + CGFloat(index%3)*0.03
             sprite.color = SKColor(red: 0.36, green: 0.30, blue: 0.26, alpha: 1)
             sprite.colorBlendFactor = 0.12
-            let dy = sprite.size.height * (IronEnvironmentPlan.anchorY - 0.5)
-            let contact = CGPoint(x: fragment.position.x - dy * sin(sprite.zRotation),
-                                  y: fragment.position.y + dy * cos(sprite.zRotation))
+            let dx = (256-crop.midX)*scale*sprite.xScale
+            let dy = (32-crop.midY)*scale
+            let contact = CGPoint(x: fragment.position.x + dx*cos(sprite.zRotation) - dy*sin(sprite.zRotation),
+                                  y: fragment.position.y + dx*sin(sprite.zRotation) + dy*cos(sprite.zRotation))
             AuthoredEnvironmentRenderer.installGroundContact(asset: fragment.asset,
-                position: contact, size: sprite.size, zPosition: -12.2, in: root,
+                position: contact, size: CGSize(width:512*scale,height:512*scale), zPosition: -12.2, in: root,
                 rotation: sprite.zRotation, mirrored: sprite.xScale < 0, lowProfile: true)
             root.addChild(sprite)
         }
