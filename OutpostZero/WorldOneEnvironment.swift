@@ -357,7 +357,7 @@ enum ToxicEnvironment {
 /// immutable polygon that gameplay uses. No collision or per-frame drawing.
 enum DimensionalLiquidPreview {
     enum Shoreline: Equatable {
-        case ice, metal
+        case ice, metal, toxic
     }
 
     static func install(on node: SKShapeNode, patch: TerrainHazards.Patch,
@@ -367,7 +367,7 @@ enum DimensionalLiquidPreview {
               size.width > 1, size.height > 1 else { return false }
         let acid = patch.kind == .acid
         let idle = surface(patch: patch, seed: seed, active: false, shoreline: shoreline)
-        let active = acid ? surface(patch: patch, seed: seed, active: true, shoreline: nil) : nil
+        let active = acid ? surface(patch: patch, seed: seed, active: true, shoreline: shoreline) : nil
         node.fillColor = .clear
         node.strokeColor = .clear
         node.glowWidth = 0
@@ -428,7 +428,7 @@ enum DimensionalLiquidPreview {
                 state = state &* 6364136223846793005 &+ 1442695040888963407
                 return CGFloat((state >> 32) % 10000)/10000
             }
-            if let shoreline {
+            if let shoreline, shoreline != .toxic {
                 drawWaterReflections(in: cg, path: path, size: size,
                                      shoreline: shoreline, random: random)
                 blendWaterShoreline(in: cg, path: path, patch: patch,
@@ -489,12 +489,14 @@ enum DimensionalLiquidPreview {
                         }
                     }
                 }
-                // Thin continuous dark contact line communicates the exact
-                // damage boundary even where the mineral highlights break.
-                cg.addPath(path)
-                cg.setLineWidth(1.4)
-                cg.setStrokeColor(low.withAlphaComponent(0.9).cgColor)
-                cg.strokePath()
+                // Preserve the old comparison preview, but do not draw a
+                // continuous artificial border over authored toxic terrain.
+                if shoreline != .toxic {
+                    cg.addPath(path)
+                    cg.setLineWidth(1.4)
+                    cg.setStrokeColor(low.withAlphaComponent(0.9).cgColor)
+                    cg.strokePath()
+                }
             } else {
                 cg.addPath(path)
                 cg.setLineWidth(3.0)
@@ -511,6 +513,10 @@ enum DimensionalLiquidPreview {
                 cg.setStrokeColor(high.withAlphaComponent(active ? 0.8 : 0.45).cgColor)
                 cg.setLineWidth(0.8)
                 cg.strokeEllipse(in: bubble)
+            }
+            if shoreline == .toxic {
+                blendWaterShoreline(in: cg, path: path, patch: patch,
+                                    shoreline: .toxic, random: random)
             }
         }
     }
@@ -542,11 +548,13 @@ enum DimensionalLiquidPreview {
                                              shoreline: Shoreline, random: () -> CGFloat) {
         let size = patch.frame.size
         let metal = shoreline == .metal
+        let toxic = shoreline == .toxic
         let span = min(size.width, size.height)
-        let shallows = metal ? min(4.5, max(2, span * 0.06))
-                             : min(7.5, max(2, span * 0.09))
-        let bank = metal ? UIColor(red: 0.28, green: 0.23, blue: 0.19, alpha: 1)
-                         : UIColor(red: 0.37, green: 0.47, blue: 0.54, alpha: 1)
+        let shallows = metal || toxic ? min(4.5, max(2, span * 0.06))
+                                      : min(7.5, max(2, span * 0.09))
+        let bank = toxic ? UIColor(red: 0.32, green: 0.27, blue: 0.17, alpha: 1)
+                         : metal ? UIColor(red: 0.28, green: 0.23, blue: 0.19, alpha: 1)
+                                 : UIColor(red: 0.37, green: 0.47, blue: 0.54, alpha: 1)
         cg.setLineJoin(.round)
 
         // Tint the shallows while allowing the actual floor art to show through.
@@ -558,8 +566,9 @@ enum DimensionalLiquidPreview {
         }
 
         let vertices = patch.outline.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
-        let contact = metal ? UIColor(red: 0.07, green: 0.065, blue: 0.06, alpha: 1)
-                            : UIColor(red: 0.66, green: 0.80, blue: 0.86, alpha: 1)
+        let contact = toxic ? UIColor(red: 0.35, green: 0.31, blue: 0.16, alpha: 1)
+                            : metal ? UIColor(red: 0.07, green: 0.065, blue: 0.06, alpha: 1)
+                                    : UIColor(red: 0.66, green: 0.80, blue: 0.86, alpha: 1)
         // Broken contact marks give the shoreline depth without tracing the polygon.
         for index in vertices.indices {
             let a = vertices[index]
