@@ -4667,11 +4667,9 @@ final class OutpostScene: SKScene {
         let scale = min(footprint.width/canvasCrop.width, footprint.height/canvasCrop.height)
         art.size = CGSize(width: canvasCrop.width*scale, height: canvasCrop.height*scale)
         art.zPosition = 0.8
-        let shadow = SKSpriteNode(texture: ProductionPresentation.glow(.black.withAlphaComponent(0.48)))
-        shadow.size = CGSize(width: art.size.width, height: art.size.height*0.32)
-        shadow.position.y = -art.size.height*0.38
-        shadow.zPosition = 0.2
-        obstacle.addChild(shadow)
+        AuthoredEnvironmentRenderer.installGroundContact(asset: name,
+            position: CGPoint(x: 0, y: -art.size.height * 0.47),
+            size: art.size, zPosition: 0.2, in: obstacle)
         obstacle.addChild(art)
         return obstacle
     }
