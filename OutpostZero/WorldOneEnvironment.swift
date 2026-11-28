@@ -497,9 +497,77 @@ enum DimensionalLiquidPreview {
             sprite.isHidden = hidden
             node.addChild(sprite)
         }
+        if let shoreline {
+            node.addChild(dryBank(patch:patch,shoreline:shoreline,seed:seed))
+        }
         add(idle, name: "dimensionalLiquidIdle", hidden: false)
         if let active { add(active, name: "dimensionalLiquidActive", hidden: true) }
         return true
+    }
+
+    /// A dry, terrain-colored weathered bank under the clipped liquid.
+    /// This is not an extension of the water/acid polygon: no liquid tint,
+    /// collision, or warning state is added outside the original boundary.
+    private static func dryBank(patch: TerrainHazards.Patch, shoreline: Shoreline,
+                                seed: Int) -> SKSpriteNode {
+        let w = patch.frame.width, h = patch.frame.height
+        let pad = min(16, max(5,min(w,h)*0.18))
+        let canvas = CGSize(width:w+2*pad,height:h+2*pad)
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        format.scale = min(2,768/max(canvas.width,canvas.height))
+        let palette: (UIColor, UIColor)
+        switch shoreline {
+        case .ice:
+            palette = (UIColor(red:0.29,green:0.39,blue:0.48,alpha:1),
+                       UIColor(red:0.68,green:0.76,blue:0.82,alpha:1))
+        case .metal:
+            palette = (UIColor(red:0.23,green:0.21,blue:0.18,alpha:1),
+                       UIColor(red:0.48,green:0.36,blue:0.25,alpha:1))
+        case .toxic:
+            palette = (UIColor(red:0.24,green:0.20,blue:0.15,alpha:1),
+                       UIColor(red:0.43,green:0.36,blue:0.24,alpha:1))
+        }
+        let renderer = UIGraphicsImageRenderer(size: canvas,format: format)
+        let image = renderer.image { context in
+            let cg = context.cgContext
+            cg.translateBy(x:canvas.width/2,y:canvas.height/2)
+            cg.scaleBy(x:1,y:-1)
+            let cs = CGColorSpaceCreateDeviceRGB()
+            var state = UInt64(truncatingIfNeeded:seed) &+ 0x9E3779B185EBCA87
+            func random() -> CGFloat {
+                state = state &* 6364136223846793005 &+ 1442695040888963407
+                return CGFloat((state >> 32) % 10000)/10000
+            }
+            let vertices = patch.outline.map { CGPoint(x:$0.x*w,y:$0.y*h) }
+            for index in vertices.indices {
+                let a = vertices[index], b = vertices[(index+1)%vertices.count]
+                let dx = b.x-a.x, dy = b.y-a.y
+                let length = hypot(dx,dy)
+                guard length > 0.01 else { continue }
+                let count = max(1,Int(ceil(length/max(3,pad*0.65))))
+                for j in 0..<count {
+                    let t = (CGFloat(j)+0.15+random()*0.70)/CGFloat(count)
+                    let center = CGPoint(x:a.x+dx*t,y:a.y+dy*t)
+                    let radius = pad*(0.48+random()*0.45)
+                    let color = (j+index).isMultiple(of:3) ? palette.1 : palette.0
+                    let opacity: CGFloat = (j+index).isMultiple(of:3) ? 0.14 : 0.25
+                    guard let gradient = CGGradient(colorsSpace:cs,
+                        colors:[color.withAlphaComponent(opacity).cgColor,
+                                color.withAlphaComponent(opacity*0.45).cgColor,
+                                color.withAlphaComponent(0).cgColor] as CFArray,
+                        locations:[0,0.42,1]) else { continue }
+                    cg.drawRadialGradient(gradient,startCenter:center,startRadius:0,
+                                          endCenter:center,endRadius:radius,options:[])
+                }
+            }
+        }
+        let node = SKSpriteNode(texture: SKTexture(image:image))
+        node.name = "dimensionalDryBank"
+        node.texture?.filteringMode = .linear
+        node.size = canvas
+        node.zPosition = -0.1
+        return node
     }
 
     static func updateAcid(on node: SKShapeNode, active: Bool) -> Bool {
@@ -531,7 +599,9 @@ enum DimensionalLiquidPreview {
                            : acid ? UIColor(red: 0.08,green: 0.17,blue: 0.035,alpha: 1)
                            : UIColor(red: 0.035,green: 0.12,blue: 0.19,alpha: 1)
             let high = shoreline == .metal ? UIColor(red: 0.18, green: 0.30, blue: 0.33, alpha: 1)
-                            : acid ? (active ? UIColor(red: 0.43,green: 0.86,blue: 0.095,alpha: 1)
+                            : acid ? (active ? (shoreline == .toxic
+                                          ? UIColor(red:0.37,green:0.73,blue:0.12,alpha:1)
+                                          : UIColor(red:0.43,green:0.86,blue:0.095,alpha:1))
                                       : UIColor(red: 0.20,green: 0.40,blue: 0.095,alpha: 1))
                             : UIColor(red: 0.12,green: 0.38,blue: 0.48,alpha: 1)
             let cs = CGColorSpaceCreateDeviceRGB()
