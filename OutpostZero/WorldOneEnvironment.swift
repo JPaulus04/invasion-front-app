@@ -51,6 +51,73 @@ enum AuthoredEnvironmentRenderer {
         root.addChild(sprite)
     }
 
+    /// Connected, feathered environmental beds are a presentation layer over
+    /// the approved tiled art, not new terrain, obstacles, or hazard patches.
+    /// One bounded raster per room; the original floor remains visible.
+    static func compositionBeds(bounds: CGRect, room: Int, world: Int) -> SKSpriteNode {
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        format.scale = min(1, 768/max(1,max(bounds.width,bounds.height)))
+        let palette: (UIColor, UIColor)
+        switch world {
+        case 2:
+            palette = (UIColor(red: 0.35, green: 0.34, blue: 0.17, alpha: 1),
+                       UIColor(red: 0.29, green: 0.19, blue: 0.12, alpha: 1))
+        case 3:
+            palette = (UIColor(red: 0.72, green: 0.82, blue: 0.89, alpha: 1),
+                       UIColor(red: 0.20, green: 0.32, blue: 0.43, alpha: 1))
+        default:
+            palette = (UIColor(red: 0.49, green: 0.30, blue: 0.17, alpha: 1),
+                       UIColor(red: 0.21, green: 0.23, blue: 0.23, alpha: 1))
+        }
+        let renderer = UIGraphicsImageRenderer(size: bounds.size, format: format)
+        let image = renderer.image { context in
+            let cg = context.cgContext
+            let cs = CGColorSpaceCreateDeviceRGB()
+            var seed = UInt64(truncatingIfNeeded: room * 97 + world * 313)
+            func random() -> CGFloat {
+                seed = seed &* 6364136223846793005 &+ 1442695040888963407
+                return CGFloat((seed >> 32) % 10000)/10000
+            }
+            let count = max(4, min(14, Int(ceil(bounds.height / 105))))
+            let band = min(116, bounds.width * 0.24)
+            // Edge-connected banks, with irregular gaps and widths rather
+            // than a uniform outline. Keep the middle combat lane subdued.
+            for side in [CGFloat(-1), CGFloat(1)] {
+                for index in 0..<count {
+                    let t = (CGFloat(index) + 0.45 + random()*0.30) / CGFloat(count)
+                    let x = bounds.width/2 + side * (bounds.width/2 - band*(0.35+random()*0.36))
+                    let y = bounds.height*t
+                    for lobe in 0..<3 {
+                        let color = lobe == 0 ? palette.1 : palette.0
+                        let opacity: CGFloat = lobe == 0 ? 0.14 : (world == 3 ? 0.19 : 0.17)
+                        let radius = band*(0.52 + random()*0.40)
+                        guard let gradient = CGGradient(colorsSpace: cs,
+                            colors: [color.withAlphaComponent(opacity).cgColor,
+                                     color.withAlphaComponent(opacity*0.60).cgColor,
+                                     color.withAlphaComponent(0).cgColor] as CFArray,
+                            locations: [0,0.40,1]) else { continue }
+                        cg.saveGState()
+                        cg.translateBy(x: x + (random()-0.5)*band*0.55,
+                                       y: y + (random()-0.5)*band*0.70)
+                        cg.rotate(by: (random()-0.5)*0.9)
+                        cg.scaleBy(x: 0.75+random()*0.20, y: 1.05+random()*0.50)
+                        cg.drawRadialGradient(gradient, startCenter: .zero, startRadius: 0,
+                                              endCenter: .zero, endRadius: radius, options: [])
+                        cg.restoreGState()
+                    }
+                }
+            }
+        }
+        let node = SKSpriteNode(texture: SKTexture(image: image))
+        node.texture?.filteringMode = .linear
+        node.name = "authoredCompositionBeds"
+        node.size = bounds.size
+        node.position = CGPoint(x: bounds.midX,y: bounds.midY)
+        node.zPosition = -17.2
+        return node
+    }
+
     /// A footprint is relative to the visible base, in displayed sprite units.
     /// These profiles follow the existing source silhouettes rather than their
     /// transparent canvas. They affect presentation only.
@@ -334,6 +401,7 @@ enum ToxicEnvironment {
         // A single world-space material wash interrupts recurring motifs
         // without rotating tiles or disturbing their verified shared edges.
         root.addChild(materialVariation(plan))
+        root.addChild(AuthoredEnvironmentRenderer.compositionBeds(bounds: plan.bounds, room: plan.room, world: 2))
         for prop in plan.props {
             AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
                 position: prop.position, size: prop.size, anchorY: prop.anchorY,
@@ -688,6 +756,7 @@ enum FrostEnvironment {
             tile.colorBlendFactor = 0.22
         }
         root.addChild(ground)
+        root.addChild(AuthoredEnvironmentRenderer.compositionBeds(bounds: plan.bounds, room: plan.room, world: 3))
         for prop in plan.landmarks {
             AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
                 position: prop.position,size: prop.size,anchorY: prop.anchorY,
@@ -700,7 +769,7 @@ enum FrostEnvironment {
             sprite.position = snow.position
             sprite.size = snow.size
             sprite.zPosition = -12
-            sprite.alpha = 0.92
+            sprite.alpha = 0.96
             sprite.color = slate
             sprite.colorBlendFactor = 0.12
             // Full-canvas art has a measured base at 32/512 from the bottom.
@@ -727,6 +796,7 @@ enum IronEnvironment {
             materialName: { column, row in
                 IronEnvironmentPlan.materials[plan.variant(column: column,row: row)]
             }, texture: texture))
+        root.addChild(AuthoredEnvironmentRenderer.compositionBeds(bounds: plan.bounds, room: plan.room, world: 4))
         for prop in plan.landmarks {
             AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
                 position: prop.position,size: prop.size,anchorY: prop.anchorY,
