@@ -5997,13 +5997,46 @@ final class OutpostScene: SKScene {
             return true
         }
 
-        let southHeight = min(100, bounds.minY-bottom-8, max(0,bounds.width/2-82))
-        if southHeight >= 26 {
-            for (index, sign) in [CGFloat(-1),CGFloat(1)].enumerated() {
-                let x = bounds.midX+sign*(bounds.width/2-southHeight/2-3)
-                guard abs(x-bounds.midX) >= 62+southHeight/2 else { continue }
-                add(names[(wave+index)%names.count], x: x,
-                    y: bounds.minY-southHeight-4,h: southHeight)
+        // Frame the approach and far wall with substantial biome-specific
+        // scenery. The central gate/entry opening remains clear. These are
+        // outside the room in world space, regardless of camera scale.
+        let endCaps: [String]
+        switch displayWorld {
+        case 2: endCaps = ["world2_prop_tank","world2_prop_vegetation",
+                           "world2_prop_boulder","world2_prop_pipe"]
+        case 3: endCaps = ["world3_prop_ice_crystal","world3_prop_frozen_boulder",
+                           "world3_prop_ruin_wall","world3_prop_frozen_pillar"]
+        default: endCaps = ["world4_prop_rusted_tank","world4_prop_broken_machine",
+                            "world4_prop_scrap_heap","world4_prop_pipe"]
+        }
+        let opening: CGFloat = 52
+        let capWidth = max(0,bounds.width/2-opening/2-4)
+        let southDepth = max(0,bounds.minY-bottom-4)
+        let northLimit = (size.height-max(16,view?.safeAreaInsets.top ?? 0)-100-framing.offset.y)/framing.scale
+        let northDepth = max(0,northLimit-bounds.maxY-4)
+        for (index,sign) in [CGFloat(-1),CGFloat(1)].enumerated() {
+            let h = min(134,capWidth,southDepth)
+            if h >= 40 {
+                let x = bounds.midX+sign*(opening/2+h/2+6)
+                let asset = endCaps[(wave+index*2)%endCaps.count]
+                if add(asset,x:x,y:bounds.minY-h-3,h:h) {
+                    let small = max(28,min(58,h*0.50))
+                    let outerX = x+sign*(h/2+small/2-8)
+                    _ = add(names[(wave+index+1)%names.count],
+                            x:outerX,y:bounds.minY-small-5,h:small,companion:true)
+                }
+            }
+            // Keep the existing north landmarks and fill the adjoining gap
+            // with a distinct larger form; never cover HUD or portal space.
+            let nh = min(116,capWidth,northDepth)
+            if nh >= 40 {
+                let x = bounds.midX+sign*(opening/2+nh/2+4)
+                let asset = endCaps[(wave+index*2+1)%endCaps.count]
+                for shift in [CGFloat(0), nh*0.23, nh*0.46] {
+                    let y = bounds.maxY+4+shift
+                    guard y+nh*0.48 <= northLimit else { continue }
+                    if add(asset,x:x,y:y,h:nh,companion:true) { break }
+                }
             }
         }
         // Compose asymmetrical groups: one dominant landmark with a
