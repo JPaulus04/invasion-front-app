@@ -55,9 +55,13 @@ enum AuthoredEnvironmentRenderer {
     /// the approved tiled art, not new terrain, obstacles, or hazard patches.
     /// One bounded raster per room; the original floor remains visible.
     static func compositionBeds(bounds: CGRect, room: Int, world: Int) -> SKSpriteNode {
+        // Pad the raster beyond the visible banks so a gradient cannot be
+        // clipped at the walkable rectangle and reintroduce a straight edge.
+        let padding = min(180, max(24, bounds.width * 0.38))
+        let canvas = bounds.insetBy(dx: -padding, dy: -padding)
         let format = UIGraphicsImageRendererFormat()
         format.opaque = false
-        format.scale = min(1, 768/max(1,max(bounds.width,bounds.height)))
+        format.scale = min(1, 768/max(1,max(canvas.width,canvas.height)))
         let palette: (UIColor, UIColor)
         switch world {
         case 2:
@@ -70,9 +74,10 @@ enum AuthoredEnvironmentRenderer {
             palette = (UIColor(red: 0.49, green: 0.30, blue: 0.17, alpha: 1),
                        UIColor(red: 0.21, green: 0.23, blue: 0.23, alpha: 1))
         }
-        let renderer = UIGraphicsImageRenderer(size: bounds.size, format: format)
+        let renderer = UIGraphicsImageRenderer(size: canvas.size, format: format)
         let image = renderer.image { context in
             let cg = context.cgContext
+            cg.translateBy(x: padding, y: padding)
             let cs = CGColorSpaceCreateDeviceRGB()
             var seed = UInt64(truncatingIfNeeded: room * 97 + world * 313)
             func random() -> CGFloat {
@@ -112,8 +117,8 @@ enum AuthoredEnvironmentRenderer {
         let node = SKSpriteNode(texture: SKTexture(image: image))
         node.texture?.filteringMode = .linear
         node.name = "authoredCompositionBeds"
-        node.size = bounds.size
-        node.position = CGPoint(x: bounds.midX,y: bounds.midY)
+        node.size = canvas.size
+        node.position = CGPoint(x: canvas.midX,y: canvas.midY)
         node.zPosition = -17.2
         return node
     }
