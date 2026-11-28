@@ -1857,6 +1857,8 @@ final class OutpostScene: SKScene {
             updateTerrainHazards()
             precondition(displayedAcidActive == true &&
                          (acidVisualNodes[0].childNode(
+                            withName: "dimensionalLiquidActive")?.isHidden == false ||
+                          acidVisualNodes[0].childNode(
                             withName: "illustratedTerrain") != nil ||
                           acidVisualNodes[0].childNode(
                             withName: "acidActiveVeins")?.isHidden == false) &&
@@ -4546,6 +4548,13 @@ final class OutpostScene: SKScene {
                 continue
             }
             #endif
+            if patch.kind == .acid, authoredWorld == 1,
+                DimensionalLiquidPreview.install(on: shape, patch: patch,
+                    seed: wave*31+hazardIndex, shoreline: .toxic) {
+                acidVisualNodes.append(shape)
+                hazardScenery.addChild(shape)
+                continue
+            }
             if patch.kind == .water, let authoredWorld, authoredWorld == 2 || authoredWorld == 3 {
                 let shoreline: DimensionalLiquidPreview.Shoreline = authoredWorld == 3 ? .ice : .metal
                 if DimensionalLiquidPreview.install(on: shape, patch: patch,
@@ -5063,9 +5072,7 @@ final class OutpostScene: SKScene {
         if displayedAcidActive != acidOn {
             displayedAcidActive = acidOn
             for shape in acidVisualNodes {
-                #if DEBUG
                 if DimensionalLiquidPreview.updateAcid(on: shape, active: acidOn) { continue }
-                #endif
                 // Illustrated pools must remain transparent above their
                 // authored texture when the hazard toggles on/off.
                 if let illustration = shape.childNode(withName: "illustratedTerrain")
@@ -8011,8 +8018,8 @@ final class OutpostScene: SKScene {
             $0.name == "terrain_acid" || $0.name == "terrain_water"
         }
         precondition(liquids.count == roomHazards.filter { $0.kind != .rubble }.count && !liquids.isEmpty)
-        let recessedWater = !legacyEnvironment && (selectedWorld.id == 2 || selectedWorld.id == 3)
-        if preview || recessedWater {
+        let recessedLiquid = !legacyEnvironment && (1...3).contains(selectedWorld.id)
+        if preview || recessedLiquid {
             for node in liquids {
                 guard let idle = node.childNode(withName: "dimensionalLiquidIdle") as? SKSpriteNode,
                       let path = node.path, let texture = idle.texture else {
