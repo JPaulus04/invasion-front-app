@@ -6061,6 +6061,11 @@ final class OutpostScene: SKScene {
                 CGRect(x: $0.x-64, y: $0.y-64, width: 128, height: 128)
             }
             if let debris = worldOneTexture(named: "world2_prop_debris") {
+                // Trim the inspected transparent border from the existing
+                // debris image; reuse a single texture for all fragments.
+                let crop = CGRect(x: 28,y: 24,width: 456,height: 314)
+                let trimmed = SKTexture(rect: crop.applying(CGAffineTransform(scaleX: 1.0/512,y: 1.0/512)), in: debris)
+                trimmed.filteringMode = .linear
                 var occupied: [CGRect] = []
                 func addFragment(x: CGFloat, y: CGFloat, width: CGFloat, facing: Int, angle: CGFloat = 0) {
                     let height = width * 0.65
@@ -6072,25 +6077,38 @@ final class OutpostScene: SKScene {
                           !patches.contains(where: { $0.frame.insetBy(dx: -8, dy: -8).intersects(envelope) }),
                           !reserved.contains(where: { $0.intersects(envelope) }),
                           !occupied.contains(where: { $0.intersects(envelope.insetBy(dx: -12, dy: -12)) }) else { return }
-                    let fragment = SKSpriteNode(texture: debris)
+                    let fragment = SKSpriteNode(texture: trimmed)
                     fragment.name = "toxicGroundFragment"
                     fragment.position = CGPoint(x: x, y: y)
-                    fragment.size = CGSize(width: width, height: height)
+                    let scale = min(width/crop.width,height/crop.height)
+                    fragment.size = CGSize(width: crop.width*scale,height: crop.height*scale)
                     fragment.xScale = CGFloat(facing)
                     fragment.zRotation = angle
-                    fragment.alpha = 0.75
+                    fragment.alpha = 0.94
+                    fragment.color = SKColor(red: 0.37,green: 0.32,blue: 0.20,alpha: 1)
+                    fragment.colorBlendFactor = 0.12
                     fragment.zPosition = -12
+                    let dx = (256-crop.midX)*scale*fragment.xScale
+                    let dy = (32-crop.midY)*scale
+                    let contact = CGPoint(x: x+dx*cos(angle)-dy*sin(angle),
+                                          y: y+dx*sin(angle)+dy*cos(angle))
+                    AuthoredEnvironmentRenderer.installGroundContact(asset: "world2_prop_debris",
+                        position: contact,size: CGSize(width:512*scale,height:512*scale),
+                        zPosition: -12.2,in: root,rotation: angle,mirrored: facing < 0,lowProfile: true)
                     root.addChild(fragment)
                     occupied.append(envelope)
                 }
                 // Tactical rooms retain their verified edge layout.
                 for side in [-1, 1] {
                     for (index, fraction) in [CGFloat(0.12), 0.29, 0.47, 0.65, 0.84].enumerated() {
-                        let width: CGFloat = 30+CGFloat((index+wave)%3)*4
-                        let inset = max(22, width*0.65+1)
+                        // Alternate larger and smaller edge deposits and
+                        // avoid forming identical rows of loose objects.
+                        let width: CGFloat = 34+CGFloat((index*2+wave+side+1)%4)*4
+                        let inset = max(22, width*0.65+1)+CGFloat((index+wave)%3)*3
                         let x = side < 0 ? roomBounds.minX+inset : roomBounds.maxX-inset
-                        let y = roomBounds.minY+roomBounds.height*fraction
-                        addFragment(x: x, y: y, width: width, facing: side)
+                        let y = roomBounds.minY+roomBounds.height*fraction+CGFloat((index*7+wave)%13-6)
+                        addFragment(x: x, y: y, width: width, facing: side,
+                                    angle: CGFloat((index+wave)%5-2)*0.10)
                     }
                 }
                 if expandedArenaPreview {
