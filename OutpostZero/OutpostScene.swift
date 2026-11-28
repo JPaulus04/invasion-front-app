@@ -4581,7 +4581,8 @@ final class OutpostScene: SKScene {
                 if authoredWorld == 1,
                     let texture = worldOneTexture(named: "world2_prop_wall") {
                     hazardScenery.addChild(authoredRubble(at: shape.position, footprint: patch.frame.size,
-                        texture: texture, name: "authoredToxicRubble", canvasCrop: CGRect(x: 34, y: 25, width: 444, height: 355)))
+                        texture: texture, name: "authoredToxicRubble", asset: "world2_prop_wall",
+                        canvasCrop: CGRect(x: 34, y: 25, width: 444, height: 355)))
                     continue
                 } else if authoredWorld == 3,
                     let texture = worldOneTexture(named: wave.isMultiple(of: 3)
@@ -4590,7 +4591,8 @@ final class OutpostScene: SKScene {
                         ? CGRect(x: 30, y: 25, width: 452, height: 335)
                         : CGRect(x: 34, y: 29, width: 444, height: 195)
                     hazardScenery.addChild(authoredRubble(at: shape.position, footprint: patch.frame.size,
-                        texture: texture, name: "authoredFrostRubble", canvasCrop: crop))
+                        texture: texture, name: "authoredFrostRubble",
+                        asset: wave.isMultiple(of: 3) ? "world3_prop_wreckage" : "world3_prop_ruin_wall", canvasCrop: crop))
                     continue
                 } else if authoredWorld == 2,
                     let texture = worldOneTexture(named: wave.isMultiple(of: 3)
@@ -4599,7 +4601,8 @@ final class OutpostScene: SKScene {
                         ? CGRect(x: 34, y: 29, width: 444, height: 278)
                         : CGRect(x: 34, y: 29, width: 444, height: 254)
                     hazardScenery.addChild(authoredRubble(at: shape.position, footprint: patch.frame.size,
-                        texture: texture, name: "authoredIronRubble", canvasCrop: crop))
+                        texture: texture, name: "authoredIronRubble",
+                        asset: wave.isMultiple(of: 3) ? "world4_prop_scrap_heap" : "world4_prop_steel_barrier", canvasCrop: crop))
                     continue
                 } else {
                     decorateRubbleObstacle(shape, size: patch.frame.size)
@@ -4653,7 +4656,7 @@ final class OutpostScene: SKScene {
 
 
     private func authoredRubble(at position: CGPoint, footprint: CGSize, texture: SKTexture,
-                                name: String, canvasCrop: CGRect) -> SKNode {
+                                name: String, asset: String, canvasCrop: CGRect) -> SKNode {
         let obstacle = SKNode()
         obstacle.name = "terrain_rubble"
         obstacle.position = position
@@ -4667,9 +4670,13 @@ final class OutpostScene: SKScene {
         let scale = min(footprint.width/canvasCrop.width, footprint.height/canvasCrop.height)
         art.size = CGSize(width: canvasCrop.width*scale, height: canvasCrop.height*scale)
         art.zPosition = 0.8
-        AuthoredEnvironmentRenderer.installGroundContact(asset: name,
-            position: CGPoint(x: 0, y: -art.size.height * 0.47),
-            size: art.size, zPosition: 0.2, in: obstacle)
+        // Contact profiles use the full source canvas. Convert its measured
+        // 32px ground anchor into the cropped sprite's local coordinates.
+        let contact = CGPoint(x: (256 - canvasCrop.midX) * scale,
+                              y: (32 - canvasCrop.midY) * scale)
+        let sourceSize = CGSize(width: 512 * scale, height: 512 * scale)
+        AuthoredEnvironmentRenderer.installGroundContact(asset: asset,
+            position: contact, size: sourceSize, zPosition: 0.2, in: obstacle)
         obstacle.addChild(art)
         return obstacle
     }
