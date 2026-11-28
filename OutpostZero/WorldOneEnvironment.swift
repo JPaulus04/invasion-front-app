@@ -46,12 +46,53 @@ enum AuthoredEnvironmentRenderer {
         sprite.position = position
         // Low depth keeps combat actors and their cues readable.
         sprite.zPosition = 0.4 - (position.y-bounds.minY)/max(1, bounds.height)*0.3
-        let shadow = SKSpriteNode(texture: ProductionPresentation.glow(.black.withAlphaComponent(0.3)))
-        shadow.size = CGSize(width: size.width*0.72, height: size.height*0.16)
-        shadow.position = CGPoint(x: position.x+7, y: position.y)
-        shadow.zPosition = -0.3
-        root.addChild(shadow)
+        installGroundContact(asset: asset, position: position, size: size,
+                             zPosition: -0.3, in: root)
         root.addChild(sprite)
+    }
+
+    /// Two feathered, material-tinted layers at the measured ground contact.
+    /// Reuses the cached presentation texture; no new art or collision shapes.
+    static func installGroundContact(asset: String, position: CGPoint, size: CGSize,
+                                     zPosition: CGFloat, in root: SKNode) {
+        let name = asset.lowercased()
+        let frost = name.hasPrefix("world3_") || name.contains("frostrubble")
+        let iron = name.hasPrefix("world4_") || name.contains("ironrubble")
+        let toxic = name.hasPrefix("world2_") || name.contains("toxicrubble")
+        let tone: UIColor
+        if frost {
+            tone = UIColor(red: 0.16, green: 0.22, blue: 0.30, alpha: 1)
+        } else if iron {
+            tone = UIColor(red: 0.12, green: 0.095, blue: 0.075, alpha: 1)
+        } else if toxic {
+            tone = UIColor(red: 0.10, green: 0.15, blue: 0.07, alpha: 1)
+        } else {
+            tone = UIColor(red: 0.12, green: 0.15, blue: 0.10, alpha: 1)
+        }
+
+        let slender = name.contains("lantern") || name.contains("pine") ||
+            name.contains("broadleaf") || name.contains("crystal") ||
+            name.contains("vegetation") || name.contains("antenna")
+        let rubble = name.contains("rubble")
+        let width = size.width * (rubble ? 0.90 : slender ? 0.46 : 0.74)
+        let depth = max(3, min(width * 0.22, size.height * 0.18))
+
+        func layer(_ suffix: String, opacity: CGFloat, widthScale: CGFloat,
+                   depthScale: CGFloat, yOffset: CGFloat, z: CGFloat) {
+            let node = SKSpriteNode(texture: ProductionPresentation.glow(tone.withAlphaComponent(opacity)))
+            node.name = "propGroundContact_\(suffix)"
+            node.size = CGSize(width: width * widthScale, height: depth * depthScale)
+            node.position = CGPoint(x: position.x, y: position.y + yOffset)
+            node.zPosition = z
+            root.addChild(node)
+        }
+
+        // The wide penumbra follows the floor; a narrower contact layer
+        // anchors the silhouette instead of producing an offset black oval.
+        layer("ambient", opacity: frost ? 0.25 : 0.29, widthScale: 1.24,
+              depthScale: 1.55, yOffset: -depth * 0.12, z: zPosition)
+        layer("core", opacity: frost ? 0.39 : 0.48, widthScale: 0.86,
+              depthScale: 0.62, yOffset: 0, z: zPosition + 0.04)
     }
 }
 
