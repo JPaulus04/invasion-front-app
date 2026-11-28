@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   asset-preflight:
-    if: contains(fromJSON('["feature/build342-iron-landscape-preview","feature/build342-integration"]'), github.head_ref || github.ref_name)
+    if: contains(fromJSON('["feature/build342-iron-landscape-preview","feature/build342-integration","fix/terrain-integration"]'), github.head_ref || github.ref_name)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

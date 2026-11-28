@@ -46,12 +46,264 @@ enum AuthoredEnvironmentRenderer {
         sprite.position = position
         // Low depth keeps combat actors and their cues readable.
         sprite.zPosition = 0.4 - (position.y-bounds.minY)/max(1, bounds.height)*0.3
-        let shadow = SKSpriteNode(texture: ProductionPresentation.glow(.black.withAlphaComponent(0.3)))
-        shadow.size = CGSize(width: size.width*0.72, height: size.height*0.16)
-        shadow.position = CGPoint(x: position.x+7, y: position.y)
-        shadow.zPosition = -0.3
-        root.addChild(shadow)
+        installGroundContact(asset: asset, position: position, size: size,
+                             zPosition: -0.3, in: root)
         root.addChild(sprite)
+    }
+
+    /// Connected, feathered environmental beds are a presentation layer over
+    /// the approved tiled art, not new terrain, obstacles, or hazard patches.
+    /// One bounded raster per room; the original floor remains visible.
+    static func compositionBeds(bounds: CGRect, room: Int, world: Int) -> SKSpriteNode {
+        // Pad the raster beyond the visible banks so a gradient cannot be
+        // clipped at the walkable rectangle and reintroduce a straight edge.
+        let padding = min(180, max(24, bounds.width * 0.38))
+        let canvas = bounds.insetBy(dx: -padding, dy: -padding)
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        format.scale = min(1, 768/max(1,max(canvas.width,canvas.height)))
+        let palette: (UIColor, UIColor)
+        switch world {
+        case 2:
+            palette = (UIColor(red: 0.35, green: 0.34, blue: 0.17, alpha: 1),
+                       UIColor(red: 0.29, green: 0.19, blue: 0.12, alpha: 1))
+        case 3:
+            palette = (UIColor(red: 0.72, green: 0.82, blue: 0.89, alpha: 1),
+                       UIColor(red: 0.20, green: 0.32, blue: 0.43, alpha: 1))
+        default:
+            palette = (UIColor(red: 0.49, green: 0.30, blue: 0.17, alpha: 1),
+                       UIColor(red: 0.21, green: 0.23, blue: 0.23, alpha: 1))
+        }
+        let renderer = UIGraphicsImageRenderer(size: canvas.size, format: format)
+        let image = renderer.image { context in
+            let cg = context.cgContext
+            cg.translateBy(x: padding, y: padding)
+            let cs = CGColorSpaceCreateDeviceRGB()
+            var seed = UInt64(truncatingIfNeeded: room * 97 + world * 313)
+            func random() -> CGFloat {
+                seed = seed &* 6364136223846793005 &+ 1442695040888963407
+                return CGFloat((seed >> 32) % 10000)/10000
+            }
+            let count = max(4, min(14, Int(ceil(bounds.height / 105))))
+            let band = min(124, bounds.width * 0.28)
+            // Edge-connected banks, with irregular gaps and widths rather
+            // than a uniform outline. Keep the middle combat lane subdued.
+            for side in [CGFloat(-1), CGFloat(1)] {
+                for index in 0..<count {
+                    let t = (CGFloat(index) + 0.45 + random()*0.30) / CGFloat(count)
+                    let x = bounds.width/2 + side * (bounds.width/2 - band*(0.35+random()*0.36))
+                    let y = bounds.height*t
+                    for lobe in 0..<3 {
+                        let color = lobe == 0 ? palette.1 : palette.0
+                        let opacity: CGFloat = lobe == 0 ? 0.19 : (world == 3 ? 0.29 : 0.26)
+                        let radius = band*(0.52 + random()*0.40)
+                        guard let gradient = CGGradient(colorsSpace: cs,
+                            colors: [color.withAlphaComponent(opacity).cgColor,
+                                     color.withAlphaComponent(opacity*0.60).cgColor,
+                                     color.withAlphaComponent(0).cgColor] as CFArray,
+                            locations: [0,0.40,1]) else { continue }
+                        cg.saveGState()
+                        cg.translateBy(x: x + (random()-0.5)*band*0.55,
+                                       y: y + (random()-0.5)*band*0.70)
+                        cg.rotate(by: (random()-0.5)*0.9)
+                        cg.scaleBy(x: 0.75+random()*0.20, y: 1.05+random()*0.50)
+                        cg.drawRadialGradient(gradient, startCenter: .zero, startRadius: 0,
+                                              endCenter: .zero, endRadius: radius, options: [])
+                        cg.restoreGState()
+                    }
+                }
+            }
+            // Continuous terrain beneath the new end-cap scenery. The
+            // strongest material variation is beyond the playable border;
+            // taper into the two corners without tinting the entry lane.
+            for end in [CGFloat(0),bounds.height] {
+                for side in [CGFloat(-1),CGFloat(1)] {
+                    for lobe in 0..<5 {
+                        let x = bounds.width/2 + side*(bounds.width*(0.24+random()*0.24))
+                        let y = end + (end == 0 ? -1 : 1)*band*(0.10+random()*0.33)
+                        let color = lobe.isMultiple(of:3) ? palette.1 : palette.0
+                        let alpha: CGFloat = lobe.isMultiple(of:3) ? 0.21 : 0.30
+                        let radius = band*(0.55+random()*0.48)
+                        guard let gradient = CGGradient(colorsSpace: cs,
+                            colors:[color.withAlphaComponent(alpha).cgColor,
+                                    color.withAlphaComponent(alpha*0.5).cgColor,
+                                    color.withAlphaComponent(0).cgColor] as CFArray,
+                            locations:[0,0.42,1]) else { continue }
+                        cg.saveGState()
+                        cg.translateBy(x:x,y:y)
+                        cg.rotate(by:(random()-0.5)*0.45)
+                        cg.scaleBy(x:1.2+random()*0.35,y:0.55+random()*0.23)
+                        cg.drawRadialGradient(gradient,startCenter:.zero,startRadius:0,
+                                              endCenter:.zero,endRadius:radius,options:[])
+                        cg.restoreGState()
+                    }
+                }
+            }
+        }
+        let node = SKSpriteNode(texture: SKTexture(image: image))
+        node.texture?.filteringMode = .linear
+        node.name = "authoredCompositionBeds"
+        node.size = canvas.size
+        node.position = CGPoint(x: canvas.midX,y: canvas.midY)
+        node.zPosition = -17.2
+        return node
+    }
+
+    /// A footprint is relative to the visible base, in displayed sprite units.
+    /// These profiles follow the existing source silhouettes rather than their
+    /// transparent canvas. They affect presentation only.
+    private struct ContactFootprint {
+        let x: CGFloat
+        let y: CGFloat
+        let width: CGFloat
+        let depth: CGFloat
+        init(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ depth: CGFloat) {
+            self.x = x; self.y = y; self.width = width; self.depth = depth
+        }
+    }
+
+    private static func contactProfile(_ name: String) -> [ContactFootprint] {
+        switch name {
+        // Angled forest masonry has different ground-contact heights on
+        // either end. Follow the inspected source silhouette, not its box.
+        case "world1_ruined_outpost_wall":
+            return [.init(-0.32, 0.23, 0.27, 0.14), .init(-0.02, 0.12, 0.38, 0.15),
+                    .init(0.30, 0.025, 0.29, 0.13)]
+        case "world1_swamp_basin_wall":
+            return [.init(-0.32, 0.02, 0.30, 0.16), .init(0, 0.12, 0.39, 0.16),
+                    .init(0.32, 0.25, 0.28, 0.16)]
+        case "world1_toxic_caves_wall":
+            return [.init(-0.33, 0.20, 0.29, 0.15), .init(-0.02, 0.055, 0.37, 0.17),
+                    .init(0.29, 0.015, 0.29, 0.15)]
+        case "world1_boss_arena_wall":
+            return [.init(-0.32, 0.20, 0.27, 0.15), .init(-0.02, 0.095, 0.38, 0.16),
+                    .init(0.29, 0.025, 0.30, 0.16)]
+        case "world1_swamp_basin_debris":
+            return [.init(-0.26, 0.13, 0.36, 0.15), .init(0.015, 0.02, 0.35, 0.13),
+                    .init(0.30, 0.14, 0.26, 0.17)]
+        case "world1_boss_arena_debris", "world1_toxic_caves_debris":
+            return [.init(-0.23, 0.10, 0.36, 0.16), .init(0.02, 0.025, 0.39, 0.17),
+                    .init(0.29, 0.12, 0.28, 0.15)]
+        case "world1_swamp_basin_boulder", "world1_toxic_caves_boulder":
+            return [.init(0, 0.035, 0.53, 0.19)]
+        case "world1_boss_arena_boulder":
+            return [.init(-0.23, 0.09, 0.32, 0.17), .init(0.03, 0.02, 0.41, 0.18),
+                    .init(0.27, 0.08, 0.26, 0.15)]
+        case "world2_prop_pipe":
+            return [.init(-0.15, 0.035, 0.56, 0.15)]
+        case "world2_prop_tank":
+            return [.init(-0.25, 0.06, 0.23, 0.13), .init(-0.10, 0, 0.23, 0.12),
+                    .init(0.16, 0, 0.24, 0.12)]
+        case "world2_prop_wall", "world4_prop_steel_barrier":
+            return [.init(-0.29, 0.015, 0.28, 0.15), .init(0.29, 0.06, 0.28, 0.15),
+                    .init(0, 0.045, 0.48, 0.12)]
+        case "world4_prop_rusted_tank":
+            return [.init(-0.25, 0.03, 0.25, 0.14), .init(0.31, 0.04, 0.25, 0.14)]
+        case "world4_prop_pipe":
+            return [.init(-0.34, 0.015, 0.20, 0.10), .init(-0.13, 0, 0.19, 0.10),
+                    .init(0.06, 0.015, 0.15, 0.09), .init(0.34, 0.02, 0.19, 0.10)]
+        case "world3_prop_ice_crystal", "world3_prop_frozen_boulder",
+             "world3_prop_frozen_pillar", "world3_prop_ruin_wall",
+             "world3_prop_wreckage", "world2_prop_boulder",
+             "world2_prop_vegetation", "world2_prop_debris",
+             "world4_prop_scrap_heap", "world4_prop_broken_machine", "world4_prop_debris":
+            return [.init(-0.24, 0.035, 0.37, 0.16), .init(0.05, 0.015, 0.42, 0.18),
+                    .init(0.29, 0.055, 0.29, 0.14)]
+        case "world3_prop_snowbank":
+            return [.init(-0.23, 0.035, 0.43, 0.11), .init(0.19, 0.04, 0.55, 0.13)]
+        default:
+            if name.contains("pine") || name.contains("broadleaf") || name.contains("lantern") {
+                return [.init(0, 0.015, 0.26, 0.13)]
+            }
+            if name.contains("wall") || name.contains("boulder") ||
+                name.contains("debris") || name.contains("vegetation") {
+                return [.init(-0.22, 0.025, 0.38, 0.16), .init(0.18, 0.04, 0.42, 0.15)]
+            }
+            return [.init(0, 0.02, 0.70, 0.15)]
+        }
+    }
+
+    /// A terrain-tinted penumbra and localized contacts, with a soft material
+    /// wash beneath natural bases. Cached gradients are reused across rooms.
+    /// No baked artwork is modified and no collision shapes are created.
+    static func installGroundContact(asset: String, position: CGPoint, size: CGSize,
+                                     zPosition: CGFloat, in root: SKNode,
+                                     rotation: CGFloat = 0, mirrored: Bool = false,
+                                     lowProfile: Bool = false) {
+        let name = asset.lowercased()
+        let frost = name.hasPrefix("world3_") || name.contains("frostrubble")
+        let iron = name.hasPrefix("world4_") || name.contains("ironrubble")
+        let toxic = name.hasPrefix("world2_") || name.contains("toxicrubble")
+        let tone: UIColor
+        let material: UIColor
+        if frost {
+            tone = UIColor(red: 0.16, green: 0.22, blue: 0.30, alpha: 1)
+            material = UIColor(red: 0.62, green: 0.72, blue: 0.81, alpha: 1)
+        } else if iron {
+            tone = UIColor(red: 0.12, green: 0.095, blue: 0.075, alpha: 1)
+            material = UIColor(red: 0.39, green: 0.29, blue: 0.21, alpha: 1)
+        } else if toxic {
+            tone = UIColor(red: 0.10, green: 0.15, blue: 0.07, alpha: 1)
+            material = UIColor(red: 0.31, green: 0.34, blue: 0.18, alpha: 1)
+        } else if name.hasPrefix("world1_toxic_caves_") {
+            tone = UIColor(red: 0.14, green: 0.13, blue: 0.22, alpha: 1)
+            material = UIColor(red: 0.26, green: 0.25, blue: 0.35, alpha: 1)
+        } else {
+            tone = UIColor(red: 0.12, green: 0.15, blue: 0.10, alpha: 1)
+            material = UIColor(red: 0.31, green: 0.36, blue: 0.21, alpha: 1)
+        }
+        let contacts = contactProfile(name)
+        let natural = frost || name.hasPrefix("world1_") || name.contains("boulder") || name.contains("vegetation") ||
+            name.contains("debris") || name.contains("wreckage") || name.contains("scrap") ||
+            name.contains("pine") || name.contains("broadleaf")
+        let minX = contacts.map { $0.x - $0.width / 2 }.min() ?? -0.3
+        let maxX = contacts.map { $0.x + $0.width / 2 }.max() ?? 0.3
+        let span = maxX - minX
+        let center = (minX + maxX) / 2
+
+        func layer(_ suffix: String, color: UIColor, opacity: CGFloat,
+                   x: CGFloat, y: CGFloat, width: CGFloat, depth: CGFloat, z: CGFloat) {
+            let node = SKSpriteNode(texture: ProductionPresentation.glow(color.withAlphaComponent(opacity)))
+            node.name = "propGroundContact_\(suffix)"
+            node.size = CGSize(width: max(1, size.width * width), height: max(1, size.height * depth))
+            let dx = size.width * x * (mirrored ? -1 : 1)
+            let dy = size.height * y
+            node.position = CGPoint(x: position.x + dx * cos(rotation) - dy * sin(rotation),
+                                    y: position.y + dx * sin(rotation) + dy * cos(rotation))
+            node.zRotation = rotation
+            node.zPosition = z
+            root.addChild(node)
+        }
+
+        // Follow sloped foundations with overlapping local penumbras rather
+        // than drawing one detached horizontal strip below the full object.
+        let contactYs = contacts.map { $0.y }
+        let sloped = (contactYs.max() ?? 0) - (contactYs.min() ?? 0) > 0.085
+        if sloped {
+            for (index, foot) in contacts.enumerated() {
+                layer("ambient_\(index)", color: tone, opacity: 0.22,
+                      x: foot.x, y: foot.y, width: foot.width * 1.35,
+                      depth: foot.depth * 1.45, z: zPosition)
+                if natural {
+                    layer("material_\(index)", color: material, opacity: 0.12,
+                          x: foot.x, y: foot.y - 0.025, width: foot.width * 1.45,
+                          depth: foot.depth * 1.45, z: zPosition + 0.01)
+                }
+            }
+        } else {
+            layer("ambient", color: tone, opacity: lowProfile ? 0.14 : 0.26,
+                  x: center, y: 0.015, width: span * 1.20, depth: 0.23, z: zPosition)
+            if natural {
+                layer("material", color: material, opacity: lowProfile ? 0.20 : 0.14,
+                      x: center, y: -0.015, width: span * 1.30, depth: 0.23, z: zPosition + 0.01)
+            }
+        }
+        for (index, foot) in contacts.enumerated() {
+            layer("core_\(index)", color: tone,
+                  opacity: lowProfile ? 0.15 : frost ? 0.32 : 0.42,
+                  x: foot.x, y: foot.y, width: foot.width, depth: foot.depth,
+                  z: zPosition + 0.04)
+        }
     }
 }
 
@@ -180,6 +432,7 @@ enum ToxicEnvironment {
         // A single world-space material wash interrupts recurring motifs
         // without rotating tiles or disturbing their verified shared edges.
         root.addChild(materialVariation(plan))
+        root.addChild(AuthoredEnvironmentRenderer.compositionBeds(bounds: plan.bounds, room: plan.room, world: 2))
         for prop in plan.props {
             AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
                 position: prop.position, size: prop.size, anchorY: prop.anchorY,
@@ -243,17 +496,21 @@ enum ToxicEnvironment {
 }
 
 
-#if DEBUG
-/// Candidate liquid presentation generated once per room, from the same
+/// Rasterized liquid presentation generated once per room, from the same
 /// immutable polygon that gameplay uses. No collision or per-frame drawing.
 enum DimensionalLiquidPreview {
-    static func install(on node: SKShapeNode, patch: TerrainHazards.Patch, seed: Int) -> Bool {
+    enum Shoreline: Equatable {
+        case ice, metal, toxic
+    }
+
+    static func install(on node: SKShapeNode, patch: TerrainHazards.Patch,
+                        seed: Int, shoreline: Shoreline? = nil) -> Bool {
         let size = patch.frame.size
         guard patch.kind != .rubble, size.width.isFinite, size.height.isFinite,
               size.width > 1, size.height > 1 else { return false }
         let acid = patch.kind == .acid
-        let idle = surface(patch: patch, seed: seed, active: false)
-        let active = acid ? surface(patch: patch, seed: seed, active: true) : nil
+        let idle = surface(patch: patch, seed: seed, active: false, shoreline: shoreline)
+        let active = acid ? surface(patch: patch, seed: seed, active: true, shoreline: shoreline) : nil
         node.fillColor = .clear
         node.strokeColor = .clear
         node.glowWidth = 0
@@ -266,9 +523,103 @@ enum DimensionalLiquidPreview {
             sprite.isHidden = hidden
             node.addChild(sprite)
         }
+        if let shoreline {
+            node.addChild(dryBank(patch:patch,shoreline:shoreline,seed:seed))
+        }
         add(idle, name: "dimensionalLiquidIdle", hidden: false)
         if let active { add(active, name: "dimensionalLiquidActive", hidden: true) }
         return true
+    }
+
+    /// A dry, terrain-colored weathered bank under the clipped liquid.
+    /// This is not an extension of the water/acid polygon: no liquid tint,
+    /// collision, or warning state is added outside the original boundary.
+    private static func dryBank(patch: TerrainHazards.Patch, shoreline: Shoreline,
+                                seed: Int) -> SKSpriteNode {
+        let w = patch.frame.width, h = patch.frame.height
+        let pad = min(16, max(5,min(w,h)*0.18))
+        let canvas = CGSize(width:w+2*pad,height:h+2*pad)
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        format.scale = min(2,768/max(canvas.width,canvas.height))
+        let palette: (UIColor, UIColor)
+        switch shoreline {
+        case .ice:
+            palette = (UIColor(red:0.29,green:0.39,blue:0.48,alpha:1),
+                       UIColor(red:0.68,green:0.76,blue:0.82,alpha:1))
+        case .metal:
+            palette = (UIColor(red:0.23,green:0.21,blue:0.18,alpha:1),
+                       UIColor(red:0.48,green:0.36,blue:0.25,alpha:1))
+        case .toxic:
+            palette = (UIColor(red:0.24,green:0.20,blue:0.15,alpha:1),
+                       UIColor(red:0.43,green:0.36,blue:0.24,alpha:1))
+        }
+        let renderer = UIGraphicsImageRenderer(size: canvas,format: format)
+        let image = renderer.image { context in
+            let cg = context.cgContext
+            cg.translateBy(x:canvas.width/2,y:canvas.height/2)
+            cg.scaleBy(x:1,y:-1)
+            let cs = CGColorSpaceCreateDeviceRGB()
+            var state = UInt64(truncatingIfNeeded:seed) &+ 0x9E3779B185EBCA87
+            func random() -> CGFloat {
+                state = state &* 6364136223846793005 &+ 1442695040888963407
+                return CGFloat((state >> 32) % 10000)/10000
+            }
+            let vertices = patch.outline.map { CGPoint(x:$0.x*w,y:$0.y*h) }
+            for index in vertices.indices {
+                let a = vertices[index], b = vertices[(index+1)%vertices.count]
+                let dx = b.x-a.x, dy = b.y-a.y
+                let length = hypot(dx,dy)
+                guard length > 0.01 else { continue }
+                let count = max(1,Int(ceil(length/max(3,pad*0.65))))
+                for j in 0..<count {
+                    let t = (CGFloat(j)+0.15+random()*0.70)/CGFloat(count)
+                    let center = CGPoint(x:a.x+dx*t,y:a.y+dy*t)
+                    let radius = pad*(0.48+random()*0.45)
+                    let color = (j+index).isMultiple(of:3) ? palette.1 : palette.0
+                    let opacity: CGFloat = (j+index).isMultiple(of:3) ? 0.14 : 0.25
+                    guard let gradient = CGGradient(colorsSpace:cs,
+                        colors:[color.withAlphaComponent(opacity).cgColor,
+                                color.withAlphaComponent(opacity*0.45).cgColor,
+                                color.withAlphaComponent(0).cgColor] as CFArray,
+                        locations:[0,0.42,1]) else { continue }
+                    cg.drawRadialGradient(gradient,startCenter:center,startRadius:0,
+                                          endCenter:center,endRadius:radius,options:[])
+                }
+                // The dry side of the long edge should read as a connected
+                // cut bank, not a row of isolated stones. Build overlapping
+                // tapered material deposits with an irregular outer edge.
+                let straightSide = abs(dx) < max(1,w*0.035) && length > h*0.48
+                guard straightSide else { continue }
+                let sign: CGFloat = (a.x+b.x)/2 >= 0 ? 1 : -1
+                let countBank = max(4,min(18,Int(ceil(length/max(3,pad*0.42)))))
+                for j in 0..<countBank {
+                    let t = (CGFloat(j)+0.5)/CGFloat(countBank)
+                    let point = CGPoint(x:a.x+dx*t,y:a.y+dy*t)
+                    let width = pad*(0.50+random()*0.36)
+                    let height = max(length/CGFloat(countBank)*1.65,pad*0.55)
+                    let color = j.isMultiple(of:3) ? palette.1 : palette.0
+                    let opacity: CGFloat = j.isMultiple(of:3) ? 0.32 : 0.48
+                    guard let gradient = CGGradient(colorsSpace:cs,
+                        colors:[color.withAlphaComponent(opacity).cgColor,
+                                color.withAlphaComponent(opacity*0.70).cgColor,
+                                color.withAlphaComponent(0).cgColor] as CFArray,
+                        locations:[0,0.40,1]) else { continue }
+                    cg.saveGState()
+                    cg.translateBy(x:point.x+sign*width*0.30,y:point.y)
+                    cg.scaleBy(x:width,y:height)
+                    cg.drawRadialGradient(gradient,startCenter:.zero,startRadius:0,
+                                          endCenter:.zero,endRadius:1,options:[])
+                    cg.restoreGState()
+                }
+            }
+        }
+        let node = SKSpriteNode(texture: SKTexture(image:image))
+        node.name = "dimensionalDryBank"
+        node.texture?.filteringMode = .linear
+        node.size = canvas
+        node.zPosition = -0.1
+        return node
     }
 
     static func updateAcid(on node: SKShapeNode, active: Bool) -> Bool {
@@ -279,7 +630,8 @@ enum DimensionalLiquidPreview {
         return true
     }
 
-    private static func surface(patch: TerrainHazards.Patch, seed: Int, active: Bool) -> UIImage {
+    private static func surface(patch: TerrainHazards.Patch, seed: Int,
+                                active: Bool, shoreline: Shoreline?) -> UIImage {
         let size = patch.frame.size
         let w = size.width, h = size.height
         let acid = patch.kind == .acid
@@ -295,9 +647,13 @@ enum DimensionalLiquidPreview {
             let path = patch.outlinePath()
             cg.addPath(path)
             cg.clip() // Everything, including the bright edge, stays inside the hit polygon.
-            let low = acid ? UIColor(red: 0.08,green: 0.17,blue: 0.035,alpha: 1)
+            let low = shoreline == .metal ? UIColor(red: 0.065, green: 0.105, blue: 0.12, alpha: 1)
+                           : acid ? UIColor(red: 0.08,green: 0.17,blue: 0.035,alpha: 1)
                            : UIColor(red: 0.035,green: 0.12,blue: 0.19,alpha: 1)
-            let high = acid ? (active ? UIColor(red: 0.43,green: 0.86,blue: 0.095,alpha: 1)
+            let high = shoreline == .metal ? UIColor(red: 0.18, green: 0.30, blue: 0.33, alpha: 1)
+                            : acid ? (active ? (shoreline == .toxic
+                                          ? UIColor(red:0.37,green:0.73,blue:0.12,alpha:1)
+                                          : UIColor(red:0.43,green:0.86,blue:0.095,alpha:1))
                                       : UIColor(red: 0.20,green: 0.40,blue: 0.095,alpha: 1))
                             : UIColor(red: 0.12,green: 0.38,blue: 0.48,alpha: 1)
             let cs = CGColorSpaceCreateDeviceRGB()
@@ -311,7 +667,14 @@ enum DimensionalLiquidPreview {
                 state = state &* 6364136223846793005 &+ 1442695040888963407
                 return CGFloat((state >> 32) % 10000)/10000
             }
-            // Broad irregular caustics; no evenly spaced artificial lines.
+            if let shoreline, shoreline != .toxic {
+                drawWaterReflections(in: cg, path: path, size: size,
+                                     shoreline: shoreline, random: random)
+                blendWaterShoreline(in: cg, path: path, patch: patch,
+                                    shoreline: shoreline, random: random)
+                return
+            }
+            // Broad irregular caustics for the original liquid preview.
             for _ in 0..<22 {
                 let x = (random()-0.5)*w, y = (random()-0.5)*h
                 let rw = (0.12+random()*0.28)*w
@@ -319,12 +682,16 @@ enum DimensionalLiquidPreview {
                 cg.setFillColor(high.withAlphaComponent(0.06+random()*0.12).cgColor)
                 cg.fillEllipse(in: CGRect(x: x-rw/2,y: y-rh/2,width: rw,height: rh))
             }
-            // Recessed bank and narrow, restrained surface rim, clipped inward.
+            // Preserve the comparison preview's old dark bank only. The
+            // authored toxic ground already provides the bank material;
+            // painting a continuous dark strip makes acid look like a decal.
             cg.setLineJoin(.round)
-            cg.addPath(path)
-            cg.setLineWidth(12)
-            cg.setStrokeColor(low.withAlphaComponent(0.85).cgColor)
-            cg.strokePath()
+            if shoreline == nil {
+                cg.addPath(path)
+                cg.setLineWidth(12)
+                cg.setStrokeColor(low.withAlphaComponent(0.85).cgColor)
+                cg.strokePath()
+            }
             if acid {
                 // Vary the inward bank thickness and mineral deposits, rather
                 // than tracing a bright, uniform polygon like a UI icon.
@@ -350,7 +717,9 @@ enum DimensionalLiquidPreview {
                         cg.move(to: start)
                         cg.addLine(to: end)
                         cg.setLineWidth(width)
-                        cg.setStrokeColor(bank.withAlphaComponent(0.56+random()*0.32).cgColor)
+                        let bankOpacity = shoreline == .toxic
+                            ? 0.14 + random()*0.20 : 0.56 + random()*0.32
+                        cg.setStrokeColor(bank.withAlphaComponent(bankOpacity).cgColor)
                         cg.strokePath()
                         let radius = max(0.8,unit*(0.008+random()*0.018))
                         cg.setFillColor(mineral.withAlphaComponent(0.25+random()*0.40).cgColor)
@@ -365,12 +734,14 @@ enum DimensionalLiquidPreview {
                         }
                     }
                 }
-                // Thin continuous dark contact line communicates the exact
-                // damage boundary even where the mineral highlights break.
-                cg.addPath(path)
-                cg.setLineWidth(1.4)
-                cg.setStrokeColor(low.withAlphaComponent(0.9).cgColor)
-                cg.strokePath()
+                // Preserve the old comparison preview, but do not draw a
+                // continuous artificial border over authored toxic terrain.
+                if shoreline != .toxic {
+                    cg.addPath(path)
+                    cg.setLineWidth(1.4)
+                    cg.setStrokeColor(low.withAlphaComponent(0.9).cgColor)
+                    cg.strokePath()
+                }
             } else {
                 cg.addPath(path)
                 cg.setLineWidth(3.0)
@@ -388,10 +759,140 @@ enum DimensionalLiquidPreview {
                 cg.setLineWidth(0.8)
                 cg.strokeEllipse(in: bubble)
             }
+            if shoreline == .toxic {
+                blendWaterShoreline(in: cg, path: path, patch: patch,
+                                    shoreline: .toxic, random: random)
+            }
         }
     }
+
+    private static func drawWaterReflections(in cg: CGContext, path: CGPath, size: CGSize,
+                                             shoreline: Shoreline, random: () -> CGFloat) {
+        let width = size.width
+        let height = size.height
+        let span = min(width, height)
+        let reflectedLight = UIColor(red: 0.63, green: 0.79, blue: 0.81, alpha: 1)
+        cg.setLineCap(.round)
+        for _ in 0..<(shoreline == .metal ? 24 : 16) {
+            let x = (random() - 0.5) * width
+            let y = (random() - 0.5) * height
+            let length = span * (0.07 + random() * 0.19)
+            let start = CGPoint(x: x - length / 2, y: y)
+            let end = CGPoint(x: x + length / 2, y: y + length * 0.05)
+            guard path.contains(start), path.contains(end) else { continue }
+            cg.move(to: start)
+            cg.addQuadCurve(to: end, control: CGPoint(x: x, y: y + length * 0.09))
+            cg.setLineWidth(0.6 + random() * 0.8)
+            cg.setStrokeColor(reflectedLight.withAlphaComponent(0.12 + random() * 0.26).cgColor)
+            cg.strokePath()
+        }
+    }
+
+    private static func blendWaterShoreline(in cg: CGContext, path: CGPath,
+                                             patch: TerrainHazards.Patch,
+                                             shoreline: Shoreline, random: () -> CGFloat) {
+        let size = patch.frame.size
+        let metal = shoreline == .metal
+        let toxic = shoreline == .toxic
+        let span = min(size.width, size.height)
+        // Broad, bounded transition across the inner shoreline. Keep
+        // most of the hazard opaque; small pockets must remain readable.
+        let shallows = min(span * 0.16, min(metal ? 7 : 9,
+                           max(2, span * (toxic ? 0.11 : 0.10))))
+        let bank = toxic ? UIColor(red: 0.32, green: 0.27, blue: 0.17, alpha: 1)
+                         : metal ? UIColor(red: 0.28, green: 0.23, blue: 0.19, alpha: 1)
+                                 : UIColor(red: 0.37, green: 0.47, blue: 0.54, alpha: 1)
+        cg.setLineJoin(.round)
+
+        // Tint the shallows while allowing the actual floor art to show through.
+        for step in (1...8).reversed() {
+            cg.addPath(path)
+            cg.setLineWidth(2 * shallows * CGFloat(step) / 8)
+            cg.setStrokeColor(bank.withAlphaComponent(0.045).cgColor)
+            cg.strokePath()
+        }
+
+        let vertices = patch.outline.map { CGPoint(x: $0.x * size.width, y: $0.y * size.height) }
+        let contact = toxic ? UIColor(red: 0.35, green: 0.31, blue: 0.16, alpha: 1)
+                            : metal ? UIColor(red: 0.07, green: 0.065, blue: 0.06, alpha: 1)
+                                    : UIColor(red: 0.66, green: 0.80, blue: 0.86, alpha: 1)
+        // Broken contact marks give the shoreline depth without tracing the polygon.
+        for index in vertices.indices {
+            let a = vertices[index]
+            let b = vertices[(index + 1) % vertices.count]
+            let dx = b.x - a.x
+            let dy = b.y - a.y
+            guard hypot(dx, dy) >= 6 else { continue }
+            let start = 0.12 + random() * 0.32
+            let end = start + 0.16 + random() * 0.26
+            cg.move(to: CGPoint(x: a.x + dx * start, y: a.y + dy * start))
+            cg.addLine(to: CGPoint(x: a.x + dx * end, y: a.y + dy * end))
+            cg.setLineWidth(metal ? 2.6 : 2.2)
+            cg.setStrokeColor(contact.withAlphaComponent(metal ? 0.24 : 0.28).cgColor)
+            cg.strokePath()
+        }
+
+        cg.setBlendMode(.destinationOut)
+        for step in (1...16).reversed() {
+            cg.addPath(path)
+            cg.setLineWidth(2 * shallows * CGFloat(step) / 16)
+            cg.setStrokeColor(UIColor.black.withAlphaComponent(0.19).cgColor)
+            cg.strokePath()
+        }
+
+        // Soft pockets of exposed floor break up straight edges without
+        // adding a continuous rim or changing the playable shoreline.
+        let colors = [UIColor.black.withAlphaComponent(0.52).cgColor,
+                      UIColor.black.withAlphaComponent(0).cgColor]
+        guard let feather = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                       colors: colors as CFArray, locations: [0, 1]) else { return }
+        for index in vertices.indices {
+            let a = vertices[index]
+            let b = vertices[(index+1)%vertices.count]
+            let count = max(1, Int(hypot(b.x-a.x, b.y-a.y)/(shallows*1.9)))
+            for offset in 0..<count {
+                let fraction = (CGFloat(offset) + 0.2 + random()*0.6)/CGFloat(count)
+                let center = CGPoint(x: a.x+(b.x-a.x)*fraction, y: a.y+(b.y-a.y)*fraction)
+                cg.drawRadialGradient(feather, startCenter: center, startRadius: 0,
+                                      endCenter: center, endRadius: shallows*(0.65+random()*0.85),
+                                      options: [])
+            }
+        }
+
+        // Recessed side wall: feather a narrow dark contact just inside the
+        // true boundary. The connected dry bank supplies the lighter slope.
+        // Keep this broken and shallow so the water does not look outlined.
+        cg.setBlendMode(.normal)
+        let depth = toxic ? UIColor(red:0.12,green:0.16,blue:0.055,alpha:1)
+                          : metal ? UIColor(red:0.045,green:0.075,blue:0.085,alpha:1)
+                                  : UIColor(red:0.055,green:0.13,blue:0.20,alpha:1)
+        guard let shadow = CGGradient(colorsSpace:CGColorSpaceCreateDeviceRGB(),
+            colors:[depth.withAlphaComponent(0.42).cgColor,
+                    depth.withAlphaComponent(0.16).cgColor,
+                    depth.withAlphaComponent(0).cgColor] as CFArray,
+            locations:[0,0.46,1]) else { return }
+        for index in vertices.indices {
+            let a = vertices[index], b = vertices[(index+1)%vertices.count]
+            let dx = b.x-a.x, dy = b.y-a.y
+            let length = hypot(dx,dy)
+            guard length >= 6 else { continue }
+            let count = max(2,min(16,Int(ceil(length/max(3,shallows*1.10)))))
+            for j in 0..<count {
+                let t = (CGFloat(j)+0.25+random()*0.50)/CGFloat(count)
+                let x = a.x+dx*t, y = a.y+dy*t
+                let radius = shallows*(0.68+random()*0.42)
+                cg.saveGState()
+                cg.translateBy(x:x,y:y)
+                cg.rotate(by:atan2(dy,dx))
+                cg.scaleBy(x:1.40,y:0.62)
+                cg.drawRadialGradient(shadow,startCenter:.zero,startRadius:0,
+                                      endCenter:.zero,endRadius:radius,options:[])
+                cg.restoreGState()
+            }
+        }
+    }
+
 }
-#endif
 
 
 /// Authored Frost Expanse presentation; never changes gameplay geometry.
@@ -414,6 +915,7 @@ enum FrostEnvironment {
             tile.colorBlendFactor = 0.22
         }
         root.addChild(ground)
+        root.addChild(AuthoredEnvironmentRenderer.compositionBeds(bounds: plan.bounds, room: plan.room, world: 3))
         for prop in plan.landmarks {
             AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
                 position: prop.position,size: prop.size,anchorY: prop.anchorY,
@@ -421,12 +923,25 @@ enum FrostEnvironment {
         }
         for snow in plan.snowbanks {
             guard let art = texture(snow.asset) else { continue }
-            let sprite = SKSpriteNode(texture: art)
+            // Trim transparent canvas, not the painted drift. Keep a
+            // little padding around the inspected 512px alpha silhouette.
+            let crop = CGRect(x: 25, y: 25, width: 462, height: 173)
+            let trimmed = SKTexture(rect: crop.applying(CGAffineTransform(scaleX: 1.0/512,y: 1.0/512)), in: art)
+            trimmed.filteringMode = .linear
+            let sprite = SKSpriteNode(texture: trimmed)
             sprite.name = "frostGroundSnow"
             sprite.position = snow.position
-            sprite.size = snow.size
+            let scale = min(snow.size.width/crop.width, snow.size.height/crop.height)
+            sprite.size = CGSize(width: crop.width*scale,height: crop.height*scale)
             sprite.zPosition = -12
-            sprite.alpha = 0.82
+            sprite.alpha = 0.96
+            sprite.color = slate
+            sprite.colorBlendFactor = 0.12
+            let contact = CGPoint(x: snow.position.x + (256-crop.midX)*scale,
+                                  y: snow.position.y + (32-crop.midY)*scale)
+            AuthoredEnvironmentRenderer.installGroundContact(asset: snow.asset,
+                position: contact, size: CGSize(width:512*scale,height:512*scale),
+                zPosition: -12.2, in: root, lowProfile: true)
             root.addChild(sprite)
         }
         return root
@@ -446,6 +961,7 @@ enum IronEnvironment {
             materialName: { column, row in
                 IronEnvironmentPlan.materials[plan.variant(column: column,row: row)]
             }, texture: texture))
+        root.addChild(AuthoredEnvironmentRenderer.compositionBeds(bounds: plan.bounds, room: plan.room, world: 4))
         for prop in plan.landmarks {
             AuthoredEnvironmentRenderer.installGroundedProp(asset: prop.asset,
                 position: prop.position,size: prop.size,anchorY: prop.anchorY,
@@ -453,16 +969,30 @@ enum IronEnvironment {
         }
         for (index, fragment) in plan.fragments.enumerated() {
             guard let art = texture(fragment.asset) else { continue }
-            let sprite = SKSpriteNode(texture: art)
+            let crop = CGRect(x: 25,y: 25,width:462,height:260)
+            let trimmed = SKTexture(rect: crop.applying(CGAffineTransform(scaleX: 1.0/512,y: 1.0/512)), in: art)
+            trimmed.filteringMode = .linear
+            let sprite = SKSpriteNode(texture: trimmed)
             sprite.name = "ironGroundDebris"
             sprite.position = fragment.position
-            // The displayed sprite stays inside the reserved square even
-            // after rotation, so fragments still clear hazards and objectives.
-            sprite.size = CGSize(width: fragment.size.width*0.79, height: fragment.size.height*0.79)
-            sprite.zRotation = CGFloat((plan.room+index*3)%7-3)*0.10
+            sprite.zRotation = CGFloat((plan.room+index*3)%7-3)*0.08
+            let c = abs(cos(sprite.zRotation)), t = abs(sin(sprite.zRotation))
+            // Fit the rotated artwork inside the reserved envelope.
+            let scale = min(fragment.size.width/(crop.width*c+crop.height*t),
+                            fragment.size.height/(crop.width*t+crop.height*c))*0.94
+            sprite.size = CGSize(width:crop.width*scale,height:crop.height*scale)
             sprite.xScale = index.isMultiple(of: 2) ? 1 : -1
             sprite.zPosition = -12
-            sprite.alpha = 0.56 + CGFloat(index%4)*0.07
+            sprite.alpha = 0.90 + CGFloat(index%3)*0.03
+            sprite.color = SKColor(red: 0.36, green: 0.30, blue: 0.26, alpha: 1)
+            sprite.colorBlendFactor = 0.12
+            let dx = (256-crop.midX)*scale*sprite.xScale
+            let dy = (32-crop.midY)*scale
+            let contact = CGPoint(x: fragment.position.x + dx*cos(sprite.zRotation) - dy*sin(sprite.zRotation),
+                                  y: fragment.position.y + dx*sin(sprite.zRotation) + dy*cos(sprite.zRotation))
+            AuthoredEnvironmentRenderer.installGroundContact(asset: fragment.asset,
+                position: contact, size: CGSize(width:512*scale,height:512*scale), zPosition: -12.2, in: root,
+                rotation: sprite.zRotation, mirrored: sprite.xScale < 0, lowProfile: true)
             root.addChild(sprite)
         }
         return root

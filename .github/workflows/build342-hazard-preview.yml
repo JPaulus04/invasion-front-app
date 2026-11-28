@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   hazard-preview:
-    if: contains(fromJSON('["feature/build342-legacy-environment-cleanup","feature/build342-integration"]'), github.head_ref || github.ref_name)
+    if: contains(fromJSON('["feature/build342-legacy-environment-cleanup","feature/build342-integration","fix/terrain-integration"]'), github.head_ref || github.ref_name)
     runs-on: macos-15
     timeout-minutes: 30
     env:

@@ -1857,6 +1857,8 @@ final class OutpostScene: SKScene {
             updateTerrainHazards()
             precondition(displayedAcidActive == true &&
                          (acidVisualNodes[0].childNode(
+                            withName: "dimensionalLiquidActive")?.isHidden == false ||
+                          acidVisualNodes[0].childNode(
                             withName: "illustratedTerrain") != nil ||
                           acidVisualNodes[0].childNode(
                             withName: "acidActiveVeins")?.isHidden == false) &&
@@ -2579,6 +2581,23 @@ final class OutpostScene: SKScene {
         arena.addChild(floor)
     }
 
+    /// Fixed authored tactical framing reveals nonwalkable exterior art.
+    /// No room coordinates, touch direction, collision or spawn rules change.
+    private var authoredTacticalFraming: (scale: CGFloat, offset: CGPoint) {
+        let zoom = min(0.85, WorldOneFraming.scale(size: size,
+            safeTop: view?.safeAreaInsets.top ?? 0,
+            safeBottom: view?.safeAreaInsets.bottom ?? 0))
+        let center = CGPoint(x: roomBounds.midX, y: roomBounds.midY)
+        return (zoom, CGPoint(x: center.x*(1-zoom), y: center.y*(1-zoom)))
+    }
+
+    private var hasAuthoredTacticalScenery: Bool {
+        guard wave > 0, !expandedArenaPreview, worldMapIndex != 0 else { return false }
+        return zoneScenery.childNode(withName: "authoredToxicWorld") != nil ||
+            zoneScenery.childNode(withName: "authoredFrostWorld") != nil ||
+            zoneScenery.childNode(withName: "authoredIronWorld") != nil
+    }
+
     private func updateArenaCamera(delta: TimeInterval) {
         let target: CGPoint
         if worldMapIndex == 0 && wave > 0 {
@@ -2591,6 +2610,10 @@ final class OutpostScene: SKScene {
         } else if expandedArenaPreview {
             arena.setScale(1)
             target = ArenaLayout.offset(for: pilot.position, viewportSize: size)
+        } else if hasAuthoredTacticalScenery {
+            let framing = authoredTacticalFraming
+            arena.setScale(framing.scale)
+            target = framing.offset
         } else {
             arena.setScale(1)
             target = .zero
@@ -4546,6 +4569,21 @@ final class OutpostScene: SKScene {
                 continue
             }
             #endif
+            if patch.kind == .acid, authoredWorld == 1,
+                DimensionalLiquidPreview.install(on: shape, patch: patch,
+                    seed: wave*31+hazardIndex, shoreline: .toxic) {
+                acidVisualNodes.append(shape)
+                hazardScenery.addChild(shape)
+                continue
+            }
+            if patch.kind == .water, let authoredWorld, authoredWorld == 2 || authoredWorld == 3 {
+                let shoreline: DimensionalLiquidPreview.Shoreline = authoredWorld == 3 ? .ice : .metal
+                if DimensionalLiquidPreview.install(on: shape, patch: patch,
+                    seed: wave*31+hazardIndex, shoreline: shoreline) {
+                    hazardScenery.addChild(shape)
+                    continue
+                }
+            }
             switch patch.kind {
             case .water:
                 shape.fillColor = SKColor(red: 0.035, green: 0.17, blue: 0.25, alpha: 0.96)
@@ -4572,24 +4610,30 @@ final class OutpostScene: SKScene {
                 shape.lineWidth = 2
                 if authoredWorld == 1,
                     let texture = worldOneTexture(named: "world2_prop_wall") {
-                    installAuthoredRubble(on: shape, texture: texture, name: "authoredToxicRubble",
-                                          canvasCrop: CGRect(x: 34, y: 25, width: 444, height: 355))
+                    hazardScenery.addChild(authoredRubble(at: shape.position, footprint: patch.frame.size,
+                        texture: texture, name: "authoredToxicRubble", asset: "world2_prop_wall",
+                        canvasCrop: CGRect(x: 34, y: 25, width: 444, height: 355)))
+                    continue
                 } else if authoredWorld == 3,
                     let texture = worldOneTexture(named: wave.isMultiple(of: 3)
                         ? "world3_prop_wreckage" : "world3_prop_ruin_wall") {
                     let crop = wave.isMultiple(of: 3)
                         ? CGRect(x: 30, y: 25, width: 452, height: 335)
                         : CGRect(x: 34, y: 29, width: 444, height: 195)
-                    installAuthoredRubble(on: shape, texture: texture, name: "authoredFrostRubble",
-                                          canvasCrop: crop)
+                    hazardScenery.addChild(authoredRubble(at: shape.position, footprint: patch.frame.size,
+                        texture: texture, name: "authoredFrostRubble",
+                        asset: wave.isMultiple(of: 3) ? "world3_prop_wreckage" : "world3_prop_ruin_wall", canvasCrop: crop))
+                    continue
                 } else if authoredWorld == 2,
                     let texture = worldOneTexture(named: wave.isMultiple(of: 3)
                         ? "world4_prop_scrap_heap" : "world4_prop_steel_barrier") {
                     let crop = wave.isMultiple(of: 3)
                         ? CGRect(x: 34, y: 29, width: 444, height: 278)
                         : CGRect(x: 34, y: 29, width: 444, height: 254)
-                    installAuthoredRubble(on: shape, texture: texture, name: "authoredIronRubble",
-                                          canvasCrop: crop)
+                    hazardScenery.addChild(authoredRubble(at: shape.position, footprint: patch.frame.size,
+                        texture: texture, name: "authoredIronRubble",
+                        asset: wave.isMultiple(of: 3) ? "world4_prop_scrap_heap" : "world4_prop_steel_barrier", canvasCrop: crop))
+                    continue
                 } else {
                     decorateRubbleObstacle(shape, size: patch.frame.size)
                 }
@@ -4641,9 +4685,11 @@ final class OutpostScene: SKScene {
     }
 
 
-    private func installAuthoredRubble(on shape: SKShapeNode, texture: SKTexture,
-                                       name: String, canvasCrop: CGRect) {
-        guard let footprint = shape.path?.boundingBoxOfPath else { return }
+    private func authoredRubble(at position: CGPoint, footprint: CGSize, texture: SKTexture,
+                                name: String, asset: String, canvasCrop: CGRect) -> SKNode {
+        let obstacle = SKNode()
+        obstacle.name = "terrain_rubble"
+        obstacle.position = position
         // Crop only transparent padding. The 512px source coordinates start
         // at the lower left, as expected by SpriteKit's texture rect.
         let rect = canvasCrop.applying(CGAffineTransform(scaleX: 1.0/512, y: 1.0/512))
@@ -4654,14 +4700,15 @@ final class OutpostScene: SKScene {
         let scale = min(footprint.width/canvasCrop.width, footprint.height/canvasCrop.height)
         art.size = CGSize(width: canvasCrop.width*scale, height: canvasCrop.height*scale)
         art.zPosition = 0.8
-        let shadow = SKSpriteNode(texture: ProductionPresentation.glow(.black.withAlphaComponent(0.48)))
-        shadow.size = CGSize(width: art.size.width, height: art.size.height*0.32)
-        shadow.position.y = -art.size.height*0.38
-        shadow.zPosition = 0.2
-        shape.fillColor = .clear
-        shape.strokeColor = .clear
-        shape.addChild(shadow)
-        shape.addChild(art)
+        // Contact profiles use the full source canvas. Convert its measured
+        // 32px ground anchor into the cropped sprite's local coordinates.
+        let contact = CGPoint(x: (256 - canvasCrop.midX) * scale,
+                              y: (32 - canvasCrop.midY) * scale)
+        let sourceSize = CGSize(width: 512 * scale, height: 512 * scale)
+        AuthoredEnvironmentRenderer.installGroundContact(asset: asset,
+            position: contact, size: sourceSize, zPosition: 0.2, in: obstacle)
+        obstacle.addChild(art)
+        return obstacle
     }
 
     /// Authored shorelines, shallow bays and reactive industrial runoff use
@@ -5046,9 +5093,7 @@ final class OutpostScene: SKScene {
         if displayedAcidActive != acidOn {
             displayedAcidActive = acidOn
             for shape in acidVisualNodes {
-                #if DEBUG
                 if DimensionalLiquidPreview.updateAcid(on: shape, active: acidOn) { continue }
-                #endif
                 // Illustrated pools must remain transparent above their
                 // authored texture when the hazard toggles on/off.
                 if let illustration = shape.childNode(withName: "illustratedTerrain")
@@ -5604,6 +5649,8 @@ final class OutpostScene: SKScene {
         backgroundColor = worldColor(for: activeZone)
         updateZoneScenery(activeZone)
         rebuildTerrainHazards()
+        // The authored root is now installed, including on the first room.
+        if hasAuthoredTacticalScenery { updateArenaCamera(delta: 1) }
         defenseIntegrity = EquipmentDefenseRules.maximumIntegrity
         nextDefenseHitAt = combatTime + 1.5
         if activeEncounter == .equipmentDefense { installDefenseDevice() }
@@ -5905,6 +5952,199 @@ final class OutpostScene: SKScene {
         }
     }
 
+    /// Compose the visible, nonwalkable perimeter using the already-authored
+    /// props. Do not add collision, or place large scenery in combat lanes.
+    /// Expanded survival rooms reveal different edges while the camera
+    /// follows the pilot. Dress the full exterior once, not just the
+    /// initial viewport, and never place solid-looking scenery in combat.
+    private func installSurvivalExterior(in root: SKNode, displayWorld: Int) {
+        let b = roomBounds
+        let names: [String]
+        switch displayWorld {
+        case 2: names = ["world2_prop_vegetation","world2_prop_tank","world2_prop_pipe","world2_prop_boulder","world2_prop_debris"]
+        case 3: names = ["world3_prop_ice_crystal","world3_prop_frozen_boulder","world3_prop_ruin_wall","world3_prop_frozen_pillar","world3_prop_snowbank"]
+        case 4: names = ["world4_prop_scrap_heap","world4_prop_pipe","world4_prop_rusted_tank","world4_prop_broken_machine","world4_prop_debris"]
+        default: return
+        }
+        var occupied = root.children.filter {
+            $0.name?.hasPrefix("unifiedScenery_") == true
+        }.map { $0.calculateAccumulatedFrame() }
+        let anchor: CGFloat = 32.0/512.0
+        func place(x: CGFloat,y: CGFloat,h: CGFloat,index: Int) {
+            let frame = CGRect(x:x-h/2,y:y,width:h,height:h)
+            guard !b.intersects(frame),
+                  !occupied.contains(where: { $0.intersects(frame.insetBy(dx:2,dy:2)) }) else { return }
+            AuthoredEnvironmentRenderer.installGroundedProp(asset:names[(wave+index)%names.count],
+                position:CGPoint(x:x,y:y+h*anchor),size:CGSize(width:h,height:h),
+                anchorY:anchor,bounds:b,in:root,
+                texture:{ [weak self] in self?.worldOneTexture(named:$0) })
+            root.children.last?.name = "biomeExteriorLandmark"
+            occupied.append(frame)
+        }
+        // Alternate substantial forms and low companions. Centered gaps
+        // at the ends maintain visual access to entry/extraction lanes.
+        for side in 0..<2 {
+            let count = max(3,min(10,Int(ceil(b.height/110))))
+            for index in 0..<count {
+                let seed = wave*97+side*31+index*19
+                let h = CGFloat(68+seed%35)
+                let x = side == 0 ? b.minX-h/2-2 : b.maxX+h/2+2
+                let y = b.minY+b.height*(CGFloat(index)+0.5)/CGFloat(count)-h/2+CGFloat(seed%19-9)
+                place(x:x,y:y,h:h,index:index*3+side)
+            }
+            let endCount = max(4,min(9,Int(ceil(b.width/105))))
+            for index in 0..<endCount {
+                let seed = wave*53+side*23+index*17
+                let h = CGFloat(74+seed%35)
+                let x = b.minX+b.width*(CGFloat(index)+0.5)/CGFloat(endCount)
+                guard abs(x-b.midX) >= h/2+42 else { continue }
+                let y = side == 0 ? b.minY-h-3 : b.maxY+3
+                place(x:x,y:y,h:h,index:index*2+side+1)
+            }
+        }
+        #if DEBUG
+        precondition(root.children.filter { $0.name == "biomeExteriorLandmark" }
+            .allSatisfy { !b.intersects($0.calculateAccumulatedFrame()) },
+            "Survival exterior scenery must not enter playable bounds")
+        #endif
+    }
+
+    private func installVisibleExterior(in root: SKNode, displayWorld: Int) {
+        if expandedArenaPreview {
+            installSurvivalExterior(in:root,displayWorld:displayWorld)
+            return
+        }
+        let bounds = roomBounds
+        let framing = authoredTacticalFraming
+        let screen = CGRect(origin: .zero, size: size)
+        let viewport = CGRect(x: (screen.minX-framing.offset.x)/framing.scale,
+                              y: (screen.minY-framing.offset.y)/framing.scale,
+                              width: screen.width/framing.scale,
+                              height: screen.height/framing.scale)
+        let bottom = (max(8, view?.safeAreaInsets.bottom ?? 0)-framing.offset.y)/framing.scale
+        let names: [String]
+        switch displayWorld {
+        case 2: names = ["world2_prop_vegetation", "world2_prop_boulder", "world2_prop_wall", "world2_prop_debris"]
+        case 3: names = ["world3_prop_frozen_boulder", "world3_prop_snowbank", "world3_prop_ruin_wall", "world3_prop_ice_crystal"]
+        case 4: names = ["world4_prop_scrap_heap", "world4_prop_pipe", "world4_prop_steel_barrier", "world4_prop_broken_machine"]
+        default: return
+        }
+        let anchor: CGFloat = 32.0/512.0
+        var occupied = root.children.filter {
+            $0.name?.hasPrefix("unifiedScenery_") == true || $0.name == "toxicNorthLandmark"
+        }.map { $0.calculateAccumulatedFrame() }
+        @discardableResult
+        func add(_ name: String, x: CGFloat, y: CGFloat, h: CGFloat,
+                 companion: Bool = false) -> Bool {
+            guard h >= 24 else { return false }
+            let frame = CGRect(x: x-h/2, y: y, width: h, height: h)
+            let visible = viewport.intersection(frame)
+            // A small companion may overlap transparent margins of a
+            // neighboring exterior sprite, but not its central silhouette.
+            let clearance = companion ? frame.insetBy(dx: h*0.19, dy: h*0.19)
+                                      : frame.insetBy(dx: -2,dy: -2)
+            guard !visible.isNull, visible.width >= min(22,h*0.35),
+                  visible.height >= min(22,h*0.35), !bounds.intersects(frame),
+                  !occupied.contains(where: { $0.intersects(clearance) }) else { return false }
+            AuthoredEnvironmentRenderer.installGroundedProp(asset: name,
+                position: CGPoint(x: x,y: y+h*anchor), size: CGSize(width: h,height: h),
+                anchorY: anchor, bounds: bounds, in: root,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) })
+            root.children.last?.name = "biomeExteriorLandmark"
+            occupied.append(frame)
+            return true
+        }
+
+        // Frame the approach and far wall with substantial biome-specific
+        // scenery. The central gate/entry opening remains clear. These are
+        // outside the room in world space, regardless of camera scale.
+        let endCaps: [String]
+        switch displayWorld {
+        case 2: endCaps = ["world2_prop_tank","world2_prop_vegetation",
+                           "world2_prop_boulder","world2_prop_pipe"]
+        case 3: endCaps = ["world3_prop_ice_crystal","world3_prop_frozen_boulder",
+                           "world3_prop_ruin_wall","world3_prop_frozen_pillar"]
+        default: endCaps = ["world4_prop_rusted_tank","world4_prop_broken_machine",
+                            "world4_prop_scrap_heap","world4_prop_pipe"]
+        }
+        let opening: CGFloat = 52
+        let capWidth = max(0,bounds.width/2-opening/2-4)
+        let southDepth = max(0,bounds.minY-bottom-4)
+        let northLimit = (size.height-max(16,view?.safeAreaInsets.top ?? 0)-100-framing.offset.y)/framing.scale
+        let northDepth = max(0,northLimit-bounds.maxY-4)
+        for (index,sign) in [CGFloat(-1),CGFloat(1)].enumerated() {
+            let h = min(134,capWidth,southDepth)
+            if h >= 40 {
+                let x = bounds.midX+sign*(opening/2+h/2+6)
+                let asset = endCaps[(wave+index*2)%endCaps.count]
+                if add(asset,x:x,y:bounds.minY-h-3,h:h) {
+                    let small = max(28,min(58,h*0.50))
+                    let outerX = x+sign*(h/2+small/2-8)
+                    _ = add(names[(wave+index+1)%names.count],
+                            x:outerX,y:bounds.minY-small-5,h:small,companion:true)
+                }
+            }
+            // Keep the existing north landmarks and fill the adjoining gap
+            // with a distinct larger form; never cover HUD or portal space.
+            let nh = min(116,capWidth,northDepth)
+            if nh >= 40 {
+                let x = bounds.midX+sign*(opening/2+nh/2+4)
+                let asset = endCaps[(wave+index*2+1)%endCaps.count]
+                for shift in [CGFloat(0), nh*0.23, nh*0.46] {
+                    let y = bounds.maxY+4+shift
+                    guard y+nh*0.48 <= northLimit else { continue }
+                    if add(asset,x:x,y:y,h:nh,companion:true) { break }
+                }
+            }
+        }
+        // Compose asymmetrical groups: one dominant landmark with a
+        // smaller material-related satellite, separated by breathing room.
+        // The full sprite frames stay outside combat even when cropped
+        // naturally by the viewport. Seeded placement is stable per room.
+        let companions: [String]
+        switch displayWorld {
+        case 2: companions = ["world2_prop_debris", "world2_prop_vegetation"]
+        case 3: companions = ["world3_prop_snowbank", "world3_prop_frozen_boulder"]
+        default: companions = ["world4_prop_debris", "world4_prop_scrap_heap"]
+        }
+        for side in 0..<2 {
+            let available = side == 0 ? bounds.minX-viewport.minX : viewport.maxX-bounds.maxX
+            guard available >= 24 else { continue }
+            let count = max(2, min(5, Int(ceil(bounds.height/135))))
+            for index in 0..<count {
+                let seed = wave*31+side*13+index*19
+                let h = min(110, max(52,available*1.40)) * (0.88+CGFloat(seed%13)/50)
+                let gap = CGFloat(2+seed%6)
+                let x = side == 0 ? bounds.minX-h/2-gap : bounds.maxX+h/2+gap
+                let fraction = (CGFloat(index)+0.5)/CGFloat(count)
+                let y = bounds.minY+bounds.height*fraction-h/2+CGFloat(seed%35-17)
+                let primary = names[(wave+side+index*3)%names.count]
+                // Existing offscreen authored props may occupy the first
+                // position. Try a short stagger before omitting the group.
+                var placedY: CGFloat? = nil
+                for shift in [CGFloat(0), -h*0.30, h*0.30] {
+                    if add(primary,x: x,y: y+shift,h: h) {
+                        placedY = y+shift
+                        break
+                    }
+                }
+                guard let baseY = placedY else { continue }
+                let small = max(26,min(54,h*0.56))
+                let smallX = side == 0 ? bounds.minX-small/2-2 : bounds.maxX+small/2+2
+                let companionName = companions[(seed+index)%companions.count]
+                let offsets: [CGFloat] = seed.isMultiple(of: 2) ? [h-6,-small+6] : [-small+6,h-6]
+                for offset in offsets {
+                    if add(companionName,x: smallX,y: baseY+offset,h: small,companion: true) { break }
+                }
+            }
+        }
+        #if DEBUG
+        precondition(root.children.filter { $0.name == "biomeExteriorLandmark" }
+            .allSatisfy { !bounds.intersects($0.calculateAccumulatedFrame()) },
+            "Exterior scenery must not enter playable bounds")
+        #endif
+    }
+
     private func updateZoneScenery(_ requestedZone: Int) {
         if worldMapIndex == 0 {
             zoneScenery.removeAllChildren()
@@ -5978,6 +6218,11 @@ final class OutpostScene: SKScene {
                 CGRect(x: $0.x-64, y: $0.y-64, width: 128, height: 128)
             }
             if let debris = worldOneTexture(named: "world2_prop_debris") {
+                // Trim the inspected transparent border from the existing
+                // debris image; reuse a single texture for all fragments.
+                let crop = CGRect(x: 28,y: 24,width: 456,height: 314)
+                let trimmed = SKTexture(rect: crop.applying(CGAffineTransform(scaleX: 1.0/512,y: 1.0/512)), in: debris)
+                trimmed.filteringMode = .linear
                 var occupied: [CGRect] = []
                 func addFragment(x: CGFloat, y: CGFloat, width: CGFloat, facing: Int, angle: CGFloat = 0) {
                     let height = width * 0.65
@@ -5989,25 +6234,38 @@ final class OutpostScene: SKScene {
                           !patches.contains(where: { $0.frame.insetBy(dx: -8, dy: -8).intersects(envelope) }),
                           !reserved.contains(where: { $0.intersects(envelope) }),
                           !occupied.contains(where: { $0.intersects(envelope.insetBy(dx: -12, dy: -12)) }) else { return }
-                    let fragment = SKSpriteNode(texture: debris)
+                    let fragment = SKSpriteNode(texture: trimmed)
                     fragment.name = "toxicGroundFragment"
                     fragment.position = CGPoint(x: x, y: y)
-                    fragment.size = CGSize(width: width, height: height)
+                    let scale = min(width/crop.width,height/crop.height)
+                    fragment.size = CGSize(width: crop.width*scale,height: crop.height*scale)
                     fragment.xScale = CGFloat(facing)
                     fragment.zRotation = angle
-                    fragment.alpha = 0.75
+                    fragment.alpha = 0.94
+                    fragment.color = SKColor(red: 0.37,green: 0.32,blue: 0.20,alpha: 1)
+                    fragment.colorBlendFactor = 0.12
                     fragment.zPosition = -12
+                    let dx = (256-crop.midX)*scale*fragment.xScale
+                    let dy = (32-crop.midY)*scale
+                    let contact = CGPoint(x: x+dx*cos(angle)-dy*sin(angle),
+                                          y: y+dx*sin(angle)+dy*cos(angle))
+                    AuthoredEnvironmentRenderer.installGroundContact(asset: "world2_prop_debris",
+                        position: contact,size: CGSize(width:512*scale,height:512*scale),
+                        zPosition: -12.2,in: root,rotation: angle,mirrored: facing < 0,lowProfile: true)
                     root.addChild(fragment)
                     occupied.append(envelope)
                 }
                 // Tactical rooms retain their verified edge layout.
                 for side in [-1, 1] {
                     for (index, fraction) in [CGFloat(0.12), 0.29, 0.47, 0.65, 0.84].enumerated() {
-                        let width: CGFloat = 30+CGFloat((index+wave)%3)*4
-                        let inset = max(22, width*0.65+1)
+                        // Alternate larger and smaller edge deposits and
+                        // avoid forming identical rows of loose objects.
+                        let width: CGFloat = 34+CGFloat((index*2+wave+side+1)%4)*4
+                        let inset = max(22, width*0.65+1)+CGFloat((index+wave)%3)*3
                         let x = side < 0 ? roomBounds.minX+inset : roomBounds.maxX-inset
-                        let y = roomBounds.minY+roomBounds.height*fraction
-                        addFragment(x: x, y: y, width: width, facing: side)
+                        let y = roomBounds.minY+roomBounds.height*fraction+CGFloat((index*7+wave)%13-6)
+                        addFragment(x: x, y: y, width: width, facing: side,
+                                    angle: CGFloat((index+wave)%5-2)*0.10)
                     }
                 }
                 if expandedArenaPreview {
@@ -6032,6 +6290,7 @@ final class OutpostScene: SKScene {
                     }
                 }
             }
+            installVisibleExterior(in: root, displayWorld: 2)
             zoneScenery.addChild(root)
             return
         case 3?:
@@ -6049,8 +6308,10 @@ final class OutpostScene: SKScene {
             arena.childNode(withName: "campaignExterior")?.removeFromParent()
             arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
             arena.childNode(withName: "roomArtwork")?.isHidden = true
-            zoneScenery.addChild(FrostEnvironment.make(plan,
-                texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            let root = FrostEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) })
+            installVisibleExterior(in: root, displayWorld: 3)
+            zoneScenery.addChild(root)
             return
         case 2?:
             let bounds = roomBounds
@@ -6067,8 +6328,10 @@ final class OutpostScene: SKScene {
             arena.childNode(withName: "campaignExterior")?.removeFromParent()
             arena.childNode(withName: "expandedArenaPreviewGround")?.isHidden = true
             arena.childNode(withName: "roomArtwork")?.isHidden = true
-            zoneScenery.addChild(IronEnvironment.make(plan,
-                texture: { [weak self] in self?.worldOneTexture(named: $0) }))
+            let root = IronEnvironment.make(plan,
+                texture: { [weak self] in self?.worldOneTexture(named: $0) })
+            installVisibleExterior(in: root, displayWorld: 4)
+            zoneScenery.addChild(root)
             return
         default:
             break
@@ -7994,7 +8257,8 @@ final class OutpostScene: SKScene {
             $0.name == "terrain_acid" || $0.name == "terrain_water"
         }
         precondition(liquids.count == roomHazards.filter { $0.kind != .rubble }.count && !liquids.isEmpty)
-        if preview {
+        let recessedLiquid = !legacyEnvironment && (1...3).contains(selectedWorld.id)
+        if preview || recessedLiquid {
             for node in liquids {
                 guard let idle = node.childNode(withName: "dimensionalLiquidIdle") as? SKSpriteNode,
                       let path = node.path, let texture = idle.texture else {
@@ -8049,6 +8313,8 @@ final class OutpostScene: SKScene {
             let fragments = root.children.filter { $0.name == "toxicGroundFragment" }
             let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredToxicRubble") }
             precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            precondition(rubble.allSatisfy { !($0.parent is SKShapeNode) },
+                         "Authored props must not render a collision shape behind the art")
             // Count actual projected sprite-frame intersections, not simply
             // nodes that may be hidden outside the phone's combat viewport.
             let viewport = RoomRules.bounds(for: size)
@@ -8090,6 +8356,8 @@ final class OutpostScene: SKScene {
             let snow = root.children.filter { $0.name == "frostGroundSnow" }
             let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredFrostRubble") }
             precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            precondition(rubble.allSatisfy { !($0.parent is SKShapeNode) },
+                         "Authored props must not render a collision shape behind the art")
             let viewport = RoomRules.bounds(for: size)
             func visible(_ node: SKNode) -> Bool {
                 guard let parent = node.parent else { return false }
@@ -8127,6 +8395,8 @@ final class OutpostScene: SKScene {
             let fragments = root.children.filter { $0.name == "ironGroundDebris" }
             let rubble = hazardScenery.children.compactMap { $0.childNode(withName: "authoredIronRubble") }
             precondition(rubble.count == roomHazards.filter { $0.kind == .rubble }.count)
+            precondition(rubble.allSatisfy { !($0.parent is SKShapeNode) },
+                         "Authored props must not render a collision shape behind the art")
             let viewport = RoomRules.bounds(for: size)
             func visible(_ node: SKNode) -> Bool {
                 guard let parent = node.parent else { return false }
