@@ -487,12 +487,16 @@ enum DimensionalLiquidPreview {
                 cg.setFillColor(high.withAlphaComponent(0.06+random()*0.12).cgColor)
                 cg.fillEllipse(in: CGRect(x: x-rw/2,y: y-rh/2,width: rw,height: rh))
             }
-            // Recessed bank and narrow, restrained surface rim, clipped inward.
+            // Preserve the comparison preview's old dark bank only. The
+            // authored toxic ground already provides the bank material;
+            // painting a continuous dark strip makes acid look like a decal.
             cg.setLineJoin(.round)
-            cg.addPath(path)
-            cg.setLineWidth(12)
-            cg.setStrokeColor(low.withAlphaComponent(0.85).cgColor)
-            cg.strokePath()
+            if shoreline == nil {
+                cg.addPath(path)
+                cg.setLineWidth(12)
+                cg.setStrokeColor(low.withAlphaComponent(0.85).cgColor)
+                cg.strokePath()
+            }
             if acid {
                 // Vary the inward bank thickness and mineral deposits, rather
                 // than tracing a bright, uniform polygon like a UI icon.
@@ -518,7 +522,9 @@ enum DimensionalLiquidPreview {
                         cg.move(to: start)
                         cg.addLine(to: end)
                         cg.setLineWidth(width)
-                        cg.setStrokeColor(bank.withAlphaComponent(0.56+random()*0.32).cgColor)
+                        let bankOpacity = shoreline == .toxic
+                            ? 0.14 + random()*0.20 : 0.56 + random()*0.32
+                        cg.setStrokeColor(bank.withAlphaComponent(bankOpacity).cgColor)
                         cg.strokePath()
                         let radius = max(0.8,unit*(0.008+random()*0.018))
                         cg.setFillColor(mineral.withAlphaComponent(0.25+random()*0.40).cgColor)
@@ -594,8 +600,10 @@ enum DimensionalLiquidPreview {
         let metal = shoreline == .metal
         let toxic = shoreline == .toxic
         let span = min(size.width, size.height)
-        let shallows = metal || toxic ? min(4.5, max(2, span * 0.06))
-                                      : min(7.5, max(2, span * 0.09))
+        // Broad, bounded transition across the inner shoreline. Keep
+        // most of the hazard opaque; small pockets must remain readable.
+        let shallows = min(span * 0.19, min(metal ? 8 : 10,
+                           max(3, span * (toxic ? 0.15 : 0.13))))
         let bank = toxic ? UIColor(red: 0.32, green: 0.27, blue: 0.17, alpha: 1)
                          : metal ? UIColor(red: 0.28, green: 0.23, blue: 0.19, alpha: 1)
                                  : UIColor(red: 0.37, green: 0.47, blue: 0.54, alpha: 1)
@@ -605,7 +613,7 @@ enum DimensionalLiquidPreview {
         for step in (1...8).reversed() {
             cg.addPath(path)
             cg.setLineWidth(2 * shallows * CGFloat(step) / 8)
-            cg.setStrokeColor(bank.withAlphaComponent(0.065).cgColor)
+            cg.setStrokeColor(bank.withAlphaComponent(0.045).cgColor)
             cg.strokePath()
         }
 
@@ -624,34 +632,34 @@ enum DimensionalLiquidPreview {
             let end = start + 0.16 + random() * 0.26
             cg.move(to: CGPoint(x: a.x + dx * start, y: a.y + dy * start))
             cg.addLine(to: CGPoint(x: a.x + dx * end, y: a.y + dy * end))
-            cg.setLineWidth(metal ? 4.2 : 3.3)
-            cg.setStrokeColor(contact.withAlphaComponent(metal ? 0.55 : 0.42).cgColor)
+            cg.setLineWidth(metal ? 2.6 : 2.2)
+            cg.setStrokeColor(contact.withAlphaComponent(metal ? 0.24 : 0.28).cgColor)
             cg.strokePath()
         }
 
         cg.setBlendMode(.destinationOut)
-        for step in (1...12).reversed() {
+        for step in (1...16).reversed() {
             cg.addPath(path)
-            cg.setLineWidth(1.5 * shallows * CGFloat(step) / 12)
-            cg.setStrokeColor(UIColor.black.withAlphaComponent(0.13).cgColor)
+            cg.setLineWidth(2 * shallows * CGFloat(step) / 16)
+            cg.setStrokeColor(UIColor.black.withAlphaComponent(0.19).cgColor)
             cg.strokePath()
         }
 
         // Soft pockets of exposed floor break up straight edges without
         // adding a continuous rim or changing the playable shoreline.
-        let colors = [UIColor.black.withAlphaComponent(0.32).cgColor,
+        let colors = [UIColor.black.withAlphaComponent(0.52).cgColor,
                       UIColor.black.withAlphaComponent(0).cgColor]
         guard let feather = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
                                        colors: colors as CFArray, locations: [0, 1]) else { return }
         for index in vertices.indices {
             let a = vertices[index]
             let b = vertices[(index+1)%vertices.count]
-            let count = max(1, Int(hypot(b.x-a.x, b.y-a.y)/(shallows*2.8)))
+            let count = max(1, Int(hypot(b.x-a.x, b.y-a.y)/(shallows*1.9)))
             for offset in 0..<count {
                 let fraction = (CGFloat(offset) + 0.2 + random()*0.6)/CGFloat(count)
                 let center = CGPoint(x: a.x+(b.x-a.x)*fraction, y: a.y+(b.y-a.y)*fraction)
                 cg.drawRadialGradient(feather, startCenter: center, startRadius: 0,
-                                      endCenter: center, endRadius: shallows*(0.8+random()*0.65),
+                                      endCenter: center, endRadius: shallows*(0.65+random()*0.85),
                                       options: [])
             }
         }
