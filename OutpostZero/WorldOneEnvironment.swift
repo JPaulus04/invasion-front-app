@@ -586,38 +586,30 @@ enum DimensionalLiquidPreview {
                     cg.drawRadialGradient(gradient,startCenter:center,startRadius:0,
                                           endCenter:center,endRadius:radius,options:[])
                 }
-                // The original hazard outline has a long straight edge on
-                // one side. Give that edge irregular dry-material shelves
-                // instead of letting it read as a cut-off liquid sprite.
-                // Dry shelves are outside/under the liquid, never new hazards.
+                // The dry side of the long edge should read as a connected
+                // cut bank, not a row of isolated stones. Build overlapping
+                // tapered material deposits with an irregular outer edge.
                 let straightSide = abs(dx) < max(1,w*0.035) && length > h*0.48
                 guard straightSide else { continue }
-                let shelves = max(2,min(7,Int(ceil(length/12))))
-                for j in 0..<shelves {
-                    let t = (CGFloat(j)+0.28+random()*0.44)/CGFloat(shelves)
+                let sign: CGFloat = (a.x+b.x)/2 >= 0 ? 1 : -1
+                let countBank = max(4,min(18,Int(ceil(length/max(3,pad*0.42)))))
+                for j in 0..<countBank {
+                    let t = (CGFloat(j)+0.5)/CGFloat(countBank)
                     let point = CGPoint(x:a.x+dx*t,y:a.y+dy*t)
-                    let rw = min(pad*0.84,3+random()*pad*0.55)
-                    let rh = min(pad,4+random()*pad*0.55)
-                    let sign: CGFloat = point.x >= 0 ? 1 : -1
+                    let width = pad*(0.50+random()*0.36)
+                    let height = max(length/CGFloat(countBank)*1.65,pad*0.55)
+                    let color = j.isMultiple(of:3) ? palette.1 : palette.0
+                    let opacity: CGFloat = j.isMultiple(of:3) ? 0.32 : 0.48
+                    guard let gradient = CGGradient(colorsSpace:cs,
+                        colors:[color.withAlphaComponent(opacity).cgColor,
+                                color.withAlphaComponent(opacity*0.70).cgColor,
+                                color.withAlphaComponent(0).cgColor] as CFArray,
+                        locations:[0,0.40,1]) else { continue }
                     cg.saveGState()
-                    cg.translateBy(x:point.x+sign*rw*0.40,y:point.y)
-                    cg.rotate(by:(random()-0.5)*0.44)
-                    let shelf = CGMutablePath()
-                    shelf.move(to:CGPoint(x:-rw*0.60,y:-rh*0.52))
-                    shelf.addLine(to:CGPoint(x:rw*0.21,y:-rh*0.76))
-                    shelf.addLine(to:CGPoint(x:rw*0.81,y:-rh*0.20))
-                    shelf.addLine(to:CGPoint(x:rw*0.53,y:rh*0.65))
-                    shelf.addLine(to:CGPoint(x:-rw*0.34,y:rh*0.85))
-                    shelf.closeSubpath()
-                    cg.addPath(shelf)
-                    cg.setFillColor(palette.0.withAlphaComponent(0.30+random()*0.15).cgColor)
-                    cg.fillPath()
-                    cg.move(to:CGPoint(x:-rw*0.34,y:rh*0.85))
-                    cg.addLine(to:CGPoint(x:rw*0.53,y:rh*0.65))
-                    cg.setLineCap(.round)
-                    cg.setLineWidth(0.9)
-                    cg.setStrokeColor(palette.1.withAlphaComponent(0.36).cgColor)
-                    cg.strokePath()
+                    cg.translateBy(x:point.x+sign*width*0.30,y:point.y)
+                    cg.scaleBy(x:width,y:height)
+                    cg.drawRadialGradient(gradient,startCenter:.zero,startRadius:0,
+                                          endCenter:.zero,endRadius:1,options:[])
                     cg.restoreGState()
                 }
             }
@@ -805,8 +797,8 @@ enum DimensionalLiquidPreview {
         let span = min(size.width, size.height)
         // Broad, bounded transition across the inner shoreline. Keep
         // most of the hazard opaque; small pockets must remain readable.
-        let shallows = min(span * 0.19, min(metal ? 8 : 10,
-                           max(3, span * (toxic ? 0.15 : 0.13))))
+        let shallows = min(span * 0.16, min(metal ? 7 : 9,
+                           max(2, span * (toxic ? 0.11 : 0.10))))
         let bank = toxic ? UIColor(red: 0.32, green: 0.27, blue: 0.17, alpha: 1)
                          : metal ? UIColor(red: 0.28, green: 0.23, blue: 0.19, alpha: 1)
                                  : UIColor(red: 0.37, green: 0.47, blue: 0.54, alpha: 1)
@@ -864,6 +856,38 @@ enum DimensionalLiquidPreview {
                 cg.drawRadialGradient(feather, startCenter: center, startRadius: 0,
                                       endCenter: center, endRadius: shallows*(0.65+random()*0.85),
                                       options: [])
+            }
+        }
+
+        // Recessed side wall: feather a narrow dark contact just inside the
+        // true boundary. The connected dry bank supplies the lighter slope.
+        // Keep this broken and shallow so the water does not look outlined.
+        cg.setBlendMode(.normal)
+        let depth = toxic ? UIColor(red:0.12,green:0.16,blue:0.055,alpha:1)
+                          : metal ? UIColor(red:0.045,green:0.075,blue:0.085,alpha:1)
+                                  : UIColor(red:0.055,green:0.13,blue:0.20,alpha:1)
+        guard let shadow = CGGradient(colorsSpace:CGColorSpaceCreateDeviceRGB(),
+            colors:[depth.withAlphaComponent(0.42).cgColor,
+                    depth.withAlphaComponent(0.16).cgColor,
+                    depth.withAlphaComponent(0).cgColor] as CFArray,
+            locations:[0,0.46,1]) else { return }
+        for index in vertices.indices {
+            let a = vertices[index], b = vertices[(index+1)%vertices.count]
+            let dx = b.x-a.x, dy = b.y-a.y
+            let length = hypot(dx,dy)
+            guard length >= 6 else { continue }
+            let count = max(2,min(16,Int(ceil(length/max(3,shallows*1.10)))))
+            for j in 0..<count {
+                let t = (CGFloat(j)+0.25+random()*0.50)/CGFloat(count)
+                let x = a.x+dx*t, y = a.y+dy*t
+                let radius = shallows*(0.68+random()*0.42)
+                cg.saveGState()
+                cg.translateBy(x:x,y:y)
+                cg.rotate(by:atan2(dy,dx))
+                cg.scaleBy(x:1.40,y:0.62)
+                cg.drawRadialGradient(shadow,startCenter:.zero,startRadius:0,
+                                      endCenter:.zero,endRadius:radius,options:[])
+                cg.restoreGState()
             }
         }
     }
