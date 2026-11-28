@@ -586,6 +586,40 @@ enum DimensionalLiquidPreview {
                     cg.drawRadialGradient(gradient,startCenter:center,startRadius:0,
                                           endCenter:center,endRadius:radius,options:[])
                 }
+                // The original hazard outline has a long straight edge on
+                // one side. Give that edge irregular dry-material shelves
+                // instead of letting it read as a cut-off liquid sprite.
+                // Dry shelves are outside/under the liquid, never new hazards.
+                let straightSide = abs(dx) < max(1,w*0.035) && length > h*0.48
+                guard straightSide else { continue }
+                let shelves = max(2,min(7,Int(ceil(length/12))))
+                for j in 0..<shelves {
+                    let t = (CGFloat(j)+0.28+random()*0.44)/CGFloat(shelves)
+                    let point = CGPoint(x:a.x+dx*t,y:a.y+dy*t)
+                    let rw = min(pad*0.84,3+random()*pad*0.55)
+                    let rh = min(pad,4+random()*pad*0.55)
+                    let sign: CGFloat = point.x >= 0 ? 1 : -1
+                    cg.saveGState()
+                    cg.translateBy(x:point.x+sign*rw*0.40,y:point.y)
+                    cg.rotate(by:(random()-0.5)*0.44)
+                    let shelf = CGMutablePath()
+                    shelf.move(to:CGPoint(x:-rw*0.60,y:-rh*0.52))
+                    shelf.addLine(to:CGPoint(x:rw*0.21,y:-rh*0.76))
+                    shelf.addLine(to:CGPoint(x:rw*0.81,y:-rh*0.20))
+                    shelf.addLine(to:CGPoint(x:rw*0.53,y:rh*0.65))
+                    shelf.addLine(to:CGPoint(x:-rw*0.34,y:rh*0.85))
+                    shelf.closeSubpath()
+                    cg.addPath(shelf)
+                    cg.setFillColor(palette.0.withAlphaComponent(0.30+random()*0.15).cgColor)
+                    cg.fillPath()
+                    cg.move(to:CGPoint(x:-rw*0.34,y:rh*0.85))
+                    cg.addLine(to:CGPoint(x:rw*0.53,y:rh*0.65))
+                    cg.setLineCap(.round)
+                    cg.setLineWidth(0.9)
+                    cg.setStrokeColor(palette.1.withAlphaComponent(0.36).cgColor)
+                    cg.strokePath()
+                    cg.restoreGState()
+                }
             }
         }
         let node = SKSpriteNode(texture: SKTexture(image:image))
